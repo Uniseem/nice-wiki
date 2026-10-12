@@ -73,9 +73,15 @@
 | D44 | [多厂商模型接入：渠道 → 模型 → 档位 → 任务](0044-multi-provider-models.md) | ✅ |
 | D45 | [文件结构是契约：改结构必须先询问](0045-file-structure-contract.md) | ✅ |
 | D46 | [长期记忆：独立模块，统一维护，按需取用](0046-long-term-memory.md) | ✅ |
+| D47 | [翻译流水线：小批次、逐级降级、翻译记忆、术语抽取](0047-translation-pipeline.md) | ✅ |
+| D48 | [长期记忆的细化：单条上限、说明、只读、逐条判断](0048-memory-refinements.md) | ✅ |
+| D49 | [回答缓存的细化：两层匹配、默认 AI 判断、分区与校准](0049-answer-cache-refinements.md) | ✅ |
+| D50 | [防滥用的细化：明确上限、按花费限流、验证备用方案、对话自动压缩](0050-abuse-limits-and-compaction.md) | ✅ |
+| D51 | [借用代码与依赖的选择](0051-borrowed-code-and-dependencies.md) | ✅ |
+| D52 | [实施阶段的顺序：先 AI 问答，再多语言](0052-phase-order.md) | ✅ |
+| D53 | [档位和任务的模型分配只有超管能改](0053-tier-assignment-superadmin.md) | ✅ |
+| D54 | [公开页面的标题不折叠](0054-no-heading-folding.md) | ✅ |
 
 ## 待讨论
 
-- 公开页面上的标题能否折叠（小问题，实现时再定）
-- 实施阶段的顺序：先做 AI 问答还是先做多语言
-- 文件结构设计中顺带定下的小决定，除第 4 条外待用户过目（见 structure/README.md）
+（暂无。下一步：编写实施计划 `docs/plan.md`。）

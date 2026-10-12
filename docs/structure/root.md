@@ -12,6 +12,7 @@
 | `README.md` | 给人看的项目介绍：功能、文档索引、本地开发、许可证 |
 | `CHANGELOG.md` | 每个版本对使用者来说有什么变化，发布版本时追加 |
 | `LICENSE` | AGPL-3.0 全文 |
+| `THIRD_PARTY_NOTICES.md` | 借用的外部代码汇总：来自哪个项目、哪些文件、原许可证和版权声明（D51） |
 | `Makefile` | 统一的命令入口，见下表 |
 | `.gitignore` | 忽略依赖目录、构建产物、本地的 `data/`、`.env` |
 | `.gitattributes` | 统一换行符；生成的代码文件标记为 `linguist-generated`，在 GitHub 上默认折叠它们的 diff |

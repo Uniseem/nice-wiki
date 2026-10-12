@@ -10,7 +10,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 
 | 层 | 包 | 可以导入 |
 |---|---|---|
-| 0 基础 | `fsutil` `textutil` `doc` `geoip` `prompts` `aitask` | 只能导入标准库和第三方库 |
+| 0 基础 | `fsutil` `textutil` `doc` `geoip` `prompts` `aitask` `fracindex` | 只能导入标准库和第三方库 |
 | 1 基础设施 | `config` `datadir` `store` `jobs` `history` `llm` `httpx` | 第 0 层；`store` 只能被第 2 层及以上导入 |
 | 2 业务 | `auth` `settings` `memory` `content` `assets` `videoembed` `i18n/...` `ai/...` `stats` `backup` `setup` | 第 0、1 层；业务包之间需要协作时，由使用方定义接口，在 `app` 里注入实现，不直接互相导入（例外见下） |
 | 3 对外 | `api` `site` `webui` | 第 0–2 层 |
@@ -57,6 +57,12 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | 文件 | 用途 |
 |---|---|
 | `atomic.go` | 原子写文件：先写临时文件再替换，供所有写 JSON 配置和文档文件的地方使用 |
+
+## internal/fracindex —— 分数索引（第 0 层）
+
+| 文件 | 用途 |
+|---|---|
+| `fracdex.go` | 从 rocicorp/fracdex 复制的分数索引实现（CC0，公有领域），用于文档树的同级排序。文件开头注明出处 |
 
 ## internal/textutil —— 文本工具（第 0 层）
 
@@ -123,25 +129,28 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `describe-image.md` | 图片、画板、视频封面的描述（同时用作默认的替代文字） |
 | `describe-attachment.md` | 附件的完整描述 |
 | `describe-video.md` | 平台视频：根据公开信息生成描述 |
-| `translate-blocks.md` | 文档翻译：按块 ID 返回译文，保留占位标签，遵守术语表 |
+| `translate-blocks.md` | 文档翻译：整篇原文作上下文，只翻译标签圈出的块，按块 ID 返回译文，保留占位标签，遵守术语表 |
+| `extract-terms.md` | 自动术语抽取：从文档中抽取关键术语并给出目标语言的译法 |
+| `translate-review.md` | 反思润色：对照原文给出修改意见并改写译文 |
 | `translate-strings.md` | 站点设置文字和界面文字的翻译 |
 | `site-summary.md` | 生成记忆里的"项目概述"条目 |
-| `memory-assistant.md` | 记忆助手：整理成精简的条目、词条写进术语表、按语言分条目、不存敏感信息、控制每个任务 5KB 以内 |
+| `memory-assistant.md` | 记忆助手：先提炼要点，再逐条判断新增、更新、删除或不变；词条写进术语表；按语言分条目；不改只读条目；不存敏感信息；控制单条和每个任务的大小 |
 | `slug.md` | 根据标题生成英文路径名 |
 | `seo-description.md` | 根据正文生成 SEO 描述 |
 | `language-suggest.md` | 根据访客信号判断建议语言 |
+| `compact-conversation.md` | 对话压缩：把较早的对话压成摘要，或在原有摘要上更新 |
 
 ## internal/aitask —— AI 任务清单（第 0 层）
 
 | 文件 | 用途 |
 |---|---|
-| `tasks.go` | 所有用到模型的任务清单（唯一定义处）：任务名称、默认档位、默认取用的记忆条目。`llm`（选模型）和 `memory`（取记忆）共用 |
+| `tasks.go` | 所有用到模型的任务清单（唯一定义处）：任务名称、默认档位、默认取用的记忆条目、默认的输出上限。`llm`（选模型）和 `memory`（取记忆）共用 |
 
 ## internal/geoip —— IP 归属地（第 0 层）
 
 | 文件 | 用途 |
 |---|---|
-| `geoip.go` | 查询 IP 所属国家（读取 DB-IP Lite 的 mmdb 文件） |
+| `geoip.go` | 查询 IP 所属国家：用 maxminddb-golang 读取 DB-IP Lite 的 mmdb 文件 |
 | `update.go` | 每月下载新版数据库到 `data/cache/geoip/`。DB-IP Lite 是 CC BY 4.0 许可，站点页脚需要注明数据来源 |
 
 ## internal/config —— 配置（第 1 层）
@@ -175,7 +184,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 |---|---|
 | `0001_auth.sql` | 登录会话、登录失败记录、操作日志 |
 | `0002_content.sql` | 文档索引、块、资源文件、资源引用关系 |
-| `0003_jobs.sql` | 后台任务队列 |
+| `0003_jobs.sql` | 任务合并标记（同一篇文档的重复任务只保留一个）。任务本身的表由 Backlite 自己创建 |
 | `0004_search.sql` | 检索单元、单元与块的对应、向量、关键词全文索引（FTS5）、图片和附件描述的缓存 |
 | `0005_qa.sql` | 对话、问答记录、反馈、回答缓存、各语言的缓存回答、精选回答 |
 | `0006_llm.sql` | 模型调用用量与花费、语言判断结果的缓存、模型目录缓存、调试台的中间结果 |
@@ -192,9 +201,9 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 
 | 文件 | 用途 |
 |---|---|
-| `kinds.go` | 所有任务类型的名称常量（唯一定义处）：建索引、翻译、生成描述、抓视频信息、项目概述更新、目录更新、GeoIP 更新、备份、过期清理、统计汇总、全量重建索引、全站翻译 |
-| `queue.go` | 基于 SQLite 的任务队列：投递、领取、失败重试与退避、查询进度 |
-| `worker.go` | 任务执行器：并发控制，按类型分发给注册的处理函数 |
+| `kinds.go` | 所有任务类型的名称常量和各自的队列配置（重试次数、退避、超时、并发）（唯一定义处）：建索引、翻译、生成描述、抓视频信息、项目概述更新、目录更新、GeoIP 更新、备份、过期清理、统计汇总、全量重建索引、全站翻译 |
+| `queue.go` | 封装 Backlite（D51）：启动时安装它的表；投递任务前检查合并标记，同一篇文档的重复任务合并成一个；查询任务进度供后台显示 |
+| `worker.go` | 把各任务类型的处理函数注册到 Backlite，并在任务结束时清除合并标记 |
 | `schedule.go` | 定时任务：按计划投递任务 |
 
 ## internal/history —— 版本历史（第 1 层）
@@ -269,8 +278,8 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `site.go` | 站点名称、logo、网站图标、主题色、页脚（版权、链接、备案号、数据来源署名、源代码链接）、默认分享图 |
 | `home.go` | 首页主视觉：主标题、背景字、副标题、按钮、背景类型和文件、遮罩、文字颜色 |
 | `banner.go` | 公告横幅：文字、链接、起止时间 |
-| `languages.go` | 基准语言、已启用的语言 |
-| `ai.go` | 档位和任务的模型分配、缓存配置、防滥用配置 |
+| `languages.go` | 基准语言、已启用的语言；各语言的反思润色开关；翻译批次大小、翻译记忆的长度门槛 |
+| `ai.go` | 档位和任务的模型分配、缓存配置、防滥用配置（各项上限、按花费限流的开关和数值）、对话压缩的设置 |
 
 ## internal/setup —— 初始化（第 2 层）
 
@@ -285,7 +294,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 |---|---|
 | `docfile.go` | 文档文件的格式：元数据（标题、路径名、SEO 描述、分享图、同级排序位置、格式版本号）+ 正文 |
 | `repo.go` | 读写 `data/docs/` 下的文档文件 |
-| `tree.go` | 文档树：父子关系、同级排序（分数索引，移动一篇只改它自己的文件）、移动 |
+| `tree.go` | 文档树：父子关系、同级排序（用 `fracindex` 的分数索引，移动一篇只改它自己的文件）、移动 |
 | `drafts.go` | 草稿：自动保存到 `data/drafts/`，用版本号检测冲突 |
 | `publish.go` | 发布：校验 → 首次发布时生成路径名和 SEO 描述 → 写入正文 → 更新索引 → git 提交 → 投递后续任务 |
 | `unpublish.go` | 撤回发布 |
@@ -324,17 +333,22 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | 文件 | 用途 |
 |---|---|
 | `languages.go` | 内置语言清单：代码、本地名称、书写方向、匹配别名（如 `zh-TW` → 繁体） |
-| `accept.go` | 解析 `Accept-Language`，匹配已启用的语言 |
+| `accept.go` | 解析 `Accept-Language`，匹配已启用的语言：用 `golang.org/x/text/language` 的 Matcher，不自己写匹配规则 |
 
 ### internal/i18n/translate —— 翻译流水线
 
 | 文件 | 用途 |
 |---|---|
-| `pipeline.go` | 文档翻译任务：找出需要翻译的块 → 分批调用模型 → 校验 → 写入译文文件 |
+| `pipeline.go` | 文档翻译任务：找出要翻译的块 → 翻译记忆复用 → 首次翻译时抽取术语 → 分批 → 逐批翻译 → 校验与降级 → 术语检查 → 可选的反思润色 → 写入（D47） |
+| `batch.go` | 按预估输出量分批（默认约 1000 token，可调）：只在块边界切、各批均衡、优先在标题处切；超大的块按行拆开 |
+| `reuse.go` | 翻译记忆：原文哈希相同且长度达到门槛（默认 20 字）的块，复用已有译文 |
+| `terms.go` | 自动术语抽取：首次翻译某文档到某语言前抽取术语，写入全站术语表（来源标记为自动） |
+| `check.go` | 术语表符合度检查：不符合时带提醒重译一次，仍不符合则标记待复核 |
+| `review.go` | 可选的反思润色：按语言开启，默认关闭 |
 | `inline.go` | 行内格式 ↔ 带编号的占位标签，链接地址和行内代码不交给模型 |
-| `validate.go` | 校验译文：块 ID 齐全、占位标签完整 |
+| `validate.go` | 校验译文：块 ID 齐全、占位标签完整、译文不等于原文；不通过时对半切分重试，再逐块翻译；撞到长度上限时减少上下文 |
 | `files.go` | 读写 `data/i18n/<语言>/<文档ID>.json`：译文、原文哈希、来源（机器 / 人工）、状态 |
-| `glossary.go` | 术语表 `data/i18n/glossary.json` |
+| `glossary.go` | 术语表 `data/i18n/glossary.json`：词条来源（手动 / 自动）、手动优先、按来源筛选和整批撤销、只取原文中出现的词条 |
 | `strings.go` | 站点设置文字（`_site.json`）和界面文字（`_ui.json`）的翻译 |
 | `status.go` | 每种语言的翻译进度、待复核的人工译文；同步到数据库的状态索引 |
 | `estimate.go` | 启用新语言、全站重新翻译之前的费用预估 |
@@ -371,7 +385,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `fuse.go` | RRF 合并两路召回 |
 | `rerank.go` | 重排：使用重排档；没有配置时由快速档模型代替 |
 | `retriever.go` | 检索员：召回 → 重排 → 核查，最多 2–3 轮 |
-| `tools.go` | 检索员可以调用的工具：补充检索、读取所在小节 |
+| `tools.go` | 检索员可以调用的工具：补充检索、读取所在小节、查看文档目录树（参考 PageIndex，D51） |
 | `section.go` | 把命中的块扩展到它所在的小节 |
 
 ### internal/ai/qa —— 问答流程
@@ -379,12 +393,13 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | 文件 | 用途 |
 |---|---|
 | `service.go` | 问答总流程：防滥用 → 前置模型 → 查缓存 → 并行检索 → 组装 → 回答 → 记录 |
-| `router.go` | 前置模型：分类、风险判断、改写、拆分子问题 |
+| `router.go` | 前置模型：分类、风险判断、改写、拆分子问题、判断改写后的问题是否意思完整（决定能否使用缓存） |
 | `pagecontext.go` | 感知当前页面：从文档页提问时，把当前文档作为优先参考 |
 | `assemble.go` | 组装材料：去重、扩展到小节、按文档顺序排列、优先取访客语言的译文 |
 | `answer.go` | 聪明模型生成回答，标注块引用 |
 | `events.go` | 流式事件的类型：进度、文字片段、引用、完成、错误 |
 | `conversations.go` | 服务端保存对话；访客清空；保留期 |
+| `compact.go` | 对话的自动压缩：照抄 opencode 的机制和默认值，接近上下文上限时把较早的对话压成摘要并增量更新，输入太长被拒绝时压缩后重试一次 |
 | `records.go` | 问答记录；保留期清理 |
 | `feedback.go` | "有帮助 / 没帮助" |
 | `debug.go` | 调试台：记录并返回每一步的中间结果、花费、耗时 |
@@ -393,9 +408,10 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 
 | 文件 | 用途 |
 |---|---|
-| `lookup.go` | 两种命中方式：相似度阈值、AI 判断 |
+| `lookup.go` | 精确匹配（问题规范化后的哈希，对话第一问在前置模型之前就匹配）；语义匹配的两种方式：AI 判断（默认）、相似度阈值；只处理意思完整的问题 |
 | `store.go` | 写入缓存，按语言分别保存回答 |
-| `invalidate.go` | 失效：过期、引用的块内容变化、无引用的回答在任何发布之后失效 |
+| `invalidate.go` | 失效：过期、引用的块内容变化、无引用的回答在任何发布之后失效、更换嵌入模型时整体清空、记忆版本变化 |
+| `calibrate.go` | 指标与校准：命中率、疑似误命中（缓存回答被点"没帮助"）、根据相似度分布给出阈值建议 |
 | `translate.go` | 命中时翻译成访客的语言并保存 |
 | `curated.go` | 精选回答：不过期，命中时优先 |
 
@@ -404,11 +420,13 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | 文件 | 用途 |
 |---|---|
 | `turnstile.go` | 校验 Turnstile：无感验证和交互式挑战 |
+| `pow.go` | 工作量证明：Turnstile 加载失败时的备用验证，出题、校验、可疑时提高难度（D50） |
+| `limits.go` | 各项上限：问题长度、子问题数量、检索轮数和工具调用次数、每个会话同时只处理一个问题；按次数的频率限制用 go-limiter（D50、D51） |
 | `session.go` | 问答会话的签名 cookie |
 | `checks.go` | 程序检查：提问频率、和最近问题的重复度、请求间隔是否规律 |
 | `risk.go` | 综合程序检查和前置模型的判断，得出风险等级 |
 | `bans.go` | IP 封禁 10 分钟（IPv6 按 /64）；手动解封 |
-| `budget.go` | 整站每日花费上限 |
+| `budget.go` | 花费限制：整站每日上限；每个会话、每个 IP 每小时的上限（可以整体关闭） |
 | `events.go` | 可疑事件记录 |
 
 ### internal/ai/meta
@@ -424,13 +442,13 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 
 | 文件 | 用途 |
 |---|---|
-| `items.go` | 记忆条目的结构：标题、说明、适用语言、来源（手动 / 助手 / 自动）；内置条目清单 |
+| `items.go` | 记忆条目的结构：标题、说明、适用语言、来源（手动 / 助手 / 自动）、单条上限（默认 1.5KB）、是否只读；内置条目清单 |
 | `store.go` | 读写 `data/memory/*.md`（含开头的元数据），修改后提交到 data 的 git 仓库 |
 | `mapping.go` | 每个任务取用哪些条目（`data/memory/_tasks.json`），默认值来自 `aitask` |
-| `inject.go` | 按任务（和目标语言）拼出要注入的记忆文本，并给出版本号（供缓存判断用） |
-| `budget.go` | 计算每个任务的注入量，超过 5KB 时拒绝保存并指出是哪个任务 |
+| `inject.go` | 按任务（和目标语言）拼出要注入的记忆文本，每个条目前带上它的说明；给出版本号（供缓存判断用） |
+| `budget.go` | 检查单个条目是否超过它的上限、每个任务的注入总量是否超过 5KB，超出时拒绝保存并指出原因 |
 | `assistant.go` | 记忆助手：对话、可调用的工具（读写条目、写术语表、查看注入量） |
-| `proposals.go` | 助手提出的修改：生成差异、等待确认、确认后写入 |
+| `proposals.go` | 助手提出的修改：逐条标记为新增、更新、删除、不变，生成差异，等待确认后写入；只读条目不能被修改 |
 | `overview.go` | 定期更新自动维护的"项目概述"条目；手动修改过的不覆盖 |
 
 ## internal/stats —— 访问统计（第 2 层）
@@ -489,7 +507,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | 文件 | 接口 |
 |---|---|
 | `public_ask.go` | 问答（SSE 流式）、清空对话、读取对话 |
-| `public_session.go` | 用 Turnstile 结果换取问答会话 |
+| `public_session.go` | 用 Turnstile 或工作量证明的结果换取问答会话；下发工作量证明的题目 |
 | `public_feedback.go` | 回答反馈 |
 | `public_locale.go` | 语言切换建议 |
 | `public_beacon.go` | 浏览统计 |
@@ -513,7 +531,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `ask.go` | 独立问答页 |
 | `errors.go` | 404、410 页面 |
 | `preview.go` | 草稿预览（需要登录，页面带 `noindex`） |
-| `markdown.go` | 每个页面的 `.md` 版本 |
+| `markdown.go` | 每个页面的 `.md` 版本；HTML 页面的响应头里加上 `Link` 指向它（llms.txt 规范的建议） |
 | `llms.go` | `llms.txt`、各语言的 `llms.txt` 和 `llms-full.txt` |
 | `sitemap.go` | sitemap 总索引和各语言的 sitemap |
 | `robots.go` | `robots.txt`（明确允许 AI 爬虫） |
@@ -534,6 +552,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `partials/toc.html` | 本页目录 |
 | `partials/prevnext.html` | 上一篇、下一篇 |
 | `partials/footer.html` | 页脚 |
+| `partials/untranslated.html` | 页面顶部的"部分内容尚未翻译"提示 |
 | `partials/island.html` | Vue 组件挂载点的通用写法 |
 
 ## internal/webui —— 前端产物（第 3 层）

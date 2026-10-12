@@ -75,6 +75,7 @@
 |---|---|
 | `ui/` | **[生成]** shadcn-vue 组件，通过它的命令行工具添加。添加新组件也属于结构变动，要先询问用户 |
 | `lib/utils.ts` | shadcn-vue 需要的 `cn` 等辅助函数 |
+| `lib/fractional-indexing.ts` | 从 rocicorp/fractional-indexing 复制的分数索引（CC0），和 Go 端的 `fracindex` 算法一致，供拖拽排序时在前端预先计算。文件开头注明出处 |
 | `i18n/messages.zh-Hans.json` | 公开站点界面文字的原文（开发者维护）。其他语言由翻译流程生成，保存在 `data/i18n/<语言>/_ui.json`，由 Go 注入页面 |
 | `i18n/t.ts` | 读取页面注入的界面文字，提供取文字的函数 |
 
@@ -125,7 +126,8 @@
 | `ProgressSteps.vue` | 回答过程中显示进度，例如"正在查找……找到 3 篇相关文章" |
 | `ChatInput.vue` | 输入框 |
 | `FeedbackButtons.vue` | "有帮助 / 没帮助" |
-| `TurnstileGate.vue` | 人机验证：平时无感；判定为可疑时显示交互式挑战，并说明原因 |
+| `TurnstileGate.vue` | 人机验证：平时无感；判定为可疑时显示交互式挑战，并说明原因；Turnstile 加载失败时自动改用工作量证明 |
+| `pow-worker.ts` | 工作量证明的计算，放在 Web Worker 里运行，不卡页面 |
 | `BanNotice.vue` | 被封禁时的提示：原因和恢复时间 |
 
 ## src/admin —— 后台
@@ -159,7 +161,7 @@
 | `useEditLock.ts` | 编辑锁：获取、心跳、被强制释放时切换为只读 |
 | `useAutosave.ts` | 草稿自动保存，处理版本冲突 |
 | `useUpload.ts` | 上传文件并显示进度 |
-| `useImageVariants.ts` | 在浏览器里把图片压缩成几种宽度的 WebP |
+| `useImageVariants.ts` | 用 browser-image-compression（在 Web Worker 里运行）把图片压缩成几种宽度的 WebP |
 | `useVideoPoster.ts` | 在浏览器里截取视频的一帧作为封面 |
 | `useCostEstimate.ts` | 先请求费用预估，确认后再执行 |
 | `useJobProgress.ts` | 轮询后台任务的进度 |
@@ -227,7 +229,7 @@
 | `i18n/TranslationEditView.vue` | 原文和译文对照编辑 | 管理译文 |
 | `i18n/GlossaryView.vue` | 术语表 | 管理译文 |
 | `ai/ChannelsView.vue` | 模型渠道：增删改、密钥、测试连接、启用模型 | 超管 |
-| `ai/TiersView.vue` | 档位和任务的模型分配、重建索引 | AI 设置 |
+| `ai/TiersView.vue` | 档位和任务的模型分配、重建索引 | 超管 |
 | `ai/QaRecordsView.vue` | 问答记录、设为精选回答 | 问答管理 |
 | `ai/QaCacheView.vue` | 回答缓存的设置 | 问答管理 |
 | `ai/QaDebugView.vue` | 问答调试台 | AI 设置 |
