@@ -71,8 +71,10 @@
 | D42 | [提交中不得包含隐私信息（硬性规定）](0042-no-private-info-in-commits.md) | ✅ |
 | D43 | [仓库公开，许可证 AGPL-3.0](0043-public-repository.md) | ✅ |
 | D44 | [多厂商模型接入：渠道 → 模型 → 档位 → 任务](0044-multi-provider-models.md) | ✅ |
+| D45 | [文件结构是契约：改结构必须先询问](0045-file-structure-contract.md) | ✅ |
 
 ## 待讨论
 
 - 公开页面上的标题能否折叠（小问题，实现时再定）
 - 实施阶段的顺序：先做 AI 问答还是先做多语言
+- 文件结构设计中顺带定下的小决定，除第 4 条外待用户过目（见 structure/README.md）

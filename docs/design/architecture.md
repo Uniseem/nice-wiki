@@ -75,47 +75,6 @@
 - `drafts/`：草稿频繁变化，没必要记录。
 - `assets/`：文件内容不会变，按 sha256 命名，单独备份更合适。
 
-## 仓库布局（规划）
+## 仓库布局
 
-```
-nice-wiki/
-├── AGENTS.md                  # 给 AI 编程助手的总说明（见 engineering.md）
-├── CLAUDE.md                  # 只有一行：@AGENTS.md
-├── STATUS.md                  # 当前状态快照
-├── CHANGELOG.md               # 版本更新日志
-├── Makefile                   # 统一命令入口：dev / test / check / eval ……
-├── api/
-│   └── openapi.yaml           # 前后端接口定义，唯一依据（D39）
-├── server/                    # Go 后端（一个 Go module，路径 nice-wiki）
-│   ├── AGENTS.md / CLAUDE.md
-│   ├── cmd/nice-wiki/         # 程序入口
-│   └── internal/
-│       ├── store/             # 文件存储 + SQLite 索引
-│       ├── doc/               # Tiptap JSON：拆块，渲染 HTML、纯文本、Markdown
-│       ├── site/              # 公开页面（Go 模板）
-│       ├── api/               # JSON 接口（由 openapi.yaml 生成的接口 + 实现）
-│       ├── auth/              # 账号、会话、权限、编辑锁
-│       ├── ai/                # 问答、检索、缓存、防滥用
-│       ├── llm/               # 模型渠道：各协议的适配器、档位、计费、模型目录
-│       ├── i18n/              # 翻译流水线、语言判断
-│       ├── history/           # 基于 go-git 的版本记录
-│       ├── jobs/              # 后台任务队列
-│       ├── stats/             # 访问统计
-│       └── webui/dist/        # 前端构建产物（嵌入程序，不纳入 git）
-├── web/                       # Vue 3 前端（一个 Vite 项目）
-│   ├── AGENTS.md / CLAUDE.md
-│   └── src/
-│       ├── admin/             # 后台单页应用
-│       ├── site/              # 公开页面上的 Vue 组件
-│       └── shared/            # 两边共用：块样式、Tiptap 扩展定义、生成的 API 客户端
-├── fixtures/                  # 前后端共用的样例文档和期望输出（D38）
-├── evals/                     # AI 问答评测题集与结果
-└── docs/
-    ├── plan.md                # 实施计划：阶段、任务、验收标准
-    ├── adr/                   # 决策记录，一条一个文件
-    ├── design/                # 设计文档
-    ├── playbooks/             # 操作手册：新增块类型、新增接口、push……
-    └── push-log/              # 过程记录，以 push 为单位
-```
-
-各个 Go 包是按职责做的初步划分，写代码时再按实际情况调整。
+精确到每个文件的用途，见 [docs/structure/](../structure/README.md)（D45）。
