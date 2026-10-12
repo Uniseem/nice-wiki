@@ -228,11 +228,12 @@
 | `i18n/GlossaryView.vue` | 术语表 | 管理译文 |
 | `ai/ChannelsView.vue` | 模型渠道：增删改、密钥、测试连接、启用模型 | 超管 |
 | `ai/TiersView.vue` | 档位和任务的模型分配、重建索引 | AI 设置 |
-| `ai/AnswerStyleView.vue` | 回答风格 | AI 设置 |
 | `ai/QaRecordsView.vue` | 问答记录、设为精选回答 | 问答管理 |
 | `ai/QaCacheView.vue` | 回答缓存的设置 | 问答管理 |
 | `ai/QaDebugView.vue` | 问答调试台 | AI 设置 |
-| `ai/GuardView.vue` | 防滥用：封禁列表、可疑事件、站点概述 | AI 设置 |
+| `ai/GuardView.vue` | 防滥用：封禁列表、可疑事件 | AI 设置 |
+| `memory/MemoryView.vue` | 长期记忆：左边是条目列表（大小、被哪些任务取用），右边是记忆助手对话；修改以差异形式确认 | AI 记忆 |
+| `memory/MemoryTasksView.vue` | 各任务取用哪些记忆条目，以及各自的注入量 | AI 记忆 |
 | `site/SiteSettingsView.vue` | 站点名称、logo、主题色、页脚 | 站点设置 |
 | `site/HomeHeroView.vue` | 首页主视觉 | 站点设置 |
 | `site/BannerView.vue` | 公告横幅 | 站点设置 |

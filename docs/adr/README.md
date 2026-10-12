@@ -72,6 +72,7 @@
 | D43 | [仓库公开，许可证 AGPL-3.0](0043-public-repository.md) | ✅ |
 | D44 | [多厂商模型接入：渠道 → 模型 → 档位 → 任务](0044-multi-provider-models.md) | ✅ |
 | D45 | [文件结构是契约：改结构必须先询问](0045-file-structure-contract.md) | ✅ |
+| D46 | [长期记忆：独立模块，统一维护，按需取用](0046-long-term-memory.md) | ✅ |
 
 ## 待讨论
 

@@ -69,7 +69,8 @@ data/
 │       ├── <id>.json     某篇文档的译文
 │       ├── _site.json    站点设置文字的译文
 │       └── _ui.json      公开站点界面文字的译文
-├── settings/             [git] site.json  home.json  banner.json  languages.json  ai.json  summary.json
+├── settings/             [git] site.json  home.json  banner.json  languages.json  ai.json
+├── memory/               [git] 长期记忆：每个条目一个 .md，_tasks.json 记录各任务取用哪些条目
 ├── redirects.json        [git] 旧路径的 301 跳转、已删除文档的 410
 ├── drafts/               草稿
 ├── trash/                回收站

@@ -10,16 +10,17 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 
 | 层 | 包 | 可以导入 |
 |---|---|---|
-| 0 基础 | `fsutil` `textutil` `doc` `geoip` `prompts` | 只能导入标准库和第三方库 |
+| 0 基础 | `fsutil` `textutil` `doc` `geoip` `prompts` `aitask` | 只能导入标准库和第三方库 |
 | 1 基础设施 | `config` `datadir` `store` `jobs` `history` `llm` `httpx` | 第 0 层；`store` 只能被第 2 层及以上导入 |
-| 2 业务 | `auth` `settings` `content` `assets` `videoembed` `i18n/...` `ai/...` `stats` `backup` `setup` | 第 0、1 层；业务包之间需要协作时，由使用方定义接口，在 `app` 里注入实现，不直接互相导入（例外见下） |
+| 2 业务 | `auth` `settings` `memory` `content` `assets` `videoembed` `i18n/...` `ai/...` `stats` `backup` `setup` | 第 0、1 层；业务包之间需要协作时，由使用方定义接口，在 `app` 里注入实现，不直接互相导入（例外见下） |
 | 3 对外 | `api` `site` `webui` | 第 0–2 层 |
 | 4 组装 | `app` | 所有包 |
 
 业务层之间允许的直接导入（其他组合一律通过接口）：
-- `ai/*` 可以导入 `content`（读文档和块）、`settings`、`assets`（读描述用的文件）。
-- `i18n/*` 可以导入 `content`、`settings`。
-- `ai/qa` 可以导入 `ai/retrieve`、`ai/cache`、`ai/guard`、`ai/sitesummary`。
+- `ai/*` 可以导入 `content`（读文档和块）、`settings`、`assets`（读描述用的文件）、`memory`（取用记忆）。
+- `i18n/*` 可以导入 `content`、`settings`、`memory`。
+- `ai/qa` 可以导入 `ai/retrieve`、`ai/cache`、`ai/guard`。
+- `memory` 可以导入 `content`（生成项目概述时读文档树）、`i18n/translate`（记忆助手写入术语表）。
 - `setup` 可以导入 `auth`、`settings`、`backup`。
 
 发布文档之后的连锁动作（建索引、翻译、清缓存）一律通过 `jobs` 投递任务，由 `app` 把任务类型和处理函数对接起来。所以 `content` 不需要知道 `ai`、`i18n` 的存在。
@@ -115,7 +116,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `router.md` | 前置模型：问题分类、风险判断、改写成基准语言的完整问题、拆分子问题 |
 | `verify.md` | 检索员核查：挑出真正相关的块，判断是否需要补充检索 |
 | `rerank.md` | 没有重排档时，由快速档模型代替重排 |
-| `answer.md` | 聪明模型：只依据材料回答、标注块引用、拒绝无关请求；拼入后台设置的回答风格 |
+| `answer.md` | 聪明模型：只依据材料回答、标注块引用、拒绝无关请求（记忆由 `memory` 统一注入在最前面） |
 | `cache-judge.md` | 缓存的 AI 判断模式：候选回答能不能直接复用 |
 | `translate-answer.md` | 把缓存里的回答翻译成访客的语言 |
 | `context.md` | 入库时给检索单元补一句背景说明 |
@@ -124,10 +125,17 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `describe-video.md` | 平台视频：根据公开信息生成描述 |
 | `translate-blocks.md` | 文档翻译：按块 ID 返回译文，保留占位标签，遵守术语表 |
 | `translate-strings.md` | 站点设置文字和界面文字的翻译 |
-| `site-summary.md` | 生成站点概述 |
+| `site-summary.md` | 生成记忆里的"项目概述"条目 |
+| `memory-assistant.md` | 记忆助手：整理成精简的条目、词条写进术语表、按语言分条目、不存敏感信息、控制每个任务 5KB 以内 |
 | `slug.md` | 根据标题生成英文路径名 |
 | `seo-description.md` | 根据正文生成 SEO 描述 |
 | `language-suggest.md` | 根据访客信号判断建议语言 |
+
+## internal/aitask —— AI 任务清单（第 0 层）
+
+| 文件 | 用途 |
+|---|---|
+| `tasks.go` | 所有用到模型的任务清单（唯一定义处）：任务名称、默认档位、默认取用的记忆条目。`llm`（选模型）和 `memory`（取记忆）共用 |
 
 ## internal/geoip —— IP 归属地（第 0 层）
 
@@ -174,16 +182,17 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `0007_guard.sql` | IP 封禁、可疑事件 |
 | `0008_i18n.sql` | 译文状态索引（从译文文件派生，供进度统计用） |
 | `0009_stats.sql` | 浏览明细、每日汇总、每日的盐 |
+| `0010_memory.sql` | 记忆助手的对话、待确认的修改提议 |
 
 ### internal/store/queries —— sqlc 查询
 
-和迁移按同样的领域划分，一个领域一个文件：`auth.sql`、`content.sql`、`jobs.sql`、`search.sql`、`qa.sql`、`llm.sql`、`guard.sql`、`i18n.sql`、`stats.sql`。
+和迁移按同样的领域划分，一个领域一个文件：`auth.sql`、`content.sql`、`jobs.sql`、`search.sql`、`qa.sql`、`llm.sql`、`guard.sql`、`i18n.sql`、`stats.sql`、`memory.sql`。
 
 ## internal/jobs —— 后台任务（第 1 层）
 
 | 文件 | 用途 |
 |---|---|
-| `kinds.go` | 所有任务类型的名称常量（唯一定义处）：建索引、翻译、生成描述、抓视频信息、站点概述、目录更新、GeoIP 更新、备份、过期清理、统计汇总、全量重建索引、全站翻译 |
+| `kinds.go` | 所有任务类型的名称常量（唯一定义处）：建索引、翻译、生成描述、抓视频信息、项目概述更新、目录更新、GeoIP 更新、备份、过期清理、统计汇总、全量重建索引、全站翻译 |
 | `queue.go` | 基于 SQLite 的任务队列：投递、领取、失败重试与退避、查询进度 |
 | `worker.go` | 任务执行器：并发控制，按类型分发给注册的处理函数 |
 | `schedule.go` | 定时任务：按计划投递任务 |
@@ -207,7 +216,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `catalog.go` | 模型目录：加载内置快照、每天更新、合并手动覆盖的资料 |
 | `catalog_snapshot.json` | **[生成]** models.dev 数据快照，由 `make catalog` 更新，编译时嵌入 |
 | `models.go` | 模型资料和能力标签（对话、看图、结构化输出、推理、嵌入、重排） |
-| `tiers.go` | 档位和任务的模型解析：任务 → 档位 → 有序的模型列表；分配时的能力检查 |
+| `tiers.go` | 档位和任务的模型解析：任务（来自 `aitask`）→ 档位 → 有序的模型列表；分配时的能力检查 |
 | `client.go` | 统一的调用入口：按任务选模型、失败时切换备用模型、重试与退避、每个渠道的并发上限、超时 |
 | `structured.go` | 结构化输出：原生支持就直接用，否则提示词要求 JSON，再校验并重试 |
 | `cost.go` | 计费：用量 × 单价，或者使用渠道返回的实际金额；写入用量表 |
@@ -245,7 +254,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `register.go` | 系统里没有账号时，注册第一个账号为超管 |
 | `login.go` | 登录；同一账号或同一 IP 连续失败时临时锁定 |
 | `sessions.go` | 登录会话（存在 SQLite）、cookie、退出所有设备 |
-| `permissions.go` | 9 项权限的常量、超管专属操作清单、权限检查函数 |
+| `permissions.go` | 10 项权限的常量、超管专属操作清单、权限检查函数 |
 | `middleware.go` | 要求登录、要求权限、"必须改密码"时只放行改密码接口、检查 `Origin` 防 CSRF |
 | `reset.go` | 启动时和运行中检测 `reset-superadmin.txt`，重置超管密码后删除该文件 |
 | `audit.go` | 写入和查询操作日志 |
@@ -261,8 +270,7 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `home.go` | 首页主视觉：主标题、背景字、副标题、按钮、背景类型和文件、遮罩、文字颜色 |
 | `banner.go` | 公告横幅：文字、链接、起止时间 |
 | `languages.go` | 基准语言、已启用的语言 |
-| `ai.go` | 档位和任务的模型分配、回答风格、缓存配置、防滥用配置 |
-| `summary.go` | 站点概述，以及"已手动修改、不再自动覆盖"的标记 |
+| `ai.go` | 档位和任务的模型分配、缓存配置、防滥用配置 |
 
 ## internal/setup —— 初始化（第 2 层）
 
@@ -403,13 +411,27 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `budget.go` | 整站每日花费上限 |
 | `events.go` | 可疑事件记录 |
 
-### internal/ai/sitesummary 与 internal/ai/meta
+### internal/ai/meta
 
 | 文件 | 用途 |
 |---|---|
-| `sitesummary/summary.go` | 定期生成站点概述；已手动修改时不覆盖 |
 | `meta/slug.go` | 实现 `content` 需要的路径名生成器 |
 | `meta/seo.go` | 实现 `content` 需要的 SEO 描述生成器 |
+
+## internal/memory —— 长期记忆（第 2 层）
+
+独立模块，详见 `docs/design/memory.md`。记忆条目存放在 `data/memory/`，纳入 git。
+
+| 文件 | 用途 |
+|---|---|
+| `items.go` | 记忆条目的结构：标题、说明、适用语言、来源（手动 / 助手 / 自动）；内置条目清单 |
+| `store.go` | 读写 `data/memory/*.md`（含开头的元数据），修改后提交到 data 的 git 仓库 |
+| `mapping.go` | 每个任务取用哪些条目（`data/memory/_tasks.json`），默认值来自 `aitask` |
+| `inject.go` | 按任务（和目标语言）拼出要注入的记忆文本，并给出版本号（供缓存判断用） |
+| `budget.go` | 计算每个任务的注入量，超过 5KB 时拒绝保存并指出是哪个任务 |
+| `assistant.go` | 记忆助手：对话、可调用的工具（读写条目、写术语表、查看注入量） |
+| `proposals.go` | 助手提出的修改：生成差异、等待确认、确认后写入 |
+| `overview.go` | 定期更新自动维护的"项目概述"条目；手动修改过的不覆盖 |
 
 ## internal/stats —— 访问统计（第 2 层）
 
@@ -453,8 +475,9 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 | `admin_video.go` | 识别平台视频链接、抓取公开信息 |
 | `admin_i18n.go` | 语言启用、翻译进度、对照编辑、术语表、费用预估 |
 | `admin_models.go` | 渠道（超管）、模型目录、档位和任务分配、测试连接 |
-| `admin_qa.go` | 问答记录、回答缓存设置、精选回答、调试台、回答风格、重建索引 |
-| `admin_guard.go` | 封禁列表、可疑事件、站点概述 |
+| `admin_qa.go` | 问答记录、回答缓存设置、精选回答、调试台、重建索引 |
+| `admin_guard.go` | 封禁列表、可疑事件 |
+| `admin_memory.go` | 长期记忆：条目的增删改、各任务取用的条目和注入量、记忆助手对话（SSE）、确认或拒绝修改提议 |
 | `admin_settings.go` | 站点设置、首页主视觉、公告横幅 |
 | `admin_system.go` | 系统设置（超管）：可信代理、Turnstile、花费上限、远程仓库 |
 | `admin_backup.go` | 备份、下载、定时备份设置（超管） |
