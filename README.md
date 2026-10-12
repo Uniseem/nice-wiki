@@ -2,7 +2,7 @@
 
 一个 wiki 系统。前端 Vue 3，后端 Go。
 
-> 目前处于设计阶段，所有设计决策记录在 [docs/adr/](docs/adr/README.md)，一条一个文件。
+> 基本规划已完成，尚未开始实现。下一步按 [实施计划](docs/plan.md) 推进；所有设计决策记录在 [docs/adr/](docs/adr/README.md)，一条一个文件。
 
 ## 目录结构
 
@@ -11,6 +11,7 @@ nice-wiki/
 ├── server/   # Go 后端：公开页面渲染、JSON 接口、AI、翻译（待搭建）
 ├── web/      # Vue 3 前端：后台单页应用 + 公开页面上的局部组件（待搭建）
 └── docs/     # 设计文档与决策记录
+    ├── plan.md               # 实施计划：阶段、任务、依赖与验收标准
     ├── adr/                  # 决策记录，一条一个文件，README.md 是索引
     ├── design/               # 各模块的设计文档
     ├── reference/            # 开源参考资料：每个项目一份，README.md 是总结
