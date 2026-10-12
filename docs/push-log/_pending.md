@@ -1,4 +1,4 @@
-# Session notes awaiting cleanup
+# 待整理的会话记录
 
-Notes from each session since the last push are appended below. At push time they are cleaned up into the formal record, and this file is emptied.
+上次 push 之后，每次会话结束时把记录追加在下面；push 时整理进正式的记录文件，然后清空这里。
 
