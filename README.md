@@ -13,6 +13,7 @@ nice-wiki/
 └── docs/     # 设计文档与决策记录
     ├── adr/                  # 决策记录，一条一个文件，README.md 是索引
     ├── design/               # 各模块的设计文档
+    ├── reference/            # 开源参考资料：每个项目一份，README.md 是总结
     └── structure/            # 文件结构：每个文件的用途（改结构必须先询问）
 ```
 
@@ -27,6 +28,7 @@ nice-wiki/
 | [i18n.md](docs/design/i18n.md) | 多语言：翻译流程、语言判断与切换 |
 | [ai-qa.md](docs/design/ai-qa.md) | AI 问答：检索方案、问答记录与缓存 |
 | [ai-guard.md](docs/design/ai-guard.md) | AI 问答防滥用 |
+| [memory.md](docs/design/memory.md) | 长期记忆：统一维护，各功能按需取用 |
 | [ai-models.md](docs/design/ai-models.md) | 模型接入：渠道、档位、任务、计费 |
 | [admin.md](docs/design/admin.md) | 后台功能清单、文档生命周期 |
 | [accounts.md](docs/design/accounts.md) | 后台账号、权限、编辑锁 |

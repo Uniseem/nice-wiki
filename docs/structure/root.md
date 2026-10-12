@@ -87,6 +87,8 @@
 | `adr/README.md` | 决策记录的索引、规则和模板 |
 | `adr/NNNN-<短名>.md` | 每条决策一个文件 |
 | `design/*.md` | 各模块的设计文档 |
+| `reference/README.md` | 开源参考资料的总结：按方向汇总、许可证须知、对设计的改进建议 |
+| `reference/<项目>.md` | 每个参考项目一份说明 |
 | `structure/README.md` | 文件结构的总则、标记说明、数据目录 |
 | `structure/root.md` | 本文件 |
 | `structure/server.md` | Go 后端的文件结构 |
