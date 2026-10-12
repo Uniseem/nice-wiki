@@ -9,11 +9,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
@@ -27,7 +29,10 @@ const (
 
 // Defines values for ChannelInputProtocol.
 const (
-	ChannelInputProtocolOpenai ChannelInputProtocol = "openai"
+	ChannelInputProtocolAnthropic ChannelInputProtocol = "anthropic"
+	ChannelInputProtocolGemini    ChannelInputProtocol = "gemini"
+	ChannelInputProtocolOpenai    ChannelInputProtocol = "openai"
+	ChannelInputProtocolRerank    ChannelInputProtocol = "rerank"
 )
 
 // Defines values for HealthStatus.
@@ -40,6 +45,18 @@ const (
 	Image HomeSettingsBackgroundKind = "image"
 	None  HomeSettingsBackgroundKind = "none"
 	Video HomeSettingsBackgroundKind = "video"
+)
+
+// Defines values for HomeSettingsLinksStyle.
+const (
+	Primary   HomeSettingsLinksStyle = "primary"
+	Secondary HomeSettingsLinksStyle = "secondary"
+)
+
+// Defines values for HomeSettingsTextColor.
+const (
+	Dark  HomeSettingsTextColor = "dark"
+	Light HomeSettingsTextColor = "light"
 )
 
 // Defines values for Permission.
@@ -64,6 +81,17 @@ const (
 	Videos   UploadAssetMultipartBodyKind = "videos"
 )
 
+// AISettings defines model for AISettings.
+type AISettings struct {
+	DailySpendLimit   float32 `json:"dailySpendLimit"`
+	Enabled           bool    `json:"enabled"`
+	ExactCache        bool    `json:"exactCache"`
+	MaxOutputTokens   int     `json:"maxOutputTokens"`
+	MaxQuestionLength int     `json:"maxQuestionLength"`
+	MaxTurns          int     `json:"maxTurns"`
+	SemanticCache     bool    `json:"semanticCache"`
+}
+
 // Account defines model for Account.
 type Account struct {
 	Disabled           bool         `json:"disabled"`
@@ -72,6 +100,13 @@ type Account struct {
 	Permissions        []Permission `json:"permissions"`
 	Superadmin         bool         `json:"superadmin"`
 	Username           string       `json:"username"`
+}
+
+// AskInput defines model for AskInput.
+type AskInput struct {
+	ConversationId string `json:"conversationId"`
+	Page           string `json:"page"`
+	Question       string `json:"question"`
 }
 
 // Asset defines model for Asset.
@@ -96,12 +131,33 @@ type AuditEvent struct {
 	TargetId    string `json:"targetId"`
 }
 
+// BackupInfo defines model for BackupInfo.
+type BackupInfo struct {
+	CreatedAt int64  `json:"createdAt"`
+	Name      string `json:"name"`
+	Size      int64  `json:"size"`
+}
+
+// BackupInput defines model for BackupInput.
+type BackupInput struct {
+	IncludeSecrets bool `json:"includeSecrets"`
+}
+
 // BannerSettings defines model for BannerSettings.
 type BannerSettings struct {
 	Dismissible bool   `json:"dismissible"`
 	Enabled     bool   `json:"enabled"`
+	EndsAt      int64  `json:"endsAt"`
+	StartsAt    int64  `json:"startsAt"`
 	Text        string `json:"text"`
 	Url         string `json:"url"`
+}
+
+// BeaconInput defines model for BeaconInput.
+type BeaconInput struct {
+	Language string `json:"language"`
+	Path     string `json:"path"`
+	Referrer string `json:"referrer"`
 }
 
 // ChangePassword defines model for ChangePassword.
@@ -134,6 +190,20 @@ type ChannelInput struct {
 // ChannelInputProtocol defines model for ChannelInput.Protocol.
 type ChannelInputProtocol string
 
+// ChatTurn defines model for ChatTurn.
+type ChatTurn struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Role      string    `json:"role"`
+	Text      string    `json:"text"`
+}
+
+// Conversation defines model for Conversation.
+type Conversation struct {
+	Id      string     `json:"id"`
+	Summary string     `json:"summary"`
+	Turns   []ChatTurn `json:"turns"`
+}
+
 // CreateAccount defines model for CreateAccount.
 type CreateAccount struct {
 	Password    string       `json:"password"`
@@ -152,6 +222,22 @@ type CreateDocument struct {
 type Credentials struct {
 	Password string `json:"password"`
 	Username string `json:"username"`
+}
+
+// DebugStep defines model for DebugStep.
+type DebugStep struct {
+	Cost     float32 `json:"cost"`
+	Duration int64   `json:"duration"`
+	Input    string  `json:"input"`
+	Name     string  `json:"name"`
+	Output   string  `json:"output"`
+}
+
+// DebugTrace defines model for DebugTrace.
+type DebugTrace struct {
+	Created time.Time   `json:"created"`
+	Id      string      `json:"id"`
+	Steps   []DebugStep `json:"steps"`
 }
 
 // DocMeta defines model for DocMeta.
@@ -196,6 +282,36 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// FeaturedInput defines model for FeaturedInput.
+type FeaturedInput struct {
+	SortKey string `json:"sortKey"`
+	Title   string `json:"title"`
+}
+
+// FeedbackInput defines model for FeedbackInput.
+type FeedbackInput struct {
+	Helpful  bool   `json:"helpful"`
+	RecordId string `json:"recordId"`
+}
+
+// GlossaryTerm defines model for GlossaryTerm.
+type GlossaryTerm struct {
+	DocumentId string `json:"documentId"`
+	Id         string `json:"id"`
+	Language   string `json:"language"`
+	Source     string `json:"source"`
+	SourceText string `json:"sourceText"`
+	TargetText string `json:"targetText"`
+}
+
+// GuardEvent defines model for GuardEvent.
+type GuardEvent struct {
+	Created time.Time `json:"created"`
+	Reason  string    `json:"reason"`
+	Risk    string    `json:"risk"`
+	Scope   string    `json:"scope"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status HealthStatus `json:"status"`
@@ -204,23 +320,63 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HistoryDiff defines model for HistoryDiff.
+type HistoryDiff struct {
+	After  string `json:"after"`
+	Before string `json:"before"`
+}
+
+// HistoryRevision defines model for HistoryRevision.
+type HistoryRevision struct {
+	Author  string    `json:"author"`
+	Hash    string    `json:"hash"`
+	Message string    `json:"message"`
+	Time    time.Time `json:"time"`
+}
+
 // HomeSettings defines model for HomeSettings.
 type HomeSettings struct {
 	BackgroundHash string                     `json:"backgroundHash"`
 	BackgroundKind HomeSettingsBackgroundKind `json:"backgroundKind"`
+	BackgroundText string                     `json:"backgroundText"`
 	Links          []struct {
-		DocumentId string `json:"documentId"`
-		Label      string `json:"label"`
-		Url        string `json:"url"`
+		DocumentId string                 `json:"documentId"`
+		Label      string                 `json:"label"`
+		Style      HomeSettingsLinksStyle `json:"style"`
+		Url        string                 `json:"url"`
 	} `json:"links"`
-	Subtitle                string `json:"subtitle"`
-	Title                   string `json:"title"`
-	TranslateBackgroundText bool   `json:"translateBackgroundText"`
-	VideoPosterHash         string `json:"videoPosterHash"`
+	Overlay                 int                   `json:"overlay"`
+	Subtitle                string                `json:"subtitle"`
+	TextColor               HomeSettingsTextColor `json:"textColor"`
+	Title                   string                `json:"title"`
+	TranslateBackgroundText bool                  `json:"translateBackgroundText"`
+	VideoPosterHash         string                `json:"videoPosterHash"`
 }
 
 // HomeSettingsBackgroundKind defines model for HomeSettings.BackgroundKind.
 type HomeSettingsBackgroundKind string
+
+// HomeSettingsLinksStyle defines model for HomeSettings.Links.Style.
+type HomeSettingsLinksStyle string
+
+// HomeSettingsTextColor defines model for HomeSettings.TextColor.
+type HomeSettingsTextColor string
+
+// JobProgress defines model for JobProgress.
+type JobProgress struct {
+	Kind      string `json:"kind"`
+	Percent   int    `json:"percent"`
+	State     string `json:"state"`
+	SubjectId string `json:"subjectId"`
+}
+
+// LanguageInfo defines model for LanguageInfo.
+type LanguageInfo struct {
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	NativeName string `json:"nativeName"`
+	Rtl        bool   `json:"rtl"`
+}
 
 // LanguageSettings defines model for LanguageSettings.
 type LanguageSettings struct {
@@ -228,9 +384,75 @@ type LanguageSettings struct {
 	Enabled []string `json:"enabled"`
 }
 
+// LanguagesAdmin defines model for LanguagesAdmin.
+type LanguagesAdmin struct {
+	Available []LanguageInfo `json:"available"`
+	Base      string         `json:"base"`
+	Enabled   []string       `json:"enabled"`
+}
+
+// LocaleSignals defines model for LocaleSignals.
+type LocaleSignals struct {
+	Current   string   `json:"current"`
+	Languages []string `json:"languages"`
+	Timezone  string   `json:"timezone"`
+}
+
+// LocaleSuggestion defines model for LocaleSuggestion.
+type LocaleSuggestion struct {
+	Language string `json:"language"`
+	Message  string `json:"message"`
+}
+
 // LockToken defines model for LockToken.
 type LockToken struct {
 	Token string `json:"token"`
+}
+
+// MemoryApplyInput defines model for MemoryApplyInput.
+type MemoryApplyInput struct {
+	Accepted map[string]bool `json:"accepted"`
+}
+
+// MemoryAssistantInput defines model for MemoryAssistantInput.
+type MemoryAssistantInput struct {
+	Conversation string `json:"conversation"`
+	Message      string `json:"message"`
+}
+
+// MemoryItem defines model for MemoryItem.
+type MemoryItem struct {
+	Content     string   `json:"content"`
+	Description string   `json:"description"`
+	Id          string   `json:"id"`
+	Languages   []string `json:"languages"`
+	Limit       int      `json:"limit"`
+	ReadOnly    bool     `json:"readOnly"`
+	Source      string   `json:"source"`
+	Title       string   `json:"title"`
+}
+
+// MemoryProposal defines model for MemoryProposal.
+type MemoryProposal struct {
+	Change               string                 `json:"change"`
+	Id                   string                 `json:"id"`
+	Reason               string                 `json:"reason"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// MemoryTasks defines model for MemoryTasks.
+type MemoryTasks map[string][]string
+
+// ModelInfo defines model for ModelInfo.
+type ModelInfo struct {
+	Capabilities []string `json:"capabilities"`
+	Channel      string   `json:"channel"`
+	Context      int      `json:"context"`
+	Id           string   `json:"id"`
+	InputPrice   float32  `json:"inputPrice"`
+	MaxOutput    int      `json:"maxOutput"`
+	Name         string   `json:"name"`
+	OutputPrice  float32  `json:"outputPrice"`
 }
 
 // MoveDocument defines model for MoveDocument.
@@ -243,6 +465,36 @@ type MoveDocument struct {
 // Permission defines model for Permission.
 type Permission string
 
+// PopularDocument defines model for PopularDocument.
+type PopularDocument struct {
+	Title string `json:"title"`
+	Views int64  `json:"views"`
+}
+
+// PowChallenge defines model for PowChallenge.
+type PowChallenge struct {
+	Challenge  string `json:"challenge"`
+	Difficulty int    `json:"difficulty"`
+}
+
+// ProbeInput defines model for ProbeInput.
+type ProbeInput struct {
+	Model string `json:"model"`
+}
+
+// PublicSession defines model for PublicSession.
+type PublicSession struct {
+	ExpiresAt int64  `json:"expiresAt"`
+	Id        string `json:"id"`
+}
+
+// PublicSessionInput defines model for PublicSessionInput.
+type PublicSessionInput struct {
+	PowChallenge   string `json:"powChallenge"`
+	PowNonce       string `json:"powNonce"`
+	TurnstileToken string `json:"turnstileToken"`
+}
+
 // PublishDocument defines model for PublishDocument.
 type PublishDocument struct {
 	DraftVersion   int64  `json:"draftVersion"`
@@ -252,9 +504,26 @@ type PublishDocument struct {
 	Title          string `json:"title"`
 }
 
+// QARecord defines model for QARecord.
+type QARecord struct {
+	Answer    string    `json:"answer"`
+	Cost      float32   `json:"cost"`
+	CreatedAt time.Time `json:"createdAt"`
+	Id        string    `json:"id"`
+	Language  string    `json:"language"`
+	Question  string    `json:"question"`
+}
+
 // ResetPassword defines model for ResetPassword.
 type ResetPassword struct {
 	Password string `json:"password"`
+}
+
+// RestoreHistory defines model for RestoreHistory.
+type RestoreHistory struct {
+	DraftVersion int64  `json:"draftVersion"`
+	LockToken    string `json:"lockToken"`
+	Revision     string `json:"revision"`
 }
 
 // RuntimeSettings defines model for RuntimeSettings.
@@ -264,6 +533,7 @@ type RuntimeSettings struct {
 	DailySpendLimit  float64  `json:"dailySpendLimit"`
 	GitRemote        string   `json:"gitRemote"`
 	TrustedProxies   []string `json:"trustedProxies"`
+	TurnstileSecret  *string  `json:"turnstileSecret,omitempty"`
 	TurnstileSiteKey string   `json:"turnstileSiteKey"`
 }
 
@@ -283,18 +553,89 @@ type SetupState struct {
 
 // SiteSettings defines model for SiteSettings.
 type SiteSettings struct {
-	BaseURL     string `json:"baseURL"`
-	Description string `json:"description"`
-	Footer      string `json:"footer"`
-	LogoHash    string `json:"logoHash"`
-	Name        string `json:"name"`
-	ThemeColor  string `json:"themeColor"`
+	BaseURL        string `json:"baseURL"`
+	Description    string `json:"description"`
+	Footer         string `json:"footer"`
+	LogoHash       string `json:"logoHash"`
+	Name           string `json:"name"`
+	ShareImageHash string `json:"shareImageHash"`
+	ThemeColor     string `json:"themeColor"`
+}
+
+// StatsSummary defines model for StatsSummary.
+type StatsSummary struct {
+	AiCrawls int64             `json:"aiCrawls"`
+	Popular  []PopularDocument `json:"popular"`
+	Views    int64             `json:"views"`
+	Visitors int64             `json:"visitors"`
+}
+
+// TranslationBlock defines model for TranslationBlock.
+type TranslationBlock struct {
+	Id          string `json:"id"`
+	NeedsReview bool   `json:"needsReview"`
+	Source      string `json:"source"`
+	SourceHash  string `json:"sourceHash"`
+	Text        string `json:"text"`
+}
+
+// TranslationEstimate defines model for TranslationEstimate.
+type TranslationEstimate struct {
+	Characters   int     `json:"characters"`
+	Cost         float32 `json:"cost"`
+	InputTokens  int     `json:"inputTokens"`
+	OutputTokens int     `json:"outputTokens"`
+}
+
+// TranslationEstimateInput defines model for TranslationEstimateInput.
+type TranslationEstimateInput struct {
+	Language string `json:"language"`
+}
+
+// TranslationFile defines model for TranslationFile.
+type TranslationFile struct {
+	Blocks        map[string]TranslationBlock `json:"blocks"`
+	DocumentId    string                      `json:"documentId"`
+	Language      string                      `json:"language"`
+	SchemaVersion int                         `json:"schemaVersion"`
+	UpdatedAt     int64                       `json:"updatedAt"`
+}
+
+// TranslationProgress defines model for TranslationProgress.
+type TranslationProgress struct {
+	Language    string `json:"language"`
+	NeedsReview int    `json:"needsReview"`
+	Percent     int    `json:"percent"`
+	Total       int    `json:"total"`
+	Translated  int    `json:"translated"`
+}
+
+// TrashDocument defines model for TrashDocument.
+type TrashDocument struct {
+	RedirectDocumentId string `json:"redirectDocumentId"`
 }
 
 // UpdateAccount defines model for UpdateAccount.
 type UpdateAccount struct {
 	Disabled    bool         `json:"disabled"`
 	Permissions []Permission `json:"permissions"`
+}
+
+// VideoMetadata defines model for VideoMetadata.
+type VideoMetadata struct {
+	Author       string `json:"author"`
+	Description  string `json:"description"`
+	Duration     int    `json:"duration"`
+	EmbedUrl     string `json:"embedUrl"`
+	Provider     string `json:"provider"`
+	ProviderId   string `json:"providerId"`
+	ThumbnailUrl string `json:"thumbnailUrl"`
+	Title        string `json:"title"`
+}
+
+// VideoResolveInput defines model for VideoResolveInput.
+type VideoResolveInput struct {
+	Url string `json:"url"`
 }
 
 // UploadAssetMultipartBody defines parameters for UploadAsset.
@@ -305,6 +646,22 @@ type UploadAssetMultipartBody struct {
 
 // UploadAssetMultipartBodyKind defines parameters for UploadAsset.
 type UploadAssetMultipartBodyKind string
+
+// DiffDocumentHistoryParams defines parameters for DiffDocumentHistory.
+type DiffDocumentHistoryParams struct {
+	Before string `form:"before" json:"before"`
+	After  string `form:"after" json:"after"`
+}
+
+// ListGlossaryParams defines parameters for ListGlossary.
+type ListGlossaryParams struct {
+	Language *string `form:"language,omitempty" json:"language,omitempty"`
+}
+
+// PrepareRestoreMultipartBody defines parameters for PrepareRestore.
+type PrepareRestoreMultipartBody struct {
+	File openapi_types.File `json:"file"`
+}
 
 // CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
 type CreateAccountJSONRequestBody = CreateAccount
@@ -324,11 +681,20 @@ type LoginJSONRequestBody = Credentials
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = ChangePassword
 
+// CreateBackupJSONRequestBody defines body for CreateBackup for application/json ContentType.
+type CreateBackupJSONRequestBody = BackupInput
+
 // CreateDocumentJSONRequestBody defines body for CreateDocument for application/json ContentType.
 type CreateDocumentJSONRequestBody = CreateDocument
 
+// TrashDocumentJSONRequestBody defines body for TrashDocument for application/json ContentType.
+type TrashDocumentJSONRequestBody = TrashDocument
+
 // SaveDraftJSONRequestBody defines body for SaveDraft for application/json ContentType.
 type SaveDraftJSONRequestBody = SaveDraft
+
+// RestoreDocumentHistoryJSONRequestBody defines body for RestoreDocumentHistory for application/json ContentType.
+type RestoreDocumentHistoryJSONRequestBody = RestoreHistory
 
 // ReleaseLockJSONRequestBody defines body for ReleaseLock for application/json ContentType.
 type ReleaseLockJSONRequestBody = LockToken
@@ -342,8 +708,41 @@ type MoveDocumentJSONRequestBody = MoveDocument
 // PublishDocumentJSONRequestBody defines body for PublishDocument for application/json ContentType.
 type PublishDocumentJSONRequestBody = PublishDocument
 
+// SaveGlossaryTermJSONRequestBody defines body for SaveGlossaryTerm for application/json ContentType.
+type SaveGlossaryTermJSONRequestBody = GlossaryTerm
+
+// SaveLanguagesJSONRequestBody defines body for SaveLanguages for application/json ContentType.
+type SaveLanguagesJSONRequestBody = LanguageSettings
+
+// SaveMemoryJSONRequestBody defines body for SaveMemory for application/json ContentType.
+type SaveMemoryJSONRequestBody = MemoryItem
+
+// AskMemoryAssistantJSONRequestBody defines body for AskMemoryAssistant for application/json ContentType.
+type AskMemoryAssistantJSONRequestBody = MemoryAssistantInput
+
+// ApplyMemoryProposalsJSONRequestBody defines body for ApplyMemoryProposals for application/json ContentType.
+type ApplyMemoryProposalsJSONRequestBody = MemoryApplyInput
+
+// SaveMemoryTasksJSONRequestBody defines body for SaveMemoryTasks for application/json ContentType.
+type SaveMemoryTasksJSONRequestBody = MemoryTasks
+
+// SaveModelJSONRequestBody defines body for SaveModel for application/json ContentType.
+type SaveModelJSONRequestBody = ModelInfo
+
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = ChannelInput
+
+// UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
+type UpdateChannelJSONRequestBody = ChannelInput
+
+// ProbeChannelJSONRequestBody defines body for ProbeChannel for application/json ContentType.
+type ProbeChannelJSONRequestBody = ProbeInput
+
+// FeatureAnswerJSONRequestBody defines body for FeatureAnswer for application/json ContentType.
+type FeatureAnswerJSONRequestBody = FeaturedInput
+
+// SaveAISettingsJSONRequestBody defines body for SaveAISettings for application/json ContentType.
+type SaveAISettingsJSONRequestBody = AISettings
 
 // SaveBannerSettingsJSONRequestBody defines body for SaveBannerSettings for application/json ContentType.
 type SaveBannerSettingsJSONRequestBody = BannerSettings
@@ -360,8 +759,127 @@ type SetBaseLanguageJSONRequestBody = LanguageSettings
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = Credentials
 
+// PrepareRestoreMultipartRequestBody defines body for PrepareRestore for multipart/form-data ContentType.
+type PrepareRestoreMultipartRequestBody PrepareRestoreMultipartBody
+
 // SaveRuntimeJSONRequestBody defines body for SaveRuntime for application/json ContentType.
 type SaveRuntimeJSONRequestBody = RuntimeSettings
+
+// EstimateTranslationJSONRequestBody defines body for EstimateTranslation for application/json ContentType.
+type EstimateTranslationJSONRequestBody = TranslationEstimateInput
+
+// SaveTranslationJSONRequestBody defines body for SaveTranslation for application/json ContentType.
+type SaveTranslationJSONRequestBody = TranslationFile
+
+// ResolveVideoJSONRequestBody defines body for ResolveVideo for application/json ContentType.
+type ResolveVideoJSONRequestBody = VideoResolveInput
+
+// AskJSONRequestBody defines body for Ask for application/json ContentType.
+type AskJSONRequestBody = AskInput
+
+// RecordBeaconJSONRequestBody defines body for RecordBeacon for application/json ContentType.
+type RecordBeaconJSONRequestBody = BeaconInput
+
+// SubmitFeedbackJSONRequestBody defines body for SubmitFeedback for application/json ContentType.
+type SubmitFeedbackJSONRequestBody = FeedbackInput
+
+// SuggestLocaleJSONRequestBody defines body for SuggestLocale for application/json ContentType.
+type SuggestLocaleJSONRequestBody = LocaleSignals
+
+// CreatePublicSessionJSONRequestBody defines body for CreatePublicSession for application/json ContentType.
+type CreatePublicSessionJSONRequestBody = PublicSessionInput
+
+// Getter for additional properties for MemoryProposal. Returns the specified
+// element and whether it was found
+func (a MemoryProposal) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MemoryProposal
+func (a *MemoryProposal) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MemoryProposal to handle AdditionalProperties
+func (a *MemoryProposal) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["change"]; found {
+		err = json.Unmarshal(raw, &a.Change)
+		if err != nil {
+			return fmt.Errorf("error reading 'change': %w", err)
+		}
+		delete(object, "change")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["reason"]; found {
+		err = json.Unmarshal(raw, &a.Reason)
+		if err != nil {
+			return fmt.Errorf("error reading 'reason': %w", err)
+		}
+		delete(object, "reason")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MemoryProposal to handle AdditionalProperties
+func (a MemoryProposal) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["change"], err = json.Marshal(a.Change)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'change': %w", err)
+	}
+
+	object["id"], err = json.Marshal(a.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'id': %w", err)
+	}
+
+	object["reason"], err = json.Marshal(a.Reason)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'reason': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -408,6 +926,12 @@ type ServerInterface interface {
 	// (PUT /api/admin/auth/password)
 	ChangePassword(w http.ResponseWriter, r *http.Request)
 
+	// (GET /api/admin/backups)
+	ListBackups(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/admin/backups)
+	CreateBackup(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/admin/docs)
 	ListDocuments(w http.ResponseWriter, r *http.Request)
 
@@ -422,6 +946,15 @@ type ServerInterface interface {
 
 	// (PUT /api/admin/docs/{id}/draft)
 	SaveDraft(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /api/admin/docs/{id}/history)
+	ListDocumentHistory(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /api/admin/docs/{id}/history/diff)
+	DiffDocumentHistory(w http.ResponseWriter, r *http.Request, id string, params DiffDocumentHistoryParams)
+
+	// (POST /api/admin/docs/{id}/history/restore)
+	RestoreDocumentHistory(w http.ResponseWriter, r *http.Request, id string)
 
 	// (DELETE /api/admin/docs/{id}/lock)
 	ReleaseLock(w http.ResponseWriter, r *http.Request, id string)
@@ -447,11 +980,89 @@ type ServerInterface interface {
 	// (POST /api/admin/docs/{id}/withdraw)
 	WithdrawDocument(w http.ResponseWriter, r *http.Request, id string)
 
+	// (GET /api/admin/glossary)
+	ListGlossary(w http.ResponseWriter, r *http.Request, params ListGlossaryParams)
+
+	// (PUT /api/admin/glossary)
+	SaveGlossaryTerm(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/admin/guard/bans/{key})
+	Unban(w http.ResponseWriter, r *http.Request, key string)
+
+	// (GET /api/admin/guard/events)
+	ListGuardEvents(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/jobs)
+	ListJobs(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/admin/jobs/reindex)
+	RebuildSearchIndex(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/languages)
+	ListLanguages(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/admin/languages)
+	SaveLanguages(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/memory)
+	ListMemory(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/admin/memory)
+	SaveMemory(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/admin/memory/assistant)
+	AskMemoryAssistant(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/admin/memory/assistant/{conversation}/apply)
+	ApplyMemoryProposals(w http.ResponseWriter, r *http.Request, conversation string)
+
+	// (GET /api/admin/memory/tasks)
+	GetMemoryTasks(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/admin/memory/tasks)
+	SaveMemoryTasks(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/models/catalog)
+	ListModels(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/admin/models/catalog)
+	SaveModel(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/admin/models/channels)
 	ListChannels(w http.ResponseWriter, r *http.Request)
 
 	// (POST /api/admin/models/channels)
 	CreateChannel(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/admin/models/channels/{id})
+	DeleteChannel(w http.ResponseWriter, r *http.Request, id string)
+
+	// (PUT /api/admin/models/channels/{id})
+	UpdateChannel(w http.ResponseWriter, r *http.Request, id string)
+
+	// (POST /api/admin/models/channels/{id}/probe)
+	ProbeChannel(w http.ResponseWriter, r *http.Request, id string)
+
+	// (DELETE /api/admin/qa/cache)
+	ClearAnswerCache(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/qa/debug/{id})
+	GetQADebug(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /api/admin/qa/records)
+	ListQARecords(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/admin/qa/records/{id}/featured)
+	UnfeatureAnswer(w http.ResponseWriter, r *http.Request, id string)
+
+	// (PUT /api/admin/qa/records/{id}/featured)
+	FeatureAnswer(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /api/admin/settings/ai)
+	GetAISettings(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/admin/settings/ai)
+	SaveAISettings(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/admin/settings/banner)
 	GetBannerSettings(w http.ResponseWriter, r *http.Request)
@@ -483,17 +1094,65 @@ type ServerInterface interface {
 	// (POST /api/admin/setup/register)
 	Register(w http.ResponseWriter, r *http.Request)
 
+	// (POST /api/admin/setup/restore)
+	PrepareRestore(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/stats)
+	GetStats(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/admin/system)
 	GetRuntime(w http.ResponseWriter, r *http.Request)
 
 	// (PUT /api/admin/system)
 	SaveRuntime(w http.ResponseWriter, r *http.Request)
 
+	// (POST /api/admin/translations/estimate)
+	EstimateTranslation(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/translations/status)
+	TranslationStatus(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/admin/translations/{language}/{id})
+	GetTranslation(w http.ResponseWriter, r *http.Request, language string, id string)
+
+	// (PUT /api/admin/translations/{language}/{id})
+	SaveTranslation(w http.ResponseWriter, r *http.Request, language string, id string)
+
 	// (GET /api/admin/trash)
 	ListTrash(w http.ResponseWriter, r *http.Request)
 
+	// (DELETE /api/admin/trash/{id})
+	PurgeTrash(w http.ResponseWriter, r *http.Request, id string)
+
 	// (POST /api/admin/trash/{id}/restore)
 	RestoreDocument(w http.ResponseWriter, r *http.Request, id string)
+
+	// (POST /api/admin/video/resolve)
+	ResolveVideo(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/public/ask)
+	Ask(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/public/beacon)
+	RecordBeacon(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/public/conversation/{id})
+	ClearConversation(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /api/public/conversation/{id})
+	GetConversation(w http.ResponseWriter, r *http.Request, id string)
+
+	// (POST /api/public/feedback)
+	SubmitFeedback(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/public/locale)
+	SuggestLocale(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/public/pow)
+	GetPowChallenge(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/public/session)
+	CreatePublicSession(w http.ResponseWriter, r *http.Request)
 
 	// (GET /healthz)
 	Healthz(w http.ResponseWriter, r *http.Request)
@@ -748,6 +1407,34 @@ func (siw *ServerInterfaceWrapper) ChangePassword(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// ListBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListBackups(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBackups(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBackup operation middleware
+func (siw *ServerInterfaceWrapper) CreateBackup(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBackup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListDocuments operation middleware
 func (siw *ServerInterfaceWrapper) ListDocuments(w http.ResponseWriter, r *http.Request) {
 
@@ -842,6 +1529,114 @@ func (siw *ServerInterfaceWrapper) SaveDraft(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SaveDraft(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDocumentHistory operation middleware
+func (siw *ServerInterfaceWrapper) ListDocumentHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDocumentHistory(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DiffDocumentHistory operation middleware
+func (siw *ServerInterfaceWrapper) DiffDocumentHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DiffDocumentHistoryParams
+
+	// ------------- Required query parameter "before" -------------
+
+	if paramValue := r.URL.Query().Get("before"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "before", r.URL.Query(), &params.Before)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		return
+	}
+
+	// ------------- Required query parameter "after" -------------
+
+	if paramValue := r.URL.Query().Get("after"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "after", r.URL.Query(), &params.After)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DiffDocumentHistory(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RestoreDocumentHistory operation middleware
+func (siw *ServerInterfaceWrapper) RestoreDocumentHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestoreDocumentHistory(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1051,6 +1846,265 @@ func (siw *ServerInterfaceWrapper) WithdrawDocument(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListGlossary operation middleware
+func (siw *ServerInterfaceWrapper) ListGlossary(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGlossaryParams
+
+	// ------------- Optional query parameter "language" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "language", r.URL.Query(), &params.Language)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGlossary(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveGlossaryTerm operation middleware
+func (siw *ServerInterfaceWrapper) SaveGlossaryTerm(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveGlossaryTerm(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Unban operation middleware
+func (siw *ServerInterfaceWrapper) Unban(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "key" -------------
+	var key string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Unban(w, r, key)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGuardEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListGuardEvents(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGuardEvents(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListJobs operation middleware
+func (siw *ServerInterfaceWrapper) ListJobs(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListJobs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RebuildSearchIndex operation middleware
+func (siw *ServerInterfaceWrapper) RebuildSearchIndex(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RebuildSearchIndex(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListLanguages operation middleware
+func (siw *ServerInterfaceWrapper) ListLanguages(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListLanguages(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveLanguages operation middleware
+func (siw *ServerInterfaceWrapper) SaveLanguages(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveLanguages(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMemory operation middleware
+func (siw *ServerInterfaceWrapper) ListMemory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMemory(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveMemory operation middleware
+func (siw *ServerInterfaceWrapper) SaveMemory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveMemory(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AskMemoryAssistant operation middleware
+func (siw *ServerInterfaceWrapper) AskMemoryAssistant(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AskMemoryAssistant(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplyMemoryProposals operation middleware
+func (siw *ServerInterfaceWrapper) ApplyMemoryProposals(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "conversation" -------------
+	var conversation string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "conversation", r.PathValue("conversation"), &conversation, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "conversation", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplyMemoryProposals(w, r, conversation)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMemoryTasks operation middleware
+func (siw *ServerInterfaceWrapper) GetMemoryTasks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMemoryTasks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveMemoryTasks operation middleware
+func (siw *ServerInterfaceWrapper) SaveMemoryTasks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveMemoryTasks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListModels operation middleware
+func (siw *ServerInterfaceWrapper) ListModels(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListModels(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveModel operation middleware
+func (siw *ServerInterfaceWrapper) SaveModel(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveModel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListChannels operation middleware
 func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
 
@@ -1070,6 +2124,212 @@ func (siw *ServerInterfaceWrapper) CreateChannel(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateChannel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteChannel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateChannel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ProbeChannel operation middleware
+func (siw *ServerInterfaceWrapper) ProbeChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ProbeChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearAnswerCache operation middleware
+func (siw *ServerInterfaceWrapper) ClearAnswerCache(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearAnswerCache(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetQADebug operation middleware
+func (siw *ServerInterfaceWrapper) GetQADebug(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetQADebug(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListQARecords operation middleware
+func (siw *ServerInterfaceWrapper) ListQARecords(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListQARecords(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnfeatureAnswer operation middleware
+func (siw *ServerInterfaceWrapper) UnfeatureAnswer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnfeatureAnswer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FeatureAnswer operation middleware
+func (siw *ServerInterfaceWrapper) FeatureAnswer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FeatureAnswer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAISettings operation middleware
+func (siw *ServerInterfaceWrapper) GetAISettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAISettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveAISettings operation middleware
+func (siw *ServerInterfaceWrapper) SaveAISettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveAISettings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1219,6 +2479,34 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// PrepareRestore operation middleware
+func (siw *ServerInterfaceWrapper) PrepareRestore(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PrepareRestore(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetStats operation middleware
+func (siw *ServerInterfaceWrapper) GetStats(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStats(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetRuntime operation middleware
 func (siw *ServerInterfaceWrapper) GetRuntime(w http.ResponseWriter, r *http.Request) {
 
@@ -1247,11 +2535,132 @@ func (siw *ServerInterfaceWrapper) SaveRuntime(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// EstimateTranslation operation middleware
+func (siw *ServerInterfaceWrapper) EstimateTranslation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EstimateTranslation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TranslationStatus operation middleware
+func (siw *ServerInterfaceWrapper) TranslationStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TranslationStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTranslation operation middleware
+func (siw *ServerInterfaceWrapper) GetTranslation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "language" -------------
+	var language string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", r.PathValue("language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTranslation(w, r, language, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveTranslation operation middleware
+func (siw *ServerInterfaceWrapper) SaveTranslation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "language" -------------
+	var language string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", r.PathValue("language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveTranslation(w, r, language, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListTrash operation middleware
 func (siw *ServerInterfaceWrapper) ListTrash(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListTrash(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PurgeTrash operation middleware
+func (siw *ServerInterfaceWrapper) PurgeTrash(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PurgeTrash(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1277,6 +2686,154 @@ func (siw *ServerInterfaceWrapper) RestoreDocument(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RestoreDocument(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveVideo operation middleware
+func (siw *ServerInterfaceWrapper) ResolveVideo(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveVideo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Ask operation middleware
+func (siw *ServerInterfaceWrapper) Ask(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Ask(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RecordBeacon operation middleware
+func (siw *ServerInterfaceWrapper) RecordBeacon(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecordBeacon(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearConversation operation middleware
+func (siw *ServerInterfaceWrapper) ClearConversation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearConversation(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConversation operation middleware
+func (siw *ServerInterfaceWrapper) GetConversation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConversation(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitFeedback operation middleware
+func (siw *ServerInterfaceWrapper) SubmitFeedback(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitFeedback(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SuggestLocale operation middleware
+func (siw *ServerInterfaceWrapper) SuggestLocale(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SuggestLocale(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPowChallenge operation middleware
+func (siw *ServerInterfaceWrapper) GetPowChallenge(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPowChallenge(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePublicSession operation middleware
+func (siw *ServerInterfaceWrapper) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePublicSession(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1434,11 +2991,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/auth/logout-all", wrapper.LogoutAll)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/auth/me", wrapper.GetMe)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/auth/password", wrapper.ChangePassword)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/backups", wrapper.ListBackups)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/backups", wrapper.CreateBackup)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/docs", wrapper.ListDocuments)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/docs", wrapper.CreateDocument)
 	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/docs/{id}", wrapper.TrashDocument)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/docs/{id}/draft", wrapper.GetDraft)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/docs/{id}/draft", wrapper.SaveDraft)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/docs/{id}/history", wrapper.ListDocumentHistory)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/docs/{id}/history/diff", wrapper.DiffDocumentHistory)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/docs/{id}/history/restore", wrapper.RestoreDocumentHistory)
 	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/docs/{id}/lock", wrapper.ReleaseLock)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/docs/{id}/lock", wrapper.AcquireLock)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/docs/{id}/lock", wrapper.HeartbeatLock)
@@ -1447,8 +3009,34 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/docs/{id}/preview", wrapper.PreviewDocument)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/docs/{id}/publish", wrapper.PublishDocument)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/docs/{id}/withdraw", wrapper.WithdrawDocument)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/glossary", wrapper.ListGlossary)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/glossary", wrapper.SaveGlossaryTerm)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/guard/bans/{key}", wrapper.Unban)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/guard/events", wrapper.ListGuardEvents)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/jobs", wrapper.ListJobs)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/jobs/reindex", wrapper.RebuildSearchIndex)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/languages", wrapper.ListLanguages)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/languages", wrapper.SaveLanguages)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/memory", wrapper.ListMemory)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/memory", wrapper.SaveMemory)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/memory/assistant", wrapper.AskMemoryAssistant)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/memory/assistant/{conversation}/apply", wrapper.ApplyMemoryProposals)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/memory/tasks", wrapper.GetMemoryTasks)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/memory/tasks", wrapper.SaveMemoryTasks)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/models/catalog", wrapper.ListModels)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/models/catalog", wrapper.SaveModel)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/models/channels", wrapper.ListChannels)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/models/channels", wrapper.CreateChannel)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/models/channels/{id}", wrapper.DeleteChannel)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/models/channels/{id}", wrapper.UpdateChannel)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/models/channels/{id}/probe", wrapper.ProbeChannel)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/qa/cache", wrapper.ClearAnswerCache)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/qa/debug/{id}", wrapper.GetQADebug)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/qa/records", wrapper.ListQARecords)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/qa/records/{id}/featured", wrapper.UnfeatureAnswer)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/qa/records/{id}/featured", wrapper.FeatureAnswer)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/settings/ai", wrapper.GetAISettings)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/settings/ai", wrapper.SaveAISettings)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/settings/banner", wrapper.GetBannerSettings)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/settings/banner", wrapper.SaveBannerSettings)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/settings/home", wrapper.GetHomeSettings)
@@ -1459,10 +3047,26 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/setup/complete", wrapper.CompleteSetup)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/setup/language", wrapper.SetBaseLanguage)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/setup/register", wrapper.Register)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/setup/restore", wrapper.PrepareRestore)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/stats", wrapper.GetStats)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/system", wrapper.GetRuntime)
 	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/system", wrapper.SaveRuntime)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/translations/estimate", wrapper.EstimateTranslation)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/translations/status", wrapper.TranslationStatus)
+	m.HandleFunc("GET "+options.BaseURL+"/api/admin/translations/{language}/{id}", wrapper.GetTranslation)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/admin/translations/{language}/{id}", wrapper.SaveTranslation)
 	m.HandleFunc("GET "+options.BaseURL+"/api/admin/trash", wrapper.ListTrash)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/admin/trash/{id}", wrapper.PurgeTrash)
 	m.HandleFunc("POST "+options.BaseURL+"/api/admin/trash/{id}/restore", wrapper.RestoreDocument)
+	m.HandleFunc("POST "+options.BaseURL+"/api/admin/video/resolve", wrapper.ResolveVideo)
+	m.HandleFunc("POST "+options.BaseURL+"/api/public/ask", wrapper.Ask)
+	m.HandleFunc("POST "+options.BaseURL+"/api/public/beacon", wrapper.RecordBeacon)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/public/conversation/{id}", wrapper.ClearConversation)
+	m.HandleFunc("GET "+options.BaseURL+"/api/public/conversation/{id}", wrapper.GetConversation)
+	m.HandleFunc("POST "+options.BaseURL+"/api/public/feedback", wrapper.SubmitFeedback)
+	m.HandleFunc("POST "+options.BaseURL+"/api/public/locale", wrapper.SuggestLocale)
+	m.HandleFunc("GET "+options.BaseURL+"/api/public/pow", wrapper.GetPowChallenge)
+	m.HandleFunc("POST "+options.BaseURL+"/api/public/session", wrapper.CreatePublicSession)
 	m.HandleFunc("GET "+options.BaseURL+"/healthz", wrapper.Healthz)
 
 	return m
@@ -1471,56 +3075,110 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xdW2/kthX+K4XaR+2Od9cJUr8567S7iLdw7U36EAQFRzqeYSyRKkn5koWBbJOmaYoE",
-	"+5C02DRpmvSCoH0I2qJpgaLon6nt9b8oSN2oEakZjT3jmV2+zUgUz4XnO+fwkJQeeAGNE0qACO6tPfB4",
-	"MIQYqZ/rQUBTIuRPFIZYYEpQtMVoAkxg4N7aLoo4+F6iXXrghZijfgSh/C2OEvDWvD6lESDiHfse1q9z",
-	"wTAZyMtxysXtISID2EKcH1BmeTwBFmPOMSWKFhYQqx/fYbDrrXnf7lXC9HJJelvlM7KHvE/EGDqS/3ma",
-	"AENhjImZYsqBERSDge1j32PwkxQzKexrUjStea1nv9KKUda6YK+XXNL+GxAIycY659B1JAIGSEC4rp7b",
-	"pSxGwlvzMBHPr3olCUwEDIBJGnAogCg9mYZoiPjQeGMPE8ug4hjuq4uGmxadSpXuAgMSAJ+QbY7fhIma",
-	"joyXEihnXxdeYzzvPOfW1zRa49M4YGmIxUv70Bk/KEPdXbNO87s/sGkPBcI2gF3NAYcTNhSIDcDMsAki",
-	"lYB1cUrmtR51rk1afhERAmwHhMBkwLt7KoW5fgRm7ANp8WQCDpUmY3S4CWQght7azZWVFb+p+JRF41VT",
-	"0Mo7zp7yazyaFNB0ml0cBCW7WA5vbjKaKDdWbq5KIJDiwgsGwQgc6JS7Pk6j0ODtLfrRG9cp+3U5bFoi",
-	"EHVUTx9xeGV70+YNX4ajTjHO6vESRgUNqGIPSBorcRMgCGvCtCEq904Fv1qPJaMtWrlLkrSzk0pwLr4+",
-	"6M/femHVMM5teiyUondzc6VmOjf8y1VZm7ZyuYzaUo5oupwouQBKLj/l0VMajZvnV8eofUSPWqqTTJ7I",
-	"ZGrcoEEawxR6ZGANjTxKB1OYksAigqYj76aLkrGiv5wdiwZCIAKjiM/RjGY46CYhN2hwDwTqKKDFc7YO",
-	"e5L2I8yHtjDNYB8XOe0kySTQDeABw4k1jyrsrHmDMlEPCgYraw5MEnZIy0zu32Z8FUe6ljSV6MQboltG",
-	"VcH2NiWiO3qDcU8JloKBaubVXgU2MjexKaXe3i/pGiViaLfzDFdzXm1eeFRbx375qMWWu9mC7+1XOulq",
-	"ORonVT8VgzXbMCnupRCLTRrszXV2M0Z9cJhgBnxi9Qm6B2R86llTlX32kvWmc2HUG2OUdQZOaNZHDJyj",
-	"wQS1CdVD1d7E2B1AkRh25IwLJFJey8L2xmdg+VNGLmgMU07n+ijYGzCakvCOrVRRNXk5L1oUbBNKpIJw",
-	"LNXje/s4BGoQxPciTPbqidgUnsNivxHqQ2R2DJNMIbPH/bq9yidNim7WwfqmTOiGeUprTZqaLRkiPEIC",
-	"Xix1fz+fOTeDtVL7FuUCmGUMR0Qu413BvT9qBo1Bb1KxM1kMt0mBm4gMUjSY3lq5GdNa0aE0saZWa6M3",
-	"ohTVddWRkXka7N0vvF8Hrif0mFkzE+F7dH/a5B/tCmAW5PRhlzK42zl9tKfxZY9+SdgkjzbT0rwJhFhs",
-	"0IBXiVf+L0YEDeB+bm5qklRcLOypuqJqvtXfH65LXnBpb/LPPYgpO1J1SgHanX0MBzsCCW70YVslT9OM",
-	"QyhTplc7ZB6+F+nm1mCnmXNrXuU5o1e5yrleJYxf10Uz/R6fUW8DBzFl+W766WDD7FtmctspEfhCQTlN",
-	"7tCUmRJ3P7//MkBivh8iHB3tJEDCTRzjemIX0rSv1J0/RtK4nz01wGIbYirMHlawlAsItxg9LOadEzpa",
-	"3xMpI1zgCHawAPNkb9QX1qkZumhKqUvg6zqsKcw0WjtoH+Y8p2kH9wWmKMZZSUXNKD6INJGOD7oGF/xS",
-	"W7EfEywLNvhNe5lhgLkAZr4/IpjWuN61r/FhFE/38pdXzA47et9dSgWwkaar5kwxogNqzcenrP6KIcRw",
-	"m0aUjYdfXqzSRdSY0svAWq+liKZBeCUJpy4Ety+OX3apd3QeW61Bt1dpVUwOUobF0Y4kk/HOocxzMPHW",
-	"vIDSPVwujq555ODHRZOKkayefnysMLRLldxZEPYIDuDaAd7D31rfuqsVIda8les3rq9IcVRJP8Hemnfr",
-	"+sr1W5JxJIaKmx5KcE+trvfyabi6PMhWyaXOVX4lsz5vE3OxXjSSOuEJJTyT6ubKymhtKkkiHKine2/w",
-	"TOBM2xMPSk7MMCKjaPNO33t08v7nsuVqR07aGMiqDAZyT77+5+lff3r669+dfvxeRvTG7Imef/rWkz89",
-	"PHv875P/fJwRvTV7oqefvX3++NH//vXBk2/+nhH97uyJnr3/zelbD0/e/dvZnx9Kos/NY0xP3v3Z+dtf",
-	"nX/0+MnXXyvwCiTDw2uegofE9+G1RJun6DtTpNeh3ICZ+nJX5kiAixdpeHRpEtVpHNf9lSwGH18QrBNh",
-	"1GHSYXKxMHnsm8Jb7wEOj1USAREIaEJ2Q12vIJsghmIQwCThPGjL+FmFbBx6o5DzNclHM6vXzXB04HHg",
-	"WaiAlhriWT1rnxU4Lj9G1vl2MdLB3MF8TIzs6YVRozOoV12XxxnU+Z7cGTjoOuguLHSzVa7W2k2xEDaH",
-	"yo0k1aVuM4HstdU8o/S9NIkoyvyVcTb+irqfMdfmWuI0EjhBTPRksf1aiLIteJUS6uXIXRzVj070MUFq",
-	"PdF6yqNY4lQ7JeSYyD54sarOszWxA1WgHrsPRJHPuzZUIeeb6mQDv2CJzgTWVa41my1rwkljbllXO2W8",
-	"KJbkkZt2R6JazMWPVMd/XBHYReTlisipGPYiOsDEHpA21e2ZlYXLDfJuwusw+uxiFBFKjmKachtEaSpa",
-	"MSrvuymhM+5FNO6iSpMdYW2x8GsoisZZ+XoUOUN3hr6YXjwVQyBCsgGh0c5jsE5bvg/iHngu5XFgcVEh",
-	"R8vY8n7j7SozmaXUibhivMPY04GxkAbt5fhiD/h8KvLFSXJXRnNYWkAsVeX39p2UG9URhtltpSyJzLls",
-	"VmLUYdJhcpEw2YxsYxfE7jOkHY10uygdbJ6ZtFA7qmxDTi8sDhfaqhXZ6cP54eZyAphi2oUvh8NFSylN",
-	"9Y3qkO/ybF2seJ53buqg7aC9NJlpL8rfqWVLT7chAsRBvXpredBfvW/G1UkdWp+e2s56oAx5pmicUVws",
-	"X+DnQqMD2zJkvXcAMdEHJJ6B2OcQ7hD+jCa/8uRKAG0p8Pdkg3nkwS4ndSBanm37FYxiug/WzTG1N3Au",
-	"TxStse2WN50LcHHU7gAS+Yp/OLAu02xl969glVNTpfzOUW8o4qiuw9GOmoOkDPHk0Yenn//x7NNfnn3y",
-	"zpMPfnH21X/Pv/jH+WdfXpYGs7Uw+7bz0XfoLo8nHeXcOVPnTN2id6s3OMBiKI+1293Bj/IWV+tSHSod",
-	"Kp92VMY0hIj3guzjde07lW8XjeaxUTkn5jYqO0gt90tfC0Oe3bmZ8quTc849S4g6SDpILnItj+cv+e/1",
-	"pcGytv2WI59AniF6Rig5EDkQLQKI9G9itO2YNADl8qObCSPzi28OoQ6hi45QS6Ab0vaXINQ+DDlDCNXo",
-	"OAA5AC1TiGuA5PIDXBMf8wtvDpsOm0sZ3GSjtuBW+67bDAG0U2fWAcgBaHmCWwMkMzik1sDH/IKbw6bD",
-	"5pIFtzRpDWqqwSwRU33s1eHF4WWR39erwKJoF1vaLQtweQuHHYcdtxhWA0+EyCBFA/vG9h25FsZhs2g3",
-	"o9NcefdXlSaa6Tv4OvguNnyLb97bY9920cJ9VcJB1UH1KrLUIy4gbpvTbadE4Him7yPPSbj45kCzZJ8Y",
-	"lkVKHSAz+P6nCRvzi2MOmg6aS5V6Cob40BrP5AkB9bbXRXuP+clvfnv60Tdnf3l8+qufn37x+4uemFBa",
-	"yA4yMeCCMmhLwlWDp/EY08MvT/7wwcmjD88+eecieh0CisTwTatV3cnvz3IfhCLh3K9zv/N0v/nsoH0+",
-	"cXz8/wEAZyATUlGsAAA=",
+	"H4sIAAAAAAAC/+w9a3cUx5V/JWd2PzYesElOlm9CgFFCEsHI3g8+Pntquq9myurualdVS8gczoHEAWyv",
+	"Md4ANsYv/CSbRWJJ4gcY82eY0ejT/oU9/a6erurpbk2PJLu/SdNVdR91H1X33qo619KJ5RAbbM5aR861",
+	"mN4HC/l/zi10gHNs9/z/kGFgjomNzEVKHKAcA2sdWUYmA63lCD+daxkIm+sdB2zjFLYw937i6w60jrRs",
+	"1+oCbZ3XWmCjrgmG8K1LiAnI9j+eRTqfR3of5N8tdPYPLndcvkRWwGZCI2xz6AUQLHT2tAvMw/kU2D3e",
+	"VzZbcqlqEAYWsjnWlcic11oUXnUx9Wh5KSYrRcP4MDLcBESy9GkZlr6sRZiQ7iugcw/XOV0nrs3LThZm",
+	"OTOBxd8Zp9ju+UxzGZ/vI7sHi4ixNUIV3R2gFmYMk4C/mIPl//GvFJZbR1r/0k6Erx1KXnsx7uONEI6J",
+	"KEXr3v/MdYAiw8K2HKLLgNrIAgnaY1OFjZbQPDWylnBFSmuaMOlcsJUF23HLToZO7FWgDHnNF+Ssd1AP",
+	"pB9eDQXK+2ihs5HMHzp48OBBbQIv4r7aOAohQDmNDEoTSAFxMOb8fsuEWogHCverwy1Non9wloPNQqoy",
+	"JPcR60s/rGBbIbjYgiX/R8lHhdx4rFoGCrYOrCDaDL8GhZqOzYNPUIi+SLyAeDh4iK0mcDSFp3TCXAPz",
+	"46tQ2kagwLIoJDL8+nsV95DOVRNYVhywUbAhR7QHcoRlZiAhME1OjLwwooi1jMtHkb7iOgv2MqlZN5Ti",
+	"WlX6IkMYyFcxKsvbOGzrpmtAB3QKnBXwqWMd5NjYNtCqyxXMfFveNRXLjfy1im0wxZRZ2MaWa7WOHJTa",
+	"CI4or9aVw1k+ZuaflVl5reVSc7IKJIsWf+Cgl5bii4BuTLJ0IgDpxK4iFiaye67KtzmI99WWmQKdTKQ/",
+	"hJaAEfrKCMmubsq58WXszajMHT972J/e6IdfS2bNhjURctnuxDQkyzIFX8TGachamg4Vl2wwS7Knixi8",
+	"cOaUyqX/FtZLLUaVdtChhBOd+OiB7WnTSy3igI2wQEyeWwgNYoSvMGKMaA5XqmgBcnBIvjjpv3ru14cl",
+	"85zHx4gp4jDPHkyJziGtFMu0FrJ5nxIH6y2t1QPPRPlaRJG9MpmhebwMqVbwknvboqn4UgNxOMCxj0jW",
+	"lBBTLkaRtc2nz+8eW9B85zkvrLHLek+5DjDXshBdl+Pv0hLbr5jhmc2XTEMiuBEUKbU+L6rtTp0dmMHp",
+	"bz7FzaWAza8OT9CrMc4Jm06n+JYyYOMxorsWVOAjBeUCnplur4Kt4JibkF2GlONFjFg0XoiOggMG2Bwj",
+	"k81QjGqcdBmRx6Dr9jocnNJrDiaPtBkujQ1NkS1W5LWK+1nix6omm8iQ/ABC3E0LUBcQVbJliSIdqnmC",
+	"4n5AZWE5OMXtSDKLxcyoP3jsNuQcIPrvgKPp+Itce+C4XROzvmrHQ2EVs+ICxYAcA6ZT7CjDAJEByn4g",
+	"lKeXgxLzk9VYxyixkZbNh8oqJRiJXBJYIgLPkK6YVd+ezxOblzfr+qRenLoggRqI6YtAx0JrKqak22sx",
+	"XClFFC2XDkILXi1Xrca45Zm38CeFLJeTBa21mvCkrOQImCTjJAimZEPGuOMG5qeIvjLT4NwE9sFZB1Ng",
+	"hdnHvYTFZE+QYpU6+BaMJmIh5RulhJZWHEPODwsYk0chxkjwR0jayxA7AYi7FIwqG8Eqlm8Mw9hyhUPJ",
+	"UQSji/RKyYo+mM6ya6qchE6oUSQAG7fU4hFlmD5vEsYQXV8CalW0LgoZV7jI3IAUIy7V8z4tyTeNURx5",
+	"qdCeMlgbJOOleqdiWSE+KX2WctFF1KiSAii9jKKAmMLdU8xWpB+YTpwCgh00i0GEA+avnk4CMnm/JNGM",
+	"I+6yVCykQKQj7CXFAjNO6PoxvLxc1sovc2mUU2t1YZnQAlwL22nhUDnonREWeGVQdHmf0HKJOrW51Vq+",
+	"ZBWUN3keLRpdi3ALB5XSTiyomEDwDGiPEtc2TqroTJr8NkxNRhJlE9tDEFsBoqvYACKRMXGIJWn4X9LF",
+	"xPZKes8yPatpoi6Yip3SugkiiQ7FYZCIgU5sw/v75arJigCull5CBAmLALBscscDOWQVqImiOGuQaTkU",
+	"hi7yUjZuVxb0OCTPvXihwHliEirywsS9vr/ZRXRFygRlVCXbkiKbmYjD0YxkZP2xL1eLhHGgCiFVrR4i",
+	"mjMSqI0LfkbMs2AT1ov8UdMSybBsUn9DuouU9CiwsqKtLA9wgOqhb5Qm7LjC5bs+UkVWO2FqP+mRAI0g",
+	"yGg9Fbr6Kmll1VJXGc+xEceroNwyUG4WyNqG6+Mw5iMMGQyQR2RlM8zkCAv529gQZhrlBmn8oZOB8pBn",
+	"c1FxUhnXuYqwicIEdKEAU0ogJBZudszQBOyljCE6MqGDe3b5uK3uUprWx+z6nJUhJVgAvEZsKOJpIgBC",
+	"Ly3GKYdWt9dLarGmlQMvvDMVtgV5u1Mv1LAUbddLIFlwix80kwH+HViErs85jrleKUWq6+CEWxF5N5n/",
+	"G8NiDNl4zBx8GcOMI5vvtK5vp2EHYaT8CQ7wXuBgVY8qZuNFE0K5EzbTJZXVHKsfFrwxBWT8wTYVpQI5",
+	"+/OC0RMsBn9FqrWUYYg33jE+Edb5UdJgcrypIAyZkwK4Y/Pj16aUYb9yMy4jOhw+7qVGfwmxFZanhyXM",
+	"cgYCMcCsstxBDupiE5dHQU+KWTJt/ak8qxBFBdP9PNcixTpI83Jxkbd80AnZNtW4OWUsEX1amkcpRNPD",
+	"J3SL6ErlgaxWTU374QjFJjOIWSyUzmGpk8zxiFoMWEaPUAcgbN7AwPwY0VmS/Qn/s5CNerAUbmL8FH70",
+	"4ynBWAS/+HXTyb+n5zxccLzo9f4J1KultRjmIHxZxbDW4ShVBZkwZJE4roloxXlQ59M8qKxKRiQyn8EA",
+	"Uj6Ttfk+Mk0IDVoZRRf7Zf0UXl7Gumvy9QLprWSoVEcpwpR0ocoSwPLs2WRRDZpJIXsSp3eAVQjNlU3j",
+	"4KKF0/mZmRTKVZjmjIlH1gaQtd8TW+XpXWozjk1YKrhkTbfX0uAFYEpaWb+i8hle0vTFErlHrWWK6/cM",
+	"7dmsuxBP+qU0nrSbZUAJMVqaF9kE/OSc+um5M35OqawjstmaIsauLK6pUGdYJd0knu0poJVxcy0iKpUs",
+	"Cutt8msUzwADXrH+uXq5VcZx51RKnQHGCYUwabHbCidWxUxKeIYtNbXYS+l1bU+mdpCkcJ2TxKXy9Wbw",
+	"/bcAjvy75FBnIu/EDQ4JZPSjh/kZsIgibsqpyzgYi5ScLb9hiIx1cC6kSMm01lqjmEOwa/Q2VqlhMAd5",
+	"wn3cS6SRlgyRZZbICE2cihTfZZPeQasw44qafDnfQYGMtCYmgSYlH7jrdKLAexljjo/nndrBNuYYmfg1",
+	"VQMKPcw4UPn3jEbHjdNDawIeUvLE5f30DlEYJT3/MiFhdlloelie1TJJjyjTnBVPHbA+orDgZUCVI/M+",
+	"WBBn0wrVmY4FbSK8M+DEQwkCmJgt0onjiLNOUnRfSjLnKVozix4ldYJNXfEK9rFNoMR0Ft/PeW0Z5oRW",
+	"2v4FcIQxtIT4hDAZe4Wd9FGzfEmc6qAQgMG84gZYKx01DD6pxbNsPU8oeWFwJY4iiihOYMxxxrFV3jDq",
+	"fUSRzoEqbjxQLnX9KFHehQtkwpUM2U13hEh68LGRQpQKcmPKRw9VqZUJ2JzAZtl56XpynhtMzdP6jMLI",
+	"QqoTKzryCt4mVQzvsOx6vMI4Vd4h7F1CNk2qpRX4UbFGIJcbcksiWu28QgJOODIVn0K8wZB9Vyf6giFT",
+	"/dNYJigp2FU5dEHBwBR0fixPujILpkwfGVovOEblk2P595pM+2zYGH0x8MnHul7EBhDvYIeBSh/uyKm4",
+	"m5SnE08FZcUQrC4YL1BTdazWK+uhuR8VNob3XatrI2yqBi+YnYtxSEFUJezi6r+Y6jFMBIqVc3QGGDFX",
+	"KzmYsLAtFSA7PDH44Uqx8WN7uksxX+94ghlAYElYGNutIy2dkBUc198cadlr/xE1SUQ3OHV7/rzv3INE",
+	"W8j+lo11OLCGV/Av5hYXhOMMR1oHnzn0zEHf3TtgIwe3jrSee+bgM8+1glP6PjZt5OC2f5VOOyzo93/u",
+	"Bdt0jzPxDTetU5jxuaiRxwDmEJsFVD178OD4KRfHMbHu926/EqY0A/0srMYhMIkOj6tNa3jl2uDNT7yW",
+	"h0tikodAcF5BAm60+e3wf/84fO/T4Y0rAdBD9QPd/vDC6KuLW7ceDR7fCIA+Vz/Q4Ud/2r517el3b4++",
+	"+XsA9N/qB7r15jfDCxcHlx5s/fdFD+gvZzGng0t/3v7T3e3rt0abm77yctRjfsmJpx6efp894AjJRvEa",
+	"Kn/3xyQ6kz5RHVgNYPwoMdanRlEaxvm0cQqDZztS1kI62uhko5N7SyfPazL31j6HjfP+shNM4JBV2WP+",
+	"74nKOogiC4Jt+Euh0w6vqAldNjZa4yqnCZSPrx1elqtjozyN8uwph+ZK/Fl6n1eXckzfR6bxbnxko+aN",
+	"mk/wkW2xNkBqDNKFB/vHGKTxLm4MGtVtVHfPqm5QqpobuwmazCRy44EqE7cpQHuqJFdKfdt1TIICeyXd",
+	"jb/gfw+QyzMtlmty7CDK215y5EAU702YkA4aLoc5pDiT0sV2eNWa6rrjqE7ZP0zszYk3BouOYbKgyGjN",
+	"LzaYeIrdBx8OLYlCznapE0z8HlvoFJCuuGBcLlkFN42hZO3ulnGnuuQamOcbEr/FTOxIcg92EwRuPPL+",
+	"8sgu77dN0sO22iGd8j/XFhaO72BsNryNjv58dRTZxF63iMtUKkpcnqujxFW5u0a4G+HeXeGOojTBNfg5",
+	"En4AmeYkKZ8zzUbQG0Hfm1bc5X2wuYcGGFI5t0C5bXke+O+g1Sx5GmVpvEKoLRPD+5mn1GrZpaSBNMH4",
+	"Rsd+GjoWnBbMj8gfDdvMIpQmPHZWIJQ2+OLy00ePB1feG925O+ViuACRmsyJ+NjZjIMeIoMlenTzfsDT",
+	"HUaVDKLny1RUqD8bqYqeOmiis42J3oMmOsnq5NukY8kp5/oqdGMgMzZMsY42Otno5F7Syaxnm5hnTR9/",
+	"2z8lR2m8m11Oo677ZpcjXJ+n0ti2Ed17ogq+BRejzK4yYjqO00e6cZuNHu61pawsXJfcP7R/3GKC86zX",
+	"xI1qN6q9b1bE7X5yc97EwE90y94edLaFQkrjTxsVCC1tvXFl+OH/DK5eGrzzYHqLmpDpbSN8A0rKee+B",
+	"qBlwXgsHedUFup6MEr8UteORgqem9srKS3x9Sz3f324Mfvjj9OebBrdVqmslwussZ6VwtRyAEe/j3Cu+",
+	"d/Dtg8GV24NHD4c374/efmPr7pPpTW50N5kqsHAGTEAM/Fc9989EJi+DNCGFZr3z04nKz+m+INeqjTVZ",
+	"t/ht4GZz0SjbfogbnAREeRcQ/xn4vkbDGw3/GYYPvMWvd5RVh7wl8AmvwSzWwc2atFGi/XOOL1Eji6yC",
+	"slo29a7W/vGiKbSbwpTGBDR+VG0AHBpfJC0NBi8G32s3A7n66F1U3+5zy0zzcHyg7CT5gji4dnX4yZdb",
+	"H7619cHrQQxu+84/tz/6bFocDGJ16tjq+ONc+8eSjmPeGNPGmDZlQ7nWYA3zvnfPjdoc/HvYYndNaqOV",
+	"jVb+1LWyZxLG0IQag+ejRnI1HMspC69e7HJNQYT3ElCr0FmVDzdHm/eKnn2SvCmcV6SVQqaetUia3oqp",
+	"wcG3D54++Whw7/3KTBiTMBdRo91FNmufW4H13DrvF+wusgsZ+xX/Gb8pR6AG3z4Yff354P7FQqQLT0JL",
+	"SQbvAqv8U1vPew2Pr87s3FYCr4g6bH9+dfvWX58+fOvpo292yJFXSDefE78h3dmw4DekGz84VIAHTx89",
+	"Grx5p+KJyCwP2hSwbcDZvCqTrotNowOI6v0Fv21B0R2+eWP7wn/tcKLM+DX0vNkS30yvbREVA5kLuSlZ",
+	"3Nwb3b0w2vhx6/FGCWuVYJ9nr9M01pDICscXZmJ2BltgQXr+reBh+7zJj9++r19ZA1ALHAq579HG/cGT",
+	"S8OP7mzd3iioBiEteXIgkFtDHFYgcCbTn5Asm/c2Ygwzjuyci7Hm2EowxFzctk7exFBqO91dQhK9h6QI",
+	"Q2Yhz/FkY3j9++E710YbG1OdmvY5ndjee08+QefbHnXrOfPlfU6jzwotsUQoeyJnEciDR05ZWcgWHD68",
+	"vnX97jSmhSO2wvIvIPLaLfnNavSWIhjlOia0kO9/Orj/+rQtZEJhXVMvELd7dpIYYLK2jjgySS/fT/pN",
+	"Z+MnPVBFL/kY3r0z+PitrdsbfnRmOg+E+GLgIVGXACQEzmT61av4SAD6yLbBzF8mz0eNZiEDIbDmTo4m",
+	"Brm/n82LBLm+m8dsz5bswl1BsYo2Ktmo5F4ufhpzcgXfQUgUd3cKCP2DRJ9u3/pius+e1U3Wz8bGeTHK",
+	"2/8Y3rxfg3S2HUq6OYf3Fr3P+28mfbR3ttsdPfl4ePXL4b3PB999t0PGv4raOtL7ueXE8yYgOmezNaDz",
+	"ftui0evv/rz114fDWxvbFz4Y3P546971rR/+Ui6oeXpOgrABXbcXGzDVJv303DGv3b6rM/CQXqJIB6mT",
+	"v/+n0eaN0eO7oyff7zAt8CpqU9AJNfI3PKfnzoStZrHjiaAVymW9t7F177oX/3h8Y6ciFXIisDvLgLjr",
+	"C0JeWjNsFejFrjrId24Ov7my9eDH7QtvlOSDwkmemAlp0zetId7GjmOJo40fn373sBJL06LFQuVrI5xn",
+	"q+YWYi2t82bzhXRiKk323MIvSqTdRLuSE0AaI2z6Uz5O0wyiiCqDGs91F9k20Lz5Puq3mMWcj0FqtqnN",
+	"NnUvbFMxh0L2Q6IodVw1ndWRWd423Whoo6F7W0MVjq5P8h9qOUksmIWTS8FpFKhRoP3k4jJKMn0Hl9WP",
+	"2bm3Rjcb3dyXzs1rlOfcOuIgNSpQJ41so0CNAu0f55ZRkhpuHs7ox+ycW6ObjW7uM+fmOrlOzW9Qp8Z4",
+	"ADoccWj0pdGXPf2muK8sPuwoBagocQtbNLrT6E5TbpZSnvjcuOqurY6XC2Px2bW9dy6vRviN+jbqu7fV",
+	"l0IPMw5U7fvORC1qe27RAJtjZM5cZ5tn4BtV3T+r1IkvXSxScBCF8L2IXHW1XJNjB1HuXTRrHTAQR2mK",
+	"HeqNzXGgdMvY9OF6jRFvHWl1sR1cLJN5sERQ35eCfi/HrUj3FdALFm09K7lp9uJngy/e9qrhLl8afHH5",
+	"/374z+3Lbw+ubQ6uXS1zMFTJZY547pHQjt+gzsW/B6DjWhai8pdzHn0y2rgzfPf90VfF7jrx7jcMsB6n",
+	"dZ1xsPKIPePaHFtQJ7khiGbF1JjhPXzkTRX2FhWkhkd/ZLoxu5VRo5qNau6rzQwXrjJrA+PYQnnxvONh",
+	"C+EGtFZtb0lHECKgu3LAS4KHVM3+8f3W9bvbn73+9If707iYKDUvjCPuqpdYAoqdoOUsjqMIUMvcMLb1",
+	"5NFo893Rk9uDh19N6cq9FK/ORXG18xNPQaWFePJBDjMdiSv3EuGePVQlcOEENuXCvfnu8Obl4c3LRW/G",
+	"K3lX5D6biFqNXTIHe+AyS04R6ytVyDsC5z/5PxN7E18yPNnGDG5/PLz+zdbfbnlSe+fznV4a63Nh4qHw",
+	"RZf2IGLH7h14e/xo8PBGcC588PgvgzfejpkxePK3rT9/vfP1QsiL0i+I/pRutQ4iKteubn3w+nRkbBUb",
+	"QDyWEnM1n6Vegxe91jUtvPyxQzi7suLyEfA470fXZOr9/d8H79wffX1p+7N3nz65M7xY9eULfz70NmIr",
+	"uff/1XU8j63sgL/+Axj+nbsHGKeArJIPYXQ6x38RnBIe/jMdFAu4UiwCGHKwC0gntpqJwcHlo0Grmg4q",
+	"+YNP4XRr5sh0BX6IdwlOdBz+FQLz6dsHd81/BPcSlKZfUy6yd4mw6aTYRNxlhmjz+9HmRzsVlmUAo4v0",
+	"HBvUcbsW5ieidnUdEA+G3yMqZBIdmZDHk14PGD8VNKvt8U1kQgf37F1IsobAAzIxybkRevDo4filqxUY",
+	"7pC1vM3yIlmb7yPTBLtXa3IjBUd6q86XTx9/uH35ndHmxeH7V7c/e3/8+uMKtDMI25zLvarNf/xI74SN",
+	"a3xgKYKxK+uvNJXKy0We/vBBVePXB2Ty/mtKcTsZfq/z6JUPoonPN/H5Wcbnw/RxvoKcP///AwAXe1Ar",
+	"BQ8BAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

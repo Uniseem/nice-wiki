@@ -200,6 +200,7 @@ type PageView struct {
 	VisitorHash    string `json:"visitor_hash"`
 	Bot            int64  `json:"bot"`
 	CreatedAt      int64  `json:"created_at"`
+	AiBot          int64  `json:"ai_bot"`
 }
 
 type QaDebug struct {

@@ -1,0 +1,14 @@
+{
+  "site.documentTree": "文档目录",
+  "site.pageToc": "本页目录",
+  "site.previous": "上一篇",
+  "site.next": "下一篇",
+  "site.theme": "亮暗主题",
+  "site.copyCode": "复制",
+  "site.copyMarkdown": "复制为 Markdown",
+  "site.closeBanner": "关闭公告",
+  "site.notFound": "页面不存在",
+  "site.gone": "文档已删除",
+  "site.backHome": "返回首页",
+  "site.sourceCode": "源代码"
+}

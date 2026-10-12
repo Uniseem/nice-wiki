@@ -1,6 +1,8 @@
 {{define "topbar"}}<header class="flex items-center justify-between border-b border-border px-6 py-5">
 <div class="flex items-center gap-4"><button type="button" data-drawer-toggle="document-tree" aria-controls="document-tree" aria-expanded="false" class="md:hidden">文档目录</button>
+{{if .TOC}}<button type="button" data-drawer-toggle="page-toc" aria-controls="page-toc" aria-expanded="false" class="xl:hidden">本页目录</button>{{end}}
 <a class="font-semibold" href="/{{.Language}}/">{{.Site.Name}}</a></div>
 <a class="sr-only focus:not-sr-only" href="#main">跳到正文</a>
+{{if .AIEnabled}}<a href="/{{.Language}}/ask" class="text-sm">AI 问答</a>{{end}}
 <button type="button" data-theme-toggle class="text-sm text-muted">亮暗主题</button>
 </header>{{end}}

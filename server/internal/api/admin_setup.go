@@ -2,11 +2,49 @@ package api
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"nice-wiki/internal/api/gen"
 	"nice-wiki/internal/auth"
 	"nice-wiki/internal/settings"
+	"nice-wiki/internal/setup"
+	"os"
 )
+
+func (s *Server) PrepareRestore(w http.ResponseWriter, r *http.Request) {
+	if s.Auth.Registered() {
+		writeError(w, 409, "already_initialized", "只能在首次初始化前恢复")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<30)
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	defer func() { _ = file.Close() }()
+	temporary, err := os.CreateTemp("", "nice-wiki-restore-*.tar.gz")
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	name := temporary.Name()
+	defer func() { _ = os.Remove(name) }()
+	if _, err = io.Copy(temporary, file); err != nil {
+		_ = temporary.Close()
+		s.fail(w, err)
+		return
+	}
+	if err = temporary.Close(); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err = setup.PrepareRestore(r.Context(), s.Setup.Layout, name); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
 
 func (s *Server) GetSetup(w http.ResponseWriter, r *http.Request) { writeJSON(w, s.Setup.State()) }
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {

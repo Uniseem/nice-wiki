@@ -4,6 +4,7 @@ import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Highlight from '@tiptap/extension-highlight'
+import UniqueID from '@tiptap/extension-unique-id'
 import { Callout } from './nodes/callout'
 import { Columns, Column } from './nodes/columns'
 import { WikiImage } from './nodes/image'
@@ -27,6 +28,16 @@ const BlockMath = Node.create({
 })
 
 export const schemaExtensions = [
+  UniqueID.configure({
+    types: [
+      'paragraph', 'heading', 'blockquote', 'horizontalRule', 'bulletList', 'orderedList',
+      'listItem', 'taskList', 'taskItem', 'callout', 'table', 'tableRow', 'tableCell',
+      'tableHeader', 'codeBlock', 'blockMath', 'image', 'attachment', 'drawing', 'video',
+      'columns', 'column',
+    ],
+    attributeName: 'id',
+    generateID: () => crypto.randomUUID().replaceAll('-', ''),
+  }),
   StarterKit.configure({ heading: false }),
   WikiHeading, Table, TableRow, TableHeader, TableCell,
   TaskList, TaskItem.configure({ nested: true }), Highlight,

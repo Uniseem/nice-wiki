@@ -4,10 +4,14 @@
 <body>
 {{template "banner" .}}
 {{template "topbar" .}}
+{{if .HomePage}}<main id="main">
+{{else}}
 <div class="mx-auto grid max-w-7xl gap-8 px-6 py-10 md:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_12rem]">
 {{template "tree" .}}
 <main id="main" class="min-w-0">
 {{end}}
-{{define "end"}}</main>{{template "toc" .}}</div>{{template "footer" .}}
+{{end}}
+{{define "end"}}</main>{{if not .HomePage}}{{template "toc" .}}</div>{{end}}{{template "footer" .}}
 {{if .Script}}<script type="module" src="{{.Script}}"></script>{{end}}
+{{if .MultiLanguage}}<div data-island="language-suggest" data-current="{{.Language}}"></div>{{end}}
 </body></html>{{end}}

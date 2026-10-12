@@ -9,6 +9,24 @@ import (
 	"context"
 )
 
+const deleteDailyStatsDay = `-- name: DeleteDailyStatsDay :exec
+DELETE FROM daily_stats WHERE day = ?
+`
+
+func (q *Queries) DeleteDailyStatsDay(ctx context.Context, day string) error {
+	_, err := q.db.ExecContext(ctx, deleteDailyStatsDay, day)
+	return err
+}
+
+const deletePageViewsBefore = `-- name: DeletePageViewsBefore :exec
+DELETE FROM page_views WHERE created_at < ?
+`
+
+func (q *Queries) DeletePageViewsBefore(ctx context.Context, createdAt int64) error {
+	_, err := q.db.ExecContext(ctx, deletePageViewsBefore, createdAt)
+	return err
+}
+
 const getDailySalt = `-- name: GetDailySalt :one
 SELECT salt FROM daily_salts WHERE day = ?
 `
@@ -58,8 +76,87 @@ func (q *Queries) ListDailyStats(ctx context.Context, arg ListDailyStatsParams) 
 	return items, nil
 }
 
+const listPageViewsBetween = `-- name: ListPageViewsBetween :many
+SELECT id, document_id, language, country, referrer_domain, visitor_hash, bot, created_at, ai_bot FROM page_views WHERE created_at >= ? AND created_at < ? ORDER BY created_at
+`
+
+type ListPageViewsBetweenParams struct {
+	CreatedAt   int64 `json:"created_at"`
+	CreatedAt_2 int64 `json:"created_at_2"`
+}
+
+func (q *Queries) ListPageViewsBetween(ctx context.Context, arg ListPageViewsBetweenParams) ([]PageView, error) {
+	rows, err := q.db.QueryContext(ctx, listPageViewsBetween, arg.CreatedAt, arg.CreatedAt_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PageView{}
+	for rows.Next() {
+		var i PageView
+		if err := rows.Scan(
+			&i.ID,
+			&i.DocumentID,
+			&i.Language,
+			&i.Country,
+			&i.ReferrerDomain,
+			&i.VisitorHash,
+			&i.Bot,
+			&i.CreatedAt,
+			&i.AiBot,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const putDailySalt = `-- name: PutDailySalt :exec
+INSERT INTO daily_salts(day,salt) VALUES(?,?) ON CONFLICT(day) DO UPDATE SET salt=excluded.salt
+`
+
+type PutDailySaltParams struct {
+	Day  string `json:"day"`
+	Salt []byte `json:"salt"`
+}
+
+func (q *Queries) PutDailySalt(ctx context.Context, arg PutDailySaltParams) error {
+	_, err := q.db.ExecContext(ctx, putDailySalt, arg.Day, arg.Salt)
+	return err
+}
+
+const putDailyStat = `-- name: PutDailyStat :exec
+INSERT INTO daily_stats(day,dimension,value,views,visitors) VALUES(?,?,?,?,?) ON CONFLICT(day,dimension,value) DO UPDATE SET views=excluded.views,visitors=excluded.visitors
+`
+
+type PutDailyStatParams struct {
+	Day       string `json:"day"`
+	Dimension string `json:"dimension"`
+	Value     string `json:"value"`
+	Views     int64  `json:"views"`
+	Visitors  int64  `json:"visitors"`
+}
+
+func (q *Queries) PutDailyStat(ctx context.Context, arg PutDailyStatParams) error {
+	_, err := q.db.ExecContext(ctx, putDailyStat,
+		arg.Day,
+		arg.Dimension,
+		arg.Value,
+		arg.Views,
+		arg.Visitors,
+	)
+	return err
+}
+
 const recordPageView = `-- name: RecordPageView :exec
-INSERT INTO page_views(document_id,language,country,referrer_domain,visitor_hash,bot,created_at) VALUES(?,?,?,?,?,?,?)
+INSERT INTO page_views(document_id,language,country,referrer_domain,visitor_hash,bot,ai_bot,created_at) VALUES(?,?,?,?,?,?,?,?)
 `
 
 type RecordPageViewParams struct {
@@ -69,6 +166,7 @@ type RecordPageViewParams struct {
 	ReferrerDomain string `json:"referrer_domain"`
 	VisitorHash    string `json:"visitor_hash"`
 	Bot            int64  `json:"bot"`
+	AiBot          int64  `json:"ai_bot"`
 	CreatedAt      int64  `json:"created_at"`
 }
 
@@ -80,6 +178,7 @@ func (q *Queries) RecordPageView(ctx context.Context, arg RecordPageViewParams) 
 		arg.ReferrerDomain,
 		arg.VisitorHash,
 		arg.Bot,
+		arg.AiBot,
 		arg.CreatedAt,
 	)
 	return err

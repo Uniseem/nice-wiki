@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { useAuthStore } from '../../stores/auth'
 import { errorMessage } from '../../../shared/api/client'
+import RestoreStep from '../setup/steps/RestoreStep.vue'
 const username = ref('')
 const password = ref('')
 const confirmation = ref('')
@@ -66,5 +67,6 @@ async function submit() {
         {{ busy ? '注册中…' : '创建账号' }}
       </button>
     </form>
+    <RestoreStep />
   </AuthLayout>
 </template>

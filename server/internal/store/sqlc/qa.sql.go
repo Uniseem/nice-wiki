@@ -9,6 +9,72 @@ import (
 	"context"
 )
 
+const createConversation = `-- name: CreateConversation :exec
+INSERT INTO conversations(id,session_hash,language,summary,created_at,expires_at) VALUES(?,?,?,?,?,?)
+`
+
+type CreateConversationParams struct {
+	ID          string `json:"id"`
+	SessionHash string `json:"session_hash"`
+	Language    string `json:"language"`
+	Summary     string `json:"summary"`
+	CreatedAt   int64  `json:"created_at"`
+	ExpiresAt   int64  `json:"expires_at"`
+}
+
+func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversationParams) error {
+	_, err := q.db.ExecContext(ctx, createConversation,
+		arg.ID,
+		arg.SessionHash,
+		arg.Language,
+		arg.Summary,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const deleteAnswerCacheAll = `-- name: DeleteAnswerCacheAll :exec
+DELETE FROM answer_cache
+`
+
+func (q *Queries) DeleteAnswerCacheAll(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAnswerCacheAll)
+	return err
+}
+
+const deleteConversation = `-- name: DeleteConversation :exec
+DELETE FROM conversations WHERE id = ? AND session_hash = ?
+`
+
+type DeleteConversationParams struct {
+	ID          string `json:"id"`
+	SessionHash string `json:"session_hash"`
+}
+
+func (q *Queries) DeleteConversation(ctx context.Context, arg DeleteConversationParams) error {
+	_, err := q.db.ExecContext(ctx, deleteConversation, arg.ID, arg.SessionHash)
+	return err
+}
+
+const deleteExpiredAnswerCache = `-- name: DeleteExpiredAnswerCache :exec
+DELETE FROM answer_cache WHERE expires_at <= ?
+`
+
+func (q *Queries) DeleteExpiredAnswerCache(ctx context.Context, expiresAt int64) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredAnswerCache, expiresAt)
+	return err
+}
+
+const deleteFeaturedAnswer = `-- name: DeleteFeaturedAnswer :exec
+DELETE FROM featured_answers WHERE id = ?
+`
+
+func (q *Queries) DeleteFeaturedAnswer(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteFeaturedAnswer, id)
+	return err
+}
+
 const getCachedLanguageAnswer = `-- name: GetCachedLanguageAnswer :one
 SELECT cache_id, language, answer, citations, source_hash FROM cached_answers WHERE cache_id = ? AND language = ?
 `
@@ -82,6 +148,46 @@ func (q *Queries) GetExactAnswerCache(ctx context.Context, arg GetExactAnswerCac
 	return i, err
 }
 
+const incrementAnswerCacheHit = `-- name: IncrementAnswerCacheHit :exec
+UPDATE answer_cache SET hits = hits + 1 WHERE id = ?
+`
+
+func (q *Queries) IncrementAnswerCacheHit(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, incrementAnswerCacheHit, id)
+	return err
+}
+
+const insertQARecord = `-- name: InsertQARecord :exec
+INSERT INTO qa_records(id,conversation_id,question,normalized_question,answer,citations,language,status,created_at) VALUES(?,?,?,?,?,?,?,?,?)
+`
+
+type InsertQARecordParams struct {
+	ID                 string `json:"id"`
+	ConversationID     string `json:"conversation_id"`
+	Question           string `json:"question"`
+	NormalizedQuestion string `json:"normalized_question"`
+	Answer             string `json:"answer"`
+	Citations          string `json:"citations"`
+	Language           string `json:"language"`
+	Status             string `json:"status"`
+	CreatedAt          int64  `json:"created_at"`
+}
+
+func (q *Queries) InsertQARecord(ctx context.Context, arg InsertQARecordParams) error {
+	_, err := q.db.ExecContext(ctx, insertQARecord,
+		arg.ID,
+		arg.ConversationID,
+		arg.Question,
+		arg.NormalizedQuestion,
+		arg.Answer,
+		arg.Citations,
+		arg.Language,
+		arg.Status,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const listConversationRecords = `-- name: ListConversationRecords :many
 SELECT id, conversation_id, question, normalized_question, answer, citations, language, status, created_at FROM qa_records WHERE conversation_id = ? ORDER BY created_at
 `
@@ -117,4 +223,169 @@ func (q *Queries) ListConversationRecords(ctx context.Context, conversationID st
 		return nil, err
 	}
 	return items, nil
+}
+
+const listFeaturedAnswers = `-- name: ListFeaturedAnswers :many
+SELECT id, record_id, title, sort_key, created_at FROM featured_answers ORDER BY sort_key,id
+`
+
+func (q *Queries) ListFeaturedAnswers(ctx context.Context) ([]FeaturedAnswer, error) {
+	rows, err := q.db.QueryContext(ctx, listFeaturedAnswers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FeaturedAnswer{}
+	for rows.Next() {
+		var i FeaturedAnswer
+		if err := rows.Scan(
+			&i.ID,
+			&i.RecordID,
+			&i.Title,
+			&i.SortKey,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listQARecords = `-- name: ListQARecords :many
+SELECT id, conversation_id, question, normalized_question, answer, citations, language, status, created_at FROM qa_records ORDER BY created_at DESC LIMIT ? OFFSET ?
+`
+
+type ListQARecordsParams struct {
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListQARecords(ctx context.Context, arg ListQARecordsParams) ([]QaRecord, error) {
+	rows, err := q.db.QueryContext(ctx, listQARecords, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []QaRecord{}
+	for rows.Next() {
+		var i QaRecord
+		if err := rows.Scan(
+			&i.ID,
+			&i.ConversationID,
+			&i.Question,
+			&i.NormalizedQuestion,
+			&i.Answer,
+			&i.Citations,
+			&i.Language,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const putAnswerCache = `-- name: PutAnswerCache :exec
+INSERT INTO answer_cache(id,question_hash,question,answer,citations,material_hash,memory_hash,hits,created_at,expires_at) VALUES(?,?,?,?,?,?,?,0,?,?) ON CONFLICT(question_hash) DO UPDATE SET answer=excluded.answer,citations=excluded.citations,material_hash=excluded.material_hash,memory_hash=excluded.memory_hash,created_at=excluded.created_at,expires_at=excluded.expires_at
+`
+
+type PutAnswerCacheParams struct {
+	ID           string `json:"id"`
+	QuestionHash string `json:"question_hash"`
+	Question     string `json:"question"`
+	Answer       string `json:"answer"`
+	Citations    string `json:"citations"`
+	MaterialHash string `json:"material_hash"`
+	MemoryHash   string `json:"memory_hash"`
+	CreatedAt    int64  `json:"created_at"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
+
+func (q *Queries) PutAnswerCache(ctx context.Context, arg PutAnswerCacheParams) error {
+	_, err := q.db.ExecContext(ctx, putAnswerCache,
+		arg.ID,
+		arg.QuestionHash,
+		arg.Question,
+		arg.Answer,
+		arg.Citations,
+		arg.MaterialHash,
+		arg.MemoryHash,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const updateConversationSummary = `-- name: UpdateConversationSummary :exec
+UPDATE conversations SET summary = ? WHERE id = ? AND session_hash = ?
+`
+
+type UpdateConversationSummaryParams struct {
+	Summary     string `json:"summary"`
+	ID          string `json:"id"`
+	SessionHash string `json:"session_hash"`
+}
+
+func (q *Queries) UpdateConversationSummary(ctx context.Context, arg UpdateConversationSummaryParams) error {
+	_, err := q.db.ExecContext(ctx, updateConversationSummary, arg.Summary, arg.ID, arg.SessionHash)
+	return err
+}
+
+const upsertFeaturedAnswer = `-- name: UpsertFeaturedAnswer :exec
+INSERT INTO featured_answers(id,record_id,title,sort_key,created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET record_id=excluded.record_id,title=excluded.title,sort_key=excluded.sort_key
+`
+
+type UpsertFeaturedAnswerParams struct {
+	ID        string `json:"id"`
+	RecordID  string `json:"record_id"`
+	Title     string `json:"title"`
+	SortKey   string `json:"sort_key"`
+	CreatedAt int64  `json:"created_at"`
+}
+
+func (q *Queries) UpsertFeaturedAnswer(ctx context.Context, arg UpsertFeaturedAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, upsertFeaturedAnswer,
+		arg.ID,
+		arg.RecordID,
+		arg.Title,
+		arg.SortKey,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertQAFeedback = `-- name: UpsertQAFeedback :exec
+INSERT INTO qa_feedback(record_id,session_hash,helpful,created_at) VALUES(?,?,?,?) ON CONFLICT(record_id,session_hash) DO UPDATE SET helpful=excluded.helpful,created_at=excluded.created_at
+`
+
+type UpsertQAFeedbackParams struct {
+	RecordID    string `json:"record_id"`
+	SessionHash string `json:"session_hash"`
+	Helpful     int64  `json:"helpful"`
+	CreatedAt   int64  `json:"created_at"`
+}
+
+func (q *Queries) UpsertQAFeedback(ctx context.Context, arg UpsertQAFeedbackParams) error {
+	_, err := q.db.ExecContext(ctx, upsertQAFeedback,
+		arg.RecordID,
+		arg.SessionHash,
+		arg.Helpful,
+		arg.CreatedAt,
+	)
+	return err
 }

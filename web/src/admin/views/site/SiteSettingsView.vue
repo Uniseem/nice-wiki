@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
 import { client, requireData, errorMessage } from '../../../shared/api/client'
-const form = reactive({ name: '', description: '', baseURL: '', themeColor: '#2563eb', logoHash: '', footer: '' })
+const form = reactive({ name: '', description: '', baseURL: '', themeColor: '#2563eb', logoHash: '', shareImageHash:'', footer: '' })
 const error = ref('')
 const saved = ref(false)
 const busy = ref(false)
@@ -37,6 +37,7 @@ async function save() { error.value = ''; saved.value = false; busy.value = true
       type="color"
       class="h-10 w-20 rounded border border-border"
     ></label>
+    <label class="grid gap-2 text-sm">默认分享图哈希<input v-model="form.shareImageHash" pattern="[a-f0-9]{64}" class="nw-input"></label>
     <label class="grid gap-2 text-sm">页脚文字<textarea
       v-model="form.footer"
       maxlength="4000"

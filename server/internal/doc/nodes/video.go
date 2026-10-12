@@ -14,11 +14,16 @@ func (video) Render(n Node, c Context) (string, error) {
 		return strings.TrimSpace(title+" "+description) + "\n", nil
 	}
 	if String(n, "source") == "platform" {
-		// 平台提供方尚未接入，只展示保存的公开文字，不加载未经验证的播放器。
 		if c.Format == Markdown {
 			return "**" + EscapeMarkdown(title) + "**\n\n" + EscapeMarkdown(description) + "\n\n", nil
 		}
-		return "<figure" + Anchor(n) + ` class="nw-video"><figcaption>` + html.EscapeString(title) + "</figcaption><p>" + html.EscapeString(description) + "</p></figure>", nil
+		button := ""
+		if c.VideoURL != nil {
+			if embed, ok := c.VideoURL(String(n, "provider"), String(n, "providerId")); ok {
+				button = `<button type="button" class="nw-video-facade" data-video-embed="` + html.EscapeString(embed) + `" data-video-title="` + html.EscapeString(title) + `">播放视频</button>`
+			}
+		}
+		return "<figure" + Anchor(n) + ` class="nw-video">` + button + `<figcaption>` + html.EscapeString(title) + "</figcaption><p>" + html.EscapeString(description) + "</p></figure>", nil
 	}
 	extension := String(n, "extension")
 	if extension == "" {

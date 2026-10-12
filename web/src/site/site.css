@@ -4,12 +4,28 @@
 @import '../shared/styles/code-site.css';
 
 [data-toc] a[aria-current='location'] { color: var(--nw-primary); font-weight: 600; }
+.nw-hero { position: relative; display: grid; min-block-size: calc(100vh - 5rem); place-items: center; overflow: hidden; text-align: center; }
+.nw-hero-media { position: absolute; inset: 0; block-size: 100%; inline-size: 100%; object-fit: cover; }
+.nw-hero-overlay { position: absolute; inset: 0; background: rgb(0 0 0 / var(--nw-hero-overlay)); }
+.nw-hero-content { position: relative; z-index: 1; padding: 3rem 1.5rem; }
+.nw-hero-light { color: white; }
+.nw-hero-dark { color: #111827; }
+.nw-hero-background-text { position: absolute; inset: 50% auto auto 50%; z-index: -1; translate: -50% -70%; white-space: nowrap; font-size: clamp(4rem, 15vw, 13rem); font-weight: 800; opacity: .12; }
+.nw-hero-link { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem 1.25rem; font-weight: 600; }
+.nw-hero-link-primary { border-color: var(--nw-primary); background: var(--nw-primary); color: white; }
+.nw-video-frame, .nw-video-facade { aspect-ratio: 16 / 9; inline-size: 100%; border: 0; border-radius: .5rem; }
+.nw-video-facade { background: var(--nw-surface); color: var(--nw-foreground); cursor: pointer; }
 [data-toc] a[data-level='3'] { padding-inline-start: .75rem; }
 [data-toc] a[data-level='4'] { padding-inline-start: 1.5rem; }
 .nw-document-tree a[data-depth='1'] { padding-inline-start: .75rem; }
 .nw-document-tree a[data-depth='2'] { padding-inline-start: 1.5rem; }
 .nw-document-tree a[data-depth='3'] { padding-inline-start: 2.25rem; }
+.nw-page-toc { display: none; }
+@media (min-width: 80rem) { .nw-page-toc { display: block; } }
 @media (max-width: 48rem) {
   .nw-document-tree { display: none; }
   .nw-document-tree[data-open='true'] { display: block; padding: 1rem; border: 1px solid var(--nw-border); border-radius: .5rem; background: var(--nw-surface); }
+}
+@media (max-width: 79.999rem) {
+  .nw-page-toc[data-open='true'] { position: fixed; inset-block-start: 5rem; inset-inline-end: 1rem; z-index: 20; display: block; max-block-size: 70vh; overflow: auto; border: 1px solid var(--nw-border); border-radius: .5rem; background: var(--nw-surface); padding: 1rem; }
 }

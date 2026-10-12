@@ -53,6 +53,7 @@ func OpenRuntime(path string) (*RuntimeStore, error) {
 	if err := value.Validate(); err != nil {
 		return nil, err
 	}
+	value.TrustedProxies = append([]string{}, value.TrustedProxies...)
 	return &RuntimeStore{path: path, value: value}, nil
 }
 func (s *RuntimeStore) Get() Runtime {

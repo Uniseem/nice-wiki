@@ -23,14 +23,16 @@ var ErrConflict = errors.New("文档版本或状态冲突")
 var ErrLocked = errors.New("文档编辑锁已失效或由其他账号持有")
 
 type Repo struct {
-	mu        sync.RWMutex
-	layout    datadir.Layout
-	db        *sql.DB
-	files     map[string]File
-	paths     map[string]string
-	history   History
-	onPublish PublishedHook
-	locks     *Locks
+	mu            sync.RWMutex
+	layout        datadir.Layout
+	db            *sql.DB
+	files         map[string]File
+	paths         map[string]string
+	history       History
+	onPublish     PublishedHook
+	slugGenerator SlugGenerator
+	seoGenerator  SEOGenerator
+	locks         *Locks
 }
 
 func newID() (string, error) {
@@ -180,6 +182,19 @@ func (r *Repo) Path(id string) (string, error) {
 	defer r.mu.RUnlock()
 	return PathFor(id, r.files)
 }
+func (r *Repo) HistoryPath(id string) (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	path, ok := r.paths[id]
+	if !ok {
+		return "", ErrNotFound
+	}
+	relative, err := filepath.Rel(r.layout.Root, path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.ToSlash(relative), nil
+}
 func (r *Repo) ResolvePath(path string) (File, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -192,6 +207,17 @@ func (r *Repo) ResolvePath(path string) (File, bool) {
 	return File{}, false
 }
 func (r *Repo) Locks() *Locks { return r.locks }
+func (r *Repo) SetPublishedHook(hook PublishedHook) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.onPublish = hook
+}
+func (r *Repo) SetGenerators(slug SlugGenerator, seo SEOGenerator) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.slugGenerator = slug
+	r.seoGenerator = seo
+}
 
 // SourceDocument 是资源清理所需的当前正文、共享草稿和回收站快照。
 type SourceDocument struct {

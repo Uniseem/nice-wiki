@@ -15,17 +15,51 @@ async function logout() { await auth.logout(); await router.replace('/login') }
         nice-wiki
       </p>
       <nav class="grid gap-4 text-sm">
+        <RouterLink to="/">管理概览</RouterLink>
         <RouterLink
           v-if="has('editDocs')"
           to="/docs"
         >
           文档
         </RouterLink>
+        <RouterLink v-if="has('viewStats')" to="/stats">访问统计</RouterLink>
+        <RouterLink v-if="auth.account?.superadmin" to="/backups">备份恢复</RouterLink>
+        <RouterLink v-if="auth.account?.superadmin" to="/jobs">后台任务</RouterLink>
+        <RouterLink v-if="auth.account?.superadmin" to="/system">系统设置</RouterLink>
+        <RouterLink v-if="auth.account?.superadmin" to="/models">模型渠道</RouterLink>
+        <RouterLink v-if="has('aiSettings')" to="/ai-settings">AI 设置</RouterLink>
+        <RouterLink v-if="has('manageQA')" to="/qa">问答记录</RouterLink>
+        <RouterLink v-if="has('manageQA')" to="/qa-cache">回答缓存</RouterLink>
+        <RouterLink v-if="has('aiSettings')" to="/qa-debug">问答调试</RouterLink>
+        <RouterLink v-if="has('aiSettings')" to="/guard">防滥用</RouterLink>
+        <RouterLink v-if="has('aiMemory')" to="/memory">长期记忆</RouterLink>
+        <RouterLink v-if="has('aiMemory')" to="/memory-tasks">记忆映射</RouterLink>
+        <RouterLink v-if="has('manageLanguages')" to="/languages">语言管理</RouterLink>
+        <RouterLink v-if="has('manageTranslations')" to="/translations">翻译进度</RouterLink>
+        <RouterLink v-if="has('manageTranslations')" to="/glossary">术语表</RouterLink>
+        <RouterLink
+          v-if="has('publishDocs')"
+          to="/trash"
+        >
+          回收站
+        </RouterLink>
         <RouterLink
           v-if="has('siteSettings')"
           to="/site"
         >
           站点设置
+        </RouterLink>
+        <RouterLink
+          v-if="has('siteSettings')"
+          to="/site/home"
+        >
+          首页主视觉
+        </RouterLink>
+        <RouterLink
+          v-if="has('siteSettings')"
+          to="/site/banner"
+        >
+          公告横幅
         </RouterLink>
         <RouterLink
           v-if="auth.account?.superadmin"

@@ -1,0 +1,4 @@
+{{define "prevnext"}}<nav aria-label="相邻文档" class="mt-16 grid gap-4 border-t border-border pt-6 sm:grid-cols-2">
+{{if .Previous}}<a class="rounded-card border border-border p-4 hover:border-primary" href="{{.Previous.URL}}"><span class="block text-xs text-muted">上一篇</span><span class="mt-1 block font-medium">{{.Previous.Title}}</span></a>{{else}}<span></span>{{end}}
+{{if .Next}}<a class="rounded-card border border-border p-4 text-end hover:border-primary" href="{{.Next.URL}}"><span class="block text-xs text-muted">下一篇</span><span class="mt-1 block font-medium">{{.Next.Title}}</span></a>{{end}}
+</nav>{{end}}

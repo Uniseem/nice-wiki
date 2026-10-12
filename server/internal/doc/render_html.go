@@ -24,7 +24,7 @@ func render(document Document, options RenderOptions, format nodes.Format) (stri
 			}
 			return renderMarks(value, node.Marks, options, format), nil
 		}
-		context := nodes.Context{Format: format, Language: options.Language, Render: visit, Highlight: Highlight, AssetURL: options.AssetURL}
+		context := nodes.Context{Format: format, Language: options.Language, Render: visit, Highlight: Highlight, AssetURL: options.AssetURL, VideoURL: options.VideoURL}
 		if node.Type == "doc" {
 			return nodes.Children(node, context)
 		}

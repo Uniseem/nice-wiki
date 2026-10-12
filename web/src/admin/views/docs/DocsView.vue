@@ -4,6 +4,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import DocEditor from '../../editor/DocEditor.vue'
 import { useDocTreeStore } from '../../stores/docTree'
 import { client, requireData, errorMessage } from '../../../shared/api/client'
+import DocTree from '../../components/DocTree.vue'
 const store = useDocTreeStore()
 const selected = ref('')
 const title = ref('')
@@ -20,6 +21,7 @@ async function create() {
   catch (cause) { error.value = errorMessage(cause) }
   finally { creating.value = false }
 }
+async function move(id: string, parentId: string, beforeId: string, afterId: string) { try { requireData(await client.PUT('/api/admin/docs/{id}/move', { params: { path: { id } }, body: { parentId, beforeId, afterId } })); await store.refresh() } catch (cause) { error.value = errorMessage(cause) } }
 </script>
 <template>
   <PageHeader
@@ -65,15 +67,12 @@ async function create() {
       >
         加载文档树…
       </p>
-      <button
-        v-for="document in store.documents"
-        :key="document.id"
-        class="rounded-card border p-3 text-start text-sm"
-        :class="selected === document.id ? 'border-primary' : 'border-border'"
-        @click="select(document.id)"
-      >
-        {{ document.title }}<span class="ms-2 text-xs text-muted">{{ document.published ? '已发布' : '草稿' }}</span>
-      </button>
+      <DocTree
+        :documents="store.documents"
+        :selected="selected"
+        @select="select"
+        @move="move"
+      />
     </aside>
     <DocEditor
       v-if="current"
@@ -89,4 +88,11 @@ async function create() {
       新建或选择一篇文档，开始编辑。
     </p>
   </div>
+  <RouterLink
+    v-if="current"
+    :to="`/docs/${current.id}/history`"
+    class="mt-6 inline-block text-sm text-primary"
+  >
+    查看版本历史
+  </RouterLink>
 </template>

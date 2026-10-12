@@ -14,6 +14,7 @@ import (
 type KeyStore interface {
 	Set(string, string) error
 	Has(string) bool
+	Use(string, func(string) error) error
 }
 type Channel struct {
 	ID       string `json:"id"`
@@ -41,7 +42,7 @@ func OpenChannels(path string, keys KeyStore) (*Channels, error) {
 	return &Channels{path: path, keys: keys, values: values}, nil
 }
 func validateChannel(v Channel) error {
-	if strings.TrimSpace(v.Name) == "" || len([]rune(v.Name)) > 120 || v.Protocol != "openai" {
+	if strings.TrimSpace(v.Name) == "" || len([]rune(v.Name)) > 120 || v.Protocol != "openai" && v.Protocol != "anthropic" && v.Protocol != "gemini" && v.Protocol != "rerank" {
 		return errors.New("渠道名称或协议无效")
 	}
 	u, err := url.Parse(v.BaseURL)
@@ -57,6 +58,9 @@ func (s *Channels) List() []Channel {
 	return append([]Channel{}, s.values...)
 }
 func (s *Channels) HasKey(id string) bool { return s.keys.Has("channel:" + id) }
+func (s *Channels) UseKey(id string, fn func(string) error) error {
+	return s.keys.Use("channel:"+id, fn)
+}
 func (s *Channels) Create(name, address, protocol, key string) (Channel, error) {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
@@ -83,4 +87,57 @@ func (s *Channels) Create(name, address, protocol, key string) (Channel, error) 
 	}
 	s.values = next
 	return v, nil
+}
+func (s *Channels) Update(id, name, address, protocol, key string) (Channel, error) {
+	value := Channel{ID: id, Name: name, BaseURL: strings.TrimSuffix(address, "/"), Protocol: protocol}
+	if err := validateChannel(value); err != nil {
+		return Channel{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := append([]Channel{}, s.values...)
+	found := false
+	for index, current := range next {
+		if current.ID == id {
+			next[index] = value
+			found = true
+		}
+	}
+	if !found {
+		return Channel{}, errors.New("渠道不存在")
+	}
+	if key != "" {
+		if err := s.keys.Set("channel:"+id, key); err != nil {
+			return Channel{}, err
+		}
+	}
+	if err := fsutil.WriteJSON(s.path, next); err != nil {
+		return Channel{}, err
+	}
+	s.values = next
+	return value, nil
+}
+func (s *Channels) Delete(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := []Channel{}
+	found := false
+	for _, current := range s.values {
+		if current.ID == id {
+			found = true
+			continue
+		}
+		next = append(next, current)
+	}
+	if !found {
+		return errors.New("渠道不存在")
+	}
+	if err := fsutil.WriteJSON(s.path, next); err != nil {
+		return err
+	}
+	if err := s.keys.Set("channel:"+id, ""); err != nil {
+		return err
+	}
+	s.values = next
+	return nil
 }

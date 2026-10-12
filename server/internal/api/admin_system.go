@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"nice-wiki/internal/ai/guard"
 	"nice-wiki/internal/api/gen"
 	"nice-wiki/internal/config"
 )
@@ -14,6 +15,17 @@ func (s *Server) SaveRuntime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value := config.Runtime{TrustedProxies: body.TrustedProxies, TurnstileSiteKey: body.TurnstileSiteKey, DailySpendLimit: body.DailySpendLimit, GitRemote: body.GitRemote, BackupHour: body.BackupHour, BackupKeep: body.BackupKeep}
+	if body.TurnstileSecret != nil {
+		if err := s.Secrets.Set("turnstile", *body.TurnstileSecret); err != nil {
+			s.fail(w, err)
+			return
+		}
+		if *body.TurnstileSecret == "" {
+			s.setTurnstile(nil)
+		} else {
+			s.setTurnstile(&guard.Turnstile{Secret: *body.TurnstileSecret, Client: http.DefaultClient})
+		}
+	}
 	if err := s.Runtime.Save(value); err != nil {
 		s.validationOrFailure(w, err)
 		return

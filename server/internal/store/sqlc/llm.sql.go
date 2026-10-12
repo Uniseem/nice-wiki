@@ -18,6 +18,48 @@ func (q *Queries) DeleteExpiredLocaleCache(ctx context.Context, expiresAt int64)
 	return err
 }
 
+const getLocaleCache = `-- name: GetLocaleCache :one
+SELECT signal_hash, language, reason, expires_at FROM locale_cache WHERE signal_hash = ? AND expires_at > ?
+`
+
+type GetLocaleCacheParams struct {
+	SignalHash string `json:"signal_hash"`
+	ExpiresAt  int64  `json:"expires_at"`
+}
+
+func (q *Queries) GetLocaleCache(ctx context.Context, arg GetLocaleCacheParams) (LocaleCache, error) {
+	row := q.db.QueryRowContext(ctx, getLocaleCache, arg.SignalHash, arg.ExpiresAt)
+	var i LocaleCache
+	err := row.Scan(
+		&i.SignalHash,
+		&i.Language,
+		&i.Reason,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const putLocaleCache = `-- name: PutLocaleCache :exec
+INSERT INTO locale_cache(signal_hash,language,reason,expires_at) VALUES(?,?,?,?) ON CONFLICT(signal_hash) DO UPDATE SET language=excluded.language,reason=excluded.reason,expires_at=excluded.expires_at
+`
+
+type PutLocaleCacheParams struct {
+	SignalHash string `json:"signal_hash"`
+	Language   string `json:"language"`
+	Reason     string `json:"reason"`
+	ExpiresAt  int64  `json:"expires_at"`
+}
+
+func (q *Queries) PutLocaleCache(ctx context.Context, arg PutLocaleCacheParams) error {
+	_, err := q.db.ExecContext(ctx, putLocaleCache,
+		arg.SignalHash,
+		arg.Language,
+		arg.Reason,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const recordUsage = `-- name: RecordUsage :exec
 INSERT INTO llm_usage(channel_id,model,task,input_tokens,output_tokens,cached_tokens,cost_usd,status,created_at) VALUES(?,?,?,?,?,?,?,?,?)
 `

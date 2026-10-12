@@ -3,6 +3,7 @@ package setup
 import (
 	"errors"
 	"nice-wiki/internal/auth"
+	"nice-wiki/internal/datadir"
 	"nice-wiki/internal/settings"
 )
 
@@ -16,6 +17,7 @@ type Service struct {
 	Auth     *auth.Service
 	Settings *settings.Store
 	Channels Channels
+	Layout   datadir.Layout
 }
 
 func (s Service) State() State {

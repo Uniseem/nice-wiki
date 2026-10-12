@@ -1,0 +1,2 @@
+<script setup lang="ts">import{ref}from'vue';import{client}from'../../shared/api/client';const props=defineProps<{recordId:string}>();const sent=ref(false);async function send(helpful:boolean){const response=await client.POST('/api/public/feedback',{body:{recordId:props.recordId,helpful}});if(!response.error)sent.value=true}</script>
+<template><div v-if="!sent" class="flex gap-2 text-xs"><button @click="send(true)">有帮助</button><button @click="send(false)">没帮助</button></div><p v-else class="text-xs text-muted">感谢反馈</p></template>

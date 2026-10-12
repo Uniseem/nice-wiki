@@ -29,7 +29,9 @@ func (s *Store) SaveAI(v AI) error {
 		return err
 	}
 	if v.Enabled {
-		return invalid("模型档位尚未实现，不能启用 AI")
+		if s.aiReady == nil || !s.aiReady() {
+			return invalid("快速、精确与嵌入模型尚未配置完整，不能启用 AI")
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

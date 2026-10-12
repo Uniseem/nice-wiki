@@ -8,4 +8,5 @@ type RenderOptions struct {
 	Language string
 	Links    LinkResolver
 	AssetURL func(string, string, string) string
+	VideoURL func(string, string) (string, bool)
 }

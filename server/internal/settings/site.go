@@ -8,13 +8,14 @@ import (
 )
 
 type Site struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	LogoHash    string `json:"logoHash"`
-	BaseURL     string `json:"baseURL"`
-	ThemeColor  string `json:"themeColor"`
-	Footer      string `json:"footer"`
-	Initialized bool   `json:"initialized"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	LogoHash       string `json:"logoHash"`
+	ShareImageHash string `json:"shareImageHash"`
+	BaseURL        string `json:"baseURL"`
+	ThemeColor     string `json:"themeColor"`
+	Footer         string `json:"footer"`
+	Initialized    bool   `json:"initialized"`
 }
 
 func DefaultSite() Site { return Site{Name: "nice-wiki", ThemeColor: "#2563eb"} }
@@ -27,6 +28,9 @@ func (v Site) Validate() error {
 	}
 	if v.LogoHash != "" && !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(v.LogoHash) {
 		return invalid("Logo 哈希无效")
+	}
+	if v.ShareImageHash != "" && !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(v.ShareImageHash) {
+		return invalid("分享图哈希无效")
 	}
 	if v.BaseURL != "" {
 		u, err := url.Parse(v.BaseURL)

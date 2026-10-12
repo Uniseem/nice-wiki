@@ -9,18 +9,23 @@ import (
 	"context"
 )
 
-const clearQueuedGeneration = `-- name: ClearQueuedGeneration :exec
-UPDATE job_merge SET queued_generation = 0 WHERE kind = ? AND subject_id = ?
+const clearQueuedGeneration = `-- name: ClearQueuedGeneration :execrows
+UPDATE job_merge SET queued_generation = 0
+WHERE kind = ? AND subject_id = ? AND queued_generation = ?
 `
 
 type ClearQueuedGenerationParams struct {
-	Kind      string `json:"kind"`
-	SubjectID string `json:"subject_id"`
+	Kind             string `json:"kind"`
+	SubjectID        string `json:"subject_id"`
+	QueuedGeneration int64  `json:"queued_generation"`
 }
 
-func (q *Queries) ClearQueuedGeneration(ctx context.Context, arg ClearQueuedGenerationParams) error {
-	_, err := q.db.ExecContext(ctx, clearQueuedGeneration, arg.Kind, arg.SubjectID)
-	return err
+func (q *Queries) ClearQueuedGeneration(ctx context.Context, arg ClearQueuedGenerationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, clearQueuedGeneration, arg.Kind, arg.SubjectID, arg.QueuedGeneration)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getJobGeneration = `-- name: GetJobGeneration :one

@@ -147,6 +147,7 @@
         }
       }
     },
+    "/api/admin/setup/restore": {"post":{"operationId":"PrepareRestore","x-permission":"anonymous","tags":["admin"],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"type":"object","properties":{"file":{"type":"string","format":"binary"}},"required":["file"]}}}},"responses":{"202":{"description":"恢复已准备，重启后应用"}}}},
     "/api/admin/setup/register": {
       "post": {
         "operationId": "Register",
@@ -1506,6 +1507,7 @@
         }
       }
     },
+    "/api/admin/settings/ai": {"get":{"operationId":"GetAISettings","x-permission":"aiSettings","tags":["admin"],"responses":{"200":{"description":"AI 设置","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AISettings"}}}}}},"put":{"operationId":"SaveAISettings","x-permission":"aiSettings","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AISettings"}}}},"responses":{"200":{"description":"已保存"}}}},
     "/api/admin/setup/language": {
       "put": {
         "operationId": "SetBaseLanguage",
@@ -1811,6 +1813,8 @@
         }
       }
     },
+    "/api/admin/models/channels/{id}": {"put":{"operationId":"UpdateChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChannelInput"}}}},"responses":{"200":{"description":"已更新","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Channel"}}}}}},"delete":{"operationId":"DeleteChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已删除"}}}},
+    "/api/admin/models/channels/{id}/probe": {"post":{"operationId":"ProbeChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProbeInput"}}}},"responses":{"200":{"description":"连接正常"}}}},
     "/api/admin/system": {
       "get": {
         "operationId": "GetRuntime",
@@ -2876,6 +2880,7 @@
     "/api/admin/docs/{id}": {
       "delete": {
         "operationId": "TrashDocument",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TrashDocument"}}}},
         "tags": [
           "admin"
         ],
@@ -3055,6 +3060,13 @@
         }
       }
     },
+    "/api/admin/video/resolve": {
+      "post": {
+        "operationId":"ResolveVideo","x-permission":"editDocs","tags":["admin"],
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/VideoResolveInput"}}}},
+        "responses":{"200":{"description":"平台视频信息","content":{"application/json":{"schema":{"$ref":"#/components/schemas/VideoMetadata"}}}}}
+      }
+    },
     "/api/admin/docs/{id}/preview": {
       "get": {
         "operationId": "PreviewDocument",
@@ -3140,7 +3152,75 @@
           }
         }
       }
-    }
+    },
+    "/api/admin/trash/{id}": {
+      "delete": {
+        "operationId": "PurgeTrash",
+        "x-permission": "superadmin",
+        "tags": ["admin"],
+        "parameters": [{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],
+        "responses": {"200":{"description":"已彻底删除当前回收站快照"}}
+      }
+    },
+    "/api/admin/docs/{id}/history": {
+      "get": {
+        "operationId": "ListDocumentHistory",
+        "x-permission": "publishDocs",
+        "tags": ["admin"],
+        "parameters": [{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],
+        "responses": {"200":{"description":"版本历史","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/HistoryRevision"}}}}}}
+      }
+    },
+    "/api/admin/docs/{id}/history/diff": {
+      "get": {
+        "operationId": "DiffDocumentHistory",
+        "x-permission": "publishDocs",
+        "tags": ["admin"],
+        "parameters": [
+          {"in":"path","name":"id","required":true,"schema":{"type":"string"}},
+          {"in":"query","name":"before","required":true,"schema":{"type":"string"}},
+          {"in":"query","name":"after","required":true,"schema":{"type":"string"}}
+        ],
+        "responses": {"200":{"description":"版本差异","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HistoryDiff"}}}}}
+      }
+    },
+    "/api/admin/docs/{id}/history/restore": {
+      "post": {
+        "operationId": "RestoreDocumentHistory",
+        "x-permission": "publishDocs",
+        "tags": ["admin"],
+        "parameters": [{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],
+        "requestBody": {"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/RestoreHistory"}}}},
+        "responses": {"200":{"description":"已创建新草稿","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Draft"}}}}}
+      }
+    },
+    "/api/public/session": {"post":{"operationId":"CreatePublicSession","x-permission":"anonymous","tags":["public"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PublicSessionInput"}}}},"responses":{"200":{"description":"问答会话","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PublicSession"}}}}}}},
+    "/api/public/pow": {"get":{"operationId":"GetPowChallenge","x-permission":"anonymous","tags":["public"],"responses":{"200":{"description":"工作量证明题目","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PowChallenge"}}}}}}},
+    "/api/public/ask": {"post":{"operationId":"Ask","x-permission":"anonymous","tags":["public"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AskInput"}}}},"responses":{"200":{"description":"SSE 问答流","content":{"text/event-stream":{"schema":{"type":"string"}}}}}}},
+    "/api/public/conversation/{id}": {"get":{"operationId":"GetConversation","x-permission":"anonymous","tags":["public"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"对话","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Conversation"}}}}}},"delete":{"operationId":"ClearConversation","x-permission":"anonymous","tags":["public"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已清空"}}}},
+    "/api/public/feedback": {"post":{"operationId":"SubmitFeedback","x-permission":"anonymous","tags":["public"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/FeedbackInput"}}}},"responses":{"200":{"description":"已记录"}}}},
+    "/api/public/locale": {"post":{"operationId":"SuggestLocale","x-permission":"anonymous","tags":["public"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LocaleSignals"}}}},"responses":{"200":{"description":"语言建议","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LocaleSuggestion"}}}}}}},
+    "/api/public/beacon": {"post":{"operationId":"RecordBeacon","x-permission":"anonymous","tags":["public"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BeaconInput"}}}},"responses":{"200":{"description":"已记录"}}}},
+    "/api/admin/jobs": {"get":{"operationId":"ListJobs","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"任务列表","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/JobProgress"}}}}}}}},
+    "/api/admin/jobs/reindex": {"post":{"operationId":"RebuildSearchIndex","x-permission":"aiSettings","tags":["admin"],"responses":{"200":{"description":"已投递"}}}},
+    "/api/admin/stats": {"get":{"operationId":"GetStats","x-permission":"viewStats","tags":["admin"],"responses":{"200":{"description":"统计摘要","content":{"application/json":{"schema":{"$ref":"#/components/schemas/StatsSummary"}}}}}}},
+    "/api/admin/backups": {"get":{"operationId":"ListBackups","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"备份列表","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/BackupInfo"}}}}}}},"post":{"operationId":"CreateBackup","x-permission":"superadmin","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BackupInput"}}}},"responses":{"200":{"description":"新备份","content":{"application/json":{"schema":{"$ref":"#/components/schemas/BackupInfo"}}}}}}},
+    "/api/admin/memory": {"get":{"operationId":"ListMemory","x-permission":"aiMemory","tags":["admin"],"responses":{"200":{"description":"记忆条目","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/MemoryItem"}}}}}}},"put":{"operationId":"SaveMemory","x-permission":"aiMemory","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryItem"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/memory/tasks": {"get":{"operationId":"GetMemoryTasks","x-permission":"aiMemory","tags":["admin"],"responses":{"200":{"description":"任务记忆映射","content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryTasks"}}}}}},"put":{"operationId":"SaveMemoryTasks","x-permission":"aiMemory","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryTasks"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/memory/assistant": {"post":{"operationId":"AskMemoryAssistant","x-permission":"aiMemory","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryAssistantInput"}}}},"responses":{"200":{"description":"修改提议","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/MemoryProposal"}}}}}}}},
+    "/api/admin/memory/assistant/{conversation}/apply": {"post":{"operationId":"ApplyMemoryProposals","x-permission":"aiMemory","tags":["admin"],"parameters":[{"in":"path","name":"conversation","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryApplyInput"}}}},"responses":{"200":{"description":"已应用"}}}},
+    "/api/admin/models/catalog": {"get":{"operationId":"ListModels","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"模型目录","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ModelInfo"}}}}}}},"put":{"operationId":"SaveModel","x-permission":"superadmin","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ModelInfo"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/qa/records": {"get":{"operationId":"ListQARecords","x-permission":"manageQA","tags":["admin"],"responses":{"200":{"description":"问答记录","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/QARecord"}}}}}}}},
+    "/api/admin/qa/records/{id}/featured": {"put":{"operationId":"FeatureAnswer","x-permission":"manageQA","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/FeaturedInput"}}}},"responses":{"200":{"description":"已设为精选"}}},"delete":{"operationId":"UnfeatureAnswer","x-permission":"manageQA","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已取消精选"}}}},
+    "/api/admin/languages": {"get":{"operationId":"ListLanguages","x-permission":"manageLanguages","tags":["admin"],"responses":{"200":{"description":"语言设置","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguagesAdmin"}}}}}},"put":{"operationId":"SaveLanguages","x-permission":"manageLanguages","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguageSettings"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/translations/status": {"get":{"operationId":"TranslationStatus","x-permission":"manageTranslations","tags":["admin"],"responses":{"200":{"description":"翻译进度","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TranslationProgress"}}}}}}}},
+    "/api/admin/translations/{language}/{id}": {"get":{"operationId":"GetTranslation","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"path","name":"language","required":true,"schema":{"type":"string"}},{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"译文文件","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationFile"}}}}}},"put":{"operationId":"SaveTranslation","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"path","name":"language","required":true,"schema":{"type":"string"}},{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationFile"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/glossary": {"get":{"operationId":"ListGlossary","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"query","name":"language","required":false,"schema":{"type":"string"}}],"responses":{"200":{"description":"术语表","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/GlossaryTerm"}}}}}}},"put":{"operationId":"SaveGlossaryTerm","x-permission":"manageTranslations","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GlossaryTerm"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/translations/estimate": {"post":{"operationId":"EstimateTranslation","x-permission":"manageLanguages","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationEstimateInput"}}}},"responses":{"200":{"description":"费用预估","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationEstimate"}}}}}}},
+    "/api/admin/guard/events": {"get":{"operationId":"ListGuardEvents","x-permission":"aiSettings","tags":["admin"],"responses":{"200":{"description":"风险事件","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/GuardEvent"}}}}}}}},
+    "/api/admin/guard/bans/{key}": {"delete":{"operationId":"Unban","x-permission":"aiSettings","tags":["admin"],"parameters":[{"in":"path","name":"key","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已解封"}}}},
+    "/api/admin/qa/cache": {"delete":{"operationId":"ClearAnswerCache","x-permission":"manageQA","tags":["admin"],"responses":{"200":{"description":"已清空普通回答缓存"}}}},
+    "/api/admin/qa/debug/{id}": {"get":{"operationId":"GetQADebug","x-permission":"aiSettings","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"调试轨迹","content":{"application/json":{"schema":{"$ref":"#/components/schemas/DebugTrace"}}}}}}}
   },
   "components": {
     "schemas": {
@@ -3399,6 +3479,9 @@
           "logoHash": {
             "type": "string"
           },
+          "shareImageHash": {
+            "type": "string"
+          },
           "baseURL": {
             "type": "string"
           },
@@ -3414,6 +3497,7 @@
           "name",
           "description",
           "logoHash",
+          "shareImageHash",
           "baseURL",
           "themeColor",
           "footer"
@@ -3453,7 +3537,10 @@
           "protocol": {
             "type": "string",
             "enum": [
-              "openai"
+              "openai",
+              "anthropic",
+              "gemini",
+              "rerank"
             ]
           },
           "apiKey": {
@@ -3728,6 +3815,32 @@
           "afterId"
         ]
       },
+      "HistoryRevision": {
+        "type":"object","additionalProperties":false,
+        "properties":{"hash":{"type":"string"},"message":{"type":"string"},"author":{"type":"string"},"time":{"type":"string","format":"date-time"}},
+        "required":["hash","message","author","time"]
+      },
+      "VideoResolveInput": {
+        "type":"object","additionalProperties":false,"properties":{"url":{"type":"string","maxLength":2048}},"required":["url"]
+      },
+      "VideoMetadata": {
+        "type":"object","additionalProperties":false,
+        "properties":{"provider":{"type":"string"},"providerId":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"author":{"type":"string"},"duration":{"type":"integer"},"thumbnailUrl":{"type":"string"},"embedUrl":{"type":"string"}},
+        "required":["provider","providerId","title","description","author","duration","thumbnailUrl","embedUrl"]
+      },
+      "HistoryDiff": {
+        "type":"object","additionalProperties":false,
+        "properties":{"before":{"type":"string"},"after":{"type":"string"}},
+        "required":["before","after"]
+      },
+      "RestoreHistory": {
+        "type":"object","additionalProperties":false,
+        "properties":{"revision":{"type":"string"},"lockToken":{"type":"string"},"draftVersion":{"type":"integer","format":"int64"}},
+        "required":["revision","lockToken","draftVersion"]
+      },
+      "TrashDocument": {
+        "type":"object","additionalProperties":false,"properties":{"redirectDocumentId":{"type":"string"}},"required":["redirectDocumentId"]
+      },
       "HomeSettings": {
         "type": "object",
         "additionalProperties": false,
@@ -3739,6 +3852,10 @@
           "subtitle": {
             "type": "string",
             "maxLength": 1000
+          },
+          "backgroundText": {
+            "type": "string",
+            "maxLength": 200
           },
           "backgroundHash": {
             "type": "string"
@@ -3753,6 +3870,15 @@
           },
           "videoPosterHash": {
             "type": "string"
+          },
+          "overlay": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "textColor": {
+            "type": "string",
+            "enum": ["light", "dark"]
           },
           "translateBackgroundText": {
             "type": "boolean"
@@ -3771,12 +3897,17 @@
                 },
                 "url": {
                   "type": "string"
+                },
+                "style": {
+                  "type": "string",
+                  "enum": ["primary", "secondary"]
                 }
               },
               "required": [
                 "label",
                 "documentId",
-                "url"
+                "url",
+                "style"
               ]
             }
           }
@@ -3784,9 +3915,12 @@
         "required": [
           "title",
           "subtitle",
+          "backgroundText",
           "backgroundHash",
           "backgroundKind",
           "videoPosterHash",
+          "overlay",
+          "textColor",
           "translateBackgroundText",
           "links"
         ]
@@ -3807,15 +3941,28 @@
           },
           "dismissible": {
             "type": "boolean"
+          },
+          "startsAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "endsAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         },
         "required": [
           "enabled",
           "text",
           "url",
-          "dismissible"
+          "dismissible",
+          "startsAt",
+          "endsAt"
         ]
       },
+      "AISettings":{"type":"object","additionalProperties":false,"properties":{"enabled":{"type":"boolean"},"exactCache":{"type":"boolean"},"semanticCache":{"type":"boolean"},"maxQuestionLength":{"type":"integer"},"maxTurns":{"type":"integer"},"maxOutputTokens":{"type":"integer"},"dailySpendLimit":{"type":"number"}},"required":["enabled","exactCache","semanticCache","maxQuestionLength","maxTurns","maxOutputTokens","dailySpendLimit"]},
       "RuntimeSettings": {
         "type": "object",
         "additionalProperties": false,
@@ -3828,6 +3975,11 @@
           },
           "turnstileSiteKey": {
             "type": "string"
+          },
+          "turnstileSecret": {
+            "type": "string",
+            "maxLength": 16384,
+            "writeOnly": true
           },
           "dailySpendLimit": {
             "type": "number",
@@ -3894,8 +4046,43 @@
             "format": "int64"
           }
         }
-      }
-    },
+      },
+      "PublicSessionInput":{"type":"object","additionalProperties":false,"properties":{"turnstileToken":{"type":"string"},"powChallenge":{"type":"string"},"powNonce":{"type":"string"}},"required":["turnstileToken","powChallenge","powNonce"]},
+      "PublicSession":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"expiresAt":{"type":"integer","format":"int64"}},"required":["id","expiresAt"]},
+      "PowChallenge":{"type":"object","additionalProperties":false,"properties":{"challenge":{"type":"string"},"difficulty":{"type":"integer"}},"required":["challenge","difficulty"]},
+      "AskInput":{"type":"object","additionalProperties":false,"properties":{"question":{"type":"string","maxLength":10000},"conversationId":{"type":"string"},"page":{"type":"string"}},"required":["question","conversationId","page"]},
+      "ChatTurn":{"type":"object","additionalProperties":false,"properties":{"role":{"type":"string"},"text":{"type":"string"},"createdAt":{"type":"string","format":"date-time"}},"required":["role","text","createdAt"]},
+      "Conversation":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"summary":{"type":"string"},"turns":{"type":"array","items":{"$ref":"#/components/schemas/ChatTurn"}}},"required":["id","summary","turns"]},
+      "FeedbackInput":{"type":"object","additionalProperties":false,"properties":{"recordId":{"type":"string"},"helpful":{"type":"boolean"}},"required":["recordId","helpful"]},
+      "LocaleSignals":{"type":"object","additionalProperties":false,"properties":{"languages":{"type":"array","items":{"type":"string"}},"timezone":{"type":"string"},"current":{"type":"string"}},"required":["languages","timezone","current"]},
+      "LocaleSuggestion":{"type":"object","additionalProperties":false,"properties":{"language":{"type":"string"},"message":{"type":"string"}},"required":["language","message"]},
+      "BeaconInput":{"type":"object","additionalProperties":false,"properties":{"path":{"type":"string"},"language":{"type":"string"},"referrer":{"type":"string"}},"required":["path","language","referrer"]},
+      "JobProgress":{"type":"object","additionalProperties":false,"properties":{"kind":{"type":"string"},"subjectId":{"type":"string"},"percent":{"type":"integer"},"state":{"type":"string"}},"required":["kind","subjectId","percent","state"]},
+      "PopularDocument":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"views":{"type":"integer","format":"int64"}},"required":["title","views"]},
+      "StatsSummary":{"type":"object","additionalProperties":false,"properties":{"views":{"type":"integer","format":"int64"},"visitors":{"type":"integer","format":"int64"},"aiCrawls":{"type":"integer","format":"int64"},"popular":{"type":"array","items":{"$ref":"#/components/schemas/PopularDocument"}}},"required":["views","visitors","aiCrawls","popular"]},
+      "BackupInput":{"type":"object","additionalProperties":false,"properties":{"includeSecrets":{"type":"boolean"}},"required":["includeSecrets"]},
+      "BackupInfo":{"type":"object","additionalProperties":false,"properties":{"name":{"type":"string"},"size":{"type":"integer","format":"int64"},"createdAt":{"type":"integer","format":"int64"}},"required":["name","size","createdAt"]},
+      "MemoryItem":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"languages":{"type":"array","items":{"type":"string"}},"source":{"type":"string"},"readOnly":{"type":"boolean"},"limit":{"type":"integer"},"content":{"type":"string"}},"required":["id","title","description","languages","source","readOnly","limit","content"]},
+      "MemoryTasks":{"type":"object","additionalProperties":{"type":"array","items":{"type":"string"}}},
+      "MemoryAssistantInput":{"type":"object","additionalProperties":false,"properties":{"conversation":{"type":"string"},"message":{"type":"string"}},"required":["conversation","message"]},
+      "MemoryProposal":{"type":"object","additionalProperties":true,"properties":{"id":{"type":"string"},"change":{"type":"string"},"reason":{"type":"string"}},"required":["id","change","reason"]},
+      "MemoryApplyInput":{"type":"object","additionalProperties":false,"properties":{"accepted":{"type":"object","additionalProperties":{"type":"boolean"}}},"required":["accepted"]},
+      "ModelInfo":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"name":{"type":"string"},"channel":{"type":"string"},"capabilities":{"type":"array","items":{"type":"string"}},"inputPrice":{"type":"number"},"outputPrice":{"type":"number"},"context":{"type":"integer"},"maxOutput":{"type":"integer"}},"required":["id","name","channel","capabilities","inputPrice","outputPrice","context","maxOutput"]},
+      "ProbeInput":{"type":"object","additionalProperties":false,"properties":{"model":{"type":"string"}},"required":["model"]},
+      "QARecord":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"question":{"type":"string"},"answer":{"type":"string"},"language":{"type":"string"},"cost":{"type":"number"},"createdAt":{"type":"string","format":"date-time"}},"required":["id","question","answer","language","cost","createdAt"]},
+      "FeaturedInput":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"sortKey":{"type":"string"}},"required":["title","sortKey"]},
+      "LanguageInfo":{"type":"object","additionalProperties":false,"properties":{"code":{"type":"string"},"name":{"type":"string"},"nativeName":{"type":"string"},"rtl":{"type":"boolean"}},"required":["code","name","nativeName","rtl"]},
+      "LanguagesAdmin":{"type":"object","additionalProperties":false,"properties":{"base":{"type":"string"},"enabled":{"type":"array","items":{"type":"string"}},"available":{"type":"array","items":{"$ref":"#/components/schemas/LanguageInfo"}}},"required":["base","enabled","available"]},
+      "TranslationProgress":{"type":"object","additionalProperties":false,"properties":{"language":{"type":"string"},"total":{"type":"integer"},"translated":{"type":"integer"},"needsReview":{"type":"integer"},"percent":{"type":"integer"}},"required":["language","total","translated","needsReview","percent"]},
+      "TranslationBlock":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"sourceHash":{"type":"string"},"text":{"type":"string"},"source":{"type":"string"},"needsReview":{"type":"boolean"}},"required":["id","sourceHash","text","source","needsReview"]},
+      "TranslationFile":{"type":"object","additionalProperties":false,"properties":{"schemaVersion":{"type":"integer"},"documentId":{"type":"string"},"language":{"type":"string"},"blocks":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/TranslationBlock"}},"updatedAt":{"type":"integer","format":"int64"}},"required":["schemaVersion","documentId","language","blocks","updatedAt"]},
+      "GlossaryTerm":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"sourceText":{"type":"string"},"targetText":{"type":"string"},"language":{"type":"string"},"source":{"type":"string"},"documentId":{"type":"string"}},"required":["id","sourceText","targetText","language","source","documentId"]},
+      "TranslationEstimateInput":{"type":"object","additionalProperties":false,"properties":{"language":{"type":"string"}},"required":["language"]},
+      "TranslationEstimate":{"type":"object","additionalProperties":false,"properties":{"characters":{"type":"integer"},"inputTokens":{"type":"integer"},"outputTokens":{"type":"integer"},"cost":{"type":"number"}},"required":["characters","inputTokens","outputTokens","cost"]},
+      "GuardEvent":{"type":"object","additionalProperties":false,"properties":{"scope":{"type":"string"},"reason":{"type":"string"},"risk":{"type":"string"},"created":{"type":"string","format":"date-time"}},"required":["scope","reason","risk","created"]},
+      "DebugStep":{"type":"object","additionalProperties":false,"properties":{"name":{"type":"string"},"input":{"type":"string"},"output":{"type":"string"},"cost":{"type":"number"},"duration":{"type":"integer","format":"int64"}},"required":["name","input","output","cost","duration"]},
+      "DebugTrace":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"steps":{"type":"array","items":{"$ref":"#/components/schemas/DebugStep"}},"created":{"type":"string","format":"date-time"}},"required":["id","steps","created"]}
+      },
     "securitySchemes": {
       "session": {
         "type": "apiKey",

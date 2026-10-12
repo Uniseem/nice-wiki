@@ -1,0 +1,8 @@
+example.com {
+    encode zstd gzip
+    reverse_proxy nice-wiki:8080 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        flush_interval -1
+    }
+}

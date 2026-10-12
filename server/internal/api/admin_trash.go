@@ -21,3 +21,14 @@ func (s *Server) RestoreDocument(w http.ResponseWriter, r *http.Request, id stri
 	}
 	writeJSON(w, value)
 }
+
+func (s *Server) PurgeTrash(w http.ResponseWriter, r *http.Request, id string) {
+	if err := s.Content.PurgeTrash(id); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if !s.audit(w, r, "purge_trash", id) {
+		return
+	}
+	writeJSON(w, struct{}{})
+}

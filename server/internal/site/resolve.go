@@ -26,6 +26,10 @@ func (s *Site) resolve(w http.ResponseWriter, r *http.Request) {
 		s.home(w, r, lang)
 		return
 	}
+	if path == "ask" {
+		s.ask(w, r, lang)
+		return
+	}
 	markdown := strings.HasSuffix(path, ".md")
 	lookup := strings.TrimSuffix(path, ".md")
 	value, found := s.Content.ResolvePath(lookup)

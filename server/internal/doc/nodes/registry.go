@@ -33,6 +33,7 @@ type Context struct {
 	Render    func(Node) (string, error)
 	Highlight func(string, string) (string, error)
 	AssetURL  func(string, string, string) string
+	VideoURL  func(string, string) (string, bool)
 }
 type Renderer interface {
 	Render(Node, Context) (string, error)

@@ -18,6 +18,13 @@ type Store struct {
 	ai            AI
 	onChange      func(string)
 	knownLanguage func(string) bool
+	aiReady       func() bool
+}
+
+func (s *Store) SetAIReadiness(check func() bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.aiReady = check
 }
 
 func Open(layout datadir.Layout, onChange func(string), knownLanguage func(string) bool) (*Store, error) {
@@ -30,6 +37,7 @@ func Open(layout datadir.Layout, onChange func(string), knownLanguage func(strin
 			return nil, err
 		}
 	}
+	s.home = s.home.normalized()
 	if err := s.site.Validate(); err != nil {
 		return nil, err
 	}
@@ -51,6 +59,11 @@ func (s *Store) changed(kind string) {
 	if s.onChange != nil {
 		s.onChange(kind)
 	}
+}
+func (s *Store) SetOnChange(callback func(string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onChange = callback
 }
 
 // WithAssetSettings 与正文快照共同保护资源清理，不向外暴露可修改的状态。

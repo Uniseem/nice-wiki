@@ -50,6 +50,8 @@ func (l Layout) Languages() string       { return filepath.Join(l.Settings(), "l
 func (l Layout) AI() string              { return filepath.Join(l.Settings(), "ai.json") }
 func (l Layout) Glossary() string        { return filepath.Join(l.I18n(), "glossary.json") }
 func (l Layout) MemoryTasks() string     { return filepath.Join(l.Memory(), "_tasks.json") }
+func (l Layout) ModelCatalog() string    { return filepath.Join(l.Cache(), "models.json") }
+func (l Layout) PendingRestore() string  { return filepath.Join(l.Config(), "restore-pending.json") }
 func (l Layout) Redirects() string       { return filepath.Join(l.Root, "redirects.json") }
 
 func ValidID(id string) bool { return identifier.MatchString(id) }
@@ -88,6 +90,12 @@ func (l Layout) Translation(lang, id string) (string, error) {
 		return "", errors.New("译文路径参数无效")
 	}
 	return filepath.Join(l.I18n(), lang, id+".json"), nil
+}
+func (l Layout) TranslationStrings(lang, name string) (string, error) {
+	if !language.MatchString(lang) || name != "site" && name != "ui" {
+		return "", errors.New("译文字符串路径参数无效")
+	}
+	return filepath.Join(l.I18n(), lang, "_"+name+".json"), nil
 }
 func (l Layout) MemoryEntry(id string) (string, error) {
 	if !ValidID(id) || id == "_tasks" {

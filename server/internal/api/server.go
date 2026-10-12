@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,29 +11,87 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"nice-wiki/internal/ai/cache"
+	"nice-wiki/internal/ai/guard"
+	"nice-wiki/internal/ai/qa"
 	"nice-wiki/internal/api/gen"
 	"nice-wiki/internal/assets"
 	"nice-wiki/internal/auth"
 	"nice-wiki/internal/config"
 	"nice-wiki/internal/content"
+	"nice-wiki/internal/history"
+	"nice-wiki/internal/i18n/suggest"
+	itranslate "nice-wiki/internal/i18n/translate"
+	"nice-wiki/internal/jobs"
 	"nice-wiki/internal/llm"
+	"nice-wiki/internal/memory"
 	"nice-wiki/internal/settings"
 	"nice-wiki/internal/setup"
+	"nice-wiki/internal/stats"
+	"nice-wiki/internal/videoembed"
 	"strings"
+	"sync"
 )
 
 type Server struct {
-	contract *openapi3.T
-	Preview  func(http.ResponseWriter, *http.Request, string)
-	Assets   *assets.Store
-	Auth     *auth.Service
-	Content  *content.Repo
-	Settings *settings.Store
-	Runtime  *config.RuntimeStore
-	Channels *llm.Channels
-	Setup    *setup.Service
-	Logger   *slog.Logger
-	Dev      bool
+	contract          *openapi3.T
+	Preview           func(http.ResponseWriter, *http.Request, string)
+	Assets            *assets.Store
+	Auth              *auth.Service
+	Content           *content.Repo
+	History           *history.Repo
+	Settings          *settings.Store
+	Runtime           *config.RuntimeStore
+	Secrets           *config.Secrets
+	Channels          *llm.Channels
+	Setup             *setup.Service
+	Logger            *slog.Logger
+	Dev               bool
+	Videos            *videoembed.Registry
+	QA                *qa.Service
+	Conversations     *qa.Conversations
+	Records           *qa.Records
+	Sessions          *guard.Sessions
+	PoW               *guard.PoW
+	Turnstile         *guard.Turnstile
+	turnstileMu       sync.RWMutex
+	Bans              *guard.Bans
+	GuardEvents       *guard.Events
+	Debug             *qa.DebugStore
+	AnswerCache       *cache.Store
+	Memory            *memory.Store
+	MemoryMapping     *memory.Mapping
+	MemoryAssistant   *memory.Assistant
+	Catalog           *llm.Catalog
+	Translations      *itranslate.Files
+	Glossary          *itranslate.Glossary
+	Locale            *suggest.Decider
+	Jobs              interface{ Progress() []jobs.Progress }
+	StatsSummary      func(context.Context) (stats.Summary, error)
+	RecordVisit       func(context.Context, *http.Request, string, string, string) error
+	CreateBackupFile  func(context.Context, bool) (BackupResult, error)
+	ListBackupFiles   func(context.Context) ([]BackupResult, error)
+	ListQARecordRows  func(context.Context) ([]qa.Record, error)
+	SaveQAFeedback    func(context.Context, string, string, bool) error
+	FeatureQAAnswer   func(context.Context, string, string, string) error
+	UnfeatureQAAnswer func(context.Context, string) error
+}
+
+type BackupResult struct {
+	Name      string `json:"name"`
+	Size      int64  `json:"size"`
+	CreatedAt int64  `json:"createdAt"`
+}
+
+func (s *Server) getTurnstile() *guard.Turnstile {
+	s.turnstileMu.RLock()
+	defer s.turnstileMu.RUnlock()
+	return s.Turnstile
+}
+func (s *Server) setTurnstile(value *guard.Turnstile) {
+	s.turnstileMu.Lock()
+	defer s.turnstileMu.Unlock()
+	s.Turnstile = value
 }
 
 var _ gen.ServerInterface = (*Server)(nil)

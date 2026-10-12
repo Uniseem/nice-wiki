@@ -1,0 +1,2 @@
+<script setup lang="ts">defineProps<{source:string,target:string,blockId:string}>();defineEmits<{'update:target':[value:string]}>()</script>
+<template><section class="grid gap-3 rounded-card border border-border p-4 md:grid-cols-2"><div><small class="text-muted">{{ blockId }} · 原文</small><p class="whitespace-pre-wrap">{{ source }}</p></div><label><small class="text-muted">译文</small><textarea :value="target" rows="5" class="nw-input" @input="$emit('update:target',($event.target as HTMLTextAreaElement).value)" /></label></section></template>

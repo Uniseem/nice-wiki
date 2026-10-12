@@ -1,6 +1,10 @@
 {{define "doc"}}{{template "start" .}}
 <article><h1 class="mb-6 text-4xl font-semibold">{{.Title}}</h1>
+{{template "untranslated" .}}
 <div class="mb-8 flex flex-wrap gap-4 text-xs text-muted"><button type="button" data-copy-markdown>复制为 Markdown</button>{{if .MarkdownURL}}<a href="{{.MarkdownURL}}">Markdown 版本</a>{{end}}</div>
 <textarea hidden data-markdown-source>{{.Markdown}}</textarea>
-<div class="nw-content">{{.Body}}</div></article>
+<div class="nw-content">{{.Body}}</div>
+{{template "prevnext" .}}
+</article>
+{{if .AIEnabled}}<div data-island="ask-widget" data-page="{{.Canonical}}"></div>{{end}}
 {{template "end" .}}{{end}}

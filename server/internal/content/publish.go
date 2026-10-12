@@ -28,8 +28,25 @@ func (r *Repo) Publish(ctx context.Context, id, account, name, token string, ver
 	}
 	value := old
 	value.Document = draft.Document
+	if slug == "" && r.slugGenerator != nil {
+		generated, err := r.slugGenerator.GenerateSlug(ctx, title)
+		if err != nil {
+			return Meta{}, err
+		}
+		slug = generated
+	}
 	value.Meta.Title = title
 	value.Meta.Slug = slug
+	if description == "" && r.seoGenerator != nil {
+		candidate := value
+		candidate.Meta.Title = title
+		candidate.Meta.Slug = slug
+		generated, err := r.seoGenerator.GenerateDescription(ctx, candidate)
+		if err != nil {
+			return Meta{}, err
+		}
+		description = generated
+	}
 	value.Meta.SEODescription = description
 	value.Meta.Published = true
 	value.Meta.Revision++

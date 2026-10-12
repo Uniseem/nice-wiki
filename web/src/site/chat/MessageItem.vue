@@ -1,0 +1,2 @@
+<script setup lang="ts">import type{ChatMessage}from'./useChat';defineProps<{message:ChatMessage}>()</script>
+<template><article :class="`nw-chat-message nw-chat-${message.role}`"><strong>{{ message.role === 'user' ? '你' : '文档助手' }}</strong><p class="whitespace-pre-wrap">{{ message.text }}</p><div v-if="message.citations?.length" class="flex flex-wrap gap-2"><a v-for="citation in message.citations" :key="citation.blockId" :href="`${citation.url}#b-${citation.blockId}`">{{ citation.title }}</a></div></article></template>

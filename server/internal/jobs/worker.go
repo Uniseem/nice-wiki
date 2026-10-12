@@ -41,12 +41,10 @@ func (q *queue) Process(ctx context.Context, payload []byte) error {
 		s.mu.Unlock()
 	}
 	update(0, "running")
-	// 使用最新代次处理，在运行期间更新的任务会在完成后再投递一次。
-	generation, err := s.merge.Current(ctx, task.Kind, task.SubjectID)
-	if err != nil {
-		return err
-	}
-	err = handler(ctx, task.SubjectID, func(percent int) { update(percent, "running") })
+	// 只完成本次任务携带的代次。在运行期间发生的新发布会提升 generation，
+	// 条件清理不会误删新代次，随后再投递一次即可。
+	generation := task.Generation
+	err := handler(ctx, task.SubjectID, func(percent int) { update(percent, "running") })
 	if err != nil {
 		update(0, "failed")
 		return err

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (r *Repo) Trash(ctx context.Context, id string) error {
+func (r *Repo) Trash(ctx context.Context, id, redirectTarget string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	value, exists := r.files[id]
@@ -43,6 +43,12 @@ func (r *Repo) Trash(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	if redirectTarget != "" {
+		target, ok := r.files[redirectTarget]
+		if !ok || !target.Meta.Published || redirectTarget == id {
+			return invalid("删除跳转目标必须是另一篇已发布文档")
+		}
+	}
 	if err := os.Remove(oldPath); err != nil {
 		return err
 	}
@@ -57,7 +63,11 @@ func (r *Repo) Trash(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	redirects[oldRoute] = Redirect{DocumentID: id, Gone: true}
+	if redirectTarget == "" {
+		redirects[oldRoute] = Redirect{DocumentID: id, Gone: true}
+	} else {
+		redirects[oldRoute] = Redirect{DocumentID: redirectTarget}
+	}
 	r.locks.ForceRelease(id)
 	return fsutil.WriteJSON(r.layout.Redirects(), redirects)
 }
@@ -185,4 +195,21 @@ func (r *Repo) Restore(ctx context.Context, id string) (Meta, error) {
 		return value.Meta, err
 	}
 	return value.Meta, nil
+}
+
+func (r *Repo) PurgeTrash(id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	path, err := r.layout.Trashed(id)
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ErrNotFound
+		}
+		return err
+	}
+	// data git 历史与内容寻址资源均保留，只删除当前回收站快照。
+	return nil
 }

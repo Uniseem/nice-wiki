@@ -141,7 +141,12 @@ func (s *Server) MoveDocument(w http.ResponseWriter, r *http.Request, id string)
 	writeJSON(w, value)
 }
 func (s *Server) TrashDocument(w http.ResponseWriter, r *http.Request, id string) {
-	if err := s.Content.Trash(r.Context(), id); err != nil {
+	body, err := decode[gen.TrashDocument](w, r)
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	if err := s.Content.Trash(r.Context(), id, body.RedirectDocumentId); err != nil {
 		s.fail(w, err)
 		return
 	}

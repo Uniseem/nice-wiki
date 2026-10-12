@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { client, requireData, errorMessage } from '../../../../shared/api/client'
 const emit = defineEmits<{ done: [] }>()
-const form = reactive({ name: '', description: '', baseURL: '', logoHash: '', themeColor: '#2563eb', footer: '' })
+const form = reactive({ name: '', description: '', baseURL: '', logoHash: '', shareImageHash: '', themeColor: '#2563eb', footer: '' })
 const error = ref('')
 const busy = ref(false)
 onMounted(async () => { try { Object.assign(form, requireData(await client.GET('/api/admin/settings/site'))) } catch (cause) { error.value = errorMessage(cause) } })

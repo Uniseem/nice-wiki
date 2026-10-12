@@ -56,3 +56,31 @@ func (s *Store) SetBaseLanguage(v Languages) error {
 	s.languages = v
 	return nil
 }
+
+func (s *Store) SaveLanguages(v Languages) error {
+	if err := v.Validate(); err != nil {
+		return err
+	}
+	if s.knownLanguage == nil {
+		return invalid("语言清单不可用")
+	}
+	for _, code := range v.Enabled {
+		if !s.knownLanguage(code) {
+			return invalid("启用语言不在内置清单")
+		}
+	}
+	s.mu.Lock()
+	if !s.site.Initialized {
+		s.mu.Unlock()
+		return invalid("请先完成初始化")
+	}
+	if err := fsutil.WriteJSON(s.layout.Languages(), v); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	v.Enabled = append([]string{}, v.Enabled...)
+	s.languages = v
+	s.mu.Unlock()
+	s.changed("languages")
+	return nil
+}

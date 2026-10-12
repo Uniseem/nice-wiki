@@ -9,6 +9,20 @@ import (
 	"context"
 )
 
+const deleteDocumentTranslationStatus = `-- name: DeleteDocumentTranslationStatus :exec
+DELETE FROM translation_status WHERE language = ? AND document_id = ?
+`
+
+type DeleteDocumentTranslationStatusParams struct {
+	Language   string `json:"language"`
+	DocumentID string `json:"document_id"`
+}
+
+func (q *Queries) DeleteDocumentTranslationStatus(ctx context.Context, arg DeleteDocumentTranslationStatusParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDocumentTranslationStatus, arg.Language, arg.DocumentID)
+	return err
+}
+
 const listTranslationStatus = `-- name: ListTranslationStatus :many
 SELECT document_id, language, block_id, source_hash, translated_hash, status, source, updated_at FROM translation_status WHERE language = ? AND document_id = ? ORDER BY block_id
 `
@@ -80,4 +94,29 @@ func (q *Queries) TranslationProgress(ctx context.Context, language string) ([]T
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertTranslationStatus = `-- name: UpsertTranslationStatus :exec
+INSERT INTO translation_status(language,document_id,block_id,source_hash,status,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(language,document_id,block_id) DO UPDATE SET source_hash=excluded.source_hash,status=excluded.status,updated_at=excluded.updated_at
+`
+
+type UpsertTranslationStatusParams struct {
+	Language   string `json:"language"`
+	DocumentID string `json:"document_id"`
+	BlockID    string `json:"block_id"`
+	SourceHash string `json:"source_hash"`
+	Status     string `json:"status"`
+	UpdatedAt  int64  `json:"updated_at"`
+}
+
+func (q *Queries) UpsertTranslationStatus(ctx context.Context, arg UpsertTranslationStatusParams) error {
+	_, err := q.db.ExecContext(ctx, upsertTranslationStatus,
+		arg.Language,
+		arg.DocumentID,
+		arg.BlockID,
+		arg.SourceHash,
+		arg.Status,
+		arg.UpdatedAt,
+	)
+	return err
 }

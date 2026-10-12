@@ -1,0 +1,2 @@
+<script setup lang="ts">import{ref}from'vue';import ChatPanel from'../chat/ChatPanel.vue';defineProps<{page?:string}>();const open=ref(false)</script>
+<template><aside class="fixed bottom-5 end-5 z-30"><button class="nw-button" @click="open=!open">问问文档</button><div v-if="open" class="mt-2 w-[min(28rem,calc(100vw-2rem))] rounded-card border border-border bg-surface p-4 shadow-xl"><ChatPanel :page="page" /></div></aside></template>

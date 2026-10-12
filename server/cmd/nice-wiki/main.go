@@ -5,19 +5,40 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"nice-wiki/internal/app"
 	"nice-wiki/internal/config"
 	"nice-wiki/internal/datadir"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "healthcheck" {
+		if err := checkHealth(); err != nil {
+			fmt.Fprintln(os.Stderr, "健康检查失败:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "启动或运行失败:", err)
 		os.Exit(1)
 	}
+}
+func checkHealth() error {
+	client := http.Client{Timeout: 5 * time.Second}
+	response, err := client.Get("http://127.0.0.1:8080/healthz")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("状态码 %d", response.StatusCode)
+	}
+	return nil
 }
 func run() error {
 	flags := flag.NewFlagSet("nice-wiki", flag.ContinueOnError)
