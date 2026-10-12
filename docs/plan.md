@@ -42,6 +42,8 @@
 
 ### [x] P0-01 助手约定与会话记录
 
+- **完成记录**：完成于 push 0007。
+
 - **任务**：建立分层助手说明、当前状态和重复操作手册；把测试决定权、文件结构、隐私、署名、push 规则写成硬性约定。
 - **依赖**：无。
 - **涉及文件**：`AGENTS.md`、`CLAUDE.md`、`STATUS.md`、`README.md`、`THIRD_PARTY_NOTICES.md`；`server/{AGENTS.md,CLAUDE.md}`、`web/{AGENTS.md,CLAUDE.md}`；`docs/playbooks/{add-block.md,add-api.md,add-migration.md,add-language.md,add-video-provider.md,add-llm-protocol.md,add-prompt.md,push.md,change-structure.md}`；`docs/push-log/_pending.md`。
@@ -50,6 +52,8 @@
 
 ### [x] P0-02 前后端工程骨架
 
+- **完成记录**：完成于 push 0007。
+
 - **任务**：搭建 Go module、pnpm/Vite 双入口、最小后台入口及公开页面脚本、共用样式，固定已选技术栈。
 - **依赖**：P0-01。
 - **涉及文件**：`server/{go.mod,go.sum,.golangci.yml}`、`server/cmd/nice-wiki/main.go`、`server/internal/app/{app.go,http.go,lifecycle.go}`、`server/internal/webui/dist/.gitkeep`；`web/{package.json,pnpm-lock.yaml,vite.config.ts,tsconfig.json,tsconfig.app.json,tsconfig.node.json,eslint.config.js,components.json,env.d.ts}`、`web/admin/index.html`、`web/src/admin/{main.ts,App.vue,router.ts,admin.css}`、`web/src/site/{main.ts,site.css}`、`web/src/shared/styles/{tokens.css,base.css,content.css,code-site.css,code-editor.css}`；`Makefile`、`.gitignore`、`.gitattributes`、`.editorconfig`。
@@ -57,6 +61,8 @@
 - **建议测试**：无，编译、lint、类型检查足够；不为了空工程安装测试工具或新增 shadcn-vue 组件。
 
 ### [x] P0-03 OpenAPI 与数据库代码生成
+
+- **完成记录**：完成于 push 0007。
 
 - **任务**：建立接口定义、统一错误类型和生成流程，配置 sqlc；后续任务按领域扩充契约。
 - **依赖**：P0-02。
