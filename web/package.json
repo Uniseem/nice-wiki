@@ -1,0 +1,41 @@
+{
+  "name": "nice-wiki-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc -b && vite build",
+    "typecheck": "vue-tsc -b",
+    "lint": "eslint .",
+    "gen:api": "openapi-typescript ../api/openapi.yaml -o src/shared/api/schema.gen.ts"
+  },
+  "dependencies": {
+    "vue": "3.5.43",
+    "vue-router": "4.6.4",
+    "pinia": "3.0.4",
+    "openapi-fetch": "0.15.0",
+    "@tiptap/core": "3.31.4",
+    "@tiptap/vue-3": "3.31.4",
+    "@tiptap/starter-kit": "3.31.4",
+    "@tiptap/extension-table": "3.31.4",
+    "@tiptap/extension-task-list": "3.31.4",
+    "@tiptap/extension-task-item": "3.31.4",
+    "@tiptap/extension-highlight": "3.31.4",
+    "@tiptap/extension-unique-id": "3.31.4"
+  },
+  "devDependencies": {
+    "vite": "8.3.4",
+    "@vitejs/plugin-vue": "6.0.5",
+    "typescript": "6.0.3",
+    "vue-tsc": "3.3.13",
+    "@types/node": "24.10.0",
+    "eslint": "9.39.1",
+    "eslint-plugin-vue": "10.5.1",
+    "typescript-eslint": "8.46.2",
+    "@tailwindcss/vite": "4.1.16",
+    "tailwindcss": "4.1.16",
+    "openapi-typescript": "7.10.1"
+  }
+}

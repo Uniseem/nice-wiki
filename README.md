@@ -2,7 +2,7 @@
 
 一个 wiki 系统。前端 Vue 3，后端 Go。
 
-> 基本规划已完成，尚未开始实现。下一步按 [实施计划](docs/plan.md) 推进；所有设计决策记录在 [docs/adr/](docs/adr/README.md)，一条一个文件。
+> 已开始实现，当前进度见 [STATUS.md](STATUS.md)。任务与验收标准见 [实施计划](docs/plan.md)；设计决策记录在 [docs/adr/](docs/adr/README.md)。
 
 ## 目录结构
 
@@ -39,3 +39,16 @@ nice-wiki/
 ## 许可证
 
 [AGPL-3.0](LICENSE)。修改本程序后用它对外提供网站服务的，也必须公开修改后的源代码。
+
+## 开发与检查
+
+编译与已有测试优先使用 VPS。将私有服务器地址写入根目录 `vps.txt`；该文件已被 git 忽略，禁止上传 GitHub。默认 SSH 用户为 `root`，使用已有 SSH 密钥，可通过 `VPS_USER`、`VPS_PORT` 指定连接参数。
+
+- `make vps-check`：同步排除私有配置的源码，在 8 核、4 GB 构建环境生成接口、构建前端并运行统一检查。
+- `make vps-build`：在 VPS 构建前端和纯 Go 可执行文件。
+- `make vps-test`：在 VPS 运行已有普通测试；不会新增测试或调用真实模型。
+- `make dev`：需要开发工具链时同时启动 Go 与 Vite。Go 参数支持 `--data`、`--addr`、`--dev`、`--log-level`，对应 `NICE_WIKI_*` 环境变量。
+
+远程构建需要已准备的 Go、Node、pnpm、git、make 及 C 编译器（race 检查）。本次构建工具安装在服务器的独立缓存目录，不修改本机 git 身份。首次部署后必须立即注册超级管理员，或先限制后台端口访问。
+
+当前实现仍在验收，AI 问答、多语言翻译与完整备份功能尚未开放。运行时数据位于单独 `data/` 目录；模型渠道只登记配置，不发送模型请求。

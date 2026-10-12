@@ -1,0 +1,13 @@
+{{define "start"}}<!doctype html>
+<html lang="{{.Language}}">
+{{template "head" .}}
+<body>
+{{template "banner" .}}
+{{template "topbar" .}}
+<div class="mx-auto grid max-w-7xl gap-8 px-6 py-10 md:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_12rem]">
+{{template "tree" .}}
+<main id="main" class="min-w-0">
+{{end}}
+{{define "end"}}</main>{{template "toc" .}}</div>{{template "footer" .}}
+{{if .Script}}<script type="module" src="{{.Script}}"></script>{{end}}
+</body></html>{{end}}

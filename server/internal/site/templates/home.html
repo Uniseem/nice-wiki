@@ -1,0 +1,6 @@
+{{define "home"}}{{template "start" .}}
+<section class="py-12"><p class="mb-4 text-sm text-muted">{{.Site.Name}}</p>
+<h1 class="mb-6 text-5xl font-semibold">{{.Home.Title}}</h1>
+<p class="max-w-2xl text-xl text-muted">{{.Home.Subtitle}}</p>
+{{if not .Navigation}}<p class="mt-12 text-muted">站点尚未发布文档。</p>{{end}}
+</section>{{template "end" .}}{{end}}

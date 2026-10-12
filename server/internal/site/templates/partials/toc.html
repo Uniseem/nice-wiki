@@ -1,0 +1,5 @@
+{{define "toc"}}{{if .TOC}}
+<nav data-toc aria-label="本页目录" class="hidden text-sm xl:block">
+<p class="mb-4 font-semibold">本页目录</p>
+{{range .TOC}}<a href="#{{.ID}}" class="mb-3 block text-muted hover:text-primary" data-level="{{.Level}}">{{.Title}}</a>{{end}}
+</nav>{{end}}{{end}}

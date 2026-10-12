@@ -1,0 +1,15 @@
+@import '../shared/styles/tokens.css';
+@import '../shared/styles/base.css';
+@import '../shared/styles/content.css';
+@import '../shared/styles/code-site.css';
+
+[data-toc] a[aria-current='location'] { color: var(--nw-primary); font-weight: 600; }
+[data-toc] a[data-level='3'] { padding-inline-start: .75rem; }
+[data-toc] a[data-level='4'] { padding-inline-start: 1.5rem; }
+.nw-document-tree a[data-depth='1'] { padding-inline-start: .75rem; }
+.nw-document-tree a[data-depth='2'] { padding-inline-start: 1.5rem; }
+.nw-document-tree a[data-depth='3'] { padding-inline-start: 2.25rem; }
+@media (max-width: 48rem) {
+  .nw-document-tree { display: none; }
+  .nw-document-tree[data-open='true'] { display: block; padding: 1rem; border: 1px solid var(--nw-border); border-radius: .5rem; background: var(--nw-surface); }
+}

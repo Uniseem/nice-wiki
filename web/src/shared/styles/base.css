@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@source '../../../../server/internal/site/templates';
+
+body {
+  margin: 0;
+  background: var(--nw-background);
+  color: var(--nw-foreground);
+  font-family: var(--font-sans);
+}
+
+button, input, select, textarea { font: inherit; }
+button, a { touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--nw-primary); outline-offset: 3px; }
+::selection { background: color-mix(in srgb, var(--nw-primary) 25%, transparent); }

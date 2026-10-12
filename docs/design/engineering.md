@@ -337,6 +337,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 | AI | 署名格式 |
 |---|---|
 | Claude（Anthropic） | `Co-Authored-By: Claude <模型名和版本> <noreply@anthropic.com>` |
+| GPT-6（OpenAI） | `Co-Authored-By: GPT-6 <noreply@openai.com>`（用户已确认） |
 | 其他工具 | 第一次使用时询问用户，确认对应 GitHub 账号的邮箱后补进这张表 |
 
 **第一次 push 之后要确认一次**：GitHub 仓库的贡献者列表里确实出现了 AI 的账号。如果没有，改成"AI 作为提交作者、用户作为提交者"的方式（见 D41）。

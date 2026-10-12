@@ -1,0 +1,140 @@
+package nodes
+
+import (
+	"fmt"
+	"html"
+	"strconv"
+	"strings"
+)
+
+// Node 为共享序列化结构；基础包不能依赖文件存储或业务服务。
+type Node struct {
+	Type    string         `json:"type"`
+	Attrs   map[string]any `json:"attrs,omitempty"`
+	Content []Node         `json:"content,omitempty"`
+	Text    string         `json:"text,omitempty"`
+	Marks   []Mark         `json:"marks,omitempty"`
+}
+type Mark struct {
+	Type  string         `json:"type"`
+	Attrs map[string]any `json:"attrs,omitempty"`
+}
+type Format string
+
+const (
+	HTML     Format = "html"
+	Text     Format = "text"
+	Markdown Format = "markdown"
+)
+
+type Context struct {
+	Format    Format
+	Language  string
+	Render    func(Node) (string, error)
+	Highlight func(string, string) (string, error)
+	AssetURL  func(string, string, string) string
+}
+type Renderer interface {
+	Render(Node, Context) (string, error)
+	Translate(Node) []string
+}
+
+var registry = map[string]Renderer{}
+
+func Register(name string, renderer Renderer) {
+	if _, exists := registry[name]; exists {
+		panic("重复节点注册: " + name)
+	}
+	registry[name] = renderer
+}
+func Lookup(name string) (Renderer, bool) { r, ok := registry[name]; return r, ok }
+func String(n Node, key string) string    { value, _ := n.Attrs[key].(string); return value }
+func Number(n Node, key string, fallback int) int {
+	switch value := n.Attrs[key].(type) {
+	case float64:
+		return int(value)
+	case int:
+		return value
+	default:
+		return fallback
+	}
+}
+func Bool(n Node, key string) bool { value, _ := n.Attrs[key].(bool); return value }
+func Children(n Node, c Context) (string, error) {
+	var result strings.Builder
+	for _, child := range n.Content {
+		value, err := c.Render(child)
+		if err != nil {
+			return "", err
+		}
+		result.WriteString(value)
+	}
+	return result.String(), nil
+}
+func Anchor(n Node) string {
+	id := String(n, "id")
+	if id == "" {
+		return ""
+	}
+	return ` id="b-` + html.EscapeString(id) + `"`
+}
+func Wrap(n Node, c Context, tag, class string) (string, error) {
+	value, err := Children(n, c)
+	if err != nil {
+		return "", err
+	}
+	if c.Format == HTML {
+		return "<" + tag + Anchor(n) + ` class="` + class + `">` + value + "</" + tag + ">", nil
+	}
+	return value + "\n", nil
+}
+func InlineText(n Node) string {
+	if n.Type == "text" {
+		return n.Text
+	}
+	var result strings.Builder
+	for _, child := range n.Content {
+		result.WriteString(InlineText(child))
+	}
+	return result.String()
+}
+func OrdinaryTranslation(n Node) []string {
+	value := strings.TrimSpace(InlineText(n))
+	if value == "" {
+		return nil
+	}
+	return []string{value}
+}
+func EscapeMarkdown(value string) string {
+	replacer := strings.NewReplacer("\\", "\\\\", "*", "\\*", "_", "\\_", "[", "\\[", "]", "\\]", "`", "\\`", "<", "&lt;", ">", "&gt;")
+	return replacer.Replace(value)
+}
+func PrefixLines(value, prefix string) string {
+	return prefix + strings.ReplaceAll(strings.TrimSuffix(value, "\n"), "\n", "\n"+prefix) + "\n"
+}
+func Fence(value string) string {
+	longest := 0
+	run := 0
+	for _, r := range value {
+		if r == '`' {
+			run++
+			if run > longest {
+				longest = run
+			}
+		} else {
+			run = 0
+		}
+	}
+	if longest < 3 {
+		longest = 2
+	}
+	return strings.Repeat("`", longest+1)
+}
+func Width(n Node) string {
+	width := Number(n, "width", 100)
+	if width < 10 || width > 100 {
+		width = 100
+	}
+	return strconv.Itoa(width) + "%"
+}
+func Missing(name string) error { return fmt.Errorf("节点渲染器尚未实现: %s", name) }

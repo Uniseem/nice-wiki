@@ -1,0 +1,4 @@
+{{define "error"}}{{template "start" .}}
+<h1 class="text-3xl font-semibold">{{.Error}}</h1>
+<a class="mt-8 inline-block text-primary" href="/{{.Language}}/">返回首页</a>
+{{template "end" .}}{{end}}

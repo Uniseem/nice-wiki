@@ -1,0 +1,5 @@
+* text=auto eol=lf
+server/internal/api/gen/** linguist-generated=true
+server/internal/store/sqlc/** linguist-generated=true
+web/src/shared/api/schema.gen.ts linguist-generated=true
+web/pnpm-lock.yaml linguist-generated=true
