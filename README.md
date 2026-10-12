@@ -26,7 +26,12 @@ nice-wiki/
 | [i18n.md](docs/design/i18n.md) | 多语言：翻译流程、语言判断与切换 |
 | [ai-qa.md](docs/design/ai-qa.md) | AI 问答：检索方案、问答记录与缓存 |
 | [ai-guard.md](docs/design/ai-guard.md) | AI 问答防滥用 |
+| [ai-models.md](docs/design/ai-models.md) | 模型接入：渠道、档位、任务、计费 |
 | [admin.md](docs/design/admin.md) | 后台功能清单、文档生命周期 |
 | [accounts.md](docs/design/accounts.md) | 后台账号、权限、编辑锁 |
 | [security-ops.md](docs/design/security-ops.md) | 安全与运维 |
 | [engineering.md](docs/design/engineering.md) | 工程规范：文档体系、过程记录、AI 助手说明文件、测试 |
+
+## 许可证
+
+[AGPL-3.0](LICENSE)。修改本程序后用它对外提供网站服务的，也必须公开修改后的源代码。

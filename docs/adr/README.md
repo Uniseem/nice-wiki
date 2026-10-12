@@ -33,7 +33,7 @@
 | D4 | [编辑器：照思源的交互，用 Tiptap 实现](0004-editor-tiptap.md) | ✅ |
 | D5 | [存储：SQLite](0005-sqlite.md) | ✅ |
 | D6 | [不做传统搜索，改用 AI 问答](0006-ai-qa.md) | ✅ |
-| D7 | [模型统一走 OpenRouter](0007-openrouter.md) | ✅ |
+| D7 | [模型统一走 OpenRouter](0007-openrouter.md) | ⛔ 被 D44 取代 |
 | D8 | [存储布局：文件是真实数据，SQLite 存索引](0008-storage-layout.md) | ✅ |
 | D9 | [块级设计：只做编辑器，不做知识管理](0009-block-design.md) | ✅ |
 | D10 | [检索方案](0010-retrieval.md) | 🟡 |
@@ -68,6 +68,9 @@
 | D39 | [前后端接口以 OpenAPI 定义为准](0039-openapi.md) | ✅ |
 | D40 | [注释、提交信息、说明文件都用中文](0040-language.md) | ✅ |
 | D41 | [提交署名：用户是作者，AI 模型是合著者](0041-commit-attribution.md) | ✅ |
+| D42 | [提交中不得包含隐私信息（硬性规定）](0042-no-private-info-in-commits.md) | ✅ |
+| D43 | [仓库公开，许可证 AGPL-3.0](0043-public-repository.md) | ✅ |
+| D44 | [多厂商模型接入：渠道 → 模型 → 档位 → 任务](0044-multi-provider-models.md) | ✅ |
 
 ## 待讨论
 
