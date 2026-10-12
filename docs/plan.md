@@ -72,7 +72,7 @@
 
 ### [x] P0-04 隐私扫描、钩子与统一检查
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现暂存区及待推送提交的隐私扫描，接入 git 钩子，完成 `make check`、开发和构建命令。
 - **依赖**：P0-02、P0-03。
@@ -86,7 +86,7 @@
 
 ### [x] P1-01 数据目录、原子写入与配置
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：建立数据布局、首次启动初始化、进程锁和配置分层，接入启动与优雅关闭。
 - **依赖**：P0-04。
@@ -96,7 +96,7 @@
 
 ### [x] P1-02 SQLite 与初始迁移
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：接入纯 Go SQLite、WAL 和事务，建立结构契约列出的初始表；后续阶段按需补查询。
 - **依赖**：P1-01、P0-03。
@@ -106,7 +106,7 @@
 
 ### [x] P1-03 文档格式、块 ID 与版本迁移
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：定义前后端共用的文档结构、校验、遍历、拆块和内容哈希，预先声明第一版全部节点属性。
 - **依赖**：P1-01、P0-02。
@@ -116,7 +116,7 @@
 
 ### [x] P1-04 基础块的三种渲染
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：完成 HTML、纯文本、Markdown 入口及基础块、行内格式、代码高亮；复杂块在第 2 阶段逐个接入。
 - **依赖**：P1-03。
@@ -126,7 +126,7 @@
 
 ### [x] P1-05 正文文件、文档树与路径规则
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现元数据、正文文件读写、分数索引排序、父子移动、路径名校验与旧路径记录。
 - **依赖**：P1-02、P1-03。
@@ -136,7 +136,7 @@
 
 ### [x] P1-06 站点设置与基准语言
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：建立站点、首页、公告、语言和 AI 设置的文件读写及默认值，提供初始化状态判断。
 - **依赖**：P1-01、P1-03。
@@ -146,7 +146,7 @@
 
 ### [x] P1-07 data 版本仓库与任务队列
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：初始化 go-git 版本仓库、发布提交入口和 Backlite 队列，建立任务名称、去重、重试、进度及定时投递基础。
 - **依赖**：P1-01、P1-02、P1-05、P1-06。
@@ -156,7 +156,7 @@
 
 ### [x] P1-08 注册、登录与会话
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现首个超管注册、argon2id 密码、登录保护、会话、强制改密码及超管重置文件。
 - **依赖**：P1-02、P1-06。
@@ -166,7 +166,7 @@
 
 ### [x] P1-09 功能权限、账号管理与操作日志
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：落实十项权限、超管专属操作、账号管理和操作日志；建立路由权限声明的唯一入口。
 - **依赖**：P1-08。
@@ -176,7 +176,7 @@
 
 ### [x] P1-10 HTTP 基础与前端嵌入
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：组装基础路由、安全头、可信代理、日志、异常恢复、健康接口和前端产物读取。
 - **依赖**：P1-01、P1-07、P1-09、P0-02。
@@ -190,7 +190,7 @@
 
 ### [x] P2-01 后台外框、登录与账号页面
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现后台导航、登录/注册/改密码、个人页、账号与审计页面，按权限控制入口。
 - **依赖**：P1-09、P1-10。
@@ -200,7 +200,7 @@
 
 ### [x] P2-02 初始化向导与首个渠道登记
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：接通注册后的站点信息、基准语言、首个模型渠道配置步骤，使未启用 AI 的基础站能完成初始化。
 - **依赖**：P2-01、P1-06。
@@ -210,7 +210,7 @@
 
 ### [x] P2-03 草稿自动保存与编辑锁
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现共享草稿、版本冲突、锁心跳、超时及超管强制释放，接通编辑器的保存状态。
 - **依赖**：P1-05、P1-09、P2-01。
@@ -220,7 +220,7 @@
 
 ### [x] P2-04 发布、文档属性与登录预览
 
-- **完成记录**：已完成，尚未 push。
+- **完成记录**：完成于 push 0008。
 
 - **任务**：把草稿发布为正文，更新块索引和 data git 历史，提供仅登录可看的草稿预览及元数据编辑。
 - **依赖**：P2-03、P1-04、P1-07。
@@ -230,6 +230,8 @@
 
 ### [x] P2-05 文档树与基础编辑交互
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：接通拖拽排序/移动、基础块、稳定 ID、块菜单、斜杠菜单、浮动格式条、站内链接和粘贴转换。
 - **依赖**：P2-03、P2-04、P1-03。
 - **涉及文件**：`web/src/admin/stores/docTree.ts`、`web/src/admin/components/{DocTree.vue,DocPicker.vue}`、`web/src/admin/editor/{DocEditor.vue,extensions.ts,paste.ts}`、`web/src/admin/editor/menus/{SlashMenu.vue,slash-items.ts,BubbleMenu.vue,BlockMenu.vue,LinkPopover.vue}`、`web/src/shared/lib/fractional-indexing.ts`、`web/src/shared/tiptap/nodes/internal-link.ts`、`THIRD_PARTY_NOTICES.md`。
@@ -237,6 +239,8 @@
 - **建议测试**：无，不测 Tiptap 自带输入规则；只有出现具体编辑 bug 时再提回归建议。
 
 ### [x] P2-06 提示框、表格、代码与公式
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：完善对应编辑交互和三种渲染，统一样式及翻译提取行为。
 - **依赖**：P2-05、P1-04。
@@ -246,6 +250,8 @@
 
 ### [x] P2-07 资源存储与图片
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：实现内容寻址上传、引用关系、文件响应及图片多尺寸生成、上传和编辑。
 - **依赖**：P2-05、P1-02。
 - **涉及文件**：`server/internal/assets/{types.go,store.go,upload.go,serve.go,refs.go}`、`server/internal/store/queries/content.sql`、`server/internal/api/admin_assets.go`、`server/internal/doc/nodes/{image.go,registry.go}`；`web/src/admin/composables/{useUpload.ts,useImageVariants.ts}`、`web/src/admin/editor/{upload.ts,extensions.ts}`、`web/src/admin/editor/nodeviews/ImageView.vue`、`web/src/shared/tiptap/nodes/image.ts`、`web/src/shared/styles/content.css`。
@@ -253,6 +259,8 @@
 - **建议测试**：无，不测浏览器压缩库；审阅业务输入校验，出现具体上传故障再提回归。
 
 ### [x] P2-08 附件与粘贴/拖入上传
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：接通附件卡片、下载、剪贴板图片和拖入文件的上传流程。
 - **依赖**：P2-07。
@@ -262,6 +270,8 @@
 
 ### [x] P2-09 超级块与栏宽
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：实现 2～4 栏、拖块入栏、栏宽调节及对应 Go 输出。
 - **依赖**：P2-05、P2-06。
 - **涉及文件**：`web/src/shared/tiptap/nodes/columns.ts`、`web/src/admin/editor/nodeviews/ColumnsView.vue`、`web/src/admin/editor/{extensions.ts,menus/slash-items.ts}`、`server/internal/doc/nodes/{columns.go,registry.go}`、`web/src/shared/styles/content.css`、`THIRD_PARTY_NOTICES.md`。
@@ -269,6 +279,8 @@
 - **建议测试**：无，非法嵌套复用 P1-04 的最小反例。
 
 ### [x] P2-10 Excalidraw 画板
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：将画板包装为 Vue 节点视图，按需挂载 React/Excalidraw，保存场景及亮暗 SVG。
 - **依赖**：P2-07。
@@ -278,6 +290,8 @@
 
 ### [x] P2-11 上传视频与封面
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：实现视频块的本地上传、浏览器截帧/自选封面和播放输出。
 - **依赖**：P2-07。
 - **涉及文件**：`web/src/admin/composables/useVideoPoster.ts`、`web/src/admin/editor/nodeviews/VideoView.vue`、`web/src/shared/tiptap/nodes/video.ts`、`web/src/admin/editor/{extensions.ts,menus/slash-items.ts}`、`server/internal/doc/nodes/{video.go,registry.go}`、`server/internal/assets/types.go`、`web/src/shared/styles/content.css`。
@@ -285,6 +299,8 @@
 - **建议测试**：无，不安排跨设备播放矩阵或 E2E。
 
 ### [x] P2-12 平台视频提供方
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：接入 YouTube、Bilibili、TikTok、抖音的链接识别、嵌入地址、公开信息和本地封面。
 - **依赖**：P2-11、P1-07。
@@ -294,6 +310,8 @@
 
 ### [x] P2-13 撤回、回收站与版本历史
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：补齐撤回、删除/恢复、彻底删除、历史列表、差异和回滚为新草稿。
 - **依赖**：P2-04、P2-05。
 - **涉及文件**：`server/internal/content/{unpublish.go,trash.go,redirects.go}`、`server/internal/history/{log.go,diff.go,restore.go}`、`server/internal/api/{admin_history.go,admin_trash.go}`、`web/src/admin/components/DiffView.vue`、`web/src/admin/views/docs/{DocHistoryView.vue,TrashView.vue}`。
@@ -302,6 +320,8 @@
 
 ### [x] P2-14 资源库与手动清理
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：展示资源及引用文档，筛选当前未引用资源并支持手动删除。
 - **依赖**：P2-07、P2-08、P2-10、P2-12、P2-13。
 - **涉及文件**：`server/internal/assets/{refs.go,cleanup.go}`、`server/internal/api/admin_assets.go`、`web/src/admin/components/AssetPicker.vue`、`web/src/admin/views/assets/AssetsView.vue`。
@@ -309,6 +329,8 @@
 - **建议测试**：无，引用关系沿用发布一致性检查；出现误删 bug 时再提出回归建议。
 
 ### [x] P2-15 站点、首页与公告设置页面
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：接通站点名称、logo、主题色、页脚、分享图、主视觉和公告设置。
 - **依赖**：P1-06、P1-07、P2-11、P2-14、P2-01。
@@ -322,6 +344,8 @@
 
 ### [x] P3-01 语言前缀、文档解析与渲染缓存
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：实现基准语言首页和文档路由、ID 链接解析、301/410/404、已发布内容读取和内存渲染缓存。
 - **依赖**：P2-04、P2-13、P1-10。
 - **涉及文件**：`server/internal/site/{routes.go,langroute.go,resolve.go,links.go,render.go,cache.go,errors.go}`、`server/internal/site/templates/error.html`。
@@ -329,6 +353,8 @@
 - **建议测试**：无，路径变更复用 P2-04，不另建路由测试集。
 
 ### [x] P3-02 三栏布局与导航
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：完善文档页的 Go 外框、文档树、本页目录、前后篇、页脚及手机抽屉结构。
 - **依赖**：P3-01、P2-15。
@@ -338,6 +364,8 @@
 
 ### [x] P3-03 公开页面轻交互
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：接通主题、抽屉、树展开、目录高亮、代码复制、按需公式、平台播放器和引用锚点高亮。
 - **依赖**：P3-02、P2-06、P2-12。
 - **涉及文件**：`web/src/site/main.ts`、`web/src/site/enhance/{theme.ts,drawer.ts,tree.ts,toc-spy.ts,code-copy.ts,video-facade.ts,math.ts,citation-highlight.ts}`、`server/internal/site/templates/partials/head.html`。
@@ -345,6 +373,8 @@
 - **建议测试**：无，类型和构建依赖检查足够。
 
 ### [x] P3-04 首页主视觉与公告
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：实现一屏首页、各种背景、按钮及公告显示和关闭记忆。
 - **依赖**：P3-02、P2-15、P2-11。
@@ -354,6 +384,8 @@
 
 ### [x] P3-05 SEO、Markdown 与爬虫入口
 
+- **完成记录**：完成于 push 0008。
+
 - **任务**：生成页面 SEO、Markdown 版本、llms 文件、sitemap、robots 和 HTTP 缓存头，接通复制 Markdown。
 - **依赖**：P3-01、P3-02、P3-04、P1-04。
 - **涉及文件**：`server/internal/site/{seo.go,markdown.go,llms.go,sitemap.go,robots.go,render.go}`、`server/internal/site/templates/partials/head.html`、`web/src/site/enhance/copy-markdown.ts`。
@@ -361,6 +393,8 @@
 - **建议测试**：无，不创建 SEO 快照或爬虫评测。
 
 ### [x] P3-06 基础站交付与运行说明
+
+- **完成记录**：完成于 push 0008。
 
 - **任务**：整理基础站的构建、启动、注册和反向代理说明，形成第一个可用交付点。
 - **依赖**：P3-01～P3-05、P2-02。
