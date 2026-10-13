@@ -1,4 +1,0 @@
-.chroma .k, .chroma .kd, .chroma .kn { color: var(--nw-code-keyword); }
-.chroma .s, .chroma .s1, .chroma .s2 { color: var(--nw-code-string); }
-.chroma .c, .chroma .c1, .chroma .cm { color: var(--nw-code-comment); }
-.chroma .m, .chroma .mi, .chroma .mf { color: var(--nw-code-number); }

@@ -1,4 +1,0 @@
-.hljs-keyword, .hljs-built_in { color: var(--nw-code-keyword); }
-.hljs-string, .hljs-regexp { color: var(--nw-code-string); }
-.hljs-comment { color: var(--nw-code-comment); }
-.hljs-number { color: var(--nw-code-number); }

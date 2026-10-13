@@ -1,0 +1,66 @@
+{
+  "module": "knowledge",
+  "version": 1,
+  "events": [
+    {
+      "name": "index.ready",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventIndexReadyPayload"
+      },
+      "purpose": "发布index.ready对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "index.retired",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventIndexRetiredPayload"
+      },
+      "purpose": "发布index.retired对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "index.build.failed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventIndexBuildFailedPayload"
+      },
+      "purpose": "发布index.build.failed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "content.publication.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationChangedPayload"
+      },
+      "purpose": "消费content.publication.changed执行本域失效/任务/批准回执；不同步反向请求生产方。",
+      "delivery": "at-least-once",
+      "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+    },
+    {
+      "name": "content.publication.withdrawn",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationWithdrawnPayload"
+      },
+      "purpose": "消费content.publication.withdrawn执行本域失效/任务/批准回执；不同步反向请求生产方。",
+      "delivery": "at-least-once",
+      "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+    }
+  ]
+}

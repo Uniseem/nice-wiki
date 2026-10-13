@@ -1,0 +1,18 @@
+{
+  "module": "identity",
+  "version": 1,
+  "events": [
+    {
+      "name": "identity.authorization.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/IdentityChanged"
+      },
+      "purpose": "失权UI与服务重新授权，无正文/密码/IP",
+      "delivery": "at-least-once",
+      "ordering": "accountId permissionRevision单调",
+      "idempotency": "eventId去重"
+    }
+  ]
+}

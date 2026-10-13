@@ -1,0 +1,1910 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "jobs HTTP 合同",
+    "version": "1.0.0",
+    "description": "设计合同；未实现或运行真实接口。服务间HTTP/JSON/SSE，无共享数据库。"
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "servers": [
+    {
+      "url": "http://jobs:8080"
+    }
+  ],
+  "paths": {
+    "/v1/jobs": {
+      "post": {
+        "operationId": "createJob",
+        "summary": "持久提交任务",
+        "description": "提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前",
+        "x-handler": "M13-F002",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "202": {
+            "description": "提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs:claim": {
+      "post": {
+        "operationId": "claimJob",
+        "summary": "领取待执行任务",
+        "description": "所属owner worker领取租约与fencingToken",
+        "x-handler": "M13-F003",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "所属owner worker领取租约与fencingToken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ClaimJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ClaimJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}:heartbeat": {
+      "post": {
+        "operationId": "heartbeatJob",
+        "summary": "维持租约",
+        "description": "同worker/fence续租30秒",
+        "x-handler": "M13-F005",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "同worker/fence续租30秒",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/HeartbeatJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/HeartbeatJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}:complete": {
+      "post": {
+        "operationId": "completeJob",
+        "summary": "提交成功结果",
+        "description": "同fence写不可变结果引用，不传正文",
+        "x-handler": "M13-F007",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "同fence写不可变结果引用，不传正文",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CompleteJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CompleteJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}:fail": {
+      "post": {
+        "operationId": "failJob",
+        "summary": "失败写回",
+        "description": "错误分类决定重试或dead-letter",
+        "x-handler": "M13-F010",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "错误分类决定重试或dead-letter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/FailJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/FailJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}:cancel": {
+      "post": {
+        "operationId": "cancelJob",
+        "summary": "请求取消任务",
+        "description": "请求取消；正在调用模型由owner/gateway取消并仍结算费用",
+        "x-handler": "M13-F013",
+        "x-permission": "job.manage",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "请求取消；正在调用模型由owner/gateway取消并仍结算费用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/RequestCancelResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/RequestCancelRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}": {
+      "get": {
+        "operationId": "readJob",
+        "summary": "读取管理任务状态",
+        "description": "状态/引用/安全错误码",
+        "x-handler": "M13-F015",
+        "x-permission": "job.manage",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "状态/引用/安全错误码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadJobResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/progress": {
+      "get": {
+        "operationId": "streamProgress",
+        "summary": "任务进度SSE",
+        "description": "SSE Last-Event-ID重放，最多7天",
+        "x-handler": "M13-F017",
+        "x-permission": "job.manage",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "SSE Last-Event-ID重放，最多7天",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "query",
+            "name": "lastEventId",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807,
+              "description": "lastEventId 非负 int64；不用浮点数"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/events": {
+      "post": {
+        "operationId": "publishEvent",
+        "summary": "持久接收事件",
+        "description": "接收已签名版本envelope，durable后202",
+        "x-handler": "M13-F019",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "202": {
+            "description": "接收已签名版本envelope，durable后202",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/PublishEventResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/PublishEventRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/events/{eventId}:ack": {
+      "post": {
+        "operationId": "acknowledgeEvent",
+        "summary": "消费者确认投递",
+        "description": "指定consumer的去重确认",
+        "x-handler": "M13-F021",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "指定consumer的去重确认",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/AcknowledgeEventResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/AcknowledgeEventRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "eventId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/schedules": {
+      "post": {
+        "operationId": "createSchedule",
+        "summary": "创建定时任务",
+        "description": "5字段cron+IANA时区，允许owner/type白名单",
+        "x-handler": "M13-F026",
+        "x-permission": "job.manage",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "5字段cron+IANA时区，允许owner/type白名单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateScheduleResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateScheduleRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/schedules/{scheduleId}": {
+      "put": {
+        "operationId": "updateSchedule",
+        "summary": "修改定时CAS",
+        "description": "revision CAS",
+        "x-handler": "M13-F027",
+        "x-permission": "job.manage",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "revision CAS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/UpdateScheduleResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/UpdateScheduleRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "scheduleId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/barriers:coordinate": {
+      "post": {
+        "operationId": "coordinateBarrier",
+        "summary": "等待全域安全点",
+        "description": "只允许data-protection+超管委托，协调全部有状态域安全点",
+        "x-handler": "M13-F029",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "只允许data-protection+超管委托，协调全部有状态域安全点",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CoordinateBarrierResult"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "公共错误；DEADLINE_EXCEEDED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CoordinateBarrierRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}:start": {
+      "post": {
+        "operationId": "startJob",
+        "summary": "确认开始执行",
+        "description": "所属owner主动领取后确认running，不由jobs执行领域算法",
+        "x-handler": "M13-F004",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "所属owner主动领取后确认running，不由jobs执行领域算法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/StartJobResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/StartJobRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/lease": {
+      "get": {
+        "operationId": "checkLease",
+        "summary": "写回前检验执行权",
+        "description": "所属owner在副作用写回前核对fence/epoch/expiry",
+        "x-handler": "M13-F006",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "所属owner在副作用写回前核对fence/epoch/expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CheckLeaseResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "jobId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/events:subscribe": {
+      "get": {
+        "operationId": "subscribeEvents",
+        "summary": "已登记消费者订阅事件SSE",
+        "description": "带版本事件SSE，已注册consumer按Last-Event-ID重放再ack",
+        "x-handler": "M13-F042",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "带版本事件SSE，已注册consumer按Last-Event-ID重放再ack",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lastEventId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "lastEventId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/barriers": {
+      "post": {
+        "operationId": "acquireBarrier",
+        "summary": "取得jobs本域屏障",
+        "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
+        "x-handler": "M13-F030",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "公共错误；DEADLINE_EXCEEDED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/barriers/{barrierId}:release": {
+      "post": {
+        "operationId": "releaseBarrier",
+        "summary": "解除全域任务暂停",
+        "description": "仅全域恢复完成或commit前全部abort确认后释放",
+        "x-handler": "M13-F031",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "仅全域恢复完成或commit前全部abort确认后释放",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReleaseBarrierResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；LOCKED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ReleaseBarrierRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "barrierId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "barrierId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/snapshots:export": {
+      "post": {
+        "operationId": "exportSnapshot",
+        "summary": "导出队列与事件一致快照",
+        "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
+        "x-handler": "M13-F033",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；LOCKED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "公共错误；INTERNAL",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/snapshots:validate": {
+      "post": {
+        "operationId": "validateSnapshot",
+        "summary": "验证任务快照",
+        "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
+        "x-handler": "M13-F034",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/snapshots:prepare": {
+      "post": {
+        "operationId": "prepareSnapshot",
+        "summary": "准备任务恢复",
+        "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
+        "x-handler": "M13-F035",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "公共错误；INTERNAL",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/snapshots:commit": {
+      "post": {
+        "operationId": "commitSnapshot",
+        "summary": "激活恢复jobs",
+        "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
+        "x-handler": "M13-F036",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；LOCKED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/v1/snapshots:rollback": {
+      "post": {
+        "operationId": "rollbackSnapshot",
+        "summary": "清理未提交恢复stage",
+        "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
+        "x-handler": "M13-F037",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAuth": []
+          }
+        ],
+        "x-recovery-authorization": "maintenance下本地校验公共RecoveryAuthorization+本次独立control记录；普通运行需要service身份+superadmin委托"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "health",
+        "summary": "本域进程存活",
+        "x-handler": "M13-F905",
+        "x-permission": "anonymous",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "进程存活，无依赖/模型探测",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "进程不可用",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "ready",
+        "summary": "本域启动/恢复就绪",
+        "x-handler": "M13-F906",
+        "x-permission": "anonymous",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "本域ready或维护control-ready，公开业务门禁另判",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ServiceReadiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "关键依赖或epoch/journal未ready",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "serviceAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "服务身份签名凭证，绑定audience；secret不进合同"
+      },
+      "adminAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "identity管理会话或入口转发短期授权，需实时权限检查"
+      }
+    }
+  }
+}

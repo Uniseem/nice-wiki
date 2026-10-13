@@ -1,0 +1,90 @@
+{
+  "module": "model-gateway",
+  "version": 1,
+  "events": [
+    {
+      "name": "provider.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventProviderChangedPayload"
+      },
+      "purpose": "发布provider.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "model.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventModelChangedPayload"
+      },
+      "purpose": "发布model.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "profile.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventProfileChangedPayload"
+      },
+      "purpose": "发布profile.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "invocation.accepted",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventInvocationAcceptedPayload"
+      },
+      "purpose": "发布invocation.accepted对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "invocation.settled",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventInvocationSettledPayload"
+      },
+      "purpose": "发布invocation.settled对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "invocation.charge_unknown",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventInvocationCharge_UnknownPayload"
+      },
+      "purpose": "发布invocation.charge_unknown对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "reconciliation.requested",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventReconciliationRequestedPayload"
+      },
+      "purpose": "发布reconciliation.requested对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "defaultSelected": [
+    "edit_documents",
+    "publish_documents",
+    "manage_translations",
+    "manage_languages",
+    "manage_resources",
+    "manage_qa",
+    "manage_ai",
+    "manage_memory",
+    "manage_site",
+    "view_stats"
+  ],
+  "groups": {
+    "edit_documents": [
+      "content.read",
+      "content.edit",
+      "content.preview",
+      "media.upload",
+      "media.read"
+    ],
+    "publish_documents": [
+      "content.publish",
+      "content.history",
+      "content.trash"
+    ],
+    "manage_translations": [
+      "localization.manage"
+    ],
+    "manage_languages": [
+      "localization.languages"
+    ],
+    "manage_resources": [
+      "media.manage",
+      "media.read"
+    ],
+    "manage_qa": [
+      "qa.manage"
+    ],
+    "manage_ai": [
+      "guard.manage",
+      "knowledge.manage",
+      "qa.debug"
+    ],
+    "manage_memory": [
+      "memory.manage"
+    ],
+    "manage_site": [
+      "site.manage"
+    ],
+    "view_stats": [
+      "stats.read"
+    ]
+  },
+  "authenticatedBaseGrants": [
+    "portal.use",
+    "account.self",
+    "site.read"
+  ],
+  "superadminOnly": [
+    "account.manage",
+    "model.manage",
+    "audit.read",
+    "backup.manage",
+    "system.manage",
+    "superadmin"
+  ],
+  "rule": "只有旧10项功能开关；技术grants由identity派生，浏览器不能自选。超管拥有全部登记管理权限；后台服务必须验证委托者实际技术权限。job.manage由本域任务owner业务权限派生，仅允许管理获授权业务任务，不能以此操作任意任务或系统任务。media.read用于管理对象，公开资源通过发布引用门禁。"
+}

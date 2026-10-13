@@ -1,0 +1,6063 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/content/v1",
+  "title": "文档生命周期完整数据与函数类型",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+      "description": "Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+      "description": "Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+      "description": "Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+      "description": "Timestamp"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+      "description": "AuthContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
+      "description": "RequestContext"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error",
+      "description": "Error"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+      "description": "Problem"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+      "description": "PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+      "description": "PublishedRevisionRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+      "description": "PublicationValidation"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+      "description": "AssetRef"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+      "description": "ObjectRef"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
+      "description": "BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+      "description": "BarrierStatus"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
+      "description": "SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
+      "description": "SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
+      "description": "SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
+      "description": "SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
+      "description": "SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
+      "description": "SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
+      "description": "SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
+      "description": "SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
+      "description": "SnapshotApplyResult"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+      "description": "EventEnvelope"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
+      "description": "RecoveryAuthorization"
+    },
+    "LinkTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "站内链接",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "internal"
+            },
+            "documentId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档ID；不存URL"
+            },
+            "blockId": {
+              "anyOf": [
+                {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                  "description": "锚点blockId"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "文档链接null"
+            }
+          },
+          "required": [
+            "kind",
+            "documentId",
+            "blockId"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "外链",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "external"
+            },
+            "href": {
+              "type": "string",
+              "description": "仅http/https/mailto；禁止javascript/userinfo",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "kind",
+            "href"
+          ]
+        }
+      ],
+      "description": "站内链接按当前语言和树路径渲染，移动/改名不失效"
+    },
+    "InlineMark": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "无属性marks",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "标准格式",
+              "enum": [
+                "bold",
+                "italic",
+                "underline",
+                "strike",
+                "code"
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "高亮",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "highlight"
+            },
+            "attrs": {
+              "type": "object",
+              "description": "高亮属性",
+              "additionalProperties": false,
+              "properties": {
+                "color": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "#RRGGBB颜色",
+                      "minLength": 7,
+                      "maxLength": 7,
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认主题色null"
+                }
+              },
+              "required": [
+                "color"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "attrs"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "链接mark",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "link"
+            },
+            "attrs": {
+              "type": "object",
+              "description": "链接属性",
+              "additionalProperties": false,
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/LinkTarget",
+                  "description": "LinkTarget"
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "辅助标题",
+                      "minLength": 0,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "无null"
+                }
+              },
+              "required": [
+                "target",
+                "title"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "attrs"
+          ]
+        }
+      ],
+      "description": "old8项行内能力：5文本marks+highlight+link+inlineMath；同种mark至多一次"
+    },
+    "InlineNode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Tiptap text",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string",
+              "description": "Unicode原文不规范改写，不含NUL",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            "marks": {
+              "type": "array",
+              "description": "marks可空",
+              "items": {
+                "$ref": "#/$defs/InlineMark",
+                "description": "InlineMark"
+              },
+              "minItems": 0,
+              "maxItems": 7
+            }
+          },
+          "required": [
+            "type",
+            "text",
+            "marks"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "显式换行",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "hardBreak"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "行内公式",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "inlineMath"
+            },
+            "attrs": {
+              "type": "object",
+              "description": "公式属性",
+              "additionalProperties": false,
+              "properties": {
+                "latex": {
+                  "type": "string",
+                  "description": "原始LaTeX，不翻译；不允许文件/网络宏",
+                  "minLength": 1,
+                  "maxLength": 8192
+                }
+              },
+              "required": [
+                "latex"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "attrs"
+          ]
+        }
+      ],
+      "description": "Tiptap受控行内联合体，未知节点不静默丢弃"
+    },
+    "ParagraphBlock": {
+      "type": "object",
+      "description": "Tiptap paragraph节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "paragraph"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "有序行内内容",
+          "items": {
+            "$ref": "#/$defs/InlineNode",
+            "description": "InlineNode"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "HeadingBlock": {
+      "type": "object",
+      "description": "Tiptap heading节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "heading"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "level": {
+              "type": "integer",
+              "enum": [
+                2,
+                3,
+                4
+              ],
+              "description": "正文仅H2/H3/H4；不折叠"
+            }
+          },
+          "required": [
+            "blockId",
+            "level"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "有序行内内容",
+          "items": {
+            "$ref": "#/$defs/InlineNode",
+            "description": "InlineNode"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "QuoteBlock": {
+      "type": "object",
+      "description": "Tiptap blockquote节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "blockquote"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "引用有序子块",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "DividerBlock": {
+      "type": "object",
+      "description": "Tiptap horizontalRule节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "horizontalRule"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "ListItem": {
+      "type": "object",
+      "description": "列表项；可嵌套列表但受深度限制",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "listItem"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "列表项属性",
+          "additionalProperties": false,
+          "properties": {
+            "itemId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定列表项"
+            }
+          },
+          "required": [
+            "itemId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "列表项有序子块，首项paragraph",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "BulletListBlock": {
+      "type": "object",
+      "description": "Tiptap bulletList节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "bulletList"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "无序项",
+          "items": {
+            "$ref": "#/$defs/ListItem",
+            "description": "ListItem"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "OrderedListBlock": {
+      "type": "object",
+      "description": "Tiptap orderedList节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "orderedList"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "start": {
+              "type": "integer",
+              "description": "编号起始",
+              "minimum": 1,
+              "maximum": 1000000
+            }
+          },
+          "required": [
+            "blockId",
+            "start"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "有序项",
+          "items": {
+            "$ref": "#/$defs/ListItem",
+            "description": "ListItem"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "TaskItem": {
+      "type": "object",
+      "description": "任务项",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "taskItem"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "任务项属性",
+          "additionalProperties": false,
+          "properties": {
+            "itemId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定task项"
+            },
+            "checked": {
+              "type": "boolean",
+              "description": "勾选"
+            }
+          },
+          "required": [
+            "itemId",
+            "checked"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "首项paragraph及嵌套任务",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "TaskListBlock": {
+      "type": "object",
+      "description": "Tiptap taskList节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "taskList"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "任务列表",
+          "items": {
+            "$ref": "#/$defs/TaskItem",
+            "description": "TaskItem"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "TableCell": {
+      "type": "object",
+      "description": "表格单元格，grid覆盖必须无洞无重叠",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "标准Tiptap单元格",
+          "enum": [
+            "tableCell",
+            "tableHeader"
+          ]
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整表格cell属性",
+          "additionalProperties": false,
+          "properties": {
+            "cellId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定cell"
+            },
+            "colspan": {
+              "type": "integer",
+              "description": "列跨度",
+              "minimum": 1,
+              "maximum": 30
+            },
+            "rowspan": {
+              "type": "integer",
+              "description": "行跨度",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "colwidth": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "description": "宽度长度必须=colspan",
+                  "items": {
+                    "type": "integer",
+                    "description": "每被覆盖列像素宽",
+                    "minimum": 40,
+                    "maximum": 1200
+                  },
+                  "minItems": 1,
+                  "maxItems": 30
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "auto null"
+            },
+            "backgroundColor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "#RRGGBB",
+                  "minLength": 7,
+                  "maxLength": 7,
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "继承null"
+            }
+          },
+          "required": [
+            "cellId",
+            "colspan",
+            "rowspan",
+            "colwidth",
+            "backgroundColor"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "cell正文有序块",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "TableRow": {
+      "type": "object",
+      "description": "表格行",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tableRow"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "行属性",
+          "additionalProperties": false,
+          "properties": {
+            "rowId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定row"
+            }
+          },
+          "required": [
+            "rowId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "仅起始cell，上一行rowspan可覆盖",
+          "items": {
+            "$ref": "#/$defs/TableCell",
+            "description": "TableCell"
+          },
+          "minItems": 0,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "TableBlock": {
+      "type": "object",
+      "description": "Tiptap table节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            }
+          },
+          "required": [
+            "blockId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "最多200行、30逻辑列",
+          "items": {
+            "$ref": "#/$defs/TableRow",
+            "description": "TableRow"
+          },
+          "minItems": 1,
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "CodeBlock": {
+      "type": "object",
+      "description": "Tiptap codeBlock节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "codeBlock"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "language": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "highlight.js/chroma语言key，未知作为plain",
+                  "minLength": 1,
+                  "maxLength": 32,
+                  "pattern": "^[a-zA-Z0-9_+.-]+$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "自动plain null"
+            }
+          },
+          "required": [
+            "blockId",
+            "language"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "最多一个text节点",
+          "items": {
+            "type": "object",
+            "description": "无marks代码文本",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "text"
+              },
+              "text": {
+                "type": "string",
+                "description": "代码原文，不翻译，保留换行",
+                "minLength": 0,
+                "maxLength": 1048576
+              }
+            },
+            "required": [
+              "type",
+              "text"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "MathBlock": {
+      "type": "object",
+      "description": "Tiptap mathBlock节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "mathBlock"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "latex": {
+              "type": "string",
+              "description": "LaTeX源码；不翻译；只含公式页加载KaTeX",
+              "minLength": 1,
+              "maxLength": 65536
+            }
+          },
+          "required": [
+            "blockId",
+            "latex"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "CalloutBlock": {
+      "type": "object",
+      "description": "Tiptap callout节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "callout"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "kind": {
+              "type": "string",
+              "description": "提示框",
+              "enum": [
+                "info",
+                "tip",
+                "warning",
+                "danger"
+              ]
+            }
+          },
+          "required": [
+            "blockId",
+            "kind"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "提示框子块，纯文本提取附类型",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "ImageBlock": {
+      "type": "object",
+      "description": "Tiptap image节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "asset": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "alt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "手动alt优先；未填用knowledge生成图像描述且进入翻译",
+                  "minLength": 0,
+                  "maxLength": 4000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "auto null"
+            },
+            "altSource": {
+              "type": "string",
+              "description": "来源",
+              "enum": [
+                "auto",
+                "manual"
+              ]
+            },
+            "caption": {
+              "type": "array",
+              "description": "有序行内内容",
+              "items": {
+                "$ref": "#/$defs/InlineNode",
+                "description": "InlineNode"
+              },
+              "minItems": 0,
+              "maxItems": 10000
+            },
+            "widthPercent": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "description": "显示宽度%",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "自然宽null"
+            }
+          },
+          "required": [
+            "blockId",
+            "asset",
+            "alt",
+            "altSource",
+            "caption",
+            "widthPercent"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "AttachmentBlock": {
+      "type": "object",
+      "description": "Tiptap attachment节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "attachment"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "asset": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "displayName": {
+              "type": "string",
+              "description": "文件卡片文字，默认media原始文件名",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          "required": [
+            "blockId",
+            "asset",
+            "displayName"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "DrawingBlock": {
+      "type": "object",
+      "description": "Tiptap drawing节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "drawing"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "scene": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "lightSVG": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "darkSVG": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "widthPercent": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "description": "显示宽度%",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "自然宽null"
+            },
+            "caption": {
+              "type": "array",
+              "description": "有序行内内容",
+              "items": {
+                "$ref": "#/$defs/InlineNode",
+                "description": "InlineNode"
+              },
+              "minItems": 0,
+              "maxItems": 10000
+            }
+          },
+          "required": [
+            "blockId",
+            "scene",
+            "lightSVG",
+            "darkSVG",
+            "widthPercent",
+            "caption"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "UploadedVideoSource": {
+      "type": "object",
+      "description": "上传视频，服务端不转码",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "uploaded"
+        },
+        "asset": {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+        }
+      },
+      "required": [
+        "kind",
+        "asset"
+      ]
+    },
+    "PlatformVideoSource": {
+      "type": "object",
+      "description": "插入时一次公开信息快照，失败可手填",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "platform"
+        },
+        "snapshot": {
+          "$ref": "../../media/contracts/types.json#/$defs/PlatformVideoSnapshot"
+        }
+      },
+      "required": [
+        "kind",
+        "snapshot"
+      ]
+    },
+    "VideoBlock": {
+      "type": "object",
+      "description": "Tiptap video节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "video"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "source": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UploadedVideoSource",
+                  "description": "UploadedVideoSource"
+                },
+                {
+                  "$ref": "#/$defs/PlatformVideoSource",
+                  "description": "PlatformVideoSource"
+                }
+              ],
+              "description": "统一视频组件来源"
+            },
+            "title": {
+              "type": "string",
+              "description": "用户填写或公开信息标题",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            "description": {
+              "type": "string",
+              "description": "用户说明或抓取公开简介",
+              "minLength": 0,
+              "maxLength": 10000
+            },
+            "poster": {
+              "anyOf": [
+                {
+                  "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "浏览器截帧/自传/平台本地封面，暂无null"
+            },
+            "widthPercent": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "description": "显示宽度%",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "自然宽null"
+            }
+          },
+          "required": [
+            "blockId",
+            "source",
+            "title",
+            "description",
+            "poster",
+            "widthPercent"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "attrs"
+      ]
+    },
+    "Column": {
+      "type": "object",
+      "description": "单栏",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "column"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "列属性",
+          "additionalProperties": false,
+          "properties": {
+            "columnId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定column"
+            }
+          },
+          "required": [
+            "columnId"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "任意块但不得含columns后代",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "ColumnsBlock": {
+      "type": "object",
+      "description": "Tiptap columns节点",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "columns"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "完整块属性",
+          "additionalProperties": false,
+          "properties": {
+            "blockId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "文档内稳定ID，删除后在该文档不可复用"
+            },
+            "widthRatios": {
+              "type": "array",
+              "description": "2–4栏比例",
+              "items": {
+                "type": "number",
+                "description": "正比例且总和1，顺序同column",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "minItems": 2,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "blockId",
+            "widthRatios"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "description": "2–4栏",
+          "items": {
+            "$ref": "#/$defs/Column",
+            "description": "Column"
+          },
+          "minItems": 2,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "content"
+      ]
+    },
+    "Block": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ParagraphBlock",
+          "description": "ParagraphBlock"
+        },
+        {
+          "$ref": "#/$defs/HeadingBlock",
+          "description": "HeadingBlock"
+        },
+        {
+          "$ref": "#/$defs/QuoteBlock",
+          "description": "QuoteBlock"
+        },
+        {
+          "$ref": "#/$defs/DividerBlock",
+          "description": "DividerBlock"
+        },
+        {
+          "$ref": "#/$defs/BulletListBlock",
+          "description": "BulletListBlock"
+        },
+        {
+          "$ref": "#/$defs/OrderedListBlock",
+          "description": "OrderedListBlock"
+        },
+        {
+          "$ref": "#/$defs/TaskListBlock",
+          "description": "TaskListBlock"
+        },
+        {
+          "$ref": "#/$defs/TableBlock",
+          "description": "TableBlock"
+        },
+        {
+          "$ref": "#/$defs/CodeBlock",
+          "description": "CodeBlock"
+        },
+        {
+          "$ref": "#/$defs/MathBlock",
+          "description": "MathBlock"
+        },
+        {
+          "$ref": "#/$defs/CalloutBlock",
+          "description": "CalloutBlock"
+        },
+        {
+          "$ref": "#/$defs/ImageBlock",
+          "description": "ImageBlock"
+        },
+        {
+          "$ref": "#/$defs/AttachmentBlock",
+          "description": "AttachmentBlock"
+        },
+        {
+          "$ref": "#/$defs/DrawingBlock",
+          "description": "DrawingBlock"
+        },
+        {
+          "$ref": "#/$defs/VideoBlock",
+          "description": "VideoBlock"
+        },
+        {
+          "$ref": "#/$defs/ColumnsBlock",
+          "description": "ColumnsBlock"
+        }
+      ],
+      "description": "16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML"
+    },
+    "DocumentBody": {
+      "type": "object",
+      "description": "正文文件canonical Tiptap JSON",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1,
+          "description": "逐级migration，不支持未来版本拒绝"
+        },
+        "type": {
+          "const": "doc"
+        },
+        "content": {
+          "type": "array",
+          "description": "正文有序树；每个id唯一，最多10000块",
+          "items": {
+            "$ref": "#/$defs/Block",
+            "description": "Block"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "type",
+        "content"
+      ]
+    },
+    "DocumentMetadata": {
+      "type": "object",
+      "description": "树/元数据权威，与draft和published独立",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父文档"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "title": {
+          "type": "string",
+          "description": "文档H1标题，翻译",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "英文可编辑slug，同父唯一",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "初次发布前待生成null"
+        },
+        "orderKey": {
+          "type": "string",
+          "description": "fracdex顺序key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "description": "初始化基准语言，保存后不重解释",
+          "minLength": 2,
+          "maxLength": 35
+        },
+        "seoDescription": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "发布生成/手动可改，会翻译",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "待生成null"
+        },
+        "seoDescriptionSource": {
+          "type": "string",
+          "description": "来源",
+          "enum": [
+            "generated",
+            "manual",
+            "pending"
+          ]
+        },
+        "shareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认站点分享图null"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "全篇唯一共享draft head"
+        },
+        "publishedReference": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+              "description": "PublishedRevisionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未发布null"
+        },
+        "state": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "draft",
+            "published",
+            "trash",
+            "purged"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "元数据CAS"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "公开撤回水位"
+        },
+        "trashedAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "回收站时间"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "正常null"
+        },
+        "lastPublishedAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "公开最后更新来自history/git提交metadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未发null"
+        }
+      },
+      "required": [
+        "documentId",
+        "siteId",
+        "parentId",
+        "title",
+        "pathSegment",
+        "orderKey",
+        "sourceLanguage",
+        "seoDescription",
+        "seoDescriptionSource",
+        "shareImage",
+        "draftRevisionId",
+        "publishedReference",
+        "state",
+        "revision",
+        "visibilityRevision",
+        "trashedAt",
+        "lastPublishedAt"
+      ]
+    },
+    "DraftRevision": {
+      "type": "object",
+      "description": "全篇共享草稿提交，不按人建份",
+      "additionalProperties": false,
+      "properties": {
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可变draft文件"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "previousRevisionId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "前版"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次null"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "authorAccountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "编辑者"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "提交"
+        },
+        "draftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "共享draft单调CAS"
+        }
+      },
+      "required": [
+        "revisionId",
+        "documentId",
+        "previousRevisionId",
+        "bodyHash",
+        "object",
+        "authorAccountId",
+        "createdAt",
+        "draftVersion"
+      ]
+    },
+    "EditLease": {
+      "type": "object",
+      "description": "内存锁，不进快照；同人多tab共享账户锁，draftVersion冲突防覆盖",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "holderAccountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "holderAccountName": {
+          "type": "string",
+          "description": "显示谁正在编辑",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "内存锁"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "description": "单调fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "重启区别；旧锁永失效"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "2分钟无心跳失效"
+        },
+        "lastInputAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "最后输入用于15分钟提示"
+        },
+        "idleWarningAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "长时无输入提醒"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未提醒null"
+        }
+      },
+      "required": [
+        "documentId",
+        "holderAccountId",
+        "holderAccountName",
+        "leaseId",
+        "fencingToken",
+        "serverBootId",
+        "expiresAt",
+        "lastInputAt",
+        "idleWarningAt"
+      ]
+    },
+    "CommitJournal": {
+      "type": "object",
+      "description": "正文持久提交意图；只有committed可见",
+      "additionalProperties": false,
+      "properties": {
+        "commitId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "提交"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "幂等"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文件"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "expectedHead": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "旧head"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "新建null"
+        },
+        "state": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "prepared",
+            "committed",
+            "aborted",
+            "quarantined"
+          ]
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "commitId",
+        "operationId",
+        "documentId",
+        "revisionId",
+        "bodyHash",
+        "expectedHead",
+        "state",
+        "createdAt"
+      ]
+    },
+    "PublicationChangedPayload": {
+      "type": "object",
+      "description": "不可变发布快照引用，供public/index/translation/git镜像",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "可见水位"
+        },
+        "authorAccountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "执行发布的账号/git作者"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "siteId",
+        "reference",
+        "visibilityRevision",
+        "authorAccountId",
+        "occurredAt"
+      ]
+    },
+    "PublicationWithdrawnPayload": {
+      "type": "object",
+      "description": "只传失效引用，无正文",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "发布源水位"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "失效水位"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "epoch"
+        },
+        "reason": {
+          "type": "string",
+          "description": "原因",
+          "enum": [
+            "withdrawn",
+            "trashed",
+            "purged"
+          ]
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "siteId",
+        "documentId",
+        "revision",
+        "visibilityRevision",
+        "dataEpoch",
+        "reason",
+        "occurredAt"
+      ]
+    },
+    "ResourceReference": {
+      "type": "object",
+      "description": "当前/历史引用分开，历史引用不自动清理阻塞提示",
+      "additionalProperties": false,
+      "properties": {
+        "sourceService": {
+          "const": "content"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源文档"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "正文版本"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "来源单调水位"
+        },
+        "kind": {
+          "type": "string",
+          "description": "引用分类",
+          "enum": [
+            "current_draft",
+            "current_published",
+            "history"
+          ]
+        },
+        "blockId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "块"
+        },
+        "asset": {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+        },
+        "retained": {
+          "type": "boolean",
+          "description": "该版本仍保留"
+        }
+      },
+      "required": [
+        "sourceService",
+        "documentId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "kind",
+        "blockId",
+        "asset",
+        "retained"
+      ]
+    },
+    "ResourceReferencesChangedPayload": {
+      "type": "object",
+      "description": "事件仅ref，无正文",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "sourceRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "来源版本"
+        },
+        "references": {
+          "type": "array",
+          "description": "完整版本引用快照",
+          "items": {
+            "$ref": "#/$defs/ResourceReference",
+            "description": "ResourceReference"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "removedReferenceIds": {
+          "type": "array",
+          "description": "仅显式purge的引用",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "移除源key"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "epoch"
+        }
+      },
+      "required": [
+        "siteId",
+        "documentId",
+        "sourceRevision",
+        "references",
+        "removedReferenceIds",
+        "dataEpoch"
+      ]
+    },
+    "PreviewGrant": {
+      "type": "object",
+      "description": "公开样式渲染草稿，仅管理员可见",
+      "additionalProperties": false,
+      "properties": {
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预览"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "精确草稿"
+        },
+        "holderAccountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "仅已登录管理员，不创建访客分享预览"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "≤1小时"
+        },
+        "token": {
+          "type": "string",
+          "description": "敏感服务proof，不记日志",
+          "minLength": 32,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "previewId",
+        "documentId",
+        "draftRevisionId",
+        "holderAccountId",
+        "expiresAt",
+        "token"
+      ]
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "description": "本域版本与data git镜像署名",
+      "additionalProperties": false,
+      "properties": {
+        "historyId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "发布历史"
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "authorAccountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "发布账号"
+        },
+        "authorAccountName": {
+          "type": "string",
+          "description": "删除后仍保留署名",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "提交时间"
+        },
+        "commitMirrorState": {
+          "type": "string",
+          "description": "镜像",
+          "enum": [
+            "pending",
+            "mirrored",
+            "failed"
+          ]
+        },
+        "gitCommitId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "镜像commit摘要",
+              "minLength": 40,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "待镜像null"
+        },
+        "operation": {
+          "type": "string",
+          "description": "来源",
+          "enum": [
+            "publish",
+            "rollback"
+          ]
+        }
+      },
+      "required": [
+        "historyId",
+        "reference",
+        "authorAccountId",
+        "authorAccountName",
+        "createdAt",
+        "commitMirrorState",
+        "gitCommitId",
+        "operation"
+      ]
+    },
+    "RouteTombstone": {
+      "type": "object",
+      "description": "旧路径→docId，移动父节点须记录所有后代301；删除410/可选redirect",
+      "additionalProperties": false,
+      "properties": {
+        "oldPath": {
+          "type": "string",
+          "description": "不含language前缀",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "旧文档"
+        },
+        "status": {
+          "type": "string",
+          "description": "公开语义",
+          "enum": [
+            "redirect",
+            "gone"
+          ]
+        },
+        "targetDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "删除时选替代文档"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "gone无目标null"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "路径水位"
+        }
+      },
+      "required": [
+        "oldPath",
+        "documentId",
+        "status",
+        "targetDocumentId",
+        "revision"
+      ]
+    },
+    "CreateDocumentInput": {
+      "type": "object",
+      "description": "新建共享草稿文档的输入",
+      "additionalProperties": false,
+      "properties": {
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "title": {
+          "type": "string",
+          "description": "标题",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "beforeDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "相邻插入"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "末尾null"
+        }
+      },
+      "required": [
+        "parentId",
+        "title",
+        "beforeDocumentId"
+      ]
+    },
+    "CreateDocumentResult": {
+      "type": "object",
+      "description": "新建共享草稿文档的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        }
+      },
+      "required": [
+        "metadata",
+        "draft"
+      ]
+    },
+    "ReadDocumentTreeInput": {
+      "type": "object",
+      "description": "后台读取整站文档树的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadDocumentTreeResult": {
+      "type": "object",
+      "description": "后台读取整站文档树的结果",
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "type": "array",
+          "description": "树前序",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadata",
+            "description": "DocumentMetadata"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "一致树水位"
+        }
+      },
+      "required": [
+        "documents",
+        "treeRevision"
+      ]
+    },
+    "ListDocumentsInput": {
+      "type": "object",
+      "description": "文档及回收站分页列表的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        },
+        "state": {
+          "type": "string",
+          "description": "过滤",
+          "enum": [
+            "draft",
+            "published",
+            "trash"
+          ]
+        }
+      },
+      "required": [
+        "page",
+        "state"
+      ]
+    },
+    "ListDocumentsResult": {
+      "type": "object",
+      "description": "文档及回收站分页列表的结果",
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "type": "array",
+          "description": "分页",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadata",
+            "description": "DocumentMetadata"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "documents",
+        "pageInfo"
+      ]
+    },
+    "MoveDocumentInput": {
+      "type": "object",
+      "description": "拖拽移动层级和顺序的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "节点"
+        },
+        "newParentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "beforeDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "相邻"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "末尾null"
+        },
+        "expectedTreeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "documentId",
+        "newParentId",
+        "beforeDocumentId",
+        "expectedTreeRevision"
+      ]
+    },
+    "MoveDocumentResult": {
+      "type": "object",
+      "description": "拖拽移动层级和顺序的结果",
+      "additionalProperties": false,
+      "properties": {
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "新树"
+        },
+        "redirects": {
+          "type": "array",
+          "description": "所有后代旧路径",
+          "items": {
+            "$ref": "#/$defs/RouteTombstone",
+            "description": "RouteTombstone"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "treeRevision",
+        "redirects"
+      ]
+    },
+    "ReorderChildrenInput": {
+      "type": "object",
+      "description": "拖拽调整同级顺序的输入",
+      "additionalProperties": false,
+      "properties": {
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "orderedDocumentIds": {
+          "type": "array",
+          "description": "全量无重复子顺序",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "所有当前子节点"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "expectedTreeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "parentId",
+        "orderedDocumentIds",
+        "expectedTreeRevision"
+      ]
+    },
+    "ReorderChildrenResult": {
+      "type": "object",
+      "description": "拖拽调整同级顺序的结果",
+      "additionalProperties": false,
+      "properties": {
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "新树"
+        }
+      },
+      "required": [
+        "treeRevision"
+      ]
+    },
+    "EnsureTreeAcyclicInput": {
+      "type": "object",
+      "description": "检查树无环和层级约束的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "type": "array",
+          "description": "树",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadata",
+            "description": "DocumentMetadata"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "movingId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "拟移节点"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只校验null"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "拟父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        }
+      },
+      "required": [
+        "documents",
+        "movingId",
+        "parentId"
+      ]
+    },
+    "EnsureTreeAcyclicResult": {
+      "type": "object",
+      "description": "检查树无环和层级约束的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "无环"
+        },
+        "descendants": {
+          "type": "array",
+          "description": "排序",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "后代"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "valid",
+        "descendants"
+      ]
+    },
+    "UpdateDocumentMetadataInput": {
+      "type": "object",
+      "description": "修改标题/路径/SEO描述/分享图的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "title": {
+          "type": "string",
+          "description": "标题",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未发可空"
+        },
+        "seoDescription": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "人工SEO",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "待生成null"
+        },
+        "shareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认站点null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "documentId",
+        "title",
+        "pathSegment",
+        "seoDescription",
+        "shareImage",
+        "expectedRevision"
+      ]
+    },
+    "UpdateDocumentMetadataResult": {
+      "type": "object",
+      "description": "修改标题/路径/SEO描述/分享图的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "redirects": {
+          "type": "array",
+          "description": "旧路径",
+          "items": {
+            "$ref": "#/$defs/RouteTombstone",
+            "description": "RouteTombstone"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "metadata",
+        "redirects"
+      ]
+    },
+    "ValidatePathSegmentInput": {
+      "type": "object",
+      "description": "校验英文可读路径与同父唯一的输入",
+      "additionalProperties": false,
+      "properties": {
+        "segment": {
+          "type": "string",
+          "description": "英文slug",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "自身"
+        }
+      },
+      "required": [
+        "segment",
+        "parentId",
+        "documentId"
+      ]
+    },
+    "ValidatePathSegmentResult": {
+      "type": "object",
+      "description": "校验英文可读路径与同父唯一的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "可用"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "PlanOldPathRedirectsInput": {
+      "type": "object",
+      "description": "规划301旧路径→文档ID的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "节点"
+        },
+        "documents": {
+          "type": "array",
+          "description": "变更前树",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadata",
+            "description": "DocumentMetadata"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "documentId",
+        "documents"
+      ]
+    },
+    "PlanOldPathRedirectsResult": {
+      "type": "object",
+      "description": "规划301旧路径→文档ID的结果",
+      "additionalProperties": false,
+      "properties": {
+        "redirects": {
+          "type": "array",
+          "description": "node+后代旧路径",
+          "items": {
+            "$ref": "#/$defs/RouteTombstone",
+            "description": "RouteTombstone"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "redirects"
+      ]
+    },
+    "AcquireEditLockInput": {
+      "type": "object",
+      "description": "打开文档自动获得内存编辑锁的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "tabId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "浏览器tab"
+        }
+      },
+      "required": [
+        "documentId",
+        "tabId"
+      ]
+    },
+    "AcquireEditLockResult": {
+      "type": "object",
+      "description": "打开文档自动获得内存编辑锁的结果",
+      "additionalProperties": false,
+      "properties": {
+        "lease": {
+          "$ref": "#/$defs/EditLease",
+          "description": "EditLease"
+        },
+        "writable": {
+          "type": "boolean",
+          "description": "当前可编辑"
+        }
+      },
+      "required": [
+        "lease",
+        "writable"
+      ]
+    },
+    "RenewEditLockInput": {
+      "type": "object",
+      "description": "心跳维持锁并处理长时间无输入的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "description": "fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        },
+        "lastInputAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "输入时间，由服务限制≤now"
+        }
+      },
+      "required": [
+        "documentId",
+        "leaseId",
+        "fencingToken",
+        "serverBootId",
+        "lastInputAt"
+      ]
+    },
+    "RenewEditLockResult": {
+      "type": "object",
+      "description": "心跳维持锁并处理长时间无输入的结果",
+      "additionalProperties": false,
+      "properties": {
+        "lease": {
+          "$ref": "#/$defs/EditLease",
+          "description": "EditLease"
+        },
+        "idleWarning": {
+          "type": "boolean",
+          "description": "15分钟无输入提醒"
+        }
+      },
+      "required": [
+        "lease",
+        "idleWarning"
+      ]
+    },
+    "ReleaseEditLockInput": {
+      "type": "object",
+      "description": "关闭页面释放自身锁的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        }
+      },
+      "required": [
+        "documentId",
+        "leaseId",
+        "serverBootId"
+      ]
+    },
+    "ReleaseEditLockResult": {
+      "type": "object",
+      "description": "关闭页面释放自身锁的结果",
+      "additionalProperties": false,
+      "properties": {
+        "released": {
+          "type": "boolean",
+          "description": "释放"
+        }
+      },
+      "required": [
+        "released"
+      ]
+    },
+    "ForceReleaseEditLockInput": {
+      "type": "object",
+      "description": "只有超管强制释放别人锁的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "expectedLeaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标锁"
+        }
+      },
+      "required": [
+        "documentId",
+        "expectedLeaseId"
+      ]
+    },
+    "ForceReleaseEditLockResult": {
+      "type": "object",
+      "description": "只有超管强制释放别人锁的结果",
+      "additionalProperties": false,
+      "properties": {
+        "released": {
+          "type": "boolean",
+          "description": "强制完成"
+        }
+      },
+      "required": [
+        "released"
+      ]
+    },
+    "ExpireIdleLocksInput": {
+      "type": "object",
+      "description": "释放失联或提示后仍空闲锁的输入",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "可信server clock"
+        }
+      },
+      "required": [
+        "now"
+      ]
+    },
+    "ExpireIdleLocksResult": {
+      "type": "object",
+      "description": "释放失联或提示后仍空闲锁的结果",
+      "additionalProperties": false,
+      "properties": {
+        "expiredDocumentIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "已失联/无输入锁"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "expiredDocumentIds"
+      ]
+    },
+    "ReadDraftInput": {
+      "type": "object",
+      "description": "读取全篇共享草稿及编辑状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        }
+      },
+      "required": [
+        "documentId"
+      ]
+    },
+    "ReadDraftResult": {
+      "type": "object",
+      "description": "读取全篇共享草稿及编辑状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        },
+        "lease": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EditLease",
+              "description": "EditLease"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无锁null"
+        }
+      },
+      "required": [
+        "metadata",
+        "body",
+        "draft",
+        "lease"
+      ]
+    },
+    "SaveDraftInput": {
+      "type": "object",
+      "description": "自动保存完整Tiptap正文的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "共享草稿CAS"
+        },
+        "expectedDraftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "head"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "description": "fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        }
+      },
+      "required": [
+        "documentId",
+        "body",
+        "expectedDraftVersion",
+        "expectedDraftRevisionId",
+        "leaseId",
+        "fencingToken",
+        "serverBootId"
+      ]
+    },
+    "SaveDraftResult": {
+      "type": "object",
+      "description": "自动保存完整Tiptap正文的结果",
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        }
+      },
+      "required": [
+        "draft"
+      ]
+    },
+    "ValidateBlockTreeInput": {
+      "type": "object",
+      "description": "验证全部Tiptap块及稳定ID的输入",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "previousBody": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocumentBody",
+              "description": "DocumentBody"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次null"
+        }
+      },
+      "required": [
+        "body",
+        "documentId",
+        "previousBody"
+      ]
+    },
+    "ValidateBlockTreeResult": {
+      "type": "object",
+      "description": "验证全部Tiptap块及稳定ID的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        },
+        "blockIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "全树稳定ID"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "valid",
+        "blockIds"
+      ]
+    },
+    "ValidateInlineInput": {
+      "type": "object",
+      "description": "验证全部行内格式与链接的输入",
+      "additionalProperties": false,
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "description": "行内",
+          "items": {
+            "$ref": "#/$defs/InlineNode",
+            "description": "InlineNode"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "nodes"
+      ]
+    },
+    "ValidateInlineResult": {
+      "type": "object",
+      "description": "验证全部行内格式与链接的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "ValidateTableGridInput": {
+      "type": "object",
+      "description": "验证表格合并单元格覆盖的输入",
+      "additionalProperties": false,
+      "properties": {
+        "table": {
+          "$ref": "#/$defs/TableBlock",
+          "description": "TableBlock"
+        }
+      },
+      "required": [
+        "table"
+      ]
+    },
+    "ValidateTableGridResult": {
+      "type": "object",
+      "description": "验证表格合并单元格覆盖的结果",
+      "additionalProperties": false,
+      "properties": {
+        "rows": {
+          "type": "integer",
+          "description": "逻辑行",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "columns": {
+          "type": "integer",
+          "description": "逻辑列",
+          "minimum": 1,
+          "maximum": 30
+        }
+      },
+      "required": [
+        "rows",
+        "columns"
+      ]
+    },
+    "ValidateColumnsInput": {
+      "type": "object",
+      "description": "校验2–4栏比例和禁止嵌套的输入",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "$ref": "#/$defs/ColumnsBlock",
+          "description": "ColumnsBlock"
+        }
+      },
+      "required": [
+        "columns"
+      ]
+    },
+    "ValidateColumnsResult": {
+      "type": "object",
+      "description": "校验2–4栏比例和禁止嵌套的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "CollectResourceReferencesInput": {
+      "type": "object",
+      "description": "扫描所有嵌套块资源引用的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源版本"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "kind": {
+          "type": "string",
+          "description": "引用类型",
+          "enum": [
+            "current_draft",
+            "current_published",
+            "history"
+          ]
+        }
+      },
+      "required": [
+        "documentId",
+        "revisionId",
+        "sourceVersion",
+        "body",
+        "kind"
+      ]
+    },
+    "CollectResourceReferencesResult": {
+      "type": "object",
+      "description": "扫描所有嵌套块资源引用的结果",
+      "additionalProperties": false,
+      "properties": {
+        "references": {
+          "type": "array",
+          "description": "精确不可变ref",
+          "items": {
+            "$ref": "#/$defs/ResourceReference",
+            "description": "ResourceReference"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "references"
+      ]
+    },
+    "CanonicalizeBodyInput": {
+      "type": "object",
+      "description": "规范序列化正文并计算hash的输入",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        }
+      },
+      "required": [
+        "body"
+      ]
+    },
+    "CanonicalizeBodyResult": {
+      "type": "object",
+      "description": "规范序列化正文并计算hash的结果",
+      "additionalProperties": false,
+      "properties": {
+        "utf8": {
+          "type": "string",
+          "description": "规范JSON编码，内部值不日志",
+          "minLength": 2,
+          "maxLength": 16777216
+        },
+        "contentHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "utf8",
+        "contentHash"
+      ]
+    },
+    "HashBlockInput": {
+      "type": "object",
+      "description": "计算翻译/AI引用稳定块hash的输入",
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/Block",
+          "description": "Block"
+        }
+      },
+      "required": [
+        "block"
+      ]
+    },
+    "HashBlockResult": {
+      "type": "object",
+      "description": "计算翻译/AI引用稳定块hash的结果",
+      "additionalProperties": false,
+      "properties": {
+        "blockHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "blockHash"
+      ]
+    },
+    "WriteRevisionFileInput": {
+      "type": "object",
+      "description": "持久写权威正文文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "新不可变版本"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        }
+      },
+      "required": [
+        "documentId",
+        "revisionId",
+        "body"
+      ]
+    },
+    "WriteRevisionFileResult": {
+      "type": "object",
+      "description": "持久写权威正文文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        },
+        "journal": {
+          "$ref": "#/$defs/CommitJournal",
+          "description": "CommitJournal"
+        }
+      },
+      "required": [
+        "draft",
+        "journal"
+      ]
+    },
+    "CommitDraftJournalInput": {
+      "type": "object",
+      "description": "原子提交共享草稿head的输入",
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        },
+        "journal": {
+          "$ref": "#/$defs/CommitJournal",
+          "description": "CommitJournal"
+        },
+        "expectedHead": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "旧head"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次null"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "draft",
+        "journal",
+        "expectedHead",
+        "expectedDraftVersion"
+      ]
+    },
+    "CommitDraftJournalResult": {
+      "type": "object",
+      "description": "原子提交共享草稿head的结果",
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        }
+      },
+      "required": [
+        "draft"
+      ]
+    },
+    "RecoverPreparedCommitsInput": {
+      "type": "object",
+      "description": "恢复崩溃前正文提交日志的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RecoverPreparedCommitsResult": {
+      "type": "object",
+      "description": "恢复崩溃前正文提交日志的结果",
+      "additionalProperties": false,
+      "properties": {
+        "recoveredCount": {
+          "type": "integer",
+          "description": "数",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "quarantinedCount": {
+          "type": "integer",
+          "description": "孤儿",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "recoveredCount",
+        "quarantinedCount"
+      ]
+    },
+    "ReadRevisionBodyInput": {
+      "type": "object",
+      "description": "读取COMMITTED正文并核真相的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "版本"
+        },
+        "expectedHash": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+              "description": "Hash"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "从head取null"
+        }
+      },
+      "required": [
+        "documentId",
+        "revisionId",
+        "expectedHash"
+      ]
+    },
+    "ReadRevisionBodyResult": {
+      "type": "object",
+      "description": "读取COMMITTED正文并核真相的结果",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        }
+      },
+      "required": [
+        "body",
+        "object"
+      ]
+    },
+    "PreparePublicationMetadataInput": {
+      "type": "object",
+      "description": "人工优先准备首次slug和SEO的输入",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "manualPathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "管理员合法英文slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "已有slug或AI生成null"
+        },
+        "manualSEO": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "人工描述",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "已有/AI/null"
+        }
+      },
+      "required": [
+        "metadata",
+        "body",
+        "manualPathSegment",
+        "manualSEO"
+      ]
+    },
+    "PreparePublicationMetadataResult": {
+      "type": "object",
+      "description": "人工优先准备首次slug和SEO的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "无AI/缺项提示",
+          "items": {
+            "type": "string",
+            "description": "安全提示key",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "metadata",
+        "warnings"
+      ]
+    },
+    "PublishDocumentInput": {
+      "type": "object",
+      "description": "点击发布才公开精确共享草稿版本的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "精确待发"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "草稿CAS"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "metadataCAS"
+        },
+        "manualPathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "英文slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "使用已有/配置AI null"
+        },
+        "manualSEO": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "手工SEO",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "允许缺项提示null"
+        }
+      },
+      "required": [
+        "documentId",
+        "draftRevisionId",
+        "expectedDraftVersion",
+        "expectedRevision",
+        "manualPathSegment",
+        "manualSEO"
+      ]
+    },
+    "PublishDocumentResult": {
+      "type": "object",
+      "description": "点击发布才公开精确共享草稿版本的结果",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "history": {
+          "$ref": "#/$defs/HistoryEntry",
+          "description": "HistoryEntry"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "提示",
+          "items": {
+            "type": "string",
+            "description": "缺项安全提示key",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "reference",
+        "history",
+        "warnings"
+      ]
+    },
+    "CommitPublicationInput": {
+      "type": "object",
+      "description": "原子提交当前发布快照与署名历史的输入",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "draft": {
+          "$ref": "#/$defs/DraftRevision",
+          "description": "DraftRevision"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "operation": {
+          "type": "string",
+          "description": "来源",
+          "enum": [
+            "publish",
+            "rollback"
+          ]
+        }
+      },
+      "required": [
+        "metadata",
+        "draft",
+        "expectedRevision",
+        "operation"
+      ]
+    },
+    "CommitPublicationResult": {
+      "type": "object",
+      "description": "原子提交当前发布快照与署名历史的结果",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "history": {
+          "$ref": "#/$defs/HistoryEntry",
+          "description": "HistoryEntry"
+        }
+      },
+      "required": [
+        "reference",
+        "history"
+      ]
+    },
+    "WithdrawDocumentInput": {
+      "type": "object",
+      "description": "撤回后回草稿并让公开页面下线的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "documentId",
+        "expectedRevision"
+      ]
+    },
+    "WithdrawDocumentResult": {
+      "type": "object",
+      "description": "撤回后回草稿并让公开页面下线的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "新失效水位"
+        }
+      },
+      "required": [
+        "metadata",
+        "visibilityRevision"
+      ]
+    },
+    "ValidatePublicationsInput": {
+      "type": "object",
+      "description": "同步核公开引用是否仍可见且当前的输入",
+      "additionalProperties": false,
+      "properties": {
+        "refs": {
+          "type": "array",
+          "description": "最多100精确引用",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+            "description": "PublishedRevisionRef"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "refs"
+      ]
+    },
+    "ValidatePublicationsResult": {
+      "type": "object",
+      "description": "同步核公开引用是否仍可见且当前的结果",
+      "additionalProperties": false,
+      "properties": {
+        "validations": {
+          "type": "array",
+          "description": "输入顺序一一对应",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+            "description": "PublicationValidation"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "validations"
+      ]
+    },
+    "ReadPublishedRevisionInput": {
+      "type": "object",
+      "description": "获取仍公开的精确正文快照的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "publishedRevisionId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "指定ref"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "当前null"
+        }
+      },
+      "required": [
+        "documentId",
+        "publishedRevisionId"
+      ]
+    },
+    "ReadPublishedRevisionResult": {
+      "type": "object",
+      "description": "获取仍公开的精确正文快照的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        }
+      },
+      "required": [
+        "metadata",
+        "reference",
+        "body",
+        "visibilityRevision"
+      ]
+    },
+    "TrashDocumentInput": {
+      "type": "object",
+      "description": "删除进回收站，可选旧URL替代跳转的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "节点"
+        },
+        "includeSubtree": {
+          "type": "boolean",
+          "description": "显式子树选择"
+        },
+        "replacementDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "删除时可选跳转文档"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认410 null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "expectedTreeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "树CAS"
+        }
+      },
+      "required": [
+        "documentId",
+        "includeSubtree",
+        "replacementDocumentId",
+        "expectedRevision",
+        "expectedTreeRevision"
+      ]
+    },
+    "TrashDocumentResult": {
+      "type": "object",
+      "description": "删除进回收站，可选旧URL替代跳转的结果",
+      "additionalProperties": false,
+      "properties": {
+        "trashedDocumentIds": {
+          "type": "array",
+          "description": "明确影响集合",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "回收站节点"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "tombstones": {
+          "type": "array",
+          "description": "410/redirect",
+          "items": {
+            "$ref": "#/$defs/RouteTombstone",
+            "description": "RouteTombstone"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "trashedDocumentIds",
+        "tombstones"
+      ]
+    },
+    "RestoreDocumentInput": {
+      "type": "object",
+      "description": "从回收站恢复为草稿的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "回收站节点"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "目标parent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "合法slug",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "documentId",
+        "parentId",
+        "pathSegment",
+        "expectedRevision"
+      ]
+    },
+    "RestoreDocumentResult": {
+      "type": "object",
+      "description": "从回收站恢复为草稿的结果",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "missingAssets": {
+          "type": "array",
+          "description": "明确提示",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "已手动清理历史资源"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "metadata",
+        "missingAssets"
+      ]
+    },
+    "PurgeDocumentsInput": {
+      "type": "object",
+      "description": "只有超管彻底删除/清空回收站的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentIds": {
+          "type": "array",
+          "description": "选中/清空明确集合",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "仅trash"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "expectedTrashRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "回收站CAS"
+        },
+        "confirmationHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "超管确认影响集合"
+        }
+      },
+      "required": [
+        "documentIds",
+        "expectedTrashRevision",
+        "confirmationHash"
+      ]
+    },
+    "PurgeDocumentsResult": {
+      "type": "object",
+      "description": "只有超管彻底删除/清空回收站的结果",
+      "additionalProperties": false,
+      "properties": {
+        "purgedIds": {
+          "type": "array",
+          "description": "完成",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "永久删"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "purgedIds"
+      ]
+    },
+    "ReadRevisionHistoryInput": {
+      "type": "object",
+      "description": "查看署名发布/git版本历史的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "documentId",
+        "page"
+      ]
+    },
+    "ReadRevisionHistoryResult": {
+      "type": "object",
+      "description": "查看署名发布/git版本历史的结果",
+      "additionalProperties": false,
+      "properties": {
+        "history": {
+          "type": "array",
+          "description": "发布历史",
+          "items": {
+            "$ref": "#/$defs/HistoryEntry",
+            "description": "HistoryEntry"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "history",
+        "pageInfo"
+      ]
+    },
+    "DiffRevisionsInput": {
+      "type": "object",
+      "description": "按稳定块ID对比历史版本的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "leftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "左"
+        },
+        "rightRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "右"
+        }
+      },
+      "required": [
+        "documentId",
+        "leftRevisionId",
+        "rightRevisionId"
+      ]
+    },
+    "DiffRevisionsResult": {
+      "type": "object",
+      "description": "按稳定块ID对比历史版本的结果",
+      "additionalProperties": false,
+      "properties": {
+        "addedBlockIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "新增"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "removedBlockIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "删除"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "changedBlockIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "属性/正文变化"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "movedBlockIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "移位"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "addedBlockIds",
+        "removedBlockIds",
+        "changedBlockIds",
+        "movedBlockIds"
+      ]
+    },
+    "RollbackPublishedRevisionInput": {
+      "type": "object",
+      "description": "回滚历史形成新发布/git提交的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "historyId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标history"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前CAS"
+        },
+        "acknowledgeMissingAssets": {
+          "type": "boolean",
+          "description": "明确接受手动清理导致的历史缺文件"
+        }
+      },
+      "required": [
+        "documentId",
+        "historyId",
+        "expectedRevision",
+        "acknowledgeMissingAssets"
+      ]
+    },
+    "RollbackPublishedRevisionResult": {
+      "type": "object",
+      "description": "回滚历史形成新发布/git提交的结果",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "history": {
+          "$ref": "#/$defs/HistoryEntry",
+          "description": "HistoryEntry"
+        },
+        "missingAssets": {
+          "type": "array",
+          "description": "警告",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "缺失文件"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "reference",
+        "history",
+        "missingAssets"
+      ]
+    },
+    "CreatePreviewGrantInput": {
+      "type": "object",
+      "description": "管理员预览草稿公开样式的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "精确draft"
+        }
+      },
+      "required": [
+        "documentId",
+        "draftRevisionId"
+      ]
+    },
+    "CreatePreviewGrantResult": {
+      "type": "object",
+      "description": "管理员预览草稿公开样式的结果",
+      "additionalProperties": false,
+      "properties": {
+        "grant": {
+          "$ref": "#/$defs/PreviewGrant",
+          "description": "PreviewGrant"
+        }
+      },
+      "required": [
+        "grant"
+      ]
+    },
+    "ValidatePreviewGrantInput": {
+      "type": "object",
+      "description": "只向对应管理员验证草稿预览的输入",
+      "additionalProperties": false,
+      "properties": {
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预览"
+        },
+        "token": {
+          "type": "string",
+          "description": "敏感token",
+          "minLength": 32,
+          "maxLength": 4096
+        },
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已登录主体"
+        }
+      },
+      "required": [
+        "previewId",
+        "token",
+        "accountId"
+      ]
+    },
+    "ValidatePreviewGrantResult": {
+      "type": "object",
+      "description": "只向对应管理员验证草稿预览的结果",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        }
+      },
+      "required": [
+        "body",
+        "metadata"
+      ]
+    },
+    "ListResourceReferencesInput": {
+      "type": "object",
+      "description": "向资源库列出哪些文档引用文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "筛文档"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全站授权来源null"
+        },
+        "assetId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "筛资源"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全部null"
+        },
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "documentId",
+        "assetId",
+        "page"
+      ]
+    },
+    "ListResourceReferencesResult": {
+      "type": "object",
+      "description": "向资源库列出哪些文档引用文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "references": {
+          "type": "array",
+          "description": "当前与历史分开",
+          "items": {
+            "$ref": "#/$defs/ResourceReference",
+            "description": "ResourceReference"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "源版本"
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "references",
+        "watermark",
+        "pageInfo"
+      ]
+    },
+    "ReadContentObjectInput": {
+      "type": "object",
+      "description": "经对象API读取私有文件而不共享目录的输入",
+      "additionalProperties": false,
+      "properties": {
+        "objectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "正文/快照对象"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "指定版本"
+        },
+        "expectedHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "objectId",
+        "version",
+        "expectedHash"
+      ]
+    },
+    "ReadContentObjectResult": {
+      "type": "object",
+      "description": "经对象API读取私有文件而不共享目录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "bodyHandle": {
+          "type": "string",
+          "description": "内部只读stream",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "object",
+        "bodyHandle"
+      ]
+    },
+    "PublishContentEventInput": {
+      "type": "object",
+      "description": "与发布/撤回提交原子登记最小事件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicationChangedPayload",
+              "description": "PublicationChangedPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "非发布null"
+        },
+        "withdrawn": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicationWithdrawnPayload",
+              "description": "PublicationWithdrawnPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "非撤回null"
+        },
+        "references": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResourceReferencesChangedPayload",
+              "description": "ResourceReferencesChangedPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "非refnull"
+        },
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "ID"
+        }
+      },
+      "required": [
+        "changed",
+        "withdrawn",
+        "references",
+        "eventId"
+      ]
+    },
+    "PublishContentEventResult": {
+      "type": "object",
+      "description": "与发布/撤回提交原子登记最小事件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "queued": {
+          "type": "boolean",
+          "description": "已入outbox"
+        }
+      },
+      "required": [
+        "queued"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的输入",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前屏障"
+        },
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "barrierId",
+        "expectedEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "BarrierStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "PublicTreeNode": {
+      "type": "object",
+      "description": "仅已发布公共导航节点，无drafthead",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "doc"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "父"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "title": {
+          "type": "string",
+          "description": "基准标题，localization按ID翻译",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "英文共用slug",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "orderKey": {
+          "type": "string",
+          "description": "树顺序",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "PublishedRevisionRef"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "可见水位"
+        }
+      },
+      "required": [
+        "documentId",
+        "parentId",
+        "title",
+        "pathSegment",
+        "orderKey",
+        "reference",
+        "visibilityRevision"
+      ]
+    },
+    "ReadPublicTreeInput": {
+      "type": "object",
+      "description": "公开导航读取已发布文档树的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadPublicTreeResult": {
+      "type": "object",
+      "description": "公开导航读取已发布文档树的结果",
+      "additionalProperties": false,
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "description": "已发布前序树",
+          "items": {
+            "$ref": "#/$defs/PublicTreeNode",
+            "description": "PublicTreeNode"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "树水位"
+        }
+      },
+      "required": [
+        "nodes",
+        "treeRevision"
+      ]
+    },
+    "ResolvePublicPathInput": {
+      "type": "object",
+      "description": "解析当前路径、旧路径301与删除410的输入",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "无language前缀解码安全path",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "ResolvePublicPathResult": {
+      "type": "object",
+      "description": "解析当前路径、旧路径301与删除410的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "路由",
+          "enum": [
+            "found",
+            "redirect",
+            "gone",
+            "not_found"
+          ]
+        },
+        "documentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "目标"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "notfound/gone null"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+              "description": "PublishedRevisionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "redirect/gone/notfound null"
+        },
+        "canonicalPath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "当前规范path",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "gone/notfound null"
+        },
+        "routeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        }
+      },
+      "required": [
+        "state",
+        "documentId",
+        "reference",
+        "canonicalPath",
+        "routeRevision"
+      ]
+    },
+    "EditorSession": {
+      "type": "object",
+      "description": "Vue编辑会话",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "doc"
+        },
+        "tabId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "tab"
+        },
+        "draftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "head"
+        },
+        "lease": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EditLease",
+              "description": "EditLease"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只读null"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "dirty": {
+          "type": "boolean",
+          "description": "未保存变更"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "无锁只读"
+        }
+      },
+      "required": [
+        "documentId",
+        "tabId",
+        "draftVersion",
+        "draftRevisionId",
+        "lease",
+        "body",
+        "dirty",
+        "readOnly"
+      ]
+    },
+    "EditorAction": {
+      "type": "object",
+      "description": "受限编辑动作",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "操作",
+          "enum": [
+            "insert",
+            "move",
+            "convert",
+            "copy",
+            "delete",
+            "mark",
+            "link",
+            "resize_columns"
+          ]
+        },
+        "blockId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "target"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "新块null"
+        },
+        "targetBlockId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "相邻"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "不需null"
+        },
+        "blockType": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "已登记块type",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "不需null"
+        }
+      },
+      "required": [
+        "kind",
+        "blockId",
+        "targetBlockId",
+        "blockType"
+      ]
+    },
+    "createEditorSessionInput": {
+      "type": "object",
+      "description": "创建Tiptap3/Vue编辑器会话的输入",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DocumentMetadata",
+          "description": "DocumentMetadata"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "lease": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EditLease",
+              "description": "EditLease"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只读null"
+        }
+      },
+      "required": [
+        "metadata",
+        "body",
+        "lease"
+      ]
+    },
+    "createEditorSessionResult": {
+      "type": "object",
+      "description": "创建Tiptap3/Vue编辑器会话的结果",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "applyBlockActionInput": {
+      "type": "object",
+      "description": "拖拽手柄菜单排序/转换/复制/删除的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        },
+        "action": {
+          "$ref": "#/$defs/EditorAction",
+          "description": "EditorAction"
+        }
+      },
+      "required": [
+        "session",
+        "action"
+      ]
+    },
+    "applyBlockActionResult": {
+      "type": "object",
+      "description": "拖拽手柄菜单排序/转换/复制/删除的结果",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "resolveSlashMenuInput": {
+      "type": "object",
+      "description": "slash插入菜单与Markdown输入快捷键的输入",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "slash筛选",
+          "minLength": 0,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "resolveSlashMenuResult": {
+      "type": "object",
+      "description": "slash插入菜单与Markdown输入快捷键的结果",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "type": "array",
+          "description": "菜单",
+          "items": {
+            "type": "string",
+            "description": "已登记type/两栏三栏动作key",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 0,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "types"
+      ]
+    },
+    "normalizePastedContentInput": {
+      "type": "object",
+      "description": "Word/网页/Markdown粘贴清理并转换块的输入",
+      "additionalProperties": false,
+      "properties": {
+        "clipboardHTML": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "有界来源HTML",
+              "minLength": 0,
+              "maxLength": 1048576
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "clipboardText": {
+          "type": "string",
+          "description": "Word/网页/Markdown粘贴",
+          "minLength": 0,
+          "maxLength": 1048576
+        }
+      },
+      "required": [
+        "clipboardHTML",
+        "clipboardText"
+      ]
+    },
+    "normalizePastedContentResult": {
+      "type": "object",
+      "description": "Word/网页/Markdown粘贴清理并转换块的结果",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        }
+      },
+      "required": [
+        "body"
+      ]
+    },
+    "scheduleAutosaveInput": {
+      "type": "object",
+      "description": "去抖自动保存共享草稿的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "scheduleAutosaveResult": {
+      "type": "object",
+      "description": "去抖自动保存共享草稿的结果",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "maintainEditHeartbeatInput": {
+      "type": "object",
+      "description": "每30秒锁心跳与15分钟空闲提醒的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        },
+        "inputObserved": {
+          "type": "boolean",
+          "description": "用户输入"
+        }
+      },
+      "required": [
+        "session",
+        "inputObserved"
+      ]
+    },
+    "maintainEditHeartbeatResult": {
+      "type": "object",
+      "description": "每30秒锁心跳与15分钟空闲提醒的结果",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "applyForcedReadOnlyInput": {
+      "type": "object",
+      "description": "强释/失锁后立刻只读的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        },
+        "newFencingToken": {
+          "type": "integer",
+          "description": "撤销fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "session",
+        "newFencingToken"
+      ]
+    },
+    "applyForcedReadOnlyResult": {
+      "type": "object",
+      "description": "强释/失锁后立刻只读的结果",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/EditorSession",
+          "description": "EditorSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "selectInternalLinkInput": {
+      "type": "object",
+      "description": "插入文档选择器生成ID站内链接的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "选中文档"
+        },
+        "blockId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "锚点"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "整篇null"
+        }
+      },
+      "required": [
+        "documentId",
+        "blockId"
+      ]
+    },
+    "selectInternalLinkResult": {
+      "type": "object",
+      "description": "插入文档选择器生成ID站内链接的结果",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/LinkTarget",
+          "description": "LinkTarget"
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "prepareImageUploadsInput": {
+      "type": "object",
+      "description": "浏览器生成多宽WebP连原图上传的输入",
+      "additionalProperties": false,
+      "properties": {
+        "fileHandle": {
+          "type": "string",
+          "description": "浏览器File句柄",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "fileHandle"
+      ]
+    },
+    "prepareImageUploadsResult": {
+      "type": "object",
+      "description": "浏览器生成多宽WebP连原图上传的结果",
+      "additionalProperties": false,
+      "properties": {
+        "uploadHandles": {
+          "type": "array",
+          "description": "上传",
+          "items": {
+            "type": "string",
+            "description": "原图/WebP待传句柄",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 1,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "uploadHandles"
+      ]
+    },
+    "openDrawingEditorInput": {
+      "type": "object",
+      "description": "Vue包装Excalidraw并按需加载的输入",
+      "additionalProperties": false,
+      "properties": {
+        "sceneAsset": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "新画板null"
+        }
+      },
+      "required": [
+        "sceneAsset"
+      ]
+    },
+    "openDrawingEditorResult": {
+      "type": "object",
+      "description": "Vue包装Excalidraw并按需加载的结果",
+      "additionalProperties": false,
+      "properties": {
+        "editorHandle": {
+          "type": "string",
+          "description": "私有全屏drawing句柄",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "editorHandle"
+      ]
+    },
+    "saveDrawingFilesInput": {
+      "type": "object",
+      "description": "保存场景和亮暗SVG三个内容寻址文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "editorHandle": {
+          "type": "string",
+          "description": "drawing句柄",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "editorHandle"
+      ]
+    },
+    "saveDrawingFilesResult": {
+      "type": "object",
+      "description": "保存场景和亮暗SVG三个内容寻址文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "scene": {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+        },
+        "lightSVG": {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+        },
+        "darkSVG": {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+        }
+      },
+      "required": [
+        "scene",
+        "lightSVG",
+        "darkSVG"
+      ]
+    },
+    "prepareVideoBlockInput": {
+      "type": "object",
+      "description": "统一上传/平台视频插入的输入",
+      "additionalProperties": false,
+      "properties": {
+        "sourceURL": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "4平台URL",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "上传null"
+        },
+        "uploadedAsset": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "平台null"
+        },
+        "manualTitle": {
+          "type": "string",
+          "description": "标题",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "manualDescription": {
+          "type": "string",
+          "description": "说明",
+          "minLength": 0,
+          "maxLength": 10000
+        }
+      },
+      "required": [
+        "sourceURL",
+        "uploadedAsset",
+        "manualTitle",
+        "manualDescription"
+      ]
+    },
+    "prepareVideoBlockResult": {
+      "type": "object",
+      "description": "统一上传/平台视频插入的结果",
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/VideoBlock",
+          "description": "VideoBlock"
+        }
+      },
+      "required": [
+        "block"
+      ]
+    },
+    "resizeColumnsInput": {
+      "type": "object",
+      "description": "调整2–4栏宽比例的输入",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "$ref": "#/$defs/ColumnsBlock",
+          "description": "ColumnsBlock"
+        },
+        "widthRatios": {
+          "type": "array",
+          "description": "新比例",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "minItems": 2,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "columns",
+        "widthRatios"
+      ]
+    },
+    "resizeColumnsResult": {
+      "type": "object",
+      "description": "调整2–4栏宽比例的结果",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "$ref": "#/$defs/ColumnsBlock",
+          "description": "ColumnsBlock"
+        }
+      },
+      "required": [
+        "columns"
+      ]
+    },
+    "releaseBarrierRequest": {
+      "type": "object",
+      "description": "释放屏障请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "expectedEpoch"
+      ]
+    },
+    "updateDocumentMetadataRequest": {
+      "type": "object",
+      "description": "修改标题/路径/SEO描述/分享图请求体",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "标题",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未发可空"
+        },
+        "seoDescription": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "人工SEO",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "待生成null"
+        },
+        "shareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认站点null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "title",
+        "pathSegment",
+        "seoDescription",
+        "shareImage",
+        "expectedRevision"
+      ]
+    },
+    "acquireEditLockRequest": {
+      "type": "object",
+      "description": "打开文档自动获得内存编辑锁请求体",
+      "additionalProperties": false,
+      "properties": {
+        "tabId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "浏览器tab"
+        }
+      },
+      "required": [
+        "tabId"
+      ]
+    },
+    "renewEditLockRequest": {
+      "type": "object",
+      "description": "心跳维持锁并处理长时间无输入请求体",
+      "additionalProperties": false,
+      "properties": {
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "description": "fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        },
+        "lastInputAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "输入时间，由服务限制≤now"
+        }
+      },
+      "required": [
+        "leaseId",
+        "fencingToken",
+        "serverBootId",
+        "lastInputAt"
+      ]
+    },
+    "releaseEditLockRequest": {
+      "type": "object",
+      "description": "关闭页面释放自身锁请求体",
+      "additionalProperties": false,
+      "properties": {
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        }
+      },
+      "required": [
+        "leaseId",
+        "serverBootId"
+      ]
+    },
+    "forceReleaseEditLockRequest": {
+      "type": "object",
+      "description": "只有超管强制释放别人锁请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedLeaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标锁"
+        }
+      },
+      "required": [
+        "expectedLeaseId"
+      ]
+    },
+    "saveDraftRequest": {
+      "type": "object",
+      "description": "自动保存完整Tiptap正文请求体",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "DocumentBody"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "共享草稿CAS"
+        },
+        "expectedDraftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "head"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "锁"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "description": "fence",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "boot"
+        }
+      },
+      "required": [
+        "body",
+        "expectedDraftVersion",
+        "expectedDraftRevisionId",
+        "leaseId",
+        "fencingToken",
+        "serverBootId"
+      ]
+    },
+    "publishDocumentRequest": {
+      "type": "object",
+      "description": "点击发布才公开精确共享草稿版本请求体",
+      "additionalProperties": false,
+      "properties": {
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "精确待发"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "草稿CAS"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "metadataCAS"
+        },
+        "manualPathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "英文slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "使用已有/配置AI null"
+        },
+        "manualSEO": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "手工SEO",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "允许缺项提示null"
+        }
+      },
+      "required": [
+        "draftRevisionId",
+        "expectedDraftVersion",
+        "expectedRevision",
+        "manualPathSegment",
+        "manualSEO"
+      ]
+    },
+    "withdrawDocumentRequest": {
+      "type": "object",
+      "description": "撤回后回草稿并让公开页面下线请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "expectedRevision"
+      ]
+    },
+    "trashDocumentRequest": {
+      "type": "object",
+      "description": "删除进回收站，可选旧URL替代跳转请求体",
+      "additionalProperties": false,
+      "properties": {
+        "includeSubtree": {
+          "type": "boolean",
+          "description": "显式子树选择"
+        },
+        "replacementDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "删除时可选跳转文档"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认410 null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "expectedTreeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "树CAS"
+        }
+      },
+      "required": [
+        "includeSubtree",
+        "replacementDocumentId",
+        "expectedRevision",
+        "expectedTreeRevision"
+      ]
+    },
+    "restoreDocumentRequest": {
+      "type": "object",
+      "description": "从回收站恢复为草稿请求体",
+      "additionalProperties": false,
+      "properties": {
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "目标parent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "根null"
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "合法slug",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "parentId",
+        "pathSegment",
+        "expectedRevision"
+      ]
+    },
+    "diffRevisionsRequest": {
+      "type": "object",
+      "description": "按稳定块ID对比历史版本请求体",
+      "additionalProperties": false,
+      "properties": {
+        "leftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "左"
+        },
+        "rightRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "右"
+        }
+      },
+      "required": [
+        "leftRevisionId",
+        "rightRevisionId"
+      ]
+    },
+    "rollbackPublishedRevisionRequest": {
+      "type": "object",
+      "description": "回滚历史形成新发布/git提交请求体",
+      "additionalProperties": false,
+      "properties": {
+        "historyId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标history"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前CAS"
+        },
+        "acknowledgeMissingAssets": {
+          "type": "boolean",
+          "description": "明确接受手动清理导致的历史缺文件"
+        }
+      },
+      "required": [
+        "historyId",
+        "expectedRevision",
+        "acknowledgeMissingAssets"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "content",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "content",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

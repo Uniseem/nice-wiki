@@ -1,0 +1,4134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/model-gateway/v1",
+  "title": "统一模型网关",
+  "type": "object",
+  "$defs": {
+    "Provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "adapter": {
+          "type": "string",
+          "enum": [
+            "openai_chat",
+            "anthropic_messages",
+            "gemini",
+            "openai_embeddings",
+            "gemini_embeddings",
+            "rerank"
+          ],
+          "description": "适配协议"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "HTTPS供应方API根地址"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否启用"
+        },
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "密钥版本"
+        },
+        "connectTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "连接超时上限10000"
+        },
+        "requestTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "请求超时上限180000"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方显示名"
+        },
+        "extraHeaderNames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "允许附加头名"
+        },
+        "extraHeaderSecretRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "等长加密secret引用"
+        },
+        "concurrencyLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方并发上限"
+        },
+        "streamIdleTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "流片段间隔超时"
+        }
+      },
+      "required": [
+        "providerId",
+        "version",
+        "adapter",
+        "baseUrl",
+        "enabled",
+        "credentialVersion",
+        "connectTimeoutMs",
+        "requestTimeoutMs",
+        "displayName",
+        "extraHeaderNames",
+        "extraHeaderSecretRefs",
+        "concurrencyLimit",
+        "streamIdleTimeoutMs"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "网关模型ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方ID"
+        },
+        "providerModelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "不可变供应方模型版本"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "chat vision structured reasoning embedding rerank translation能力集合"
+        },
+        "dimension": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "嵌入维度chat为0"
+        },
+        "preprocessorVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "预处理版本"
+        },
+        "maxInputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输入上限"
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输出上限"
+        },
+        "catalogOrigin": {
+          "type": "string",
+          "enum": [
+            "bundled",
+            "remote",
+            "manual"
+          ],
+          "description": "模型目录来源"
+        },
+        "manualOverride": {
+          "type": "boolean",
+          "description": "手动覆盖目录"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否显示并可分配"
+        }
+      },
+      "required": [
+        "modelId",
+        "version",
+        "providerId",
+        "providerModelVersion",
+        "capabilities",
+        "dimension",
+        "preprocessorVersion",
+        "maxInputTokens",
+        "maxOutputTokens",
+        "catalogOrigin",
+        "manualOverride",
+        "enabled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "档位ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "可信费用类别"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "accurate",
+            "vision",
+            "embedding",
+            "rerank"
+          ],
+          "description": "五档"
+        },
+        "orderedModelIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "第一为主其余有序备用"
+        },
+        "maximumCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "每请求费用上限；Money.currency=USD且micros非负整数"
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "并发上限"
+        },
+        "dailyLimitCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "日消费额度；Money.currency=USD且micros非负整数"
+        }
+      },
+      "required": [
+        "profileId",
+        "version",
+        "costClass",
+        "tier",
+        "orderedModelIds",
+        "maximumCost",
+        "concurrency",
+        "dailyLimitCost"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用ID"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作ID"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "可信费用类别"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "reserved",
+            "dispatching",
+            "streaming",
+            "succeeded",
+            "failed",
+            "cancel_requested",
+            "cancelled",
+            "charge_unknown",
+            "reconciled"
+          ],
+          "description": "调用状态"
+        },
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预留ID"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方请求ID"
+        },
+        "deadline": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "全链路截止"
+        },
+        "priceSnapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "固定价目快照"
+        },
+        "lastSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "SSE最后序号"
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Attempt"
+          },
+          "maxItems": 256,
+          "description": "全部独立计费尝试"
+        }
+      },
+      "required": [
+        "invocationId",
+        "rootOperationId",
+        "costClass",
+        "state",
+        "deadline",
+        "priceSnapshotId",
+        "lastSequence",
+        "attempts"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预留ID"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用ID"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "held",
+            "settled",
+            "released"
+          ],
+          "description": "预留状态"
+        },
+        "maximumCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "最大收费；Money.currency=USD且micros非负整数"
+        },
+        "heldCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "仍占用额度；Money.currency=USD且micros非负整数"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "未知价不伪装0元"
+        },
+        "unknownUsageCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "未知价使用量记录"
+        }
+      },
+      "required": [
+        "reservationId",
+        "invocationId",
+        "state",
+        "version",
+        "pricingKnown",
+        "unknownUsageCount"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LedgerEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可变账本ID"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用ID"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方幂等收费标识"
+        },
+        "actualCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "最终费用；Money.currency=USD且micros非负整数"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方输入token"
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方输出token"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "settled",
+            "reconciled",
+            "price_unknown"
+          ],
+          "description": "结算来源"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "记账时间"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账本所属尝试"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "最终金额是否已知"
+        }
+      },
+      "required": [
+        "entryId",
+        "invocationId",
+        "providerRequestId",
+        "inputTokens",
+        "outputTokens",
+        "status",
+        "createdAt",
+        "attemptId",
+        "pricingKnown"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "StreamEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "严格递增序号"
+        },
+        "event": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "delta",
+            "usage",
+            "completed",
+            "error",
+            "cancelled"
+          ],
+          "description": "SSE事件名"
+        },
+        "delta": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "文本增量"
+        },
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "状态快照"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "终态错误代码"
+        }
+      },
+      "required": [
+        "sequence",
+        "event"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PriceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "priceSnapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "快照ID"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型ID"
+        },
+        "inputPerMillionCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "百万输入token费率；Money.currency=USD且micros非负整数"
+        },
+        "outputPerMillionCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "百万输出token费率；Money.currency=USD且micros非负整数"
+        },
+        "fixedCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "每调用固定费；Money.currency=USD且micros非负整数"
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "USD"
+          ],
+          "description": "结算币种"
+        },
+        "effectiveAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "生效时刻"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "是否可预算"
+        },
+        "warning": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "缺价无法完整计入费用上限的原产品提示"
+        }
+      },
+      "required": [
+        "priceSnapshotId",
+        "modelId",
+        "currency",
+        "effectiveAt",
+        "pricingKnown"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GatewayMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "system",
+            "user",
+            "assistant"
+          ],
+          "description": "消息角色"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "UTF8文本不超过64KiB"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayPart"
+          },
+          "maxItems": 256,
+          "description": "可选视觉输入片段"
+        }
+      },
+      "required": [
+        "role",
+        "content"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "尝试ID"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "统一调用"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "尝试序号"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "固定模型"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "dispatching",
+            "streaming",
+            "succeeded",
+            "failed",
+            "charge_unknown",
+            "reconciled"
+          ],
+          "description": "状态"
+        },
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "独立费用预留"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "收费标识"
+        },
+        "retryReason": {
+          "type": "string",
+          "enum": [
+            "initial",
+            "fallback",
+            "structured_retry"
+          ],
+          "description": "原因"
+        }
+      },
+      "required": [
+        "attemptId",
+        "invocationId",
+        "ordinal",
+        "modelId",
+        "state",
+        "reservationId",
+        "retryReason"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TaskAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "根唯一任务目录ID"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "accurate",
+            "vision",
+            "embedding",
+            "rerank"
+          ],
+          "description": "默认档位"
+        },
+        "overrideModelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "单任务覆盖模型"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        }
+      },
+      "required": [
+        "taskId",
+        "tier",
+        "version"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GatewayPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "text",
+            "image"
+          ],
+          "description": "输入片段"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "文字仅text必要"
+        },
+        "image": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+          "description": "图像引用仅image必要"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。",
+      "oneOf": [
+        {
+          "required": [
+            "kind",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "text"
+            }
+          },
+          "not": {
+            "required": [
+              "image"
+            ]
+          }
+        },
+        {
+          "required": [
+            "kind",
+            "image"
+          ],
+          "properties": {
+            "kind": {
+              "const": "image"
+            }
+          },
+          "not": {
+            "required": [
+              "text"
+            ]
+          }
+        }
+      ]
+    },
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+    },
+    "Money": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+    },
+    "CostClass": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext"
+    },
+    "Actor": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Actor"
+    },
+    "OperationContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OperationContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext"
+    },
+    "ErrorCode": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
+    },
+    "FieldIssue": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/FieldIssue"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+    },
+    "DocRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DocRef"
+    },
+    "BlockRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+    },
+    "MemoryContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
+    },
+    "EmbeddingSpace": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+    },
+    "AdmissionPermit": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
+    },
+    "AcceptedJob": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization"
+    },
+    "ServiceDependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "clock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "httpClient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "serviceId",
+        "dataDirectory",
+        "clock",
+        "httpClient"
+      ],
+      "x-internal": true,
+      "description": "运行依赖容器；clock/httpClient是构造时注入的接口引用标识，禁止序列化到HTTP。"
+    },
+    "LoadRuntimeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "本服务身份"
+        },
+        "masterKeyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "部署secret引用"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "私有数据目录"
+        }
+      },
+      "required": [
+        "serviceId",
+        "masterKeyRef",
+        "dataDirectory"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadRuntimeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ready": {
+          "type": "boolean",
+          "description": "是否就绪"
+        },
+        "catalogVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "载入版本"
+        }
+      },
+      "required": [
+        "ready",
+        "catalogVersion"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateProviderInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "待验证供应方"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateProviderResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "有效"
+        },
+        "normalizedBaseUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "归一根URL"
+        }
+      },
+      "required": [
+        "valid",
+        "normalizedBaseUrl"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutProviderInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "完整配置"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "provider",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutProviderResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "保存配置"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetProviderEnabledInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "新状态"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "providerId",
+        "enabled",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetProviderEnabledResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "新配置"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutCredentialInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "secret": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "明文密钥仅本次输入"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期密钥版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "providerId",
+        "secret",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutCredentialResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新版本"
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "末4位及摘要"
+        }
+      },
+      "required": [
+        "credentialVersion",
+        "fingerprint"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RotateCredentialInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "newSecret": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "新密钥"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "旧版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "providerId",
+        "newSecret",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RotateCredentialResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新版本"
+        },
+        "retiredVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "旧版本"
+        }
+      },
+      "required": [
+        "credentialVersion",
+        "retiredVersion"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/Model",
+          "description": "模型配置"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "model",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/Model",
+          "description": "新模型"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/Model",
+          "description": "声明模型"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "声明合法"
+        },
+        "embeddingSpace": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "嵌入空间"
+        }
+      },
+      "required": [
+        "valid"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutProfileInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile",
+          "description": "档位"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "profile",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutProfileResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile",
+          "description": "新档位"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveProfileInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "档位ID"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "可信继承费用类"
+        },
+        "capability": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "vision",
+            "embedding",
+            "rerank",
+            "translation"
+          ],
+          "description": "能力"
+        }
+      },
+      "required": [
+        "profileId",
+        "costClass",
+        "capability"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveProfileResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile",
+          "description": "固定档位快照"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveRouteInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile",
+          "description": "档位快照"
+        },
+        "capability": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "vision",
+            "embedding",
+            "rerank",
+            "translation"
+          ],
+          "description": "目标能力"
+        }
+      },
+      "required": [
+        "profile",
+        "capability"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveRouteResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Model"
+          },
+          "maxItems": 256,
+          "description": "有序候选"
+        },
+        "routeVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定路线版本"
+        }
+      },
+      "required": [
+        "models",
+        "routeVersion"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QuoteCostInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "估计输入token"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输出上限"
+        }
+      },
+      "required": [
+        "modelId",
+        "inputTokens",
+        "maximumOutputTokens"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QuoteCostResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maximumCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "已知价保守报价"
+        },
+        "priceSnapshot": {
+          "$ref": "#/$defs/PriceSnapshot",
+          "description": "包含pricingKnown"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "是否可预留金额"
+        },
+        "warning": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原产品缺价警告"
+        }
+      },
+      "required": [
+        "priceSnapshot",
+        "pricingKnown"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "根AI task catalog"
+        },
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务档位"
+        },
+        "capability": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "vision",
+            "embedding",
+            "rerank",
+            "translation"
+          ],
+          "description": "能力"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "chat/vision消息其余空"
+        },
+        "texts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "embedding/translation/rerank输入其余空"
+        },
+        "candidateIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "rerank等长ID其余空"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输出上限embedding为0"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        },
+        "admissionPermit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "qa费用类必需继承同一个已消费的guard签名permit，MG验证签名/audience/epoch/期限/root归属；其他费用类省略。"
+        }
+      },
+      "required": [
+        "taskId",
+        "profileId",
+        "capability",
+        "messages",
+        "texts",
+        "candidateIds",
+        "maximumOutputTokens",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "accepted状态"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReserveCostInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "统一调用"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本次尝试"
+        },
+        "maximumCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "已知价最大金额"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "价目状态"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "pricingKnown",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReserveCostResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reservation": {
+          "$ref": "#/$defs/Reservation",
+          "description": "held预留"
+        }
+      },
+      "required": [
+        "reservation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ExtendReservationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预留"
+        },
+        "additionalCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "增量额度；Money.currency=USD且micros非负整数"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "reservationId",
+        "additionalCost",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ExtendReservationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reservation": {
+          "$ref": "#/$defs/Reservation",
+          "description": "扩大预留"
+        }
+      },
+      "required": [
+        "reservation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DispatchInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "执行租约"
+        }
+      },
+      "required": [
+        "invocationId",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DispatchInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "当前状态"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildProviderRequestInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "尝试编号1或2"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attempt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildProviderRequestResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "POST"
+          ],
+          "description": "方法"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "供应方目标"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "经内存拼装敏感头"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "JSON编码体"
+        }
+      },
+      "required": [
+        "method",
+        "url",
+        "headers",
+        "body"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ClassifyFailureInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "httpStatus": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "响应码0表示未响应"
+        },
+        "providerCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "协议错误码"
+        },
+        "bytesSent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "发送字节数"
+        },
+        "responseStarted": {
+          "type": "boolean",
+          "description": "是否收到响应体"
+        },
+        "acceptanceProof": {
+          "type": "string",
+          "enum": [
+            "not_accepted",
+            "accepted",
+            "unknown"
+          ],
+          "description": "接收证据"
+        }
+      },
+      "required": [
+        "httpStatus",
+        "providerCode",
+        "bytesSent",
+        "responseStarted",
+        "acceptanceProof"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ClassifyFailureResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "retry_same",
+            "fallback",
+            "terminal",
+            "charge_unknown"
+          ],
+          "description": "处理"
+        },
+        "retryAfterMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "等待毫秒"
+        },
+        "retainPreviousReservation": {
+          "type": "boolean",
+          "description": "未知费用继续held"
+        }
+      },
+      "required": [
+        "classification",
+        "retryAfterMs",
+        "retainPreviousReservation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AppendStreamEventInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "event": {
+          "$ref": "#/$defs/StreamEvent",
+          "description": "未编号事件"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "执行租约"
+        }
+      },
+      "required": [
+        "invocationId",
+        "event",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AppendStreamEventResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "已提交序号"
+        }
+      },
+      "required": [
+        "sequence"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResumeStreamInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "afterSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "排他游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..256",
+          "default": 20
+        }
+      },
+      "required": [
+        "invocationId",
+        "afterSequence",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResumeStreamResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StreamEvent"
+          },
+          "maxItems": 256,
+          "description": "升序事件"
+        },
+        "lastSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "最后序号"
+        },
+        "terminal": {
+          "type": "boolean",
+          "description": "已结束"
+        }
+      },
+      "required": [
+        "events",
+        "lastSequence",
+        "terminal"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecordUsageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "收费请求标识"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方输入token"
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方输出token"
+        },
+        "reportedCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "供应方金额；Money.currency=USD且micros非负整数"
+        },
+        "usageHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "description": "规范使用量hash",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "invocationId",
+        "providerRequestId",
+        "inputTokens",
+        "outputTokens",
+        "usageHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecordUsageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "已记录"
+        },
+        "duplicate": {
+          "type": "boolean",
+          "description": "重复报告"
+        }
+      },
+      "required": [
+        "accepted",
+        "duplicate"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SettleInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "统一调用"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本次尝试"
+        },
+        "usageHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "供应方证据"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "usageHash",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SettleInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/LedgerEntry",
+          "description": "唯一账本"
+        },
+        "reservation": {
+          "$ref": "#/$defs/Reservation",
+          "description": "已结算"
+        }
+      },
+      "required": [
+        "entry",
+        "reservation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MarkUnknownChargeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "timeout",
+            "cancel_after_dispatch",
+            "connection_lost",
+            "usage_missing"
+          ],
+          "description": "原因"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "已知供应方标识"
+        }
+      },
+      "required": [
+        "invocationId",
+        "reason"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MarkUnknownChargeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "charge_unknown"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReconcileChargeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "proofKind": {
+          "type": "string",
+          "enum": [
+            "charged",
+            "not_charged"
+          ],
+          "description": "供应方证据"
+        },
+        "actualCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "最终金额；Money.currency=USD且micros非负整数"
+        },
+        "proofHash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "证据摘要"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "invocationId",
+        "proofKind",
+        "actualCost",
+        "proofHash",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReconcileChargeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/LedgerEntry",
+          "description": "已收费账本"
+        },
+        "reservation": {
+          "$ref": "#/$defs/Reservation",
+          "description": "终态预留"
+        }
+      },
+      "required": [
+        "reservation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "取消原因"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "invocationId",
+        "reason",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "取消状态"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        }
+      },
+      "required": [
+        "invocationId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "状态"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EstimateTokensInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "texts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "输入文本"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "消息"
+        }
+      },
+      "required": [
+        "modelId",
+        "texts",
+        "messages"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EstimateTokensResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "保守token"
+        },
+        "estimatorVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "估算算法"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "estimatorVersion"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateEmbeddingSpaceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "空间"
+        },
+        "vectors": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 1,
+            "maxItems": 65536
+          },
+          "maxItems": 64,
+          "description": "返回向量"
+        }
+      },
+      "required": [
+        "space",
+        "vectors"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateEmbeddingSpaceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "校验成功"
+        },
+        "embeddingSpaceId": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "description": "规范空间ID",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "valid",
+        "embeddingSpaceId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AcquireProviderSlotInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "leaseSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定30秒"
+        }
+      },
+      "required": [
+        "providerId",
+        "invocationId",
+        "leaseSeconds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AcquireProviderSlotResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "到期"
+        }
+      },
+      "required": [
+        "leaseId",
+        "expiresAt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReleaseProviderSlotInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        }
+      },
+      "required": [
+        "leaseId",
+        "invocationId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReleaseProviderSlotResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "released": {
+          "type": "boolean",
+          "description": "释放成功或已释放"
+        }
+      },
+      "required": [
+        "released"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EnqueueOutboxInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "声明事件名"
+        },
+        "aggregateId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "聚合ID"
+        },
+        "aggregateVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "payloadHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "description": "封闭payload摘要",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "eventType",
+        "aggregateId",
+        "aggregateVersion",
+        "payloadHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EnqueueOutboxResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "事件ID"
+        }
+      },
+      "required": [
+        "eventId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        },
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "工作者"
+        }
+      },
+      "required": [
+        "limit",
+        "workerId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "published": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "已确认数"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "尚未确认数"
+        }
+      },
+      "required": [
+        "published",
+        "pending"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverLeasesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "恢复时刻"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "now",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverLeasesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recovered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "恢复数"
+        },
+        "unknownCharges": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "未知账单数"
+        }
+      },
+      "required": [
+        "recovered",
+        "unknownCharges"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetLedgerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "分页游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        },
+        "costClass": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "费用类"
+        },
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "含起点"
+        },
+        "until": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "排他终点"
+        }
+      },
+      "required": [
+        "limit",
+        "from",
+        "until"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetLedgerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LedgerEntry"
+          },
+          "maxItems": 256,
+          "description": "费用记录"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "entries"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetPriceBookInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "effectiveAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "价目时间"
+        }
+      },
+      "required": [
+        "modelId",
+        "effectiveAt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetPriceBookResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "priceSnapshot": {
+          "$ref": "#/$defs/PriceSnapshot",
+          "description": "有效价目"
+        }
+      },
+      "required": [
+        "priceSnapshot"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RedactLogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fieldNames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "字段名称"
+        },
+        "fieldValues": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "等长字段值"
+        }
+      },
+      "required": [
+        "fieldNames",
+        "fieldValues"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RedactLogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "safeNames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "允许字段"
+        },
+        "safeValues": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "脱敏值"
+        }
+      },
+      "required": [
+        "safeNames",
+        "safeValues"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QueryUsageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可信根操作"
+        },
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "含起点"
+        },
+        "until": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "排他终点"
+        }
+      },
+      "required": [
+        "rootOperationId",
+        "from",
+        "until"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QueryUsageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LedgerEntry"
+          },
+          "maxItems": 256,
+          "description": "本根账本"
+        },
+        "heldCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "仍held总额"
+        },
+        "settledCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "已结算总额"
+        },
+        "unknownInvocationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "未知收费调用"
+        }
+      },
+      "required": [
+        "entries",
+        "heldCost",
+        "settledCost",
+        "unknownInvocationIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadModelsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "vision",
+            "embedding",
+            "rerank",
+            "translation"
+          ],
+          "description": "能力过滤"
+        }
+      },
+      "required": [],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadModelsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Model"
+          },
+          "maxItems": 256,
+          "description": "不含密钥声明"
+        }
+      },
+      "required": [
+        "models"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadProfilesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可选档位过滤"
+        }
+      },
+      "required": [],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadProfilesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Profile"
+          },
+          "maxItems": 256,
+          "description": "档位声明"
+        }
+      },
+      "required": [
+        "profiles"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "分页游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Provider"
+          },
+          "maxItems": 256,
+          "description": "后台概览条目"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "完整配置"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预期版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "provider",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "保存配置"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutTaskAssignmentInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assignment": {
+          "$ref": "#/$defs/TaskAssignment",
+          "description": "任务分配"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "assignment",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutTaskAssignmentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assignment": {
+          "$ref": "#/$defs/TaskAssignment",
+          "description": "新分配"
+        }
+      },
+      "required": [
+        "assignment"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadTaskAssignmentsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "可选任务"
+        }
+      },
+      "required": [],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadTaskAssignmentsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assignments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskAssignment"
+          },
+          "maxItems": 256,
+          "description": "任务/档位/覆盖声明"
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RefreshModelCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "必须https://models.dev/api.json"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "sourceUrl",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RefreshModelCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "catalogVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "目录代数"
+        },
+        "updated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "目录条目"
+        },
+        "preservedOverrides": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "手动覆盖数"
+        }
+      },
+      "required": [
+        "catalogVersion",
+        "updated",
+        "preservedOverrides"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateConnectionProbeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "providerId",
+        "modelId",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateConnectionProbeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation",
+          "description": "小额诊断调用"
+        }
+      },
+      "required": [
+        "invocation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateFallbackAttemptInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "统一调用"
+        },
+        "previousAttemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "旧尝试"
+        },
+        "nextModelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "路线后继"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "fallback",
+            "structured_retry"
+          ],
+          "description": "重试原因"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "invocationId",
+        "previousAttemptId",
+        "nextModelId",
+        "reason",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateFallbackAttemptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "$ref": "#/$defs/Attempt",
+          "description": "新reserved尝试"
+        }
+      },
+      "required": [
+        "attempt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MapAnthropicRequestInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "统一输入"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预算"
+        }
+      },
+      "required": [
+        "messages",
+        "modelId",
+        "maximumOutputTokens"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MapAnthropicRequestResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "Messages JSON"
+        },
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "独立系统段"
+        }
+      },
+      "required": [
+        "body",
+        "system"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MapGeminiRequestInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "统一输入"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "预算"
+        }
+      },
+      "required": [
+        "messages",
+        "modelId",
+        "maximumOutputTokens"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "MapGeminiRequestResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "contents JSON"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "generateContent",
+            "streamGenerateContent",
+            "embedContent"
+          ],
+          "description": "端点能力"
+        }
+      },
+      "required": [
+        "body",
+        "method"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ParseRerankResponseInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "candidateIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "输入ID"
+        },
+        "responseBody": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方JSON"
+        }
+      },
+      "required": [
+        "candidateIds",
+        "responseBody"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ParseRerankResponseResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "orderedIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "候选排序"
+        },
+        "scores": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 65536,
+          "description": "等长分数"
+        }
+      },
+      "required": [
+        "orderedIds",
+        "scores"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域worker"
+        },
+        "maximumConcurrentJobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认4范围1..32",
+          "default": 4
+        }
+      },
+      "required": [
+        "workerId",
+        "maximumConcurrentJobs"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "本轮领取"
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "成功"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "失败"
+        },
+        "cancelled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "取消"
+        }
+      },
+      "required": [
+        "claimed",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventProviderChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "配置版本"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "启用"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "providerId",
+        "version",
+        "enabled",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventModelChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "嵌入空间"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "modelId",
+        "version",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventProfileChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "档位"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "taskIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "受影响任务"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "profileId",
+        "version",
+        "taskIds",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventInvocationAcceptedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "可信费用类"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "accepted"
+          ],
+          "description": "状态"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "invocationId",
+        "rootOperationId",
+        "costClass",
+        "state",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventInvocationSettledPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "尝试"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "费用类"
+        },
+        "entryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账本"
+        },
+        "actualCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "已知实际金额"
+        },
+        "pricingKnown": {
+          "type": "boolean",
+          "description": "是否已知金额"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "rootOperationId",
+        "costClass",
+        "entryId",
+        "pricingKnown",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventInvocationCharge_UnknownPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "未知尝试"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "仍held预留"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "timeout",
+            "cancel_after_dispatch",
+            "connection_lost",
+            "usage_missing"
+          ],
+          "description": "原因"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "rootOperationId",
+        "reservationId",
+        "reason",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventReconciliationRequestedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "尝试"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方标识"
+        },
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "预留"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "reservationId",
+        "rootOperationId",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "FeeScopeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "调用"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可信根"
+        },
+        "admissionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已验证permit"
+        },
+        "sessionBudgetScope": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "guard签名会话伪名"
+        },
+        "networkBudgetScope": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "guard签名网络伪名，不存IP"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "签名期限"
+        }
+      },
+      "required": [
+        "invocationId",
+        "rootOperationId",
+        "admissionId",
+        "sessionBudgetScope",
+        "networkBudgetScope",
+        "dataEpoch",
+        "expiresAt"
+      ],
+      "description": "MG验证permit后内部构造并持久绑定；ReserveCost只读此记录，不接受任选scope。"
+    },
+    "FeeBudgetPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "CAS修订"
+        },
+        "hourlyLimitsEnabled": {
+          "type": "boolean",
+          "description": "old会话/网络小时费用限制总开关，关闭仍记账"
+        },
+        "sessionHourlyLimit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "会话每小时额度，0不限；old未明确具体美元默认，使用已有部署配置不虚构金额"
+        },
+        "networkMultiplier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 5,
+          "description": "network额度=session额度×倍率，old默认5，可修改"
+        },
+        "dailyQaLimit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "站点每天qa上限，0不限，background独立"
+        }
+      },
+      "required": [
+        "version",
+        "hourlyLimitsEnabled",
+        "sessionHourlyLimit",
+        "networkMultiplier",
+        "dailyQaLimit"
+      ]
+    },
+    "ReadFeeBudgetPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadFeeBudgetPolicyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/FeeBudgetPolicy",
+          "description": "费用配置结果"
+        }
+      },
+      "required": [
+        "policy"
+      ]
+    },
+    "PutFeeBudgetPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/FeeBudgetPolicy",
+          "description": "完整费用配置"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "CAS旧版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "policy",
+        "expectedVersion",
+        "idempotencyKey"
+      ]
+    },
+    "PutFeeBudgetPolicyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/FeeBudgetPolicy",
+          "description": "费用配置结果"
+        }
+      },
+      "required": [
+        "policy"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "model-gateway",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "model-gateway",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

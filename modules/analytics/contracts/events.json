@@ -1,0 +1,42 @@
+{
+  "module": "analytics",
+  "version": 1,
+  "events": [
+    {
+      "name": "analytics.aggregate-updated.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventAnalyticsAggregateUpdatedPayload"
+      },
+      "purpose": "后台统计刷新引用",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "analytics.usage-discrepancy.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventAnalyticsUsageDiscrepancyPayload"
+      },
+      "purpose": "运维告警，派生统计不阻止模型实时计费",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "invocation.settled",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/EventInvocationSettledPayload"
+      },
+      "purpose": "仅账项引用；收到后调用gateway.queryUsage拉权威安全ledger投影，不猜金额",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    }
+  ]
+}

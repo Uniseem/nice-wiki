@@ -1,0 +1,2847 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/site-config/v1",
+  "title": "站点配置与初始化完整数据与函数类型",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+      "description": "Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+      "description": "Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+      "description": "Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+      "description": "Timestamp"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+      "description": "AuthContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
+      "description": "RequestContext"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error",
+      "description": "Error"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+      "description": "Problem"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+      "description": "PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+      "description": "PublishedRevisionRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+      "description": "PublicationValidation"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+      "description": "AssetRef"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+      "description": "ObjectRef"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
+      "description": "BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+      "description": "BarrierStatus"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
+      "description": "SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
+      "description": "SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
+      "description": "SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
+      "description": "SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
+      "description": "SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
+      "description": "SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
+      "description": "SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
+      "description": "SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
+      "description": "SnapshotApplyResult"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+      "description": "EventEnvelope"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "LanguageTag": {
+      "type": "string",
+      "description": "规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证",
+      "minLength": 2,
+      "maxLength": 35,
+      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+    },
+    "SafeURL": {
+      "type": "string",
+      "description": "https 公共地址；本地开发 http 由部署能力显式允许；禁止 userinfo/query/fragment",
+      "minLength": 8,
+      "maxLength": 2048
+    },
+    "HomeConfig": {
+      "type": "object",
+      "description": "仅全屏一屏hero；下方无卡片/精选/其他内容",
+      "additionalProperties": false,
+      "properties": {
+        "mainTitle": {
+          "type": "string",
+          "description": "默认站点名，翻译",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "副标题，翻译",
+          "minLength": 0,
+          "maxLength": 1000
+        },
+        "backgroundText": {
+          "type": "string",
+          "description": "默认Welcome To",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "translateBackgroundText": {
+          "type": "boolean",
+          "description": "默认false，后台可开翻译"
+        },
+        "buttons": {
+          "type": "array",
+          "description": "0–3按钮",
+          "items": {
+            "$ref": "#/$defs/HeroButton",
+            "description": "HeroButton"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "background": {
+          "$ref": "#/$defs/HeroBackground",
+          "description": "HeroBackground"
+        },
+        "overlayPercent": {
+          "type": "integer",
+          "description": "遮罩0–100%",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "textColor": {
+          "type": "string",
+          "description": "文字",
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "mainTitle",
+        "subtitle",
+        "backgroundText",
+        "translateBackgroundText",
+        "buttons",
+        "background",
+        "overlayPercent",
+        "textColor",
+        "revision"
+      ]
+    },
+    "ResourceLimits": {
+      "type": "object",
+      "description": "可配置资源上限",
+      "additionalProperties": false,
+      "properties": {
+        "maxDocumentBytes": {
+          "type": "integer",
+          "description": "文档 UTF-8 规范 JSON 上限",
+          "minimum": 1024,
+          "maximum": 16777216
+        },
+        "maxUploadBytes": {
+          "type": "integer",
+          "description": "单个资源上传上限",
+          "minimum": 1024,
+          "maximum": 2147483648
+        },
+        "siteStorageBytes": {
+          "type": "integer",
+          "description": "站点存储逻辑配额",
+          "minimum": 1048576,
+          "maximum": 1099511627776
+        },
+        "maxUploadConcurrency": {
+          "type": "integer",
+          "description": "上传并发",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "maxDocumentBytes",
+        "maxUploadBytes",
+        "siteStorageBytes",
+        "maxUploadConcurrency"
+      ]
+    },
+    "SecurityPolicy": {
+      "type": "object",
+      "description": "会话/预览非业务功能新增",
+      "additionalProperties": false,
+      "properties": {
+        "previewTTLSeconds": {
+          "type": "integer",
+          "description": "管理员预览TTL",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "sessionAbsoluteTTLSeconds": {
+          "type": "integer",
+          "description": "会话最长",
+          "minimum": 3600,
+          "maximum": 604800
+        }
+      },
+      "required": [
+        "previewTTLSeconds",
+        "sessionAbsoluteTTLSeconds"
+      ]
+    },
+    "SiteConfig": {
+      "type": "object",
+      "description": "版本化站点设置权威文件；既有功能不增添多内容首页",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "name": {
+          "type": "string",
+          "description": "站名，会翻译",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "logo": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "favicon": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "themeColor": {
+          "type": "string",
+          "description": "#RRGGBB",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "defaultShareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "publicBaseURL": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "SafeURL"
+        },
+        "baseLanguage": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        },
+        "titleTemplate": {
+          "type": "string",
+          "description": "title/site模板",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "SEO文本",
+          "minLength": 0,
+          "maxLength": 400
+        },
+        "indexingEnabled": {
+          "type": "boolean",
+          "description": "搜索引擎"
+        },
+        "home": {
+          "$ref": "#/$defs/HomeConfig",
+          "description": "HomeConfig"
+        },
+        "footer": {
+          "$ref": "#/$defs/FooterConfig",
+          "description": "FooterConfig"
+        },
+        "banner": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Announcement",
+              "description": "Announcement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "暂无公告null"
+        },
+        "resourceLimits": {
+          "$ref": "#/$defs/ResourceLimits",
+          "description": "ResourceLimits"
+        },
+        "securityPolicy": {
+          "$ref": "#/$defs/SecurityPolicy",
+          "description": "SecurityPolicy"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "已登录唯一超管完成name/baseLanguage向导"
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "修改"
+        }
+      },
+      "required": [
+        "siteId",
+        "name",
+        "logo",
+        "favicon",
+        "themeColor",
+        "defaultShareImage",
+        "publicBaseURL",
+        "baseLanguage",
+        "titleTemplate",
+        "description",
+        "indexingEnabled",
+        "home",
+        "footer",
+        "banner",
+        "resourceLimits",
+        "securityPolicy",
+        "revision",
+        "initialized",
+        "updatedAt"
+      ]
+    },
+    "RuntimePhase": {
+      "type": "string",
+      "description": "独立控制库状态",
+      "enum": [
+        "running",
+        "backup_barrier",
+        "restore_draining",
+        "restore_preparing",
+        "restore_activating",
+        "restore_rolling_back",
+        "restore_blocked"
+      ]
+    },
+    "ActivationReceipt": {
+      "type": "object",
+      "description": "恢复激活证明；只接受对应生产服务的签名",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "description": "全部注册域",
+          "enum": [
+            "portal",
+            "identity",
+            "site-config",
+            "content",
+            "media",
+            "public-site",
+            "model-gateway",
+            "knowledge",
+            "qa",
+            "localization",
+            "memory",
+            "traffic-guard",
+            "jobs",
+            "analytics",
+            "data-protection"
+          ]
+        },
+        "stageId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "各域stage/gate"
+        },
+        "targetDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已激活epoch"
+        },
+        "state": {
+          "type": "string",
+          "description": "结果",
+          "enum": [
+            "prepared",
+            "committed",
+            "rolled-back"
+          ]
+        },
+        "manifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "激活manifest证明；portal gate使用配置hash"
+        },
+        "recordedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        },
+        "signature": {
+          "type": "string",
+          "description": "域服务签名",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "module",
+        "stageId",
+        "targetDataEpoch",
+        "state",
+        "manifestHash",
+        "recordedAt",
+        "signature"
+      ]
+    },
+    "RuntimeState": {
+      "type": "object",
+      "description": "运行状态权威；独立 control.db，不进入业务快照恢复覆盖",
+      "additionalProperties": false,
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "所有普通请求当前 epoch"
+        },
+        "targetDataEpoch": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "待恢复 epoch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无恢复 null"
+        },
+        "phase": {
+          "$ref": "#/$defs/RuntimePhase",
+          "description": "RuntimePhase"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "由phase推导；running=false，其余true"
+        },
+        "restoreId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "恢复"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无恢复 null"
+        },
+        "barrierId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "屏障"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "正常 null"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "控制CAS"
+        },
+        "requiredModules": {
+          "type": "array",
+          "description": "激活要求集合",
+          "items": {
+            "type": "string",
+            "description": "15个注册module slug",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 15,
+          "maxItems": 15
+        },
+        "activationReceipts": {
+          "type": "array",
+          "description": "签名回执",
+          "items": {
+            "$ref": "#/$defs/ActivationReceipt",
+            "description": "ActivationReceipt"
+          },
+          "minItems": 0,
+          "maxItems": 30
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "控制状态更新"
+        }
+      },
+      "required": [
+        "dataEpoch",
+        "targetDataEpoch",
+        "phase",
+        "maintenance",
+        "restoreId",
+        "barrierId",
+        "revision",
+        "requiredModules",
+        "activationReceipts",
+        "updatedAt"
+      ]
+    },
+    "RuntimeTransition": {
+      "type": "object",
+      "description": "严格控制迁移；不能任意设置phase/maintenance/dataEpoch",
+      "additionalProperties": false,
+      "properties": {
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "runtime CAS"
+        },
+        "action": {
+          "type": "string",
+          "description": "允许状态迁移",
+          "enum": [
+            "begin_backup",
+            "complete_backup",
+            "begin_restore",
+            "begin_prepare",
+            "begin_activation",
+            "begin_rollback",
+            "mark_blocked",
+            "complete_restore",
+            "complete_rollback"
+          ]
+        },
+        "restoreId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "恢复 id"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "备份 null"
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "屏障"
+        },
+        "targetDataEpoch": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "目标 epoch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "备份 null"
+        }
+      },
+      "required": [
+        "expectedRevision",
+        "action",
+        "restoreId",
+        "barrierId",
+        "targetDataEpoch"
+      ]
+    },
+    "InitializationState": {
+      "type": "object",
+      "description": "首超管注册后的站点/语言两步向导；没有AI和owner reservation",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "初始化操作"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已由identity首注册取得站点"
+        },
+        "phase": {
+          "type": "string",
+          "description": "阶段",
+          "enum": [
+            "uninitialized",
+            "preparing",
+            "config_committed",
+            "completed",
+            "aborting",
+            "aborted",
+            "blocked"
+          ]
+        },
+        "configRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "配置水位"
+        },
+        "decision": {
+          "type": "string",
+          "description": "决定",
+          "enum": [
+            "none",
+            "commit",
+            "abort"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "safeError": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+              "description": "Problem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "operationId",
+        "siteId",
+        "phase",
+        "configRevision",
+        "decision",
+        "revision",
+        "safeError",
+        "updatedAt"
+      ]
+    },
+    "AnnouncementBody": {
+      "type": "object",
+      "description": "只有一条可关闭公告横幅",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "text": {
+          "type": "string",
+          "description": "顶部横幅文字，会翻译",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinkTarget",
+              "description": "LinkTarget"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无链接null"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "text",
+        "target"
+      ]
+    },
+    "Announcement": {
+      "type": "object",
+      "description": "单条站点公告横幅；无富文公告列表产品",
+      "additionalProperties": false,
+      "properties": {
+        "announcementId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "同条公告关闭标识；localStorage记录，不用cookie"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可变横幅文件"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "后台开关"
+        },
+        "startsAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "起始"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "立即null"
+        },
+        "endsAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "结束"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "永久null"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "设置CAS"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "即时失效水位"
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "更新"
+        }
+      },
+      "required": [
+        "announcementId",
+        "siteId",
+        "revisionId",
+        "bodyHash",
+        "enabled",
+        "startsAt",
+        "endsAt",
+        "revision",
+        "visibilityRevision",
+        "updatedAt"
+      ]
+    },
+    "ConfigChanged": {
+      "type": "object",
+      "description": "只传配置引用",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "configRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "配置"
+        },
+        "baseLanguage": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        },
+        "homeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "首页"
+        },
+        "changedSections": {
+          "type": "array",
+          "description": "变更组",
+          "items": {
+            "type": "string",
+            "description": "字段组",
+            "enum": [
+              "identity",
+              "home",
+              "seo",
+              "security",
+              "limits",
+              "language"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "siteId",
+        "configRevision",
+        "baseLanguage",
+        "homeRevision",
+        "changedSections",
+        "occurredAt"
+      ]
+    },
+    "ReadSiteConfigInput": {
+      "type": "object",
+      "description": "读取后台站点配置的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadSiteConfigResult": {
+      "type": "object",
+      "description": "读取后台站点配置的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "UpdateSiteConfigInput": {
+      "type": "object",
+      "description": "一般站点设置，品牌/hero/footer/banner分别接口",
+      "additionalProperties": false,
+      "properties": {
+        "publicBaseURL": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "SafeURL"
+        },
+        "titleTemplate": {
+          "type": "string",
+          "description": "title/site模板",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "SEO纯文本",
+          "minLength": 0,
+          "maxLength": 400
+        },
+        "indexingEnabled": {
+          "type": "boolean",
+          "description": "索引"
+        },
+        "resourceLimits": {
+          "$ref": "#/$defs/ResourceLimits",
+          "description": "ResourceLimits"
+        },
+        "securityPolicy": {
+          "$ref": "#/$defs/SecurityPolicy",
+          "description": "SecurityPolicy"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "publicBaseURL",
+        "titleTemplate",
+        "description",
+        "indexingEnabled",
+        "resourceLimits",
+        "securityPolicy",
+        "expectedRevision"
+      ]
+    },
+    "UpdateSiteConfigResult": {
+      "type": "object",
+      "description": "更新站点常规配置的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ValidateSiteConfigInput": {
+      "type": "object",
+      "description": "校验配置所有字段和关联约束的输入",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ValidateSiteConfigResult": {
+      "type": "object",
+      "description": "校验配置所有字段和关联约束的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "配置有效"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "NormalizeBaseURLInput": {
+      "type": "object",
+      "description": "规范公开站点地址的输入",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "SafeURL"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "NormalizeBaseURLResult": {
+      "type": "object",
+      "description": "规范公开站点地址的结果",
+      "additionalProperties": false,
+      "properties": {
+        "normalized": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "SafeURL"
+        }
+      },
+      "required": [
+        "normalized"
+      ]
+    },
+    "ValidateLanguageTagInput": {
+      "type": "object",
+      "description": "规范基准语言 tag的输入",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        }
+      },
+      "required": [
+        "language"
+      ]
+    },
+    "ValidateLanguageTagResult": {
+      "type": "object",
+      "description": "规范基准语言 tag的结果",
+      "additionalProperties": false,
+      "properties": {
+        "canonical": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        }
+      },
+      "required": [
+        "canonical"
+      ]
+    },
+    "UpdateHomeInput": {
+      "type": "object",
+      "description": "配置首页介绍、卡片和精选文档的输入",
+      "additionalProperties": false,
+      "properties": {
+        "home": {
+          "$ref": "#/$defs/HomeConfig",
+          "description": "HomeConfig"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "配置CAS"
+        },
+        "expectedHomeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "首页CAS"
+        }
+      },
+      "required": [
+        "home",
+        "expectedRevision",
+        "expectedHomeRevision"
+      ]
+    },
+    "UpdateHomeResult": {
+      "type": "object",
+      "description": "配置首页介绍、卡片和精选文档的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ReadPublicHomeInput": {
+      "type": "object",
+      "description": "读取可公开的首页配置的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadPublicHomeResult": {
+      "type": "object",
+      "description": "读取可公开的首页配置的结果",
+      "additionalProperties": false,
+      "properties": {
+        "siteName": {
+          "type": "string",
+          "description": "名",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "baseLanguage": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        },
+        "home": {
+          "$ref": "#/$defs/HomeConfig",
+          "description": "HomeConfig"
+        },
+        "configRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        }
+      },
+      "required": [
+        "siteName",
+        "baseLanguage",
+        "home",
+        "configRevision"
+      ]
+    },
+    "ValidateHomeLinksInput": {
+      "type": "object",
+      "description": "hero校验",
+      "additionalProperties": false,
+      "properties": {
+        "home": {
+          "$ref": "#/$defs/HomeConfig",
+          "description": "HomeConfig"
+        }
+      },
+      "required": [
+        "home"
+      ]
+    },
+    "ValidateHomeLinksResult": {
+      "type": "object",
+      "description": "hero引用",
+      "additionalProperties": false,
+      "properties": {
+        "documentRefs": {
+          "type": "array",
+          "description": "站内按钮",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+            "description": "PublishedRevisionRef"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "assetIds": {
+          "type": "array",
+          "description": "ready引用",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "背景/poster资源"
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "documentRefs",
+        "assetIds"
+      ]
+    },
+    "ReadRuntimeStateInput": {
+      "type": "object",
+      "description": "读取独立控制库权威运行状态的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadRuntimeStateResult": {
+      "type": "object",
+      "description": "读取独立控制库权威运行状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/RuntimeState",
+          "description": "RuntimeState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "TransitionRuntimeStateResult": {
+      "type": "object",
+      "description": "按CAS切换epoch与维护阶段的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/RuntimeState",
+          "description": "RuntimeState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ValidateRuntimeTransitionInput": {
+      "type": "object",
+      "description": "验证维护与恢复状态迁移矩阵的输入",
+      "additionalProperties": false,
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/RuntimeState",
+          "description": "RuntimeState"
+        },
+        "command": {
+          "$ref": "#/$defs/RuntimeTransition",
+          "description": "RuntimeTransition"
+        }
+      },
+      "required": [
+        "current",
+        "command"
+      ]
+    },
+    "ValidateRuntimeTransitionResult": {
+      "type": "object",
+      "description": "验证维护与恢复状态迁移矩阵的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "允许迁移"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "RegisterActivationInput": {
+      "type": "object",
+      "description": "登记域恢复激活签名回执的输入",
+      "additionalProperties": false,
+      "properties": {
+        "receipt": {
+          "$ref": "#/$defs/ActivationReceipt",
+          "description": "ActivationReceipt"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复"
+        }
+      },
+      "required": [
+        "receipt",
+        "expectedRevision",
+        "restoreId"
+      ]
+    },
+    "RegisterActivationResult": {
+      "type": "object",
+      "description": "登记域恢复激活签名回执的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/RuntimeState",
+          "description": "RuntimeState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "CheckWriteEpochInput": {
+      "type": "object",
+      "description": "所有业务写入执行epoch与屏障检查的输入",
+      "additionalProperties": false,
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "请求epoch"
+        }
+      },
+      "required": [
+        "dataEpoch"
+      ]
+    },
+    "CheckWriteEpochResult": {
+      "type": "object",
+      "description": "所有业务写入执行epoch与屏障检查的结果",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "允许"
+        }
+      },
+      "required": [
+        "allowed"
+      ]
+    },
+    "InitializeSiteInput": {
+      "type": "object",
+      "description": "D55初始化仅站点和基准语言两步；默认zh-Hans",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "站点名",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "baseLanguage": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag",
+          "default": "zh-Hans"
+        }
+      },
+      "required": [
+        "name",
+        "baseLanguage"
+      ]
+    },
+    "InitializeSiteResult": {
+      "type": "object",
+      "description": "无需AI完成首站点初始化的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ReadInitializationStatusInput": {
+      "type": "object",
+      "description": "读取安全初始化阶段的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadInitializationStatusResult": {
+      "type": "object",
+      "description": "读取安全初始化阶段的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "PrepareDefaultConfigInput": {
+      "type": "object",
+      "description": "确定性生成首次基础配置的输入",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "name": {
+          "type": "string",
+          "description": "名称",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "publicBaseURL": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "SafeURL"
+        },
+        "baseLanguage": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "LanguageTag"
+        }
+      },
+      "required": [
+        "siteId",
+        "name",
+        "publicBaseURL",
+        "baseLanguage"
+      ]
+    },
+    "PrepareDefaultConfigResult": {
+      "type": "object",
+      "description": "确定性生成首次基础配置的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "PersistInitializationDecisionInput": {
+      "type": "object",
+      "description": "持久化不可反悔的初始化决定的输入",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        },
+        "decision": {
+          "type": "string",
+          "description": "终局决定",
+          "enum": [
+            "commit",
+            "abort"
+          ]
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "初始化CAS"
+        }
+      },
+      "required": [
+        "state",
+        "decision",
+        "expectedRevision"
+      ]
+    },
+    "PersistInitializationDecisionResult": {
+      "type": "object",
+      "description": "持久化不可反悔的初始化决定的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ResumeInitializationInput": {
+      "type": "object",
+      "description": "恢复崩溃或依赖断开的初始化阶段的输入",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "初始化"
+        }
+      },
+      "required": [
+        "operationId"
+      ]
+    },
+    "ResumeInitializationResult": {
+      "type": "object",
+      "description": "恢复崩溃或依赖断开的初始化阶段的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "AbortInitializationInput": {
+      "type": "object",
+      "description": "取消尚未持久commit的初始化的输入",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "初始化"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "operationId",
+        "expectedRevision"
+      ]
+    },
+    "AbortInitializationResult": {
+      "type": "object",
+      "description": "取消尚未持久commit的初始化的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InitializationState",
+          "description": "InitializationState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ValidateAnnouncementBodyInput": {
+      "type": "object",
+      "description": "校验公告纯文本正文并规范序列化的输入",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/AnnouncementBody",
+          "description": "AnnouncementBody"
+        }
+      },
+      "required": [
+        "body"
+      ]
+    },
+    "ValidateAnnouncementBodyResult": {
+      "type": "object",
+      "description": "校验公告纯文本正文并规范序列化的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        },
+        "hash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "valid",
+        "hash"
+      ]
+    },
+    "WriteAnnouncementRevisionInput": {
+      "type": "object",
+      "description": "持久写不可变公告正文文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "announcementId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公告"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "新revision"
+        },
+        "body": {
+          "$ref": "#/$defs/AnnouncementBody",
+          "description": "AnnouncementBody"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "announcementId",
+        "revisionId",
+        "body",
+        "bodyHash"
+      ]
+    },
+    "WriteAnnouncementRevisionResult": {
+      "type": "object",
+      "description": "持久写不可变公告正文文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        }
+      },
+      "required": [
+        "object"
+      ]
+    },
+    "CommitAnnouncementHeadInput": {
+      "type": "object",
+      "description": "原子提交公告head与正文日志的输入",
+      "additionalProperties": false,
+      "properties": {
+        "announcementId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公告"
+        },
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "expectedDraftRevisionId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "旧head"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "新建null"
+        }
+      },
+      "required": [
+        "announcementId",
+        "object",
+        "expectedDraftRevisionId"
+      ]
+    },
+    "CommitAnnouncementHeadResult": {
+      "type": "object",
+      "description": "原子提交公告head与正文日志的结果",
+      "additionalProperties": false,
+      "properties": {
+        "committed": {
+          "type": "boolean",
+          "description": "head提交"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "元数据新版本"
+        }
+      },
+      "required": [
+        "committed",
+        "revision"
+      ]
+    },
+    "RecoverAnnouncementJournalInput": {
+      "type": "object",
+      "description": "恢复正文文件与提交日志的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RecoverAnnouncementJournalResult": {
+      "type": "object",
+      "description": "恢复正文文件与提交日志的结果",
+      "additionalProperties": false,
+      "properties": {
+        "committedCount": {
+          "type": "integer",
+          "description": "确认数",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "quarantinedCount": {
+          "type": "integer",
+          "description": "孤儿数",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "committedCount",
+        "quarantinedCount"
+      ]
+    },
+    "ResolveConfigOperationInput": {
+      "type": "object",
+      "description": "查询配置幂等回执的输入",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "操作"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "operationId",
+        "requestHash"
+      ]
+    },
+    "ResolveConfigOperationResult": {
+      "type": "object",
+      "description": "查询配置幂等回执的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "回执",
+          "enum": [
+            "absent",
+            "in_progress",
+            "committed"
+          ]
+        },
+        "resultRevision": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+              "description": "已提交revision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "state",
+        "resultRevision"
+      ]
+    },
+    "PublishConfigEventInput": {
+      "type": "object",
+      "description": "将配置事件与业务提交原子登记的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/ConfigChanged",
+          "description": "ConfigChanged"
+        },
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "去重id"
+        }
+      },
+      "required": [
+        "event",
+        "eventId"
+      ]
+    },
+    "PublishConfigEventResult": {
+      "type": "object",
+      "description": "将配置事件与业务提交原子登记的结果",
+      "additionalProperties": false,
+      "properties": {
+        "queued": {
+          "type": "boolean",
+          "description": "outbox已入"
+        }
+      },
+      "required": [
+        "queued"
+      ]
+    },
+    "ReadConfigObjectInput": {
+      "type": "object",
+      "description": "经协议读取本域正文或快照对象的输入",
+      "additionalProperties": false,
+      "properties": {
+        "objectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域只读对象"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "指定版本"
+        },
+        "expectedHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "objectId",
+        "version",
+        "expectedHash"
+      ]
+    },
+    "ReadConfigObjectResult": {
+      "type": "object",
+      "description": "经协议读取本域正文或快照对象的结果",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "bodyHandle": {
+          "type": "string",
+          "description": "内部只读流句柄",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "object",
+        "bodyHandle"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的输入",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前屏障"
+        },
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "barrierId",
+        "expectedEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "BarrierStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "LinkTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "站内链接",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "document"
+            },
+            "documentId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "站内ID"
+            },
+            "blockId": {
+              "anyOf": [
+                {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                  "description": "锚点"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "无null"
+            }
+          },
+          "required": [
+            "kind",
+            "documentId",
+            "blockId"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "AI问答入口；AI未就绪时禁用但初始化不阻塞",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "qa"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "外链",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "external"
+            },
+            "url": {
+              "type": "string",
+              "description": "http/https/mailto安全链接",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "kind",
+            "url"
+          ]
+        }
+      ],
+      "description": "站点链接判别联合体"
+    },
+    "HeroButton": {
+      "type": "object",
+      "description": "首页0–3按钮",
+      "additionalProperties": false,
+      "properties": {
+        "buttonId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "稳定按钮"
+        },
+        "text": {
+          "type": "string",
+          "description": "翻译字段",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "target": {
+          "$ref": "#/$defs/LinkTarget",
+          "description": "LinkTarget"
+        },
+        "style": {
+          "type": "string",
+          "description": "按钮",
+          "enum": [
+            "primary",
+            "secondary"
+          ]
+        }
+      },
+      "required": [
+        "buttonId",
+        "text",
+        "target",
+        "style"
+      ]
+    },
+    "HeroBackground": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "纯色",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "color"
+            },
+            "color": {
+              "type": "string",
+              "description": "#RRGGBB",
+              "minLength": 7,
+              "maxLength": 7,
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          },
+          "required": [
+            "kind",
+            "color"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "图片/动图",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "图片/动图",
+              "enum": [
+                "image",
+                "animation"
+              ]
+            },
+            "asset": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            }
+          },
+          "required": [
+            "kind",
+            "asset"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "静音循环视频+必需封面，Range服务",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "video"
+            },
+            "asset": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            "poster": {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            }
+          },
+          "required": [
+            "kind",
+            "asset",
+            "poster"
+          ]
+        }
+      ],
+      "description": "首页背景完整联合体"
+    },
+    "FooterLink": {
+      "type": "object",
+      "description": "页脚链接",
+      "additionalProperties": false,
+      "properties": {
+        "linkId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "稳定ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "翻译字段",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "target": {
+          "$ref": "#/$defs/LinkTarget",
+          "description": "LinkTarget"
+        }
+      },
+      "required": [
+        "linkId",
+        "text",
+        "target"
+      ]
+    },
+    "FooterConfig": {
+      "type": "object",
+      "description": "页脚版权、链接、ICP、源代码",
+      "additionalProperties": false,
+      "properties": {
+        "copyright": {
+          "type": "string",
+          "description": "版权文本，翻译",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "links": {
+          "type": "array",
+          "description": "自定义链接",
+          "items": {
+            "$ref": "#/$defs/FooterLink",
+            "description": "FooterLink"
+          },
+          "minItems": 0,
+          "maxItems": 30
+        },
+        "icpNumber": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "ICP备案号",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "icpLink": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全备案链接",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "sourceCodeURL": {
+          "type": "string",
+          "description": "默认显示源代码链接，AGPL网络用户可获得源码",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "copyright",
+        "links",
+        "icpNumber",
+        "icpLink",
+        "sourceCodeURL"
+      ]
+    },
+    "UpdateBrandingInput": {
+      "type": "object",
+      "description": "更新站名/logo/图标/主题色/默认分享图的输入",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "站名",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "logo": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "無null"
+        },
+        "favicon": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "無null"
+        },
+        "themeColor": {
+          "type": "string",
+          "description": "#RRGGBB",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "defaultShareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "無null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "name",
+        "logo",
+        "favicon",
+        "themeColor",
+        "defaultShareImage",
+        "expectedRevision"
+      ]
+    },
+    "UpdateBrandingResult": {
+      "type": "object",
+      "description": "更新站名/logo/图标/主题色/默认分享图的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "UpdateFooterInput": {
+      "type": "object",
+      "description": "更新页脚版权/自定义链接/ICP备案/源码链接的输入",
+      "additionalProperties": false,
+      "properties": {
+        "footer": {
+          "$ref": "#/$defs/FooterConfig",
+          "description": "FooterConfig"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "footer",
+        "expectedRevision"
+      ]
+    },
+    "UpdateFooterResult": {
+      "type": "object",
+      "description": "更新页脚版权/自定义链接/ICP备案/源码链接的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "UpdateBannerInput": {
+      "type": "object",
+      "description": "保存单条可关闭公告横幅的输入",
+      "additionalProperties": false,
+      "properties": {
+        "announcementId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "同条bannerId，新增null"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "生成新条null"
+        },
+        "body": {
+          "$ref": "#/$defs/AnnouncementBody",
+          "description": "AnnouncementBody"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "开关"
+        },
+        "startsAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "开始"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "立即null"
+        },
+        "endsAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "结束"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "永久null"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "配置CAS"
+        }
+      },
+      "required": [
+        "announcementId",
+        "body",
+        "enabled",
+        "startsAt",
+        "endsAt",
+        "expectedRevision"
+      ]
+    },
+    "UpdateBannerResult": {
+      "type": "object",
+      "description": "保存单条可关闭公告横幅的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "WriteConfigRevisionInput": {
+      "type": "object",
+      "description": "写权威版本化站点设置文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        },
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "唯一文件revision"
+        }
+      },
+      "required": [
+        "config",
+        "revisionId"
+      ]
+    },
+    "WriteConfigRevisionResult": {
+      "type": "object",
+      "description": "写权威版本化站点设置文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        }
+      },
+      "required": [
+        "object"
+      ]
+    },
+    "CommitConfigHeadInput": {
+      "type": "object",
+      "description": "提交配置权威head与日志的输入",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "object",
+        "expectedRevision"
+      ]
+    },
+    "CommitConfigHeadResult": {
+      "type": "object",
+      "description": "提交配置权威head与日志的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ReadConfigHistoryInput": {
+      "type": "object",
+      "description": "读取可回滚的站点设置历史的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "page"
+      ]
+    },
+    "ReadConfigHistoryResult": {
+      "type": "object",
+      "description": "读取可回滚的站点设置历史的结果",
+      "additionalProperties": false,
+      "properties": {
+        "revisions": {
+          "type": "array",
+          "description": "设置版本",
+          "items": {
+            "type": "object",
+            "description": "历史",
+            "additionalProperties": false,
+            "properties": {
+              "revisionId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "文件版本"
+              },
+              "configRevision": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+                "description": "水位"
+              },
+              "authorAccountId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "作者"
+              },
+              "createdAt": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+                "description": "提交"
+              },
+              "object": {
+                "$ref": "#/$defs/ObjectRef",
+                "description": "ObjectRef"
+              }
+            },
+            "required": [
+              "revisionId",
+              "configRevision",
+              "authorAccountId",
+              "createdAt",
+              "object"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "revisions",
+        "pageInfo"
+      ]
+    },
+    "RestoreConfigRevisionInput": {
+      "type": "object",
+      "description": "回滚首页/公告/品牌/页脚历史的输入",
+      "additionalProperties": false,
+      "properties": {
+        "revisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "历史版本"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前CAS"
+        }
+      },
+      "required": [
+        "revisionId",
+        "expectedRevision"
+      ]
+    },
+    "RestoreConfigRevisionResult": {
+      "type": "object",
+      "description": "回滚首页/公告/品牌/页脚历史的结果",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/SiteConfig",
+          "description": "SiteConfig"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ListResourceReferencesInput": {
+      "type": "object",
+      "description": "向媒体返回站点设置权威资源引用快照的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "筛某资源，null全部"
+        },
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "assetId",
+        "page"
+      ]
+    },
+    "ListResourceReferencesResult": {
+      "type": "object",
+      "description": "向媒体返回站点设置权威资源引用快照的结果",
+      "additionalProperties": false,
+      "properties": {
+        "references": {
+          "type": "array",
+          "description": "首页背景/封面/logo/favicon/分享图等current/history精确引用",
+          "items": {
+            "$ref": "../../media/contracts/types.json#/$defs/AssetReference"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "references",
+        "watermark",
+        "pageInfo"
+      ]
+    },
+    "releaseBarrierRequest": {
+      "type": "object",
+      "description": "释放屏障请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "expectedEpoch"
+      ]
+    },
+    "restoreConfigRevisionRequest": {
+      "type": "object",
+      "description": "回滚站点设置请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前CAS"
+        }
+      },
+      "required": [
+        "expectedRevision"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "site-config",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "site-config",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

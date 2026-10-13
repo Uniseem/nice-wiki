@@ -1,0 +1,13 @@
+# 生命周期与工作流
+
+上传 receiving→validating→ready或blocked；receiving→aborted/expired只临时文件清理。ready永不按年龄自动删除。人工plan proposed→confirmed→waiting24h→deleted/cancelled/blocked；新ref立即cancel/block。asset ready→delete_pending→deleted只有人工授权计划。
+
+上传先quota预留+expectedSHA/size→顺序chunk日志/fsync→流hash/MIME/scene/SVG格式验证→不可变blob rename/fsync→COMMITTEDmeta ready；同SHA dedup仅同site不泄漏。上传完成不自动公开；public-site精确publication manifest验证后产生绑定documentId/publishedRevisionId的稳定SHA URL长期immutable，后续源请求仍查当前发布门禁，管理员draft独立proofURL/no-store。
+
+引用先acquire pendingpin与delete共享对象fence，sourceCOMMITTED后confirm成长期ref；abort不明就保留至少24h。事件完整snapshot版本单调、乱序只ack。资源库明确显示current与history文档引用；未引用只指current0，不抹历史风险。
+
+人工清理先全source authoritative snapshot，未知/不完整拒绝；plan给历史可能缺文件警告与精确hash，管理员确认才等待24h保护迟到引用。执行worker主动jobs claim，最后对象mutex再查generation/fence/pins/readers/sourcewatermarks，任何新引用阻止删。服务端不设自动ready扫描删除，只有receiving过期临时字节可自动回收。
+
+平台视频一次公开信息与封面本地import；失败manual_required手填title/description，不能伪造capability。Bili/YouTube/抖音/TikTok按固定host template；YouTube nocookie。public-site页面先封面按钮，点击才加载第三方player，服务器请求每hop/DNS阻SSRF，不发送登录cookie。
+
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位，prepare 不修改活动数据，commit/rollback 都有持久决定日志。

@@ -1,0 +1,1095 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/common/v1",
+  "title": "公共数据契约",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "description": "系统生成的不透明 ID，不含个人信息",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "对象单调修订号"
+    },
+    "Hash": {
+      "type": "string",
+      "description": "SHA-256 小写十六进制",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "description": "RFC3339 UTC 时间",
+      "format": "date-time"
+    },
+    "Money": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "const": "USD",
+          "description": "唯一支持USD"
+        },
+        "micros": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "百万分之一美元，整数，禁止浮点累计"
+        }
+      },
+      "required": [
+        "currency",
+        "micros"
+      ],
+      "description": "美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限"
+    },
+    "CostClass": {
+      "type": "string",
+      "enum": [
+        "qa",
+        "background",
+        "admin-probe"
+      ],
+      "description": "可信服务上下文决定，公开请求不能指定"
+    },
+    "AuthContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subjectId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "经验证的主体ID"
+        },
+        "kind": {
+          "enum": [
+            "admin",
+            "visitor",
+            "service"
+          ],
+          "description": "主体类别或状态类别，按枚举处理"
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "单站身份，与授权上下文一致"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "经验证会话ID，已撤销会话拒绝"
+        },
+        "permissionRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "权威权限版本；撤销变化必须同步验证"
+        },
+        "grants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": "明确技术权限集合，映射旧10项功能"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "凭证/租约到期UTC时刻；到期拒绝，不自动续命"
+        }
+      },
+      "required": [
+        "subjectId",
+        "kind",
+        "siteId",
+        "permissionRevision",
+        "grants",
+        "expiresAt"
+      ],
+      "description": "经identity验证的单站授权上下文；浏览器不能直接构造可信grants"
+    },
+    "Actor": {
+      "$ref": "#/$defs/AuthContext"
+    },
+    "OperationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次请求唯一追踪ID"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "可恢复操作ID"
+        },
+        "rootOperationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "跨服务根操作ID，子调用不能更换以重置费用/重试上限"
+        },
+        "callerService": {
+          "type": "string",
+          "description": "经服务身份验证的调用模块"
+        },
+        "actor": {
+          "$ref": "#/$defs/AuthContext",
+          "description": "用户或服务委托主体"
+        },
+        "deadline": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "全链路截止；与本地取消取较早值"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "costClass": {
+          "$ref": "#/$defs/CostClass",
+          "description": "可信费用归属类别"
+        },
+        "cancellationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "根操作的贯穿取消标识"
+        },
+        "recoveryAuthorization": {
+          "$ref": "#/$defs/RecoveryAuthorization",
+          "description": "本次已批准恢复控制许可"
+        }
+      },
+      "required": [
+        "requestId",
+        "operationId",
+        "rootOperationId",
+        "callerService",
+        "actor",
+        "deadline",
+        "dataEpoch"
+      ],
+      "description": "服务间可信操作元数据；与身份、根操作、截止、取消和当前数据代次绑定"
+    },
+    "RequestContext": {
+      "$ref": "#/$defs/OperationContext"
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "VALIDATION",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "VERSION_MISMATCH",
+        "LOCKED",
+        "UNSUPPORTED_SCHEMA",
+        "UNSUPPORTED_CAPABILITY",
+        "RATE_LIMITED",
+        "BUDGET_EXCEEDED",
+        "CANCELLED",
+        "DEADLINE_EXCEEDED",
+        "DEPENDENCY_UNAVAILABLE",
+        "STALE_RESULT",
+        "INTEGRITY_ERROR",
+        "INTERNAL"
+      ],
+      "description": "ErrorCode的公共协议类型；字段及范围按本schema"
+    },
+    "FieldIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "字段路径，不包含字段值"
+        },
+        "reason": {
+          "type": "string",
+          "description": "可展示且不泄露输入正文的原因"
+        }
+      },
+      "required": [
+        "field",
+        "reason"
+      ],
+      "description": "FieldIssue的公共协议类型；字段及范围按本schema"
+    },
+    "Problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "问题类型标识"
+        },
+        "title": {
+          "type": "string",
+          "description": "中文标题"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "HTTP 状态"
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode",
+          "description": "登记的稳定错误码"
+        },
+        "detail": {
+          "type": "string",
+          "description": "中文安全说明"
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次请求唯一追踪ID"
+        },
+        "retryable": {
+          "type": "boolean",
+          "description": "是否允许在幂等和总截止内重试"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldIssue"
+          },
+          "description": "逐字段输入错误，不能回显秘密原值"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "status",
+        "code",
+        "detail",
+        "requestId",
+        "retryable"
+      ],
+      "description": "公共失败响应；不含秘密、问题正文、原始IP或内部堆栈"
+    },
+    "Error": {
+      "$ref": "#/$defs/Problem"
+    },
+    "PageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "分页返回上限"
+        },
+        "cursor": {
+          "type": "string",
+          "description": "签名不透明游标"
+        }
+      },
+      "required": [],
+      "description": "分页查询；最多100项，游标是签名不透明值，不把数据库offset当协议"
+    },
+    "PageInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nextCursor": {
+          "type": "string",
+          "description": "下一页签名游标，无下一页则省略"
+        },
+        "hasMore": {
+          "type": "boolean",
+          "description": "是否存在下一页"
+        }
+      },
+      "required": [
+        "hasMore"
+      ],
+      "description": "分页结果状态；没有下一页时nextCursor省略"
+    },
+    "PublishedRevisionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "稳定文档ID"
+        },
+        "publishedRevisionId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "不可变发布修订ID"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision",
+          "description": "单调非负修订号"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "规范正文SHA256"
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "内容格式正整数版本，变化必须迁移"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        }
+      },
+      "required": [
+        "documentId",
+        "publishedRevisionId",
+        "revision",
+        "contentHash",
+        "schemaVersion",
+        "dataEpoch"
+      ],
+      "description": "不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证"
+    },
+    "DocRef": {
+      "$ref": "#/$defs/PublishedRevisionRef"
+    },
+    "BlockRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/PublishedRevisionRef",
+          "description": "块所属不可变发布修订引用"
+        },
+        "blockId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "文档内稳定唯一块ID"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "规范块内容SHA256"
+        }
+      },
+      "required": [
+        "document",
+        "blockId",
+        "blockHash"
+      ],
+      "description": "同一发布修订内的稳定块引用，附块内容哈希"
+    },
+    "PublicationValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/PublishedRevisionRef",
+          "description": "需要权威校验的发布引用"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "当前允许公开读取"
+        },
+        "matchesCurrent": {
+          "type": "boolean",
+          "description": "引用是否为当前发布修订"
+        },
+        "currentRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "权威当前发布修订号"
+        },
+        "visibilityRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "发布/撤回可见性单调版本"
+        }
+      },
+      "required": [
+        "reference",
+        "visible",
+        "matchesCurrent",
+        "currentRevision",
+        "visibilityRevision"
+      ],
+      "description": "权威可见性门禁结果；visible与matchesCurrent都成立才交付对应缓存"
+    },
+    "ObjectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "模块 slug"
+        },
+        "objectId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本域不可变对象ID"
+        },
+        "version": {
+          "$ref": "#/$defs/Revision",
+          "description": "对象或协议版本"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash",
+          "description": "完整字节内容SHA256"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "规范媒体类型，按允许集验证"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "完整对象字节数，读取结束复核"
+        }
+      },
+      "required": [
+        "owner",
+        "objectId",
+        "version",
+        "sha256",
+        "mediaType",
+        "byteSize"
+      ],
+      "description": "所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径"
+    },
+    "AssetRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "media资源稳定ID"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash",
+          "description": "完整字节内容SHA256"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "规范媒体类型，按允许集验证"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "完整对象字节数，读取结束复核"
+        }
+      },
+      "required": [
+        "assetId",
+        "sha256",
+        "mediaType",
+        "byteSize"
+      ],
+      "description": "资源身份、哈希、媒体类型与字节数；通过media受控读取"
+    },
+    "MemoryContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "canonical AI任务ID"
+        },
+        "language": {
+          "type": "string",
+          "description": "规范语言标签"
+        },
+        "text": {
+          "type": "string",
+          "description": "不记录到日志的注入正文"
+        },
+        "versionHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "规范版本内容SHA256"
+        },
+        "mappingRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "任务映射修订号"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "完整对象字节数，读取结束复核"
+        }
+      },
+      "required": [
+        "taskId",
+        "language",
+        "text",
+        "versionHash",
+        "mappingRevision",
+        "byteSize"
+      ],
+      "description": "单任务/语言组装后的记忆文本及版本，UTF8字节预算由memory负责"
+    },
+    "EmbeddingSpace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spaceId": {
+          "$ref": "#/$defs/Hash",
+          "description": "完整嵌入空间唯一ID"
+        },
+        "provider": {
+          "type": "string",
+          "description": "供应方稳定标识"
+        },
+        "modelVersion": {
+          "type": "string",
+          "description": "供应方模型版本，不只用展示名"
+        },
+        "dimensions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "向量维度正整数"
+        },
+        "preprocessingVersion": {
+          "type": "string",
+          "description": "规范预处理算法版本"
+        }
+      },
+      "required": [
+        "spaceId",
+        "provider",
+        "modelVersion",
+        "dimensions",
+        "preprocessingVersion"
+      ],
+      "description": "供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度"
+    },
+    "AdmissionPermit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "admissionId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "准入记录稳定ID"
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次请求唯一追踪ID"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "经验证的主体ID"
+        },
+        "action": {
+          "type": "string",
+          "description": "许可动作，必须与消费场景一致"
+        },
+        "token": {
+          "type": "string",
+          "description": "短期签名凭证，禁止记录"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "凭证/租约到期UTC时刻；到期拒绝，不自动续命"
+        },
+        "sessionBudgetScope": {
+          "$ref": "#/$defs/Identifier",
+          "description": "guard签名的伪名会话费用作用域；所有本轮子调用必须继承，客户端不能自选"
+        },
+        "networkBudgetScope": {
+          "$ref": "#/$defs/Identifier",
+          "description": "guard签名的伪名网络费用作用域；IPv6按/64，原始IP不进入许可或账本"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前数据代次；恢复换代后旧许可失效"
+        },
+        "audience": {
+          "type": "string",
+          "const": "model-gateway",
+          "description": "费用许可仅由统一模型网关使用"
+        }
+      },
+      "required": [
+        "admissionId",
+        "requestId",
+        "subjectId",
+        "action",
+        "token",
+        "expiresAt",
+        "sessionBudgetScope",
+        "networkBudgetScope",
+        "dataEpoch",
+        "audience"
+      ],
+      "description": "guard短期签名准入；签名覆盖全部字段、动作、请求/主体、作用域、代次、到期与audience。MG本地验签，再从可信作用域构建额度，不接受客户端任选费用scope。"
+    },
+    "AcceptedJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "持久任务ID"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "可恢复操作ID"
+        },
+        "state": {
+          "const": "queued",
+          "description": "精确枚举状态，未知值拒绝"
+        }
+      },
+      "required": [
+        "jobId",
+        "operationId",
+        "state"
+      ],
+      "description": "已持久登记的异步任务引用，不代表任务执行成功"
+    },
+    "HealthStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "description": "HealthStatus.module；按类型、枚举及required约束使用"
+        },
+        "version": {
+          "type": "string",
+          "description": "对象或协议版本"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "degraded",
+            "unavailable"
+          ],
+          "description": "HTTP状态码"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": "按配置已启用或缺失的业务能力"
+        }
+      },
+      "required": [
+        "module",
+        "version",
+        "status",
+        "capabilities"
+      ],
+      "description": "服务版本、存活/就绪与能力状态，输出脱敏说明"
+    },
+    "EventEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "不可变事件唯一ID"
+        },
+        "eventType": {
+          "type": "string",
+          "description": "生产方登记事件名称"
+        },
+        "eventVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "EventEnvelope.eventVersion；按类型、枚举及required约束使用"
+        },
+        "producer": {
+          "type": "string",
+          "description": "事件唯一生产方"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "经验证的主体ID"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision",
+          "description": "单调非负修订号"
+        },
+        "occurredAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "状态提交发生UTC时刻"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "payload": {
+          "type": "object",
+          "description": "必须符合生产方 contracts/events.json 登记的载荷 schema"
+        }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "eventVersion",
+        "producer",
+        "subjectId",
+        "revision",
+        "occurredAt",
+        "dataEpoch",
+        "payload"
+      ],
+      "description": "持久至少一次事件信封；按subject修订与eventId去重，禁止广播业务正文"
+    },
+    "SnapshotRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshotId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "不可变本域快照ID"
+        },
+        "owner": {
+          "type": "string",
+          "description": "对象唯一所属模块slug"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "dataSchemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "SnapshotRef.dataSchemaVersion；按类型、枚举及required约束使用"
+        },
+        "revisionWatermark": {
+          "$ref": "#/$defs/Revision",
+          "description": "SnapshotRef.revisionWatermark；按类型、枚举及required约束使用"
+        },
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "SnapshotRef.object；按类型、枚举及required约束使用"
+        },
+        "containsSecrets": {
+          "type": "boolean",
+          "description": "SnapshotRef.containsSecrets；按类型、枚举及required约束使用"
+        }
+      },
+      "required": [
+        "snapshotId",
+        "owner",
+        "dataEpoch",
+        "dataSchemaVersion",
+        "revisionWatermark",
+        "object",
+        "containsSecrets"
+      ],
+      "description": "本域不可变快照描述，包含schema、哈希、大小与数据代次"
+    },
+    "SnapshotExportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "backupId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "SnapshotExportRequest.backupId；按类型、枚举及required约束使用"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "includeSecrets": {
+          "type": "boolean",
+          "description": "超管明确选择是否导出密钥"
+        }
+      },
+      "required": [
+        "backupId",
+        "barrierId",
+        "dataEpoch",
+        "includeSecrets"
+      ],
+      "description": "指定屏障和是否含秘密的快照导出请求"
+    },
+    "SnapshotExportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotRef",
+          "description": "被校验或恢复的快照引用"
+        },
+        "checksum": {
+          "$ref": "#/$defs/Hash",
+          "description": "SnapshotExportResult.checksum；按类型、枚举及required约束使用"
+        }
+      },
+      "required": [
+        "snapshot",
+        "checksum"
+      ],
+      "description": "已经导出并验证的本域快照引用"
+    },
+    "SnapshotValidateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotRef",
+          "description": "被校验或恢复的快照引用"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        }
+      },
+      "required": [
+        "snapshot",
+        "targetDataEpoch"
+      ],
+      "description": "恢复前验证快照、schema兼容及哈希；不改变活动数据"
+    },
+    "SnapshotValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "当前结构和版本是否有效"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldIssue"
+          },
+          "description": "逐字段输入错误，不能回显秘密原值"
+        },
+        "migrationPlanId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "SnapshotValidation.migrationPlanId；按类型、枚举及required约束使用"
+        }
+      },
+      "required": [
+        "valid",
+        "issues"
+      ],
+      "description": "结构与版本兼容结果，不代表已经恢复"
+    },
+    "SnapshotPrepareRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotRef",
+          "description": "被校验或恢复的快照引用"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        }
+      },
+      "required": [
+        "restoreId",
+        "snapshot",
+        "barrierId",
+        "targetDataEpoch"
+      ],
+      "description": "在私有stage准备恢复空间，活动空间保持当前代"
+    },
+    "SnapshotStageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stageId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "私有恢复准备空间ID"
+        },
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        },
+        "ready": {
+          "type": "boolean",
+          "description": "当前是否就绪"
+        }
+      },
+      "required": [
+        "stageId",
+        "restoreId",
+        "targetDataEpoch",
+        "ready"
+      ],
+      "description": "准备好的stage及验证结果，用于后续commit或rollback"
+    },
+    "SnapshotCommitRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stageId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "私有恢复准备空间ID"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        }
+      },
+      "required": [
+        "stageId",
+        "targetDataEpoch",
+        "barrierId"
+      ],
+      "description": "已批准恢复操作的切换命令，必须匹配stage和目标代次"
+    },
+    "SnapshotApplyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stageId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "私有恢复准备空间ID"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "state": {
+          "enum": [
+            "committed",
+            "rolled-back"
+          ],
+          "description": "精确枚举状态，未知值拒绝"
+        }
+      },
+      "required": [
+        "stageId",
+        "dataEpoch",
+        "state"
+      ],
+      "description": "本域切换或回滚结果；全站确认前继续维护"
+    },
+    "BarrierRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "可恢复操作ID"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "mode": {
+          "enum": [
+            "backup",
+            "restore"
+          ],
+          "description": "BarrierRequest.mode；按类型、枚举及required约束使用"
+        },
+        "deadline": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "全链路截止；与本地取消取较早值"
+        }
+      },
+      "required": [
+        "operationId",
+        "barrierId",
+        "mode",
+        "deadline"
+      ],
+      "description": "超管委托的安全屏障申请，绑定操作、代次与截止"
+    },
+    "BarrierStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "owner": {
+          "type": "string",
+          "description": "对象唯一所属模块slug"
+        },
+        "state": {
+          "enum": [
+            "draining",
+            "safe",
+            "released",
+            "failed"
+          ],
+          "description": "精确枚举状态，未知值拒绝"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前业务数据代次"
+        },
+        "revisionWatermark": {
+          "$ref": "#/$defs/Revision",
+          "description": "BarrierStatus.revisionWatermark；按类型、枚举及required约束使用"
+        }
+      },
+      "required": [
+        "barrierId",
+        "owner",
+        "state",
+        "dataEpoch",
+        "revisionWatermark"
+      ],
+      "description": "屏障状态及安全点；未到安全点不能导出完整快照"
+    },
+    "RecoveryAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "预先批准且不被业务导入覆盖的恢复控制许可；普通业务不能使用",
+      "properties": {
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "operatorId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "批准操作的超管ID"
+        },
+        "sourceDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复前数据代次"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        },
+        "audience": {
+          "type": "string",
+          "description": "许可唯一允许接收方"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "凭证/租约到期UTC时刻；到期拒绝，不自动续命"
+        },
+        "token": {
+          "type": "string",
+          "description": "签名凭证，不记录到日志"
+        }
+      },
+      "required": [
+        "restoreId",
+        "barrierId",
+        "operatorId",
+        "sourceDataEpoch",
+        "targetDataEpoch",
+        "audience",
+        "expiresAt",
+        "token"
+      ]
+    }
+  }
+}

@@ -1,8 +1,0 @@
-@import '../shared/styles/tokens.css';
-@import '../shared/styles/base.css';
-@import '../shared/styles/content.css';
-@import '../shared/styles/code-editor.css';
-
-.nw-input { inline-size: 100%; border: 1px solid var(--nw-border); border-radius: .5rem; background: var(--nw-background); padding: .7rem .9rem; }
-.nw-button { border-radius: .5rem; background: var(--nw-primary); color: var(--nw-surface); padding: .7rem 1rem; font-weight: 600; cursor: pointer; }
-.nw-button:disabled { opacity: .5; cursor: wait; }

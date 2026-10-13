@@ -1,0 +1,2457 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/identity/v1",
+  "title": "身份权限完整数据与函数类型",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+      "description": "Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+      "description": "Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+      "description": "Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+      "description": "Timestamp"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+      "description": "AuthContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
+      "description": "RequestContext"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error",
+      "description": "Error"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+      "description": "Problem"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+      "description": "PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+      "description": "PublishedRevisionRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+      "description": "PublicationValidation"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+      "description": "AssetRef"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+      "description": "ObjectRef"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
+      "description": "BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+      "description": "BarrierStatus"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
+      "description": "SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
+      "description": "SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
+      "description": "SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
+      "description": "SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
+      "description": "SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
+      "description": "SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
+      "description": "SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
+      "description": "SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
+      "description": "SnapshotApplyResult"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+      "description": "EventEnvelope"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
+      "description": "RecoveryAuthorization"
+    },
+    "AccountName": {
+      "type": "string",
+      "description": "创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "Password": {
+      "type": "string",
+      "description": "敏感口令，至少8位；不强制大小写符号组合；不trim；禁止日志",
+      "minLength": 8,
+      "maxLength": 256
+    },
+    "FunctionPermission": {
+      "type": "string",
+      "description": "已确认10项功能，默认全部勾选",
+      "enum": [
+        "edit_documents",
+        "publish_documents",
+        "manage_translations",
+        "manage_languages",
+        "manage_resources",
+        "manage_qa",
+        "manage_ai",
+        "manage_memory",
+        "manage_site",
+        "view_stats"
+      ]
+    },
+    "PermissionSelection": {
+      "type": "array",
+      "description": "无重复，首次创建省略时默认10项全部true；不按文档范围授权",
+      "items": {
+        "$ref": "#/$defs/FunctionPermission",
+        "description": "FunctionPermission"
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true
+    },
+    "Account": {
+      "type": "object",
+      "description": "账户元数据；删除后署名保留，不返hash",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        },
+        "isSuperadmin": {
+          "type": "boolean",
+          "description": "全站唯一；首次注册，永不能删除或停用"
+        },
+        "permissions": {
+          "$ref": "#/$defs/PermissionSelection",
+          "description": "PermissionSelection"
+        },
+        "mustChangePassword": {
+          "type": "boolean",
+          "description": "初始/重置口令登录仅允许改密"
+        },
+        "status": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "active",
+            "disabled",
+            "deleted"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        },
+        "permissionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "立即撤销水位"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "创建"
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "修改"
+        }
+      },
+      "required": [
+        "accountId",
+        "siteId",
+        "accountName",
+        "isSuperadmin",
+        "permissions",
+        "mustChangePassword",
+        "status",
+        "revision",
+        "permissionRevision",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CredentialRecord": {
+      "type": "object",
+      "description": "敏感私有凭据",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "passwordHash": {
+          "type": "string",
+          "description": "Argon2id编码，salt/成本/版本自描述",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "credentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "凭据版本"
+        }
+      },
+      "required": [
+        "accountId",
+        "passwordHash",
+        "credentialRevision"
+      ],
+      "x-internal": true
+    },
+    "Session": {
+      "type": "object",
+      "description": "私有会话元数据",
+      "additionalProperties": false,
+      "properties": {
+        "sessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "credentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "绑定凭据"
+        },
+        "permissionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "权限"
+        },
+        "issuedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "签发"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "15分钟访问"
+        },
+        "absoluteExpiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "最长7天"
+        },
+        "deviceLabel": {
+          "type": "string",
+          "description": "展示设备label，不保存指纹",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "restrictedToPasswordChange": {
+          "type": "boolean",
+          "description": "初始口令限定"
+        },
+        "revokedAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "撤销"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "有效null"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "sessionId",
+        "accountId",
+        "siteId",
+        "credentialRevision",
+        "permissionRevision",
+        "issuedAt",
+        "expiresAt",
+        "absoluteExpiresAt",
+        "deviceLabel",
+        "restrictedToPasswordChange",
+        "revokedAt",
+        "revision"
+      ]
+    },
+    "SessionTokens": {
+      "type": "object",
+      "description": "敏感会话结果",
+      "additionalProperties": false,
+      "properties": {
+        "sessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "session"
+        },
+        "accessToken": {
+          "type": "string",
+          "description": "sid，HttpOnly Secure SameSite=Strict，禁止日志",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "refreshToken": {
+          "type": "string",
+          "description": "单次轮换secret，仅cookieadapter使用",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "csrfToken": {
+          "type": "string",
+          "description": "会话绑定token",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthContext",
+          "description": "AuthContext"
+        },
+        "mustChangePassword": {
+          "type": "boolean",
+          "description": "前端仅改密页"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "期限"
+        }
+      },
+      "required": [
+        "sessionId",
+        "accessToken",
+        "refreshToken",
+        "csrfToken",
+        "auth",
+        "mustChangePassword",
+        "expiresAt"
+      ],
+      "x-internal": true
+    },
+    "AuthorizationRequest": {
+      "type": "object",
+      "description": "授权请求；产品按功能、无文档范围",
+      "additionalProperties": false,
+      "properties": {
+        "subjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已验签证明主体，不能任意伪造"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "会话"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "pure service null"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "permission": {
+          "type": "string",
+          "description": "全局登记技术权限",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "resourceId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "审计资源，不参与文档scope授权"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全站null"
+        },
+        "expectedPermissionRevision": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+              "description": "观察权限版本"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "查最新null"
+        }
+      },
+      "required": [
+        "subjectId",
+        "sessionId",
+        "siteId",
+        "permission",
+        "resourceId",
+        "expectedPermissionRevision"
+      ]
+    },
+    "AuthorizationDecision": {
+      "type": "object",
+      "description": "单次权威授权",
+      "additionalProperties": false,
+      "properties": {
+        "authorized": {
+          "type": "boolean",
+          "description": "允许"
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthContext",
+          "description": "AuthContext"
+        },
+        "evaluatedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前revision"
+        },
+        "reason": {
+          "type": "string",
+          "description": "安全原因",
+          "enum": [
+            "allowed",
+            "missing_function",
+            "superadmin_only",
+            "disabled",
+            "deleted",
+            "session_expired",
+            "must_change_password"
+          ]
+        }
+      },
+      "required": [
+        "authorized",
+        "auth",
+        "evaluatedRevision",
+        "reason"
+      ]
+    },
+    "PortalPreferences": {
+      "type": "object",
+      "description": "自身UI偏好",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "后台主题",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "locale": {
+          "type": "string",
+          "description": "后台语言tag",
+          "minLength": 2,
+          "maxLength": 35
+        },
+        "defaultRoute": {
+          "type": "string",
+          "description": "已授权后台route key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "theme",
+        "locale",
+        "defaultRoute",
+        "revision"
+      ]
+    },
+    "IdentityChanged": {
+      "type": "object",
+      "description": "不含口令/IP的撤销事件",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "permissionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "权限"
+        },
+        "credentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "凭据"
+        },
+        "reason": {
+          "type": "string",
+          "description": "原因",
+          "enum": [
+            "permissions",
+            "status",
+            "password",
+            "server_reset",
+            "restore"
+          ]
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "accountId",
+        "siteId",
+        "permissionRevision",
+        "credentialRevision",
+        "reason",
+        "occurredAt"
+      ]
+    },
+    "AccountIndex": {
+      "type": "object",
+      "description": "identity私有control/account-index.json，不进git；保留服务器查账号功能",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        },
+        "accounts": {
+          "type": "array",
+          "description": "服务器账号查询",
+          "items": {
+            "type": "object",
+            "description": "可读账号索引",
+            "additionalProperties": false,
+            "properties": {
+              "accountId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "ID"
+              },
+              "accountName": {
+                "$ref": "#/$defs/AccountName",
+                "description": "AccountName"
+              },
+              "isSuperadmin": {
+                "type": "boolean",
+                "description": "超管"
+              },
+              "status": {
+                "type": "string",
+                "description": "状态",
+                "enum": [
+                  "active",
+                  "disabled",
+                  "deleted"
+                ]
+              }
+            },
+            "required": [
+              "accountId",
+              "accountName",
+              "isSuperadmin",
+              "status"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "revision",
+        "accounts"
+      ]
+    },
+    "ServerResetCandidate": {
+      "type": "object",
+      "description": "仅私有filewatcher内存，来源control/reset-superadmin.txt",
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "固定路径文件操作ID"
+        },
+        "password": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "fileHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "observedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "发现"
+        }
+      },
+      "required": [
+        "candidateId",
+        "password",
+        "fileHash",
+        "observedAt"
+      ],
+      "x-internal": true
+    },
+    "ReadRegistrationStateInput": {
+      "type": "object",
+      "description": "决定后台显示首次注册或登录的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadRegistrationStateResult": {
+      "type": "object",
+      "description": "决定后台显示首次注册或登录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "registrationOpen": {
+          "type": "boolean",
+          "description": "只有从无任何账户时true"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "site-config状态"
+        },
+        "siteId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "已注册站点"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次null"
+        }
+      },
+      "required": [
+        "registrationOpen",
+        "initialized",
+        "siteId"
+      ]
+    },
+    "RegisterFirstSuperadminInput": {
+      "type": "object",
+      "description": "首个注册账户原子成为唯一超管的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        },
+        "password": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "passwordConfirmation": {
+          "$ref": "#/$defs/Password",
+          "description": "首次注册确认口令，UI新口令输入两遍"
+        }
+      },
+      "required": [
+        "accountName",
+        "password",
+        "passwordConfirmation"
+      ]
+    },
+    "RegisterFirstSuperadminResult": {
+      "type": "object",
+      "description": "首个注册账户原子成为唯一超管的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        },
+        "tokens": {
+          "$ref": "#/$defs/SessionTokens",
+          "description": "SessionTokens"
+        }
+      },
+      "required": [
+        "account",
+        "tokens"
+      ]
+    },
+    "CreateAccountInput": {
+      "type": "object",
+      "description": "超管创建子账号并标记强改的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        },
+        "initialPassword": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "permissions": {
+          "$ref": "#/$defs/PermissionSelection",
+          "description": "PermissionSelection"
+        }
+      },
+      "required": [
+        "accountName",
+        "initialPassword"
+      ]
+    },
+    "CreateAccountResult": {
+      "type": "object",
+      "description": "超管创建子账号并标记强改的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        }
+      },
+      "required": [
+        "account"
+      ]
+    },
+    "ReadSelfInput": {
+      "type": "object",
+      "description": "读取当前账户的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadSelfResult": {
+      "type": "object",
+      "description": "读取当前账户的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        }
+      },
+      "required": [
+        "account"
+      ]
+    },
+    "ListAccountsInput": {
+      "type": "object",
+      "description": "超管读取子账号列表的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "page"
+      ]
+    },
+    "ListAccountsResult": {
+      "type": "object",
+      "description": "超管读取子账号列表的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "description": "页",
+          "items": {
+            "$ref": "#/$defs/Account",
+            "description": "Account"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "accounts",
+        "pageInfo"
+      ]
+    },
+    "SetAccountStatusInput": {
+      "type": "object",
+      "description": "停用/恢复/删除子账号的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "子账号"
+        },
+        "status": {
+          "type": "string",
+          "description": "目标",
+          "enum": [
+            "active",
+            "disabled",
+            "deleted"
+          ]
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "accountId",
+        "status",
+        "expectedRevision"
+      ]
+    },
+    "SetAccountStatusResult": {
+      "type": "object",
+      "description": "停用/恢复/删除子账号的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        }
+      },
+      "required": [
+        "account"
+      ]
+    },
+    "SetAccountPermissionsInput": {
+      "type": "object",
+      "description": "修改10项功能权限的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "子账号"
+        },
+        "permissions": {
+          "$ref": "#/$defs/PermissionSelection",
+          "description": "PermissionSelection"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "accountId",
+        "permissions",
+        "expectedRevision"
+      ]
+    },
+    "SetAccountPermissionsResult": {
+      "type": "object",
+      "description": "修改10项功能权限的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        }
+      },
+      "required": [
+        "account"
+      ]
+    },
+    "ResetAccountPasswordInput": {
+      "type": "object",
+      "description": "超管重置子账号初始口令的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "子账号"
+        },
+        "initialPassword": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "accountId",
+        "initialPassword",
+        "expectedRevision"
+      ]
+    },
+    "ResetAccountPasswordResult": {
+      "type": "object",
+      "description": "超管重置子账号初始口令的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        }
+      },
+      "required": [
+        "account"
+      ]
+    },
+    "NormalizeAccountNameInput": {
+      "type": "object",
+      "description": "规范不可变账号名的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        }
+      },
+      "required": [
+        "accountName"
+      ]
+    },
+    "NormalizeAccountNameResult": {
+      "type": "object",
+      "description": "规范不可变账号名的结果",
+      "additionalProperties": false,
+      "properties": {
+        "normalized": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        }
+      },
+      "required": [
+        "normalized"
+      ]
+    },
+    "AssertSuperadminImmutableInput": {
+      "type": "object",
+      "description": "保护唯一超管永久有效的输入",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        },
+        "requestedStatus": {
+          "type": "string",
+          "description": "拟状态",
+          "enum": [
+            "active",
+            "disabled",
+            "deleted"
+          ]
+        }
+      },
+      "required": [
+        "account",
+        "requestedStatus"
+      ]
+    },
+    "AssertSuperadminImmutableResult": {
+      "type": "object",
+      "description": "保护唯一超管永久有效的结果",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "允许"
+        }
+      },
+      "required": [
+        "allowed"
+      ]
+    },
+    "MapFunctionGrantsInput": {
+      "type": "object",
+      "description": "将已确认功能勾选映射成服务权限的输入",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "$ref": "#/$defs/PermissionSelection",
+          "description": "PermissionSelection"
+        },
+        "isSuperadmin": {
+          "type": "boolean",
+          "description": "仅账户记录决定"
+        }
+      },
+      "required": [
+        "permissions",
+        "isSuperadmin"
+      ]
+    },
+    "MapFunctionGrantsResult": {
+      "type": "object",
+      "description": "将已确认功能勾选映射成服务权限的结果",
+      "additionalProperties": false,
+      "properties": {
+        "grants": {
+          "type": "array",
+          "description": "排序去重",
+          "items": {
+            "type": "string",
+            "description": "全局技术权限",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "grants"
+      ]
+    },
+    "HashPasswordInput": {
+      "type": "object",
+      "description": "生成Argon2id口令哈希的输入",
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        }
+      },
+      "required": [
+        "password"
+      ]
+    },
+    "HashPasswordResult": {
+      "type": "object",
+      "description": "生成Argon2id口令哈希的结果",
+      "additionalProperties": false,
+      "properties": {
+        "encodedHash": {
+          "type": "string",
+          "description": "Argon2id编码",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "encodedHash"
+      ]
+    },
+    "VerifyPasswordInput": {
+      "type": "object",
+      "description": "核对口令的输入",
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "type": "string",
+          "description": "输入口令",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "encodedHash": {
+          "type": "string",
+          "description": "编码hash",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "password",
+        "encodedHash"
+      ]
+    },
+    "VerifyPasswordResult": {
+      "type": "object",
+      "description": "核对口令的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "常量时间核对"
+        },
+        "needsRehash": {
+          "type": "boolean",
+          "description": "旧成本需更新"
+        }
+      },
+      "required": [
+        "valid",
+        "needsRehash"
+      ]
+    },
+    "ValidatePasswordChangeInput": {
+      "type": "object",
+      "description": "验证改密三输入规则的输入",
+      "additionalProperties": false,
+      "properties": {
+        "oldPassword": {
+          "type": "string",
+          "description": "旧口令",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "newPassword": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "confirmation": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        }
+      },
+      "required": [
+        "oldPassword",
+        "newPassword",
+        "confirmation"
+      ]
+    },
+    "ValidatePasswordChangeResult": {
+      "type": "object",
+      "description": "验证改密三输入规则的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "一致且不同于旧值"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "ChangePasswordInput": {
+      "type": "object",
+      "description": "改口令并结束其他设备登录的输入",
+      "additionalProperties": false,
+      "properties": {
+        "oldPassword": {
+          "type": "string",
+          "description": "旧口令",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "newPassword": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "confirmation": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "expectedCredentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "oldPassword",
+        "newPassword",
+        "confirmation",
+        "expectedCredentialRevision"
+      ]
+    },
+    "ChangePasswordResult": {
+      "type": "object",
+      "description": "改口令并结束其他设备登录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account",
+          "description": "Account"
+        },
+        "currentSessionTokens": {
+          "$ref": "#/$defs/SessionTokens",
+          "description": "SessionTokens"
+        }
+      },
+      "required": [
+        "account",
+        "currentSessionTokens"
+      ]
+    },
+    "CreateSessionInput": {
+      "type": "object",
+      "description": "账号名口令登录的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "AccountName"
+        },
+        "password": {
+          "type": "string",
+          "description": "口令，UI仅这两字段",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "accountName",
+        "password"
+      ]
+    },
+    "CreateSessionResult": {
+      "type": "object",
+      "description": "账号名口令登录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "$ref": "#/$defs/SessionTokens",
+          "description": "SessionTokens"
+        }
+      },
+      "required": [
+        "tokens"
+      ]
+    },
+    "IssueSessionTokensInput": {
+      "type": "object",
+      "description": "签发会话和CSRFcookie数据的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/Session",
+          "description": "Session"
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthContext",
+          "description": "AuthContext"
+        }
+      },
+      "required": [
+        "session",
+        "auth"
+      ]
+    },
+    "IssueSessionTokensResult": {
+      "type": "object",
+      "description": "签发会话和CSRFcookie数据的结果",
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "$ref": "#/$defs/SessionTokens",
+          "description": "SessionTokens"
+        }
+      },
+      "required": [
+        "tokens"
+      ]
+    },
+    "RefreshSessionInput": {
+      "type": "object",
+      "description": "内部透明轮换session的输入",
+      "additionalProperties": false,
+      "properties": {
+        "refreshToken": {
+          "type": "string",
+          "description": "cookie内部secret，UI不展示",
+          "minLength": 32,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "refreshToken"
+      ]
+    },
+    "RefreshSessionResult": {
+      "type": "object",
+      "description": "内部透明轮换session的结果",
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "$ref": "#/$defs/SessionTokens",
+          "description": "SessionTokens"
+        }
+      },
+      "required": [
+        "tokens"
+      ]
+    },
+    "ReadSessionsInput": {
+      "type": "object",
+      "description": "读取自身登录设备的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "page"
+      ]
+    },
+    "ReadSessionsResult": {
+      "type": "object",
+      "description": "读取自身登录设备的结果",
+      "additionalProperties": false,
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "description": "自身页",
+          "items": {
+            "$ref": "#/$defs/Session",
+            "description": "Session"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "sessions",
+        "pageInfo"
+      ]
+    },
+    "RevokeSessionInput": {
+      "type": "object",
+      "description": "退出当前或指定自身登录的输入",
+      "additionalProperties": false,
+      "properties": {
+        "sessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "自身session"
+        }
+      },
+      "required": [
+        "sessionId"
+      ]
+    },
+    "RevokeSessionResult": {
+      "type": "object",
+      "description": "退出当前或指定自身登录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "revoked": {
+          "type": "boolean",
+          "description": "撤销"
+        }
+      },
+      "required": [
+        "revoked"
+      ]
+    },
+    "RevokeSessionFamilyInput": {
+      "type": "object",
+      "description": "使refresh族全部失效的输入",
+      "additionalProperties": false,
+      "properties": {
+        "familyId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "私有族"
+        },
+        "reason": {
+          "type": "string",
+          "description": "原因",
+          "enum": [
+            "logout",
+            "refresh_reuse",
+            "password",
+            "disabled",
+            "deleted",
+            "restore"
+          ]
+        }
+      },
+      "required": [
+        "familyId",
+        "reason"
+      ]
+    },
+    "RevokeSessionFamilyResult": {
+      "type": "object",
+      "description": "使refresh族全部失效的结果",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "数量",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "count"
+      ]
+    },
+    "RevokeAllSessionsInput": {
+      "type": "object",
+      "description": "立即失效账户全部登录的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "reason": {
+          "type": "string",
+          "description": "原因",
+          "enum": [
+            "disabled",
+            "deleted",
+            "admin_reset",
+            "server_reset",
+            "restore"
+          ]
+        }
+      },
+      "required": [
+        "accountId",
+        "reason"
+      ]
+    },
+    "RevokeAllSessionsResult": {
+      "type": "object",
+      "description": "立即失效账户全部登录的结果",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "数量",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "count"
+      ]
+    },
+    "RevokeOtherSessionsInput": {
+      "type": "object",
+      "description": "改密后只保留当前设备的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账户"
+        },
+        "keepSessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前会话"
+        }
+      },
+      "required": [
+        "accountId",
+        "keepSessionId"
+      ]
+    },
+    "RevokeOtherSessionsResult": {
+      "type": "object",
+      "description": "改密后只保留当前设备的结果",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "数量",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "count"
+      ]
+    },
+    "VerifySessionCSRFInput": {
+      "type": "object",
+      "description": "portal内部核对CSRF的输入",
+      "additionalProperties": false,
+      "properties": {
+        "sessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "session"
+        },
+        "csrfToken": {
+          "type": "string",
+          "description": "敏感token",
+          "minLength": 32,
+          "maxLength": 2048
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "sessionId",
+        "csrfToken",
+        "origin"
+      ]
+    },
+    "VerifySessionCSRFResult": {
+      "type": "object",
+      "description": "portal内部核对CSRF的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "通过"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "期限"
+        }
+      },
+      "required": [
+        "valid",
+        "expiresAt"
+      ]
+    },
+    "ReadPreferencesInput": {
+      "type": "object",
+      "description": "读自身后台偏好的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadPreferencesResult": {
+      "type": "object",
+      "description": "读自身后台偏好的结果",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "preferences"
+      ]
+    },
+    "UpdatePreferencesInput": {
+      "type": "object",
+      "description": "保存自身主题/语言/默认后台页的输入",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "preferences",
+        "expectedRevision"
+      ]
+    },
+    "UpdatePreferencesResult": {
+      "type": "object",
+      "description": "保存自身主题/语言/默认后台页的结果",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "preferences"
+      ]
+    },
+    "ReadServerAccountIndexInput": {
+      "type": "object",
+      "description": "服务器运维查明文账号索引的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadServerAccountIndexResult": {
+      "type": "object",
+      "description": "服务器运维查明文账号索引的结果",
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/AccountIndex",
+          "description": "AccountIndex"
+        }
+      },
+      "required": [
+        "index"
+      ]
+    },
+    "WriteAccountIndexInput": {
+      "type": "object",
+      "description": "维持服务器查账号能力的输入",
+      "additionalProperties": false,
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "description": "当前权威metadata",
+          "items": {
+            "$ref": "#/$defs/Account",
+            "description": "Account"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "水位"
+        }
+      },
+      "required": [
+        "accounts",
+        "revision"
+      ]
+    },
+    "WriteAccountIndexResult": {
+      "type": "object",
+      "description": "维持服务器查账号能力的结果",
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/AccountIndex",
+          "description": "AccountIndex"
+        }
+      },
+      "required": [
+        "index"
+      ]
+    },
+    "ObserveSuperadminResetFileInput": {
+      "type": "object",
+      "description": "检测服务器超管重置文件的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ObserveSuperadminResetFileResult": {
+      "type": "object",
+      "description": "检测服务器超管重置文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServerResetCandidate",
+              "description": "ServerResetCandidate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "固定reset文件不存在null"
+        }
+      },
+      "required": [
+        "candidate"
+      ]
+    },
+    "ApplySuperadminResetInput": {
+      "type": "object",
+      "description": "用服务器文件恢复唯一超管口令的输入",
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/ServerResetCandidate",
+          "description": "ServerResetCandidate"
+        }
+      },
+      "required": [
+        "candidate"
+      ]
+    },
+    "ApplySuperadminResetResult": {
+      "type": "object",
+      "description": "用服务器文件恢复唯一超管口令的结果",
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "type": "boolean",
+          "description": "重置完成"
+        }
+      },
+      "required": [
+        "completed"
+      ]
+    },
+    "IssueRecoveryAuthorizationInput": {
+      "type": "object",
+      "description": "超管批准后签发有限恢复许可的输入",
+      "additionalProperties": false,
+      "properties": {
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复"
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "屏障"
+        },
+        "oldDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前"
+        },
+        "targetDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标"
+        },
+        "audiences": {
+          "type": "array",
+          "description": "许可域",
+          "items": {
+            "type": "string",
+            "description": "已注册module",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 15
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "审批期限≤2小时"
+        },
+        "currentPassword": {
+          "type": "string",
+          "description": "当前超管口令",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "restoreId",
+        "barrierId",
+        "oldDataEpoch",
+        "targetDataEpoch",
+        "audiences",
+        "expiresAt",
+        "currentPassword"
+      ]
+    },
+    "IssueRecoveryAuthorizationResult": {
+      "type": "object",
+      "description": "超管批准后签发有限恢复许可的结果",
+      "additionalProperties": false,
+      "properties": {
+        "authorization": {
+          "$ref": "#/$defs/RecoveryAuthorization",
+          "description": "RecoveryAuthorization"
+        }
+      },
+      "required": [
+        "authorization"
+      ]
+    },
+    "ValidateRecoveryAuthorizationInput": {
+      "type": "object",
+      "description": "本地验证不会被identity换代阻断的恢复许可的输入",
+      "additionalProperties": false,
+      "properties": {
+        "authorization": {
+          "$ref": "#/$defs/RecoveryAuthorization",
+          "description": "RecoveryAuthorization"
+        },
+        "audience": {
+          "type": "string",
+          "description": "当前域",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "action": {
+          "type": "string",
+          "description": "快照/屏障/runtime控制operationId",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复"
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "屏障"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前或目标"
+        }
+      },
+      "required": [
+        "authorization",
+        "audience",
+        "action",
+        "restoreId",
+        "barrierId",
+        "dataEpoch"
+      ]
+    },
+    "ValidateRecoveryAuthorizationResult": {
+      "type": "object",
+      "description": "本地验证不会被identity换代阻断的恢复许可的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "允许此控制动作"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "RevokeRecoveryAuthorizationInput": {
+      "type": "object",
+      "description": "撤销尚未完成的恢复许可的输入",
+      "additionalProperties": false,
+      "properties": {
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "控制批准revision"
+        }
+      },
+      "required": [
+        "restoreId",
+        "expectedRevision"
+      ]
+    },
+    "RevokeRecoveryAuthorizationResult": {
+      "type": "object",
+      "description": "撤销尚未完成的恢复许可的结果",
+      "additionalProperties": false,
+      "properties": {
+        "revoked": {
+          "type": "boolean",
+          "description": "已撤销"
+        }
+      },
+      "required": [
+        "revoked"
+      ]
+    },
+    "ResolveIdentityOperationInput": {
+      "type": "object",
+      "description": "读取幂等回执的输入",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "ID"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "operationId",
+        "requestHash"
+      ]
+    },
+    "ResolveIdentityOperationResult": {
+      "type": "object",
+      "description": "读取幂等回执的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "absent",
+            "in_progress",
+            "committed"
+          ]
+        },
+        "resultHash": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+              "description": "Hash"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未提交null"
+        }
+      },
+      "required": [
+        "state",
+        "resultHash"
+      ]
+    },
+    "PublishIdentityEventInput": {
+      "type": "object",
+      "description": "与身份提交原子登记事件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/IdentityChanged",
+          "description": "IdentityChanged"
+        },
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "ID"
+        }
+      },
+      "required": [
+        "event",
+        "eventId"
+      ]
+    },
+    "PublishIdentityEventResult": {
+      "type": "object",
+      "description": "与身份提交原子登记事件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "queued": {
+          "type": "boolean",
+          "description": "入队"
+        }
+      },
+      "required": [
+        "queued"
+      ]
+    },
+    "InvalidateRestoredSessionsInput": {
+      "type": "object",
+      "description": "恢复数据后使备份登录失效的输入",
+      "additionalProperties": false,
+      "properties": {
+        "targetDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "目标"
+        }
+      },
+      "required": [
+        "targetDataEpoch"
+      ]
+    },
+    "InvalidateRestoredSessionsResult": {
+      "type": "object",
+      "description": "恢复数据后使备份登录失效的结果",
+      "additionalProperties": false,
+      "properties": {
+        "invalidatedCount": {
+          "type": "integer",
+          "description": "数量",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "newAuthEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "新auth epoch"
+        }
+      },
+      "required": [
+        "invalidatedCount",
+        "newAuthEpoch"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的输入",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前屏障"
+        },
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "barrierId",
+        "expectedEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "BarrierStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "releaseBarrierRequest": {
+      "type": "object",
+      "description": "释放屏障请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "expectedEpoch"
+      ]
+    },
+    "setAccountStatusRequest": {
+      "type": "object",
+      "description": "停用/恢复/删除子账号请求体",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "目标",
+          "enum": [
+            "active",
+            "disabled",
+            "deleted"
+          ]
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "status",
+        "expectedRevision"
+      ]
+    },
+    "setAccountPermissionsRequest": {
+      "type": "object",
+      "description": "修改10项功能权限请求体",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "$ref": "#/$defs/PermissionSelection",
+          "description": "PermissionSelection"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "permissions",
+        "expectedRevision"
+      ]
+    },
+    "resetAccountPasswordRequest": {
+      "type": "object",
+      "description": "超管重置子账号初始口令请求体",
+      "additionalProperties": false,
+      "properties": {
+        "initialPassword": {
+          "$ref": "#/$defs/Password",
+          "description": "Password"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "initialPassword",
+        "expectedRevision"
+      ]
+    },
+    "revokeSessionRequest": {
+      "type": "object",
+      "description": "退出当前或指定自身登录请求体",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "revokeRecoveryAuthorizationRequest": {
+      "type": "object",
+      "description": "撤销尚未完成的恢复许可请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "控制批准revision"
+        }
+      },
+      "required": [
+        "expectedRevision"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "identity",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "identity",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

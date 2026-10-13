@@ -1,0 +1,42 @@
+{
+  "module": "content",
+  "version": 1,
+  "events": [
+    {
+      "name": "content.publication.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/PublicationChangedPayload"
+      },
+      "purpose": "渲染/索引/翻译/历史镜像读取不可变精确ref",
+      "delivery": "at-least-once",
+      "ordering": "documentId revision/visibilityRevision单调",
+      "idempotency": "eventId与sourceRef去重"
+    },
+    {
+      "name": "content.publication.withdrawn",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/PublicationWithdrawnPayload"
+      },
+      "purpose": "失效所有派生公开缓存；同步validate仍是最终权威",
+      "delivery": "at-least-once",
+      "ordering": "visibilityRevision高优先；低版本不能复活",
+      "idempotency": "eventId去重"
+    },
+    {
+      "name": "content.resources.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/ResourceReferencesChangedPayload"
+      },
+      "purpose": "资源库当前/历史引用快照与迟到清理保护",
+      "delivery": "at-least-once",
+      "ordering": "documentId sourceRevision单调",
+      "idempotency": "eventId+sourceVersion去重"
+    }
+  ]
+}

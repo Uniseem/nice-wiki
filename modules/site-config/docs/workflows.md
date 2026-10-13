@@ -1,0 +1,11 @@
+# 生命周期与工作流
+
+初始化 uninitialized→preparing→config_committed→completed；持久commit后恢复完成或blocked。单条banner enabled/timewindow决定是否可见，无额外富文公告产品。runtime running→draining→preparing→activating→running，任一未激活保持维护。
+
+初始化只需已登录唯一超管填写站点名和基准语言，默认中文zh-Hans。publicBaseURL/部署参数来自受控环境，AI不配置不探测不调用。写config权威文件与决定日志，再initialized完成。
+
+UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted loop playsinline、图片preload，prefers-reduced-motion视频只poster。UpdateBanner保存唯一公告文字/安全链接/起止时间，文字进localization；前端关闭只localStorage。
+
+15域恢复使用审批专用RecoveryAuthorization，本地域控制记录/信任锚不被快照覆盖。全部签名committed同targetEpoch才退出维护；rollback全部旧epoch确认才恢复正常。
+
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位，prepare 不修改活动数据，commit/rollback 都有持久决定日志。

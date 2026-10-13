@@ -1,0 +1,90 @@
+{
+  "module": "memory",
+  "version": 1,
+  "events": [
+    {
+      "name": "memory.entry.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventMemoryEntryChangedPayload"
+      },
+      "purpose": "发布memory.entry.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "memory.context.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventMemoryContextChangedPayload"
+      },
+      "purpose": "发布memory.context.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "memory.proposal.approved",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventMemoryProposalApprovedPayload"
+      },
+      "purpose": "发布memory.proposal.approved对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "memory.proposal.applied",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventMemoryProposalAppliedPayload"
+      },
+      "purpose": "发布memory.proposal.applied对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "memory.proposal.conflicted",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventMemoryProposalConflictedPayload"
+      },
+      "purpose": "发布memory.proposal.conflicted对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "glossary.proposal.applied",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../localization/contracts/types.json#/$defs/EventGlossaryProposalAppliedPayload"
+      },
+      "purpose": "消费glossary.proposal.applied执行本域失效/任务/批准回执；不同步反向请求生产方。",
+      "delivery": "at-least-once",
+      "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+    },
+    {
+      "name": "glossary.proposal.rejected",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../localization/contracts/types.json#/$defs/EventGlossaryProposalRejectedPayload"
+      },
+      "purpose": "消费glossary.proposal.rejected执行本域失效/任务/批准回执；不同步反向请求生产方。",
+      "delivery": "at-least-once",
+      "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+    }
+  ]
+}

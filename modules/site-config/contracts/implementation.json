@@ -1,0 +1,3879 @@
+{
+  "moduleId": "M03",
+  "module": "site-config",
+  "version": 1,
+  "phase": "design",
+  "requirements": [
+    {
+      "id": "M03-R01",
+      "description": "D55首超管后两步初始化无需AI",
+      "acceptance": "无渠道/密钥/模型/探测仍完成站名/默认zh-Hans语言并创建编辑预览发布"
+    },
+    {
+      "id": "M03-R02",
+      "description": "D17一屏完整hero",
+      "acceptance": "主副标题、Welcome To可选翻译、0–3按钮、纯色/图/动图/视频、遮罩、浅深文字，首页无其他内容"
+    },
+    {
+      "id": "M03-R03",
+      "description": "D34可关闭单条横幅",
+      "acceptance": "文本/链接/时间窗可设置且翻译，bannerId localStorage关闭同条不再显示，不用cookie"
+    },
+    {
+      "id": "M03-R04",
+      "description": "站点品牌与页脚",
+      "acceptance": "站名logo图标主题色默认分享图，版权/链接/ICP/默认源码链接完整可设置"
+    },
+    {
+      "id": "M03-R05",
+      "description": "D16设置文件权威及历史回滚",
+      "acceptance": "不含secret的settings不可变文件可镜像git；恢复/回滚不共享可写目录"
+    },
+    {
+      "id": "M03-R06",
+      "description": "恢复维护唯一权威",
+      "acceptance": "control不被业务导入覆盖，15域签名激活未完整不得退出维护"
+    },
+    {
+      "id": "M03-R901",
+      "description": "本域独立Go module、main入口、完整依赖装配、HTTP/worker生命周期、镜像/manifest及既有UI独立构建；健康和就绪不调用模型。",
+      "acceptance": "未来分别从本域目录构建/启动，验证所有登记handler均装配、Health/Ready语义及安全关闭；当前未实现、未执行。"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "identity",
+      "mode": "sync",
+      "purpose": "首注册已生成唯一superadmin/siteId；权限验证",
+      "failurePolicy": "未注册不能初始化，写入关闭"
+    },
+    {
+      "module": "content",
+      "mode": "sync",
+      "purpose": "首页文档当前发布引用及可见性",
+      "failurePolicy": "未知/撤回引用不公开"
+    },
+    {
+      "module": "media",
+      "mode": "sync",
+      "purpose": "首页ready资源与引用pin",
+      "failurePolicy": "引用不确定禁止写入/清理"
+    },
+    {
+      "module": "jobs",
+      "mode": "event",
+      "purpose": "公告计划与配置事件",
+      "failurePolicy": "保留outbox；时间窗和撤回仍由权威同步判断"
+    }
+  ],
+  "files": [
+    {
+      "path": "modules/site-config/internal/config_service.go",
+      "kind": "handwritten",
+      "purpose": "读取后台站点配置",
+      "functions": [
+        {
+          "id": "site-config.ReadSiteConfig",
+          "name": "ReadSiteConfig",
+          "signature": "func ReadSiteConfig(ctx RequestContext, input ReadSiteConfigInput) (ReadSiteConfigResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadSiteConfigInput",
+              "description": "读取后台站点配置的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadSiteConfigResult",
+              "description": "读取后台站点配置的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "读取后台站点配置",
+          "steps": [
+            "核对site.read或注册内部调用服务",
+            "读取当前已提交配置一致快照",
+            "不返回初始化capability、秘密或控制库签名key"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "site.read 或 service:portal/public-site/content/media/localization/identity",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.UpdateSiteConfig",
+          "name": "UpdateSiteConfig",
+          "signature": "func UpdateSiteConfig(ctx RequestContext, input UpdateSiteConfigInput) (UpdateSiteConfigResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateSiteConfigInput",
+              "description": "更新站点常规配置的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateSiteConfigResult",
+              "description": "更新站点常规配置的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "更新站点常规配置",
+          "steps": [
+            "CheckWriteEpoch与site.manage，baseLanguage/initialized/epoch禁止patch",
+            "ValidateSiteConfig后WriteConfigRevision",
+            "CommitConfigHead CAS提交权威文件；发ConfigChanged翻译与data git镜像"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.CheckWriteEpoch",
+            "site-config.ValidateSiteConfig",
+            "site-config.WriteConfigRevision",
+            "site-config.CommitConfigHead"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/config_validator.go",
+      "kind": "handwritten",
+      "purpose": "校验配置所有字段和关联约束",
+      "functions": [
+        {
+          "id": "site-config.ValidateSiteConfig",
+          "name": "ValidateSiteConfig",
+          "signature": "func ValidateSiteConfig(input ValidateSiteConfigInput) (ValidateSiteConfigResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "ValidateSiteConfigInput",
+              "description": "校验配置所有字段和关联约束的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateSiteConfigResult",
+              "description": "校验配置所有字段和关联约束的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "UNSUPPORTED_CAPABILITY: 当前依赖不提供声明的必需能力"
+              ]
+            }
+          ],
+          "purpose": "校验配置所有字段和关联约束",
+          "steps": [
+            "核SiteConfig完整schema；不含email/MFA/invitation等新增产品policy",
+            "baseLanguage只初始化选择并且SiteConfig对象维持不可变source含义",
+            "品牌颜色/资源/hero/footer/banner完整验证，模板只title/site与安全URL"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "当前依赖不提供声明的必需能力",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": [
+            "site-config.NormalizeBaseURL",
+            "site-config.ValidateLanguageTag",
+            "site-config.ValidateHomeLinks"
+          ]
+        },
+        {
+          "id": "site-config.NormalizeBaseURL",
+          "name": "NormalizeBaseURL",
+          "signature": "func NormalizeBaseURL(input NormalizeBaseURLInput) (NormalizeBaseURLResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "NormalizeBaseURLInput",
+              "description": "规范公开站点地址的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "NormalizeBaseURLResult",
+              "description": "规范公开站点地址的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值"
+              ]
+            }
+          ],
+          "purpose": "规范公开站点地址",
+          "steps": [
+            "解析绝对URL",
+            "禁止userinfo、query、fragment、控制字符与非允许scheme",
+            "host IDNA规范，去尾斜杠，保留部署允许的basePath"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/language_service.go",
+      "kind": "handwritten",
+      "purpose": "规范基准语言 tag",
+      "functions": [
+        {
+          "id": "site-config.ValidateLanguageTag",
+          "name": "ValidateLanguageTag",
+          "signature": "func ValidateLanguageTag(input ValidateLanguageTagInput) (ValidateLanguageTagResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "ValidateLanguageTagInput",
+              "description": "规范基准语言 tag的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateLanguageTagResult",
+              "description": "规范基准语言 tag的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值"
+              ]
+            }
+          ],
+          "purpose": "规范基准语言 tag",
+          "steps": [
+            "按BCP47语法解析",
+            "规范语言/脚本/区域大小写并拒绝重复子tag",
+            "不访问模型、不根据翻译供应方限制基准语言"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/home_service.go",
+      "kind": "handwritten",
+      "purpose": "配置首页介绍、卡片和精选文档",
+      "functions": [
+        {
+          "id": "site-config.UpdateHome",
+          "name": "UpdateHome",
+          "signature": "func UpdateHome(ctx RequestContext, input UpdateHomeInput) (UpdateHomeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateHomeInput",
+              "description": "配置首页介绍、卡片和精选文档的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateHomeResult",
+              "description": "配置首页介绍、卡片和精选文档的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "配置首页介绍、卡片和精选文档",
+          "steps": [
+            "校验一屏hero全部属性、0–3按钮目标、背景种类/遮罩/文字颜色",
+            "验证ready资源并获取引用pin；视频必须poster且浏览器muted/autoplay/loop/playsinline，reduced-motion只poster",
+            "CAS写不可变config文件和home revision，confirm pins、发翻译/历史镜像事件；失败release未提交pin"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.ValidateHomeLinks",
+            "media:acquireResourceReferences",
+            "media:confirmResourceReferences",
+            "media:releaseResourceReferences"
+          ]
+        },
+        {
+          "id": "site-config.ReadPublicHome",
+          "name": "ReadPublicHome",
+          "signature": "func ReadPublicHome(ctx RequestContext, input ReadPublicHomeInput) (ReadPublicHomeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadPublicHomeInput",
+              "description": "读取可公开的首页配置的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadPublicHomeResult",
+              "description": "读取可公开的首页配置的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "读取可公开的首页配置",
+          "steps": [
+            "initialized=true读取权威HomeConfig及公开站点品牌/footer/banner摘要",
+            "站内按钮存docId解析当前语言；不可见目标禁用，AI未配置禁用问问AI但hero正常",
+            "public-site直接Go模板输出全屏hero，背景图预加载，减少动态效果仅视频poster，不返回private配置"
+          ],
+          "errors": [
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "anonymous 或 service:public-site",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": [
+            "content:validatePublications"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/home_validator.go",
+      "kind": "handwritten",
+      "purpose": "验证首页目标与引用",
+      "functions": [
+        {
+          "id": "site-config.ValidateHomeLinks",
+          "name": "ValidateHomeLinks",
+          "signature": "func ValidateHomeLinks(ctx RequestContext, input ValidateHomeLinksInput) (ValidateHomeLinksResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ValidateHomeLinksInput",
+              "description": "验证首页目标与引用的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateHomeLinksResult",
+              "description": "验证首页目标与引用的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "校验hero按钮/背景和品牌资源",
+          "steps": [
+            "buttons最多3且ID不重复；document/qa/external判别字段严格校验",
+            "站内docId查询当前发布引用；外链允许http/https/mailto并拒绝javascript/userinfo",
+            "背景image/animation/video资源类型匹配，video有poster，遮罩0–100与textColor枚举"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "site.manage",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读校验",
+          "dependencies": [
+            "content:readPublishedRevision",
+            "media:readAsset"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/runtime_state_service.go",
+      "kind": "handwritten",
+      "purpose": "读取独立控制库权威运行状态",
+      "functions": [
+        {
+          "id": "site-config.ReadRuntimeState",
+          "name": "ReadRuntimeState",
+          "signature": "func ReadRuntimeState(ctx RequestContext, input ReadRuntimeStateInput) (ReadRuntimeStateResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadRuntimeStateInput",
+              "description": "读取独立控制库权威运行状态的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadRuntimeStateResult",
+              "description": "读取独立控制库权威运行状态的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+              ]
+            }
+          ],
+          "purpose": "读取独立控制库权威运行状态",
+          "steps": [
+            "只读control.db当前revision",
+            "校验dataEpoch与phase维护布尔不矛盾",
+            "返回签名可见状态，不公开恢复许可/信任密钥"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "service 或 system.manage；入口公开仅返回maintenance布尔经portal",
+          "concurrency": "控制库快照；不受业务恢复导入影响",
+          "idempotency": "只读",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "kind": "handwritten",
+      "purpose": "按CAS切换epoch与维护阶段",
+      "functions": [
+        {
+          "id": "site-config.TransitionRuntimeState",
+          "name": "TransitionRuntimeState",
+          "signature": "func TransitionRuntimeState(ctx RequestContext, input RuntimeTransition) (TransitionRuntimeStateResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RuntimeTransition",
+              "description": "按CAS切换epoch与维护阶段的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "TransitionRuntimeStateResult",
+              "description": "按CAS切换epoch与维护阶段的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "按CAS切换epoch与维护阶段",
+          "steps": [
+            "校验system.manage近期step-up或专用RecoveryAuthorization的action/audience/旧新epoch",
+            "ValidateRuntimeTransition检查当前phase与expectedRevision",
+            "control.db事务落持久迁移决定；complete_restore仅全部模块签名committed到目标epoch后才切dataEpoch并phase=running"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "独立control.db运行状态和决定日志"
+          ],
+          "authorization": "system.manage + superadmin批准；恢复协调由service:data-protection携专用恢复许可",
+          "concurrency": "控制库全局单写事务；不能从导入快照覆盖runtimeState",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.ValidateRuntimeTransition"
+          ]
+        },
+        {
+          "id": "site-config.ValidateRuntimeTransition",
+          "name": "ValidateRuntimeTransition",
+          "signature": "func ValidateRuntimeTransition(input ValidateRuntimeTransitionInput) (ValidateRuntimeTransitionResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "ValidateRuntimeTransitionInput",
+              "description": "验证维护与恢复状态迁移矩阵的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateRuntimeTransitionResult",
+              "description": "验证维护与恢复状态迁移矩阵的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+              ]
+            }
+          ],
+          "purpose": "验证维护与恢复状态迁移矩阵",
+          "steps": [
+            "running仅begin_backup/begin_restore；restore_draining仅begin_prepare/mark_blocked",
+            "preparing仅在所有prepared回执后begin_activation；activating可complete_restore/begin_rollback/mark_blocked",
+            "complete_restore要求15域epoch完全一致committed；complete_rollback要求全部rolled-back旧epoch；禁止未知、跳阶段或自行关维护"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数，外层必须验证专用恢复许可",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.RegisterActivation",
+          "name": "RegisterActivation",
+          "signature": "func RegisterActivation(ctx RequestContext, input RegisterActivationInput) (RegisterActivationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RegisterActivationInput",
+              "description": "登记域恢复激活签名回执的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RegisterActivationResult",
+              "description": "登记域恢复激活签名回执的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "STALE_RESULT: 事件/计算针对已过期源版本，拒绝覆盖新状态",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+              ]
+            }
+          ],
+          "purpose": "登记域恢复激活签名回执",
+          "steps": [
+            "mTLS caller必须与receipt.module一致且专用许可允许该模块",
+            "校验签名、stage、restoreId和target epoch；低状态不得覆盖高状态",
+            "control.db事务upsert回执和revision；data-protection不能替任何域伪造ready"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "when": "事件/计算针对已过期源版本，拒绝覆盖新状态",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "control.db激活回执"
+          ],
+          "authorization": "service：对应域 + restore专用许可",
+          "concurrency": "(restoreId,module)唯一键；多个域可并发但revision CAS串行",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/write_epoch.go",
+      "kind": "handwritten",
+      "purpose": "所有业务写入执行epoch与屏障检查",
+      "functions": [
+        {
+          "id": "site-config.CheckWriteEpoch",
+          "name": "CheckWriteEpoch",
+          "signature": "func CheckWriteEpoch(ctx RequestContext, input CheckWriteEpochInput) (CheckWriteEpochResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "CheckWriteEpochInput",
+              "description": "所有业务写入执行epoch与屏障检查的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CheckWriteEpochResult",
+              "description": "所有业务写入执行epoch与屏障检查的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "所有业务写入执行epoch与屏障检查",
+          "steps": [
+            "读control.db当前phase/dataEpoch",
+            "非running或本域barrier非released返回LOCKED",
+            "epoch不等返回VERSION_MISMATCH；检查在业务txn登记与控制gate同互斥区"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "私有业务写入入口",
+          "concurrency": "与屏障登记及事务计数共享gate",
+          "idempotency": "只读判定",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/initialization_service.go",
+      "kind": "handwritten",
+      "purpose": "无需AI完成首站点初始化",
+      "functions": [
+        {
+          "id": "site-config.InitializeSite",
+          "name": "InitializeSite",
+          "signature": "func InitializeSite(ctx RequestContext, input InitializeSiteInput) (InitializeSiteResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "InitializeSiteInput",
+              "description": "无需AI完成首站点初始化的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "InitializeSiteResult",
+              "description": "无需AI完成首站点初始化的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "无需AI完成首站点初始化",
+          "steps": [
+            "要求已注册唯一超管session；siteId取context，禁止匿名请求重开注册，不要初始化码",
+            "仅站点名和基准语言（默认zh-Hans），PrepareDefaultConfig；无渠道/密钥/模型/档位/探测/调用",
+            "持久commit决定后写配置权威文件、默认hero/footer，再initialized=true；中断由同operationId恢复"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "非唯一超管或未注册会话",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本服务初始化决定与权威站点配置文件；不创建第二owner"
+          ],
+          "authorization": "superadmin；已完成identity首注册，向导只有站点/基准语言两步",
+          "concurrency": "全站初始化唯一锁；相同operationId继续原阶段，不生成第二site",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.PrepareDefaultConfig",
+            "site-config.PersistInitializationDecision",
+            "site-config.ResumeInitialization"
+          ]
+        },
+        {
+          "id": "site-config.ReadInitializationStatus",
+          "name": "ReadInitializationStatus",
+          "signature": "func ReadInitializationStatus(ctx RequestContext, input ReadInitializationStatusInput) (ReadInitializationStatusResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadInitializationStatusInput",
+              "description": "读取安全初始化阶段的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadInitializationStatusResult",
+              "description": "读取安全初始化阶段的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "读取安全初始化阶段",
+          "steps": [
+            "未初始化返回仅phase和安全错误",
+            "内部identity/site-config按operationId读取持久决定",
+            "不返回ownerEmail/password/capability"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "anonymous仅安全initialized/phase；superadmin或注册service读协调字段",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.ResumeInitialization",
+          "name": "ResumeInitialization",
+          "signature": "func ResumeInitialization(ctx RequestContext, input ResumeInitializationInput) (ResumeInitializationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ResumeInitializationInput",
+              "description": "恢复崩溃或依赖断开的初始化阶段的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ResumeInitializationResult",
+              "description": "恢复崩溃或依赖断开的初始化阶段的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用"
+              ]
+            }
+          ],
+          "purpose": "恢复崩溃或依赖断开的初始化阶段",
+          "steps": [
+            "读取本服务初始化持久decision与config文件stage",
+            "commit按journal幂等提交config/hero/footer并完成initialized；不调用identity owner准备",
+            "未知文件结果按hash与COMMITTEDjournal恢复；失败blocked，不要求保存密码"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "service:site-config受控启动或site.manage",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.PersistInitializationDecision",
+            "site-config.RecoverAnnouncementJournal"
+          ]
+        },
+        {
+          "id": "site-config.AbortInitialization",
+          "name": "AbortInitialization",
+          "signature": "func AbortInitialization(ctx RequestContext, input AbortInitializationInput) (AbortInitializationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "AbortInitializationInput",
+              "description": "取消尚未持久commit的初始化的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "AbortInitializationResult",
+              "description": "取消尚未持久commit的初始化的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "取消尚未持久commit的初始化",
+          "steps": [
+            "commit决定存在则不能abort，继续恢复完成",
+            "尚未提交则写abort决定并清本服务config临时stage",
+            "不删除唯一超管、不开第二次注册"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "sealed初始化capability持有人或superadmin恢复许可",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.PersistInitializationDecision"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/initialization_defaults.go",
+      "kind": "handwritten",
+      "purpose": "确定性生成首次基础配置",
+      "functions": [
+        {
+          "id": "site-config.PrepareDefaultConfig",
+          "name": "PrepareDefaultConfig",
+          "signature": "func PrepareDefaultConfig(input PrepareDefaultConfigInput) (PrepareDefaultConfigResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "PrepareDefaultConfigInput",
+              "description": "确定性生成首次基础配置的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PrepareDefaultConfigResult",
+              "description": "确定性生成首次基础配置的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值"
+              ]
+            }
+          ],
+          "purpose": "确定性生成首次基础配置",
+          "steps": [
+            "设置baseLanguage默认zh-Hans、站名为mainTitle、backgroundText=Welcome To且translate=false",
+            "首页只hero一屏，0–3按钮；默认纯色背景/遮罩/浅深文字；默认footer源代码链接",
+            "不制造示例文档、假渠道或调用模型，initialized=false等待持久配置提交"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": [
+            "site-config.ValidateLanguageTag"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/initialization_repository.go",
+      "kind": "handwritten",
+      "purpose": "持久化不可反悔的初始化决定",
+      "functions": [
+        {
+          "id": "site-config.PersistInitializationDecision",
+          "name": "PersistInitializationDecision",
+          "signature": "func PersistInitializationDecision(ctx RequestContext, input PersistInitializationDecisionInput) (PersistInitializationDecisionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "PersistInitializationDecisionInput",
+              "description": "持久化不可反悔的初始化决定的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PersistInitializationDecisionResult",
+              "description": "持久化不可反悔的初始化决定的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "持久化不可反悔的初始化决定",
+          "steps": [
+            "锁operationId初始化record",
+            "要求prepare阶段完整才commit；commit后不能改abort",
+            "私有事务落决定与stage引用并fsync，再执行外部后续动作"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有初始化决定日志"
+          ],
+          "authorization": "site-config 私有协调",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "同决定重复返回原版本；不同终局决定CONFLICT",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/announcement_validator.go",
+      "kind": "handwritten",
+      "purpose": "校验公告纯文本正文并规范序列化",
+      "functions": [
+        {
+          "id": "site-config.ValidateAnnouncementBody",
+          "name": "ValidateAnnouncementBody",
+          "signature": "func ValidateAnnouncementBody(input ValidateAnnouncementBodyInput) (ValidateAnnouncementBodyResult, error)",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "ValidateAnnouncementBodyInput",
+              "description": "校验公告纯文本正文并规范序列化的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateAnnouncementBodyResult",
+              "description": "校验公告纯文本正文并规范序列化的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "UNSUPPORTED_SCHEMA: 版本或块 schema 不受支持；禁止静默丢弃未知属性"
+              ]
+            }
+          ],
+          "purpose": "校验公告纯文本正文并规范序列化",
+          "steps": [
+            "schemaVersion=1，正文只有text和linkTarget，严格拒绝unknown",
+            "text会翻译；safe URL只http/https/mailto或docId，禁任意HTML",
+            "canonicalJSON与稳定bannerId计算hash"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "版本或块 schema 不受支持；禁止静默丢弃未知属性",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数",
+          "concurrency": "纯函数，输入视为不可变；可以并发调用",
+          "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/announcement_files.go",
+      "kind": "handwritten",
+      "purpose": "持久写不可变公告正文文件",
+      "functions": [
+        {
+          "id": "site-config.WriteAnnouncementRevision",
+          "name": "WriteAnnouncementRevision",
+          "signature": "func WriteAnnouncementRevision(ctx RequestContext, input WriteAnnouncementRevisionInput) (WriteAnnouncementRevisionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "WriteAnnouncementRevisionInput",
+              "description": "持久写不可变公告正文文件的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "WriteAnnouncementRevisionResult",
+              "description": "持久写不可变公告正文文件的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "持久写不可变公告正文文件",
+          "steps": [
+            "服务生成site/announcement/revision路径，不接受用户path",
+            "同文件系统写临时文件、fsync、原子rename并fsync父目录",
+            "hash已存在同值返回；同revision异hashINTEGRITY_ERROR；失败不移动draft head"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有正文文件和PREPARED journal"
+          ],
+          "authorization": "site-config 私有正文提交",
+          "concurrency": "revisionId唯一；文件不覆盖",
+          "idempotency": "同id同hash重用，异hash拒绝",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.CommitAnnouncementHead",
+          "name": "CommitAnnouncementHead",
+          "signature": "func CommitAnnouncementHead(ctx RequestContext, input CommitAnnouncementHeadInput) (CommitAnnouncementHeadResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "CommitAnnouncementHeadInput",
+              "description": "原子提交公告head与正文日志的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CommitAnnouncementHeadResult",
+              "description": "原子提交公告head与正文日志的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "原子提交公告head与正文日志",
+          "steps": [
+            "确认PREPARED banner正文fsync/hash",
+            "在UpdateBanner提交事务CAS唯一currentBanner/head、COMMITTED journal和config revision",
+            "失败文件不公开，后续recover隔离"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "site-config 私有提交",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.RecoverAnnouncementJournal"
+          ]
+        },
+        {
+          "id": "site-config.RecoverAnnouncementJournal",
+          "name": "RecoverAnnouncementJournal",
+          "signature": "func RecoverAnnouncementJournal(ctx RequestContext, input RecoverAnnouncementJournalInput) (RecoverAnnouncementJournalResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RecoverAnnouncementJournalInput",
+              "description": "恢复正文文件与提交日志的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RecoverAnnouncementJournalResult",
+              "description": "恢复正文文件与提交日志的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "恢复正文文件与提交日志",
+          "steps": [
+            "启动停止公告写入",
+            "COMMITTED逐一核对head/object/hash，缺失即隔离该公告并告警",
+            "PREPARED无已提交head者按保留窗口隔离，不推定发布；恢复完成再开放"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "日志恢复与私有孤儿隔离"
+          ],
+          "authorization": "service:site-config启动控制",
+          "concurrency": "启动exclusive；运行时仅屏障safe执行",
+          "idempotency": "反复恢复不会使PREPARED变COMMITTED",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/operation_repository.go",
+      "kind": "handwritten",
+      "purpose": "查询配置幂等回执",
+      "functions": [
+        {
+          "id": "site-config.ResolveConfigOperation",
+          "name": "ResolveConfigOperation",
+          "signature": "func ResolveConfigOperation(ctx RequestContext, input ResolveConfigOperationInput) (ResolveConfigOperationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ResolveConfigOperationInput",
+              "description": "查询配置幂等回执的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ResolveConfigOperationResult",
+              "description": "查询配置幂等回执的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "查询配置幂等回执",
+          "steps": [
+            "按actor/site/op唯一键查询",
+            "异hashCONFLICT",
+            "返回已完成revision或in-progress；敏感初始化不持久ownerPassword"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "私有操作事务",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/outbox_repository.go",
+      "kind": "handwritten",
+      "purpose": "将配置事件与业务提交原子登记",
+      "functions": [
+        {
+          "id": "site-config.PublishConfigEvent",
+          "name": "PublishConfigEvent",
+          "signature": "func PublishConfigEvent(ctx RequestContext, input PublishConfigEventInput) (PublishConfigEventResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "PublishConfigEventInput",
+              "description": "将配置事件与业务提交原子登记的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PublishConfigEventResult",
+              "description": "将配置事件与业务提交原子登记的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "将配置事件与业务提交原子登记",
+          "steps": [
+            "校验最小payload",
+            "业务事务写eventId唯一outbox",
+            "dispatcher经jobs投递、ack后标完成；低revision不可覆盖"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "私有配置事务、operation receipt 与 outbox"
+          ],
+          "authorization": "私有配置提交",
+          "concurrency": "与configRevision同一事务",
+          "idempotency": "eventId唯一",
+          "dependencies": [
+            "jobs:publishEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/object_reader.go",
+      "kind": "handwritten",
+      "purpose": "经协议读取本域正文或快照对象",
+      "functions": [
+        {
+          "id": "site-config.ReadConfigObject",
+          "name": "ReadConfigObject",
+          "signature": "func ReadConfigObject(ctx RequestContext, input ReadConfigObjectInput) (ReadConfigObjectResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadConfigObjectInput",
+              "description": "经协议读取本域正文或快照对象的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadConfigObjectResult",
+              "description": "经协议读取本域正文或快照对象的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+              ]
+            }
+          ],
+          "purpose": "经协议读取本域正文或快照对象",
+          "steps": [
+            "只允许注册audience和owner=site-config",
+            "从服务生成对象索引解析私有路径，校验version/hash",
+            "打开只读lease stream；客户端无法指定OS路径"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "短期reader lease"
+          ],
+          "authorization": "service:public-site/data-protection或site.read",
+          "concurrency": "与对象删除fence协调",
+          "idempotency": "只读",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/barrier_service.go",
+      "kind": "handwritten",
+      "purpose": "取得可恢复的数据屏障",
+      "functions": [
+        {
+          "id": "site-config.AcquireBarrier",
+          "name": "AcquireBarrier",
+          "signature": "func AcquireBarrier(ctx RequestContext, input BarrierRequest) (BarrierStatus, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "BarrierRequest",
+              "description": "取得可恢复的数据屏障的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "BarrierStatus",
+              "description": "取得可恢复的数据屏障的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "取得可恢复的数据屏障",
+          "steps": [
+            "认证 data-protection 服务及 superadmin 委托；验证 epoch、operationId 与 deadline",
+            "私有事务登记屏障并拒绝新的业务写入；等待已登记提交完成",
+            "固定 revisionWatermark 并返回 safe；超时返回 draining/failed 且保持维护，不擅自释放"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        },
+        {
+          "id": "site-config.ReleaseBarrier",
+          "name": "ReleaseBarrier",
+          "signature": "func ReleaseBarrier(ctx RequestContext, input ReleaseBarrierInput) (ReleaseBarrierResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReleaseBarrierInput",
+              "description": "释放已协调完成的屏障的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReleaseBarrierResult",
+              "description": "释放已协调完成的屏障的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变"
+              ]
+            }
+          ],
+          "purpose": "释放已协调完成的屏障",
+          "steps": [
+            "查询持久屏障",
+            "验证维护退出决定、所有激活/回滚步骤已完成及 epoch 一致",
+            "原子改 released 并恢复业务接入"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "私有屏障状态写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "kind": "handwritten",
+      "purpose": "导出屏障水位的一致快照",
+      "functions": [
+        {
+          "id": "site-config.ExportSnapshot",
+          "name": "ExportSnapshot",
+          "signature": "func ExportSnapshot(ctx RequestContext, input SnapshotExportRequest) (SnapshotExportResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotExportRequest",
+              "description": "导出屏障水位的一致快照的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotExportResult",
+              "description": "导出屏障水位的一致快照的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "导出屏障水位的一致快照",
+          "steps": [
+            "验证本域 barrier=safe 和当前 dataEpoch；按 includeSecrets 策略封装敏感字段",
+            "流式复制私有数据库一致视图及所有权威文件到本服务只读对象；manifest 列 hash/size/schema",
+            "fsync 完成后返回 SnapshotRef；失败只清理未完成临时对象，不修改活动数据"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        },
+        {
+          "id": "site-config.PrepareSnapshot",
+          "name": "PrepareSnapshot",
+          "signature": "func PrepareSnapshot(ctx RequestContext, input SnapshotPrepareRequest) (SnapshotStageResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotPrepareRequest",
+              "description": "在私有 staging 区准备恢复的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotStageResult",
+              "description": "在私有 staging 区准备恢复的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "在私有 staging 区准备恢复",
+          "steps": [
+            "要求 restore barrier=safe 和 site-config 维护状态",
+            "重新验证快照并复制到以 restoreId 命名的 staging 根，路径由服务生成",
+            "迁移到当前 schema，记录 stageId、目标 epoch 和旧活动 manifest；重复同摘要复用 stage"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_validator.go",
+      "kind": "handwritten",
+      "purpose": "验证快照可恢复性",
+      "functions": [
+        {
+          "id": "site-config.ValidateSnapshot",
+          "name": "ValidateSnapshot",
+          "signature": "func ValidateSnapshot(ctx RequestContext, input SnapshotValidateRequest) (SnapshotValidation, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotValidateRequest",
+              "description": "验证快照可恢复性的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotValidation",
+              "description": "验证快照可恢复性的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "验证快照可恢复性",
+          "steps": [
+            "只经对象读取 API 获取本域快照，拒绝其他域目录访问",
+            "核对 owner、hash、schemaVersion、引用与状态机；检查目标 epoch",
+            "列出精确 field issues 和受支持迁移计划；不写活动数据"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_repository.go",
+      "kind": "handwritten",
+      "purpose": "激活已准备恢复数据",
+      "functions": [
+        {
+          "id": "site-config.CommitSnapshot",
+          "name": "CommitSnapshot",
+          "signature": "func CommitSnapshot(ctx RequestContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotCommitRequest",
+              "description": "激活已准备恢复数据的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotApplyResult",
+              "description": "激活已准备恢复数据的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "激活已准备恢复数据",
+          "steps": [
+            "要求维护、匹配 barrier/targetDataEpoch 与完整 stage 校验摘要",
+            "持久记录激活决定，原子切换活动 manifest/私有库连接到 stage 并 fsync",
+            "更新本域 epoch 和 commit receipt；保留旧 manifest 可回滚；进程崩溃按决定日志继续，不能部分激活"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        },
+        {
+          "id": "site-config.RollbackSnapshot",
+          "name": "RollbackSnapshot",
+          "signature": "func RollbackSnapshot(ctx RequestContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotCommitRequest",
+              "description": "按协调决定回滚恢复阶段的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotApplyResult",
+              "description": "按协调决定回滚恢复阶段的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "按协调决定回滚恢复阶段",
+          "steps": [
+            "要求维护和同一 restore stage；仅接受协调者 rollback 决定",
+            "未激活 stage 删除；已激活则按持久旧 manifest 原子切回并验证 hash",
+            "记录 rolled-back 回执与原 epoch；无法回滚保持屏障并返回 INTEGRITY_ERROR"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": "service:data-protection；备份superadmin委托，恢复专用RecoveryAuthorization严格restore/barrier/旧新epoch/audience/action/期限，本地control信任锚不被快照覆盖",
+          "concurrency": "屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换",
+          "idempotency": "operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/branding_service.go",
+      "kind": "handwritten",
+      "purpose": "更新站名/logo/图标/主题色/默认分享图",
+      "functions": [
+        {
+          "id": "site-config.UpdateBranding",
+          "name": "UpdateBranding",
+          "signature": "func UpdateBranding(ctx RequestContext, input UpdateBrandingInput) (UpdateBrandingResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateBrandingInput",
+              "description": "更新站名/logo/图标/主题色/默认分享图的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateBrandingResult",
+              "description": "更新站名/logo/图标/主题色/默认分享图的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "更新站名/logo/图标/主题色/默认分享图",
+          "steps": [
+            "核ready同站点资源与格式，权限site.manage",
+            "acquire pins后生成不可变新config",
+            "CommitConfigHead CAS并confirm资源，ConfigChanged触发翻译/历史镜像"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "site.manage；所有业务写入CheckWriteEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.CommitConfigHead",
+            "media:acquireResourceReferences",
+            "media:confirmResourceReferences"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/footer_service.go",
+      "kind": "handwritten",
+      "purpose": "更新页脚版权/自定义链接/ICP备案/源码链接",
+      "functions": [
+        {
+          "id": "site-config.UpdateFooter",
+          "name": "UpdateFooter",
+          "signature": "func UpdateFooter(ctx RequestContext, input UpdateFooterInput) (UpdateFooterResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateFooterInput",
+              "description": "更新页脚版权/自定义链接/ICP备案/源码链接的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateFooterResult",
+              "description": "更新页脚版权/自定义链接/ICP备案/源码链接的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "更新页脚版权/自定义链接/ICP备案/源码链接",
+          "steps": [
+            "校验链接scheme与ICP号纯文本",
+            "sourceCodeURL默认显示且可获得对应AGPL源代码",
+            "写config版本CAS提交并发翻译/历史事件"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "site.manage；所有业务写入CheckWriteEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.CommitConfigHead",
+            "site-config.PublishConfigEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/banner_service.go",
+      "kind": "handwritten",
+      "purpose": "保存单条可关闭公告横幅",
+      "functions": [
+        {
+          "id": "site-config.UpdateBanner",
+          "name": "UpdateBanner",
+          "signature": "func UpdateBanner(ctx RequestContext, input UpdateBannerInput) (UpdateBannerResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateBannerInput",
+              "description": "保存单条可关闭公告横幅的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateBannerResult",
+              "description": "保存单条可关闭公告横幅的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "保存单条可关闭公告横幅",
+          "steps": [
+            "核对text/link/time window；新条生成bannerId，同条编辑保留dismiss identity",
+            "WriteAnnouncementRevision后同事务换currentBanner/config revision/visibilityRevision",
+            "登记翻译/历史镜像事件，按时间窗公开；浏览器localStorage关闭同一条不再显示"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "site.manage；所有业务写入CheckWriteEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.ValidateAnnouncementBody",
+            "site-config.WriteAnnouncementRevision",
+            "site-config.CommitAnnouncementHead",
+            "site-config.PublishConfigEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/config_files.go",
+      "kind": "handwritten",
+      "purpose": "写权威版本化站点设置文件",
+      "functions": [
+        {
+          "id": "site-config.WriteConfigRevision",
+          "name": "WriteConfigRevision",
+          "signature": "func WriteConfigRevision(ctx RequestContext, input WriteConfigRevisionInput) (WriteConfigRevisionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "WriteConfigRevisionInput",
+              "description": "写权威版本化站点设置文件的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "WriteConfigRevisionResult",
+              "description": "写权威版本化站点设置文件的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "写权威版本化站点设置文件",
+          "steps": [
+            "规范JSON、核sha与schema",
+            "私有settings/site/revision.json同FS临时写fsync/rename/fsyncparent",
+            "PREPARED journal记hash，未COMMITTED不得读；不纳入secret/账号/代理key"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "私有config写入",
+          "concurrency": "revision文件不可覆盖",
+          "idempotency": "同revision同hash重用，异hash拒绝",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.CommitConfigHead",
+          "name": "CommitConfigHead",
+          "signature": "func CommitConfigHead(ctx RequestContext, input CommitConfigHeadInput) (CommitConfigHeadResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "CommitConfigHeadInput",
+              "description": "提交配置权威head与日志的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CommitConfigHeadResult",
+              "description": "提交配置权威head与日志的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "提交配置权威head与日志",
+          "steps": [
+            "检查PREPARED文件hash和fsync",
+            "私有事务CAS head、COMMITTEDjournal、receipt/outbox",
+            "由data-protection经对象API读取镜像写git；任何失败不读取其他域目录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "私有config提交",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.WriteConfigRevision",
+            "site-config.PublishConfigEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/config_history.go",
+      "kind": "handwritten",
+      "purpose": "读取可回滚的站点设置历史",
+      "functions": [
+        {
+          "id": "site-config.ReadConfigHistory",
+          "name": "ReadConfigHistory",
+          "signature": "func ReadConfigHistory(ctx RequestContext, input ReadConfigHistoryInput) (ReadConfigHistoryResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadConfigHistoryInput",
+              "description": "读取可回滚的站点设置历史的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadConfigHistoryResult",
+              "description": "读取可回滚的站点设置历史的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "读取可回滚的站点设置历史",
+          "steps": [
+            "site.manage检查",
+            "从本域COMMITTED journal稳定分页",
+            "返回不可变文件和作者元数据，data git由data-protection镜像"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "site.manage",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": []
+        },
+        {
+          "id": "site-config.RestoreConfigRevision",
+          "name": "RestoreConfigRevision",
+          "signature": "func RestoreConfigRevision(ctx RequestContext, input RestoreConfigRevisionInput) (RestoreConfigRevisionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RestoreConfigRevisionInput",
+              "description": "回滚首页/公告/品牌/页脚历史的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RestoreConfigRevisionResult",
+              "description": "回滚首页/公告/品牌/页脚历史的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "回滚首页/公告/品牌/页脚历史",
+          "steps": [
+            "核历史config hash与当前epoch，保留不可变siteId/baseLanguage/initialized控制字段",
+            "重新核媒体存在，已手动清理文件明确列缺失且拒绝无确认回滚",
+            "生成新config版本而不改旧历史，CAS提交并发翻译/历史镜像"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "不可变配置文件、COMMITTED journal、receipt/outbox"
+          ],
+          "authorization": "site.manage；所有业务写入CheckWriteEpoch",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "dependencies": [
+            "site-config.ReadConfigHistory",
+            "site-config.WriteConfigRevision",
+            "site-config.CommitConfigHead",
+            "media:readAsset"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/resource_reference_reader.go",
+      "kind": "handwritten",
+      "purpose": "向媒体返回站点设置权威资源引用快照",
+      "functions": [
+        {
+          "id": "site-config.ListResourceReferences",
+          "name": "ListResourceReferences",
+          "signature": "func ListResourceReferences(ctx RequestContext, input ListResourceReferencesInput) (ListResourceReferencesResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "RequestContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListResourceReferencesInput",
+              "description": "向媒体返回站点设置权威资源引用快照的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListResourceReferencesResult",
+              "description": "向媒体返回站点设置权威资源引用快照的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+              ]
+            }
+          ],
+          "purpose": "向媒体返回站点设置权威资源引用快照",
+          "steps": [
+            "从COMMITTED config head与保留history files扫描所有完整asset refs，包含hero背景/poster及branding，不能只扫当前home",
+            "同水位分类current/history，sourceService=site-config、sourceRevisionId=config不可变文件",
+            "签名cursor绑定site/watermark，分页未完全media不可解释为零引用；不扫描任何其他域目录"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "service:media/data-protection或site.manage",
+          "concurrency": "不可变COMMITTED文件一致水位读取",
+          "idempotency": "只读",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/cmd/site-config/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法",
+      "functions": [
+        {
+          "id": "M03-F901",
+          "name": "main",
+          "signature": "func main()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立进程可执行入口",
+          "steps": [
+            "读取--config/--data-dir/--listen及环境覆盖，严格解析ServiceConfig；配置错误安全stderr后exit2",
+            "signal.NotifyContext注册SIGINT/SIGTERM；调用BuildApplication，失败exit1且只输出errorCode",
+            "调用Serve；正常关闭或signal后以30秒context调用Shutdown；安全退出0，无法安全关闭exit1且保留journal"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "配置未知字段/越界目录/非法端点",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "装配或HTTP运行失败",
+              "httpStatus": 500,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域资源、监听HTTP；关闭按持久安全点"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
+          "idempotency": "进程重启先journal恢复；不重放已付费任务",
+          "dependencies": [
+            "BuildApplication",
+            "Serve",
+            "Shutdown"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
+      "functions": [
+        {
+          "id": "M03-F902",
+          "name": "BuildApplication",
+          "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "config",
+              "type": "ServiceConfig",
+              "description": "已严格解析配置",
+              "constraints": "module固定本域；secret只ref；依赖只HTTP"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "application",
+              "type": "*Application",
+              "description": "只返回完整装配后的内部容器",
+              "constraints": "失败返回nil，已打开资源逆序关闭"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "装配本域存储、客户端、函数路由与worker",
+          "steps": [
+            "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
+            "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+            "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "配置/缺路由绑定",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "迁移或journal校验失败",
+              "httpStatus": 422,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "基础关键依赖/控制信任锚不可用",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "打开本域DB/文件资源、注册router和本域worker；失败资源回滚"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
+          "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
+          "dependencies": [
+            "本域implementation全部x-handler",
+            "本域journal恢复函数",
+            "site-config.readRuntimeState（本域site-config读取自身权威）"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
+      "functions": [
+        {
+          "id": "M03-F903",
+          "name": "Serve",
+          "signature": "func Serve(ctx context.Context, app *Application) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "运行独立HTTP/JSON/SSE服务",
+          "steps": [
+            "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
+            "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+            "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "监听地址冲突或HTTP server不可恢复错误",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "同Application重复Serve启动",
+              "httpStatus": 409,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "监听本域HTTP端口、服务请求和本域worker"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
+          "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
+          "dependencies": [
+            "BuildApplication",
+            "Shutdown",
+            "本域OpenAPI路由"
+          ]
+        },
+        {
+          "id": "M03-F904",
+          "name": "Shutdown",
+          "signature": "func Shutdown(ctx context.Context, app *Application) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "停止入口并使在途操作到可恢复安全点",
+          "steps": [
+            "CAS lifecycle ready→draining，拒新写/claim/paid步骤并关闭SSE接受新订阅",
+            "取消本域worker的新步骤；等待已有DB事务、文件journal、模型可结算阶段安全确认；不能因超时假定供应方免费或删除paid refs",
+            "http.Server.Shutdown等在途响应；flush本域outbox/journal、close DB与文件句柄；正常lifecycle closed",
+            "deadline未安全返回DEADLINE_EXCEEDED并保留完整journal/未决费用引用，启动恢复收敛；不清掉活跃控制记录"
+          ],
+          "errors": [
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "30秒期限仍有未安全在途步骤",
+              "httpStatus": 504,
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "flush/close失败",
+              "httpStatus": 500,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域drain、资源关闭、durable恢复日志"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
+          "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
+          "dependencies": [
+            "本域barrier安全点函数",
+            "本域journal/outbox flush"
+          ]
+        },
+        {
+          "id": "M03-F905",
+          "name": "Health",
+          "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "status",
+              "type": "HealthStatus",
+              "description": "公共liveness安全字段",
+              "constraints": "仅module/version/status/capabilities"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "GET /healthz普通HTTP存活检查",
+          "steps": [
+            "仅读本进程lifecycle与HTTP循环是否存活；不查询远程依赖/模型/数据库",
+            "存活且未closed返回200 HealthStatus；closed或server不可用返回503；不泄漏路径、端点或secret"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "进程已closed或服务循环不可用",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
+          "idempotency": "GET只读重复安全",
+          "dependencies": []
+        },
+        {
+          "id": "M03-F906",
+          "name": "Ready",
+          "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "readiness",
+              "type": "ServiceReadiness",
+              "description": "本域启动/恢复就绪与公开门禁状态",
+              "constraints": "ready不等于维护已解除，publicRequestsAllowed必须显式false"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "GET /readyz普通HTTP就绪检查",
+          "steps": [
+            "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+            "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
+            "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "关键依赖/本域journal未恢复/epoch未匹配",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
+          "idempotency": "GET只读重复安全",
+          "dependencies": [
+            "site-config.readRuntimeState（site-config本域自身读取）"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/site-config；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/site-config；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/site-config与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证",
+      "functions": []
+    }
+  ]
+}

@@ -1,3 +1,0 @@
-{{define "tree"}}<nav id="document-tree" data-open="false" aria-label="文档树" class="nw-document-tree text-sm">
-{{range .Navigation}}<a class="mb-3 block text-muted hover:text-foreground{{if .Active}} font-semibold text-primary{{end}}" href="{{.URL}}" data-depth="{{.Depth}}"{{if .Active}} aria-current="page"{{end}}>{{.Title}}</a>{{end}}
-</nav>{{end}}

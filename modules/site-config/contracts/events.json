@@ -1,0 +1,18 @@
+{
+  "module": "site-config",
+  "version": 1,
+  "events": [
+    {
+      "name": "site.config.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/ConfigChanged"
+      },
+      "purpose": "消费者重新读取配置；baseLanguage更新不触发AI初始化",
+      "delivery": "at-least-once",
+      "ordering": "siteId内configRevision单调",
+      "idempotency": "eventId去重；旧revision忽略"
+    }
+  ]
+}

@@ -1,0 +1,4044 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/public-site/v1",
+  "title": "public-site领域类型",
+  "description": "本域函数输入/结果与事件载荷；Go类型名与$defs同名。公共类型通过相对ref；无未声明任意业务对象。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {},
+  "required": [],
+  "$defs": {
+    "Heading": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "AST标题节点",
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Markdown heading级别"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "anchor": {
+          "type": "string",
+          "description": "anchor；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "blockId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "level",
+        "text",
+        "anchor",
+        "blockId"
+      ]
+    },
+    "TOCItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "正文目录项",
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4,
+          "description": "目录级别"
+        },
+        "label": {
+          "type": "string",
+          "description": "label；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "anchor": {
+          "type": "string",
+          "description": "anchor；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "level",
+        "label",
+        "anchor"
+      ]
+    },
+    "NavigationNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "可公开导航节点，不包含草稿信息",
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "根节点 parentId=null",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "title；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "canonicalPath": {
+          "type": "string",
+          "description": "canonicalPath；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "sortKey": {
+          "type": "string",
+          "description": "sortKey；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "公共 PublishedRevisionRef 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "documentId",
+        "parentId",
+        "title",
+        "canonicalPath",
+        "sortKey",
+        "publication"
+      ]
+    },
+    "Breadcrumb": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "面包屑或规范链接项",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "label；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "url": {
+          "type": "string",
+          "description": "url；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "label",
+        "url"
+      ]
+    },
+    "AlternateLocale": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "已发布语言规范URL",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "url": {
+          "type": "string",
+          "description": "url；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "locale",
+        "url"
+      ]
+    },
+    "PublicAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "media提供的已授权公开资源",
+      "properties": {
+        "asset": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+          "description": "公共 AssetRef 合同，遵守其字段和空值规则"
+        },
+        "url": {
+          "type": "string",
+          "description": "url；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "width 非负 int64；不用浮点数"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "height 非负 int64；不用浮点数"
+        },
+        "alt": {
+          "type": "string",
+          "description": "alt；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "srcset": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "已公开图片变体",
+            "properties": {
+              "width": {
+                "type": "integer",
+                "enum": [
+                  640,
+                  1280,
+                  1920
+                ],
+                "description": "浏览器生成变体宽"
+              },
+              "url": {
+                "type": "string",
+                "description": "url；UTF-8；不得为 null",
+                "maxLength": 8192
+              }
+            },
+            "required": [
+              "width",
+              "url"
+            ]
+          },
+          "description": "动图为空保留原图"
+        }
+      },
+      "required": [
+        "asset",
+        "url",
+        "width",
+        "height",
+        "alt",
+        "srcset"
+      ]
+    },
+    "SitemapEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "sitemap项",
+      "properties": {
+        "loc": {
+          "type": "string",
+          "description": "loc；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "lastmod": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        },
+        "alternates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AlternateLocale",
+            "description": "AlternateLocale领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "loc",
+        "lastmod",
+        "alternates"
+      ]
+    },
+    "Header": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "HTTP响应头，不允许CR/LF",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "name；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "value": {
+          "type": "string",
+          "description": "value；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "ProgressEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "无业务正文的进度检查点",
+      "properties": {
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "seq": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "公共 Revision 合同，遵守其字段和空值规则"
+        },
+        "phase": {
+          "type": "string",
+          "description": "phase；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "completedUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "completedUnits 非负 int64；不用浮点数"
+        },
+        "totalUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "totalUnits 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "jobId",
+        "seq",
+        "phase",
+        "completedUnits",
+        "totalUnits"
+      ]
+    },
+    "UsageEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "analytics内部派生账项；生产方schema和钱账是权威",
+      "properties": {
+        "ledgerEntryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "ledgerRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "公共 Revision 合同，遵守其字段和空值规则"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "公共 CostClass 合同，遵守其字段和空值规则"
+        },
+        "amount": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "公共 Money 合同，遵守其字段和空值规则"
+        },
+        "state": {
+          "enum": [
+            "settled",
+            "reversed"
+          ],
+          "description": "由gateway账项决定"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "ledgerEntryId",
+        "ledgerRevision",
+        "operationId",
+        "costClass",
+        "amount",
+        "state",
+        "occurredAt"
+      ]
+    },
+    "StatisticRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "匿名访问聚合行",
+      "properties": {
+        "periodStart": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "views": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "views 非负 int64；不用浮点数"
+        },
+        "visits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "visits 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "periodStart",
+        "documentId",
+        "locale",
+        "views",
+        "visits"
+      ]
+    },
+    "ASTNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Markdown静态AST节点",
+      "properties": {
+        "kind": {
+          "enum": [
+            "document",
+            "paragraph",
+            "heading",
+            "list",
+            "list-item",
+            "code",
+            "table",
+            "quote",
+            "link",
+            "image",
+            "text",
+            "math-placeholder",
+            "footnote"
+          ],
+          "description": "不执行原始HTML"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ASTNode"
+          },
+          "description": "叶节点空数组；深度≤64"
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "children"
+      ]
+    },
+    "GuardPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "无费用/余额字段的首版准入策略",
+      "properties": {
+        "qaPerSubjectPerMinute": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 30,
+          "description": "主体分钟速率"
+        },
+        "qaBurst": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 5,
+          "description": "不可超过分钟速率"
+        },
+        "qaPerSitePerMinute": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 600,
+          "description": "站点分钟速率"
+        },
+        "qaSubjectConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128,
+          "default": 2,
+          "description": "主体并发"
+        },
+        "qaSiteConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128,
+          "default": 32,
+          "description": "站点并发"
+        },
+        "challengeEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "PoW挑战开关"
+        },
+        "externalChallengeEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "外部challenge需显式配置密钥引用"
+        }
+      },
+      "required": [
+        "qaPerSubjectPerMinute",
+        "qaBurst",
+        "qaPerSitePerMinute",
+        "qaSubjectConcurrency",
+        "qaSiteConcurrency",
+        "challengeEnabled",
+        "externalChallengeEnabled"
+      ]
+    },
+    "AuditRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅安全允许字段审计；动作成功结果编码需登记SUCCESS",
+      "properties": {
+        "auditId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "actorId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "action": {
+          "type": "string",
+          "description": "action；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "resourceId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "公共 Identifier 合同，遵守其字段和空值规则"
+        },
+        "resultCode": {
+          "type": "string",
+          "enum": [
+            "SUCCESS",
+            "VALIDATION",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
+            "VERSION_MISMATCH",
+            "LOCKED",
+            "UNSUPPORTED_SCHEMA",
+            "UNSUPPORTED_CAPABILITY",
+            "RATE_LIMITED",
+            "BUDGET_EXCEEDED",
+            "CANCELLED",
+            "DEADLINE_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "STALE_RESULT",
+            "INTEGRITY_ERROR",
+            "INTERNAL"
+          ],
+          "description": "操作成功或公共错误码，无输入正文"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        },
+        "hash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "公共 Hash 合同，遵守其字段和空值规则"
+        },
+        "previousHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "公共 Hash 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "auditId",
+        "actorId",
+        "action",
+        "resourceId",
+        "resultCode",
+        "occurredAt",
+        "hash",
+        "previousHash"
+      ]
+    },
+    "ClaimedJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "领取任务引用和fencing；job.state在领取时由任务状态响应说明，AcceptedJob为创建结果",
+      "properties": {
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "当前领取任务",
+          "properties": {
+            "jobId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "operationId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "state": {
+              "enum": [
+                "leased",
+                "running"
+              ],
+              "description": "领取时任务状态"
+            }
+          },
+          "required": [
+            "jobId",
+            "operationId",
+            "state"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "owner；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "type；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "inputRef": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+          "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+        },
+        "fencingToken": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "公共 Revision 合同，遵守其字段和空值规则"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "job",
+        "owner",
+        "type",
+        "inputRef",
+        "fencingToken",
+        "expiresAt"
+      ]
+    },
+    "SafeIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "不包含原文/密钥的校验问题",
+      "properties": {
+        "code": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode",
+          "description": "公共 ErrorCode 合同，遵守其字段和空值规则"
+        },
+        "owner": {
+          "type": "string",
+          "description": "owner；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "description": "field；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "reason": {
+          "type": "string",
+          "description": "reason；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "code",
+        "owner",
+        "field",
+        "reason"
+      ]
+    },
+    "TiptapDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "content发布权威Tiptap JSON的渲染只读结构，生产方content schema优先",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "content拥有的块格式版本，公开渲染必须支持"
+        },
+        "type": {
+          "const": "doc",
+          "description": "Tiptap顶级doc"
+        },
+        "content": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/TiptapNode"
+          },
+          "description": "顶层块，稳定blockId"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "type",
+        "content"
+      ]
+    },
+    "TiptapNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公开渲染所需Tiptap投影；传输从content生产方合同归一化，不修改源JSON",
+      "properties": {
+        "type": {
+          "enum": [
+            "paragraph",
+            "heading",
+            "blockquote",
+            "horizontalRule",
+            "bulletList",
+            "orderedList",
+            "taskList",
+            "listItem",
+            "taskItem",
+            "callout",
+            "table",
+            "tableRow",
+            "tableCell",
+            "tableHeader",
+            "codeBlock",
+            "mathInline",
+            "mathBlock",
+            "image",
+            "attachment",
+            "drawing",
+            "columns",
+            "column",
+            "video",
+            "text",
+            "hardBreak"
+          ],
+          "description": "首版节点白名单"
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "按节点类型绑定属性，content提供的规范schema为准；非适用字段空值规则使用空字符串/0/false/[]",
+          "properties": {
+            "blockId": {
+              "type": "string",
+              "description": "blockId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4,
+              "description": "非heading用0"
+            },
+            "resourceId": {
+              "type": "string",
+              "description": "resourceId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "language": {
+              "type": "string",
+              "description": "language；UTF-8；不得为 null",
+              "maxLength": 8192
+            },
+            "href": {
+              "type": "string",
+              "description": "href；UTF-8；不得为 null",
+              "maxLength": 8192
+            },
+            "calloutKind": {
+              "enum": [
+                "none",
+                "info",
+                "tip",
+                "warning",
+                "danger"
+              ],
+              "description": "callout的类型，否则none"
+            },
+            "checked": {
+              "type": "boolean",
+              "description": "checked 的明确真假结果，不可 null"
+            },
+            "columnWidths": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "description": "columns2..4项sum=1，否则空"
+            }
+          },
+          "required": [
+            "blockId",
+            "level",
+            "resourceId",
+            "language",
+            "href",
+            "calloutKind",
+            "checked",
+            "columnWidths"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "content": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/TiptapNode"
+          },
+          "description": "子节点；叶为空数组"
+        },
+        "marks": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "enum": [
+              "bold",
+              "italic",
+              "underline",
+              "strike",
+              "code",
+              "highlight",
+              "link",
+              "math-inline"
+            ]
+          },
+          "description": "行内mark白名单"
+        }
+      },
+      "required": [
+        "type",
+        "attrs",
+        "text",
+        "content",
+        "marks"
+      ]
+    },
+    "ResolveRouteInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "规范化语言与 slug输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "rawPath": {
+          "type": "string",
+          "description": "rawPath；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "query": {
+          "type": "string",
+          "description": "query；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "defaultLocale": {
+          "type": "string",
+          "description": "defaultLocale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        }
+      },
+      "required": [
+        "rawPath",
+        "query",
+        "defaultLocale"
+      ]
+    },
+    "ResolveRouteResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "规范化语言与 slug成功结果；失败不返回半成功结果",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "slug": {
+          "type": "string",
+          "description": "slug；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "redirectPath": {
+          "type": "string",
+          "description": "redirectPath；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "redirectStatus": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "redirectStatus 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "locale",
+        "slug",
+        "redirectPath",
+        "redirectStatus"
+      ]
+    },
+    "SelectLocaleInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "确定展示语言输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "requested": {
+          "type": "string",
+          "description": "requested；UTF-8；不得为 null",
+          "maxLength": 35,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "available": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "fallback": {
+          "type": "string",
+          "description": "fallback；UTF-8；不得为 null",
+          "maxLength": 35,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "languageCookie": {
+          "type": "string",
+          "description": "languageCookie；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "acceptLanguage": {
+          "type": "string",
+          "description": "acceptLanguage；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "requested",
+        "available",
+        "fallback",
+        "languageCookie",
+        "acceptLanguage"
+      ]
+    },
+    "SelectLocaleResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "确定展示语言成功结果；失败不返回半成功结果",
+      "properties": {
+        "selected": {
+          "type": "string",
+          "description": "selected；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "requiresRedirect": {
+          "type": "boolean",
+          "description": "requiresRedirect 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "selected",
+        "requiresRedirect"
+      ]
+    },
+    "CheckPublicationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "执行正文公开权威检查输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "expectedRevision 非负 int64；不用浮点数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "documentId",
+        "locale",
+        "expectedRevision",
+        "dataEpoch"
+      ]
+    },
+    "CheckPublicationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "执行正文公开权威检查成功结果；失败不返回半成功结果",
+      "properties": {
+        "published": {
+          "type": "boolean",
+          "description": "published 的明确真假结果，不可 null"
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "canonicalPath": {
+          "type": "string",
+          "description": "canonicalPath；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "authorityToken": {
+          "type": "string",
+          "description": "authorityToken；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "published",
+        "publicationRevision",
+        "canonicalPath",
+        "authorityToken"
+      ]
+    },
+    "LoadPublishedBundleInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "取得同一发布修订完整包输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "authorityToken": {
+          "type": "string",
+          "description": "authorityToken；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "documentId",
+        "locale",
+        "publicationRevision",
+        "authorityToken"
+      ]
+    },
+    "LoadPublishedBundleResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "取得同一发布修订完整包成功结果；失败不返回半成功结果",
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/TiptapDocument",
+          "description": "TiptapDocument领域数据合同"
+        },
+        "title": {
+          "type": "string",
+          "description": "title；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "updatedAt；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "mediaRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "untranslatedBlockIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "公共 PublishedRevisionRef 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "document",
+        "title",
+        "updatedAt",
+        "mediaRefs",
+        "untranslatedBlockIds",
+        "publication"
+      ]
+    },
+    "ParseMarkdownInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构建确定性 Markdown AST输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "body": {
+          "type": "string",
+          "description": "body；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "maxBytes 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "body",
+        "maxBytes"
+      ]
+    },
+    "ParseMarkdownResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构建确定性 Markdown AST成功结果；失败不返回半成功结果",
+      "properties": {
+        "ast": {
+          "$ref": "#/$defs/ASTNode",
+          "description": "ASTNode领域数据合同"
+        },
+        "headings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Heading",
+            "description": "Heading领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "ast",
+        "headings",
+        "links"
+      ]
+    },
+    "SanitizeHTMLInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "移除危险结构及协议输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "baseURL": {
+          "type": "string",
+          "description": "baseURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "html",
+        "baseURL"
+      ]
+    },
+    "SanitizeHTMLResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "移除危险结构及协议成功结果；失败不返回半成功结果",
+      "properties": {
+        "safeHTML": {
+          "type": "string",
+          "description": "safeHTML；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "safeHTML"
+      ]
+    },
+    "BuildTOCInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成稳定锚点目录输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "headings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Heading",
+            "description": "Heading领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "maxDepth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "maxDepth 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "headings",
+        "maxDepth"
+      ]
+    },
+    "BuildTOCResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成稳定锚点目录成功结果；失败不返回半成功结果",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TOCItem",
+            "description": "TOCItem领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "RewriteInternalLinksInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "解析跨文档链接输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "links",
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "RewriteInternalLinksResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "解析跨文档链接成功结果；失败不返回半成功结果",
+      "properties": {
+        "rewritten": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "rewritten",
+        "unavailable"
+      ]
+    },
+    "ResolvePublicMediaInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "取得公开资源清单输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "mediaRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "mediaRefs",
+        "publicationRevision",
+        "dataEpoch"
+      ]
+    },
+    "ResolvePublicMediaResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "取得公开资源清单成功结果；失败不返回半成功结果",
+      "properties": {
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicAsset",
+            "description": "PublicAsset领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "assets"
+      ]
+    },
+    "BuildNavigationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构建可访问公开导航树输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "maxNodes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "maxNodes 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch",
+        "maxNodes"
+      ]
+    },
+    "BuildNavigationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构建可访问公开导航树成功结果；失败不返回半成功结果",
+      "properties": {
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "tree",
+        "revision"
+      ]
+    },
+    "BuildBreadcrumbsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成面包屑输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "documentId",
+        "tree"
+      ]
+    },
+    "BuildBreadcrumbsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成面包屑成功结果；失败不返回半成功结果",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb",
+            "description": "Breadcrumb领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "BuildCanonicalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成规范地址输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "baseURL": {
+          "type": "string",
+          "description": "baseURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "canonicalPath": {
+          "type": "string",
+          "description": "canonicalPath；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "baseURL",
+        "canonicalPath"
+      ]
+    },
+    "BuildCanonicalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成规范地址成功结果；失败不返回半成功结果",
+      "properties": {
+        "canonicalURL": {
+          "type": "string",
+          "description": "canonicalURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "canonicalURL"
+      ]
+    },
+    "BuildHreflangInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出已有公开语言版本输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "baseURL": {
+          "type": "string",
+          "description": "baseURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "documentId",
+        "dataEpoch",
+        "baseURL"
+      ]
+    },
+    "BuildHreflangResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出已有公开语言版本成功结果；失败不返回半成功结果",
+      "properties": {
+        "alternates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AlternateLocale",
+            "description": "AlternateLocale领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "alternates"
+      ]
+    },
+    "BuildSEOMetadataInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出 SEO 和分享元数据输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "title；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "description": {
+          "type": "string",
+          "description": "description；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "canonicalURL": {
+          "type": "string",
+          "description": "canonicalURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "alternates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AlternateLocale",
+            "description": "AlternateLocale领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "shareImage": {
+          "type": "string",
+          "description": "shareImage；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "breadcrumbs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb",
+            "description": "Breadcrumb领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "markdownURL": {
+          "type": "string",
+          "description": "markdownURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "canonicalURL",
+        "alternates",
+        "shareImage",
+        "breadcrumbs",
+        "markdownURL"
+      ]
+    },
+    "BuildSEOMetadataResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出 SEO 和分享元数据成功结果；失败不返回半成功结果",
+      "properties": {
+        "metaHTML": {
+          "type": "string",
+          "description": "metaHTML；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "metaHTML"
+      ]
+    },
+    "ComposeHTMLInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构成完整响应文档输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "safeHTML": {
+          "type": "string",
+          "description": "safeHTML；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "title": {
+          "type": "string",
+          "description": "title；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "toc": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TOCItem",
+            "description": "TOCItem领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "navigation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "metadata": {
+          "type": "string",
+          "description": "metadata；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "safeHTML",
+        "title",
+        "toc",
+        "navigation",
+        "metadata"
+      ]
+    },
+    "ComposeHTMLResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "构成完整响应文档成功结果；失败不返回半成功结果",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "html"
+      ]
+    },
+    "BuildCacheKeyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "固定派生缓存身份输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "themeRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "themeRevision 非负 int64；不用浮点数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "documentId",
+        "publicationRevision",
+        "locale",
+        "themeRevision",
+        "dataEpoch"
+      ]
+    },
+    "BuildCacheKeyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "固定派生缓存身份成功结果；失败不返回半成功结果",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "key；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "key"
+      ]
+    },
+    "ReadRenderCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取派生 HTML输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "key；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "key",
+        "dataEpoch"
+      ]
+    },
+    "ReadRenderCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取派生 HTML成功结果；失败不返回半成功结果",
+      "properties": {
+        "hit": {
+          "type": "boolean",
+          "description": "hit 的明确真假结果，不可 null"
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "sha256；UTF-8；不得为 null"
+        }
+      },
+      "required": [
+        "hit",
+        "html",
+        "sha256"
+      ]
+    },
+    "WriteRenderCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原子安装派生缓存文件输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "key；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "sha256；UTF-8；不得为 null"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "key",
+        "html",
+        "sha256",
+        "dataEpoch"
+      ]
+    },
+    "WriteRenderCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原子安装派生缓存文件成功结果；失败不返回半成功结果",
+      "properties": {
+        "stored": {
+          "type": "boolean",
+          "description": "stored 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "stored"
+      ]
+    },
+    "InvalidatePublicationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "处理发布和撤回事件输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "description": "eventId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "eventId",
+        "documentId",
+        "publicationRevision",
+        "dataEpoch"
+      ]
+    },
+    "InvalidatePublicationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "处理发布和撤回事件成功结果；失败不返回半成功结果",
+      "properties": {
+        "invalidated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "invalidated 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "invalidated"
+      ]
+    },
+    "RenderPublicPageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "编排公开正文输出输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "documentId",
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "RenderPublicPageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "编排公开正文输出成功结果；失败不返回半成功结果",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "etag": {
+          "type": "string",
+          "description": "etag；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "html",
+        "etag",
+        "publicationRevision"
+      ]
+    },
+    "HandlePageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "页面 HTTP 入口输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "path；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "ifNoneMatch": {
+          "type": "string",
+          "description": "ifNoneMatch；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "path",
+        "ifNoneMatch",
+        "dataEpoch"
+      ]
+    },
+    "HandlePageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "页面 HTTP 入口成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Header",
+            "description": "Header领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "body": {
+          "type": "string",
+          "description": "body；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "headers",
+        "body"
+      ]
+    },
+    "HandleHomeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "站点首页输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleHomeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "站点首页成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "html"
+      ]
+    },
+    "HandleNavigationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公开导航 HTTP输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleNavigationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公开导航 HTTP成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "etag": {
+          "type": "string",
+          "description": "etag；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "status",
+        "tree",
+        "etag"
+      ]
+    },
+    "HandleMarkdownInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "导出公开 Markdown输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "slug": {
+          "type": "string",
+          "description": "slug；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "slug",
+        "dataEpoch"
+      ]
+    },
+    "HandleMarkdownResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "导出公开 Markdown成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "markdown": {
+          "type": "string",
+          "description": "markdown；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "etag": {
+          "type": "string",
+          "description": "etag；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "status",
+        "markdown",
+        "etag"
+      ]
+    },
+    "HandleRobotsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "机器人规则输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "dataEpoch"
+      ]
+    },
+    "HandleRobotsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "机器人规则成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "text"
+      ]
+    },
+    "BuildLLMsIndexInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成模型可读公开索引输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "maxBytes 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch",
+        "maxBytes"
+      ]
+    },
+    "BuildLLMsIndexResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成模型可读公开索引成功结果；失败不返回半成功结果",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "sourceRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "sourceRevision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "text",
+        "sourceRevision"
+      ]
+    },
+    "HandleLLMsIndexInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "llms.txt HTTP输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleLLMsIndexResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "llms.txt HTTP成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "text"
+      ]
+    },
+    "HandleLLMsFullInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出合并正文或分片索引输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleLLMsFullResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "输出合并正文或分片索引成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "shards": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "status",
+        "text",
+        "shards"
+      ]
+    },
+    "BuildSitemapEntriesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成规范 sitemap 项输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "BuildSitemapEntriesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成规范 sitemap 项成功结果；失败不返回半成功结果",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SitemapEntry",
+            "description": "SitemapEntry领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "entries",
+        "revision"
+      ]
+    },
+    "HandleSitemapIndexInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "sitemap 索引 HTTP输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "dataEpoch"
+      ]
+    },
+    "HandleSitemapIndexResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "sitemap 索引 HTTP成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "xml": {
+          "type": "string",
+          "description": "xml；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "status",
+        "xml"
+      ]
+    },
+    "HandleSitemapShardInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "单分片 sitemap输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "shard": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "shard 非负 int64；不用浮点数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "shard",
+        "dataEpoch"
+      ]
+    },
+    "HandleSitemapShardResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "单分片 sitemap成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "xml": {
+          "type": "string",
+          "description": "xml；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "status",
+        "xml"
+      ]
+    },
+    "IssuePreviewTokenInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "签发草稿预览授权输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        },
+        "actorId": {
+          "type": "string",
+          "description": "actorId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "documentId",
+        "revision",
+        "actorId",
+        "dataEpoch"
+      ]
+    },
+    "IssuePreviewTokenResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "签发草稿预览授权成功结果；失败不返回半成功结果",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "token；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "RFC3339 UTC 时间；不含 null"
+        }
+      },
+      "required": [
+        "token",
+        "expiresAt"
+      ]
+    },
+    "ValidatePreviewTokenInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原子消费预览 token输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "token；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "actorId": {
+          "type": "string",
+          "description": "actorId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "token",
+        "actorId",
+        "dataEpoch"
+      ]
+    },
+    "ValidatePreviewTokenResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原子消费预览 token成功结果；失败不返回半成功结果",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "documentId",
+        "revision"
+      ]
+    },
+    "RenderPreviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "渲染受保护修订输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "previewToken": {
+          "type": "string",
+          "description": "previewToken；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "actorId": {
+          "type": "string",
+          "description": "actorId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "previewToken",
+        "actorId",
+        "dataEpoch"
+      ]
+    },
+    "RenderPreviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "渲染受保护修订成功结果；失败不返回半成功结果",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "html"
+      ]
+    },
+    "HandlePreviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "预览 HTTP 入口输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "token；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "actorId": {
+          "type": "string",
+          "description": "actorId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "token",
+        "actorId",
+        "dataEpoch"
+      ]
+    },
+    "HandlePreviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "预览 HTTP 入口成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Header",
+            "description": "Header领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "headers",
+        "html"
+      ]
+    },
+    "RecordAnonymousViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "AI爬虫Markdown访问单独计数输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "userAgent": {
+          "type": "string",
+          "description": "userAgent；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "elapsedMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "elapsedMs 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "documentId",
+        "locale",
+        "userAgent",
+        "status",
+        "elapsedMs"
+      ]
+    },
+    "RecordAnonymousViewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "AI爬虫Markdown访问单独计数成功结果；失败不返回半成功结果",
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "accepted 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "释放公开渲染维护输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "barrierId": {
+          "type": "string",
+          "description": "barrierId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "barrierId",
+        "dataEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "释放公开渲染维护成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "公共 BarrierStatus 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "ValidateRecoveryAuthorizationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本地验证本次恢复专用控制许可输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "authorization": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
+          "description": "公共 RecoveryAuthorization 合同，遵守其字段和空值规则"
+        },
+        "restoreId": {
+          "type": "string",
+          "description": "restoreId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "barrierId": {
+          "type": "string",
+          "description": "barrierId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "sourceEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "targetEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "action": {
+          "type": "string",
+          "description": "action；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "authorization",
+        "restoreId",
+        "barrierId",
+        "sourceEpoch",
+        "targetEpoch",
+        "action"
+      ]
+    },
+    "ValidateRecoveryAuthorizationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本地验证本次恢复专用控制许可成功结果；失败不返回半成功结果",
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "valid 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "valid"
+      ]
+    },
+    "LoadPreviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：LoadPreview输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "documentId",
+        "revision"
+      ]
+    },
+    "LoadPreviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：LoadPreview成功结果；失败不返回半成功结果",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "token；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "token",
+        "html"
+      ]
+    },
+    "LoadPublicCapabilitiesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：LoadPublicCapabilities输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        }
+      },
+      "required": [
+        "locale"
+      ]
+    },
+    "LoadPublicCapabilitiesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：LoadPublicCapabilities成功结果；失败不返回半成功结果",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "capabilities"
+      ]
+    },
+    "RequestPublicNavigationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：RequestPublicNavigation输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        }
+      },
+      "required": [
+        "locale"
+      ]
+    },
+    "RequestPublicNavigationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vue3模块交互：RequestPublicNavigation成功结果；失败不返回半成功结果",
+      "properties": {
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "tree"
+      ]
+    },
+    "HandleRootRedirectInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "根语言选择HTTP输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "languageCookie": {
+          "type": "string",
+          "description": "languageCookie；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "acceptLanguage": {
+          "type": "string",
+          "description": "acceptLanguage；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "languageCookie",
+        "acceptLanguage",
+        "dataEpoch"
+      ]
+    },
+    "HandleRootRedirectResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "根语言选择HTTP成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "location": {
+          "type": "string",
+          "description": "location；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Header",
+            "description": "Header领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "status",
+        "location",
+        "headers"
+      ]
+    },
+    "ParseTiptapDocumentInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "校验权威Tiptap渲染输入输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/TiptapDocument",
+          "description": "TiptapDocument领域数据合同"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "maxBytes 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "document",
+        "maxBytes"
+      ]
+    },
+    "ParseTiptapDocumentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "校验权威Tiptap渲染输入成功结果；失败不返回半成功结果",
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/TiptapDocument",
+          "description": "TiptapDocument领域数据合同"
+        },
+        "headings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Heading",
+            "description": "Heading领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "mediaRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "document",
+        "headings",
+        "mediaRefs"
+      ]
+    },
+    "RenderTiptapHTMLInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "按节点输出完整HTML输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/TiptapDocument",
+          "description": "TiptapDocument领域数据合同"
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicAsset",
+            "description": "PublicAsset领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "document",
+        "locale",
+        "assets"
+      ]
+    },
+    "RenderTiptapHTMLResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "按节点输出完整HTML成功结果；失败不返回半成功结果",
+      "properties": {
+        "safeHTML": {
+          "type": "string",
+          "description": "safeHTML；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "containsMath": {
+          "type": "boolean",
+          "description": "containsMath 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "safeHTML",
+        "containsMath"
+      ]
+    },
+    "RenderTiptapMarkdownInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tiptap输出AI可读Markdown输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/TiptapDocument",
+          "description": "TiptapDocument领域数据合同"
+        },
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicAsset",
+            "description": "PublicAsset领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "document",
+        "locale",
+        "assets"
+      ]
+    },
+    "RenderTiptapMarkdownResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tiptap输出AI可读Markdown成功结果；失败不返回半成功结果",
+      "properties": {
+        "markdown": {
+          "type": "string",
+          "description": "markdown；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "markdown"
+      ]
+    },
+    "RenderHeroInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅一屏默认主视觉输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "title；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "subtitle；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "backgroundKind": {
+          "type": "string",
+          "description": "backgroundKind；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "backgroundURL": {
+          "type": "string",
+          "description": "backgroundURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "posterURL": {
+          "type": "string",
+          "description": "posterURL；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "overlayPercent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "overlayPercent 非负 int64；不用浮点数"
+        },
+        "buttonLabels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "buttonURLs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "backgroundKind",
+        "backgroundURL",
+        "posterURL",
+        "overlayPercent",
+        "buttonLabels",
+        "buttonURLs"
+      ]
+    },
+    "RenderHeroResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅一屏默认主视觉成功结果；失败不返回半成功结果",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "html"
+      ]
+    },
+    "RenderAnnouncementInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公告翻译横幅输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "announcementId": {
+          "type": "string",
+          "description": "announcementId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "link": {
+          "type": "string",
+          "description": "link；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "startAt": {
+          "type": "string",
+          "description": "startAt；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "endAt": {
+          "type": "string",
+          "description": "endAt；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "RFC3339 UTC 时间；不含 null"
+        }
+      },
+      "required": [
+        "announcementId",
+        "text",
+        "link",
+        "startAt",
+        "endAt",
+        "now"
+      ]
+    },
+    "RenderAnnouncementResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公告翻译横幅成功结果；失败不返回半成功结果",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "visible 的明确真假结果，不可 null"
+        }
+      },
+      "required": [
+        "html",
+        "visible"
+      ]
+    },
+    "BuildPreviousNextInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "文末相邻文档输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NavigationNode",
+            "description": "NavigationNode领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "documentId",
+        "tree"
+      ]
+    },
+    "BuildPreviousNextResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "文末相邻文档成功结果；失败不返回半成功结果",
+      "properties": {
+        "previous": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb",
+            "description": "Breadcrumb领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb",
+            "description": "Breadcrumb领域数据合同"
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "previous",
+        "next"
+      ]
+    },
+    "RenderNotFoundInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "定制404页面输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "RenderNotFoundResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "定制404页面成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "html"
+      ]
+    },
+    "HandleAskShellInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "独立问答页面外壳输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleAskShellResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "独立问答页面外壳成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "html": {
+          "type": "string",
+          "description": "html；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "html"
+      ]
+    },
+    "PrewarmPublicationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "发布事件预渲染缓存输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "公共 PublishedRevisionRef 合同，遵守其字段和空值规则"
+        },
+        "locales": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "publication",
+        "locales"
+      ]
+    },
+    "PrewarmPublicationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "发布事件预渲染缓存成功结果；失败不返回半成功结果",
+      "properties": {
+        "cachedKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "有序列表；空列表表示没有可用项"
+        }
+      },
+      "required": [
+        "cachedKeys"
+      ]
+    },
+    "HandleLLMsRootInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "根llms语言索引输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "dataEpoch"
+      ]
+    },
+    "HandleLLMsRootResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "根llms语言索引成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "text": {
+          "type": "string",
+          "description": "text；UTF-8；不得为 null",
+          "maxLength": 2097152
+        }
+      },
+      "required": [
+        "status",
+        "text"
+      ]
+    },
+    "HandleLanguageSitemapInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "每语言sitemap输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "locale；UTF-8；不得为 null",
+          "maxLength": 35,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "locale",
+        "dataEpoch"
+      ]
+    },
+    "HandleLanguageSitemapResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "每语言sitemap成功结果；失败不返回半成功结果",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "status 非负 int64；不用浮点数"
+        },
+        "xml": {
+          "type": "string",
+          "description": "xml；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "status",
+        "xml"
+      ]
+    },
+    "EventPublicSiteCacheInvalidatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "私有缓存失效通知；禁止包含正文；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "reason": {
+          "type": "string",
+          "description": "reason；UTF-8；不得为 null",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "documentId",
+        "publicationRevision",
+        "reason"
+      ]
+    },
+    "EventPublicSiteRenderFailedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "运维聚合事件；不重算已付费结果；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "publicationRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "publicationRevision 非负 int64；不用浮点数"
+        },
+        "errorCode": {
+          "type": "string",
+          "description": "errorCode；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "documentId",
+        "publicationRevision",
+        "errorCode"
+      ]
+    },
+    "IssuePreviewTokenRequestBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "为明确 documentId/revision 签发 120 秒单用途预览 token；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "documentId；UTF-8；不得为 null",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "revision 非负 int64；不用浮点数"
+        }
+      },
+      "required": [
+        "documentId",
+        "revision"
+      ]
+    },
+    "ReleaseBarrierRequestBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
+      "properties": {},
+      "required": []
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "public-site",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "public-site",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "PublicEventSubscriptionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subscriptionId",
+        "limit"
+      ],
+      "properties": {
+        "subscriptionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域持久订阅ID，不能使用浏览器ID"
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "本域提交过的jobs事件游标；首次可省略"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50,
+          "description": "单次有界事件批次上限"
+        }
+      }
+    },
+    "PublicEventSubscriptionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processed"
+      ],
+      "properties": {
+        "processed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "已经本域提交inbox和失效状态的事件数"
+        },
+        "nextCursor": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "提交后的继续游标；不存在时省略"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/portal/v1",
+  "title": "主系统完整数据与函数类型",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+      "description": "Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+      "description": "Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+      "description": "Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+      "description": "Timestamp"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+      "description": "AuthContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
+      "description": "RequestContext"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error",
+      "description": "Error"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+      "description": "Problem"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+      "description": "PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+      "description": "PublishedRevisionRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+      "description": "PublicationValidation"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+      "description": "AssetRef"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+      "description": "ObjectRef"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
+      "description": "BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+      "description": "BarrierStatus"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
+      "description": "SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
+      "description": "SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
+      "description": "SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
+      "description": "SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
+      "description": "SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
+      "description": "SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
+      "description": "SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
+      "description": "SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
+      "description": "SnapshotApplyResult"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+      "description": "EventEnvelope"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "PermissionRequirement": {
+      "type": "object",
+      "description": "路由权限",
+      "additionalProperties": false,
+      "properties": {
+        "permission": {
+          "type": "string",
+          "description": "全局登记权限",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "resourceId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "资源作用域"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "用于业务对象审计与原拥有服务请求上下文，D35权限只按功能全站，不据此新增文档范围授权"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        }
+      },
+      "required": [
+        "permission",
+        "resourceId",
+        "siteId"
+      ]
+    },
+    "RouteDefinition": {
+      "type": "object",
+      "description": "静态入口路由",
+      "additionalProperties": false,
+      "properties": {
+        "routeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "固定路由 ID"
+        },
+        "method": {
+          "type": "string",
+          "description": "方法",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "pathTemplate": {
+          "type": "string",
+          "description": "静态路径模板，不允许任意上游 URL",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "owner": {
+          "type": "string",
+          "description": "业务拥有服务",
+          "enum": [
+            "identity",
+            "site-config",
+            "content",
+            "media",
+            "public-site",
+            "model-gateway",
+            "knowledge",
+            "qa",
+            "localization",
+            "memory",
+            "traffic-guard",
+            "jobs",
+            "analytics",
+            "data-protection"
+          ]
+        },
+        "upstreamOperationId": {
+          "type": "string",
+          "description": "拥有方 operationId",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "permission": {
+          "$ref": "#/$defs/PermissionRequirement",
+          "description": "PermissionRequirement"
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "description": "超时",
+          "minimum": 100,
+          "maximum": 300000
+        },
+        "maxBodyBytes": {
+          "type": "integer",
+          "description": "请求上限",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "streaming": {
+          "type": "boolean",
+          "description": "流式响应"
+        },
+        "allowedHeaders": {
+          "type": "array",
+          "description": "业务头白名单",
+          "items": {
+            "type": "string",
+            "description": "可转发头名称",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 40
+        }
+      },
+      "required": [
+        "routeId",
+        "method",
+        "pathTemplate",
+        "owner",
+        "upstreamOperationId",
+        "permission",
+        "timeoutMs",
+        "maxBodyBytes",
+        "streaming",
+        "allowedHeaders"
+      ]
+    },
+    "RouteRegistry": {
+      "type": "object",
+      "description": "只读内部路由索引",
+      "additionalProperties": false,
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "description": "编译前定义",
+          "items": {
+            "$ref": "#/$defs/RouteDefinition",
+            "description": "RouteDefinition"
+          },
+          "minItems": 0,
+          "maxItems": 300
+        },
+        "configHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        }
+      },
+      "required": [
+        "definitions",
+        "configHash"
+      ],
+      "x-internal": true
+    },
+    "ResolvedRoute": {
+      "type": "object",
+      "description": "匹配结果",
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/RouteDefinition",
+          "description": "RouteDefinition"
+        },
+        "relativePath": {
+          "type": "string",
+          "description": "上游相对路径",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "parameters": {
+          "type": "array",
+          "description": "路径变量",
+          "items": {
+            "type": "object",
+            "description": "路径参数",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "模板变量名",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "value": {
+                "type": "string",
+                "description": "已解码受限值",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "definition",
+        "relativePath",
+        "parameters"
+      ]
+    },
+    "HeaderMap": {
+      "type": "object",
+      "description": "HTTP 头的有界内部表示",
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "列表；名称大小写不敏感",
+          "items": {
+            "type": "object",
+            "description": "头项",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "合法 HTTP 头名",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "values": {
+                "type": "array",
+                "description": "值",
+                "items": {
+                  "type": "string",
+                  "description": "不含 CRLF 的头值",
+                  "minLength": 0,
+                  "maxLength": 8192
+                },
+                "minItems": 1,
+                "maxItems": 20
+              }
+            },
+            "required": [
+              "name",
+              "values"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "IncomingRequest": {
+      "type": "object",
+      "description": "入口请求",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "方法",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "escapedPath": {
+          "type": "string",
+          "description": "编码路径",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "headers": {
+          "$ref": "#/$defs/HeaderMap",
+          "description": "HeaderMap"
+        },
+        "bodyHandle": {
+          "type": "string",
+          "description": "内部受限流句柄；不可由客户端填入",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "method",
+        "escapedPath",
+        "headers",
+        "bodyHandle"
+      ],
+      "x-internal": true
+    },
+    "RequestLimits": {
+      "type": "object",
+      "description": "路由读取预算",
+      "additionalProperties": false,
+      "properties": {
+        "bodyBytes": {
+          "type": "integer",
+          "description": "请求体字节上限",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "headerBytes": {
+          "type": "integer",
+          "description": "头总字节上限",
+          "minimum": 1024,
+          "maximum": 65536
+        },
+        "queryBytes": {
+          "type": "integer",
+          "description": "query 上限",
+          "minimum": 0,
+          "maximum": 8192
+        }
+      },
+      "required": [
+        "bodyBytes",
+        "headerBytes",
+        "queryBytes"
+      ]
+    },
+    "ValidatedEnvelope": {
+      "type": "object",
+      "description": "完成入口基础校验的请求",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "请求 ID"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "写命令幂等 ID；读请求由入口生成"
+        },
+        "expectedRevision": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+              "description": "Revision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "非 CAS 请求为 null"
+        },
+        "headers": {
+          "$ref": "#/$defs/HeaderMap",
+          "description": "HeaderMap"
+        },
+        "bodyHandle": {
+          "type": "string",
+          "description": "内部流句柄",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "bodyDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "bodyBytes": {
+          "type": "integer",
+          "description": "大小",
+          "minimum": 0,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "requestId",
+        "operationId",
+        "expectedRevision",
+        "headers",
+        "bodyHandle",
+        "bodyDigest",
+        "bodyBytes"
+      ],
+      "x-internal": true
+    },
+    "SessionCookies": {
+      "type": "object",
+      "description": "敏感请求凭据",
+      "additionalProperties": false,
+      "properties": {
+        "sessionToken": {
+          "type": "string",
+          "description": "HttpOnly sid 原值，禁止日志",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "csrfCookie": {
+          "type": "string",
+          "description": "会话绑定 CSRF token",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "sessionToken",
+        "csrfCookie"
+      ],
+      "x-internal": true
+    },
+    "InternalProof": {
+      "type": "object",
+      "description": "入口内部短期 proof",
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "签名证明；禁止日志",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "audience": {
+          "type": "string",
+          "description": "唯一拥有服务",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "Timestamp"
+        },
+        "requestDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "nonce": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "单次 nonce"
+        }
+      },
+      "required": [
+        "token",
+        "audience",
+        "expiresAt",
+        "requestDigest",
+        "nonce"
+      ]
+    },
+    "UpstreamResponse": {
+      "type": "object",
+      "description": "内部上游响应",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "integer",
+          "description": "HTTP 状态",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "headers": {
+          "$ref": "#/$defs/HeaderMap",
+          "description": "HeaderMap"
+        },
+        "streamHandle": {
+          "type": "string",
+          "description": "有界流句柄",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "status",
+        "headers",
+        "streamHandle"
+      ],
+      "x-internal": true
+    },
+    "Capability": {
+      "type": "object",
+      "description": "后台能力",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "功能 key"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否可操作"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "禁用原因翻译 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "启用时 null"
+        }
+      },
+      "required": [
+        "key",
+        "enabled",
+        "reason"
+      ]
+    },
+    "NavigationItem": {
+      "type": "object",
+      "description": "后台导航",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "导航 key"
+        },
+        "route": {
+          "type": "string",
+          "description": "已登记站内 route",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "label": {
+          "type": "string",
+          "description": "已本地化标题",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "requiredCapability": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "功能 key"
+        }
+      },
+      "required": [
+        "key",
+        "route",
+        "label",
+        "requiredCapability"
+      ]
+    },
+    "SiteFeatureFlags": {
+      "type": "object",
+      "description": "站点展示功能",
+      "additionalProperties": false,
+      "properties": {
+        "qaEnabled": {
+          "type": "boolean",
+          "description": "问答入口"
+        },
+        "localizationEnabled": {
+          "type": "boolean",
+          "description": "本地化入口"
+        },
+        "announcementsEnabled": {
+          "type": "boolean",
+          "description": "公告入口"
+        }
+      },
+      "required": [
+        "qaEnabled",
+        "localizationEnabled",
+        "announcementsEnabled"
+      ]
+    },
+    "PortalBootstrap": {
+      "type": "object",
+      "description": "后台壳 bootstrap",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "siteName": {
+          "type": "string",
+          "description": "名称",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "已注册唯一superadmin完成站点/基准语言两步"
+        },
+        "actor": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        },
+        "csrfToken": {
+          "type": "string",
+          "description": "仅当前浏览器会话使用，禁止日志",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "能力",
+          "items": {
+            "$ref": "#/$defs/Capability",
+            "description": "Capability"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "navigation": {
+          "type": "array",
+          "description": "导航",
+          "items": {
+            "$ref": "#/$defs/NavigationItem",
+            "description": "NavigationItem"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "runtimeState": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "site-config 当前 epoch"
+        },
+        "degradedServices": {
+          "type": "array",
+          "description": "降级组件",
+          "items": {
+            "type": "string",
+            "description": "可选服务 slug",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 0,
+          "maxItems": 15
+        }
+      },
+      "required": [
+        "siteId",
+        "siteName",
+        "initialized",
+        "actor",
+        "csrfToken",
+        "capabilities",
+        "navigation",
+        "runtimeState",
+        "degradedServices"
+      ]
+    },
+    "PortalPreferences": {
+      "type": "object",
+      "description": "identity 拥有的用户显示偏好",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "主题",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "locale": {
+          "type": "string",
+          "description": "BCP47 用户界面语言",
+          "minLength": 2,
+          "maxLength": 35
+        },
+        "defaultRoute": {
+          "type": "string",
+          "description": "已授权站内 route key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        }
+      },
+      "required": [
+        "theme",
+        "locale",
+        "defaultRoute",
+        "revision"
+      ]
+    },
+    "PortalEvent": {
+      "type": "object",
+      "description": "最小化 SSE 事件；不含正文、密钥或用户 query",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "去重事件"
+        },
+        "type": {
+          "type": "string",
+          "description": "登记事件类型",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "subjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "受众主体"
+        },
+        "sequence": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "permissionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "Timestamp"
+        },
+        "resourceId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "可见业务资源"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全局事件 null"
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原始操作"
+        },
+        "status": {
+          "type": "string",
+          "description": "界面可用状态",
+          "enum": [
+            "updated",
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "revoked"
+          ]
+        }
+      },
+      "required": [
+        "eventId",
+        "type",
+        "siteId",
+        "subjectId",
+        "sequence",
+        "permissionRevision",
+        "occurredAt",
+        "resourceId",
+        "sourceOperationId",
+        "status"
+      ]
+    },
+    "EventCursor": {
+      "type": "object",
+      "description": "游标",
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "签名不透明游标",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "token"
+      ]
+    },
+    "PortalEventStream": {
+      "type": "object",
+      "description": "SSE 流内部描述",
+      "additionalProperties": false,
+      "properties": {
+        "handle": {
+          "type": "string",
+          "description": "内部已鉴权流句柄",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "resumeCursor": {
+          "$ref": "#/$defs/EventCursor",
+          "description": "EventCursor"
+        }
+      },
+      "required": [
+        "handle",
+        "resumeCursor"
+      ],
+      "x-internal": true
+    },
+    "ReadinessReport": {
+      "type": "object",
+      "description": "入口 readiness",
+      "additionalProperties": false,
+      "properties": {
+        "ready": {
+          "type": "boolean",
+          "description": "必要依赖与配置 ready"
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "依赖",
+          "items": {
+            "type": "object",
+            "description": "依赖",
+            "additionalProperties": false,
+            "properties": {
+              "service": {
+                "type": "string",
+                "description": "服务",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "required": {
+                "type": "boolean",
+                "description": "必要依赖"
+              },
+              "state": {
+                "type": "string",
+                "description": "状态",
+                "enum": [
+                  "ready",
+                  "degraded",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "service",
+              "required",
+              "state"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 15
+        }
+      },
+      "required": [
+        "ready",
+        "dependencies"
+      ]
+    },
+    "RedactedAuditRequest": {
+      "type": "object",
+      "description": "安全访问日志字段",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "请求"
+        },
+        "routeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "静态路由"
+        },
+        "method": {
+          "type": "string",
+          "description": "方法",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "bodyBytes": {
+          "type": "integer",
+          "description": "请求体字节数",
+          "minimum": 0,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "requestId",
+        "routeId",
+        "method",
+        "bodyBytes"
+      ]
+    },
+    "RequestOutcome": {
+      "type": "object",
+      "description": "请求结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "integer",
+          "description": "状态",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "耗时",
+          "minimum": 0,
+          "maximum": 300000
+        },
+        "code": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode",
+              "description": "ErrorCode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "成功时 null"
+        }
+      },
+      "required": [
+        "status",
+        "durationMs",
+        "code"
+      ]
+    },
+    "UiFailure": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "UiFailure 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "SessionState": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "SessionState 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "RouteDecision": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "RouteDecision 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "ShellState": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "ShellState 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "NavigationDecision": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "NavigationDecision 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "SourceCursor": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "SourceCursor 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "PermissionChangedEvent": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "PermissionChangedEvent 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "EditorSession": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "EditorSession 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "NavigationIntent": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "NavigationIntent 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "RouteLocation": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "RouteLocation 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "BootstrapState": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "BootstrapState 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "PreferencesPatch": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "PreferencesPatch 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "SessionEndReason": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "SessionEndReason 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "ApiRequest": {
+      "type": "object",
+      "description": "内部 Vue 状态；具体状态迁移见 workflows",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "ApiRequest 状态或路由 key",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "state": {
+          "type": "string",
+          "description": "受限状态",
+          "enum": [
+            "idle",
+            "loading",
+            "ready",
+            "dirty",
+            "saving",
+            "conflict",
+            "denied",
+            "expired",
+            "degraded"
+          ]
+        },
+        "messageKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "本地化消息 key",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无消息 null"
+        }
+      },
+      "required": [
+        "key",
+        "revision",
+        "siteId",
+        "state",
+        "messageKey"
+      ]
+    },
+    "CompileRouteRegistryInput": {
+      "type": "object",
+      "description": "校验并编译公开与管理 API 的静态路由表的输入",
+      "additionalProperties": false,
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "description": "静态路由",
+          "items": {
+            "$ref": "#/$defs/RouteDefinition",
+            "description": "RouteDefinition"
+          },
+          "minItems": 0,
+          "maxItems": 300
+        }
+      },
+      "required": [
+        "definitions"
+      ]
+    },
+    "CompileRouteRegistryResult": {
+      "type": "object",
+      "description": "校验并编译公开与管理 API 的静态路由表的结果",
+      "additionalProperties": false,
+      "properties": {
+        "registry": {
+          "$ref": "#/$defs/RouteRegistry",
+          "description": "RouteRegistry"
+        }
+      },
+      "required": [
+        "registry"
+      ]
+    },
+    "ResolveRouteInput": {
+      "type": "object",
+      "description": "将请求解析为唯一服务及相对路径的输入",
+      "additionalProperties": false,
+      "properties": {
+        "registry": {
+          "$ref": "#/$defs/RouteRegistry",
+          "description": "RouteRegistry"
+        },
+        "method": {
+          "type": "string",
+          "description": "方法",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "escapedPath": {
+          "type": "string",
+          "description": "编码路径",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "registry",
+        "method",
+        "escapedPath"
+      ]
+    },
+    "ResolveRouteResult": {
+      "type": "object",
+      "description": "将请求解析为唯一服务及相对路径的结果",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        }
+      },
+      "required": [
+        "route"
+      ]
+    },
+    "ValidateEnvelopeInput": {
+      "type": "object",
+      "description": "限制请求体、请求头与 operationId的输入",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/IncomingRequest",
+          "description": "IncomingRequest"
+        },
+        "limits": {
+          "$ref": "#/$defs/RequestLimits",
+          "description": "RequestLimits"
+        }
+      },
+      "required": [
+        "request",
+        "limits"
+      ]
+    },
+    "ValidateEnvelopeResult": {
+      "type": "object",
+      "description": "限制请求体、请求头与 operationId的结果",
+      "additionalProperties": false,
+      "properties": {
+        "envelope": {
+          "$ref": "#/$defs/ValidatedEnvelope",
+          "description": "ValidatedEnvelope"
+        }
+      },
+      "required": [
+        "envelope"
+      ]
+    },
+    "NormalizeForwardHeadersInput": {
+      "type": "object",
+      "description": "创建可信上游请求头的输入",
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "$ref": "#/$defs/HeaderMap",
+          "description": "HeaderMap"
+        },
+        "envelope": {
+          "$ref": "#/$defs/ValidatedEnvelope",
+          "description": "ValidatedEnvelope"
+        }
+      },
+      "required": [
+        "headers",
+        "envelope"
+      ]
+    },
+    "NormalizeForwardHeadersResult": {
+      "type": "object",
+      "description": "创建可信上游请求头的结果",
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "$ref": "#/$defs/HeaderMap",
+          "description": "HeaderMap"
+        }
+      },
+      "required": [
+        "headers"
+      ]
+    },
+    "AssertSameOriginInput": {
+      "type": "object",
+      "description": "对写入及凭据请求检查来源的输入",
+      "additionalProperties": false,
+      "properties": {
+        "origin": {
+          "type": "string",
+          "description": "完整 Origin",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "host": {
+          "type": "string",
+          "description": "入口 host",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "configuredOrigins": {
+          "type": "array",
+          "description": "允许来源",
+          "items": {
+            "type": "string",
+            "description": "固定允许 Origin",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "origin",
+        "host",
+        "configuredOrigins"
+      ]
+    },
+    "AssertSameOriginResult": {
+      "type": "object",
+      "description": "对写入及凭据请求检查来源的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "VerifyCSRFInput": {
+      "type": "object",
+      "description": "验证身份服务绑定会话的 CSRF token的输入",
+      "additionalProperties": false,
+      "properties": {
+        "supplied": {
+          "type": "string",
+          "description": "CSRF token",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cookies": {
+          "$ref": "#/$defs/SessionCookies",
+          "description": "SessionCookies"
+        }
+      },
+      "required": [
+        "supplied",
+        "cookies"
+      ]
+    },
+    "VerifyCSRFResult": {
+      "type": "object",
+      "description": "验证身份服务绑定会话的 CSRF token的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "ResolveAuthContextInput": {
+      "type": "object",
+      "description": "取得经 identity 校验的当前权限上下文的输入",
+      "additionalProperties": false,
+      "properties": {
+        "cookies": {
+          "$ref": "#/$defs/SessionCookies",
+          "description": "SessionCookies"
+        },
+        "required": {
+          "$ref": "#/$defs/PermissionRequirement",
+          "description": "PermissionRequirement"
+        }
+      },
+      "required": [
+        "cookies",
+        "required"
+      ]
+    },
+    "ResolveAuthContextResult": {
+      "type": "object",
+      "description": "取得经 identity 校验的当前权限上下文的结果",
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        }
+      },
+      "required": [
+        "auth"
+      ]
+    },
+    "BuildInternalProofInput": {
+      "type": "object",
+      "description": "生成仅当前路由可使用的内部身份声明的输入",
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        },
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        },
+        "requestDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "Timestamp"
+        }
+      },
+      "required": [
+        "auth",
+        "route",
+        "requestDigest",
+        "expiresAt"
+      ]
+    },
+    "BuildInternalProofResult": {
+      "type": "object",
+      "description": "生成仅当前路由可使用的内部身份声明的结果",
+      "additionalProperties": false,
+      "properties": {
+        "proof": {
+          "$ref": "#/$defs/InternalProof",
+          "description": "InternalProof"
+        }
+      },
+      "required": [
+        "proof"
+      ]
+    },
+    "AuthorizeRouteInput": {
+      "type": "object",
+      "description": "入口按声明执行提前授权的输入",
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        },
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        }
+      },
+      "required": [
+        "auth",
+        "route"
+      ]
+    },
+    "AuthorizeRouteResult": {
+      "type": "object",
+      "description": "入口按声明执行提前授权的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "ForwardRequestInput": {
+      "type": "object",
+      "description": "发送一次有界请求到拥有服务的输入",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        },
+        "request": {
+          "$ref": "#/$defs/ValidatedEnvelope",
+          "description": "ValidatedEnvelope"
+        },
+        "proof": {
+          "$ref": "#/$defs/InternalProof",
+          "description": "InternalProof"
+        }
+      },
+      "required": [
+        "route",
+        "request",
+        "proof"
+      ]
+    },
+    "ForwardRequestResult": {
+      "type": "object",
+      "description": "发送一次有界请求到拥有服务的结果",
+      "additionalProperties": false,
+      "properties": {
+        "response": {
+          "$ref": "#/$defs/UpstreamResponse",
+          "description": "UpstreamResponse"
+        }
+      },
+      "required": [
+        "response"
+      ]
+    },
+    "StreamResponseInput": {
+      "type": "object",
+      "description": "有背压地输出上游内容及 Range 响应的输入",
+      "additionalProperties": false,
+      "properties": {
+        "upstream": {
+          "$ref": "#/$defs/UpstreamResponse",
+          "description": "UpstreamResponse"
+        },
+        "writerHandle": {
+          "type": "string",
+          "description": "内部 response writer",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "upstream",
+        "writerHandle"
+      ]
+    },
+    "StreamResponseResult": {
+      "type": "object",
+      "description": "有背压地输出上游内容及 Range 响应的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "MapUpstreamFailureInput": {
+      "type": "object",
+      "description": "转换内部失败为标准公开错误的输入",
+      "additionalProperties": false,
+      "properties": {
+        "failureCode": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode",
+          "description": "ErrorCode"
+        },
+        "requestId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "请求"
+        }
+      },
+      "required": [
+        "failureCode",
+        "requestId"
+      ]
+    },
+    "MapUpstreamFailureResult": {
+      "type": "object",
+      "description": "转换内部失败为标准公开错误的结果",
+      "additionalProperties": false,
+      "properties": {
+        "problem": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+          "description": "Problem"
+        }
+      },
+      "required": [
+        "problem"
+      ]
+    },
+    "LoadBootstrapInput": {
+      "type": "object",
+      "description": "聚合当前站点与用户后台壳信息的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "LoadBootstrapResult": {
+      "type": "object",
+      "description": "聚合当前站点与用户后台壳信息的结果",
+      "additionalProperties": false,
+      "properties": {
+        "bootstrap": {
+          "$ref": "#/$defs/PortalBootstrap",
+          "description": "PortalBootstrap"
+        }
+      },
+      "required": [
+        "bootstrap"
+      ]
+    },
+    "BuildCapabilitiesInput": {
+      "type": "object",
+      "description": "将权限及站点功能转为 UI capabilities的输入",
+      "additionalProperties": false,
+      "properties": {
+        "grants": {
+          "type": "array",
+          "description": "已鉴权权限",
+          "items": {
+            "type": "string",
+            "description": "权限",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "flags": {
+          "$ref": "#/$defs/SiteFeatureFlags",
+          "description": "SiteFeatureFlags"
+        }
+      },
+      "required": [
+        "grants",
+        "flags"
+      ]
+    },
+    "BuildCapabilitiesResult": {
+      "type": "object",
+      "description": "将权限及站点功能转为 UI capabilities的结果",
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "description": "功能",
+          "items": {
+            "$ref": "#/$defs/Capability",
+            "description": "Capability"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "capabilities"
+      ]
+    },
+    "BuildNavigationInput": {
+      "type": "object",
+      "description": "构建稳定导航与可访问路由的输入",
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "description": "功能",
+          "items": {
+            "$ref": "#/$defs/Capability",
+            "description": "Capability"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "locale": {
+          "type": "string",
+          "description": "BCP47",
+          "minLength": 2,
+          "maxLength": 35
+        }
+      },
+      "required": [
+        "capabilities",
+        "locale"
+      ]
+    },
+    "BuildNavigationResult": {
+      "type": "object",
+      "description": "构建稳定导航与可访问路由的结果",
+      "additionalProperties": false,
+      "properties": {
+        "navigation": {
+          "type": "array",
+          "description": "导航",
+          "items": {
+            "$ref": "#/$defs/NavigationItem",
+            "description": "NavigationItem"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "navigation"
+      ]
+    },
+    "ReadPreferencesInput": {
+      "type": "object",
+      "description": "读取用户的显示偏好的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadPreferencesResult": {
+      "type": "object",
+      "description": "读取用户的显示偏好的结果",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "preferences"
+      ]
+    },
+    "UpdatePreferencesInput": {
+      "type": "object",
+      "description": "更新主题、语言及默认后台页的输入",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        }
+      },
+      "required": [
+        "preferences",
+        "expectedRevision"
+      ]
+    },
+    "UpdatePreferencesResult": {
+      "type": "object",
+      "description": "更新主题、语言及默认后台页的结果",
+      "additionalProperties": false,
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "preferences"
+      ]
+    },
+    "ValidatePreferenceRouteInput": {
+      "type": "object",
+      "description": "保证首页偏好对应当前可访问路由的输入",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string",
+          "description": "内部 route",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        }
+      },
+      "required": [
+        "route",
+        "auth"
+      ]
+    },
+    "ValidatePreferenceRouteResult": {
+      "type": "object",
+      "description": "保证首页偏好对应当前可访问路由的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "OpenEventStreamInput": {
+      "type": "object",
+      "description": "提供后台权限过滤 SSE的输入",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventCursor",
+              "description": "EventCursor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次连接 null"
+        }
+      },
+      "required": [
+        "cursor"
+      ]
+    },
+    "OpenEventStreamResult": {
+      "type": "object",
+      "description": "提供后台权限过滤 SSE的结果",
+      "additionalProperties": false,
+      "properties": {
+        "stream": {
+          "$ref": "#/$defs/PortalEventStream",
+          "description": "PortalEventStream"
+        }
+      },
+      "required": [
+        "stream"
+      ]
+    },
+    "FilterPortalEventInput": {
+      "type": "object",
+      "description": "移除当前用户不可读取事件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+          "description": "EventEnvelope"
+        },
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        }
+      },
+      "required": [
+        "event",
+        "auth"
+      ]
+    },
+    "FilterPortalEventResult": {
+      "type": "object",
+      "description": "移除当前用户不可读取事件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PortalEvent",
+              "description": "PortalEvent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "不可见时 null"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "是否可见"
+        }
+      },
+      "required": [
+        "event",
+        "visible"
+      ]
+    },
+    "EncodeSSEFrameInput": {
+      "type": "object",
+      "description": "安全编码 SSE frame的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/PortalEvent",
+          "description": "PortalEvent"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "EncodeSSEFrameResult": {
+      "type": "object",
+      "description": "安全编码 SSE frame的结果",
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "type": "string",
+          "description": "UTF8 SSE frame",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "frame"
+      ]
+    },
+    "ResumeEventCursorInput": {
+      "type": "object",
+      "description": "验证重连游标的签名和上下文的输入",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/EventCursor",
+          "description": "EventCursor"
+        },
+        "auth": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "AuthContext"
+        }
+      },
+      "required": [
+        "cursor",
+        "auth"
+      ]
+    },
+    "ResumeEventCursorResult": {
+      "type": "object",
+      "description": "验证重连游标的签名和上下文的结果",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/EventCursor",
+          "description": "EventCursor"
+        }
+      },
+      "required": [
+        "cursor"
+      ]
+    },
+    "CollectReadinessInput": {
+      "type": "object",
+      "description": "输出入口自身及必要依赖可用性的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "CollectReadinessResult": {
+      "type": "object",
+      "description": "输出入口自身及必要依赖可用性的结果",
+      "additionalProperties": false,
+      "properties": {
+        "report": {
+          "$ref": "#/$defs/ReadinessReport",
+          "description": "ReadinessReport"
+        }
+      },
+      "required": [
+        "report"
+      ]
+    },
+    "RedactRequestInput": {
+      "type": "object",
+      "description": "生成不会泄漏密码、token 或正文的访问日志字段的输入",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/ValidatedEnvelope",
+          "description": "ValidatedEnvelope"
+        },
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        }
+      },
+      "required": [
+        "request",
+        "route"
+      ]
+    },
+    "RedactRequestResult": {
+      "type": "object",
+      "description": "生成不会泄漏密码、token 或正文的访问日志字段的结果",
+      "additionalProperties": false,
+      "properties": {
+        "audit": {
+          "$ref": "#/$defs/RedactedAuditRequest",
+          "description": "RedactedAuditRequest"
+        }
+      },
+      "required": [
+        "audit"
+      ]
+    },
+    "EmitAccessAuditInput": {
+      "type": "object",
+      "description": "可靠投递入口访问结果的输入",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/RedactedAuditRequest",
+          "description": "RedactedAuditRequest"
+        },
+        "outcome": {
+          "$ref": "#/$defs/RequestOutcome",
+          "description": "RequestOutcome"
+        }
+      },
+      "required": [
+        "request",
+        "outcome"
+      ]
+    },
+    "EmitAccessAuditResult": {
+      "type": "object",
+      "description": "可靠投递入口访问结果的结果",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "检查成功，无状态变更"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "sendApiInput": {
+      "type": "object",
+      "description": "统一浏览器 API 请求与错误状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/ApiRequest",
+          "description": "ApiRequest"
+        }
+      },
+      "required": [
+        "request"
+      ]
+    },
+    "sendApiResult": {
+      "type": "object",
+      "description": "统一浏览器 API 请求与错误状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "refreshSingleFlightInput": {
+      "type": "object",
+      "description": "对并发过期请求只刷新一次会话的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "refreshSingleFlightResult": {
+      "type": "object",
+      "description": "对并发过期请求只刷新一次会话的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/SessionState",
+          "description": "SessionState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "classifyApiErrorInput": {
+      "type": "object",
+      "description": "把业务错误映射到可恢复用户状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "problem": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+          "description": "Problem"
+        }
+      },
+      "required": [
+        "problem"
+      ]
+    },
+    "classifyApiErrorResult": {
+      "type": "object",
+      "description": "把业务错误映射到可恢复用户状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "hydrateSessionInput": {
+      "type": "object",
+      "description": "将服务端 session 和权限装入界面状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "bootstrap": {
+          "$ref": "#/$defs/PortalBootstrap",
+          "description": "PortalBootstrap"
+        }
+      },
+      "required": [
+        "bootstrap"
+      ]
+    },
+    "hydrateSessionResult": {
+      "type": "object",
+      "description": "将服务端 session 和权限装入界面状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "applyPermissionEventInput": {
+      "type": "object",
+      "description": "及时撤去被取消权限的 UI 与编辑能力的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/PermissionChangedEvent",
+          "description": "PermissionChangedEvent"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "applyPermissionEventResult": {
+      "type": "object",
+      "description": "及时撤去被取消权限的 UI 与编辑能力的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "clearSessionInput": {
+      "type": "object",
+      "description": "清理退出或失效后的本地身份状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "$ref": "#/$defs/SessionEndReason",
+          "description": "SessionEndReason"
+        }
+      },
+      "required": [
+        "reason"
+      ]
+    },
+    "clearSessionResult": {
+      "type": "object",
+      "description": "清理退出或失效后的本地身份状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "resolveAdminRouteInput": {
+      "type": "object",
+      "description": "解析后台地址并检查能力的输入",
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "$ref": "#/$defs/RouteLocation",
+          "description": "RouteLocation"
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "能力",
+          "items": {
+            "$ref": "#/$defs/Capability",
+            "description": "Capability"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "location",
+        "capabilities"
+      ]
+    },
+    "resolveAdminRouteResult": {
+      "type": "object",
+      "description": "解析后台地址并检查能力的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/RouteDecision",
+          "description": "RouteDecision"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "guardUnsavedNavigationInput": {
+      "type": "object",
+      "description": "在离开页面前保留未保存编辑的输入",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/NavigationIntent",
+          "description": "NavigationIntent"
+        },
+        "editors": {
+          "type": "array",
+          "description": "编辑会话",
+          "items": {
+            "$ref": "#/$defs/EditorSession",
+            "description": "EditorSession"
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "intent",
+        "editors"
+      ]
+    },
+    "guardUnsavedNavigationResult": {
+      "type": "object",
+      "description": "在离开页面前保留未保存编辑的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/NavigationDecision",
+          "description": "NavigationDecision"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "restoreReturnLocationInput": {
+      "type": "object",
+      "description": "安全恢复登录前的内部页面的输入",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "站内返回地址",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "默认 null"
+        }
+      },
+      "required": [
+        "value"
+      ]
+    },
+    "restoreReturnLocationResult": {
+      "type": "object",
+      "description": "安全恢复登录前的内部页面的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/RouteLocation",
+          "description": "RouteLocation"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "connectEventStreamInput": {
+      "type": "object",
+      "description": "连接并自动恢复后台 SSE的输入",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventCursor",
+              "description": "EventCursor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "首次 null"
+        },
+        "cancellationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "取消信号句柄"
+        }
+      },
+      "required": [
+        "cursor",
+        "cancellationId"
+      ]
+    },
+    "connectEventStreamResult": {
+      "type": "object",
+      "description": "连接并自动恢复后台 SSE的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "dispatchPortalEventInput": {
+      "type": "object",
+      "description": "把校验后的事件路由到相关界面状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/PortalEvent",
+          "description": "PortalEvent"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "dispatchPortalEventResult": {
+      "type": "object",
+      "description": "把校验后的事件路由到相关界面状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "loadPreferencesInput": {
+      "type": "object",
+      "description": "加载并应用用户显示偏好的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "loadPreferencesResult": {
+      "type": "object",
+      "description": "加载并应用用户显示偏好的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "savePreferencesInput": {
+      "type": "object",
+      "description": "以 CAS 保存显示偏好的输入",
+      "additionalProperties": false,
+      "properties": {
+        "patch": {
+          "$ref": "#/$defs/PreferencesPatch",
+          "description": "PreferencesPatch"
+        }
+      },
+      "required": [
+        "patch"
+      ]
+    },
+    "savePreferencesResult": {
+      "type": "object",
+      "description": "以 CAS 保存显示偏好的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/PortalPreferences",
+          "description": "PortalPreferences"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "deriveShellStateInput": {
+      "type": "object",
+      "description": "计算初始化、登录、后台及降级壳状态的输入",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/SessionState",
+          "description": "SessionState"
+        },
+        "bootstrap": {
+          "$ref": "#/$defs/BootstrapState",
+          "description": "BootstrapState"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteDecision",
+          "description": "RouteDecision"
+        }
+      },
+      "required": [
+        "session",
+        "bootstrap",
+        "route"
+      ]
+    },
+    "deriveShellStateResult": {
+      "type": "object",
+      "description": "计算初始化、登录、后台及降级壳状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/ShellState",
+          "description": "ShellState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "updateDocumentMetadataInput": {
+      "type": "object",
+      "description": "更新后台页面标题及无索引声明的输入",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/ShellState",
+          "description": "ShellState"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "updateDocumentMetadataResult": {
+      "type": "object",
+      "description": "更新后台页面标题及无索引声明的结果",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/UiFailure",
+          "description": "UiFailure"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ReadRuntimeStateInput": {
+      "type": "object",
+      "description": "读取唯一权威运行状态的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReadRuntimeStateResult": {
+      "type": "object",
+      "description": "读取唯一权威运行状态的结果",
+      "additionalProperties": false,
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "是否维护"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        }
+      },
+      "required": [
+        "dataEpoch",
+        "maintenance",
+        "revision"
+      ]
+    },
+    "CheckEntranceGateInput": {
+      "type": "object",
+      "description": "对维护和恢复 epoch 实施入口屏障的输入",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "ResolvedRoute"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Revision"
+        }
+      },
+      "required": [
+        "route",
+        "runtimeRevision"
+      ]
+    },
+    "CheckEntranceGateResult": {
+      "type": "object",
+      "description": "对维护和恢复 epoch 实施入口屏障的结果",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "是否放行"
+        },
+        "retryAfterSeconds": {
+          "type": "integer",
+          "description": "维护重试秒数",
+          "minimum": 0,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "allowed",
+        "retryAfterSeconds"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "description": "按权威状态恢复业务入口的输入",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "屏障"
+        },
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已完全激活 epoch"
+        }
+      },
+      "required": [
+        "barrierId",
+        "expectedEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "description": "按权威状态恢复业务入口的结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "BarrierStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "releaseBarrierRequest": {
+      "type": "object",
+      "description": "释放入口屏障请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已完全激活 epoch"
+        }
+      },
+      "required": [
+        "expectedEpoch"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "portal",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "portal",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

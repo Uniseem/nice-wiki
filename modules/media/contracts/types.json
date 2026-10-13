@@ -1,0 +1,5343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/media/v1",
+  "title": "资源媒体完整数据与函数类型",
+  "type": "object",
+  "$defs": {
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+      "description": "Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+      "description": "Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+      "description": "Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+      "description": "Timestamp"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+      "description": "AuthContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
+      "description": "RequestContext"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error",
+      "description": "Error"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+      "description": "Problem"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+      "description": "PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+      "description": "PublishedRevisionRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation",
+      "description": "PublicationValidation"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+      "description": "AssetRef"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+      "description": "ObjectRef"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
+      "description": "BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+      "description": "BarrierStatus"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
+      "description": "SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
+      "description": "SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
+      "description": "SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
+      "description": "SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
+      "description": "SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
+      "description": "SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
+      "description": "SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
+      "description": "SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
+      "description": "SnapshotApplyResult"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+      "description": "EventEnvelope"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
+      "description": "RecoveryAuthorization"
+    },
+    "AssetVersionRef": {
+      "type": "object",
+      "description": "完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "逻辑资源ID"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "不可变对象版本"
+        },
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "嗅探确认MIME",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "byteSize": {
+          "type": "integer",
+          "description": "字节数",
+          "minimum": 0,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "assetId",
+        "version",
+        "sha256",
+        "mediaType",
+        "byteSize"
+      ]
+    },
+    "ImageVariant": {
+      "type": "object",
+      "description": "浏览器生成WebP尺寸，最多640/1280/1920且不放大原图",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "type": "integer",
+          "description": "实际像素宽",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "integer",
+          "description": "实际像素高",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "asset": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "asset"
+      ]
+    },
+    "Asset": {
+      "type": "object",
+      "description": "资源元数据，不含OSpath；服务无图像处理或视频转码库",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "kind": {
+          "type": "string",
+          "description": "资源库类别",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        },
+        "originalName": {
+          "type": "string",
+          "description": "安全展示文件名，不作为路径",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "state": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "uploading",
+            "validating",
+            "ready",
+            "blocked",
+            "delete_pending",
+            "deleted"
+          ]
+        },
+        "animated": {
+          "type": "boolean",
+          "description": "GIF/WebP/AVIF动图不压缩"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "图/视频宽",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "高",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "imageVariants": {
+          "type": "array",
+          "description": "浏览器已传variants",
+          "items": {
+            "$ref": "#/$defs/ImageVariant",
+            "description": "ImageVariant"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "createdBy": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传账户"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "上传"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "ref",
+        "siteId",
+        "kind",
+        "originalName",
+        "state",
+        "animated",
+        "width",
+        "height",
+        "imageVariants",
+        "createdBy",
+        "createdAt",
+        "revision"
+      ]
+    },
+    "UploadSession": {
+      "type": "object",
+      "description": "可续传上传，仅临时字节到期可清理，ready文件绝不自动删",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "expectedSha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "expectedBytes": {
+          "type": "integer",
+          "description": "计划大小",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "receivedBytes": {
+          "type": "integer",
+          "description": "已写offset",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "kind": {
+          "type": "string",
+          "description": "资源类别",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        },
+        "originalName": {
+          "type": "string",
+          "description": "原名",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "state": {
+          "type": "string",
+          "description": "状态",
+          "enum": [
+            "receiving",
+            "complete",
+            "aborted",
+            "expired"
+          ]
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "24小时"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "uploadId",
+        "siteId",
+        "expectedSha256",
+        "expectedBytes",
+        "receivedBytes",
+        "kind",
+        "originalName",
+        "state",
+        "expiresAt",
+        "revision"
+      ]
+    },
+    "BinaryChunk": {
+      "type": "object",
+      "description": "上传字节内部句柄",
+      "additionalProperties": false,
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "description": "连贯offset",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "length": {
+          "type": "integer",
+          "description": "单块≤8MiB",
+          "minimum": 1,
+          "maximum": 8388608
+        },
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "streamHandle": {
+          "type": "string",
+          "description": "内部受限stream句柄，HTTP binary adapter产生",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "offset",
+        "length",
+        "sha256",
+        "streamHandle"
+      ],
+      "x-internal": true
+    },
+    "ByteRange": {
+      "type": "object",
+      "description": "单范围归一化；支持bytes=N-M/N-/后缀-N，超界416",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "integer",
+          "description": "包含开始",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "end": {
+          "type": "integer",
+          "description": "包含结束",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "total": {
+          "type": "integer",
+          "description": "对象长度",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "partial": {
+          "type": "boolean",
+          "description": "206或200"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "total",
+        "partial"
+      ]
+    },
+    "AssetReference": {
+      "type": "object",
+      "description": "引用源版本单调，当前与历史区分",
+      "additionalProperties": false,
+      "properties": {
+        "sourceService": {
+          "type": "string",
+          "description": "已登记引用者",
+          "enum": [
+            "content",
+            "site-config"
+          ]
+        },
+        "sourceObjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源文档/config"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可变源版本"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "源水位"
+        },
+        "referenceId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源key"
+        },
+        "asset": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "kind": {
+          "type": "string",
+          "description": "用途",
+          "enum": [
+            "current",
+            "history",
+            "pending_pin"
+          ]
+        },
+        "confirmed": {
+          "type": "boolean",
+          "description": "来源已COMMITTED"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "仅pendingpin期限≥24h"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "确定引用null"
+        }
+      },
+      "required": [
+        "sourceService",
+        "sourceObjectId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "referenceId",
+        "asset",
+        "kind",
+        "confirmed",
+        "expiresAt"
+      ]
+    },
+    "ReferencePin": {
+      "type": "object",
+      "description": "提交前pin，final delete共享对象fence",
+      "additionalProperties": false,
+      "properties": {
+        "pinId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "pin"
+        },
+        "assets": {
+          "type": "array",
+          "description": "完整资产",
+          "items": {
+            "$ref": "#/$defs/AssetVersionRef",
+            "description": "AssetVersionRef"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "至少24小时，确认后无到期"
+        },
+        "deletionFence": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "标记/删除fence"
+        }
+      },
+      "required": [
+        "pinId",
+        "assets",
+        "expiresAt",
+        "deletionFence"
+      ]
+    },
+    "ReferenceSnapshot": {
+      "type": "object",
+      "description": "未知或不完整不能认定未引用",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "资源"
+        },
+        "currentReferences": {
+          "type": "array",
+          "description": "当前引用",
+          "items": {
+            "$ref": "#/$defs/AssetReference",
+            "description": "AssetReference"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "historyReferences": {
+          "type": "array",
+          "description": "历史风险提示",
+          "items": {
+            "$ref": "#/$defs/AssetReference",
+            "description": "AssetReference"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "sourceWatermarks": {
+          "type": "array",
+          "description": "全部已登记source",
+          "items": {
+            "type": "object",
+            "description": "源水位",
+            "additionalProperties": false,
+            "properties": {
+              "sourceService": {
+                "type": "string",
+                "description": "域",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "watermark": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+                "description": "源水位"
+              },
+              "complete": {
+                "type": "boolean",
+                "description": "全量完成"
+              }
+            },
+            "required": [
+              "sourceService",
+              "watermark",
+              "complete"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "referenceGeneration": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "媒体接收引用generation"
+        }
+      },
+      "required": [
+        "assetId",
+        "currentReferences",
+        "historyReferences",
+        "sourceWatermarks",
+        "referenceGeneration"
+      ]
+    },
+    "CleanupPlan": {
+      "type": "object",
+      "description": "只能管理员明确手动创建和确认，禁止周期自动清ready文件",
+      "additionalProperties": false,
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "人工清理计划"
+        },
+        "assets": {
+          "type": "array",
+          "description": "仅无当前引用资源",
+          "items": {
+            "$ref": "#/$defs/AssetVersionRef",
+            "description": "AssetVersionRef"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "historyAffectedDocumentIds": {
+          "type": "array",
+          "description": "警告",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "历史可能缺文件文档"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "referenceGeneration": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "扫描水位"
+        },
+        "confirmationHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "精确影响集合摘要"
+        },
+        "notBefore": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "迟到保护窗口24h；可取消"
+        },
+        "state": {
+          "type": "string",
+          "description": "阶段",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "waiting",
+            "cancelled",
+            "deleted",
+            "blocked"
+          ]
+        }
+      },
+      "required": [
+        "planId",
+        "assets",
+        "historyAffectedDocumentIds",
+        "referenceGeneration",
+        "confirmationHash",
+        "notBefore",
+        "state"
+      ]
+    },
+    "PlatformProvider": {
+      "type": "string",
+      "description": "四个已确认平台",
+      "enum": [
+        "bilibili",
+        "youtube",
+        "douyin",
+        "tiktok"
+      ]
+    },
+    "PlatformVideoSnapshot": {
+      "type": "object",
+      "description": "插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/PlatformProvider",
+          "description": "PlatformProvider"
+        },
+        "providerVideoId": {
+          "type": "string",
+          "description": "解析不透明视频ID",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonicalURL": {
+          "type": "string",
+          "description": "允许域名规范视频URL",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "embedURL": {
+          "type": "string",
+          "description": "provider构造白名单embed；YouTube nocookie",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "title": {
+          "type": "string",
+          "description": "公开/手填标题",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "description": "公开/手填简介",
+          "minLength": 0,
+          "maxLength": 10000
+        },
+        "author": {
+          "type": "string",
+          "description": "公开作者",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "durationSeconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "公开时长",
+              "minimum": 0,
+              "maximum": 604800
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未知null"
+        },
+        "cover": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssetVersionRef",
+              "description": "AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "抓取失败无封面null"
+        },
+        "fetchedAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "插入时一次抓取"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "手填null"
+        },
+        "metadataSource": {
+          "type": "string",
+          "description": "来源",
+          "enum": [
+            "public",
+            "manual"
+          ]
+        },
+        "capability": {
+          "type": "string",
+          "description": "provider能力",
+          "enum": [
+            "available",
+            "manual_required",
+            "unsupported_embed"
+          ]
+        }
+      },
+      "required": [
+        "provider",
+        "providerVideoId",
+        "canonicalURL",
+        "embedURL",
+        "title",
+        "description",
+        "author",
+        "durationSeconds",
+        "cover",
+        "fetchedAt",
+        "metadataSource",
+        "capability"
+      ]
+    },
+    "DeliveryItem": {
+      "type": "object",
+      "description": "公开/预览资产manifest",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "url": {
+          "type": "string",
+          "description": "本服务生成按sha不可变资源URL，不能用户自造主机",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cachePolicy": {
+          "type": "string",
+          "description": "原设计带hash资源永久缓存，草稿preview no-store",
+          "enum": [
+            "immutable_public",
+            "private_no_store"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "description": "srcset",
+          "items": {
+            "$ref": "#/$defs/ImageVariant",
+            "description": "ImageVariant"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "contentDisposition": {
+          "type": "string",
+          "description": "交付",
+          "enum": [
+            "inline",
+            "attachment"
+          ]
+        }
+      },
+      "required": [
+        "asset",
+        "url",
+        "cachePolicy",
+        "variants",
+        "contentDisposition"
+      ]
+    },
+    "DeliveryManifest": {
+      "type": "object",
+      "description": "public-site无需共享media目录",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "精确资源集合",
+          "items": {
+            "$ref": "#/$defs/DeliveryItem",
+            "description": "DeliveryItem"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "publishedReference": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+              "description": "PublishedRevisionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "管理员previewnull"
+        },
+        "previewId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "已登录预览"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "公开null"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "manifest权限期限"
+        }
+      },
+      "required": [
+        "items",
+        "publishedReference",
+        "previewId",
+        "expiresAt"
+      ]
+    },
+    "AssetChangedPayload": {
+      "type": "object",
+      "description": "最小资源事件",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "站点"
+        },
+        "asset": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "state": {
+          "type": "string",
+          "description": "结果",
+          "enum": [
+            "ready",
+            "blocked",
+            "deleted"
+          ]
+        },
+        "referenceGeneration": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "ref水位"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        }
+      },
+      "required": [
+        "siteId",
+        "asset",
+        "state",
+        "referenceGeneration",
+        "occurredAt"
+      ]
+    },
+    "DrawingShape": {
+      "type": "object",
+      "description": "完整DrawingShape持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "type": "string",
+          "description": "kind",
+          "enum": [
+            "rectangle",
+            "diamond",
+            "ellipse"
+          ]
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked"
+      ]
+    },
+    "DrawingText": {
+      "type": "object",
+      "description": "完整DrawingText持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "const": "text"
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        },
+        "fontSize": {
+          "type": "number",
+          "description": "字号",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "fontFamily": {
+          "type": "integer",
+          "description": "Excalidraw字体枚举ID",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "lineHeight": {
+          "type": "number",
+          "description": "行高",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "baseline",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "新schema无null"
+        },
+        "text": {
+          "type": "string",
+          "description": "可提取文字",
+          "minLength": 0,
+          "maxLength": 100000
+        },
+        "originalText": {
+          "type": "string",
+          "description": "原文",
+          "minLength": 0,
+          "maxLength": 100000
+        },
+        "autoResize": {
+          "type": "boolean",
+          "description": "自动大小"
+        },
+        "containerId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "容器"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "textAlign": {
+          "type": "string",
+          "description": "横向",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "verticalAlign": {
+          "type": "string",
+          "description": "纵向",
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked",
+        "fontSize",
+        "fontFamily",
+        "lineHeight",
+        "baseline",
+        "text",
+        "originalText",
+        "autoResize",
+        "containerId",
+        "textAlign",
+        "verticalAlign"
+      ]
+    },
+    "DrawingBinding": {
+      "type": "object",
+      "description": "线绑定",
+      "additionalProperties": false,
+      "properties": {
+        "elementId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "元素"
+        },
+        "focus": {
+          "type": "number",
+          "description": "焦点",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "gap": {
+          "type": "number",
+          "description": "间距",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "fixedPoint": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "二维坐标",
+              "items": {
+                "type": "number",
+                "description": "坐标",
+                "minimum": -100000,
+                "maximum": 100000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "elementId",
+        "focus",
+        "gap",
+        "fixedPoint"
+      ]
+    },
+    "DrawingLine": {
+      "type": "object",
+      "description": "完整DrawingLine持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "type": "string",
+          "description": "kind",
+          "enum": [
+            "line",
+            "arrow"
+          ]
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        },
+        "points": {
+          "type": "array",
+          "description": "折线",
+          "items": {
+            "type": "array",
+            "description": "二维坐标",
+            "items": {
+              "type": "number",
+              "description": "坐标",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 2,
+          "maxItems": 10000
+        },
+        "startBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DrawingBinding",
+              "description": "DrawingBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "endBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DrawingBinding",
+              "description": "DrawingBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "startArrowhead": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "箭头",
+              "enum": [
+                "arrow",
+                "bar",
+                "dot",
+                "triangle",
+                "triangle_outline",
+                "circle",
+                "circle_outline",
+                "diamond",
+                "diamond_outline"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "endArrowhead": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "箭头",
+              "enum": [
+                "arrow",
+                "bar",
+                "dot",
+                "triangle",
+                "triangle_outline",
+                "circle",
+                "circle_outline",
+                "diamond",
+                "diamond_outline"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "elbowed": {
+          "type": "boolean",
+          "description": "折弯arrow"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked",
+        "points",
+        "startBinding",
+        "endBinding",
+        "startArrowhead",
+        "endArrowhead",
+        "elbowed"
+      ]
+    },
+    "DrawingFreedraw": {
+      "type": "object",
+      "description": "完整DrawingFreedraw持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "const": "freedraw"
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        },
+        "points": {
+          "type": "array",
+          "description": "路径",
+          "items": {
+            "type": "array",
+            "description": "二维坐标",
+            "items": {
+              "type": "number",
+              "description": "坐标",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 1,
+          "maxItems": 100000
+        },
+        "pressures": {
+          "type": "array",
+          "description": "必须等points长度或模拟为空",
+          "items": {
+            "type": "number",
+            "description": "压力",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 0,
+          "maxItems": 100000
+        },
+        "simulatePressure": {
+          "type": "boolean",
+          "description": "模拟压力"
+        },
+        "lastCommittedPoint": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "二维坐标",
+              "items": {
+                "type": "number",
+                "description": "坐标",
+                "minimum": -100000,
+                "maximum": 100000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked",
+        "points",
+        "pressures",
+        "simulatePressure",
+        "lastCommittedPoint"
+      ]
+    },
+    "DrawingImage": {
+      "type": "object",
+      "description": "完整DrawingImage持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "const": "image"
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        },
+        "fileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "scene files键"
+        },
+        "status": {
+          "type": "string",
+          "description": "图片状态",
+          "enum": [
+            "pending",
+            "saved",
+            "error"
+          ]
+        },
+        "scale": {
+          "type": "array",
+          "description": "x/y",
+          "items": {
+            "type": "number",
+            "description": "镜像比例",
+            "minimum": -1,
+            "maximum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked",
+        "fileId",
+        "status",
+        "scale"
+      ]
+    },
+    "DrawingFrame": {
+      "type": "object",
+      "description": "完整DrawingFrame持久字段；vendor新增字段需声明schema迁移",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Excalidraw element"
+        },
+        "type": {
+          "const": "frame"
+        },
+        "x": {
+          "type": "number",
+          "description": "x",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "description": "y",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "width": {
+          "type": "number",
+          "description": "width",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "number",
+          "description": "height",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "angle": {
+          "type": "number",
+          "description": "弧度",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "strokeColor": {
+          "type": "string",
+          "description": "Excalidraw安全CSS颜色/#hex",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "背景色/transparent",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "fillStyle": {
+          "type": "string",
+          "description": "填充",
+          "enum": [
+            "hachure",
+            "cross-hatch",
+            "solid",
+            "zigzag"
+          ]
+        },
+        "strokeWidth": {
+          "type": "number",
+          "description": "描边",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "strokeStyle": {
+          "type": "string",
+          "description": "描边",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "description": "手绘粗糙",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "opacity": {
+          "type": "integer",
+          "description": "透明0–100",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "组",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "分组ID"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "frameId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "frame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "圆角",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "description": "圆角值",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "默认null"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "randomseed",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "Excalidraw版本"
+        },
+        "versionNonce": {
+          "type": "integer",
+          "description": "nonce",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "元素墓碑"
+        },
+        "boundElements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "description": "绑定",
+              "items": {
+                "type": "object",
+                "description": "关联",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                    "description": "关联"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "关联",
+                    "enum": [
+                      "arrow",
+                      "text"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "updated": {
+          "type": "integer",
+          "description": "epochms",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "安全http/https/mailto",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "画板元素锁；与文档锁不同"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "frame名",
+              "minLength": 0,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height",
+        "angle",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roughness",
+        "opacity",
+        "groupIds",
+        "frameId",
+        "roundness",
+        "seed",
+        "version",
+        "versionNonce",
+        "isDeleted",
+        "boundElements",
+        "updated",
+        "link",
+        "locked",
+        "name"
+      ]
+    },
+    "DrawingElement": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DrawingShape",
+          "description": "DrawingShape"
+        },
+        {
+          "$ref": "#/$defs/DrawingText",
+          "description": "DrawingText"
+        },
+        {
+          "$ref": "#/$defs/DrawingLine",
+          "description": "DrawingLine"
+        },
+        {
+          "$ref": "#/$defs/DrawingFreedraw",
+          "description": "DrawingFreedraw"
+        },
+        {
+          "$ref": "#/$defs/DrawingImage",
+          "description": "DrawingImage"
+        },
+        {
+          "$ref": "#/$defs/DrawingFrame",
+          "description": "DrawingFrame"
+        }
+      ],
+      "description": "Excalidraw持久图元联合体，不执行link或HTML"
+    },
+    "DrawingScene": {
+      "type": "object",
+      "description": ".excalidraw导出规范化受支持schema，adapter保留所有已登记持久字段，未知版本只读",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "excalidraw"
+        },
+        "version": {
+          "const": 2
+        },
+        "source": {
+          "type": "string",
+          "description": "导出来源文字，非可执行URL",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "elements": {
+          "type": "array",
+          "description": "场景",
+          "items": {
+            "$ref": "#/$defs/DrawingElement",
+            "description": "DrawingElement"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "appState": {
+          "type": "object",
+          "description": "持久场景显示字段；编辑器运行状态不持久",
+          "additionalProperties": false,
+          "properties": {
+            "viewBackgroundColor": {
+              "type": "string",
+              "description": "背景",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "gridSize": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "description": "grid",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "无null"
+            },
+            "theme": {
+              "type": "string",
+              "description": "theme",
+              "enum": [
+                "light",
+                "dark"
+              ]
+            }
+          },
+          "required": [
+            "viewBackgroundColor",
+            "gridSize",
+            "theme"
+          ]
+        },
+        "files": {
+          "type": "object",
+          "description": "Excalidraw image文件字典；仅明确pattern键，禁止任意未知top字段",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9._:-]{1,128}$": {
+              "type": "object",
+              "description": "scene图像",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                  "description": "fileId"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "description": "嵌入图像",
+                  "enum": [
+                    "image/png",
+                    "image/jpeg",
+                    "image/webp",
+                    "image/gif",
+                    "image/avif"
+                  ]
+                },
+                "dataURL": {
+                  "type": "string",
+                  "description": "仅上述raster MIME的base64 data URL，不允许SVG/外部URL",
+                  "minLength": 1,
+                  "maxLength": 33554432
+                },
+                "created": {
+                  "type": "integer",
+                  "description": "epochms",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "lastRetrieved": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "description": "epochms",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "无null"
+                }
+              },
+              "required": [
+                "id",
+                "mimeType",
+                "dataURL",
+                "created",
+                "lastRetrieved"
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "type",
+        "version",
+        "source",
+        "elements",
+        "appState",
+        "files"
+      ]
+    },
+    "ProviderURL": {
+      "type": "object",
+      "description": "不含账号cookie/auth/private API",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/PlatformProvider",
+          "description": "PlatformProvider"
+        },
+        "videoId": {
+          "type": "string",
+          "description": "公开视频标识",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonicalURL": {
+          "type": "string",
+          "description": "规范允许域URL",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "provider",
+        "videoId",
+        "canonicalURL"
+      ]
+    },
+    "EmbedDescriptor": {
+      "type": "object",
+      "description": "provider生成embed，页面点击后加载",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/PlatformProvider",
+          "description": "PlatformProvider"
+        },
+        "host": {
+          "type": "string",
+          "description": "固定白名单",
+          "enum": [
+            "www.youtube-nocookie.com",
+            "player.bilibili.com",
+            "open.douyin.com",
+            "www.tiktok.com"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "description": "provider编码路径，非任意input",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "query": {
+          "type": "string",
+          "description": "仅provider白名单参数",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "sandbox": {
+          "type": "array",
+          "description": "只最小播放权限",
+          "items": {
+            "type": "string",
+            "description": "固定iframe sandbox词",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "ready": {
+          "type": "boolean",
+          "description": "提供方资料/实际能力已验证，未验证只能manual fallback"
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "path",
+        "query",
+        "sandbox",
+        "ready"
+      ]
+    },
+    "BeginUploadInput": {
+      "type": "object",
+      "description": "开始内容寻址可续传上传的输入",
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "byteSize": {
+          "type": "integer",
+          "description": "大小",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "originalName": {
+          "type": "string",
+          "description": "展示名称",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "kind": {
+          "type": "string",
+          "description": "资源类别",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        }
+      },
+      "required": [
+        "sha256",
+        "byteSize",
+        "originalName",
+        "kind"
+      ]
+    },
+    "BeginUploadResult": {
+      "type": "object",
+      "description": "开始内容寻址可续传上传的结果",
+      "additionalProperties": false,
+      "properties": {
+        "upload": {
+          "$ref": "#/$defs/UploadSession",
+          "description": "UploadSession"
+        }
+      },
+      "required": [
+        "upload"
+      ]
+    },
+    "NormalizeOriginalNameInput": {
+      "type": "object",
+      "description": "清理展示文件名而不用于路径的输入",
+      "additionalProperties": false,
+      "properties": {
+        "originalName": {
+          "type": "string",
+          "description": "原始文件名",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "originalName"
+      ]
+    },
+    "NormalizeOriginalNameResult": {
+      "type": "object",
+      "description": "清理展示文件名而不用于路径的结果",
+      "additionalProperties": false,
+      "properties": {
+        "safeName": {
+          "type": "string",
+          "description": "显示/Content-Disposition文件名",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "safeName"
+      ]
+    },
+    "ReadUploadInput": {
+      "type": "object",
+      "description": "查询续传offset的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        }
+      },
+      "required": [
+        "uploadId"
+      ]
+    },
+    "ReadUploadResult": {
+      "type": "object",
+      "description": "查询续传offset的结果",
+      "additionalProperties": false,
+      "properties": {
+        "upload": {
+          "$ref": "#/$defs/UploadSession",
+          "description": "UploadSession"
+        }
+      },
+      "required": [
+        "upload"
+      ]
+    },
+    "PutUploadChunkInput": {
+      "type": "object",
+      "description": "顺序原子写有界上传块的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "session"
+        },
+        "chunk": {
+          "$ref": "#/$defs/BinaryChunk",
+          "description": "BinaryChunk"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "上传CAS"
+        }
+      },
+      "required": [
+        "uploadId",
+        "chunk",
+        "expectedRevision"
+      ]
+    },
+    "PutUploadChunkResult": {
+      "type": "object",
+      "description": "顺序原子写有界上传块的结果",
+      "additionalProperties": false,
+      "properties": {
+        "upload": {
+          "$ref": "#/$defs/UploadSession",
+          "description": "UploadSession"
+        }
+      },
+      "required": [
+        "upload"
+      ]
+    },
+    "CompleteUploadInput": {
+      "type": "object",
+      "description": "完成hash/MIME验证后发布ready资源的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "uploadId",
+        "expectedRevision"
+      ]
+    },
+    "CompleteUploadResult": {
+      "type": "object",
+      "description": "完成hash/MIME验证后发布ready资源的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        }
+      },
+      "required": [
+        "asset"
+      ]
+    },
+    "AbortUploadInput": {
+      "type": "object",
+      "description": "取消未完成上传释放配额的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        }
+      },
+      "required": [
+        "uploadId"
+      ]
+    },
+    "AbortUploadResult": {
+      "type": "object",
+      "description": "取消未完成上传释放配额的结果",
+      "additionalProperties": false,
+      "properties": {
+        "aborted": {
+          "type": "boolean",
+          "description": "结束"
+        }
+      },
+      "required": [
+        "aborted"
+      ]
+    },
+    "ExpireUploadSessionsInput": {
+      "type": "object",
+      "description": "仅回收过期未完成临时字节的输入",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "servernow"
+        }
+      },
+      "required": [
+        "now"
+      ]
+    },
+    "ExpireUploadSessionsResult": {
+      "type": "object",
+      "description": "仅回收过期未完成临时字节的结果",
+      "additionalProperties": false,
+      "properties": {
+        "expiredIds": {
+          "type": "array",
+          "description": "ID",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "临时上传"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "expiredIds"
+      ]
+    },
+    "HashUploadInput": {
+      "type": "object",
+      "description": "流计算对象真相摘要的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        }
+      },
+      "required": [
+        "uploadId"
+      ]
+    },
+    "HashUploadResult": {
+      "type": "object",
+      "description": "流计算对象真相摘要的结果",
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "byteSize": {
+          "type": "integer",
+          "description": "实际字节",
+          "minimum": 1,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "sha256",
+        "byteSize"
+      ]
+    },
+    "SniffAssetTypeInput": {
+      "type": "object",
+      "description": "从字节识别类型的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        },
+        "claimedMediaType": {
+          "type": "string",
+          "description": "声明MIME仅提示",
+          "minLength": 0,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "uploadId",
+        "claimedMediaType"
+      ]
+    },
+    "SniffAssetTypeResult": {
+      "type": "object",
+      "description": "从字节识别类型的结果",
+      "additionalProperties": false,
+      "properties": {
+        "mediaType": {
+          "type": "string",
+          "description": "确证类型",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "animated": {
+          "type": "boolean",
+          "description": "动图"
+        },
+        "kind": {
+          "type": "string",
+          "description": "资源类别",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        }
+      },
+      "required": [
+        "mediaType",
+        "animated",
+        "kind"
+      ]
+    },
+    "ValidateAssetPayloadInput": {
+      "type": "object",
+      "description": "验证SVG/场景/附件/视频安全交付的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        },
+        "kind": {
+          "type": "string",
+          "description": "资源类别",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "MIME",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "uploadId",
+        "kind",
+        "mediaType"
+      ]
+    },
+    "ValidateAssetPayloadResult": {
+      "type": "object",
+      "description": "验证SVG/场景/附件/视频安全交付的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "可ready"
+        },
+        "cspSandbox": {
+          "type": "boolean",
+          "description": "SVG必须sandbox"
+        }
+      },
+      "required": [
+        "valid",
+        "cspSandbox"
+      ]
+    },
+    "CommitAssetBlobInput": {
+      "type": "object",
+      "description": "将已验证文件提交不可变内容寻址存储的输入",
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "上传"
+        },
+        "sha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "MIME",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "uploadId",
+        "sha256",
+        "mediaType"
+      ]
+    },
+    "CommitAssetBlobResult": {
+      "type": "object",
+      "description": "将已验证文件提交不可变内容寻址存储的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        }
+      },
+      "required": [
+        "asset"
+      ]
+    },
+    "ReadAssetInput": {
+      "type": "object",
+      "description": "读取资源/variants安全元数据的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "ID"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+              "description": "指定不可变版本"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "当前null"
+        }
+      },
+      "required": [
+        "assetId",
+        "version"
+      ]
+    },
+    "ReadAssetResult": {
+      "type": "object",
+      "description": "读取资源/variants安全元数据的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        }
+      },
+      "required": [
+        "asset"
+      ]
+    },
+    "ListAssetsInput": {
+      "type": "object",
+      "description": "资源库列图片/附件/视频/画板及引用摘要的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "资源库类别",
+              "enum": [
+                "image",
+                "attachment",
+                "video",
+                "drawing_scene",
+                "drawing_svg",
+                "platform_cover"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全部null"
+        }
+      },
+      "required": [
+        "page",
+        "kind"
+      ]
+    },
+    "ListAssetsResult": {
+      "type": "object",
+      "description": "资源库列图片/附件/视频/画板及引用摘要的结果",
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "type": "array",
+          "description": "资源库页",
+          "items": {
+            "$ref": "#/$defs/Asset",
+            "description": "Asset"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "assets",
+        "pageInfo"
+      ]
+    },
+    "AttachImageVariantsInput": {
+      "type": "object",
+      "description": "关联浏览器多宽WebP原图的输入",
+      "additionalProperties": false,
+      "properties": {
+        "original": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "variants": {
+          "type": "array",
+          "description": "浏览器WebP",
+          "items": {
+            "$ref": "#/$defs/ImageVariant",
+            "description": "ImageVariant"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "原assetCAS"
+        }
+      },
+      "required": [
+        "original",
+        "variants",
+        "expectedRevision"
+      ]
+    },
+    "AttachImageVariantsResult": {
+      "type": "object",
+      "description": "关联浏览器多宽WebP原图的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        }
+      },
+      "required": [
+        "asset"
+      ]
+    },
+    "ValidateDrawingSceneInput": {
+      "type": "object",
+      "description": "校验Excalidraw场景和提取文字的输入",
+      "additionalProperties": false,
+      "properties": {
+        "scene": {
+          "$ref": "#/$defs/DrawingScene",
+          "description": "DrawingScene"
+        }
+      },
+      "required": [
+        "scene"
+      ]
+    },
+    "ValidateDrawingSceneResult": {
+      "type": "object",
+      "description": "校验Excalidraw场景和提取文字的结果",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        },
+        "text": {
+          "type": "string",
+          "description": "画板文字索引输入，不写日志",
+          "minLength": 0,
+          "maxLength": 1048576
+        }
+      },
+      "required": [
+        "valid",
+        "text"
+      ]
+    },
+    "AcquireResourceReferencesInput": {
+      "type": "object",
+      "description": "正文/config提交前保护资源迟到引用的输入",
+      "additionalProperties": false,
+      "properties": {
+        "references": {
+          "type": "array",
+          "description": "待提交源ref",
+          "items": {
+            "$ref": "#/$defs/AssetReference",
+            "description": "AssetReference"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "来源操作"
+        }
+      },
+      "required": [
+        "references",
+        "sourceOperationId"
+      ]
+    },
+    "AcquireResourceReferencesResult": {
+      "type": "object",
+      "description": "正文/config提交前保护资源迟到引用的结果",
+      "additionalProperties": false,
+      "properties": {
+        "pin": {
+          "$ref": "#/$defs/ReferencePin",
+          "description": "ReferencePin"
+        }
+      },
+      "required": [
+        "pin"
+      ]
+    },
+    "ConfirmResourceReferencesInput": {
+      "type": "object",
+      "description": "源提交后确认pin为引用的输入",
+      "additionalProperties": false,
+      "properties": {
+        "pinId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "pin"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已COMMITTED源版本"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "源水位"
+        }
+      },
+      "required": [
+        "pinId",
+        "sourceRevisionId",
+        "sourceVersion"
+      ]
+    },
+    "ConfirmResourceReferencesResult": {
+      "type": "object",
+      "description": "源提交后确认pin为引用的结果",
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "type": "boolean",
+          "description": "长期ref完成"
+        }
+      },
+      "required": [
+        "confirmed"
+      ]
+    },
+    "ReleaseResourceReferencesInput": {
+      "type": "object",
+      "description": "仅明确源未提交才释放pin的输入",
+      "additionalProperties": false,
+      "properties": {
+        "pinId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "未提交pin"
+        },
+        "reason": {
+          "type": "string",
+          "description": "失败",
+          "enum": [
+            "source_aborted",
+            "source_rejected"
+          ]
+        }
+      },
+      "required": [
+        "pinId",
+        "reason"
+      ]
+    },
+    "ReleaseResourceReferencesResult": {
+      "type": "object",
+      "description": "仅明确源未提交才释放pin的结果",
+      "additionalProperties": false,
+      "properties": {
+        "released": {
+          "type": "boolean",
+          "description": "释放"
+        }
+      },
+      "required": [
+        "released"
+      ]
+    },
+    "ApplyReferenceEventInput": {
+      "type": "object",
+      "description": "消费引用事件防重复/乱序的输入",
+      "additionalProperties": false,
+      "properties": {
+        "references": {
+          "type": "array",
+          "description": "完整该sourceversion refs",
+          "items": {
+            "$ref": "#/$defs/AssetReference",
+            "description": "AssetReference"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "sourceService": {
+          "type": "string",
+          "description": "注册域",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "版本"
+        },
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "去重"
+        }
+      },
+      "required": [
+        "references",
+        "sourceService",
+        "sourceVersion",
+        "eventId"
+      ]
+    },
+    "ApplyReferenceEventResult": {
+      "type": "object",
+      "description": "消费引用事件防重复/乱序的结果",
+      "additionalProperties": false,
+      "properties": {
+        "applied": {
+          "type": "boolean",
+          "description": "应用"
+        },
+        "generation": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "媒体水位"
+        }
+      },
+      "required": [
+        "applied",
+        "generation"
+      ]
+    },
+    "ReadAssetReferencesInput": {
+      "type": "object",
+      "description": "列哪些文档当前/历史引用资源的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "资源"
+        }
+      },
+      "required": [
+        "assetId"
+      ]
+    },
+    "ReadAssetReferencesResult": {
+      "type": "object",
+      "description": "列哪些文档当前/历史引用资源的结果",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/ReferenceSnapshot",
+          "description": "ReferenceSnapshot"
+        }
+      },
+      "required": [
+        "snapshot"
+      ]
+    },
+    "ListUnusedAssetsInput": {
+      "type": "object",
+      "description": "后台单列当前未引用文件的输入",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequest",
+          "description": "PageRequest"
+        }
+      },
+      "required": [
+        "page"
+      ]
+    },
+    "ListUnusedAssetsResult": {
+      "type": "object",
+      "description": "后台单列当前未引用文件的结果",
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "type": "array",
+          "description": "当前无引用",
+          "items": {
+            "$ref": "#/$defs/Asset",
+            "description": "Asset"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "historyAffectedDocumentIds": {
+          "type": "array",
+          "description": "提示",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "历史风险"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "pageInfo": {
+          "$ref": "#/$defs/PageInfo",
+          "description": "PageInfo"
+        }
+      },
+      "required": [
+        "assets",
+        "historyAffectedDocumentIds",
+        "pageInfo"
+      ]
+    },
+    "ProposeManualCleanupInput": {
+      "type": "object",
+      "description": "人工清理前生成精确风险计划的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "type": "array",
+          "description": "人工选中",
+          "items": {
+            "$ref": "#/$defs/AssetVersionRef",
+            "description": "AssetVersionRef"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "assets"
+      ]
+    },
+    "ProposeManualCleanupResult": {
+      "type": "object",
+      "description": "人工清理前生成精确风险计划的结果",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/CleanupPlan",
+          "description": "CleanupPlan"
+        }
+      },
+      "required": [
+        "plan"
+      ]
+    },
+    "ConfirmManualCleanupInput": {
+      "type": "object",
+      "description": "管理员确认后进入迟到引用保护窗口的输入",
+      "additionalProperties": false,
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "计划"
+        },
+        "confirmationHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "acknowledgeHistoryLoss": {
+          "type": "boolean",
+          "description": "明确接受历史缺文件风险"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "planCAS"
+        }
+      },
+      "required": [
+        "planId",
+        "confirmationHash",
+        "acknowledgeHistoryLoss",
+        "expectedRevision"
+      ]
+    },
+    "ConfirmManualCleanupResult": {
+      "type": "object",
+      "description": "管理员确认后进入迟到引用保护窗口的结果",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/CleanupPlan",
+          "description": "CleanupPlan"
+        }
+      },
+      "required": [
+        "plan"
+      ]
+    },
+    "CancelManualCleanupInput": {
+      "type": "object",
+      "description": "删除前取消人工清理的输入",
+      "additionalProperties": false,
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "计划"
+        }
+      },
+      "required": [
+        "planId"
+      ]
+    },
+    "CancelManualCleanupResult": {
+      "type": "object",
+      "description": "删除前取消人工清理的结果",
+      "additionalProperties": false,
+      "properties": {
+        "cancelled": {
+          "type": "boolean",
+          "description": "取消"
+        }
+      },
+      "required": [
+        "cancelled"
+      ]
+    },
+    "ValidateCleanupSourcesInput": {
+      "type": "object",
+      "description": "确认所有权威引用源后才认定可清理的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "资源"
+        },
+        "expectedGeneration": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+              "description": "CAS水位"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只读null"
+        }
+      },
+      "required": [
+        "assetId",
+        "expectedGeneration"
+      ]
+    },
+    "ValidateCleanupSourcesResult": {
+      "type": "object",
+      "description": "确认所有权威引用源后才认定可清理的结果",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/ReferenceSnapshot",
+          "description": "ReferenceSnapshot"
+        },
+        "safeToDelete": {
+          "type": "boolean",
+          "description": "完整且当前0/pins0"
+        }
+      },
+      "required": [
+        "snapshot",
+        "safeToDelete"
+      ]
+    },
+    "ExecuteManualCleanupInput": {
+      "type": "object",
+      "description": "只执行已人工确认的安全清理计划的输入",
+      "additionalProperties": false,
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已确认计划"
+        },
+        "expectedGeneration": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "计划ref水位"
+        }
+      },
+      "required": [
+        "planId",
+        "expectedGeneration"
+      ]
+    },
+    "ExecuteManualCleanupResult": {
+      "type": "object",
+      "description": "只执行已人工确认的安全清理计划的结果",
+      "additionalProperties": false,
+      "properties": {
+        "deletedAssetIds": {
+          "type": "array",
+          "description": "IDs",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "完成"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "blockedAssetIds": {
+          "type": "array",
+          "description": "IDs",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+            "description": "新ref/未知"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "deletedAssetIds",
+        "blockedAssetIds"
+      ]
+    },
+    "ParseByteRangeInput": {
+      "type": "object",
+      "description": "规范Range支持iOS视频的输入",
+      "additionalProperties": false,
+      "properties": {
+        "header": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Range",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无全量null"
+        },
+        "total": {
+          "type": "integer",
+          "description": "bytes",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "ifRange": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "ETag或日期",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "etag": {
+          "type": "string",
+          "description": "SHA ETag",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "header",
+        "total",
+        "ifRange",
+        "etag"
+      ]
+    },
+    "ParseByteRangeResult": {
+      "type": "object",
+      "description": "规范Range支持iOS视频的结果",
+      "additionalProperties": false,
+      "properties": {
+        "range": {
+          "$ref": "#/$defs/ByteRange",
+          "description": "ByteRange"
+        }
+      },
+      "required": [
+        "range"
+      ]
+    },
+    "ReadAssetBytesInput": {
+      "type": "object",
+      "description": "鉴权读取immutable bytes和Range的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "对象"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "immutable版本"
+        },
+        "rangeHeader": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Range",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "全量null"
+        },
+        "ifRange": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "If-Range",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null"
+        },
+        "previewToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "管理员预览敏感proof",
+              "minLength": 32,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "公开hashnull"
+        },
+        "publicationDocumentId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "public-site manifest绑定文档；preview null"
+        },
+        "publishedRevisionId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "精确公开版本；preview null"
+        }
+      },
+      "required": [
+        "assetId",
+        "version",
+        "rangeHeader",
+        "ifRange",
+        "previewToken",
+        "publicationDocumentId",
+        "publishedRevisionId"
+      ]
+    },
+    "ReadAssetBytesResult": {
+      "type": "object",
+      "description": "鉴权读取immutable bytes和Range的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        },
+        "range": {
+          "$ref": "#/$defs/ByteRange",
+          "description": "ByteRange"
+        },
+        "status": {
+          "type": "integer",
+          "enum": [
+            200,
+            206
+          ]
+        },
+        "streamHandle": {
+          "type": "string",
+          "description": "内部只读stream",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "headers": {
+          "type": "array",
+          "description": "头",
+          "items": {
+            "type": "object",
+            "description": "安全响应头",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "允许头",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "value": {
+                "type": "string",
+                "description": "值",
+                "minLength": 0,
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "asset",
+        "range",
+        "status",
+        "streamHandle",
+        "headers"
+      ]
+    },
+    "HeadAssetBytesInput": {
+      "type": "object",
+      "description": "HEAD同GET授权只返header的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "对象"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "version"
+        },
+        "previewToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "proof",
+              "minLength": 32,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "公开null"
+        }
+      },
+      "required": [
+        "assetId",
+        "version",
+        "previewToken"
+      ]
+    },
+    "HeadAssetBytesResult": {
+      "type": "object",
+      "description": "HEAD同GET授权只返header的结果",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "Asset"
+        },
+        "etag": {
+          "type": "string",
+          "description": "SHA ETag",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "byteSize": {
+          "type": "integer",
+          "description": "size",
+          "minimum": 1,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "asset",
+        "etag",
+        "byteSize"
+      ]
+    },
+    "AcquireReaderLeaseInput": {
+      "type": "object",
+      "description": "防正在下载资源被最终删除的输入",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "deadline": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "流期限≤10min"
+        }
+      },
+      "required": [
+        "asset",
+        "deadline"
+      ]
+    },
+    "AcquireReaderLeaseResult": {
+      "type": "object",
+      "description": "防正在下载资源被最终删除的结果",
+      "additionalProperties": false,
+      "properties": {
+        "readerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "lease"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "expires"
+        }
+      },
+      "required": [
+        "readerId",
+        "expiresAt"
+      ]
+    },
+    "BuildDeliveryManifestInput": {
+      "type": "object",
+      "description": "给公开/管理员预览返回SHA URLs/srcset/封面的输入",
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "type": "array",
+          "description": "引用集合",
+          "items": {
+            "$ref": "#/$defs/AssetVersionRef",
+            "description": "AssetVersionRef"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "publishedReference": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+              "description": "PublishedRevisionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "previewnull"
+        },
+        "previewId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "管理员preview"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "公开null"
+        },
+        "previewToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "proof",
+              "minLength": 32,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "公开null"
+        }
+      },
+      "required": [
+        "assets",
+        "publishedReference",
+        "previewId",
+        "previewToken"
+      ]
+    },
+    "BuildDeliveryManifestResult": {
+      "type": "object",
+      "description": "给公开/管理员预览返回SHA URLs/srcset/封面的结果",
+      "additionalProperties": false,
+      "properties": {
+        "manifest": {
+          "$ref": "#/$defs/DeliveryManifest",
+          "description": "DeliveryManifest"
+        }
+      },
+      "required": [
+        "manifest"
+      ]
+    },
+    "ReadVideoMetadataInput": {
+      "type": "object",
+      "description": "插入时一次获取平台公开信息并本地封面的输入",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "四平台公开视频URL",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "manualTitle": {
+          "type": "string",
+          "description": "失败手填标题",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "manualDescription": {
+          "type": "string",
+          "description": "失败手填简介",
+          "minLength": 0,
+          "maxLength": 10000
+        }
+      },
+      "required": [
+        "url",
+        "manualTitle",
+        "manualDescription"
+      ]
+    },
+    "ReadVideoMetadataResult": {
+      "type": "object",
+      "description": "插入时一次获取平台公开信息并本地封面的结果",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/PlatformVideoSnapshot",
+          "description": "PlatformVideoSnapshot"
+        }
+      },
+      "required": [
+        "snapshot"
+      ]
+    },
+    "RecognizePlatformURLInput": {
+      "type": "object",
+      "description": "识别Bilibili/YouTube/抖音/TikTok链接的输入",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "平台URL",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "RecognizePlatformURLResult": {
+      "type": "object",
+      "description": "识别Bilibili/YouTube/抖音/TikTok链接的结果",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ProviderURL",
+          "description": "ProviderURL"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "ResolveProviderRedirectInput": {
+      "type": "object",
+      "description": "仅平台短链接受控重定向解析的输入",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "平台短URL",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "provider": {
+          "$ref": "#/$defs/PlatformProvider",
+          "description": "PlatformProvider"
+        }
+      },
+      "required": [
+        "url",
+        "provider"
+      ]
+    },
+    "ResolveProviderRedirectResult": {
+      "type": "object",
+      "description": "仅平台短链接受控重定向解析的结果",
+      "additionalProperties": false,
+      "properties": {
+        "canonicalURL": {
+          "type": "string",
+          "description": "规范URL",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "canonicalURL"
+      ]
+    },
+    "FetchProviderPublicMetadataInput": {
+      "type": "object",
+      "description": "provider接口抓公开非登录信息的输入",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ProviderURL",
+          "description": "ProviderURL"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "FetchProviderPublicMetadataResult": {
+      "type": "object",
+      "description": "provider接口抓公开非登录信息的结果",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/PlatformVideoSnapshot",
+          "description": "PlatformVideoSnapshot"
+        }
+      },
+      "required": [
+        "snapshot"
+      ]
+    },
+    "BuildProviderEmbedInput": {
+      "type": "object",
+      "description": "生成四平台白名单embed资料的输入",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ProviderURL",
+          "description": "ProviderURL"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "BuildProviderEmbedResult": {
+      "type": "object",
+      "description": "生成四平台白名单embed资料的结果",
+      "additionalProperties": false,
+      "properties": {
+        "embed": {
+          "$ref": "#/$defs/EmbedDescriptor",
+          "description": "EmbedDescriptor"
+        }
+      },
+      "required": [
+        "embed"
+      ]
+    },
+    "ImportRemoteCoverInput": {
+      "type": "object",
+      "description": "下载平台封面到本地内容寻址资源的输入",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/PlatformProvider",
+          "description": "PlatformProvider"
+        },
+        "coverURL": {
+          "type": "string",
+          "description": "公开封面允许来源",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "provider",
+        "coverURL"
+      ]
+    },
+    "ImportRemoteCoverResult": {
+      "type": "object",
+      "description": "下载平台封面到本地内容寻址资源的结果",
+      "additionalProperties": false,
+      "properties": {
+        "cover": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssetVersionRef",
+              "description": "AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "失败允许手传null"
+        }
+      },
+      "required": [
+        "cover"
+      ]
+    },
+    "RecoverBlobJournalInput": {
+      "type": "object",
+      "description": "恢复blob完成/删除持久日志的输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RecoverBlobJournalResult": {
+      "type": "object",
+      "description": "恢复blob完成/删除持久日志的结果",
+      "additionalProperties": false,
+      "properties": {
+        "confirmedCount": {
+          "type": "integer",
+          "description": "数",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "isolatedCount": {
+          "type": "integer",
+          "description": "孤儿",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "confirmedCount",
+        "isolatedCount"
+      ]
+    },
+    "PublishAssetEventInput": {
+      "type": "object",
+      "description": "原子写最小资源状态outbox的输入",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/AssetChangedPayload",
+          "description": "AssetChangedPayload"
+        },
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "ID"
+        }
+      },
+      "required": [
+        "event",
+        "eventId"
+      ]
+    },
+    "PublishAssetEventResult": {
+      "type": "object",
+      "description": "原子写最小资源状态outbox的结果",
+      "additionalProperties": false,
+      "properties": {
+        "queued": {
+          "type": "boolean",
+          "description": "queued"
+        }
+      },
+      "required": [
+        "queued"
+      ]
+    },
+    "ReleaseBarrierInput": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的输入",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前屏障"
+        },
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "barrierId",
+        "expectedEpoch"
+      ]
+    },
+    "ReleaseBarrierResult": {
+      "type": "object",
+      "description": "释放已协调完成的屏障的结果",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
+          "description": "BarrierStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "releaseBarrierRequest": {
+      "type": "object",
+      "description": "释放屏障请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "活动 epoch"
+        }
+      },
+      "required": [
+        "expectedEpoch"
+      ]
+    },
+    "putUploadChunkRequest": {
+      "type": "object",
+      "description": "顺序原子写有界上传块请求体",
+      "additionalProperties": false,
+      "properties": {
+        "chunk": {
+          "$ref": "#/$defs/BinaryChunk",
+          "description": "BinaryChunk"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "上传CAS"
+        }
+      },
+      "required": [
+        "chunk",
+        "expectedRevision"
+      ]
+    },
+    "completeUploadRequest": {
+      "type": "object",
+      "description": "完成hash/MIME验证后发布ready资源请求体",
+      "additionalProperties": false,
+      "properties": {
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "expectedRevision"
+      ]
+    },
+    "abortUploadRequest": {
+      "type": "object",
+      "description": "取消未完成上传释放配额请求体",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "attachImageVariantsRequest": {
+      "type": "object",
+      "description": "关联浏览器多宽WebP原图请求体",
+      "additionalProperties": false,
+      "properties": {
+        "original": {
+          "$ref": "#/$defs/AssetVersionRef",
+          "description": "AssetVersionRef"
+        },
+        "variants": {
+          "type": "array",
+          "description": "浏览器WebP",
+          "items": {
+            "$ref": "#/$defs/ImageVariant",
+            "description": "ImageVariant"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "原assetCAS"
+        }
+      },
+      "required": [
+        "original",
+        "variants",
+        "expectedRevision"
+      ]
+    },
+    "confirmManualCleanupRequest": {
+      "type": "object",
+      "description": "管理员确认后进入迟到引用保护窗口请求体",
+      "additionalProperties": false,
+      "properties": {
+        "confirmationHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "Hash"
+        },
+        "acknowledgeHistoryLoss": {
+          "type": "boolean",
+          "description": "明确接受历史缺文件风险"
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "planCAS"
+        }
+      },
+      "required": [
+        "confirmationHash",
+        "acknowledgeHistoryLoss",
+        "expectedRevision"
+      ]
+    },
+    "cancelManualCleanupRequest": {
+      "type": "object",
+      "description": "删除前取消人工清理请求体",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "media",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "media",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

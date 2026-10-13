@@ -1,0 +1,66 @@
+{
+  "module": "public-site",
+  "version": 1,
+  "events": [
+    {
+      "name": "public-site.cache-invalidated.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventPublicSiteCacheInvalidatedPayload"
+      },
+      "purpose": "私有缓存失效通知；禁止包含正文",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "public-site.render-failed.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventPublicSiteRenderFailedPayload"
+      },
+      "purpose": "运维聚合事件；不重算已付费结果",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "content.publication.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationChangedPayload"
+      },
+      "purpose": "M06-F060消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验",
+      "delivery": "at-least-once",
+      "ordering": "同source单调修订；旧epoch/低revision不复活公开缓存",
+      "idempotency": "本域inbox eventId+payloadHash唯一；同ID异hash隔离，事务后推进游标"
+    },
+    {
+      "name": "content.publication.withdrawn",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationWithdrawnPayload"
+      },
+      "purpose": "M06-F060消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验",
+      "delivery": "at-least-once",
+      "ordering": "同source单调修订；旧epoch/低revision不复活公开缓存",
+      "idempotency": "本域inbox eventId+payloadHash唯一；同ID异hash隔离，事务后推进游标"
+    },
+    {
+      "name": "translation.ready",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../localization/contracts/types.json#/$defs/EventTranslationReadyPayload"
+      },
+      "purpose": "M06-F060消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验",
+      "delivery": "at-least-once",
+      "ordering": "同source单调修订；旧epoch/低revision不复活公开缓存",
+      "idempotency": "本域inbox eventId+payloadHash唯一；同ID异hash隔离，事务后推进游标"
+    }
+  ]
+}

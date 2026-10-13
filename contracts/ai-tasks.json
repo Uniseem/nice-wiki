@@ -1,0 +1,309 @@
+{
+  "version": 1,
+  "tiers": [
+    "fast",
+    "accurate",
+    "vision",
+    "embedding",
+    "rerank"
+  ],
+  "singleSource": true,
+  "tasks": [
+    {
+      "id": "qa.preflight",
+      "name": "前置分类、改写、完整性与风险",
+      "owner": "qa",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "qa.inspect",
+      "name": "检索核查",
+      "owner": "knowledge",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 800,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "qa.answer",
+      "name": "最终回答",
+      "owner": "qa",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone",
+        "qa-policy"
+      ],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "qa.cache-match",
+      "name": "缓存同义复用判断",
+      "owner": "qa",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "qa.cache-translate",
+      "name": "缓存回答翻译",
+      "owner": "localization",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "brand-tone",
+        "translation-common",
+        "translation-target"
+      ],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "qa.compact",
+      "name": "对话增量压缩",
+      "owner": "qa",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.context",
+      "name": "检索单元背景上下文",
+      "owner": "knowledge",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.describe",
+      "name": "文字附件/视频公开元信息描述",
+      "owner": "knowledge",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 800,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.describe-visual",
+      "name": "图片、画板、视频封面视觉描述",
+      "owner": "knowledge",
+      "defaultTier": "vision",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 800,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.extract-attachment",
+      "name": "非文本附件内容提取",
+      "owner": "knowledge",
+      "defaultTier": "vision",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.embed",
+      "name": "生成向量",
+      "owner": "knowledge",
+      "defaultTier": "embedding",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 0,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "knowledge.rerank",
+      "name": "召回重排",
+      "owner": "knowledge",
+      "defaultTier": "rerank",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 0,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "localization.document",
+      "name": "块级文档翻译",
+      "owner": "localization",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone",
+        "translation-common",
+        "translation-target"
+      ],
+      "defaultMaxOutputTokens": 1000,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "localization.ui",
+      "name": "站点/UI文字翻译",
+      "owner": "localization",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone",
+        "translation-common",
+        "translation-target"
+      ],
+      "defaultMaxOutputTokens": 1000,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "localization.terms",
+      "name": "首次文档术语抽取",
+      "owner": "localization",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "translation-common",
+        "translation-target"
+      ],
+      "defaultMaxOutputTokens": 1000,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "localization.review",
+      "name": "可选反思润色",
+      "owner": "localization",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone",
+        "translation-common",
+        "translation-target"
+      ],
+      "defaultMaxOutputTokens": 1000,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "localization.suggest",
+      "name": "语言切换建议",
+      "owner": "localization",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "memory.overview",
+      "name": "项目概述维护",
+      "owner": "memory",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "memory.assistant",
+      "name": "记忆助手",
+      "owner": "memory",
+      "defaultTier": "accurate",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "content.slug",
+      "name": "首次发布路径名",
+      "owner": "content",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    },
+    {
+      "id": "content.seo",
+      "name": "首次发布SEO描述",
+      "owner": "content",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone"
+      ],
+      "defaultMaxOutputTokens": 500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
+    }
+  ],
+  "defaults": {
+    "questionCharacters": 500,
+    "maxSubquestions": 4,
+    "retrievalRounds": 3,
+    "toolCalls": 5,
+    "sessionConcurrentAnswers": 1,
+    "memoryItemBytes": 1536,
+    "memoryTaskBytes": 5120,
+    "historyKeepTokens": 15000,
+    "contextReserveRatio": 0.1,
+    "translationBatchTokens": 1000,
+    "translationMemoryMinCharacters": 20,
+    "translationReflection": false,
+    "dailyQABudgetZeroMeansUnlimited": true,
+    "backgroundCostsExcludedFromDailyQABudget": true
+  }
+}

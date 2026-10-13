@@ -1,0 +1,30 @@
+{
+  "module": "media",
+  "version": 1,
+  "events": [
+    {
+      "name": "media.asset.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/AssetChangedPayload"
+      },
+      "purpose": "ready/deleted资源元数据失效与统计",
+      "delivery": "at-least-once",
+      "ordering": "assetId version/refGeneration单调",
+      "idempotency": "eventId去重"
+    },
+    {
+      "name": "content.resources.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/ResourceReferencesChangedPayload"
+      },
+      "purpose": "更新当前/历史refs，不以迟到事件替代最终权威检查",
+      "delivery": "at-least-once",
+      "ordering": "sourceRevision单调，低版只ack",
+      "idempotency": "eventId+sourceVersion去重"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "module": "traffic-guard",
+  "version": 1,
+  "events": [
+    {
+      "name": "traffic-guard.admission-denied.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventTrafficGuardAdmissionDeniedPayload"
+      },
+      "purpose": "不广播主体/IP/提问",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "traffic-guard.policy-changed.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventTrafficGuardPolicyChangedPayload"
+      },
+      "purpose": "订阅者更新展示，不用于缓存绕过新策略",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "traffic-guard.ban-changed.v1",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventTrafficGuardBanChangedPayload"
+      },
+      "purpose": "审计引用",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "identity.authorization.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../identity/contracts/types.json#/$defs/IdentityChanged"
+      },
+      "purpose": "只触发管理会话重新授权，真实身份仍查identity.checkAuthorization",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    }
+  ]
+}

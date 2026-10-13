@@ -1,5 +1,0 @@
-{{define "toc"}}{{if .TOC}}
-<nav id="page-toc" data-toc data-open="false" aria-label="本页目录" class="nw-page-toc text-sm">
-<p class="mb-4 font-semibold">本页目录</p>
-{{range .TOC}}<a href="#{{.ID}}" class="mb-3 block text-muted hover:text-primary" data-level="{{.Level}}">{{.Title}}</a>{{end}}
-</nav>{{end}}{{end}}

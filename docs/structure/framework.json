@@ -1,0 +1,1887 @@
+{
+  "version": 1,
+  "phase": "design",
+  "scope": "当前实际框架文件，不包含old、.git、私有vps.txt或未来业务源码",
+  "files": [
+    {
+      "path": ".editorconfig",
+      "kind": "documentation",
+      "purpose": "仓库根.editorconfig框架约定或工程入口"
+    },
+    {
+      "path": ".gitattributes",
+      "kind": "documentation",
+      "purpose": "仓库根.gitattributes框架约定或工程入口"
+    },
+    {
+      "path": ".gitignore",
+      "kind": "documentation",
+      "purpose": "仓库根.gitignore框架约定或工程入口"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "documentation",
+      "purpose": "仓库根AGENTS.md框架约定或工程入口"
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "documentation",
+      "purpose": "仓库根CLAUDE.md框架约定或工程入口"
+    },
+    {
+      "path": "contracts/ai-tasks.json",
+      "kind": "contract",
+      "purpose": "全局ai-tasks版本化公共契约"
+    },
+    {
+      "path": "contracts/common.schema.json",
+      "kind": "contract",
+      "purpose": "全局common.schema版本化公共契约"
+    },
+    {
+      "path": "contracts/errors.json",
+      "kind": "contract",
+      "purpose": "全局errors版本化公共契约"
+    },
+    {
+      "path": "contracts/modules.json",
+      "kind": "contract",
+      "purpose": "全局modules版本化公共契约"
+    },
+    {
+      "path": "contracts/permission-groups.json",
+      "kind": "contract",
+      "purpose": "全局permission-groups版本化公共契约"
+    },
+    {
+      "path": "contracts/permissions.json",
+      "kind": "contract",
+      "purpose": "全局permissions版本化公共契约"
+    },
+    {
+      "path": "contracts/product-baseline.json",
+      "kind": "contract",
+      "purpose": "全局product-baseline版本化公共契约"
+    },
+    {
+      "path": "contracts/README.md",
+      "kind": "documentation",
+      "purpose": "全局README版本化公共契约"
+    },
+    {
+      "path": "contracts/service-bootstrap.json",
+      "kind": "contract",
+      "purpose": "全局service-bootstrap版本化公共契约"
+    },
+    {
+      "path": "docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "全局acceptance设计/手册/状态记录"
+    },
+    {
+      "path": "docs/adr/0001-rebuild.md",
+      "kind": "documentation",
+      "purpose": "全局0001-rebuild设计/手册/状态记录"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "kind": "documentation",
+      "purpose": "全局README设计/手册/状态记录"
+    },
+    {
+      "path": "docs/ai-context-and-cache.md",
+      "kind": "documentation",
+      "purpose": "全局ai-context-and-cache设计/手册/状态记录"
+    },
+    {
+      "path": "docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "全局architecture设计/手册/状态记录"
+    },
+    {
+      "path": "docs/consistency.md",
+      "kind": "documentation",
+      "purpose": "全局consistency设计/手册/状态记录"
+    },
+    {
+      "path": "docs/dependencies.md",
+      "kind": "documentation",
+      "purpose": "全局dependencies设计/手册/状态记录"
+    },
+    {
+      "path": "docs/documentation-standard.md",
+      "kind": "documentation",
+      "purpose": "全局documentation-standard设计/手册/状态记录"
+    },
+    {
+      "path": "docs/frontend.md",
+      "kind": "documentation",
+      "purpose": "全局frontend设计/手册/状态记录"
+    },
+    {
+      "path": "docs/operations.md",
+      "kind": "documentation",
+      "purpose": "全局operations设计/手册/状态记录"
+    },
+    {
+      "path": "docs/plan.md",
+      "kind": "documentation",
+      "purpose": "全局plan设计/手册/状态记录"
+    },
+    {
+      "path": "docs/playbooks/change-contract.md",
+      "kind": "documentation",
+      "purpose": "全局change-contract设计/手册/状态记录"
+    },
+    {
+      "path": "docs/playbooks/handoff.md",
+      "kind": "documentation",
+      "purpose": "全局handoff设计/手册/状态记录"
+    },
+    {
+      "path": "docs/playbooks/implement-module.md",
+      "kind": "documentation",
+      "purpose": "全局implement-module设计/手册/状态记录"
+    },
+    {
+      "path": "docs/playbooks/parallel-development.md",
+      "kind": "documentation",
+      "purpose": "全局parallel-development设计/手册/状态记录"
+    },
+    {
+      "path": "docs/playbooks/push.md",
+      "kind": "documentation",
+      "purpose": "全局push设计/手册/状态记录"
+    },
+    {
+      "path": "docs/product-baseline/adr/0003-positioning.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0004-editor-tiptap.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0006-ai-qa.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0009-block-design.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0010-retrieval.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0011-i18n-translation.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0012-url-language-prefix.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0013-language-suggestion.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0014-rendering.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0015-draft-publish.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0016-version-history-git.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0017-home-hero.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0019-page-layout.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0020-readable-urls.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0021-admin-accounts.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0022-ai-abuse-guard.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0023-deploy-reverse-proxy.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0024-video.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0025-qa-records-cache.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0026-image-sizes.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0027-admin-features.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0028-security-ops.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0029-qa-ui.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0030-no-import.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0031-analytics.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0032-ai-crawlers.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0033-dropped-features.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0034-announcement-banner.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0035-permissions-edit-lock.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0040-language.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0044-multi-provider-models.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0046-long-term-memory.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0047-translation-pipeline.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0048-memory-refinements.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0049-answer-cache-refinements.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0050-abuse-limits-and-compaction.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0053-tier-assignment-superadmin.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0054-no-heading-folding.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/adr/0055-setup-without-ai.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/accounts.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/admin.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/ai-guard.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/ai-models.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/ai-qa.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/editor.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/home.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/i18n.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/memory.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/security-ops.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/design/site.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-baseline/README.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
+    },
+    {
+      "path": "docs/product-preservation.md",
+      "kind": "documentation",
+      "purpose": "全局product-preservation设计/手册/状态记录"
+    },
+    {
+      "path": "docs/protocols.md",
+      "kind": "documentation",
+      "purpose": "全局protocols设计/手册/状态记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0001.md",
+      "kind": "documentation",
+      "purpose": "全局2026-10-14-0001设计/手册/状态记录"
+    },
+    {
+      "path": "docs/push-log/_pending.md",
+      "kind": "documentation",
+      "purpose": "全局_pending设计/手册/状态记录"
+    },
+    {
+      "path": "docs/push-log/INDEX.md",
+      "kind": "documentation",
+      "purpose": "全局INDEX设计/手册/状态记录"
+    },
+    {
+      "path": "docs/README.md",
+      "kind": "documentation",
+      "purpose": "全局README设计/手册/状态记录"
+    },
+    {
+      "path": "docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "全局requirements设计/手册/状态记录"
+    },
+    {
+      "path": "docs/security.md",
+      "kind": "documentation",
+      "purpose": "全局security设计/手册/状态记录"
+    },
+    {
+      "path": "docs/service-bootstrap.md",
+      "kind": "documentation",
+      "purpose": "全局service-bootstrap设计/手册/状态记录"
+    },
+    {
+      "path": "docs/service-map.md",
+      "kind": "documentation",
+      "purpose": "全局service-map设计/手册/状态记录"
+    },
+    {
+      "path": "docs/structure/framework.json",
+      "kind": "contract",
+      "purpose": "全局framework设计/手册/状态记录"
+    },
+    {
+      "path": "docs/structure/functions.md",
+      "kind": "documentation",
+      "purpose": "全局functions设计/手册/状态记录"
+    },
+    {
+      "path": "docs/structure/README.md",
+      "kind": "documentation",
+      "purpose": "全局README设计/手册/状态记录"
+    },
+    {
+      "path": "docs/structure/tooling.md",
+      "kind": "documentation",
+      "purpose": "全局tooling设计/手册/状态记录"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "documentation",
+      "purpose": "仓库根LICENSE框架约定或工程入口"
+    },
+    {
+      "path": "Makefile",
+      "kind": "tool",
+      "purpose": "仓库根Makefile框架约定或工程入口"
+    },
+    {
+      "path": "modules/analytics/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/contracts/events.json",
+      "kind": "contract",
+      "purpose": "analytics唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/analytics/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "analytics唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/analytics/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "analytics唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/analytics/contracts/types.json",
+      "kind": "contract",
+      "purpose": "analytics唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/analytics/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/api.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/data.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/files.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "analytics跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/analytics/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/progress.json",
+      "kind": "contract",
+      "purpose": "analytics逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/analytics/README.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/STATUS.md",
+      "kind": "documentation",
+      "purpose": "analytics人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/content/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/contracts/events.json",
+      "kind": "contract",
+      "purpose": "content唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/content/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "content唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/content/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "content唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/content/contracts/types.json",
+      "kind": "contract",
+      "purpose": "content唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/content/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/api.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/data.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/files.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "content跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/content/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/progress.json",
+      "kind": "contract",
+      "purpose": "content逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/content/README.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/STATUS.md",
+      "kind": "documentation",
+      "purpose": "content人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/data-protection/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/contracts/events.json",
+      "kind": "contract",
+      "purpose": "data-protection唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/data-protection/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "data-protection唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/data-protection/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "data-protection唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/data-protection/contracts/types.json",
+      "kind": "contract",
+      "purpose": "data-protection唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/data-protection/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/api.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/data.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/files.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "data-protection跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/data-protection/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/progress.json",
+      "kind": "contract",
+      "purpose": "data-protection逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/data-protection/README.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/STATUS.md",
+      "kind": "documentation",
+      "purpose": "data-protection人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/identity/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/contracts/events.json",
+      "kind": "contract",
+      "purpose": "identity唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/identity/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "identity唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/identity/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "identity唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/identity/contracts/types.json",
+      "kind": "contract",
+      "purpose": "identity唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/identity/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/api.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/data.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/files.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "identity跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/identity/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/progress.json",
+      "kind": "contract",
+      "purpose": "identity逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/identity/README.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/STATUS.md",
+      "kind": "documentation",
+      "purpose": "identity人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/jobs/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/contracts/events.json",
+      "kind": "contract",
+      "purpose": "jobs唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/jobs/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "jobs唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/jobs/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "jobs唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/jobs/contracts/types.json",
+      "kind": "contract",
+      "purpose": "jobs唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/jobs/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/api.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/data.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/files.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "jobs跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/jobs/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/progress.json",
+      "kind": "contract",
+      "purpose": "jobs逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/jobs/README.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/STATUS.md",
+      "kind": "documentation",
+      "purpose": "jobs人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/knowledge/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/contracts/events.json",
+      "kind": "contract",
+      "purpose": "knowledge唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/knowledge/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "knowledge唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/knowledge/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "knowledge唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/knowledge/contracts/types.json",
+      "kind": "contract",
+      "purpose": "knowledge唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/knowledge/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/api.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/data.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/files.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "knowledge跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/knowledge/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/product-matrix.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/progress.json",
+      "kind": "contract",
+      "purpose": "knowledge逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/knowledge/README.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/STATUS.md",
+      "kind": "documentation",
+      "purpose": "knowledge人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/localization/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/contracts/events.json",
+      "kind": "contract",
+      "purpose": "localization唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/localization/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "localization唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/localization/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "localization唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/localization/contracts/types.json",
+      "kind": "contract",
+      "purpose": "localization唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/localization/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/api.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/data.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/files.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "localization跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/localization/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/product-matrix.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/progress.json",
+      "kind": "contract",
+      "purpose": "localization逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/localization/README.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/STATUS.md",
+      "kind": "documentation",
+      "purpose": "localization人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/media/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/contracts/events.json",
+      "kind": "contract",
+      "purpose": "media唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/media/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "media唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/media/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "media唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/media/contracts/types.json",
+      "kind": "contract",
+      "purpose": "media唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/media/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/api.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/data.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/files.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "media跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/media/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/progress.json",
+      "kind": "contract",
+      "purpose": "media逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/media/README.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/STATUS.md",
+      "kind": "documentation",
+      "purpose": "media人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/memory/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/contracts/events.json",
+      "kind": "contract",
+      "purpose": "memory唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/memory/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "memory唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/memory/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "memory唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/memory/contracts/types.json",
+      "kind": "contract",
+      "purpose": "memory唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/memory/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/api.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/data.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/files.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "memory跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/memory/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/product-matrix.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/progress.json",
+      "kind": "contract",
+      "purpose": "memory逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/memory/README.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/STATUS.md",
+      "kind": "documentation",
+      "purpose": "memory人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/model-gateway/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/contracts/events.json",
+      "kind": "contract",
+      "purpose": "model-gateway唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/model-gateway/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "model-gateway唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/model-gateway/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "model-gateway唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/model-gateway/contracts/types.json",
+      "kind": "contract",
+      "purpose": "model-gateway唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/model-gateway/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/api.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/data.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/files.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "model-gateway跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/model-gateway/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/product-matrix.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/progress.json",
+      "kind": "contract",
+      "purpose": "model-gateway逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/model-gateway/README.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/STATUS.md",
+      "kind": "documentation",
+      "purpose": "model-gateway人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/portal/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/contracts/events.json",
+      "kind": "contract",
+      "purpose": "portal唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/portal/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "portal唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/portal/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "portal唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/portal/contracts/types.json",
+      "kind": "contract",
+      "purpose": "portal唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/portal/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/api.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/data.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/files.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "portal跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/portal/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/progress.json",
+      "kind": "contract",
+      "purpose": "portal逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/portal/README.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/STATUS.md",
+      "kind": "documentation",
+      "purpose": "portal人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/public-site/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/contracts/events.json",
+      "kind": "contract",
+      "purpose": "public-site唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/public-site/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "public-site唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/public-site/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "public-site唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/public-site/contracts/types.json",
+      "kind": "contract",
+      "purpose": "public-site唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/public-site/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/api.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/data.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/files.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "public-site跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/public-site/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/progress.json",
+      "kind": "contract",
+      "purpose": "public-site逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/public-site/README.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/STATUS.md",
+      "kind": "documentation",
+      "purpose": "public-site人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/qa/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/contracts/events.json",
+      "kind": "contract",
+      "purpose": "qa唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/qa/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "qa唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/qa/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "qa唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/qa/contracts/types.json",
+      "kind": "contract",
+      "purpose": "qa唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/qa/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/api.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/data.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/files.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "qa跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/qa/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/product-matrix.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/progress.json",
+      "kind": "contract",
+      "purpose": "qa逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/qa/README.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/STATUS.md",
+      "kind": "documentation",
+      "purpose": "qa人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/site-config/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/contracts/events.json",
+      "kind": "contract",
+      "purpose": "site-config唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/site-config/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "site-config唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/site-config/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "site-config唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/site-config/contracts/types.json",
+      "kind": "contract",
+      "purpose": "site-config唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/site-config/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/api.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/data.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/files.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "site-config跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/site-config/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/progress.json",
+      "kind": "contract",
+      "purpose": "site-config逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/site-config/README.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/STATUS.md",
+      "kind": "documentation",
+      "purpose": "site-config人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/traffic-guard/AGENTS.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/contracts/events.json",
+      "kind": "contract",
+      "purpose": "traffic-guard唯一机器events契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/traffic-guard/contracts/implementation.json",
+      "kind": "contract",
+      "purpose": "traffic-guard唯一机器implementation契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/traffic-guard/contracts/openapi.json",
+      "kind": "contract",
+      "purpose": "traffic-guard唯一机器openapi契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/traffic-guard/contracts/types.json",
+      "kind": "contract",
+      "purpose": "traffic-guard唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/traffic-guard/docs/acceptance.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/api.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/architecture.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/data.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/files.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard跨天/跨会话实际交接与下一项任务"
+    },
+    {
+      "path": "modules/traffic-guard/docs/operations.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/requirements.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/docs/workflows.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/progress.json",
+      "kind": "contract",
+      "purpose": "traffic-guard逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/traffic-guard/README.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/STATUS.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "README.md",
+      "kind": "documentation",
+      "purpose": "仓库根README.md框架约定或工程入口"
+    },
+    {
+      "path": "scripts/check_docs.py",
+      "kind": "tool",
+      "purpose": "标准库设计结构、引用、台账、权限、依赖、暂存与隐私检查"
+    },
+    {
+      "path": "STATUS.md",
+      "kind": "documentation",
+      "purpose": "仓库根STATUS.md框架约定或工程入口"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "kind": "documentation",
+      "purpose": "仓库根THIRD_PARTY_NOTICES.md框架约定或工程入口"
+    }
+  ]
+}

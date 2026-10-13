@@ -1,0 +1,3778 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/localization/v1",
+  "title": "语言、翻译与术语",
+  "type": "object",
+  "$defs": {
+    "Language": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "规范BCP47语言"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "站点启用"
+        },
+        "isDefault": {
+          "type": "boolean",
+          "description": "默认语言"
+        },
+        "automaticTranslation": {
+          "type": "boolean",
+          "description": "发布自动翻译"
+        },
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "MG翻译档位"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ltr",
+            "rtl"
+          ],
+          "description": "排版方向"
+        },
+        "reflectionEnabled": {
+          "type": "boolean",
+          "description": "默认false"
+        },
+        "batchOutputTokens": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 8192,
+          "description": "默认1000",
+          "default": 1000
+        },
+        "translationMemoryMinimumCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "默认20",
+          "default": 20
+        }
+      },
+      "required": [
+        "tag",
+        "version",
+        "enabled",
+        "isDefault",
+        "automaticTranslation",
+        "direction",
+        "reflectionEnabled",
+        "batchOutputTokens",
+        "translationMemoryMinimumCharacters"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslationUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unitId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "稳定源块标识"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源修订"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "源片段hash"
+        },
+        "targetText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "译文"
+        },
+        "targetHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "译文hash"
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "machine",
+            "human"
+          ],
+          "description": "来源"
+        },
+        "protected": {
+          "type": "boolean",
+          "description": "人工保护"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "humanGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "人工修改代数"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "review",
+            "fallback"
+          ],
+          "description": "人工变源待复核或失败原文"
+        },
+        "previousTargetText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "在新译文完成前交付旧译文"
+        },
+        "fileRef": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+          "description": "权威译文对象"
+        }
+      },
+      "required": [
+        "unitId",
+        "document",
+        "targetLanguage",
+        "sourceHash",
+        "targetText",
+        "targetHash",
+        "origin",
+        "protected",
+        "version",
+        "humanGeneration",
+        "status",
+        "fileRef"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Translation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文ID"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "权威源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "目标代数"
+        },
+        "glossaryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语版本"
+        },
+        "memoryVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "注入版本"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "review",
+            "ready",
+            "superseded",
+            "failed",
+            "cancelled",
+            "stale"
+          ],
+          "description": "状态"
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "完成单元"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "总单元"
+        }
+      },
+      "required": [
+        "translationId",
+        "document",
+        "targetLanguage",
+        "generation",
+        "glossaryGeneration",
+        "memoryVersionHash",
+        "state",
+        "completed",
+        "total"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GlossaryTerm": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "termId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "术语ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源语言"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "sourceTerm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原词最长256字符"
+        },
+        "targetTerm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标词最长256字符"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "global",
+            "document"
+          ],
+          "description": "范围"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "document范围必要"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "全站术语代数"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "auto"
+          ],
+          "description": "词条来源"
+        },
+        "extractionBatchId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "自动抽取批次可整批撤销"
+        }
+      },
+      "required": [
+        "termId",
+        "version",
+        "sourceLanguage",
+        "targetLanguage",
+        "sourceTerm",
+        "targetTerm",
+        "scope",
+        "generation",
+        "source"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InterfaceString": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "固定字典key"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原字符串摘要"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标字符串"
+        },
+        "placeholders": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "严格插值名称"
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "builtin",
+            "machine",
+            "human"
+          ],
+          "description": "来源"
+        },
+        "protected": {
+          "type": "boolean",
+          "description": "人工保护"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        }
+      },
+      "required": [
+        "key",
+        "sourceHash",
+        "value",
+        "placeholders",
+        "origin",
+        "protected",
+        "version"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ApprovedGlossaryProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proposalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "memory提议ID"
+        },
+        "approvedBy": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "批准人"
+        },
+        "approvalRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "批准修订"
+        },
+        "proposalHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原提议摘要"
+        },
+        "term": {
+          "$ref": "#/$defs/GlossaryTerm",
+          "description": "完整术语"
+        },
+        "expectedGlossaryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "原术语代数"
+        }
+      },
+      "required": [
+        "proposalId",
+        "approvedBy",
+        "approvalRevision",
+        "proposalHash",
+        "term",
+        "expectedGlossaryGeneration"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CacheAnswerTranslation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "QA精选ID"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "源答案版本"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "源回答hash"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "translatedQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "问题译文"
+        },
+        "translatedAnswer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "回答译文"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "failed",
+            "cancelled",
+            "superseded"
+          ],
+          "description": "状态"
+        }
+      },
+      "required": [
+        "translationId",
+        "cacheId",
+        "answerRevision",
+        "sourceHash",
+        "targetLanguage",
+        "translatedQuestion",
+        "translatedAnswer",
+        "state"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GatewayMessage": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/GatewayMessage"
+    },
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+    },
+    "Money": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+    },
+    "CostClass": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext"
+    },
+    "Actor": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Actor"
+    },
+    "OperationContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OperationContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext"
+    },
+    "ErrorCode": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
+    },
+    "FieldIssue": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/FieldIssue"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+    },
+    "DocRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DocRef"
+    },
+    "BlockRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+    },
+    "MemoryContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
+    },
+    "EmbeddingSpace": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+    },
+    "AdmissionPermit": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
+    },
+    "AcceptedJob": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization"
+    },
+    "ServiceDependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "clock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "httpClient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "serviceId",
+        "dataDirectory",
+        "clock",
+        "httpClient"
+      ],
+      "x-internal": true,
+      "description": "运行依赖容器；clock/httpClient是构造时注入的接口引用标识，禁止序列化到HTTP。"
+    },
+    "LoadRuntimeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "身份"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "私有目录"
+        }
+      },
+      "required": [
+        "serviceId",
+        "dataDirectory"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadRuntimeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ready": {
+          "type": "boolean",
+          "description": "就绪"
+        },
+        "glossaryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语代数"
+        }
+      },
+      "required": [
+        "ready",
+        "glossaryGeneration"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "NormalizeLanguageTagInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "输入BCP47标签"
+        }
+      },
+      "required": [
+        "tag"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "NormalizeLanguageTagResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "规范标签"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ltr",
+            "rtl"
+          ],
+          "description": "方向"
+        }
+      },
+      "required": [
+        "tag",
+        "direction"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutLanguageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/Language",
+          "description": "语言配置"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "language",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutLanguageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/Language",
+          "description": "保存配置"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetLanguageEnabledInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "状态"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "tag",
+        "enabled",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetLanguageEnabledResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/Language",
+          "description": "新状态"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListLanguagesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "includeDisabled": {
+          "type": "boolean",
+          "description": "管理视图开关"
+        }
+      },
+      "required": [
+        "includeDisabled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListLanguagesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "languages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Language"
+          },
+          "maxItems": 256,
+          "description": "语言配置"
+        }
+      },
+      "required": [
+        "languages"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "HandlePublicationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "事件"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源发布引用"
+        }
+      },
+      "required": [
+        "eventId",
+        "document"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "HandlePublicationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "已消费"
+        },
+        "translationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "新任务"
+        }
+      },
+      "required": [
+        "accepted",
+        "translationIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源发布"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "document",
+        "targetLanguage",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/Translation",
+          "description": "queued"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "FetchTranslationSourceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translationId",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "FetchTranslationSourceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "权威正文"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源引用"
+        }
+      },
+      "required": [
+        "source",
+        "document"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SplitTranslationUnitsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "正文"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        }
+      },
+      "required": [
+        "document",
+        "source",
+        "targetLanguage"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SplitTranslationUnitsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "片段模板"
+        }
+      },
+      "required": [
+        "units"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanIncrementalTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "新源片段"
+        }
+      },
+      "required": [
+        "translationId",
+        "units"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanIncrementalTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reusedIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "源hash未变复用"
+        },
+        "translateIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "待机翻"
+        },
+        "protectedIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "人工保护"
+        }
+      },
+      "required": [
+        "reusedIds",
+        "translateIds",
+        "protectedIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveGlossaryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源语言"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定代数"
+        }
+      },
+      "required": [
+        "sourceLanguage",
+        "targetLanguage",
+        "documentId",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveGlossaryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "maxItems": 256,
+          "description": "有效术语"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定代数"
+        }
+      },
+      "required": [
+        "terms",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildTranslationPromptInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceUnits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "本批块"
+        },
+        "documentText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "整篇原文"
+        },
+        "previousTranslations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "前批译文"
+        },
+        "adjacentTranslations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "相邻块现有译文"
+        },
+        "sectionTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "本节标题"
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "maxItems": 256,
+          "description": "出现的术语"
+        },
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
+          "description": "翻译注入"
+        }
+      },
+      "required": [
+        "sourceUnits",
+        "documentText",
+        "previousTranslations",
+        "adjacentTranslations",
+        "sectionTitle",
+        "terms",
+        "memory"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildTranslationPromptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "结构化翻译消息"
+        },
+        "unitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "输出白名单"
+        }
+      },
+      "required": [
+        "messages",
+        "unitIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunTranslationBatchInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "unitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "片段白名单"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "请求"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translationId",
+        "unitIds",
+        "messages",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunTranslationBatchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "MG调用"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "候选机翻"
+        }
+      },
+      "required": [
+        "invocationId",
+        "units"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateTranslationOutputInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceUnits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "原单元"
+        },
+        "translatedUnits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "返回候选"
+        }
+      },
+      "required": [
+        "sourceUnits",
+        "translatedUnits"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateTranslationOutputResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "符合约束"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "规范候选"
+        }
+      },
+      "required": [
+        "valid",
+        "units"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitTranslationBatchInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "候选"
+        },
+        "expectedGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "目标代数"
+        },
+        "expectedHumanGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "人工代数"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translationId",
+        "units",
+        "expectedGeneration",
+        "expectedHumanGeneration",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitTranslationBatchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "written": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "写入数"
+        },
+        "skippedProtected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "保护数"
+        }
+      },
+      "required": [
+        "written",
+        "skippedProtected"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CompleteTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "expectedGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "代数"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translationId",
+        "expectedGeneration",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CompleteTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/Translation",
+          "description": "ready或review"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "公开来源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        }
+      },
+      "required": [
+        "document",
+        "targetLanguage"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/Translation",
+          "description": "源版本信息"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "可交付旧译文或原文"
+        },
+        "partial": {
+          "type": "boolean",
+          "description": "存在原文回退"
+        },
+        "noticeKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "顶部分译提示key"
+        }
+      },
+      "required": [
+        "translation",
+        "units",
+        "partial"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EditTranslationUnitInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "unitId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "单元"
+        },
+        "targetText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "人工文本"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "单元版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "translationId",
+        "unitId",
+        "targetText",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EditTranslationUnitResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/TranslationUnit",
+          "description": "human且protected"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetUnitProtectionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "unitId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "单元"
+        },
+        "protected": {
+          "type": "boolean",
+          "description": "目标保护"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "translationId",
+        "unitId",
+        "protected",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SetUnitProtectionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/TranslationUnit",
+          "description": "保护状态"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原因"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "translationId",
+        "reason",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/Translation",
+          "description": "取消状态"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutGlossaryTermInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "term": {
+          "$ref": "#/$defs/GlossaryTerm",
+          "description": "术语"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "term",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutGlossaryTermResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "term": {
+          "$ref": "#/$defs/GlossaryTerm",
+          "description": "新版本"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新代数"
+        }
+      },
+      "required": [
+        "term",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DeleteGlossaryTermInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "termId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "术语"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "termId",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DeleteGlossaryTermResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "已删除"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新代数"
+        }
+      },
+      "required": [
+        "deleted",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListGlossaryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "sourceLanguage",
+        "targetLanguage",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListGlossaryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "maxItems": 256,
+          "description": "术语"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "读代数"
+        }
+      },
+      "required": [
+        "terms",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ApplyApprovedGlossaryProposalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proposal": {
+          "$ref": "#/$defs/ApprovedGlossaryProposal",
+          "description": "批准命令"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "proposalId一致幂等键"
+        }
+      },
+      "required": [
+        "proposal",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ApplyApprovedGlossaryProposalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "applied": {
+          "type": "boolean",
+          "description": "应用成功"
+        },
+        "termId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "落库术语"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语代数"
+        }
+      },
+      "required": [
+        "applied",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "HandleGlossaryChangeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "事件"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新代数"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        }
+      },
+      "required": [
+        "eventId",
+        "generation",
+        "sourceLanguage",
+        "targetLanguage"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "HandleGlossaryChangeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "staleTranslations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "标失效数"
+        }
+      },
+      "required": [
+        "staleTranslations"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateInterfaceCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "strings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterfaceString"
+          },
+          "maxItems": 256,
+          "description": "字典条目"
+        }
+      },
+      "required": [
+        "language",
+        "strings"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateInterfaceCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "合法"
+        },
+        "catalogHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "规范字典hash"
+        }
+      },
+      "required": [
+        "valid",
+        "catalogHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutInterfaceStringInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "string": {
+          "$ref": "#/$defs/InterfaceString",
+          "description": "人工条目"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "language",
+        "string",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutInterfaceStringResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "string": {
+          "$ref": "#/$defs/InterfaceString",
+          "description": "human保护条目"
+        }
+      },
+      "required": [
+        "string"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateInterfaceCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "固定key列表"
+        },
+        "expectedCatalogGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "代数"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "targetLanguage",
+        "keys",
+        "expectedCatalogGeneration",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateInterfaceCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "翻译任务"
+        },
+        "selectedKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "未保护key"
+        }
+      },
+      "required": [
+        "jobId",
+        "selectedKeys"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadInterfaceCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "knownGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "客户端已知版本"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadInterfaceCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterfaceString"
+          },
+          "maxItems": 256,
+          "description": "按默认fallback补全"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "当前代数"
+        },
+        "notModified": {
+          "type": "boolean",
+          "description": "版本未变"
+        }
+      },
+      "required": [
+        "strings",
+        "generation",
+        "notModified"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SuggestLanguageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "browserLanguages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "最多10浏览器偏好"
+        },
+        "timeZone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "IANA时区"
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "guard离线GeoIP国家非IP"
+        },
+        "currentLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "URL语言"
+        },
+        "explicitPreference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "显式选择"
+        },
+        "previouslyRejected": {
+          "type": "boolean",
+          "description": "已拒建议"
+        }
+      },
+      "required": [
+        "browserLanguages",
+        "timeZone",
+        "currentLanguage",
+        "previouslyRejected"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SuggestLanguageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "suggestedLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标建议"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "置信度"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "model",
+            "rule",
+            "none"
+          ],
+          "description": "路径"
+        },
+        "promptText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "建议语言提示"
+        }
+      },
+      "required": [
+        "confidence",
+        "reason"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SaveLanguagePreferenceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visitorSubject": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "guard伪名"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "显式选择"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "visitorSubject",
+        "language",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SaveLanguagePreferenceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "保存值"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "30天过期"
+        }
+      },
+      "required": [
+        "language",
+        "expiresAt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateCachedAnswerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "active普通自动缓存或精选缓存，非仅人工精选"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "源版本"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "公开问题"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "公开回答"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "问题回答规范hash"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "cacheId",
+        "answerRevision",
+        "sourceLanguage",
+        "targetLanguage",
+        "question",
+        "answer",
+        "sourceHash",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateCachedAnswerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/CacheAnswerTranslation",
+          "description": "queued译文"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitCacheAnswerTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/CacheAnswerTranslation",
+          "description": "候选结果"
+        },
+        "expectedAnswerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "源版本"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translation",
+        "expectedAnswerRevision",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitCacheAnswerTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/CacheAnswerTranslation",
+          "description": "review译文"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InvalidateDocumentTranslationsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "撤回事件"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源文档"
+        },
+        "visibilityRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "权威代数"
+        }
+      },
+      "required": [
+        "eventId",
+        "documentId",
+        "visibilityRevision"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InvalidateDocumentTranslationsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invalidated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "失效译文"
+        },
+        "cancelled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "取消任务"
+        }
+      },
+      "required": [
+        "invalidated",
+        "cancelled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverTranslationLeasesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "now",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverTranslationLeasesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requeued": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "可恢复数"
+        },
+        "superseded": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "旧结果数"
+        }
+      },
+      "required": [
+        "requeued",
+        "superseded"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        },
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "worker"
+        }
+      },
+      "required": [
+        "limit",
+        "workerId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "published": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "确认数"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "待发数"
+        }
+      },
+      "required": [
+        "published",
+        "pending"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "分页游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "后台概览条目"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "unitId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "单元"
+        },
+        "targetText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "人工文本"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "单元版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "translationId",
+        "unitId",
+        "targetText",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/TranslationUnit",
+          "description": "human且protected"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReuseTranslationMemoryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "源块hash"
+        },
+        "sourceText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原文"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "minimumCharacters": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认20",
+          "default": 20
+        }
+      },
+      "required": [
+        "sourceHash",
+        "sourceText",
+        "targetLanguage",
+        "minimumCharacters"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReuseTranslationMemoryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/TranslationUnit",
+          "description": "可复用译文"
+        },
+        "reused": {
+          "type": "boolean",
+          "description": "命中"
+        }
+      },
+      "required": [
+        "reused"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ExtractAutomaticGlossaryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "第一次译源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "sourceText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "整篇源"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "document",
+        "targetLanguage",
+        "sourceText",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ExtractAutomaticGlossaryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "maxItems": 256,
+          "description": "自动术语"
+        },
+        "batchId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可撤销抽取批次"
+        }
+      },
+      "required": [
+        "terms",
+        "batchId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RollbackAutomaticGlossaryBatchInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "batchId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "抽取批次"
+        },
+        "expectedGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语代数"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "batchId",
+        "expectedGeneration",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RollbackAutomaticGlossaryBatchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "removed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "仍属该auto批次数"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "新代数"
+        }
+      },
+      "required": [
+        "removed",
+        "generation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanTranslationFallbackInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "failedUnitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "失败批"
+        },
+        "failure": {
+          "type": "string",
+          "enum": [
+            "format",
+            "length",
+            "unchanged",
+            "terminology"
+          ],
+          "description": "原因"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "batch",
+            "halves",
+            "single"
+          ],
+          "description": "当前阶段"
+        }
+      },
+      "required": [
+        "translationId",
+        "failedUnitIds",
+        "failure",
+        "stage"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanTranslationFallbackResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "retryGroups": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "maxItems": 256
+          },
+          "maxItems": 256,
+          "description": "有限降级分组"
+        },
+        "reduceContext": {
+          "type": "boolean",
+          "description": "长度失败缩上下文"
+        },
+        "fallbackUnitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "最终保留原文"
+        }
+      },
+      "required": [
+        "retryGroups",
+        "reduceContext",
+        "fallbackUnitIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CheckTerminologyComplianceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "译文"
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "maxItems": 256,
+          "description": "原文实际出现术语"
+        },
+        "alreadyRetried": {
+          "type": "boolean",
+          "description": "已提醒重译"
+        }
+      },
+      "required": [
+        "units",
+        "terms",
+        "alreadyRetried"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CheckTerminologyComplianceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "retryUnitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "首次不符合重译"
+        },
+        "reviewUnitIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "二次不符提醒"
+        }
+      },
+      "required": [
+        "retryUnitIds",
+        "reviewUnitIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReflectTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "初译"
+        },
+        "sourceText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "对应源"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "语言配置默认false"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "translationId",
+        "units",
+        "sourceText",
+        "enabled",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReflectTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationUnit"
+          },
+          "maxItems": 256,
+          "description": "润色候选"
+        },
+        "invocationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "费用调用"
+        }
+      },
+      "required": [
+        "units",
+        "invocationIds"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadCacheAnswerTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "缓存回答翻译对象"
+        },
+        "expectedAnswerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "QA所见源版本"
+        }
+      },
+      "required": [
+        "translationId",
+        "expectedAnswerRevision"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadCacheAnswerTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translation": {
+          "$ref": "#/$defs/CacheAnswerTranslation",
+          "description": "ready公开译文"
+        }
+      },
+      "required": [
+        "translation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域worker"
+        },
+        "maximumConcurrentJobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认4范围1..32",
+          "default": 4
+        }
+      },
+      "required": [
+        "workerId",
+        "maximumConcurrentJobs"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "本轮领取"
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "成功"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "失败"
+        },
+        "cancelled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "取消"
+        }
+      },
+      "required": [
+        "claimed",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventLocalizationLanguageChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "启用"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "tag",
+        "version",
+        "enabled",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventTranslationReadyPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源发布"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "译文代数"
+        },
+        "fileRef": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+          "description": "权威译文文件"
+        },
+        "partial": {
+          "type": "boolean",
+          "description": "存在回退"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "translationId",
+        "document",
+        "targetLanguage",
+        "generation",
+        "fileRef",
+        "partial",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventTranslationFailedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "code": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode",
+          "description": "错误"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "translationId",
+        "document",
+        "targetLanguage",
+        "code",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventGlossaryChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语代数"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "源"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "termIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "受影响术语"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "auto"
+          ],
+          "description": "来源"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "generation",
+        "sourceLanguage",
+        "targetLanguage",
+        "termIds",
+        "source",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventGlossaryProposalAppliedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proposalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "memory批准提议"
+        },
+        "proposalHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "提议摘要"
+        },
+        "approvalRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "批准修订"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "rejected"
+          ],
+          "description": "终态"
+        },
+        "termId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "术语ID"
+        },
+        "glossaryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语新代数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "数据代际"
+        }
+      },
+      "required": [
+        "proposalId",
+        "proposalHash",
+        "approvalRevision",
+        "result",
+        "glossaryGeneration",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventGlossaryProposalRejectedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proposalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "memory批准提议"
+        },
+        "proposalHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "提议摘要"
+        },
+        "approvalRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "批准修订"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "rejected"
+          ],
+          "description": "终态"
+        },
+        "termId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "术语ID"
+        },
+        "glossaryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "术语新代数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "数据代际"
+        }
+      },
+      "required": [
+        "proposalId",
+        "proposalHash",
+        "approvalRevision",
+        "result",
+        "glossaryGeneration",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventInterfaceCatalogChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "界面语言"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "字典代数"
+        },
+        "catalogHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "字典摘要"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "language",
+        "generation",
+        "catalogHash",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventCacheAnswerTranslatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "localization结果引用"
+        },
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "QA精选"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "源版本"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "源摘要"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "数据代际"
+        }
+      },
+      "required": [
+        "translationId",
+        "cacheId",
+        "answerRevision",
+        "sourceHash",
+        "targetLanguage",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "localization",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "localization",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

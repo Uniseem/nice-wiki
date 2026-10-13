@@ -1,0 +1,3885 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/qa/v1",
+  "title": "问答、引用与回答缓存",
+  "type": "object",
+  "$defs": {
+    "Conversation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "visitorSubject": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "guard伪名访客"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "BCP47语言"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "active",
+            "expired",
+            "deleted"
+          ],
+          "description": "状态"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "historyGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "历史代数"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "失效时间"
+        }
+      },
+      "required": [
+        "conversationId",
+        "visitorSubject",
+        "language",
+        "state",
+        "version",
+        "historyGeneration",
+        "expiresAt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "admitted",
+            "queued",
+            "retrieving",
+            "generating",
+            "completed",
+            "cancelled",
+            "failed",
+            "invalidated"
+          ],
+          "description": "状态"
+        },
+        "questionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "规范问题hash"
+        },
+        "contextHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "证据及记忆摘要"
+        },
+        "lastSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "最后事件"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "回答版本"
+        },
+        "cacheHit": {
+          "type": "string",
+          "enum": [
+            "none",
+            "exact",
+            "semantic"
+          ],
+          "description": "命中类型"
+        }
+      },
+      "required": [
+        "turnId",
+        "conversationId",
+        "rootOperationId",
+        "state",
+        "questionHash",
+        "contextHash",
+        "lastSequence",
+        "answerRevision",
+        "cacheHit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "citationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "引用"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "当前发布来源"
+        },
+        "block": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef",
+          "description": "源块"
+        },
+        "chunkId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "knowledge块"
+        },
+        "excerptHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "引用片段hash"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "安全标题"
+        },
+        "href": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "公开路由"
+        },
+        "visibilityRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "授权检查版本"
+        }
+      },
+      "required": [
+        "citationId",
+        "document",
+        "block",
+        "chunkId",
+        "excerptHash",
+        "title",
+        "href",
+        "visibilityRevision"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AnswerEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "严格递增SSE序号"
+        },
+        "event": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "progress",
+            "delta",
+            "citation",
+            "invalidate",
+            "completed",
+            "error",
+            "cancelled"
+          ],
+          "description": "事件"
+        },
+        "delta": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "文本增量"
+        },
+        "citation": {
+          "$ref": "#/$defs/Citation",
+          "description": "引用"
+        },
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "终态"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "公共错误代码"
+        }
+      },
+      "required": [
+        "sequence",
+        "event"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CacheEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "缓存"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "公开精选问题"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "精选回答"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "active",
+            "stale",
+            "disabled"
+          ],
+          "description": "状态"
+        },
+        "questionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "规范问题"
+        },
+        "scopeHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "site/epoch/规范版本/基准语言/embedding空间摘要，不含问答记忆或回答生成模型；memoryVersionHash独立检查且精选豁免。"
+        },
+        "memoryVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "注入版本"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "maxItems": 256,
+          "description": "引用"
+        },
+        "approvedBy": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "批准人"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "回答版本"
+        },
+        "curated": {
+          "type": "boolean",
+          "description": "是否精选"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "普通缓存TTL精选无此字段"
+        },
+        "canonicalQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "基准语言完整问题"
+        },
+        "baseLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "基准语言"
+        },
+        "questionComplete": {
+          "type": "boolean",
+          "description": "必须true"
+        },
+        "localizedAnswers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalizedAnswer"
+          },
+          "maxItems": 256,
+          "description": "多语言答案"
+        }
+      },
+      "required": [
+        "cacheId",
+        "version",
+        "language",
+        "question",
+        "answer",
+        "state",
+        "questionHash",
+        "scopeHash",
+        "memoryVersionHash",
+        "citations",
+        "answerRevision",
+        "curated",
+        "canonicalQuestion",
+        "baseLanguage",
+        "questionComplete",
+        "localizedAnswers"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Message": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "消息"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "会话序号"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "description": "角色"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "消息正文"
+        },
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "消息版本"
+        }
+      },
+      "required": [
+        "messageId",
+        "ordinal",
+        "role",
+        "text",
+        "turnId",
+        "revision"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DebugTurn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "debugId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "诊断ID"
+        },
+        "actorId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "管理员"
+        },
+        "namespace": {
+          "type": "string",
+          "enum": [
+            "debug"
+          ],
+          "description": "隔离空间"
+        },
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "诊断轮次"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "默认7天过期"
+        }
+      },
+      "required": [
+        "debugId",
+        "actorId",
+        "namespace",
+        "turn",
+        "expiresAt"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "Compaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compactionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "压缩"
+        },
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "sourceGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输入历史代数"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "派生摘要"
+        },
+        "summaryHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "摘要hash"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "committed",
+            "superseded",
+            "failed"
+          ],
+          "description": "状态"
+        },
+        "previousSummaryHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "前次摘要"
+        },
+        "newMessageStartOrdinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "增量起始"
+        },
+        "newMessageEndOrdinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "增量排他结束"
+        },
+        "retainedFromOrdinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "保留最近历史起点"
+        }
+      },
+      "required": [
+        "compactionId",
+        "conversationId",
+        "sourceGeneration",
+        "summary",
+        "summaryHash",
+        "state",
+        "newMessageStartOrdinal",
+        "newMessageEndOrdinal",
+        "retainedFromOrdinal"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QaPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "策略版本"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "公开问答启用"
+        },
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "答案档位"
+        },
+        "retrievalSpace": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "检索空间"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认1500",
+          "default": 1500
+        },
+        "maximumHistoryTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "模型较小窗口历史预算"
+        },
+        "maximumContextTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认4096",
+          "default": 4096
+        },
+        "semanticThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "阈值模式可调默认0.94"
+        },
+        "maximumQuestionCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "默认500",
+          "default": 500
+        },
+        "preflightOutputTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192,
+          "description": "默认500",
+          "default": 500
+        },
+        "inspectionOutputTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192,
+          "description": "默认800",
+          "default": 800
+        },
+        "maximumSubqueries": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "默认4",
+          "default": 4
+        },
+        "maximumRetrievalRounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "默认3",
+          "default": 3
+        },
+        "maximumToolCalls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "默认5",
+          "default": 5
+        },
+        "semanticMode": {
+          "type": "string",
+          "enum": [
+            "ai_equivalence",
+            "threshold"
+          ],
+          "description": "默认ai_equivalence"
+        },
+        "cacheTtlDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "普通缓存默认7天",
+          "default": 7
+        },
+        "recordRetentionDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "description": "问答记录默认30天可调",
+          "default": 30
+        },
+        "compactionEnabled": {
+          "type": "boolean",
+          "description": "默认true"
+        },
+        "retainedRecentTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128000,
+          "description": "默认15000",
+          "default": 15000
+        },
+        "contextReservePercent": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "默认10",
+          "default": 10
+        },
+        "cacheEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "独立缓存总开关；关闭仍存问答记录，不查/写exact/semantic/多语言缓存"
+        }
+      },
+      "required": [
+        "version",
+        "enabled",
+        "profileId",
+        "retrievalSpace",
+        "maximumOutputTokens",
+        "maximumHistoryTokens",
+        "maximumContextTokens",
+        "semanticThreshold",
+        "maximumQuestionCharacters",
+        "preflightOutputTokens",
+        "inspectionOutputTokens",
+        "maximumSubqueries",
+        "maximumRetrievalRounds",
+        "maximumToolCalls",
+        "semanticMode",
+        "cacheTtlDays",
+        "recordRetentionDays",
+        "compactionEnabled",
+        "retainedRecentTokens",
+        "contextReservePercent",
+        "cacheEnabled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GatewayMessage": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/GatewayMessage"
+    },
+    "LocalizedAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "访客语言"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "对应语言文本"
+        },
+        "sourceAnswerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "基准回答版本"
+        },
+        "translationVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "翻译规则及来源摘要"
+        }
+      },
+      "required": [
+        "language",
+        "answer",
+        "sourceAnswerRevision",
+        "translationVersionHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QuestionPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "originalQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原问题"
+        },
+        "canonicalQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "完整基准语言问题"
+        },
+        "visitorLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "回答语言"
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "意思完整且无需缺失指代"
+        },
+        "cacheEligible": {
+          "type": "boolean",
+          "description": "完整非个人化且非敏感动态问题"
+        },
+        "subqueries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "最多4个完整子问题"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "smalltalk",
+            "out_of_scope",
+            "simple",
+            "complex",
+            "needs_clarification"
+          ],
+          "description": "类型"
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "suspicious",
+            "abusive"
+          ],
+          "description": "并入前置模型风险"
+        },
+        "contextFingerprint": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "当前页历史及记忆摘要"
+        }
+      },
+      "required": [
+        "originalQuestion",
+        "canonicalQuestion",
+        "visitorLanguage",
+        "complete",
+        "cacheEligible",
+        "subqueries",
+        "classification",
+        "risk",
+        "contextFingerprint"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "QueryEmbedding": {
+      "$ref": "../../knowledge/contracts/types.json#/$defs/QueryEmbedding"
+    },
+    "Identifier": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+    },
+    "Revision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+    },
+    "Hash": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+    },
+    "Timestamp": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+    },
+    "Money": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+    },
+    "CostClass": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+    },
+    "AuthContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext"
+    },
+    "Actor": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Actor"
+    },
+    "OperationContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OperationContext"
+    },
+    "RequestContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext"
+    },
+    "ErrorCode": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
+    },
+    "FieldIssue": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/FieldIssue"
+    },
+    "Problem": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+    },
+    "Error": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/Error"
+    },
+    "PageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest"
+    },
+    "PageInfo": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo"
+    },
+    "PublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+    },
+    "DocRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DocRef"
+    },
+    "BlockRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+    },
+    "PublicationValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublicationValidation"
+    },
+    "ObjectRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+    },
+    "AssetRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+    },
+    "MemoryContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
+    },
+    "EmbeddingSpace": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+    },
+    "AdmissionPermit": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
+    },
+    "AcceptedJob": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob"
+    },
+    "HealthStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
+      "description": "公共健康DTO"
+    },
+    "EventEnvelope": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
+    },
+    "SnapshotExportRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
+    },
+    "SnapshotValidateRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest"
+    },
+    "SnapshotValidation": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation"
+    },
+    "SnapshotPrepareRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
+    },
+    "SnapshotCommitRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest"
+    },
+    "SnapshotApplyResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult"
+    },
+    "BarrierRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
+    },
+    "BarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
+    },
+    "RecoveryAuthorization": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization"
+    },
+    "ServiceDependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "clock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "httpClient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "serviceId",
+        "dataDirectory",
+        "clock",
+        "httpClient"
+      ],
+      "x-internal": true,
+      "description": "运行依赖容器；clock/httpClient是构造时注入的接口引用标识，禁止序列化到HTTP。"
+    },
+    "LoadRuntimeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "服务身份"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "私有目录"
+        }
+      },
+      "required": [
+        "serviceId",
+        "dataDirectory"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadRuntimeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ready": {
+          "type": "boolean",
+          "description": "就绪"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "策略版本"
+        }
+      },
+      "required": [
+        "ready",
+        "policyVersion"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutQaPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/QaPolicy",
+          "description": "公开策略"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "policy",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PutQaPolicyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/QaPolicy",
+          "description": "新策略"
+        }
+      },
+      "required": [
+        "policy"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateConversationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "admission": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "guard凭证"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "language",
+        "admission",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateConversationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversation": {
+          "$ref": "#/$defs/Conversation",
+          "description": "会话"
+        }
+      },
+      "required": [
+        "conversation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetConversationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "消息游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "conversationId",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GetConversationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversation": {
+          "$ref": "#/$defs/Conversation",
+          "description": "快照"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "maxItems": 256,
+          "description": "消息"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "conversation",
+        "messages"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "StartTurnInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "≤500Unicode字符且≤8192bytes"
+        },
+        "currentPage": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "当前页提示引用"
+        },
+        "admission": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "准入"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "键"
+        }
+      },
+      "required": [
+        "conversationId",
+        "question",
+        "admission",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "StartTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "queued轮次"
+        },
+        "streamPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "流订阅路径"
+        }
+      },
+      "required": [
+        "turn",
+        "streamPath"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateAdmissionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "admission": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "凭证"
+        },
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "qa.turn",
+            "qa.conversation"
+          ],
+          "description": "动作"
+        }
+      },
+      "required": [
+        "admission",
+        "conversationId",
+        "action"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateAdmissionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "通过"
+        },
+        "visitorSubject": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "伪名"
+        }
+      },
+      "required": [
+        "valid",
+        "visitorSubject"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "NormalizeQuestionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原问题"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        }
+      },
+      "required": [
+        "question",
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "NormalizeQuestionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "normalized": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "规范文本"
+        },
+        "questionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "语言加规范文本hash"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "实体数字否定锚点"
+        }
+      },
+      "required": [
+        "normalized",
+        "questionHash",
+        "anchors"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveTurnContextInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        }
+      },
+      "required": [
+        "turnId",
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveTurnContextResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
+          "description": "注入快照"
+        },
+        "policy": {
+          "$ref": "#/$defs/QaPolicy",
+          "description": "策略快照"
+        },
+        "contextHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "版本摘要"
+        }
+      },
+      "required": [
+        "memory",
+        "policy",
+        "contextHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LookupExactCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "questionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "完整基准问题hash"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "访客语言"
+        },
+        "scopeHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "站点范围"
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "已判完整"
+        },
+        "firstTurn": {
+          "type": "boolean",
+          "description": "第一轮"
+        }
+      },
+      "required": [
+        "questionHash",
+        "language",
+        "scopeHash",
+        "complete",
+        "firstTurn"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LookupExactCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "命中"
+        },
+        "hit": {
+          "type": "boolean",
+          "description": "是否命中"
+        }
+      },
+      "required": [
+        "hit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LookupSemanticCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/QuestionPlan",
+          "description": "完整问题计划"
+        },
+        "embedding": {
+          "$ref": "#/$defs/QueryEmbedding",
+          "description": "本轮复用向量"
+        },
+        "scopeHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "范围"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "ai_equivalence",
+            "threshold"
+          ],
+          "description": "模式"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "阈值"
+        }
+      },
+      "required": [
+        "plan",
+        "embedding",
+        "scopeHash",
+        "mode",
+        "threshold"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LookupSemanticCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "匹配"
+        },
+        "similarity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "相似度"
+        },
+        "hit": {
+          "type": "boolean",
+          "description": "命中"
+        },
+        "embedding": {
+          "$ref": "#/$defs/QueryEmbedding",
+          "description": "原向量复用"
+        }
+      },
+      "required": [
+        "similarity",
+        "hit",
+        "embedding"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateCachedAnswerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "候选缓存"
+        },
+        "contextHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "本轮上下文"
+        }
+      },
+      "required": [
+        "entry",
+        "contextHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateCachedAnswerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "有效"
+        },
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "可交付缓存"
+        }
+      },
+      "required": [
+        "valid"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RetrieveEvidenceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "normalized": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "问题"
+        },
+        "policy": {
+          "$ref": "#/$defs/QaPolicy",
+          "description": "策略"
+        }
+      },
+      "required": [
+        "turnId",
+        "normalized",
+        "policy"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RetrieveEvidenceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "maxItems": 256,
+          "description": "引用候选"
+        },
+        "evidenceText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "内部上下文"
+        },
+        "indexVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "索引摘要"
+        }
+      },
+      "required": [
+        "citations",
+        "evidenceText",
+        "indexVersionHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildAnswerPromptInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "规范问题"
+        },
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
+          "description": "注入"
+        },
+        "evidenceText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "证据"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "maxItems": 256,
+          "description": "历史"
+        }
+      },
+      "required": [
+        "question",
+        "memory",
+        "evidenceText",
+        "history"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildAnswerPromptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "结构化模型消息"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输出预算"
+        }
+      },
+      "required": [
+        "messages",
+        "maximumOutputTokens"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GenerateAnswerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GatewayMessage"
+          },
+          "maxItems": 256,
+          "description": "消息"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "上限"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "worker租约"
+        }
+      },
+      "required": [
+        "turnId",
+        "messages",
+        "maximumOutputTokens",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "GenerateAnswerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "MG调用"
+        },
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "generating状态"
+        }
+      },
+      "required": [
+        "invocationId",
+        "turn"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateCitationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "citationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "模型选择引用"
+        },
+        "allowed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "maxItems": 256,
+          "description": "白名单"
+        }
+      },
+      "required": [
+        "citationId",
+        "allowed"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ValidateCitationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "citation": {
+          "$ref": "#/$defs/Citation",
+          "description": "已验证引用"
+        }
+      },
+      "required": [
+        "citation"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AppendAnswerEventInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "event": {
+          "$ref": "#/$defs/AnswerEvent",
+          "description": "无序号事件"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "turnId",
+        "event",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AppendAnswerEventResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "已持久化序号"
+        }
+      },
+      "required": [
+        "sequence"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResumeAnswerStreamInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "afterSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "LastEventID"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..256",
+          "default": 20
+        }
+      },
+      "required": [
+        "turnId",
+        "afterSequence",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResumeAnswerStreamResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnswerEvent"
+          },
+          "maxItems": 256,
+          "description": "有序事件"
+        },
+        "terminal": {
+          "type": "boolean",
+          "description": "终态"
+        },
+        "lastSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "最后序号"
+        }
+      },
+      "required": [
+        "events",
+        "terminal",
+        "lastSequence"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CompleteTurnInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "完整模型结果"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "maxItems": 256,
+          "description": "实际引用"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "turnId",
+        "answer",
+        "citations",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CompleteTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "completed"
+        },
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "答案消息"
+        }
+      },
+      "required": [
+        "turn",
+        "message"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelTurnInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原因"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "turnId",
+        "reason",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CancelTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "终态或cancel状态"
+        }
+      },
+      "required": [
+        "turn"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecordFeedbackInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "所评版本"
+        },
+        "value": {
+          "type": "string",
+          "enum": [
+            "helpful",
+            "unhelpful"
+          ],
+          "description": "评价"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "turnId",
+        "answerRevision",
+        "value",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecordFeedbackResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "反馈版本"
+        },
+        "value": {
+          "type": "string",
+          "enum": [
+            "helpful",
+            "unhelpful"
+          ],
+          "description": "已保存评价"
+        }
+      },
+      "required": [
+        "version",
+        "value"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ProposeCacheEntryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原轮次"
+        },
+        "publicQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "清理后公开问题"
+        },
+        "publicAnswer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "清理后公开答案"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "turnId",
+        "publicQuestion",
+        "publicAnswer",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ProposeCacheEntryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "pending精选"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ApproveCacheEntryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "候选"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "cacheId",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ApproveCacheEntryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "active精选"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildCacheEmbeddingInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "条目"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "批准版本"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "空间"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "cacheId",
+        "expectedVersion",
+        "space",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "BuildCacheEmbeddingResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "条目"
+        },
+        "vectorHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "向量摘要"
+        }
+      },
+      "required": [
+        "cacheId",
+        "vectorHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InvalidateCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "失效事件"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档范围"
+        },
+        "memoryVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "旧记忆版本"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "旧策略版本"
+        }
+      },
+      "required": [
+        "eventId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InvalidateCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invalidated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "条目数"
+        }
+      },
+      "required": [
+        "invalidated"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DisableCacheEntryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "条目"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "cacheId",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DisableCacheEntryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "disabled"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListCacheEntriesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "状态筛选"
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListCacheEntriesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CacheEntry"
+          },
+          "maxItems": 256,
+          "description": "精选条目"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "entries"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateCacheEntryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "源精选"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标语言"
+        },
+        "expectedAnswerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "cacheId",
+        "targetLanguage",
+        "expectedAnswerRevision",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "TranslateCacheEntryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "翻译任务"
+        },
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "来源"
+        }
+      },
+      "required": [
+        "jobId",
+        "cacheId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateCompactionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "sourceGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "历史代数"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "conversationId",
+        "sourceGeneration",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateCompactionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compactionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued"
+          ],
+          "description": "状态"
+        }
+      },
+      "required": [
+        "compactionId",
+        "state"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunCompactionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compactionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "compactionId",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunCompactionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compaction": {
+          "$ref": "#/$defs/Compaction",
+          "description": "摘要"
+        }
+      },
+      "required": [
+        "compaction"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitCompactionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compaction": {
+          "$ref": "#/$defs/Compaction",
+          "description": "结果"
+        },
+        "expectedHistoryGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "源代数"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "租约"
+        }
+      },
+      "required": [
+        "compaction",
+        "expectedHistoryGeneration",
+        "leaseId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CommitCompactionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "committed": {
+          "type": "boolean",
+          "description": "已提交"
+        },
+        "currentGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "当前代数"
+        }
+      },
+      "required": [
+        "committed",
+        "currentGeneration"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateDebugTurnInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "诊断问题"
+        },
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "显式诊断档位"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "语言"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "question",
+        "profileId",
+        "language",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CreateDebugTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "debug": {
+          "$ref": "#/$defs/DebugTurn",
+          "description": "独立诊断轮次"
+        }
+      },
+      "required": [
+        "debug"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadDebugTurnInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "debugId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "诊断"
+        },
+        "afterSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "游标"
+        }
+      },
+      "required": [
+        "debugId",
+        "afterSequence"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadDebugTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "debug": {
+          "$ref": "#/$defs/DebugTurn",
+          "description": "隔离状态"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnswerEvent"
+          },
+          "maxItems": 256,
+          "description": "诊断事件"
+        }
+      },
+      "required": [
+        "debug",
+        "events"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DeleteConversationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "conversationId",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DeleteConversationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "已删除"
+        },
+        "cancelledTurns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "取消轮次数"
+        }
+      },
+      "required": [
+        "deleted",
+        "cancelledTurns"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverTurnsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "now",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RecoverTurnsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recovered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "轮次"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "失败数"
+        }
+      },
+      "required": [
+        "recovered",
+        "failed"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        },
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "工作者"
+        }
+      },
+      "required": [
+        "limit",
+        "workerId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PublishOutboxResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "published": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "确认数"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "待发送数"
+        }
+      },
+      "required": [
+        "published",
+        "pending"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PruneExpiredRecordsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "时间"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "now",
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PruneExpiredRecordsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deletedConversations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "会话数"
+        },
+        "deletedDebug": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "诊断数"
+        },
+        "deletedEvents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "事件数"
+        }
+      },
+      "required": [
+        "deletedConversations",
+        "deletedDebug",
+        "deletedEvents"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "分页游标"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1..100",
+          "default": 20
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "LoadAdminOverviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CacheEntry"
+          },
+          "maxItems": 256,
+          "description": "后台概览条目"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "下一页"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "候选"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "cacheId",
+        "expectedVersion",
+        "idempotencyKey"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SubmitPrimaryEditResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "active精选"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveCurrentPageHintInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "浏览器当前页"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "访客语言"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ResolveCurrentPageHintResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "验证后来源"
+        },
+        "pageText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "有界当前页片段"
+        },
+        "valid": {
+          "type": "boolean",
+          "description": "可用于指代"
+        }
+      },
+      "required": [
+        "valid"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanQuestionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "原问题"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "maxItems": 256,
+          "description": "近期历史"
+        },
+        "previousSummary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "摘要"
+        },
+        "currentPage": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
+          "description": "已验证页面"
+        },
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
+          "description": "项目概述"
+        },
+        "guardSignals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "无IP风险信号"
+        }
+      },
+      "required": [
+        "question",
+        "history",
+        "memory",
+        "guardSignals"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "PlanQuestionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/QuestionPlan",
+          "description": "严格前置计划"
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EvaluateCacheEligibilityInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/QuestionPlan",
+          "description": "前置计划"
+        },
+        "firstTurn": {
+          "type": "boolean",
+          "description": "第一轮"
+        },
+        "currentPageDependent": {
+          "type": "boolean",
+          "description": "仍依赖页面"
+        },
+        "privateContextDependent": {
+          "type": "boolean",
+          "description": "依赖访客个人历史"
+        }
+      },
+      "required": [
+        "plan",
+        "firstTurn",
+        "currentPageDependent",
+        "privateContextDependent"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EvaluateCacheEligibilityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eligible": {
+          "type": "boolean",
+          "description": "可查写cache"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "ambiguous",
+            "private",
+            "out_of_scope"
+          ],
+          "description": "原因"
+        }
+      },
+      "required": [
+        "eligible",
+        "reason"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AcquireQueryEmbeddingInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "canonicalQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "完整基准查询"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "空间"
+        }
+      },
+      "required": [
+        "canonicalQuestion",
+        "space"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AcquireQueryEmbeddingResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "embedding": {
+          "$ref": "#/$defs/QueryEmbedding",
+          "description": "一次向量结果"
+        }
+      },
+      "required": [
+        "embedding"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InspectEvidenceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/QuestionPlan",
+          "description": "问题计划"
+        },
+        "candidateIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "knowledge候选"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "1..3"
+        },
+        "toolCallsUsed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "0..5"
+        }
+      },
+      "required": [
+        "plan",
+        "candidateIds",
+        "round",
+        "toolCallsUsed"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "InspectEvidenceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selectedIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "相关ID"
+        },
+        "additionalQueries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "最多剩余子查询"
+        },
+        "expandSectionIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "需展开小节"
+        },
+        "finished": {
+          "type": "boolean",
+          "description": "停止"
+        }
+      },
+      "required": [
+        "selectedIds",
+        "additionalQueries",
+        "expandSectionIds",
+        "finished"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "WriteAutomaticCacheInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "完整轮次"
+        },
+        "plan": {
+          "$ref": "#/$defs/QuestionPlan",
+          "description": "完整计划"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "答案"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "maxItems": 256,
+          "description": "来源"
+        },
+        "memoryVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "回答记忆"
+        }
+      },
+      "required": [
+        "turnId",
+        "plan",
+        "answer",
+        "citations",
+        "memoryVersionHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "WriteAutomaticCacheResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "自动缓存"
+        },
+        "written": {
+          "type": "boolean",
+          "description": "可写"
+        }
+      },
+      "required": [
+        "written"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "StoreLocalizedCacheAnswerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "共享问题"
+        },
+        "sourceAnswerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "基准版本"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "目标"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "自动翻译结果"
+        },
+        "translationVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "规则版本"
+        }
+      },
+      "required": [
+        "cacheId",
+        "sourceAnswerRevision",
+        "language",
+        "answer",
+        "translationVersionHash"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "StoreLocalizedCacheAnswerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/CacheEntry",
+          "description": "新增语言答案"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadCacheCalibrationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "起点"
+        },
+        "until": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "终点"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "嵌入空间"
+        }
+      },
+      "required": [
+        "from",
+        "until",
+        "space"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadCacheCalibrationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "similarityBuckets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxItems": 65536,
+          "description": "0.05分桶命中"
+        },
+        "unhelpfulBuckets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxItems": 65536,
+          "description": "同桶没帮助次数"
+        },
+        "recommendedThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "按数据建议阈值"
+        },
+        "sampleCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "观测数"
+        }
+      },
+      "required": [
+        "similarityBuckets",
+        "unhelpfulBuckets",
+        "recommendedThreshold",
+        "sampleCount"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域worker"
+        },
+        "maximumConcurrentJobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "默认4范围1..32",
+          "default": 4
+        }
+      },
+      "required": [
+        "workerId",
+        "maximumConcurrentJobs"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "RunWorkerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "本轮领取"
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "成功"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "失败"
+        },
+        "cancelled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "取消"
+        }
+      },
+      "required": [
+        "claimed",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventQaTurnCompletedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "conversationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "会话不含身份"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "答案版本"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "访客语言"
+        },
+        "cacheHit": {
+          "type": "string",
+          "enum": [
+            "none",
+            "exact",
+            "semantic"
+          ],
+          "description": "命中"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "耗时"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "turnId",
+        "conversationId",
+        "rootOperationId",
+        "answerRevision",
+        "language",
+        "cacheHit",
+        "durationMs",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventQaTurnFailedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "根操作"
+        },
+        "code": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode",
+          "description": "错误"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "耗时"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "turnId",
+        "rootOperationId",
+        "code",
+        "durationMs",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventQaFeedbackChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "答案版本"
+        },
+        "value": {
+          "type": "string",
+          "enum": [
+            "helpful",
+            "unhelpful"
+          ],
+          "description": "反馈"
+        },
+        "feedbackVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "turnId",
+        "answerRevision",
+        "value",
+        "feedbackVersion",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventQaCacheChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "缓存"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "answerRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "答案版本"
+        },
+        "curated": {
+          "type": "boolean",
+          "description": "精选"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "active",
+            "stale",
+            "disabled"
+          ],
+          "description": "状态"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "cacheId",
+        "version",
+        "answerRevision",
+        "curated",
+        "state",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "EventQaCacheInvalidatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "失效缓存"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "版本"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "citation_changed",
+            "withdrawn",
+            "memory_changed",
+            "expired",
+            "unhelpful"
+          ],
+          "description": "原因"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "代际"
+        }
+      },
+      "required": [
+        "cacheId",
+        "version",
+        "reason",
+        "dataEpoch"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "qa",
+          "description": "本域唯一服务slug"
+        },
+        "listenAddress": {
+          "type": "string",
+          "default": "127.0.0.1:8080",
+          "description": "仅HTTP；容器manifest可设0.0.0.0:8080但仅私有网络反代访问"
+        },
+        "dataDirectory": {
+          "type": "string",
+          "description": "本域独占绝对目录，CLI/env指定；不读vps.txt，不共享SQLite"
+        },
+        "shutdownGraceSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 30,
+          "description": "停止接受→在途到持久安全点→关资源的总期限"
+        },
+        "readHeaderTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5,
+          "description": "HTTP header读取期限"
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 8192,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "HTTP头上限"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "slog允许字段，禁止secret/IP/问题正文"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "module": {
+                "type": "string",
+                "enum": [
+                  "portal",
+                  "identity",
+                  "site-config",
+                  "content",
+                  "media",
+                  "public-site",
+                  "model-gateway",
+                  "knowledge",
+                  "qa",
+                  "localization",
+                  "memory",
+                  "traffic-guard",
+                  "jobs",
+                  "analytics",
+                  "data-protection"
+                ],
+                "description": "生产方服务slug"
+              },
+              "baseURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "私有HTTP基址，不含URL凭证"
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 10000,
+                "default": 2500,
+                "description": "单次同步请求超时"
+              },
+              "requiredForReady": {
+                "type": "boolean",
+                "description": "基础能力关键依赖；未配置AI不能因此阻塞基础文档能力"
+              }
+            },
+            "required": [
+              "module",
+              "baseURL",
+              "timeoutMs",
+              "requiredForReady"
+            ],
+            "description": "按服务名装配HTTP/JSON/SSE客户端，不共享外域存储"
+          },
+          "maxItems": 14,
+          "description": "本域登记实际生产方operation的端点；service身份通过外部secretRef"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+        },
+        "serviceIdentityRef": {
+          "type": "string",
+          "description": "服务签名凭证外部引用，不是secret原文"
+        },
+        "uiAssetDirectory": {
+          "type": "string",
+          "description": "无UI时空字符串；有UI则本域构建dist目录"
+        }
+      },
+      "required": [
+        "module",
+        "listenAddress",
+        "dataDirectory",
+        "shutdownGraceSeconds",
+        "readHeaderTimeoutSeconds",
+        "maxHeaderBytes",
+        "logLevel",
+        "dependencies",
+        "trustAnchorRef",
+        "serviceIdentityRef",
+        "uiAssetDirectory"
+      ],
+      "description": "严格配置；CLI > 环境变量 > 配置文件 > 默认；未知字段或相对越界路径拒绝"
+    },
+    "Application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ServiceConfig"
+        },
+        "lifecycle": {
+          "enum": [
+            "constructed",
+            "recovering",
+            "ready",
+            "draining",
+            "closed"
+          ],
+          "description": "启动容器状态"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化允许null，仅初始化能力；已初始化必须权威Identifier"
+        },
+        "router": {
+          "type": "null",
+          "x-go-type": "*http.ServeMux",
+          "description": "仅Go内部net/http句柄，不能序列化"
+        },
+        "server": {
+          "type": "null",
+          "x-go-type": "*http.Server",
+          "description": "仅Go内部HTTP server句柄"
+        },
+        "database": {
+          "type": "null",
+          "x-go-type": "*sql.DB",
+          "description": "仅Go内部本域DB句柄；portal无业务DB时nil"
+        },
+        "workerCancel": {
+          "type": "null",
+          "x-go-type": "context.CancelFunc",
+          "description": "本域worker取消句柄，不跨域执行算法"
+        },
+        "registeredHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域OpenAPI x-handler函数ID"
+          },
+          "description": "路由装配必须覆盖所有本域已登记operation"
+        },
+        "workerFunctionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "本域implementation函数ID"
+          },
+          "description": "仅本域worker执行；通过jobs主动claim/heartbeat/complete"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "所有本域文件/DB journal已到安全状态"
+        },
+        "restoreControlReady": {
+          "type": "boolean",
+          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+        }
+      },
+      "required": [
+        "config",
+        "lifecycle",
+        "activeDataEpoch",
+        "router",
+        "server",
+        "database",
+        "workerCancel",
+        "registeredHandlers",
+        "workerFunctionIds",
+        "journalRecovered",
+        "restoreControlReady"
+      ],
+      "description": "仅Go内部装配容器；带x-go-type字段按标准库类型生成，绝不作为HTTP DTO",
+      "x-internal": true
+    },
+    "ServiceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+        },
+        "activeDataEpoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "当前全站维护，公开读写仍被门禁阻止"
+        },
+        "publicRequestsAllowed": {
+          "type": "boolean",
+          "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪"
+        },
+        "journalRecovered": {
+          "type": "boolean",
+          "description": "journal完整恢复"
+        },
+        "safePoint": {
+          "type": "boolean",
+          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
+        }
+      },
+      "required": [
+        "health",
+        "activeDataEpoch",
+        "runtimeRevision",
+        "maintenance",
+        "publicRequestsAllowed",
+        "initialized",
+        "journalRecovered",
+        "safePoint"
+      ],
+      "description": "就绪响应不含secret、服务端点、IP或问答正文"
+    },
+    "ModuleUIBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "const": "qa",
+          "description": "本域唯一UI slug"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "description": "经portal同源路由/API前缀，不注入service token"
+        },
+        "locale": {
+          "type": "string",
+          "description": "当前启用BCP47语言"
+        },
+        "mountSelector": {
+          "type": "string",
+          "description": "既有模块挂载DOM选择器"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "已授权公开能力ID"
+          },
+          "description": "401/403时清空敏感界面"
+        },
+        "buildRevision": {
+          "type": "string",
+          "description": "静态构建版本，用于hash资源永久缓存"
+        }
+      },
+      "required": [
+        "module",
+        "apiBaseURL",
+        "locale",
+        "mountSelector",
+        "capabilities",
+        "buildRevision"
+      ],
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+    },
+    "HealthInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body"
+    },
+    "ReadyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "普通匿名GET无请求body；细节只含安全状态"
+    }
+  }
+}

@@ -1,2 +1,0 @@
-<script setup lang="ts">import{ref}from'vue';import PageHeader from'../../components/PageHeader.vue';import{client,errorMessage,requireData}from'../../../shared/api/client';const message=ref('');async function clear(){if(!confirm('清空普通回答缓存？精选回答不会受影响。'))return;try{requireData(await client.DELETE('/api/admin/qa/cache'));message.value='缓存已清空。'}catch(cause){message.value=errorMessage(cause)}}</script>
-<template><PageHeader title="回答缓存" description="发布内容、块哈希、记忆版本和有效期会自动触发失效。"/><button class="text-danger" @click="clear">清空普通缓存</button><p>{{ message }}</p></template>

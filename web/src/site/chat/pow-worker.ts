@@ -1,2 +1,0 @@
-self.onmessage=async(event:MessageEvent<{challenge:string,difficulty:number}>)=>{const encoder=new TextEncoder();for(let nonce=0;nonce<Number.MAX_SAFE_INTEGER;nonce++){const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(`${event.data.challenge}:${nonce}`)));let valid=true;for(let i=0;i<event.data.difficulty;i++)if(hash[i]!==0){valid=false;break};if(valid){self.postMessage(String(nonce));return};if(nonce%1000===0)await new Promise(resolve=>setTimeout(resolve,0))}}
-export{}

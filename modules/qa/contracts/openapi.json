@@ -1,0 +1,3166 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "问答、引用与回答缓存",
+    "version": "1.0.0",
+    "description": "设计合同；未实现、未执行真实接口。"
+  },
+  "servers": [
+    {
+      "url": "http://qa:8080",
+      "description": "私网服务地址；生产入口TLS与服务mTLS由部署层终止。"
+    }
+  ],
+  "paths": {
+    "/v1/conversations": {
+      "post": {
+        "operationId": "createConversation",
+        "summary": "创建伪名访客会话",
+        "x-handler": "qa.CreateConversation",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "创建伪名访客会话成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateConversationResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateConversationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/conversations/{conversationId}": {
+      "get": {
+        "operationId": "getConversation",
+        "summary": "读取自有访客历史",
+        "x-handler": "qa.GetConversation",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "会话"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "description": "消息游标"
+            },
+            "description": "消息游标"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "1..100",
+              "default": 20
+            },
+            "description": "1..100"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "读取自有访客历史成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/GetConversationResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteConversation",
+        "summary": "删除自有对话数据",
+        "x-handler": "qa.DeleteConversation",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "会话"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "idempotencyKey",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "description": "幂等键"
+            },
+            "description": "幂等键"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除自有对话数据成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/DeleteConversationResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ]
+      }
+    },
+    "/v1/turns": {
+      "post": {
+        "operationId": "startTurn",
+        "summary": "准入后开始问答轮次",
+        "x-handler": "qa.StartTurn",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "准入后开始问答轮次成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/StartTurnResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "guard准入或本服务供应方并发槽位达到上限。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/StartTurnInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/turns/{turnId}/events": {
+      "get": {
+        "operationId": "resumeAnswerStream",
+        "summary": "SSE断线重连",
+        "x-handler": "qa.ResumeAnswerStream",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "turnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "轮次"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "afterSequence",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "LastEventID"
+            },
+            "description": "LastEventID"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "1..256",
+              "default": 20
+            },
+            "description": "1..256"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE断线重连成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "UTF8 SSE；id=sequence，event/data与ResumeAnswerStreamResult内部事件schema相同；15秒心跳；Last-Event-ID恢复。"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ]
+      }
+    },
+    "/v1/turns/{turnId}/cancel": {
+      "post": {
+        "operationId": "cancelTurn",
+        "summary": "取消问答及所有子调用",
+        "x-handler": "qa.CancelTurn",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "turnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "轮次"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "取消问答及所有子调用成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CancelTurnResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CancelTurnInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/turns/{turnId}/feedback": {
+      "put": {
+        "operationId": "recordFeedback",
+        "summary": "保存访客单条反馈",
+        "x-handler": "qa.RecordFeedback",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "turnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "轮次"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "保存访客单条反馈成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/RecordFeedbackResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "VisitorCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/RecordFeedbackInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/policy": {
+      "put": {
+        "operationId": "putQaPolicy",
+        "summary": "管理公开问答策略",
+        "x-handler": "qa.PutQaPolicy",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "管理公开问答策略成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/PutQaPolicyResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/PutQaPolicyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/cache": {
+      "post": {
+        "operationId": "proposeCacheEntry",
+        "summary": "人工创建精选候选",
+        "x-handler": "qa.ProposeCacheEntry",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "人工创建精选候选成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ProposeCacheEntryResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ProposeCacheEntryInput"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listCacheEntries",
+        "summary": "管理精选缓存",
+        "x-handler": "qa.ListCacheEntries",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "description": "状态筛选"
+            },
+            "description": "状态筛选"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "description": "游标"
+            },
+            "description": "游标"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "1..100",
+              "default": 20
+            },
+            "description": "1..100"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "管理精选缓存成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListCacheEntriesResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/cache/{cacheId}/approve": {
+      "post": {
+        "operationId": "approveCacheEntry",
+        "summary": "批准缓存公开内容",
+        "x-handler": "qa.ApproveCacheEntry",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "cacheId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "候选"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "批准缓存公开内容成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ApproveCacheEntryResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ApproveCacheEntryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/cache/{cacheId}/disable": {
+      "post": {
+        "operationId": "disableCacheEntry",
+        "summary": "人工停用缓存",
+        "x-handler": "qa.DisableCacheEntry",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "cacheId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "条目"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "人工停用缓存成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/DisableCacheEntryResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/DisableCacheEntryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/cache/{cacheId}/translations": {
+      "post": {
+        "operationId": "translateCacheEntry",
+        "summary": "请求精选答案翻译",
+        "x-handler": "qa.TranslateCacheEntry",
+        "x-permission": "service",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "cacheId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "源精选"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "请求精选答案翻译成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/TranslateCacheEntryResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/TranslateCacheEntryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/debug-turns": {
+      "post": {
+        "operationId": "createDebugTurn",
+        "summary": "隔离管理诊断",
+        "x-handler": "qa.CreateDebugTurn",
+        "x-permission": "qa.debug",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.debug；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "隔离管理诊断成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateDebugTurnResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateDebugTurnInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/debug-turns/{debugId}": {
+      "get": {
+        "operationId": "readDebugTurn",
+        "summary": "读取管理诊断",
+        "x-handler": "qa.ReadDebugTurn",
+        "x-permission": "qa.debug",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.debug；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "debugId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "诊断"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "afterSequence",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "游标"
+            },
+            "description": "游标"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "读取管理诊断成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadDebugTurnResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ]
+      }
+    },
+    "/v1/barriers": {
+      "post": {
+        "operationId": "acquireBarrier",
+        "summary": "取得本地维护屏障",
+        "x-handler": "qa.AcquireBarrier",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "取得本地维护屏障成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/BarrierStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/BarrierRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/barriers/{barrierId}:release": {
+      "post": {
+        "operationId": "releaseBarrier",
+        "summary": "释放已授权维护屏障",
+        "x-handler": "qa.ReleaseBarrier",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "barrierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./types.json#/$defs/Identifier"
+            },
+            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "释放已授权维护屏障成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/BarrierStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/BarrierRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots:export": {
+      "post": {
+        "operationId": "exportSnapshot",
+        "summary": "导出安全watermark快照",
+        "x-handler": "qa.ExportSnapshot",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "导出安全watermark快照成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SnapshotExportResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SnapshotExportRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots:validate": {
+      "post": {
+        "operationId": "validateSnapshot",
+        "summary": "只读检查候选快照",
+        "x-handler": "qa.ValidateSnapshot",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "只读检查候选快照成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SnapshotValidation"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SnapshotValidateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots:prepare": {
+      "post": {
+        "operationId": "prepareSnapshot",
+        "summary": "隔离准备恢复数据",
+        "x-handler": "qa.PrepareSnapshot",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "隔离准备恢复数据成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SnapshotStageResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SnapshotPrepareRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots:commit": {
+      "post": {
+        "operationId": "commitSnapshot",
+        "summary": "原子激活隔离恢复数据",
+        "x-handler": "qa.CommitSnapshot",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "原子激活隔离恢复数据成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SnapshotApplyResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SnapshotCommitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots:rollback": {
+      "post": {
+        "operationId": "rollbackSnapshot",
+        "summary": "回退未完成全域恢复",
+        "x-handler": "qa.RollbackSnapshot",
+        "x-permission": "superadmin",
+        "x-timeout-ms": 120000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "回退未完成全域恢复成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SnapshotApplyResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SnapshotCommitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/cache-calibration": {
+      "get": {
+        "operationId": "readCacheCalibration",
+        "summary": "缓存阈值校准",
+        "x-handler": "qa.ReadCacheCalibration",
+        "x-permission": "qa.manage",
+        "x-timeout-ms": 5000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "起点"
+            },
+            "description": "起点"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+              "description": "终点"
+            },
+            "description": "终点"
+          },
+          {
+            "name": "space",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+              "description": "嵌入空间"
+            },
+            "description": "嵌入空间"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "缓存阈值校准成功；202仅accepted，不保证模型完成或收费已结算。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadCacheCalibrationResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminSession": []
+          },
+          {
+            "ServiceToken": []
+          }
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "health",
+        "summary": "本域进程存活",
+        "x-handler": "M09-F905",
+        "x-permission": "anonymous",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "进程存活，无依赖/模型探测",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "进程不可用",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "ready",
+        "summary": "本域启动/恢复就绪",
+        "x-handler": "M09-F906",
+        "x-permission": "anonymous",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "本域ready或维护control-ready，公开业务门禁另判",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ServiceReadiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "关键依赖或epoch/journal未ready",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ServiceToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "mTLS服务身份且audience=qa；恢复管理另校验限定RecoveryAuthorization。"
+      },
+      "AdminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_admin_session",
+        "description": "identity管理会话且CSRF token；浏览器写请求校验Origin/CSRF。"
+      },
+      "VisitorCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_visitor",
+        "description": "guard签署伪名访客；读取校验owner，写入另验AdmissionPermit。"
+      }
+    }
+  }
+}

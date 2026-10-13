@@ -1,0 +1,4156 @@
+{
+  "moduleId": "M12",
+  "module": "traffic-guard",
+  "version": 1,
+  "phase": "design",
+  "requirements": [
+    {
+      "id": "M12-R001",
+      "description": "在请求进入高成本或高并发路径前执行频率、并发、挑战及封禁策略，只发准入凭证；model-gateway 仍是唯一实时额度和钱账权威。",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R002",
+      "description": "按站点/动作/主体 token bucket 和持久并发租约",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R003",
+      "description": "基于匿名信号的挑战、临时禁令及后台策略",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R004",
+      "description": "签名短期 AdmissionPermit 与事件审计引用",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R005",
+      "description": "不存余额、货币扣款、费用预占或第二份钱账",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R006",
+      "description": "不使用 User-Agent 作为可靠身份",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R007",
+      "description": "不持久化原始 IP、问题正文、captcha secret 或凭证 token",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R008",
+      "description": "服务间HTTP/JSON/SSE；事件使用公共EventEnvelope并标版本，至少一次按eventId和源修订去重",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R009",
+      "description": "所有写入验证当前dataEpoch，恢复后旧任务/租约/token/缓存不得修改或授权新数据",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R010",
+      "description": "私有存储；外域只通过拥有者HTTP合同读写，不共享数据库或直接读私有文件",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R011",
+      "description": "所有有状态域实现统一barrier/export/validate/prepare/commit/rollback；全域activate后才解除维护",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R012",
+      "description": "日志、事件与镜像不记录IP、提问正文或secret；结构化字段仅allowlist",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R013",
+      "description": "未来Go后端、Vue3模块界面按文件/函数合同手写；本阶段只登记设计，无业务源码和测试样例",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R014",
+      "description": "风控不可达：新 QA/高成本导出/模型探测 503，不启用客户端自判；静态公开阅读只受入口基本限流，禁止调用模型。",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R015",
+      "description": "pepper/签名密钥不可用：不签 permit，恢复调用方得到503；日志只有errorCode/requestId。",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R016",
+      "description": "jobs不可达：outbox持久重试；不把事件派发失败当原事务失败或重扣令牌。",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R017",
+      "description": "恢复后旧permit/挑战因epoch失配拒绝，保留未到期匿名ban；缺pepper时维护不退出。",
+      "acceptance": "按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收"
+    },
+    {
+      "id": "M12-R901",
+      "description": "本域独立Go module、main入口、完整依赖装配、HTTP/worker生命周期、镜像/manifest及既有UI独立构建；健康和就绪不调用模型。",
+      "acceptance": "未来分别从本域目录构建/启动，验证所有登记handler均装配、Health/Ready语义及安全关闭；当前未实现、未执行。"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "identity",
+      "mode": "sync",
+      "purpose": "仅通过其权威HTTP接口或登记事件使用identity能力，具体调用见函数dependencies",
+      "failurePolicy": "返回DEPENDENCY_UNAVAILABLE；保留已提交本域日志/outbox，不猜测外域成功、不输出过期授权结果"
+    },
+    {
+      "module": "site-config",
+      "mode": "sync",
+      "purpose": "仅通过其权威HTTP接口或登记事件使用site-config能力，具体调用见函数dependencies",
+      "failurePolicy": "返回DEPENDENCY_UNAVAILABLE；保留已提交本域日志/outbox，不猜测外域成功、不输出过期授权结果"
+    },
+    {
+      "module": "jobs",
+      "mode": "sync",
+      "purpose": "仅通过其权威HTTP接口或登记事件使用jobs能力，具体调用见函数dependencies",
+      "failurePolicy": "jobs不可达：outbox持久重试；不把事件派发失败当原事务失败或重扣令牌。"
+    },
+    {
+      "module": "data-protection",
+      "mode": "sync",
+      "purpose": "仅通过其权威HTTP接口或登记事件使用data-protection能力，具体调用见函数dependencies",
+      "failurePolicy": "返回DEPENDENCY_UNAVAILABLE；保留已提交本域日志/outbox，不猜测外域成功、不输出过期授权结果"
+    }
+  ],
+  "files": [
+    {
+      "path": "modules/traffic-guard/internal/policy.go",
+      "kind": "handwritten",
+      "purpose": "校验风控参数；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F001",
+          "name": "ValidatePolicy",
+          "signature": "func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyInput) (ValidatePolicyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ValidatePolicyInput",
+              "description": "校验风控参数；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidatePolicyResult",
+              "description": "校验风控参数成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "校验风控参数",
+          "steps": [
+            "拒绝钱账字段/未知动作",
+            "限制 burst≤rate、concurrency 1..128",
+            "挑战难度 16..22 与 ban TTL 范围"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_POLICY：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage 入口内部",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同 JSON 规范化结果一致",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "kind": "handwritten",
+      "purpose": "读取生效策略；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F002",
+          "name": "GetPolicy",
+          "signature": "func GetPolicy(ctx context.Context, op OperationContext, in GetPolicyInput) (GetPolicyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "GetPolicyInput",
+              "description": "读取生效策略；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "GetPolicyResult",
+              "description": "读取生效策略成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "读取生效策略",
+          "steps": [
+            "校验 epoch",
+            "读取当前 revision",
+            "返回无 secret 策略"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage 或 service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "SQLite 快照读",
+          "idempotency": "GET 幂等",
+          "dependencies": [
+            "site-config.readRuntimeState"
+          ]
+        },
+        {
+          "id": "M12-F003",
+          "name": "UpdatePolicy",
+          "signature": "func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput) (UpdatePolicyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "UpdatePolicyInput",
+              "description": "更新策略 CAS；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdatePolicyResult",
+              "description": "更新策略 CAS成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "更新策略 CAS",
+          "steps": [
+            "身份查权",
+            "校验策略",
+            "事务比较 revision/写策略/outbox",
+            "冲突不覆盖"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "POLICY_CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写策略/outbox"
+          ],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "事务 CAS；旧 permit renew 用最新策略重检",
+          "idempotency": "operationId 去重且相同 key 不同 body 409",
+          "dependencies": [
+            "identity.checkAuthorization",
+            "ValidatePolicy"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/subject.go",
+      "kind": "handwritten",
+      "purpose": "只在内存选择可信来源；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F004",
+          "name": "NormalizePeer",
+          "signature": "func NormalizePeer(ctx context.Context, op OperationContext, in NormalizePeerInput) (NormalizePeerResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "NormalizePeerInput",
+              "description": "只在内存选择可信来源；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "NormalizePeerResult",
+              "description": "只在内存选择可信来源成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "只在内存选择可信来源",
+          "steps": [
+            "实际peer必须为配置可信代理才接受X-Forwarded-For/CF-Connecting-IP",
+            "从可信链选真实peer",
+            "IPv4单址IPv6归一化/64用于ban",
+            "原始IP仅内存，禁止记录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_PEER：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "不写日志/数据库"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service ingress",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每请求内存，返回值禁止进入 tracing attributes",
+          "idempotency": "纯解析同输入同输出",
+          "dependencies": [
+            "site-config 服务安全配置"
+          ]
+        },
+        {
+          "id": "M12-F005",
+          "name": "DeriveSubject",
+          "signature": "func DeriveSubject(ctx context.Context, op OperationContext, in DeriveSubjectInput) (DeriveSubjectResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "DeriveSubjectInput",
+              "description": "生成短期匿名风控主体；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "DeriveSubjectResult",
+              "description": "生成短期匿名风控主体成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "生成短期匿名风控主体",
+          "steps": [
+            "HMAC各独立domain pepper：规范IP IPv4单址IPv6/64得networkKey、有效签名visitorSession得sessionKey",
+            "subjectKey组合",
+            "原始IP/token不落盘",
+            "ban按networkKey不按可换visitorToken",
+            "当期与前期别名保留过渡"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "SUBJECT_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service ingress",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban",
+          "idempotency": "同 keyEpoch 同输入同主体",
+          "dependencies": [
+            "identity visitor token verifier"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/classification.go",
+      "kind": "handwritten",
+      "purpose": "选择可信风控动作；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F006",
+          "name": "ClassifyAction",
+          "signature": "func ClassifyAction(ctx context.Context, op OperationContext, in ClassifyActionInput) (ClassifyActionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ClassifyActionInput",
+              "description": "选择可信风控动作；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ClassifyActionResult",
+              "description": "选择可信风控动作成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "选择可信风控动作",
+          "steps": [
+            "匹配服务白名单 qa.ask/search/export/admin",
+            "拒绝客户端覆盖",
+            "公共读取仅受边缘基本速率"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "UNKNOWN_ACTION：在步骤中的对应校验或依赖失败",
+              "httpStatus": 500,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "只读注册表",
+          "idempotency": "同路由匹配同结果",
+          "dependencies": [
+            "服务注册配置"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/signals.go",
+      "kind": "handwritten",
+      "purpose": "读取有限匿名信号；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F007",
+          "name": "LoadSignals",
+          "signature": "func LoadSignals(ctx context.Context, op OperationContext, in LoadSignalsInput) (LoadSignalsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "LoadSignalsInput",
+              "description": "读取有限匿名信号；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LoadSignalsResult",
+              "description": "读取有限匿名信号成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "读取有限匿名信号",
+          "steps": [
+            "按主体/action 查询 10 分钟 counters",
+            "验证 challenge expiry",
+            "读取 active ban"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "统一事务读取一致 policy revision",
+          "idempotency": "只读",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/risk.go",
+      "kind": "handwritten",
+      "purpose": "确定挑战规则；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F008",
+          "name": "ComputeRisk",
+          "signature": "func ComputeRisk(ctx context.Context, op OperationContext, in ComputeRiskInput) (ComputeRiskResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ComputeRiskInput",
+              "description": "确定挑战规则；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ComputeRiskResult",
+              "description": "确定挑战规则成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "确定挑战规则",
+          "steps": [
+            "program信号=问题hash重复/qa已有embedding相似度0..10000/最近时间间隔规律",
+            "前置模型同一次输出normal/suspicious/abuse，不单独新增模型",
+            "activeBan或abuse拒绝",
+            "suspicious要求可见Turnstile",
+            "normal仍需首次无感验证",
+            "前置模型已判无关直接拒答"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_SIGNALS：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 内部",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "纯函数，不依据 UA 国别作身份判断",
+          "idempotency": "确定性同信号同结果",
+          "dependencies": [
+            "qa前置模型风险结果（已有一次调用），memory项目概述由qa取用"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/bucket.go",
+      "kind": "handwritten",
+      "purpose": "整数补充令牌；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F009",
+          "name": "RefillBucket",
+          "signature": "func RefillBucket(ctx context.Context, op OperationContext, in RefillBucketInput) (RefillBucketResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "RefillBucketInput",
+              "description": "整数补充令牌；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RefillBucketResult",
+              "description": "整数补充令牌成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "整数补充令牌",
+          "steps": [
+            "elapsed clamp 0..60000",
+            "补充 floor(elapsedMs*rate/60) 千分令牌",
+            "容量封顶"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_BUCKET：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "内部",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "纯函数；使用单调时钟差映射持久 wall-time，时钟倒退补0",
+          "idempotency": "同状态同结果",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/bucket_store.go",
+      "kind": "handwritten",
+      "purpose": "原子扣频率令牌；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F010",
+          "name": "ConsumeBuckets",
+          "signature": "func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsInput) (ConsumeBucketsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ConsumeBucketsInput",
+              "description": "原子扣频率令牌；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeBucketsResult",
+              "description": "原子扣频率令牌成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "原子扣频率令牌",
+          "steps": [
+            "读取主体+站点 buckets",
+            "整数 refill",
+            "两层都足够才扣，否则均不扣并计算最大等待"
+          ],
+          "errors": [
+            {
+              "code": "RATE_LIMITED",
+              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写匿名 token bucket"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "SQLite 单事务；不能分别扣一层失败另一层",
+          "idempotency": "requestId 去重不重复扣",
+          "dependencies": [
+            "RefillBucket",
+            "GetPolicy"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/permit_store.go",
+      "kind": "handwritten",
+      "purpose": "创建持久并发租约；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F011",
+          "name": "AcquireConcurrency",
+          "signature": "func AcquireConcurrency(ctx context.Context, op OperationContext, in AcquireConcurrencyInput) (AcquireConcurrencyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "AcquireConcurrencyInput",
+              "description": "创建持久并发租约；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "AcquireConcurrencyResult",
+              "description": "创建持久并发租约成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "创建持久并发租约",
+          "steps": [
+            "同事务清过期 lease",
+            "统计 subject/site active",
+            "限额内插入30s lease及300s hard deadline"
+          ],
+          "errors": [
+            {
+              "code": "RATE_LIMITED",
+              "condition": "CONCURRENCY_LIMIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 permit 并发占位"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "与 bucket 消耗同最终 admission 事务；失败回滚扣令牌",
+          "idempotency": "requestId 唯一返回原 permit",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        },
+        {
+          "id": "M12-F016",
+          "name": "RenewPermit",
+          "signature": "func RenewPermit(ctx context.Context, op OperationContext, in RenewPermitInput) (RenewPermitResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "RenewPermitInput",
+              "description": "延长活跃并发租约；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RenewPermitResult",
+              "description": "延长活跃并发租约成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "延长活跃并发租约",
+          "steps": [
+            "验证 actor绑定与 epoch",
+            "重查 ban/最新 policy",
+            "CAS expiresAt=min(now+30s,hardDeadline)，到期必须重新 admission"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "condition": "PERMIT_EXPIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "ACTIVE_BAN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 expiresAt"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 原 audience",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "admission revision CAS，与 release 互斥",
+          "idempotency": "同续租 operationId 返回同 expiry",
+          "dependencies": [
+            "CheckBan",
+            "SignPermit"
+          ]
+        },
+        {
+          "id": "M12-F017",
+          "name": "ReleasePermit",
+          "signature": "func ReleasePermit(ctx context.Context, op OperationContext, in ReleasePermitInput) (ReleasePermitResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ReleasePermitInput",
+              "description": "释放并发占位；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReleasePermitResult",
+              "description": "释放并发占位成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "释放并发占位",
+          "steps": [
+            "验服务绑定",
+            "CAS active→released",
+            "不返还已经消耗的频率令牌"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 lease state"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 原 audience",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "release/renew 相同事务序列",
+          "idempotency": "重复 released 返回 true",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/permit_sign.go",
+      "kind": "handwritten",
+      "purpose": "签名准入凭证；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F012",
+          "name": "SignPermit",
+          "signature": "func SignPermit(ctx context.Context, op OperationContext, in SignPermitInput) (SignPermitResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "SignPermitInput",
+              "description": "签名准入凭证；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SignPermitResult",
+              "description": "签名准入凭证成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "签名准入凭证",
+          "steps": [
+            "绑定服务 audience/动作/epoch/lease ID",
+            "Ed25519 短期签名",
+            "只返回 token 不记日志"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "SIGNING_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 内部",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "只读密钥容器与 admission 快照",
+          "idempotency": "同 admission 可重复生成等价 token",
+          "dependencies": [
+            "外部签名密钥"
+          ]
+        },
+        {
+          "id": "M12-F013",
+          "name": "ValidatePermit",
+          "signature": "func ValidatePermit(ctx context.Context, op OperationContext, in ValidatePermitInput) (ValidatePermitResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ValidatePermitInput",
+              "description": "消费前验证租约；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidatePermitResult",
+              "description": "消费前验证租约成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "消费前验证租约",
+          "steps": [
+            "验签/audience/epoch/expiry",
+            "查询 active lease及最新 ban",
+            "匹配 request operation"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "PERMIT_INVALID：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "PERMIT_EXPIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "ACTIVE_BAN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 身份绑定",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "服务在线查询不能只信过期的本地签名状态",
+          "idempotency": "只读重复验证",
+          "dependencies": [
+            "GetPolicy",
+            "CheckBan"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/admission.go",
+      "kind": "handwritten",
+      "purpose": "编排频率/挑战/并发；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F014",
+          "name": "EvaluateAdmission",
+          "signature": "func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmissionInput) (EvaluateAdmissionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "EvaluateAdmissionInput",
+              "description": "编排频率/挑战/并发；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "EvaluateAdmissionResult",
+              "description": "编排频率/挑战/并发成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "编排频率/挑战/并发",
+          "steps": [
+            "可信runtime epoch/maintenance",
+            "首次人机验证session",
+            "按networkKey查10min AI禁令",
+            "检查IP+session频率/重复/规律信号",
+            "model风险由qa已有前置结果回报",
+            "同事务bucket+session1并发lease",
+            "新问题在qa排队不抢掉旧问题",
+            "签permit只准入不预占费用"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "ACTIVE_BAN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "CHALLENGE_REQUIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "CONCURRENCY_LIMIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 token bucket/permit/outbox denial 引用"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service 白名单",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每站点事务；没有费用预占",
+          "idempotency": "requestId+inputHash 幂等，不同 body 冲突",
+          "dependencies": [
+            "site-config.readRuntimeState",
+            "ComputeRisk",
+            "ConsumeBuckets",
+            "AcquireConcurrency",
+            "SignPermit"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/http_admission.go",
+      "kind": "handwritten",
+      "purpose": "准入 HTTP；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F015",
+          "name": "HandleAdmission",
+          "signature": "func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissionInput) (HandleAdmissionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "HandleAdmissionInput",
+              "description": "准入 HTTP；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "HandleAdmissionResult",
+              "description": "准入 HTTP成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "准入 HTTP",
+          "steps": [
+            "服务鉴权",
+            "内存 peer 规范化与匿名 hash",
+            "EvaluateAdmission",
+            "输出 permit 或公共 Problem+retryAfter"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "同 EvaluateAdmission，不泄漏 subjectKey"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "请求deadline 1500ms，失败不颁 permit",
+          "idempotency": "requestId 幂等",
+          "dependencies": [
+            "EvaluateAdmission",
+            "DeriveSubject"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/sweeper.go",
+      "kind": "handwritten",
+      "purpose": "回收过期并发；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F018",
+          "name": "ExpireLeases",
+          "signature": "func ExpireLeases(ctx context.Context, op OperationContext, in ExpireLeasesInput) (ExpireLeasesResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ExpireLeasesInput",
+              "description": "回收过期并发；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ExpireLeasesResult",
+              "description": "回收过期并发成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "回收过期并发",
+          "steps": [
+            "每5秒扫描最多500 active expire",
+            "CAS expired",
+            "只更新状态不重发外部调用"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 expired state"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service worker",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "批次事务；分布多实例通过 SQLite 单写协调",
+          "idempotency": "重复 sweep 无新增效果",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        },
+        {
+          "id": "M12-F027",
+          "name": "ExpireBans",
+          "signature": "func ExpireBans(ctx context.Context, op OperationContext, in ExpireBansInput) (ExpireBansResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ExpireBansInput",
+              "description": "回收临时禁令；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ExpireBansResult",
+              "description": "回收临时禁令成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "回收临时禁令",
+          "steps": [
+            "扫描≤500到期active",
+            "CAS expired",
+            "写ban-changed outbox"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写状态/outbox"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "小事务，无同时策略修订",
+          "idempotency": "相同时间重扫幂等",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/challenge.go",
+      "kind": "handwritten",
+      "purpose": "签发挑战；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F019",
+          "name": "IssueChallenge",
+          "signature": "func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeInput) (IssueChallengeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "IssueChallengeInput",
+              "description": "签发挑战；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "IssueChallengeResult",
+              "description": "签发挑战成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "签发挑战",
+          "steps": [
+            "第一次提问优先Turnstile invis",
+            "可疑要求interactive，之后默认每5问重验",
+            "脚本加载5秒失败用PoW18bits正常/≤22可疑",
+            "每主体6次/min签nonce120s，已通过proof签问答功能session"
+          ],
+          "errors": [
+            {
+              "code": "RATE_LIMITED",
+              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "CHALLENGE_DISABLED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 challenge 哈希"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "anonymous，经 ingress 派生主体",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "同主体挑战最多2个 active",
+          "idempotency": "requestId 幂等，同 key method不同409",
+          "dependencies": [
+            "Cloudflare Turnstile配置密钥ref",
+            "ComputeRisk"
+          ]
+        },
+        {
+          "id": "M12-F022",
+          "name": "VerifyChallenge",
+          "signature": "func VerifyChallenge(ctx context.Context, op OperationContext, in VerifyChallengeInput) (VerifyChallengeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "VerifyChallengeInput",
+              "description": "核验并消费挑战；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "VerifyChallengeResult",
+              "description": "核验并消费挑战成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "核验并消费挑战",
+          "steps": [
+            "查询 issued/同主体/epoch/120s",
+            "验proof",
+            "事务CAS issued→consumed并发10min签名通过证明"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "condition": "TOKEN_EXPIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "TOKEN_REUSED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_PROOF：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写 consumed 与匿名 challenge signal"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "anonymous 主体必须绑定",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每 challenge最多5失败尝试；CAS阻止并发重放",
+          "idempotency": "重复成功不再次授予，返回 CONFLICT",
+          "dependencies": [
+            "VerifyPoW",
+            "VerifyExternalChallenge"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/pow.go",
+      "kind": "handwritten",
+      "purpose": "验证工作量证明；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F020",
+          "name": "VerifyPoW",
+          "signature": "func VerifyPoW(ctx context.Context, op OperationContext, in VerifyPoWInput) (VerifyPoWResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "VerifyPoWInput",
+              "description": "验证工作量证明；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "VerifyPoWResult",
+              "description": "验证工作量证明成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "验证工作量证明",
+          "steps": [
+            "solution 最大64 ASCII",
+            "SHA256(nonce||colon||solution)",
+            "要求前 difficulty bit全0，16..22"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_PROOF：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "challenge 内部",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "纯函数、常数次数 hash；禁止无界搜索",
+          "idempotency": "同 proof 同结果",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/captcha.go",
+      "kind": "handwritten",
+      "purpose": "适配外部验证；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F021",
+          "name": "VerifyExternalChallenge",
+          "signature": "func VerifyExternalChallenge(ctx context.Context, op OperationContext, in VerifyExternalChallengeInput) (VerifyExternalChallengeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "VerifyExternalChallengeInput",
+              "description": "适配外部验证；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "VerifyExternalChallengeResult",
+              "description": "适配外部验证成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "适配外部验证",
+          "steps": [
+            "仅服务端配置Cloudflare Turnstile验证接口2.5s",
+            "校验token success/hostname/action/过期",
+            "响应token不落盘",
+            "组件加载失败走PoW备用而不是额外验证方案选择"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "CHALLENGE_PROVIDER_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_PROOF：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "单次外部认证请求，禁止重试同token"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "anonymous challenge 请求",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "凭证仅内存；无真实调用在文档阶段",
+          "idempotency": "供应方 token单用途，失败需新挑战",
+          "dependencies": [
+            "Cloudflare Turnstile服务端verification适配"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/ban.go",
+      "kind": "handwritten",
+      "purpose": "读取作用域禁令；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F023",
+          "name": "CheckBan",
+          "signature": "func CheckBan(ctx context.Context, op OperationContext, in CheckBanInput) (CheckBanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "CheckBanInput",
+              "description": "读取作用域禁令；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CheckBanResult",
+              "description": "读取作用域禁令成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "读取作用域禁令",
+          "steps": [
+            "检查当期/前期主体 aliases",
+            "site-wide与action匹配",
+            "过期禁令忽略"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "准入/续租每次查询，无跨请求安全 TTL",
+          "idempotency": "只读幂等",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/ban_store.go",
+      "kind": "handwritten",
+      "purpose": "管理员建立临时禁令；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F024",
+          "name": "CreateBan",
+          "signature": "func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (CreateBanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "CreateBanInput",
+              "description": "管理员建立临时禁令；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CreateBanResult",
+              "description": "管理员建立临时禁令成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "管理员建立临时禁令",
+          "steps": [
+            "check guard.manage",
+            "匿名networkKey指IPv4单址/IPv6 /64",
+            "default600s ban只限制AI",
+            "同事务ban+撤租约+outbox",
+            "返回原因/恢复时间，公开页面继续可读"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_BAN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写ban/permit revoked/outbox"
+          ],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "主体范围事务原子封禁与撤租约",
+          "idempotency": "operationId 去重",
+          "dependencies": [
+            "identity.checkAuthorization"
+          ]
+        },
+        {
+          "id": "M12-F025",
+          "name": "RevokeBan",
+          "signature": "func RevokeBan(ctx context.Context, op OperationContext, in RevokeBanInput) (RevokeBanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "RevokeBanInput",
+              "description": "撤销禁令；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RevokeBanResult",
+              "description": "撤销禁令成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "撤销禁令",
+          "steps": [
+            "校验权限与revision",
+            "CAS active→revoked",
+            "写审计outbox"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "BAN_CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写ban/outbox"
+          ],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "revision CAS",
+          "idempotency": "相同 operationId复用结果",
+          "dependencies": [
+            "identity.checkAuthorization"
+          ]
+        },
+        {
+          "id": "M12-F026",
+          "name": "ListBans",
+          "signature": "func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListBansResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ListBansInput",
+              "description": "分页禁令；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListBansResult",
+              "description": "分页禁令成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "分页禁令",
+          "steps": [
+            "limit默认20最大100",
+            "签名游标绑定epoch/filter",
+            "只返回subjectRef和理由枚举"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_CURSOR：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "稳定banId排序，不含IP",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "identity.checkAuthorization"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/events.go",
+      "kind": "handwritten",
+      "purpose": "处理权限撤销通知；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F028",
+          "name": "ConsumeIdentityEvent",
+          "signature": "func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeIdentityEventInput) (ConsumeIdentityEventResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ConsumeIdentityEventInput",
+              "description": "处理权限撤销通知；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeIdentityEventResult",
+              "description": "处理权限撤销通知成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "处理权限撤销通知",
+          "steps": [
+            "验生产者/版本/epoch",
+            "inbox去重",
+            "使管理授权上下文失效，不把通知当授权真相"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_EVENT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写inbox授权缓存标记"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service identity事件",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "按 subject权限修订取max",
+          "idempotency": "eventId/revision幂等",
+          "dependencies": [
+            "identity.authorization.changed"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/outbox.go",
+      "kind": "handwritten",
+      "purpose": "可靠派发风控引用事件；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F029",
+          "name": "PublishGuardEvents",
+          "signature": "func PublishGuardEvents(ctx context.Context, op OperationContext, in PublishGuardEventsInput) (PublishGuardEventsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "PublishGuardEventsInput",
+              "description": "可靠派发风控引用事件；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PublishGuardEventsResult",
+              "description": "可靠派发风控引用事件成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "可靠派发风控引用事件",
+          "steps": [
+            "选≤100 pending",
+            "向jobs提交带版本envelope",
+            "成功mark delivered，失败5/30/120/600秒重试"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "JOBS_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写outbox发送状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "outbox租约30s；至少一次",
+          "idempotency": "eventId固定不因重试变",
+          "dependencies": [
+            "jobs.publishEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/retention.go",
+      "kind": "handwritten",
+      "purpose": "清理匿名风控状态；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F030",
+          "name": "PurgeAnonymousSignals",
+          "signature": "func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAnonymousSignalsInput) (PurgeAnonymousSignalsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "PurgeAnonymousSignalsInput",
+              "description": "清理匿名风控状态；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PurgeAnonymousSignalsResult",
+              "description": "清理匿名风控状态成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "清理匿名风控状态",
+          "steps": [
+            "清过期challenge+10min signals",
+            "bucket空闲24h删除",
+            "expired permits7d/ban30d删除"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "删除匿名状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "500项批事务；active bans/leases禁止删除",
+          "idempotency": "重复清理幂等",
+          "dependencies": [
+            "私有 SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/barrier.go",
+      "kind": "handwritten",
+      "purpose": "停止准入并等安全点；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F031",
+          "name": "EnterBarrier",
+          "signature": "func EnterBarrier(ctx context.Context, op OperationContext, request BarrierRequest) (BarrierStatus, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "BarrierRequest",
+              "description": "停止准入并等安全点；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "BarrierStatus",
+              "description": "停止准入并等安全点成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "停止准入并等安全点",
+          "steps": [
+            "验证超管委托与epoch",
+            "标 draining拒新准入",
+            "等待active lease释放/300s硬到期或deadline",
+            "不偷偷清活跃租约"
+          ],
+          "errors": [
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 504,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "持久维护barrier状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "barrier独占；renew只能至barrier deadline",
+          "idempotency": "barrierId重复返回同状态",
+          "dependencies": [
+            "site-config.readRuntimeState",
+            "jobs.coordinateBarrier"
+          ]
+        },
+        {
+          "id": "M12-F032",
+          "name": "ReleaseBarrier",
+          "signature": "func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierInput) (ReleaseBarrierResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ReleaseBarrierInput",
+              "description": "解除风控维护；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReleaseBarrierResult",
+              "description": "解除风控维护成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "解除风控维护",
+          "steps": [
+            "核验运行epoch一致和恢复全域已完成",
+            "CAS safe→released"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "condition": "RESTORE_INCOMPLETE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写barrier状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "不提前恢复准入",
+          "idempotency": "重复release幂等",
+          "dependencies": [
+            "site-config.readRuntimeState"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/snapshot.go",
+      "kind": "handwritten",
+      "purpose": "导出风控一致快照；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F033",
+          "name": "CreateSnapshot",
+          "signature": "func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotExportRequest) (SnapshotExportResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "SnapshotExportRequest",
+              "description": "导出风控一致快照；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotExportResult",
+              "description": "导出风控一致快照成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "导出风控一致快照",
+          "steps": [
+            "要求本域safe",
+            "SQLite checkpoint",
+            "包含policy/bans及匿名hash但不含token/pepper/live租约",
+            "加密备份含匿名hash，git仅policy"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "condition": "BARRIER_REQUIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "SNAPSHOT_IO：在步骤中的对应校验或依赖失败",
+              "httpStatus": 500,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写快照对象"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "维护屏障下固定水位",
+          "idempotency": "backupId/barrierId幂等",
+          "dependencies": [
+            "jobs.coordinateBarrier"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/import.go",
+      "kind": "handwritten",
+      "purpose": "校验恢复输入；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F034",
+          "name": "ValidateImport",
+          "signature": "func ValidateImport(ctx context.Context, op OperationContext, request SnapshotValidateRequest) (SnapshotValidation, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "SnapshotValidateRequest",
+              "description": "校验恢复输入；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotValidation",
+              "description": "校验恢复输入成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "校验恢复输入",
+          "steps": [
+            "验证hash/schema/无secret",
+            "策略全量校验",
+            "租约/challenge必须为空，ban期限RFC3339"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "IMPORT_INVALID：在步骤中的对应校验或依赖失败",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "隔离校验报告"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "隔离目录，禁止改现有准入",
+          "idempotency": "snapshot hash/targetEpoch同结果",
+          "dependencies": [
+            "ValidatePolicy"
+          ]
+        },
+        {
+          "id": "M12-F035",
+          "name": "PrepareImport",
+          "signature": "func PrepareImport(ctx context.Context, op OperationContext, request SnapshotPrepareRequest) (SnapshotStageResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "SnapshotPrepareRequest",
+              "description": "准备本域导入；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotStageResult",
+              "description": "准备本域导入成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "准备本域导入",
+          "steps": [
+            "校验快照",
+            "建立隔离DB",
+            "清除租约/challenge/counters并重新绑定targetEpoch",
+            "有效ban保留"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "IMPORT_INVALID：在步骤中的对应校验或依赖失败",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "DISK_FULL：在步骤中的对应校验或依赖失败",
+              "httpStatus": 500,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写隔离DB/stage"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "本域safe且restoreId独占",
+          "idempotency": "restoreId/snapshotHash去重",
+          "dependencies": [
+            "ValidateImport"
+          ]
+        },
+        {
+          "id": "M12-F036",
+          "name": "ActivateImport",
+          "signature": "func ActivateImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "SnapshotCommitRequest",
+              "description": "激活新代次；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotApplyResult",
+              "description": "激活新代次成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "激活新代次",
+          "steps": [
+            "检查data-protection commit决策与stage",
+            "原子切DB指针",
+            "所有旧permit即失效"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "condition": "DECISION_REQUIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "PREPARE_NOT_FOUND：在步骤中的对应校验或依赖失败",
+              "httpStatus": 404,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "切存储指针，禁用旧permit"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "全站继续维护到全部域完成",
+          "idempotency": "stageId/targetEpoch幂等",
+          "dependencies": [
+            "data-protection.getRestoreDecision"
+          ]
+        },
+        {
+          "id": "M12-F037",
+          "name": "AbortImport",
+          "signature": "func AbortImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "request",
+              "type": "SnapshotCommitRequest",
+              "description": "撤销未提交stage；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotApplyResult",
+              "description": "撤销未提交stage成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "撤销未提交stage",
+          "steps": [
+            "检查恢复决策未commit",
+            "删除隔离DB",
+            "已commit拒绝rollback要求续激活"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "condition": "RESTORE_COMMITTED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "删除隔离stage"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin 委托",
+            "recoveryAuthorization": "barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可"
+          },
+          "concurrency": "stage锁",
+          "idempotency": "重复rolled-back幂等",
+          "dependencies": [
+            "data-protection.getRestoreDecision"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/recovery_authorization.go",
+      "kind": "handwritten",
+      "purpose": "本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F038",
+          "name": "ValidateRecoveryAuthorization",
+          "signature": "func ValidateRecoveryAuthorization(ctx context.Context, op OperationContext, in ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ValidateRecoveryAuthorizationInput",
+              "description": "本地验证本次恢复专用控制许可；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateRecoveryAuthorizationResult",
+              "description": "本地验证本次恢复专用控制许可成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "本地验证本次恢复专用控制许可",
+          "steps": [
+            "先校验不可被业务导入覆盖的信任锚签名/算法/keyId",
+            "核audience本域/expiry/restoreId/barrierId/旧新epoch",
+            "读取独立控制记录确认已批准同restore且action只在prepare/commit/rollback/barrier",
+            "commit核持久commit决定，rollback拒任何commit证据",
+            "拒普通业务使用"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "TOKEN_EXPIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "LOCKED",
+              "condition": "DECISION_REQUIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "RESTORE_COMMITTED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service+superadmin预先批准委托",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "校验期间不查询已换代identity业务库；控制记录与信任锚独立目录不被快照覆盖",
+          "idempotency": "同许可同控制阶段结果；提交决策变化会使rollback失效",
+          "dependencies": [
+            "不可变控制信任锚",
+            "data-protection.getRestoreDecision"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/web/src/PolicyEditor.vue",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：SaveGuardPolicy；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F039",
+          "name": "SaveGuardPolicy",
+          "signature": "function SaveGuardPolicy(op: OperationContext, input: SaveGuardPolicyInput): Promise<SaveGuardPolicyResult>",
+          "inputs": [
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "SaveGuardPolicyInput",
+              "description": "Vue3模块交互：SaveGuardPolicy；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SaveGuardPolicyResult",
+              "description": "Vue3模块交互：SaveGuardPolicy成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "Problem",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "Vue3模块交互：SaveGuardPolicy",
+          "steps": [
+            "提交策略CAS",
+            "409保留表单并展示服务器revision，界面不显示费用额度",
+            "处理401重新登录、403清空敏感界面",
+            "按operationId重试不重复提交"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [
+            "traffic-guard OpenAPI HTTP/JSON/SSE"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/web/src/BanList.vue",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：SubmitBan；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F040",
+          "name": "SubmitBan",
+          "signature": "function SubmitBan(op: OperationContext, input: SubmitBanInput): Promise<SubmitBanResult>",
+          "inputs": [
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "SubmitBanInput",
+              "description": "Vue3模块交互：SubmitBan；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SubmitBanResult",
+              "description": "Vue3模块交互：SubmitBan成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "Problem",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "Vue3模块交互：SubmitBan",
+          "steps": [
+            "提交匿名主体引用临时封禁",
+            "只展示reasonCode/expiry，不输入原始IP",
+            "处理401重新登录、403清空敏感界面",
+            "按operationId重试不重复提交"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "guard.manage",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [
+            "traffic-guard OpenAPI HTTP/JSON/SSE"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/web/src/client.ts",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：RunPoWChallenge；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F041",
+          "name": "RunPoWChallenge",
+          "signature": "function RunPoWChallenge(op: OperationContext, input: RunPoWChallengeInput): Promise<RunPoWChallengeResult>",
+          "inputs": [
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "RunPoWChallengeInput",
+              "description": "Vue3模块交互：RunPoWChallenge；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RunPoWChallengeResult",
+              "description": "Vue3模块交互：RunPoWChallenge成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "Problem",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "Vue3模块交互：RunPoWChallenge",
+          "steps": [
+            "Web Worker每4096次hash让出事件循环",
+            "截止expiresAt或用户取消立即停止",
+            "验证结果仍需服务端CAS",
+            "处理401重新登录、403清空敏感界面",
+            "按operationId重试不重复提交"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "anonymous",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [
+            "traffic-guard OpenAPI HTTP/JSON/SSE"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/question_signals.go",
+      "kind": "handwritten",
+      "purpose": "接收qa已有检测信号；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F042",
+          "name": "ReportQuestionSignals",
+          "signature": "func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQuestionSignalsInput) (ReportQuestionSignalsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ReportQuestionSignalsInput",
+              "description": "接收qa已有检测信号；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReportQuestionSignalsResult",
+              "description": "接收qa已有检测信号成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "接收qa已有检测信号",
+          "steps": [
+            "qa服务鉴权",
+            "只允许问题hash/量化相似度/时间间隔/已有前置模型normal/suspicious/abuse",
+            "不接正文",
+            "abuse建networkKey600秒AIban",
+            "suspicious要求可见验证",
+            "normal保留最多最近8时间戳和hash10min"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "VALIDATION：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写短期匿名signals或ban"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service qa",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "same questionOperationId去重，不能凭客户端自报风险",
+          "idempotency": "questionOperationId/hash幂等",
+          "dependencies": [
+            "ComputeRisk",
+            "CreateBan"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/session_queue.go",
+      "kind": "handwritten",
+      "purpose": "每会话1并发其余排队；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F043",
+          "name": "QueueSessionAdmission",
+          "signature": "func QueueSessionAdmission(ctx context.Context, op OperationContext, in QueueSessionAdmissionInput) (QueueSessionAdmissionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "QueueSessionAdmissionInput",
+              "description": "每会话1并发其余排队；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "QueueSessionAdmissionResult",
+              "description": "每会话1并发其余排队成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "每会话1并发其余排队",
+          "steps": [
+            "qa持有请求队列内容",
+            "guard只返回activeConcurrency=1和队列许可引用",
+            "release后qa按FIFO重新admission",
+            "排队时不预扣频率/费用"
+          ],
+          "errors": [
+            {
+              "code": "RATE_LIMITED",
+              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "VERSION_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅短期匿名队列引用"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service qa",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每session最多10等待，超出429；无问题正文",
+          "idempotency": "requestId幂等",
+          "dependencies": [
+            "qa排队权威",
+            "ReleasePermit"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/admission_consumption.go",
+      "kind": "handwritten",
+      "purpose": "QA绑定准入使用权；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F044",
+          "name": "ConsumeAdmission",
+          "signature": "func ConsumeAdmission(ctx context.Context, op OperationContext, in ConsumeAdmissionInput) (ConsumeAdmissionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ConsumeAdmissionInput",
+              "description": "QA绑定准入使用权；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeAdmissionResult",
+              "description": "QA绑定准入使用权成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "QA绑定准入使用权",
+          "steps": [
+            "验签permit audience/action/epoch和activelease",
+            "事务CAS minted→consumedByRequest",
+            "同request重复成功，不同request重用拒409",
+            "不重扣bucket也不扣钱"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "PERMIT_EXPIRED：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写admission consumer绑定"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service qa",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "admissionId唯一request绑定，release后禁止再consume",
+          "idempotency": "admissionId/requestId幂等",
+          "dependencies": [
+            "SignPermit",
+            "私有lease状态"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/http_verify.go",
+      "kind": "handwritten",
+      "purpose": "QA在线确认准入租约；同文件职责限本域以下登记函数",
+      "functions": [
+        {
+          "id": "M12-F045",
+          "name": "VerifyAdmissionHTTP",
+          "signature": "func VerifyAdmissionHTTP(ctx context.Context, op OperationContext, in VerifyAdmissionHTTPInput) (VerifyAdmissionHTTPResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "VerifyAdmissionHTTPInput",
+              "description": "QA在线确认准入租约；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "VerifyAdmissionHTTPResult",
+              "description": "QA在线确认准入租约成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "QA在线确认准入租约",
+          "steps": [
+            "服务qa身份",
+            "核admission active/request/epoch和当前networkAIban",
+            "只返回valid/expiry",
+            "model-gateway不调用此API而本地验permit签名"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "STALE_RESULT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service qa",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "只读当前lease；不能把检查缓存为永久授权",
+          "idempotency": "GET语义重复安全",
+          "dependencies": [
+            "CheckBan",
+            "私有SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/types.gen.go",
+      "kind": "generated",
+      "purpose": "从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module traffic-guard --target go-types，输出不得手改",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/http_bindings.gen.go",
+      "kind": "generated",
+      "purpose": "从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module traffic-guard --target go-http，x-handler映射仅转调手写函数",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法",
+      "functions": [
+        {
+          "id": "M12-F901",
+          "name": "main",
+          "signature": "func main()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立进程可执行入口",
+          "steps": [
+            "读取--config/--data-dir/--listen及环境覆盖，严格解析ServiceConfig；配置错误安全stderr后exit2",
+            "signal.NotifyContext注册SIGINT/SIGTERM；调用BuildApplication，失败exit1且只输出errorCode",
+            "调用Serve；正常关闭或signal后以30秒context调用Shutdown；安全退出0，无法安全关闭exit1且保留journal"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "配置未知字段/越界目录/非法端点",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "装配或HTTP运行失败",
+              "httpStatus": 500,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域资源、监听HTTP；关闭按持久安全点"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
+          "idempotency": "进程重启先journal恢复；不重放已付费任务",
+          "dependencies": [
+            "BuildApplication",
+            "Serve",
+            "Shutdown"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
+      "functions": [
+        {
+          "id": "M12-F902",
+          "name": "BuildApplication",
+          "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "config",
+              "type": "ServiceConfig",
+              "description": "已严格解析配置",
+              "constraints": "module固定本域；secret只ref；依赖只HTTP"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "application",
+              "type": "*Application",
+              "description": "只返回完整装配后的内部容器",
+              "constraints": "失败返回nil，已打开资源逆序关闭"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "装配本域存储、客户端、函数路由与worker",
+          "steps": [
+            "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
+            "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+            "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "配置/缺路由绑定",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "迁移或journal校验失败",
+              "httpStatus": 422,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "基础关键依赖/控制信任锚不可用",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "打开本域DB/文件资源、注册router和本域worker；失败资源回滚"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
+          "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
+          "dependencies": [
+            "本域implementation全部x-handler",
+            "本域journal恢复函数",
+            "site-config.readRuntimeState（本域site-config读取自身权威）"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
+      "functions": [
+        {
+          "id": "M12-F903",
+          "name": "Serve",
+          "signature": "func Serve(ctx context.Context, app *Application) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "运行独立HTTP/JSON/SSE服务",
+          "steps": [
+            "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
+            "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+            "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "监听地址冲突或HTTP server不可恢复错误",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "同Application重复Serve启动",
+              "httpStatus": 409,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "监听本域HTTP端口、服务请求和本域worker"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
+          "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
+          "dependencies": [
+            "BuildApplication",
+            "Shutdown",
+            "本域OpenAPI路由"
+          ]
+        },
+        {
+          "id": "M12-F904",
+          "name": "Shutdown",
+          "signature": "func Shutdown(ctx context.Context, app *Application) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "停止入口并使在途操作到可恢复安全点",
+          "steps": [
+            "CAS lifecycle ready→draining，拒新写/claim/paid步骤并关闭SSE接受新订阅",
+            "取消本域worker的新步骤；等待已有DB事务、文件journal、模型可结算阶段安全确认；不能因超时假定供应方免费或删除paid refs",
+            "http.Server.Shutdown等在途响应；flush本域outbox/journal、close DB与文件句柄；正常lifecycle closed",
+            "deadline未安全返回DEADLINE_EXCEEDED并保留完整journal/未决费用引用，启动恢复收敛；不清掉活跃控制记录"
+          ],
+          "errors": [
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "30秒期限仍有未安全在途步骤",
+              "httpStatus": 504,
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "condition": "flush/close失败",
+              "httpStatus": 500,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域drain、资源关闭、durable恢复日志"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
+          "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
+          "dependencies": [
+            "本域barrier安全点函数",
+            "本域journal/outbox flush"
+          ]
+        },
+        {
+          "id": "M12-F905",
+          "name": "Health",
+          "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "status",
+              "type": "HealthStatus",
+              "description": "公共liveness安全字段",
+              "constraints": "仅module/version/status/capabilities"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "GET /healthz普通HTTP存活检查",
+          "steps": [
+            "仅读本进程lifecycle与HTTP循环是否存活；不查询远程依赖/模型/数据库",
+            "存活且未closed返回200 HealthStatus；closed或server不可用返回503；不泄漏路径、端点或secret"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "进程已closed或服务循环不可用",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
+          "idempotency": "GET只读重复安全",
+          "dependencies": []
+        },
+        {
+          "id": "M12-F906",
+          "name": "Ready",
+          "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程/请求取消和deadline",
+              "constraints": "Go标准库；不携敏感正文到日志"
+            },
+            {
+              "name": "app",
+              "type": "*Application",
+              "description": "本域已装配应用句柄",
+              "constraints": "x-internal；HTTP不能提供或序列化"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "readiness",
+              "type": "ServiceReadiness",
+              "description": "本域启动/恢复就绪与公开门禁状态",
+              "constraints": "ready不等于维护已解除，publicRequestsAllowed必须显式false"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败公共Problem或进程安全退出原因",
+              "constraints": "不把secret/路径凭证/IP写detail"
+            }
+          ],
+          "purpose": "GET /readyz普通HTTP就绪检查",
+          "steps": [
+            "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+            "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
+            "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "关键依赖/本域journal未恢复/epoch未匹配",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
+          "idempotency": "GET只读重复安全",
+          "dependencies": [
+            "site-config.readRuntimeState（site-config本域自身读取）"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/traffic-guard；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/traffic-guard；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/traffic-guard与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/package.json",
+      "kind": "config",
+      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/vite.config.ts",
+      "kind": "config",
+      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/tsconfig.json",
+      "kind": "config",
+      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/index.html",
+      "kind": "config",
+      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/src/main.ts",
+      "kind": "ui",
+      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
+      "functions": [
+        {
+          "id": "M12-F907",
+          "name": "mountModuleUI",
+          "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
+          "inputs": [
+            {
+              "name": "rootElement",
+              "type": "HTMLElement",
+              "description": "已经存在的模块挂载节点",
+              "constraints": "DOM标准库；为空或不属于当前document拒绝"
+            },
+            {
+              "name": "bootstrap",
+              "type": "ModuleUIBootstrap",
+              "description": "已由portal/Go输出的安全启动元数据",
+              "constraints": "module固定本域，不含service凭证/secret"
+            }
+          ],
+          "outputs": [],
+          "purpose": "本域Vue3应用/岛的唯一UI构建入口",
+          "steps": [
+            "校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件",
+            "只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示",
+            "同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "bootstrap不匹配本域或DOM无效",
+              "httpStatus": 400,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "挂载本域Vue组件和浏览器事件；不新建业务记录"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限"
+          },
+          "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
+          "idempotency": "同DOM/buildRevision重复挂载复用实例",
+          "dependencies": [
+            "本域已登记UI页面函数"
+          ]
+        }
+      ]
+    }
+  ]
+}

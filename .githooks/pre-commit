@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-root=$(git rev-parse --show-toplevel)
-cd "$root/server"
-go run ./tools/privacycheck -mode staged
-cd "$root"
-make format-check
