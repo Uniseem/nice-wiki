@@ -21,41 +21,45 @@ type navigation struct {
 }
 type heroLink struct{ Label, URL, Style string }
 type page struct {
-	CacheKey       string
-	Canonical      string
-	Alternates     []alternate
-	Breadcrumb     template.JS
-	TOC            []tocEntry
-	Markdown       string
-	MarkdownURL    string
-	Language       string
-	Title          string
-	Description    string
-	Site           settings.Site
-	Home           settings.Home
-	Banner         settings.Banner
-	Body           template.HTML
-	Navigation     []navigation
-	Previous       *navigation
-	Next           *navigation
-	HeroLinks      []heroLink
-	HeroBackground string
-	HeroPoster     string
-	Script         string
-	CSS            []string
-	Dev            bool
-	Error          string
-	HomePage       bool
-	AIEnabled      bool
-	Untranslated   bool
-	MultiLanguage  bool
-	ShareImage     string
-	UIMessages     template.JS
+	CacheKey         string
+	Canonical        string
+	Alternates       []alternate
+	Breadcrumb       template.JS
+	TOC              []tocEntry
+	Markdown         string
+	MarkdownURL      string
+	Language         string
+	Title            string
+	Description      string
+	Site             settings.Site
+	Home             settings.Home
+	Banner           settings.Banner
+	Body             template.HTML
+	Navigation       []navigation
+	Previous         *navigation
+	Next             *navigation
+	HeroLinks        []heroLink
+	HeroBackground   string
+	HeroPoster       string
+	Script           string
+	CSS              []string
+	Dev              bool
+	Error            string
+	HomePage         bool
+	AIEnabled        bool
+	TurnstileSiteKey string
+	Untranslated     bool
+	MultiLanguage    bool
+	ShareImage       string
+	UIMessages       template.JS
 }
 
 func (s *Site) page(lang, title string) page {
 	value := page{Language: lang, Title: title, Site: s.Settings.Site(), Home: s.Settings.Home(), Banner: s.Settings.Banner(), Navigation: s.navigation(lang), Dev: s.Dev}
 	value.AIEnabled = s.Settings.AI().Enabled
+	if s.Runtime != nil {
+		value.TurnstileSiteKey = s.Runtime.Get().TurnstileSiteKey
+	}
 	value.MultiLanguage = len(s.Settings.Languages().Enabled) > 1
 	if lang != s.Settings.Languages().Base && s.Translations != nil {
 		if translated, err := s.Translations.ReadStrings(lang, "site"); err == nil {

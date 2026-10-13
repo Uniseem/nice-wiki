@@ -22,6 +22,7 @@ var routePolicies = map[string]string{
 	"GET /api/admin/stats":                                  "viewStats",
 	"GET /api/admin/backups":                                "superadmin",
 	"POST /api/admin/backups":                               "superadmin",
+	"GET /api/admin/backups/{name}":                         "superadmin",
 	"GET /api/admin/memory":                                 "aiMemory",
 	"PUT /api/admin/memory":                                 "aiMemory",
 	"GET /api/admin/memory/tasks":                           "aiMemory",

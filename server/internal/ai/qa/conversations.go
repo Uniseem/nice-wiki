@@ -7,14 +7,16 @@ import (
 )
 
 type Turn struct {
-	Role, Text string
-	Created    time.Time
+	Role     string    `json:"role"`
+	Text     string    `json:"text"`
+	Created  time.Time `json:"createdAt"`
+	RecordID string    `json:"recordId,omitempty"`
 }
 type Conversation struct {
-	ID      string
-	Summary string
-	Turns   []Turn
-	Updated time.Time
+	ID      string    `json:"id"`
+	Summary string    `json:"summary"`
+	Turns   []Turn    `json:"turns"`
+	Updated time.Time `json:"-"`
 }
 type Conversations struct {
 	mu        sync.Mutex

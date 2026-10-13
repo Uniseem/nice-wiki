@@ -6,6 +6,7 @@ type Event struct {
 	Message        string     `json:"message,omitempty"`
 	Citations      []Citation `json:"citations,omitempty"`
 	ConversationID string     `json:"conversationId,omitempty"`
+	RecordID       string     `json:"recordId,omitempty"`
 }
 type Citation struct {
 	DocumentID string `json:"documentId"`

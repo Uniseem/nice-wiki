@@ -852,6 +852,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/backups/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/memory": {
         parameters: {
             query?: never;
@@ -1377,6 +1393,7 @@ export interface components {
             text?: string;
             message?: string;
             conversationId?: string;
+            recordId?: string;
             citations?: components["schemas"]["QACitation"][];
         };
         AskInput: {
@@ -1390,6 +1407,7 @@ export interface components {
             text: string;
             /** Format: date-time */
             createdAt: string;
+            recordId?: string;
         };
         Conversation: {
             id: string;
@@ -4809,6 +4827,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupInfo"];
+                };
+            };
+        };
+    };
+    DownloadBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 备份归档 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/gzip": string;
                 };
             };
         };

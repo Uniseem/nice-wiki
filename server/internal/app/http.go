@@ -27,6 +27,7 @@ func (a *App) Handler() (http.Handler, error) {
 		return nil, err
 	}
 	public.Translations = a.Translations
+	public.Runtime = a.Runtime
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func (a *App) Handler() (http.Handler, error) {
 			return nil
 		})
 	}
-	apiServer := &api.Server{Preview: public.Preview, Assets: a.Assets, Auth: a.Auth, Content: a.Content, History: a.History, Settings: a.Settings, Runtime: a.Runtime, Secrets: a.Secrets, Channels: a.Channels, Setup: a.Setup, Logger: a.Logger, Dev: a.Config.Dev, Videos: videoembed.NewRegistry(http.DefaultClient), QA: a.QA, Conversations: a.Conversations, Records: a.Records, Bans: a.Bans, GuardEvents: a.GuardEvents, Debug: a.Debug, AnswerCache: a.AnswerCache, Memory: a.Memory, MemoryMapping: a.MemoryMapping, MemoryAssistant: a.MemoryAssistant, Catalog: a.Catalog, Translations: a.Translations, Glossary: a.Glossary, Locale: a.Locale, Jobs: a.Jobs, Sessions: guard.NewSessions(secret), PoW: guard.NewPoW(secret), Turnstile: turnstile, CreateBackupFile: a.CreateBackup, ListBackupFiles: a.ListBackups, RecordVisit: a.RecordVisit, StatsSummary: a.StatsSummary, ListQARecordRows: a.ListQARecords, SaveQAFeedback: a.SaveQAFeedback, FeatureQAAnswer: a.FeatureQAAnswer, UnfeatureQAAnswer: a.UnfeatureQAAnswer}
+	apiServer := &api.Server{Preview: public.Preview, Assets: a.Assets, Auth: a.Auth, Content: a.Content, History: a.History, Settings: a.Settings, Runtime: a.Runtime, Secrets: a.Secrets, Channels: a.Channels, Setup: a.Setup, Logger: a.Logger, Dev: a.Config.Dev, Videos: videoembed.NewRegistry(http.DefaultClient), QA: a.QA, Conversations: a.Conversations, Records: a.Records, Bans: a.Bans, GuardEvents: a.GuardEvents, Debug: a.Debug, AnswerCache: a.AnswerCache, Memory: a.Memory, MemoryMapping: a.MemoryMapping, MemoryAssistant: a.MemoryAssistant, Catalog: a.Catalog, Translations: a.Translations, Glossary: a.Glossary, Locale: a.Locale, Jobs: a.Jobs, Sessions: guard.NewSessions(secret), PoW: guard.NewPoW(secret), Turnstile: turnstile, CreateBackupFile: a.CreateBackup, ListBackupFiles: a.ListBackups, OpenBackupFile: a.OpenBackup, RecordVisit: a.RecordVisit, StatsSummary: a.StatsSummary, ListQARecordRows: a.ListQARecords, SaveQAFeedback: a.SaveQAFeedback, FeatureQAAnswer: a.FeatureQAAnswer, UnfeatureQAAnswer: a.UnfeatureQAAnswer}
 	mux := http.NewServeMux()
 	apiHandler, err := apiServer.Handler()
 	if err != nil {

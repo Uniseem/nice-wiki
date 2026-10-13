@@ -9,25 +9,35 @@ import (
 	"time"
 )
 
-func Schedule(ctx context.Context, hour int, run func(context.Context) error, onError func(error)) {
+func Schedule(ctx context.Context, hour func() int, run func(context.Context) error, onError func(error)) {
 	go func() {
-		timer := time.NewTimer(time.Minute)
-		defer timer.Stop()
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		lastRun := ""
+		check := func(now time.Time) {
+			configured := 0
+			if hour != nil {
+				configured = hour()
+			}
+			day := now.Format("2006-01-02")
+			if now.Hour() != configured || lastRun == day {
+				return
+			}
+			if err := run(ctx); err != nil {
+				if onError != nil {
+					onError(err)
+				}
+				return
+			}
+			lastRun = day
+		}
+		check(time.Now())
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case now := <-timer.C:
-				next := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
-				if !next.After(now) {
-					next = next.Add(24 * time.Hour)
-				}
-				timer.Reset(time.Until(next))
-				if now.Hour() == hour {
-					if err := run(ctx); err != nil && onError != nil {
-						onError(err)
-					}
-				}
+			case now := <-ticker.C:
+				check(now)
 			}
 		}
 	}()

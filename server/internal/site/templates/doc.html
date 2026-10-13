@@ -6,5 +6,5 @@
 <div class="nw-content">{{.Body}}</div>
 {{template "prevnext" .}}
 </article>
-{{if .AIEnabled}}<div data-island="ask-widget" data-page="{{.Canonical}}"></div>{{end}}
+{{if .AIEnabled}}<div data-island="ask-widget" data-page="{{.Canonical}}" data-turnstile-site-key="{{.TurnstileSiteKey}}"></div>{{end}}
 {{template "end" .}}{{end}}

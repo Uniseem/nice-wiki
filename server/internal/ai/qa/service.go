@@ -216,13 +216,14 @@ func (s *Service) finish(ctx context.Context, session, question, language, answe
 			return err
 		}
 	}
+	created := time.Now()
+	sum := sha256.Sum256([]byte(session + question + created.String()))
+	record := Record{ID: hex.EncodeToString(sum[:]), ConversationID: session, Question: question, Answer: answer, Language: language, Citations: citations, Created: created}
 	if s.Conversations != nil {
-		if err := s.Conversations.Append(session, Turn{Role: "assistant", Text: answer, Created: time.Now()}); err != nil {
+		if err := s.Conversations.Append(session, Turn{Role: "assistant", Text: answer, Created: created, RecordID: record.ID}); err != nil {
 			return err
 		}
 	}
-	sum := sha256.Sum256([]byte(session + question + time.Now().String()))
-	record := Record{ID: hex.EncodeToString(sum[:]), ConversationID: session, Question: question, Answer: answer, Language: language, Citations: citations, Created: time.Now()}
 	if s.Records != nil {
 		s.Records.Add(record)
 	}
@@ -231,5 +232,5 @@ func (s *Service) finish(ctx context.Context, session, question, language, answe
 			return err
 		}
 	}
-	return emit(Event{Type: "done", ConversationID: session})
+	return emit(Event{Type: "done", ConversationID: session, RecordID: record.ID})
 }

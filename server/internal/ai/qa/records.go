@@ -36,11 +36,11 @@ func (r *Records) List() []Record {
 	}
 	return result
 }
-func (r *Records) Feedback(id string, helpful bool) bool {
+func (r *Records) Feedback(id, conversation string, helpful bool) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.values {
-		if r.values[i].ID == id {
+		if r.values[i].ID == id && r.values[i].ConversationID == conversation {
 			r.values[i].Helpful = &helpful
 			return true
 		}

@@ -13,7 +13,8 @@ client.use({
   async onResponse({ response, request }) {
     if (response.ok) return response
     const data = await response.clone().json().catch(() => ({ code: 'network_error', message: '请求失败' }))
-    if (response.status === 401 && !request.url.endsWith('/api/admin/auth/me') && !request.url.endsWith('/api/admin/auth/login') && !location.pathname.endsWith('/login') && !location.pathname.endsWith('/register')) {
+    const requestPath = new URL(request.url, location.href).pathname
+    if (response.status === 401 && requestPath.startsWith('/api/admin/') && !requestPath.endsWith('/api/admin/auth/me') && !requestPath.endsWith('/api/admin/auth/login') && !location.pathname.endsWith('/login') && !location.pathname.endsWith('/register')) {
       location.assign('/admin/login')
     }
     if (data.code === 'password_change_required' && !location.pathname.endsWith('/password')) {

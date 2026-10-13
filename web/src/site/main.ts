@@ -29,6 +29,6 @@ document.documentElement.dataset.ready = 'true'
 document.querySelectorAll<HTMLElement>('[data-island="ask-widget"],[data-island="ask-page"]').forEach(async element => {
   const { createApp } = await import('vue')
   const component = element.dataset.island === 'ask-page' ? (await import('./islands/AskPage.vue')).default : (await import('./islands/AskWidget.vue')).default
-  createApp(component, { page: element.dataset.page }).mount(element)
+  createApp(component, { page: element.dataset.page, turnstileSiteKey: element.dataset.turnstileSiteKey }).mount(element)
 })
 document.querySelectorAll<HTMLElement>('[data-island="language-suggest"]').forEach(async element => { const { createApp } = await import('vue'); const component=(await import('./islands/LanguageSuggest.vue')).default;createApp(component,{current:element.dataset.current??''}).mount(element) })

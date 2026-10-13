@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"nice-wiki/internal/api/gen"
 )
@@ -36,4 +39,25 @@ func (s *Server) CreateBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, value)
+}
+
+func (s *Server) DownloadBackup(w http.ResponseWriter, r *http.Request, name string) {
+	if s.OpenBackupFile == nil {
+		writeError(w, http.StatusServiceUnavailable, "backup_unavailable", "备份服务尚未配置")
+		return
+	}
+	file, size, err := s.OpenBackupFile(r.Context(), name)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	defer func() { _ = file.Close() }()
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": name})
+	w.Header().Set("Content-Type", "application/gzip")
+	w.Header().Set("Content-Disposition", disposition)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+	w.Header().Set("Cache-Control", "no-store")
+	if _, err := io.Copy(w, file); err != nil {
+		s.Logger.Warn("备份下载中断")
+	}
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
@@ -113,6 +114,24 @@ func (a *App) ListBackups(context.Context) ([]api.BackupResult, error) {
 	sort.Slice(result, func(i, j int) bool { return result[i].CreatedAt > result[j].CreatedAt })
 	return result, nil
 }
+func (a *App) OpenBackup(_ context.Context, name string) (io.ReadCloser, int64, error) {
+	if filepath.Base(name) != name || !strings.HasSuffix(name, ".tar.gz") {
+		return nil, 0, errors.New("备份文件名无效")
+	}
+	path := filepath.Join(a.Layout.Backups(), name)
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, 0, errors.New("备份文件无效")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	return file, info.Size(), nil
+}
 func (a *App) RecordVisit(ctx context.Context, r *http.Request, path, language, referrer string) error {
 	bot, ai := stats.Bot(r.UserAgent())
 	day := time.Now().UTC().Format("2006-01-02")
@@ -194,7 +213,18 @@ func (a *App) SaveQAFeedback(ctx context.Context, record, session string, helpfu
 	if helpful {
 		value = 1
 	}
-	return sqlc.New(a.DB).UpsertQAFeedback(ctx, sqlc.UpsertQAFeedbackParams{RecordID: record, SessionHash: session, Helpful: value, CreatedAt: time.Now().Unix()})
+	result, err := a.DB.ExecContext(ctx, "INSERT INTO qa_feedback(record_id,session_hash,helpful,created_at) SELECT id,?,?,? FROM qa_records WHERE id=? AND conversation_id=? ON CONFLICT(record_id,session_hash) DO UPDATE SET helpful=excluded.helpful,created_at=excluded.created_at", session, value, time.Now().Unix(), record, session)
+	if err != nil {
+		return err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if changed == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 func (a *App) FeatureQAAnswer(ctx context.Context, record, title, sortKey string) error {
 	var question, answer, language, citations string
@@ -557,9 +587,9 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	}
 	app.Bans = guard.NewBans()
 	app.GuardEvents = &guard.Events{}
-	app.Budget = guard.NewBudget(app.Settings.AI().DailySpendLimit, 0)
+	app.Budget = guard.NewBudget(app.Runtime.Get().DailySpendLimit, 0)
 	app.Debug = qa.NewDebugStore()
-	app.Budget.Limit = func() float64 { return app.Settings.AI().DailySpendLimit }
+	app.Budget.Limit = func() float64 { return app.Runtime.Get().DailySpendLimit }
 	app.Budget.Load = func(now time.Time) (float64, error) {
 		var total float64
 		err := app.DB.QueryRow("SELECT COALESCE(SUM(cost_usd),0) FROM llm_usage WHERE created_at>=? AND created_at<? AND task IN ('qa-route','qa-answer','compact-conversation','embed')", now.UTC().Truncate(24*time.Hour).Unix(), now.UTC().Truncate(24*time.Hour).Add(24*time.Hour).Unix()).Scan(&total)

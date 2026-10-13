@@ -24,7 +24,7 @@ func (s *Server) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
 	verified := false
 	turnstile := s.getTurnstile()
 	if body.TurnstileToken != "" && turnstile != nil {
-		verified = turnstile.Verify(r.Context(), body.TurnstileToken, "") == nil
+		verified = turnstile.Verify(r.Context(), body.TurnstileToken, httpx.ClientIP(r.Context())) == nil
 	}
 	if !verified && body.PowChallenge != "" && s.PoW != nil {
 		verified = s.PoW.Verify(body.PowChallenge, body.PowNonce, time.Now(), httpx.ClientIP(r.Context())) == nil

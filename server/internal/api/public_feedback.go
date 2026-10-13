@@ -17,7 +17,7 @@ func (s *Server) SubmitFeedback(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 401, "qa_session_required", "问答会话无效")
 		return
 	}
-	if !qa.Feedback(s.Records, body.RecordId, body.Helpful) {
+	if !qa.Feedback(s.Records, body.RecordId, session, body.Helpful) {
 		writeError(w, 404, "not_found", "问答记录不存在")
 		return
 	}

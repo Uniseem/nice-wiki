@@ -71,6 +71,7 @@ type Server struct {
 	RecordVisit       func(context.Context, *http.Request, string, string, string) error
 	CreateBackupFile  func(context.Context, bool) (BackupResult, error)
 	ListBackupFiles   func(context.Context) ([]BackupResult, error)
+	OpenBackupFile    func(context.Context, string) (io.ReadCloser, int64, error)
 	ListQARecordRows  func(context.Context) ([]qa.Record, error)
 	SaveQAFeedback    func(context.Context, string, string, bool) error
 	FeatureQAAnswer   func(context.Context, string, string, string) error

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
+	"nice-wiki/internal/config"
 	"nice-wiki/internal/content"
 	itranslate "nice-wiki/internal/i18n/translate"
 	"nice-wiki/internal/settings"
@@ -23,6 +24,7 @@ type Site struct {
 	cache        *Cache
 	videos       *videoembed.Registry
 	Translations *itranslate.Files
+	Runtime      *config.RuntimeStore
 }
 
 func New(repo *content.Repo, settings *settings.Store, manifest webui.Manifest, dev bool) (*Site, error) {
