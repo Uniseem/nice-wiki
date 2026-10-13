@@ -213,10 +213,10 @@
 | `auth/RegisterView.vue` | 注册超管（系统里没有账号时才会出现） | 无 |
 | `auth/LoginView.vue` | 登录 | 无 |
 | `auth/ChangePasswordView.vue` | 修改密码（初始密码登录后被强制进入） | 登录 |
-| `setup/SetupWizardView.vue` | 初始化向导的外框和步骤切换 | 超管 |
+| `setup/SetupWizardView.vue` | 初始化向导的外框和站点/语言两步切换，不包含渠道配置（D55，待代码同步） | 超管 |
 | `setup/steps/SiteStep.vue` | 站点名称 | 超管 |
 | `setup/steps/LanguageStep.vue` | 基准语言 | 超管 |
-| `setup/steps/ChannelStep.vue` | 接入至少一个模型渠道 | 超管 |
+| `setup/steps/ChannelStep.vue` | 旧初始化渠道步骤；按 D55 不再由向导挂载，暂保留文件，待代码同步 | 超管 |
 | `setup/steps/RestoreStep.vue` | 从备份恢复 | 超管 |
 | `DashboardView.vue` | 仪表盘 | 查看统计 |
 | `docs/DocsView.vue` | 文档树 + 编辑器 | 编辑文档 |

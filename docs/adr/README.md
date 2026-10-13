@@ -81,6 +81,7 @@
 | D52 | [实施阶段的顺序：先 AI 问答，再多语言](0052-phase-order.md) | ✅ |
 | D53 | [档位和任务的模型分配只有超管能改](0053-tier-assignment-superadmin.md) | ✅ |
 | D54 | [公开页面的标题不折叠](0054-no-heading-folding.md) | ✅ |
+| D55 | [初始化不依赖 AI，渠道在独立模块配置](0055-setup-without-ai.md) | ✅ |
 
 ## 待讨论
 

@@ -1,6 +1,11 @@
-example.com {
-    encode zstd gzip
-    reverse_proxy nice-wiki:8080 {
+wiki.example.com {
+    # 流式问答不压缩，避免编码缓冲影响逐段返回。
+    @compress {
+        not path /api/public/ask
+    }
+    encode @compress zstd gzip
+    # 二进制部署只监听本机；同网络容器部署可改为 nice-wiki:8080。
+    reverse_proxy 127.0.0.1:18080 {
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto {scheme}
         flush_interval -1

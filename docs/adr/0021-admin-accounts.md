@@ -2,6 +2,7 @@
 
 - 状态：✅ 已定
 - 日期：2026-10-12
+- 初始化渠道条款：已被 [D55](0055-setup-without-ai.md) 取代；其余账号约定继续有效。
 
 详见 [design/accounts.md](../design/accounts.md)。
 
