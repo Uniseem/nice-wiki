@@ -29,9 +29,4 @@ func (attachment) Render(n Node, c Context) (string, error) {
 	}
 	return "<div" + Anchor(n) + ` class="nw-attachment"><a href="` + html.EscapeString(url) + `" download><span class="nw-attachment-name">` + html.EscapeString(name) + `</span><span class="nw-attachment-size">` + sizeText + "</span></a><p>" + html.EscapeString(description) + "</p></div>", nil
 }
-func (attachment) Translate(n Node) []string {
-	if value := String(n, "description"); value != "" {
-		return []string{value}
-	}
-	return nil
-}
+func (attachment) Translate(n Node) []string { return SlotTranslation(n) }

@@ -7,4 +7,10 @@ type Event struct {
 	Citations      []Citation `json:"citations,omitempty"`
 	ConversationID string     `json:"conversationId,omitempty"`
 }
-type Citation struct{ DocumentID, BlockID, Title, URL string }
+type Citation struct {
+	DocumentID string `json:"documentId"`
+	BlockID    string `json:"blockId"`
+	Title      string `json:"title"`
+	URL        string `json:"url"`
+	SourceHash string `json:"sourceHash,omitempty"`
+}

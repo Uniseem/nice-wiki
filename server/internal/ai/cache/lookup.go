@@ -11,6 +11,8 @@ import (
 type Entry struct {
 	Question, Answer, Language string
 	References                 map[string]string
+	Sources                    map[string]string
+	Titles                     map[string]string
 	MemoryVersion              string
 	Created                    time.Time
 	Expires                    time.Time
@@ -89,11 +91,5 @@ func (s *Store) Put(v Entry) {
 func (s *Store) InvalidateAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	next := map[string]Entry{}
-	for key, value := range s.values {
-		if value.Curated {
-			next[key] = value
-		}
-	}
-	s.values = next
+	s.values = map[string]Entry{}
 }

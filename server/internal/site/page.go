@@ -104,7 +104,8 @@ func (s *Site) document(w http.ResponseWriter, r *http.Request, lang string, val
 			untranslated = true
 		}
 	}
-	key, err := textutil.HashJSON([]any{lang, value.Meta, s.Content.List(), s.Settings.Site(), s.Settings.Home(), s.Settings.Banner(), s.Manifest, s.Dev})
+	data := s.page(lang, value.Meta.Title)
+	key, err := textutil.HashJSON([]any{lang, value.Meta, renderDocument, untranslated, data, s.Settings.Languages(), s.Content.List(), s.Manifest, s.Dev})
 	if err != nil {
 		s.errorPage(w, r, 503, "文档暂时不可用")
 		return
@@ -119,7 +120,6 @@ func (s *Site) document(w http.ResponseWriter, r *http.Request, lang string, val
 		s.errorPage(w, r, 503, "文档暂时不可用")
 		return
 	}
-	data := s.page(lang, value.Meta.Title)
 	data.Untranslated = untranslated
 	data.Navigation, data.Previous, data.Next = s.documentNavigation(lang, value.Meta.ID)
 	data.CacheKey = key

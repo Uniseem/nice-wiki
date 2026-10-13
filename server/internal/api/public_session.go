@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"nice-wiki/internal/api/gen"
+	"nice-wiki/internal/httpx"
 	"time"
 )
 
@@ -11,7 +12,7 @@ func (s *Server) GetPowChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "ai_unavailable", "问答验证尚未配置")
 		return
 	}
-	challenge := s.PoW.Challenge(r.RemoteAddr, 2, time.Now())
+	challenge := s.PoW.Challenge(httpx.ClientIP(r.Context()), 2, time.Now())
 	writeJSON(w, gen.PowChallenge{Challenge: challenge, Difficulty: 2})
 }
 func (s *Server) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func (s *Server) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
 		verified = turnstile.Verify(r.Context(), body.TurnstileToken, "") == nil
 	}
 	if !verified && body.PowChallenge != "" && s.PoW != nil {
-		verified = s.PoW.Verify(body.PowChallenge, body.PowNonce, time.Now()) == nil
+		verified = s.PoW.Verify(body.PowChallenge, body.PowNonce, time.Now(), httpx.ClientIP(r.Context())) == nil
 	}
 	if !verified {
 		writeError(w, 403, "verification_required", "需要完成人机验证")

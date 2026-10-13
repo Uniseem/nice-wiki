@@ -30,6 +30,7 @@ type Repo struct {
 	paths         map[string]string
 	history       History
 	onPublish     PublishedHook
+	onChange      func()
 	slugGenerator SlugGenerator
 	seoGenerator  SEOGenerator
 	locks         *Locks
@@ -277,4 +278,17 @@ func (r *Repo) resourceDocumentsLocked() ([]SourceDocument, error) {
 		}
 	}
 	return result, nil
+}
+
+func (r *Repo) SetChangedHook(hook func()) { r.mu.Lock(); defer r.mu.Unlock(); r.onChange = hook }
+
+// WithPublished 保证异步派生写回期间正文版本和发布状态不变。
+func (r *Repo) WithPublished(id string, revision int64, commit func() error) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	file, ok := r.files[id]
+	if !ok || !file.Meta.Published || file.Meta.Revision != revision {
+		return ErrConflict
+	}
+	return commit()
 }

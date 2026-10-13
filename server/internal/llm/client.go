@@ -73,7 +73,7 @@ func (r ProtocolRegistry) Embedder(model Model) (protocol.Embedder, error) {
 }
 
 type UsageWriter interface {
-	WriteUsage(context.Context, string, Model, protocol.Usage, float64) error
+	WriteUsage(context.Context, string, Model, protocol.Usage, float64, string) error
 }
 type Client struct {
 	Tiers     *TierStore
@@ -100,17 +100,48 @@ func (c *Client) Complete(ctx context.Context, task string, messages []protocol.
 			joined = errors.Join(joined, err)
 			continue
 		}
+		maximum := definition.MaxOutput
+		if model.MaxOutput > 0 {
+			maximum = min(maximum, model.MaxOutput)
+		}
+		if limit, ok := ctx.Value(outputKey{}).(int); ok && limit > 0 {
+			maximum = min(maximum, limit)
+		}
+		// 字节数作为输入 token 的保守上界，并计入消息封装开销。
+		input := int64(0)
+		for _, message := range messages {
+			input += int64(len(message.Content) + len(message.Role) + 64)
+		}
+		settle, reserveErr := Reserve(ctx, Cost(model, protocol.Usage{InputTokens: input, OutputTokens: int64(maximum)}))
+		if reserveErr != nil {
+			return protocol.Response{}, reserveErr
+		}
 		attempt, cancel := context.WithTimeout(ctx, 90*time.Second)
-		value, err := chat.Complete(attempt, protocol.Request{Model: model.ID, Messages: messages, MaxTokens: definition.MaxOutput})
+		value, err := chat.Complete(attempt, protocol.Request{Model: model.ID, Messages: messages, MaxTokens: maximum})
 		cancel()
+		usage := value.Usage
+		status := "success"
+		if err != nil {
+			status = "error"
+		}
+		if usage.InputTokens == 0 && usage.OutputTokens == 0 {
+			usage = protocol.Usage{InputTokens: input, OutputTokens: int64(maximum)}
+			status = "estimated_" + status
+		}
+		cost := Cost(model, usage)
+		settle(cost)
+		if c.Usage != nil {
+			// 请求被取消后仍保存已发生或无法确认的费用，不记录请求正文。
+			accounting, cancelAccounting := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			usageErr := c.Usage.WriteUsage(accounting, task, model, usage, cost, status)
+			cancelAccounting()
+			if usageErr != nil {
+				return protocol.Response{}, errors.Join(err, usageErr)
+			}
+		}
 		if err != nil {
 			joined = errors.Join(joined, err)
 			continue
-		}
-		if c.Usage != nil {
-			if err := c.Usage.WriteUsage(ctx, task, model, value.Usage, Cost(model, value.Usage)); err != nil {
-				return protocol.Response{}, err
-			}
 		}
 		return value, nil
 	}

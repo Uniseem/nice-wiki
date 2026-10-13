@@ -197,15 +197,46 @@ func (a *App) SaveQAFeedback(ctx context.Context, record, session string, helpfu
 	return sqlc.New(a.DB).UpsertQAFeedback(ctx, sqlc.UpsertQAFeedbackParams{RecordID: record, SessionHash: session, Helpful: value, CreatedAt: time.Now().Unix()})
 }
 func (a *App) FeatureQAAnswer(ctx context.Context, record, title, sortKey string) error {
+	var question, answer, language, citations string
+	if err := a.DB.QueryRowContext(ctx, "SELECT question,answer,language,citations FROM qa_records WHERE id=?", record).Scan(&question, &answer, &language, &citations); err != nil {
+		return err
+	}
+	entry, ok := a.curatedEntry(ctx, question, answer, language, citations)
+	if !ok {
+		return errors.New("回答引用已失效，不能加入精选缓存")
+	}
 	if _, err := a.DB.ExecContext(ctx, "INSERT INTO featured_answers(id,record_id,title,sort_key,created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,sort_key=excluded.sort_key", record, record, title, sortKey, time.Now().Unix()); err != nil {
 		return err
 	}
-	var question, answer, language string
-	if err := a.DB.QueryRowContext(ctx, "SELECT question,answer,language FROM qa_records WHERE id=?", record).Scan(&question, &answer, &language); err != nil {
-		return err
-	}
-	a.AnswerCache.Curate(question, answer, language)
+	a.AnswerCache.Put(entry)
 	return nil
+}
+
+// 旧记录缺少引用哈希时不自动进入共享缓存，避免重启复活过期内容。
+func (a *App) curatedEntry(ctx context.Context, question, answer, language, encoded string) (cache.Entry, bool) {
+	entry := cache.Entry{Question: question, Answer: answer, Language: language, Curated: true, References: map[string]string{}, Sources: map[string]string{}, Titles: map[string]string{}}
+	var citations []qa.Citation
+	if err := json.Unmarshal([]byte(encoded), &citations); err != nil {
+		return cache.Entry{}, false
+	}
+	for _, citation := range citations {
+		if citation.SourceHash == "" {
+			return cache.Entry{}, false
+		}
+		var text string
+		if err := a.DB.QueryRowContext(ctx, "SELECT b.text FROM blocks b JOIN documents d ON d.id=b.document_id WHERE b.id=? AND d.id=? AND d.published=1", citation.BlockID, citation.DocumentID).Scan(&text); err != nil || textutil.Hash([]byte(text)) != citation.SourceHash {
+			return cache.Entry{}, false
+		}
+		entry.References[citation.BlockID] = citation.SourceHash
+		entry.Sources[citation.BlockID] = citation.DocumentID
+		entry.Titles[citation.BlockID] = citation.Title
+	}
+	_, version, err := memory.Inject(a.Memory, a.MemoryMapping, "qa-answer", language)
+	if err != nil {
+		return cache.Entry{}, false
+	}
+	entry.MemoryVersion = version
+	return entry, true
 }
 func (a *App) UnfeatureQAAnswer(ctx context.Context, id string) error {
 	var question, language string
@@ -219,20 +250,51 @@ func (a *App) UnfeatureQAAnswer(ctx context.Context, id string) error {
 	return nil
 }
 
-type contentRetriever struct{ repo *content.Repo }
 type hybridRetriever struct {
-	db       *sql.DB
-	embedder protocol.Embedder
-	model    llm.Model
+	db        *sql.DB
+	tiers     *llm.TierStore
+	protocols llm.ProtocolRegistry
+	usage     llm.UsageWriter
 }
 
 func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retrieve.Unit, error) {
-	vectors, _, err := h.embedder.Embed(ctx, h.model.ID, []string{question})
+	models, err := h.tiers.Resolve("embed")
+	if err != nil {
+		return nil, err
+	}
+	model := models[0]
+	embedder, err := h.protocols.Embedder(model)
+	if err != nil {
+		return nil, err
+	}
+	settle, err := llm.Reserve(ctx, llm.Cost(model, protocol.Usage{InputTokens: int64(len(question) + 64)}))
+	if err != nil {
+		return nil, err
+	}
+	vectors, usage, err := embedder.Embed(ctx, model.ID, []string{question})
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+	if usage.InputTokens == 0 && usage.OutputTokens == 0 {
+		usage.InputTokens = int64(len(question) + 64)
+		status = "estimated_" + status
+	}
+	cost := llm.Cost(model, usage)
+	settle(cost)
+	if h.usage != nil {
+		accounting, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		usageErr := h.usage.WriteUsage(accounting, "embed", model, usage, cost, status)
+		cancel()
+		if usageErr != nil {
+			return nil, errors.Join(err, usageErr)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	index := retrieve.NewVectorIndex()
-	rows, err := h.db.QueryContext(ctx, "SELECT unit_id,dimensions,vector FROM vectors WHERE model=?", h.model.ID)
+	rows, err := h.db.QueryContext(ctx, "SELECT unit_id,dimensions,vector FROM vectors WHERE model=?", model.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +320,9 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
+	}
+	if len(vectors) != 1 {
+		return nil, errors.New("嵌入结果数量无效")
 	}
 	vectorHits := index.Search(vectors[0], 20)
 	tokens := textutil.Tokens(question)
@@ -285,7 +350,7 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 	result := []retrieve.Unit{}
 	for _, hit := range fused {
 		var value retrieve.Unit
-		if err := h.db.QueryRowContext(ctx, "SELECT id,document_id,text FROM retrieval_units WHERE id=?", hit.ID).Scan(&value.ID, &value.DocumentID, &value.Text); err == nil {
+		if err := h.db.QueryRowContext(ctx, "SELECT u.id,u.document_id,u.text FROM retrieval_units u JOIN documents d ON d.id=u.document_id JOIN blocks b ON b.id=u.id WHERE u.id=? AND d.published=1 AND b.text=u.text", hit.ID).Scan(&value.ID, &value.DocumentID, &value.Text); err == nil {
 			result = append(result, value)
 		}
 	}
@@ -354,51 +419,9 @@ func (m translationModel) TranslateStrings(ctx context.Context, language string,
 	return llm.DecodeStructured[map[string]string](response.Text)
 }
 
-func (c contentRetriever) Retrieve(ctx context.Context, question string) ([]retrieve.Unit, error) {
-	terms := strings.Fields(strings.ToLower(question))
-	result := []retrieve.Unit{}
-	for _, meta := range c.repo.List() {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		if !meta.Published {
-			continue
-		}
-		file, err := c.repo.Get(meta.ID)
-		if err != nil {
-			continue
-		}
-		blocks, err := doc.Blocks(file.Document)
-		if err != nil {
-			continue
-		}
-		for _, block := range blocks {
-			lower := strings.ToLower(block.Text)
-			matched := false
-			for _, term := range terms {
-				if len([]rune(term)) > 1 && strings.Contains(lower, term) {
-					matched = true
-					break
-				}
-			}
-			if matched {
-				heading := ""
-				if len(block.HeadingPath) > 0 {
-					heading = block.HeadingPath[len(block.HeadingPath)-1]
-				}
-				result = append(result, retrieve.Unit{ID: block.ID, DocumentID: meta.ID, Heading: heading, Text: block.Text, Position: block.Position})
-			}
-		}
-	}
-	return result, nil
-}
-
 func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result *App, err error) {
 	layout, err := datadir.New(cfg.Data)
 	if err != nil {
-		return nil, err
-	}
-	if err := setup.ApplyPending(layout); err != nil {
 		return nil, err
 	}
 	if err := layout.Initialize(); err != nil {
@@ -414,9 +437,16 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			if app.DB != nil {
 				err = errors.Join(err, app.DB.Close())
 			}
+			err = errors.Join(err, setup.RollbackPending(layout))
 			err = errors.Join(err, lock.Close())
 		}
 	}()
+	if err := setup.ApplyPending(layout); err != nil {
+		return nil, err
+	}
+	if err := layout.Initialize(); err != nil {
+		return nil, err
+	}
 	app.DB, err = store.Open(ctx, layout.Database())
 	if err != nil {
 		return nil, err
@@ -463,17 +493,6 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	if err != nil {
 		return nil, err
 	}
-	app.Settings.SetAIReadiness(func() bool {
-		if app.Channels.Count() == 0 {
-			return false
-		}
-		chat, embedding := false, false
-		for _, model := range app.Catalog.List() {
-			chat = chat || model.Has(llm.Chat)
-			embedding = embedding || model.Has(llm.Embedding)
-		}
-		return chat && embedding
-	})
 	versions, err := history.Open(layout.Root)
 	if err != nil {
 		return nil, err
@@ -484,47 +503,54 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		return nil, err
 	}
 	tiers := llm.NewTiers()
-	models := app.Catalog.List()
-	chatModels, visionModels, embeddingModels, rerankModels := []llm.Model{}, []llm.Model{}, []llm.Model{}, []llm.Model{}
-	for _, model := range models {
-		if model.Has(llm.Chat) {
-			chatModels = append(chatModels, model)
-		}
-		if model.Has(llm.Vision) {
-			visionModels = append(visionModels, model)
-		}
-		if model.Has(llm.Embedding) {
-			embeddingModels = append(embeddingModels, model)
-		}
-		if model.Has(llm.Rerank) {
-			rerankModels = append(rerankModels, model)
-		}
-	}
-	if len(chatModels) > 0 {
-		_ = tiers.Set(aitask.Fast, chatModels)
-		_ = tiers.Set(aitask.Smart, chatModels)
-	}
-	if len(visionModels) > 0 {
-		_ = tiers.Set(aitask.Vision, visionModels)
-	}
-	if len(embeddingModels) > 0 {
-		_ = tiers.Set(aitask.Embedding, embeddingModels)
-	}
-	if len(rerankModels) > 0 {
-		_ = tiers.Set(aitask.Rerank, rerankModels)
-	}
 	protocols := llm.ProtocolRegistry{Channels: app.Channels, HTTP: http.DefaultClient}
+	tiers.Source = func(tier aitask.Tier) []llm.Model {
+		result := []llm.Model{}
+		for _, model := range app.Catalog.List() {
+			capability := llm.Chat
+			switch tier {
+			case aitask.Embedding:
+				capability = llm.Embedding
+			case aitask.Vision:
+				capability = llm.Vision
+			case aitask.Rerank:
+				capability = llm.Rerank
+			}
+			if !model.Has(capability) {
+				continue
+			}
+			if tier == aitask.Embedding {
+				if _, err := protocols.Embedder(model); err != nil {
+					continue
+				}
+			} else {
+				if _, err := protocols.Chat(model); err != nil {
+					continue
+				}
+			}
+			result = append(result, model)
+		}
+		return result
+	}
+	ready := func() bool {
+		_, chatErr := tiers.Resolve("qa-answer")
+		_, embedErr := tiers.Resolve("embed")
+		return chatErr == nil && embedErr == nil
+	}
+	app.Settings.SetAIReadiness(ready)
 	modelsClient := llm.NewClient(tiers, protocols, usageWriter{db: app.DB})
 	app.Content.SetGenerators(meta.Slugger{Client: modelsClient}, meta.SEO{Client: modelsClient})
 	app.MemoryAssistant = &memory.Assistant{Store: app.Memory, Model: memoryAssistantModel{client: modelsClient}, Pending: memory.NewProposals()}
 	app.Conversations = qa.NewConversations(30 * 24 * time.Hour)
 	app.Records = &qa.Records{Retention: 30 * 24 * time.Hour}
 	app.AnswerCache = cache.New()
-	if rows, queryErr := app.DB.QueryContext(ctx, "SELECT q.question,q.answer,q.language FROM featured_answers f JOIN qa_records q ON q.id=f.record_id ORDER BY f.sort_key"); queryErr == nil {
+	if rows, queryErr := app.DB.QueryContext(ctx, "SELECT q.question,q.answer,q.language,q.citations FROM featured_answers f JOIN qa_records q ON q.id=f.record_id ORDER BY f.sort_key"); queryErr == nil {
 		for rows.Next() {
-			var question, answer, language string
-			if rows.Scan(&question, &answer, &language) == nil {
-				app.AnswerCache.Curate(question, answer, language)
+			var question, answer, language, citations string
+			if rows.Scan(&question, &answer, &language, &citations) == nil {
+				if entry, ok := app.curatedEntry(ctx, question, answer, language, citations); ok {
+					app.AnswerCache.Put(entry)
+				}
 			}
 		}
 		_ = rows.Close()
@@ -533,20 +559,71 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	app.GuardEvents = &guard.Events{}
 	app.Budget = guard.NewBudget(app.Settings.AI().DailySpendLimit, 0)
 	app.Debug = qa.NewDebugStore()
-	var qaRetriever qa.Retriever = contentRetriever{repo: app.Content}
-	if resolved, resolveErr := tiers.Resolve("embed"); resolveErr == nil && len(resolved) > 0 {
-		if embedder, embedErr := protocols.Embedder(resolved[0]); embedErr == nil {
-			qaRetriever = hybridRetriever{db: app.DB, embedder: embedder, model: resolved[0]}
-		}
+	app.Budget.Limit = func() float64 { return app.Settings.AI().DailySpendLimit }
+	app.Budget.Load = func(now time.Time) (float64, error) {
+		var total float64
+		err := app.DB.QueryRow("SELECT COALESCE(SUM(cost_usd),0) FROM llm_usage WHERE created_at>=? AND created_at<? AND task IN ('qa-route','qa-answer','compact-conversation','embed')", now.UTC().Truncate(24*time.Hour).Unix(), now.UTC().Truncate(24*time.Hour).Add(24*time.Hour).Unix()).Scan(&total)
+		return total, err
 	}
+	qaRetriever := hybridRetriever{db: app.DB, tiers: tiers, protocols: protocols, usage: usageWriter{db: app.DB}}
 	app.QA = &qa.Service{Models: modelsClient, Retriever: qaRetriever, Cache: app.AnswerCache, Limiter: guard.NewLimiter(10), MaxQuestion: app.Settings.AI().MaxQuestionLength, Conversations: app.Conversations, Records: app.Records, Persist: app.PersistQARecord, Budget: app.Budget, Compactor: compactModel{client: modelsClient}, MaxConversation: 64000, ResolveCitation: func(id string) (string, string, bool) {
 		file, err := app.Content.Get(id)
-		if err != nil {
+		if err != nil || !file.Meta.Published {
 			return "", "", false
 		}
 		path, err := app.Content.Path(id)
 		return file.Meta.Title, path, err == nil
 	}}
+	app.QA.Ready = ready
+	app.QA.Settings = app.Settings.AI
+	app.QA.BaseLanguage = func() string { return app.Settings.Languages().Base }
+	app.QA.CurrentReference = func(id, hash string) bool {
+		var text string
+		err := app.DB.QueryRow("SELECT b.text FROM blocks b JOIN documents d ON d.id=b.document_id WHERE b.id=? AND d.published=1", id).Scan(&text)
+		return err == nil && textutil.Hash([]byte(text)) == hash
+	}
+	app.QA.TranslatedText = func(documentID, blockID, language string) (string, bool) {
+		if language == app.Settings.Languages().Base {
+			return "", false
+		}
+		file, err := app.Content.Get(documentID)
+		if err != nil || !file.Meta.Published {
+			return "", false
+		}
+		translated, err := app.Translations.ReadOptional(language, documentID)
+		if err != nil {
+			return "", false
+		}
+		block, exists := translated.Blocks[blockID]
+		if !exists {
+			return "", false
+		}
+		source, err := doc.Blocks(file.Document)
+		if err != nil {
+			return "", false
+		}
+		current := false
+		for _, value := range source {
+			if value.ID == blockID && value.ContentHash == block.SourceHash {
+				current = true
+				break
+			}
+		}
+		if !current {
+			return "", false
+		}
+		rendered, err := doc.Blocks(itranslate.Apply(file.Document, translated))
+		if err != nil {
+			return "", false
+		}
+		for _, value := range rendered {
+			if value.ID == blockID {
+				return value.Text, true
+			}
+		}
+		return "", false
+	}
+	app.Content.SetChangedHook(app.AnswerCache.InvalidateAll)
 	app.Assets = assets.Open(layout, app.DB, assetSources{content: app.Content, settings: app.Settings}, logger)
 	app.Setup = &setup.Service{Auth: app.Auth, Settings: app.Settings, Channels: app.Channels, Layout: layout}
 	app.Jobs, err = jobs.Open(app.DB, &mergeStore{db: app.DB})
@@ -600,30 +677,38 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if err != nil {
 			return err
 		}
+		if !file.Meta.Published {
+			return nil
+		}
 		units, err := ingest.Units(id, file.Document)
 		if err != nil {
 			return err
 		}
-		err = store.Transaction(ctx, app.DB, func(tx *sql.Tx) error {
-			for _, statement := range []string{"DELETE FROM keyword_index WHERE document_id=?", "DELETE FROM retrieval_unit_blocks WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM vectors WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM retrieval_units WHERE document_id=?"} {
-				if _, err := tx.ExecContext(ctx, statement, id); err != nil {
-					return err
+		err = app.Content.WithPublished(id, file.Meta.Revision, func() error {
+			return store.Transaction(ctx, app.DB, func(tx *sql.Tx) error {
+				for _, statement := range []string{"DELETE FROM keyword_index WHERE document_id=?", "DELETE FROM retrieval_unit_blocks WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM vectors WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM retrieval_units WHERE document_id=?"} {
+					if _, err := tx.ExecContext(ctx, statement, id); err != nil {
+						return err
+					}
 				}
-			}
-			for _, unit := range units {
-				hash := textutil.Hash([]byte(unit.Text))
-				if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_units(id,document_id,kind,text,content_hash,updated_at) VALUES(?,?,?,?,?,?)", unit.ID, id, "text", unit.Text, hash, time.Now().Unix()); err != nil {
-					return err
+				for _, unit := range units {
+					hash := textutil.Hash([]byte(unit.Text))
+					if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_units(id,document_id,kind,text,content_hash,updated_at) VALUES(?,?,?,?,?,?)", unit.ID, id, "text", unit.Text, hash, time.Now().Unix()); err != nil {
+						return err
+					}
+					if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_unit_blocks(unit_id,block_id,position) VALUES(?,?,?)", unit.ID, unit.ID, unit.Position); err != nil {
+						return err
+					}
+					if _, err := tx.ExecContext(ctx, "INSERT INTO keyword_index(unit_id,document_id,text) VALUES(?,?,?)", unit.ID, id, unit.Text); err != nil {
+						return err
+					}
 				}
-				if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_unit_blocks(unit_id,block_id,position) VALUES(?,?,?)", unit.ID, unit.ID, unit.Position); err != nil {
-					return err
-				}
-				if _, err := tx.ExecContext(ctx, "INSERT INTO keyword_index(unit_id,document_id,text) VALUES(?,?,?)", unit.ID, id, unit.Text); err != nil {
-					return err
-				}
-			}
-			return nil
+				return nil
+			})
 		})
+		if errors.Is(err, content.ErrConflict) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -644,23 +729,31 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if err != nil {
 			return err
 		}
-		err = store.Transaction(ctx, app.DB, func(tx *sql.Tx) error {
-			for index, vector := range vectors {
-				var encoded bytes.Buffer
-				for _, number := range vector {
-					if err := binary.Write(&encoded, binary.LittleEndian, math.Float32bits(number)); err != nil {
+		if len(vectors) != len(units) {
+			return errors.New("嵌入结果数量无效")
+		}
+		err = app.Content.WithPublished(id, file.Meta.Revision, func() error {
+			return store.Transaction(ctx, app.DB, func(tx *sql.Tx) error {
+				for index, vector := range vectors {
+					var encoded bytes.Buffer
+					for _, number := range vector {
+						if err := binary.Write(&encoded, binary.LittleEndian, math.Float32bits(number)); err != nil {
+							return err
+						}
+					}
+					hash := textutil.Hash([]byte(units[index].Text))
+					if _, err := tx.ExecContext(ctx, "INSERT INTO vectors(unit_id,dimensions,vector,model,content_hash) VALUES(?,?,?,?,?) ON CONFLICT(unit_id) DO UPDATE SET dimensions=excluded.dimensions,vector=excluded.vector,model=excluded.model,content_hash=excluded.content_hash", units[index].ID, len(vector), encoded.Bytes(), resolved[0].ID, hash); err != nil {
 						return err
 					}
 				}
-				hash := textutil.Hash([]byte(units[index].Text))
-				if _, err := tx.ExecContext(ctx, "INSERT INTO vectors(unit_id,dimensions,vector,model,content_hash) VALUES(?,?,?,?,?) ON CONFLICT(unit_id) DO UPDATE SET dimensions=excluded.dimensions,vector=excluded.vector,model=excluded.model,content_hash=excluded.content_hash", units[index].ID, len(vector), encoded.Bytes(), resolved[0].ID, hash); err != nil {
-					return err
-				}
-			}
-			return nil
+				return nil
+			})
 		})
 		if err == nil {
 			progress(100)
+		}
+		if errors.Is(err, content.ErrConflict) {
+			return nil
 		}
 		return err
 	})
@@ -673,6 +766,11 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if err != nil {
 			return err
 		}
+		if !file.Meta.Published {
+			return nil
+		}
+		taskTranslator := translator
+		taskTranslator.Commit = func(commit func() error) error { return app.Content.WithPublished(id, file.Meta.Revision, commit) }
 		blocks, err := doc.Blocks(file.Document)
 		if err != nil {
 			return err
@@ -694,7 +792,10 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			}
 		}
 		for index, language := range targets {
-			if _, err := translator.Run(ctx, id, language, segments, hashes); err != nil {
+			if _, err := taskTranslator.Run(ctx, id, language, segments, hashes); err != nil {
+				if errors.Is(err, content.ErrConflict) {
+					return nil
+				}
 				return err
 			}
 			progress((index + 1) * 100 / max(1, len(targets)))
@@ -814,6 +915,9 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	if err = app.Auth.CheckReset(ctx, layout.ResetSuperadmin()); err != nil {
 		return nil, err
 	}
+	if err := setup.CompleteRestore(layout); err != nil {
+		return nil, err
+	}
 	return app, nil
 }
 
@@ -821,8 +925,8 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 type mergeStore struct{ db *sql.DB }
 type usageWriter struct{ db *sql.DB }
 
-func (u usageWriter) WriteUsage(ctx context.Context, task string, model llm.Model, usage protocol.Usage, cost float64) error {
-	return sqlc.New(u.db).RecordUsage(ctx, sqlc.RecordUsageParams{ChannelID: model.Channel, Model: model.ID, Task: task, InputTokens: usage.InputTokens, OutputTokens: usage.OutputTokens, CachedTokens: 0, CostUsd: cost, Status: "success", CreatedAt: time.Now().Unix()})
+func (u usageWriter) WriteUsage(ctx context.Context, task string, model llm.Model, usage protocol.Usage, cost float64, status string) error {
+	return sqlc.New(u.db).RecordUsage(ctx, sqlc.RecordUsageParams{ChannelID: model.Channel, Model: model.ID, Task: task, InputTokens: usage.InputTokens, OutputTokens: usage.OutputTokens, CachedTokens: 0, CostUsd: cost, Status: status, CreatedAt: time.Now().Unix()})
 }
 
 func (s *mergeStore) Enqueue(ctx context.Context, kind jobs.Kind, subject string, save func(*sql.Tx, int64) error) (queued bool, err error) {

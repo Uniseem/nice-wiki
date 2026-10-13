@@ -20,6 +20,12 @@ func ValidateBatch(source []Segment, translated map[string]string) error {
 		if err := ValidateInline(segment.Text, value); err != nil {
 			return err
 		}
+		count := len(placeholder.FindAllString(segment.Text, -1)) / 2
+		if count > 0 {
+			if _, ok := DecodeInline(value, count); !ok {
+				return errors.New("译文占位结构无效")
+			}
+		}
 	}
 	return nil
 }

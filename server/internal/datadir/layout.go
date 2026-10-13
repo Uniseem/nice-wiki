@@ -52,6 +52,8 @@ func (l Layout) Glossary() string        { return filepath.Join(l.I18n(), "gloss
 func (l Layout) MemoryTasks() string     { return filepath.Join(l.Memory(), "_tasks.json") }
 func (l Layout) ModelCatalog() string    { return filepath.Join(l.Cache(), "models.json") }
 func (l Layout) PendingRestore() string  { return filepath.Join(l.Config(), "restore-pending.json") }
+func (l Layout) RestoreJournal() string  { return filepath.Join(l.Root, ".restore-journal.json") }
+func (l Layout) RestorePrevious() string { return filepath.Join(l.Root, ".restore-previous") }
 func (l Layout) Redirects() string       { return filepath.Join(l.Root, "redirects.json") }
 
 func ValidID(id string) bool { return identifier.MatchString(id) }

@@ -15,19 +15,27 @@ type Pipeline struct {
 	Model        Model
 	BatchSize    int
 	ReuseMinimum int
+	Commit       func(func() error) error
 }
 
 func (p Pipeline) Run(ctx context.Context, document, language string, segments []Segment, hashes map[string]string) (File, error) {
 	if p.Files == nil || p.Glossary == nil || p.Model == nil {
 		return File{}, errors.New("翻译流水线尚未配置")
 	}
-	result, err := p.Files.ReadOptional(language, document)
+	before, err := p.Files.ReadOptional(language, document)
 	if err != nil {
 		return File{}, err
 	}
+	result := before
+	result.Blocks = map[string]Block{}
 	pending := []Segment{}
 	for _, segment := range segments {
-		if reused, ok := Reuse(result, segment.ID, hashes[segment.ID], p.ReuseMinimum); ok {
+		if human, ok := before.Blocks[segment.ID]; ok && human.Source == SourceHuman {
+			human.NeedsReview = human.NeedsReview || human.SourceHash != hashes[segment.ID] || !compatibleInline(segment.Text, human.Text, true)
+			result.Blocks[segment.ID] = human
+			continue
+		}
+		if reused, ok := Reuse(before, segment.ID, hashes[segment.ID], p.ReuseMinimum); ok && compatibleInline(segment.Text, reused.Text, false) {
 			result.Blocks[segment.ID] = reused
 		} else {
 			pending = append(pending, segment)
@@ -44,10 +52,13 @@ func (p Pipeline) Run(ctx context.Context, document, language string, segments [
 		}
 	}
 	result.UpdatedAt = time.Now().Unix()
-	if err := p.Files.Write(result); err != nil {
-		return File{}, err
+	commit := func() error { var err error; result, err = p.Files.MergeMachine(before, result, hashes); return err }
+	if p.Commit != nil {
+		err = p.Commit(commit)
+	} else {
+		err = commit()
 	}
-	return result, nil
+	return result, err
 }
 func (p Pipeline) translateWithFallback(ctx context.Context, language string, values []Segment, terms []Term) (map[string]string, error) {
 	translated, err := p.Model.Translate(ctx, language, values, terms)

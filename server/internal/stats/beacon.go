@@ -11,6 +11,7 @@ import (
 type Beacon struct {
 	Path, Language, Referrer, Country, Visitor string
 	AI                                         bool
+	Bot                                        bool
 	Created                                    time.Time
 }
 type Writer interface {

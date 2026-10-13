@@ -21,19 +21,20 @@ type Store interface {
 type SQLStore struct{ DB *sql.DB }
 
 func (s SQLStore) ReadBeacons(ctx context.Context, start, end time.Time) ([]Beacon, error) {
-	rows, err := s.DB.QueryContext(ctx, "SELECT document_id,language,country,referrer_domain,visitor_hash,ai_bot,created_at FROM page_views WHERE created_at>=? AND created_at<? ORDER BY created_at", start.Unix(), end.Unix())
+	rows, err := s.DB.QueryContext(ctx, "SELECT document_id,language,country,referrer_domain,visitor_hash,bot,ai_bot,created_at FROM page_views WHERE created_at>=? AND created_at<? ORDER BY created_at", start.Unix(), end.Unix())
 	if err != nil {
 		return nil, err
 	}
 	result := []Beacon{}
 	for rows.Next() {
 		var value Beacon
-		var bot int64
+		var bot, ai int64
 		var created int64
-		if err := rows.Scan(&value.Path, &value.Language, &value.Country, &value.Referrer, &value.Visitor, &bot, &created); err != nil {
+		if err := rows.Scan(&value.Path, &value.Language, &value.Country, &value.Referrer, &value.Visitor, &bot, &ai, &created); err != nil {
 			return nil, err
 		}
-		value.AI = bot != 0
+		value.Bot = bot != 0
+		value.AI = ai != 0
 		value.Created = time.Unix(created, 0)
 		result = append(result, value)
 	}
@@ -59,8 +60,9 @@ func (s SQLStore) ReplaceDaily(ctx context.Context, day string, values []Daily) 
 		dimension, value := "path", v.Path
 		if v.Path == "" && v.AICrawls > 0 {
 			dimension, value = "ai", "crawler"
+			v.Views = v.AICrawls
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO daily_stats(day,dimension,value,views,visitors) VALUES(?,?,?,?,?)", day, dimension, value, v.Views+v.AICrawls, v.Visitors); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO daily_stats(day,dimension,value,views,visitors) VALUES(?,?,?,?,?)", day, dimension, value, v.Views, v.Visitors); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
@@ -84,15 +86,24 @@ func Rollup(ctx context.Context, store Store, day time.Time, retention int) erro
 	rows := map[key]*Daily{}
 	visitors := map[key]map[string]bool{}
 	for _, v := range values {
-		k := key{v.Language, v.Path}
+		if v.AI {
+			k := key{}
+			if rows[k] == nil {
+				rows[k] = &Daily{Day: start.Format("2006-01-02")}
+				visitors[k] = map[string]bool{}
+			}
+			rows[k].AICrawls++
+			continue
+		}
+		if v.Bot {
+			continue
+		}
+		k := key{"", v.Path}
 		if rows[k] == nil {
 			rows[k] = &Daily{Day: start.Format("2006-01-02"), Language: v.Language, Path: v.Path}
 			visitors[k] = map[string]bool{}
 		}
 		rows[k].Views++
-		if v.AI {
-			rows[k].AICrawls++
-		}
 		visitors[k][v.Visitor] = true
 	}
 	result := []Daily{}

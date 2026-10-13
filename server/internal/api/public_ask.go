@@ -21,7 +21,7 @@ func (s *Server) Ask(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	if s.QA == nil {
+	if s.QA == nil || s.Settings == nil || !s.Settings.AI().Enabled || s.QA.Ready != nil && !s.QA.Ready() {
 		writeError(w, 503, "ai_unavailable", "AI 问答尚未启用")
 		return
 	}
@@ -30,7 +30,19 @@ func (s *Server) Ask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 401, "qa_session_required", "请先建立问答会话")
 		return
 	}
-	language := s.Settings.Languages().Base
+	languages := s.Settings.Languages()
+	language := languages.Base
+	if body.Language != nil && *body.Language != "" {
+		language = *body.Language
+	}
+	enabled := false
+	for _, code := range languages.Enabled {
+		enabled = enabled || code == language
+	}
+	if !enabled {
+		writeError(w, 400, "invalid_language", "问答语言未启用")
+		return
+	}
 	injected, version, err := memory.Inject(s.Memory, s.MemoryMapping, "qa-answer", language)
 	if err != nil {
 		s.fail(w, err)

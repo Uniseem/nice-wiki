@@ -4,11 +4,18 @@ import (
 	"net/http"
 	"nice-wiki/internal/content"
 	"nice-wiki/internal/doc"
+	translate "nice-wiki/internal/i18n/translate"
 	"strings"
 )
 
 func (s *Site) markdown(w http.ResponseWriter, r *http.Request, lang string, value content.File) {
-	body, err := doc.RenderMarkdown(value.Document, doc.RenderOptions{Language: lang, Links: s})
+	renderDocument := value.Document
+	if lang != s.Settings.Languages().Base && s.Translations != nil {
+		if translated, err := s.Translations.ReadOptional(lang, value.Meta.ID); err == nil {
+			renderDocument = translate.Apply(renderDocument, translated)
+		}
+	}
+	body, err := doc.RenderMarkdown(renderDocument, doc.RenderOptions{Language: lang, Links: s})
 	if err != nil {
 		http.Error(w, "文档暂时不可用", http.StatusServiceUnavailable)
 		return

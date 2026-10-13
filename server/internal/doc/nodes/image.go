@@ -84,12 +84,4 @@ func (image) Render(n Node, c Context) (string, error) {
 	}
 	return result + "</figure>", nil
 }
-func (image) Translate(n Node) []string {
-	result := []string{}
-	for _, key := range []string{"alt", "caption"} {
-		if value := String(n, key); value != "" {
-			result = append(result, value)
-		}
-	}
-	return result
-}
+func (image) Translate(n Node) []string { return SlotTranslation(n) }

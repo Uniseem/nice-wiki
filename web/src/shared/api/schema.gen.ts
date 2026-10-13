@@ -1365,10 +1365,25 @@ export interface components {
             challenge: string;
             difficulty: number;
         };
+        QACitation: {
+            documentId: string;
+            blockId: string;
+            title: string;
+            url: string;
+            sourceHash?: string;
+        };
+        QAEvent: {
+            type: string;
+            text?: string;
+            message?: string;
+            conversationId?: string;
+            citations?: components["schemas"]["QACitation"][];
+        };
         AskInput: {
             question: string;
             conversationId: string;
             page: string;
+            language?: string;
         };
         ChatTurn: {
             role: string;
@@ -4575,13 +4590,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description SSE 问答流 */
+            /** @description SSE 问答流，每帧 data 为 QAEvent JSON */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/event-stream": string;
+                    "text/event-stream": components["schemas"]["QAEvent"];
                 };
             };
         };

@@ -2,7 +2,7 @@ SHELL := /bin/sh
 GO := go
 PNPM := pnpm
 SQLC := go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
-OAPI := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
+OAPI := GOTOOLCHAIN=go1.25.0 go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
 LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
 
 .PHONY: dev dev-server dev-web gen sqlc gen-api build check format-check lint test privacy hooks gen-check e2e eval test-update catalog docker-build

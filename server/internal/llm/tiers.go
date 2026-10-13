@@ -9,6 +9,7 @@ import (
 type TierStore struct {
 	mu     sync.RWMutex
 	models map[aitask.Tier][]Model
+	Source func(aitask.Tier) []Model
 }
 
 func NewTiers() *TierStore { return &TierStore{models: map[aitask.Tier][]Model{}} }
@@ -29,6 +30,9 @@ func (s *TierStore) Resolve(task string) ([]Model, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	values := append([]Model{}, s.models[definition.Tier]...)
+	if s.Source != nil {
+		values = s.Source(definition.Tier)
+	}
 	if len(values) == 0 {
 		return nil, errors.New("任务所需模型档位尚未配置")
 	}

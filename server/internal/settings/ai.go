@@ -29,7 +29,10 @@ func (s *Store) SaveAI(v AI) error {
 		return err
 	}
 	if v.Enabled {
-		if s.aiReady == nil || !s.aiReady() {
+		s.mu.RLock()
+		ready := s.aiReady
+		s.mu.RUnlock()
+		if ready == nil || !ready() {
 			return invalid("快速、精确与嵌入模型尚未配置完整，不能启用 AI")
 		}
 	}

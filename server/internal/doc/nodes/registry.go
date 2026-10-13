@@ -99,12 +99,71 @@ func InlineText(n Node) string {
 	}
 	return result.String()
 }
-func OrdinaryTranslation(n Node) []string {
-	value := strings.TrimSpace(InlineText(n))
-	if value == "" {
+
+type TranslationSlot struct {
+	Text string
+	Set  func(string)
+}
+
+func TranslationSlots(n *Node) []TranslationSlot {
+	result := []TranslationSlot{}
+	add := func(text string, set func(string)) {
+		if strings.TrimSpace(text) != "" {
+			result = append(result, TranslationSlot{text, set})
+		}
+	}
+	var walk func(*Node)
+	walk = func(v *Node) {
+		if v != n && String(*v, "id") != "" {
+			return
+		}
+		if v.Type == "text" {
+			for _, mark := range v.Marks {
+				if mark.Type == "code" || mark.Type == "inlineMath" {
+					return
+				}
+			}
+			add(v.Text, func(text string) { v.Text = text })
+			return
+		}
+		if v.Type == "inlineMath" || v.Type == "blockMath" || v.Type == "codeBlock" {
+			return
+		}
+		for i := range v.Content {
+			walk(&v.Content[i])
+		}
+	}
+	switch n.Type {
+	case "paragraph", "heading":
+		walk(n)
+	case "image", "drawing":
+		for _, key := range []string{"alt", "caption"} {
+			key := key
+			add(String(*n, key), func(text string) { n.Attrs[key] = text })
+		}
+	case "attachment":
+		add(String(*n, "description"), func(text string) { n.Attrs["description"] = text })
+	case "video":
+		for _, key := range []string{"title", "description"} {
+			key := key
+			add(String(*n, key), func(text string) { n.Attrs[key] = text })
+		}
+	}
+	return result
+}
+func SlotTranslation(n Node) []string {
+	slots := TranslationSlots(&n)
+	if len(slots) == 0 {
 		return nil
 	}
-	return []string{value}
+	var out strings.Builder
+	for i, slot := range slots {
+		fmt.Fprintf(&out, "<nw-%d>%s</nw-%d>", i, html.EscapeString(slot.Text), i)
+	}
+	return []string{out.String()}
+}
+func OrdinaryTranslation(n Node) []string {
+	return SlotTranslation(n)
 }
 func EscapeMarkdown(value string) string {
 	replacer := strings.NewReplacer("\\", "\\\\", "*", "\\*", "_", "\\_", "[", "\\[", "]", "\\]", "`", "\\`", "<", "&lt;", ">", "&gt;")

@@ -24,9 +24,12 @@ func (s SQLSnapshotter) Snapshot(ctx context.Context, target string) error {
 	return err
 }
 func addFile(writer *tar.Writer, path, name string) error {
-	info, err := os.Stat(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		return err
+	}
+	if !info.IsDir() && !info.Mode().IsRegular() {
+		return errors.New("备份不支持链接或特殊文件")
 	}
 	header, err := tar.FileInfoHeader(info, "")
 	if err != nil {
@@ -57,13 +60,21 @@ func Export(ctx context.Context, root, target string, database Snapshotter, incl
 	if err := database.Snapshot(ctx, snapshot); err != nil {
 		return err
 	}
-	file, err := os.Create(target)
+	file, err := os.CreateTemp(filepath.Dir(target), ".nw-archive-")
 	if err != nil {
 		return err
 	}
 	gzipWriter := gzip.NewWriter(file)
 	tarWriter := tar.NewWriter(gzipWriter)
-	defer func() { err = errors.Join(err, tarWriter.Close(), gzipWriter.Close(), file.Close()) }()
+	defer func() {
+		err = errors.Join(err, tarWriter.Close(), gzipWriter.Close(), file.Close())
+		if err == nil {
+			err = os.Rename(file.Name(), target)
+		}
+		if removeErr := os.Remove(file.Name()); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			err = errors.Join(err, removeErr)
+		}
+	}()
 	if err := addFile(tarWriter, snapshot, "wiki.db"); err != nil {
 		return err
 	}
@@ -78,8 +89,20 @@ func Export(ctx context.Context, root, target string, database Snapshotter, incl
 		if err != nil {
 			return err
 		}
-		if relative == "." || strings.HasPrefix(relative, "backups") || relative == "wiki.db" || !includeSecrets && relative == filepath.Join("config", "secrets.json") {
-			if entry.IsDir() && relative != "." {
+		if relative == "." {
+			return nil
+		}
+		parts := strings.Split(filepath.ToSlash(relative), "/")
+		skip := path == target || path == file.Name() || path == temporary || parts[0] == "backups" || parts[0] == "cache" || parts[0] == "wiki.db" || parts[0] == "wiki.db-wal" || parts[0] == "wiki.db-shm" || parts[0] == ".nice-wiki.lock" || strings.HasPrefix(parts[0], ".restore-") || strings.HasPrefix(parts[0], ".nw-") || entry.Name() == "restore-pending.json" || strings.HasPrefix(entry.Name(), ".tmp-") || !includeSecrets && relative == filepath.Join("config", "secrets.json")
+		// 只保留启动所需模型资料，运行缓存与临时目录不进入备份。
+		if parts[0] == "cache" {
+			skip = relative != "cache" && relative != filepath.Join("cache", "models.json")
+		}
+		if strings.HasPrefix(entry.Name(), ".nw-") {
+			skip = true
+		}
+		if skip {
+			if entry.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil

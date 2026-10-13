@@ -46,12 +46,4 @@ func (video) Render(n Node, c Context) (string, error) {
 	}
 	return "<figure" + Anchor(n) + ` class="nw-video"><video controls preload="none" playsinline src="` + html.EscapeString(source) + `"` + attr + ` aria-label="` + html.EscapeString(title) + `"></video><figcaption>` + html.EscapeString(title) + "</figcaption><p>" + html.EscapeString(description) + "</p></figure>", nil
 }
-func (video) Translate(n Node) []string {
-	result := []string{}
-	for _, key := range []string{"title", "description"} {
-		if value := String(n, key); value != "" {
-			result = append(result, value)
-		}
-	}
-	return result
-}
+func (video) Translate(n Node) []string { return SlotTranslation(n) }

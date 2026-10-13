@@ -25,7 +25,7 @@ func (l *Limiter) Begin(key string, now time.Time) error {
 	defer l.mu.Unlock()
 	v := l.values[key]
 	if now.After(v.reset) {
-		v = bucket{reset: now.Add(time.Minute)}
+		v = bucket{reset: now.Add(time.Minute), active: v.active}
 	}
 	if v.active {
 		return errors.New("同一会话已有问题正在处理")

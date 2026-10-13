@@ -570,3 +570,18 @@ Go module 路径是 `nice-wiki`，所以包的导入路径形如 `nice-wiki/inte
 - Go 测试和被测代码放在一起：`xxx.go` 对应 `xxx_test.go`。
 - 各包测试用的数据放在本包的 `testdata/` 目录下。
 - 外部服务的假实现放在各自包里的 `fake.go`（例如 `llm/fake.go`、`ai/guard/fake.go`），只供测试使用。
+
+### 2026-10-13 已授权的最小离线回归测试
+
+用户已确认以下新增文件；使用临时目录、SQLite 和模型替身，不访问真实模型。
+
+| 文件 | 用途 |
+|---|---|
+| `internal/ai/guard/budget_test.go` | 预留、结算、并发上限和动态配置 |
+| `internal/ai/guard/pow_test.go` | 地址编码、来源绑定、过期和重放 |
+| `internal/i18n/translate/files_test.go` | 人工保护、行内格式和属性回填 |
+| `internal/i18n/translate/pipeline_test.go` | 人工译文、并发保存和旧版本拒绝 |
+| `internal/backup/export_test.go` | 快照往返、运行文件排除、失败保护和非法包拒绝 |
+| `internal/setup/restore_test.go` | 数据卷根目录保持、进程锁和失败回滚 |
+| `internal/ai/qa/service_test.go` | 开关、预算、缓存事件、上下文、多语言、动态模型和撤回清理 |
+| `internal/stats/rollup_test.go` | 人类与爬虫分离、跨语言去重和重复汇总 |

@@ -1,12 +1,16 @@
 package translate
 
 import (
+	"encoding/json"
 	"errors"
 	"nice-wiki/internal/datadir"
 	"nice-wiki/internal/doc"
+	"nice-wiki/internal/doc/nodes"
 	"nice-wiki/internal/fsutil"
 	"os"
+	"reflect"
 	"sync"
+	"time"
 )
 
 type Source string
@@ -93,33 +97,78 @@ func (f *Files) ReadStrings(language, name string) (map[string]string, error) {
 	return value, nil
 }
 
+// MergeMachine 在文件锁内重新读取最新值，避免任务覆盖人工保存。
+func (f *Files) MergeMachine(before, proposed File, hashes map[string]string) (File, error) {
+	path, err := f.layout.Translation(proposed.Language, proposed.DocumentID)
+	if err != nil {
+		return File{}, err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	current := File{SchemaVersion: 1, DocumentID: proposed.DocumentID, Language: proposed.Language, Blocks: map[string]Block{}}
+	if err := fsutil.ReadJSON(path, &current); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return File{}, err
+	}
+	if err := ValidateFile(current); err != nil {
+		return File{}, err
+	}
+	merged := map[string]Block{}
+	for id, hash := range hashes {
+		value, exists := current.Blocks[id]
+		if exists && value.Source == SourceHuman {
+			value.NeedsReview = value.NeedsReview || value.SourceHash != hash
+			if reflect.DeepEqual(current.Blocks[id], before.Blocks[id]) && proposed.Blocks[id].NeedsReview {
+				value.NeedsReview = true
+			}
+			merged[id] = value
+			continue
+		}
+		if !reflect.DeepEqual(value, before.Blocks[id]) {
+			if exists {
+				merged[id] = value
+			}
+			continue
+		}
+		if value, ok := proposed.Blocks[id]; ok {
+			merged[id] = value
+		}
+	}
+	current.Blocks = merged
+	current.UpdatedAt = time.Now().Unix()
+	if err := ValidateFile(current); err != nil {
+		return File{}, err
+	}
+	return current, fsutil.WriteJSON(path, current)
+}
 func Apply(document doc.Document, translation File) doc.Document {
-	result := document
+	// 克隆全部节点、属性和标记，渲染不能修改调用方正文。
+	data, err := json.Marshal(document)
+	if err != nil {
+		return document
+	}
+	var result doc.Document
+	if err := json.Unmarshal(data, &result); err != nil {
+		return document
+	}
 	var replace func(*doc.Node)
 	replace = func(node *doc.Node) {
 		if id, ok := node.Attrs["id"].(string); ok {
 			if block, exists := translation.Blocks[id]; exists && block.Text != "" {
-				assigned := false
-				var text func(*doc.Node)
-				text = func(value *doc.Node) {
-					if value.Type == "text" {
-						if !assigned {
-							value.Text = block.Text
-							assigned = true
-						} else {
-							value.Text = ""
-						}
-						return
-					}
-					for index := range value.Content {
-						text(&value.Content[index])
+				slots := nodes.TranslationSlots(node)
+				values, ok := DecodeInline(block.Text, len(slots))
+				if !ok && len(slots) == 1 && !placeholder.MatchString(block.Text) {
+					values = []string{block.Text}
+					ok = true
+				}
+				if ok {
+					for i, slot := range slots {
+						slot.Set(values[i])
 					}
 				}
-				text(node)
 			}
 		}
-		for index := range node.Content {
-			replace(&node.Content[index])
+		for i := range node.Content {
+			replace(&node.Content[i])
 		}
 	}
 	replace(&result.Content)
