@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var ErrBudgetExceeded = errors.New("问答花费已达到限制")
+
 type spend struct {
 	amount float64
 	reset  time.Time
@@ -16,8 +18,9 @@ type Budget struct {
 	daily, hourly float64
 	values        map[string]spend
 	// Limit 每次预留读取当前设置，修改上限无需重启。
-	Limit func() float64
-	Load  func(time.Time) (float64, error)
+	Limit       func() float64
+	HourlyLimit func() float64
+	Load        func(time.Time) (float64, error)
 }
 
 func NewBudget(daily, hourly float64) *Budget {
@@ -32,8 +35,12 @@ func (b *Budget) Reserve(scope string, amount float64, now time.Time) (func(floa
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	daily := b.daily
+	hourly := b.hourly
 	if b.Limit != nil {
 		daily = b.Limit()
+	}
+	if b.HourlyLimit != nil {
+		hourly = b.HourlyLimit()
 	}
 	dayKey := "day:" + now.UTC().Format("2006-01-02")
 	hourKey := "hour:" + scope + ":" + now.UTC().Format("2006-01-02T15")
@@ -52,8 +59,8 @@ func (b *Budget) Reserve(scope string, amount float64, now time.Time) (func(floa
 		b.values[dayKey] = day
 	}
 	hour := b.values[hourKey]
-	if daily > 0 && day.amount+amount > daily || b.hourly > 0 && hour.amount+amount > b.hourly {
-		return nil, errors.New("问答花费已达到限制")
+	if daily > 0 && day.amount+amount > daily || hourly > 0 && hour.amount+amount > hourly {
+		return nil, ErrBudgetExceeded
 	}
 	day.amount += amount
 	day.reset = now.Add(24 * time.Hour)

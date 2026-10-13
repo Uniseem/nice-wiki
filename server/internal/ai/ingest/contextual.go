@@ -17,6 +17,7 @@ func Contextualize(ctx context.Context, model ContextModel, values []retrieve.Un
 			return nil, err
 		}
 		if prefix != "" {
+			result[index].Context = prefix
 			result[index].Text = prefix + "\n" + result[index].Text
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,7 @@ import (
 	"nice-wiki/internal/content"
 	"nice-wiki/internal/datadir"
 	"nice-wiki/internal/doc"
+	"nice-wiki/internal/geoip"
 	"nice-wiki/internal/history"
 	"nice-wiki/internal/httpx"
 	"nice-wiki/internal/i18n"
@@ -37,6 +39,7 @@ import (
 	"nice-wiki/internal/llm"
 	"nice-wiki/internal/llm/protocol"
 	"nice-wiki/internal/memory"
+	"nice-wiki/internal/prompts"
 	"nice-wiki/internal/settings"
 	"nice-wiki/internal/setup"
 	"nice-wiki/internal/stats"
@@ -51,40 +54,141 @@ import (
 )
 
 type App struct {
-	Assets          *assets.Store
-	Config          config.Bootstrap
-	Logger          *slog.Logger
-	Layout          datadir.Layout
-	Lock            *datadir.Lock
-	DB              *sql.DB
-	Auth            *auth.Service
-	Settings        *settings.Store
-	Runtime         *config.RuntimeStore
-	Secrets         *config.Secrets
-	Content         *content.Repo
-	Channels        *llm.Channels
-	Setup           *setup.Service
-	Jobs            *jobs.Service
-	History         *history.Repo
-	Memory          *memory.Store
-	MemoryMapping   *memory.Mapping
-	MemoryAssistant *memory.Assistant
-	Catalog         *llm.Catalog
-	Translations    *itranslate.Files
-	Glossary        *itranslate.Glossary
-	Locale          *suggest.Decider
-	QA              *qa.Service
-	Conversations   *qa.Conversations
-	Records         *qa.Records
-	Bans            *guard.Bans
-	GuardEvents     *guard.Events
-	Budget          *guard.Budget
-	Debug           *qa.DebugStore
-	AnswerCache     *cache.Store
+	Assets              *assets.Store
+	Config              config.Bootstrap
+	Logger              *slog.Logger
+	Layout              datadir.Layout
+	Lock                *datadir.Lock
+	DB                  *sql.DB
+	Auth                *auth.Service
+	Settings            *settings.Store
+	Runtime             *config.RuntimeStore
+	Secrets             *config.Secrets
+	Content             *content.Repo
+	Channels            *llm.Channels
+	Setup               *setup.Service
+	Jobs                *jobs.Service
+	History             *history.Repo
+	Memory              *memory.Store
+	MemoryMapping       *memory.Mapping
+	MemoryAssistant     *memory.Assistant
+	Catalog             *llm.Catalog
+	Translations        *itranslate.Files
+	Glossary            *itranslate.Glossary
+	Locale              *suggest.Decider
+	QA                  *qa.Service
+	Conversations       *qa.Conversations
+	Records             *qa.Records
+	Bans                *guard.Bans
+	GuardEvents         *guard.Events
+	Budget              *guard.Budget
+	IPBudget            *guard.Budget
+	Debug               *qa.DebugStore
+	AnswerCache         *cache.Store
+	TranslationEstimate func(int) itranslate.Estimate
+	GeoIP               *geoip.Database
+}
+
+type answerCachePayload struct {
+	Language       string            `json:"language"`
+	References     map[string]string `json:"references"`
+	Sources        map[string]string `json:"sources"`
+	Titles         map[string]string `json:"titles"`
+	Vector         []float32         `json:"vector,omitempty"`
+	EmbeddingModel string            `json:"embeddingModel,omitempty"`
+}
+type descriptionCacheStore struct{ db *sql.DB }
+
+func (s descriptionCacheStore) GetDescription(ctx context.Context, hash, task string) (string, bool, error) {
+	var value string
+	err := s.db.QueryRowContext(ctx, "SELECT description FROM description_cache WHERE asset_hash=? AND context_hash='' AND task=?", hash, task).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	return value, err == nil, err
+}
+func (s descriptionCacheStore) PutDescription(ctx context.Context, hash, task, value string) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO description_cache(asset_hash,context_hash,task,description,model,updated_at) VALUES(?,'',?,?,?,?) ON CONFLICT(asset_hash,context_hash,task) DO UPDATE SET description=excluded.description,model=excluded.model,updated_at=excluded.updated_at", hash, task, value, "configured", time.Now().Unix())
+	return err
+}
+
+type assetDescriptionModel struct {
+	client   *llm.Client
+	assets   *assets.Store
+	memory   *memory.Store
+	mapping  *memory.Mapping
+	language func() string
+}
+type unitContextModel struct {
+	client   *llm.Client
+	document string
+	memory   string
+}
+
+func (m unitContextModel) Contextualize(ctx context.Context, unit retrieve.Unit) (string, error) {
+	prompt, err := prompts.Get("context")
+	if err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(map[string]any{"document": m.document, "unit": unit})
+	if err != nil {
+		return "", err
+	}
+	response, err := m.client.Complete(ctx, "contextualize", []protocol.Message{{Role: "system", Content: m.memory + "\n" + prompt}, {Role: "user", Content: string(data)}})
+	if err != nil {
+		return "", err
+	}
+	value := strings.TrimSpace(response.Text)
+	if runes := []rune(value); len(runes) > 1000 {
+		value = string(runes[:1000])
+	}
+	return value, nil
+}
+
+func (m assetDescriptionModel) Describe(ctx context.Context, hash, kind string) (string, error) {
+	metadata, reader, err := m.assets.OpenFile(ctx, hash)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = reader.Close() }()
+	data, err := io.ReadAll(io.LimitReader(reader, (32<<20)+1))
+	if err != nil || len(data) == 0 || len(data) > 32<<20 {
+		return "", errors.New("媒体描述输入无效或过大")
+	}
+	prompt, err := prompts.Get("describe-image")
+	if err != nil {
+		return "", err
+	}
+	language := ""
+	if m.language != nil {
+		language = m.language()
+	}
+	injected, _, err := memory.Inject(m.memory, m.mapping, "describe-image", language)
+	if err != nil {
+		return "", err
+	}
+	message := protocol.Message{Role: "user", Content: "请描述这个" + kind + "，文件名：" + metadata.Name}
+	if strings.HasPrefix(metadata.MIME, "image/") {
+		message.Images = []string{"data:" + metadata.MIME + ";base64," + base64.StdEncoding.EncodeToString(data)}
+	} else {
+		if len(data) > 1<<20 {
+			data = data[:1<<20]
+		}
+		message.Content += "\n场景内容：\n" + string(data)
+	}
+	response, err := m.client.Complete(ctx, "describe-image", []protocol.Message{{Role: "system", Content: injected + "\n" + prompt}, message})
+	if err != nil {
+		return "", err
+	}
+	value := strings.TrimSpace(response.Text)
+	if value == "" {
+		return "", errors.New("媒体描述为空")
+	}
+	return value, nil
 }
 
 func (a *App) CreateBackup(ctx context.Context, includeSecrets bool) (api.BackupResult, error) {
-	name := fmt.Sprintf("nice-wiki-%s.tar.gz", time.Now().UTC().Format("20060102T150405Z"))
+	name := fmt.Sprintf("nice-wiki-%s.tar.gz", time.Now().UTC().Format("20060102T150405.000000000Z"))
 	target := filepath.Join(a.Layout.Backups(), name)
 	if err := backup.Export(ctx, a.Layout.Root, target, backup.SQLSnapshotter{DB: a.DB}, includeSecrets); err != nil {
 		return api.BackupResult{}, err
@@ -133,22 +237,68 @@ func (a *App) OpenBackup(_ context.Context, name string) (io.ReadCloser, int64, 
 	return file, info.Size(), nil
 }
 func (a *App) RecordVisit(ctx context.Context, r *http.Request, path, language, referrer string) error {
+	languages := a.Settings.Languages()
+	enabled := false
+	for _, code := range languages.Enabled {
+		enabled = enabled || code == language
+	}
+	if !enabled || len(path) > 2048 {
+		return nil
+	}
+	relative := strings.TrimPrefix(path, "/")
+	if relative == "llms.txt" || relative == "llms-full.txt" {
+		path = "@llms"
+	} else {
+		if relative == language {
+			relative = ""
+		} else if strings.HasPrefix(relative, language+"/") {
+			relative = strings.TrimPrefix(relative, language+"/")
+		} else {
+			return nil
+		}
+		relative = strings.TrimSuffix(relative, ".md")
+		switch relative {
+		case "":
+			path = "@home"
+		case "ask":
+			path = "@ask"
+		case "llms.txt", "llms-full.txt":
+			path = "@llms"
+		default:
+			file, ok := a.Content.ResolvePath(relative)
+			if !ok || !file.Meta.Published {
+				return nil
+			}
+			path = file.Meta.ID
+		}
+	}
 	bot, ai := stats.Bot(r.UserAgent())
 	day := time.Now().UTC().Format("2006-01-02")
 	queries := sqlc.New(a.DB)
 	salt, err := queries.GetDailySalt(ctx, day)
 	if errors.Is(err, sql.ErrNoRows) {
-		salt = make([]byte, 32)
-		if _, err = crand.Read(salt); err != nil {
+		candidate := make([]byte, 32)
+		if _, err = crand.Read(candidate); err != nil {
 			return err
 		}
-		if _, err = a.DB.ExecContext(ctx, "INSERT INTO daily_salts(day,salt) VALUES(?,?)", day, salt); err != nil {
+		if _, err = a.DB.ExecContext(ctx, "INSERT OR IGNORE INTO daily_salts(day,salt) VALUES(?,?)", day, candidate); err != nil {
+			return err
+		}
+		salt, err = queries.GetDailySalt(ctx, day)
+		if err != nil {
 			return err
 		}
 	} else if err != nil {
 		return err
 	}
 	visitor := stats.Visitor(stats.Salt{Day: day, Value: salt}, httpx.ClientIP(ctx), r.UserAgent())
+	country := ""
+	if a.GeoIP != nil {
+		country, err = a.GeoIP.Lookup(httpx.ClientIP(ctx))
+		if err != nil {
+			return err
+		}
+	}
 	botValue, aiValue := int64(0), int64(0)
 	if bot {
 		botValue = 1
@@ -156,7 +306,14 @@ func (a *App) RecordVisit(ctx context.Context, r *http.Request, path, language, 
 	if ai {
 		aiValue = 1
 	}
-	return queries.RecordPageView(ctx, sqlc.RecordPageViewParams{DocumentID: path, Language: language, Country: "", ReferrerDomain: stats.NormalizeReferrer(referrer), VisitorHash: visitor, Bot: botValue, AiBot: aiValue, CreatedAt: time.Now().Unix()})
+	return queries.RecordPageView(ctx, sqlc.RecordPageViewParams{DocumentID: path, Language: language, Country: country, ReferrerDomain: stats.NormalizeReferrer(referrer), VisitorHash: visitor, Bot: botValue, AiBot: aiValue, CreatedAt: time.Now().Unix()})
+}
+func (a *App) RecordCrawler(ctx context.Context, r *http.Request, path, language string) error {
+	_, ai := stats.Bot(r.UserAgent())
+	if !ai {
+		return nil
+	}
+	return a.RecordVisit(ctx, r, path, language, "")
 }
 func (a *App) StatsSummary(ctx context.Context) (stats.Summary, error) {
 	now := time.Now().UTC()
@@ -166,30 +323,118 @@ func (a *App) StatsSummary(ctx context.Context) (stats.Summary, error) {
 	}
 	daily := make([]stats.Daily, 0, len(values))
 	for _, v := range values {
-		row := stats.Daily{Day: v.Day}
+		row := stats.Daily{Day: v.Day, Dimension: v.Dimension, Value: v.Value, Views: v.Views, Visitors: v.Visitors}
 		switch v.Dimension {
 		case "path":
 			row.Path = v.Value
-			row.Views = v.Views
-			row.Visitors = v.Visitors
 		case "ai":
 			row.AICrawls = v.Views
-		default:
-			continue
 		}
 		daily = append(daily, row)
 	}
-	return stats.Summarize(daily, 10), nil
+	summary := stats.Summarize(daily, 10)
+	for index := range summary.Popular {
+		id := summary.Popular[index].Title
+		if id == "@home" {
+			summary.Popular[index].Title = "首页"
+			continue
+		}
+		if id == "@ask" {
+			summary.Popular[index].Title = "AI 问答"
+			continue
+		}
+		if file, getErr := a.Content.Get(id); getErr == nil {
+			summary.Popular[index].Title = file.Meta.Title
+			continue
+		}
+		// 兼容修复前按公开路径记录的历史汇总。
+		legacy := strings.TrimPrefix(id, "/")
+		if at := strings.IndexByte(legacy, '/'); at >= 0 {
+			legacy = legacy[at+1:]
+		}
+		if file, ok := a.Content.ResolvePath(strings.TrimSuffix(legacy, ".md")); ok {
+			summary.Popular[index].Title = file.Meta.Title
+		}
+	}
+	return summary, nil
 }
 func (a *App) PersistQARecord(ctx context.Context, value qa.Record) error {
-	if _, err := a.DB.ExecContext(ctx, "INSERT OR IGNORE INTO conversations(id,session_hash,language,summary,created_at,expires_at) VALUES(?,?,?,?,?,?)", value.ConversationID, value.ConversationID, value.Language, "", value.Created.Unix(), value.Created.Add(30*24*time.Hour).Unix()); err != nil {
+	if _, err := a.DB.ExecContext(ctx, "INSERT INTO conversations(id,session_hash,language,summary,created_at,expires_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET language=excluded.language,expires_at=excluded.expires_at", value.ConversationID, value.ConversationID, value.Language, "", value.Created.Unix(), value.Created.Add(30*24*time.Hour).Unix()); err != nil {
 		return err
 	}
 	citations, err := json.Marshal(value.Citations)
 	if err != nil {
 		return err
 	}
-	return sqlc.New(a.DB).InsertQARecord(ctx, sqlc.InsertQARecordParams{ID: value.ID, ConversationID: value.ConversationID, Question: value.Question, NormalizedQuestion: cache.Normalize(value.Question), Answer: value.Answer, Citations: string(citations), Language: value.Language, Status: "completed", CreatedAt: value.Created.Unix()})
+	normalized := value.NormalizedQuestion
+	if normalized == "" {
+		normalized = value.Question
+	}
+	return sqlc.New(a.DB).InsertQARecord(ctx, sqlc.InsertQARecordParams{ID: value.ID, ConversationID: value.ConversationID, Question: value.Question, NormalizedQuestion: cache.Normalize(normalized), Answer: value.Answer, Citations: string(citations), Language: value.Language, Status: "completed", CreatedAt: value.Created.Unix()})
+}
+func (a *App) PersistAnswerCache(ctx context.Context, entry cache.Entry) {
+	payload, err := json.Marshal(answerCachePayload{Language: entry.Language, References: entry.References, Sources: entry.Sources, Titles: entry.Titles, Vector: entry.Vector, EmbeddingModel: entry.EmbeddingModel})
+	if err != nil {
+		a.Logger.Error("回答缓存编码失败")
+		return
+	}
+	materialHash, err := textutil.HashJSON(entry.References)
+	if err != nil {
+		a.Logger.Error("回答缓存材料哈希失败")
+		return
+	}
+	key := cache.Key(entry.Question, entry.Language)
+	_, err = a.DB.ExecContext(ctx, "INSERT INTO answer_cache(id,question_hash,question,answer,citations,material_hash,memory_hash,hits,created_at,expires_at) VALUES(?,?,?,?,?,?,?,0,?,?) ON CONFLICT(question_hash) DO UPDATE SET question=excluded.question,answer=excluded.answer,citations=excluded.citations,material_hash=excluded.material_hash,memory_hash=excluded.memory_hash,created_at=excluded.created_at,expires_at=excluded.expires_at", key, key, entry.Question, entry.Answer, string(payload), materialHash, entry.MemoryVersion, entry.Created.Unix(), entry.Expires.Unix())
+	if err != nil {
+		a.Logger.Error("回答缓存持久化失败")
+	}
+}
+func (a *App) ClearAnswerCache(ctx context.Context) error {
+	_, err := a.DB.ExecContext(ctx, "DELETE FROM answer_cache")
+	if err == nil && a.AnswerCache != nil {
+		a.AnswerCache.InvalidateAll()
+	}
+	return err
+}
+func (a *App) LoadQAConversation(ctx context.Context, session string) (qa.Conversation, bool, error) {
+	var summary string
+	if err := a.DB.QueryRowContext(ctx, "SELECT summary FROM conversations WHERE id=? AND session_hash=? AND expires_at>?", session, session, time.Now().Unix()).Scan(&summary); errors.Is(err, sql.ErrNoRows) {
+		return qa.Conversation{}, false, nil
+	} else if err != nil {
+		return qa.Conversation{}, false, err
+	}
+	rows, err := a.DB.QueryContext(ctx, "SELECT id,question,answer,created_at FROM qa_records WHERE conversation_id=? AND status='completed' ORDER BY created_at,rowid", session)
+	if err != nil {
+		return qa.Conversation{}, false, err
+	}
+	defer func() { _ = rows.Close() }()
+	value := qa.Conversation{ID: session, Summary: summary, Turns: []qa.Turn{}}
+	for rows.Next() {
+		var id, question, answer string
+		var created int64
+		if err := rows.Scan(&id, &question, &answer, &created); err != nil {
+			return qa.Conversation{}, false, err
+		}
+		when := time.Unix(created, 0)
+		value.Turns = append(value.Turns, qa.Turn{Role: "user", Text: question, Created: when}, qa.Turn{Role: "assistant", Text: answer, Created: when, RecordID: id})
+	}
+	if err := rows.Err(); err != nil {
+		return qa.Conversation{}, false, err
+	}
+	return value, true, nil
+}
+func (a *App) SaveQAConversationSummary(ctx context.Context, session, summary string) error {
+	_, err := a.DB.ExecContext(ctx, "UPDATE conversations SET summary=? WHERE id=? AND session_hash=?", summary, session, session)
+	return err
+}
+func (a *App) ClearQAConversation(ctx context.Context, session string) error {
+	return store.Transaction(ctx, a.DB, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, "UPDATE conversations SET summary='' WHERE id=? AND session_hash=?", session, session); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, "UPDATE qa_records SET status='cleared' WHERE conversation_id=?", session)
+		return err
+	})
 }
 func (a *App) ListQARecords(ctx context.Context) ([]qa.Record, error) {
 	rows, err := sqlc.New(a.DB).ListQARecords(ctx, sqlc.ListQARecordsParams{Limit: 200, Offset: 0})
@@ -223,6 +468,16 @@ func (a *App) SaveQAFeedback(ctx context.Context, record, session string, helpfu
 	}
 	if changed == 0 {
 		return sql.ErrNoRows
+	}
+	if !helpful {
+		var question, language string
+		if err := a.DB.QueryRowContext(ctx, "SELECT normalized_question,language FROM qa_records WHERE id=? AND conversation_id=?", record, session).Scan(&question, &language); err != nil {
+			return err
+		}
+		a.AnswerCache.DeleteAutomatic(question, language)
+		if _, err := a.DB.ExecContext(ctx, "DELETE FROM answer_cache WHERE question_hash=?", cache.Key(question, language)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -280,6 +535,70 @@ func (a *App) UnfeatureQAAnswer(ctx context.Context, id string) error {
 	return nil
 }
 
+type retrievalPlanner struct {
+	client   *llm.Client
+	store    *memory.Store
+	mapping  *memory.Mapping
+	language func() string
+}
+type retrievalDecision struct {
+	Action     string `json:"action"`
+	Query      string `json:"query"`
+	DocumentID string `json:"documentId"`
+	Heading    string `json:"heading"`
+}
+
+func (p retrievalPlanner) Decide(ctx context.Context, question string, units []retrieve.Unit, observations []string, round int) (retrievalDecision, error) {
+	prompt, err := prompts.Get("verify")
+	if err != nil {
+		return retrievalDecision{}, err
+	}
+	injected := ""
+	if p.store != nil && p.mapping != nil {
+		language := ""
+		if p.language != nil {
+			language = p.language()
+		}
+		injected, _, err = memory.Inject(p.store, p.mapping, "retrieve-verify", language)
+		if err != nil {
+			return retrievalDecision{}, err
+		}
+	}
+	if len(units) > 30 {
+		units = units[:30]
+	}
+	data, err := json.Marshal(map[string]any{"question": question, "round": round + 1, "materials": units, "observations": observations})
+	if err != nil {
+		return retrievalDecision{}, err
+	}
+	var decision retrievalDecision
+	_, err = p.client.CompleteValidated(ctx, "retrieve-verify", []protocol.Message{{Role: "system", Content: injected + "\n" + prompt + "\n只返回 JSON 动作：{\"action\":\"done|search|read_section|tree\",\"query\":\"\",\"documentId\":\"\",\"heading\":\"\"}。"}, {Role: "user", Content: string(data)}}, func(response protocol.Response) error {
+		value, decodeErr := llm.DecodeStructured[retrievalDecision](response.Text)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		value.Query = strings.TrimSpace(value.Query)
+		value.DocumentID = strings.TrimSpace(value.DocumentID)
+		value.Heading = strings.TrimSpace(value.Heading)
+		switch value.Action {
+		case "done", "tree":
+		case "search":
+			if value.Query == "" || len([]rune(value.Query)) > 500 {
+				return errors.New("检索核查返回无效查询")
+			}
+		case "read_section":
+			if !datadir.ValidID(value.DocumentID) || value.Heading == "" || len([]rune(value.Heading)) > 500 {
+				return errors.New("检索核查返回无效小节参数")
+			}
+		default:
+			return errors.New("检索核查返回未知动作")
+		}
+		decision = value
+		return nil
+	})
+	return decision, err
+}
+
 type hybridRetriever struct {
 	db        *sql.DB
 	tiers     *llm.TierStore
@@ -287,21 +606,102 @@ type hybridRetriever struct {
 	usage     llm.UsageWriter
 }
 
-func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retrieve.Unit, error) {
-	models, err := h.tiers.Resolve("embed")
+type agenticRetriever struct {
+	base    hybridRetriever
+	planner retrievalPlanner
+}
+
+func (r agenticRetriever) EmbedQuery(ctx context.Context, question string) ([]float32, string, error) {
+	return r.base.EmbedQuery(ctx, question)
+}
+func (r agenticRetriever) Retrieve(ctx context.Context, question string) ([]retrieve.Unit, error) {
+	initial, err := r.base.Retrieve(ctx, question)
 	if err != nil {
 		return nil, err
+	}
+	return r.continueRetrieval(ctx, question, initial)
+}
+func (r agenticRetriever) RetrieveVector(ctx context.Context, question string, vector []float32, model string) ([]retrieve.Unit, error) {
+	initial, err := r.base.RetrieveVector(ctx, question, vector, model)
+	if err != nil {
+		return nil, err
+	}
+	return r.continueRetrieval(ctx, question, initial)
+}
+func (r agenticRetriever) continueRetrieval(ctx context.Context, question string, values []retrieve.Unit) ([]retrieve.Unit, error) {
+	result := append([]retrieve.Unit{}, values...)
+	observations := []string{}
+	for round := 0; round < 2; round++ {
+		decision, err := r.planner.Decide(ctx, question, result, observations, round)
+		if err != nil {
+			if len(result) > 0 {
+				break
+			}
+			return nil, err
+		}
+		if decision.Action == "done" {
+			break
+		}
+		var more []retrieve.Unit
+		switch decision.Action {
+		case "search":
+			more, err = r.base.Retrieve(ctx, decision.Query)
+		case "read_section":
+			more, err = r.base.ReadSection(ctx, decision.DocumentID, decision.Heading)
+		case "tree":
+			var tree string
+			tree, err = r.base.Tree(ctx)
+			if err == nil {
+				observations = append(observations, tree)
+			}
+		}
+		if err != nil {
+			if len(result) > 0 {
+				break
+			}
+			return nil, err
+		}
+		result = append(result, more...)
+	}
+	seen := map[string]bool{}
+	unique := result[:0]
+	for _, unit := range result {
+		if !seen[unit.ID] {
+			seen[unit.ID] = true
+			unique = append(unique, unit)
+		}
+	}
+	return unique, nil
+}
+
+func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retrieve.Unit, error) {
+	vector, model, err := h.EmbedQuery(ctx, question)
+	if err != nil {
+		return nil, err
+	}
+	return h.RetrieveVector(ctx, question, vector, model)
+}
+func (h hybridRetriever) EmbedQuery(ctx context.Context, question string) ([]float32, string, error) {
+	models, err := h.tiers.Resolve("embed")
+	if err != nil {
+		return nil, "", err
 	}
 	model := models[0]
 	embedder, err := h.protocols.Embedder(model)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	settle, err := llm.Reserve(ctx, llm.Cost(model, protocol.Usage{InputTokens: int64(len(question) + 64)}))
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+	release, err := h.protocols.Acquire(ctx, model.Channel)
+	if err != nil {
+		settle(0)
+		return nil, "", err
 	}
 	vectors, usage, err := embedder.Embed(ctx, model.ID, []string{question})
+	release()
 	status := "success"
 	if err != nil {
 		status = "error"
@@ -317,14 +717,20 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 		usageErr := h.usage.WriteUsage(accounting, "embed", model, usage, cost, status)
 		cancel()
 		if usageErr != nil {
-			return nil, errors.Join(err, usageErr)
+			return nil, "", errors.Join(err, usageErr)
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
+	if len(vectors) != 1 {
+		return nil, "", errors.New("嵌入结果数量无效")
+	}
+	return vectors[0], model.ID, nil
+}
+func (h hybridRetriever) RetrieveVector(ctx context.Context, question string, queryVector []float32, modelID string) ([]retrieve.Unit, error) {
 	index := retrieve.NewVectorIndex()
-	rows, err := h.db.QueryContext(ctx, "SELECT unit_id,dimensions,vector FROM vectors WHERE model=?", model.ID)
+	rows, err := h.db.QueryContext(ctx, "SELECT unit_id,dimensions,vector FROM vectors WHERE model=?", modelID)
 	if err != nil {
 		return nil, err
 	}
@@ -335,6 +741,10 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 		if err := rows.Scan(&id, &dimensions, &raw); err != nil {
 			_ = rows.Close()
 			return nil, err
+		}
+		if dimensions < 1 || dimensions > 65536 || len(raw) != dimensions*4 {
+			_ = rows.Close()
+			return nil, errors.New("向量索引数据无效")
 		}
 		reader := bytes.NewReader(raw)
 		value := make([]float32, dimensions)
@@ -351,10 +761,7 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 	if err := rows.Close(); err != nil {
 		return nil, err
 	}
-	if len(vectors) != 1 {
-		return nil, errors.New("嵌入结果数量无效")
-	}
-	vectorHits := index.Search(vectors[0], 20)
+	vectorHits := index.Search(queryVector, 20)
 	tokens := textutil.Tokens(question)
 	keywordHits := []retrieve.Hit{}
 	if len(tokens) > 0 {
@@ -363,53 +770,307 @@ func (h hybridRetriever) Retrieve(ctx context.Context, question string) ([]retri
 			parts[i] = "\"" + strings.ReplaceAll(token, "\"", "\"\"") + "\""
 		}
 		keywordRows, err := h.db.QueryContext(ctx, "SELECT unit_id,-bm25(keyword_index) FROM keyword_index WHERE keyword_index MATCH ? ORDER BY bm25(keyword_index) LIMIT 20", strings.Join(parts, " OR "))
-		if err == nil {
-			for keywordRows.Next() {
-				var hit retrieve.Hit
-				if keywordRows.Scan(&hit.ID, &hit.Score) == nil {
-					keywordHits = append(keywordHits, hit)
-				}
+		if err != nil {
+			return nil, err
+		}
+		for keywordRows.Next() {
+			var hit retrieve.Hit
+			if err := keywordRows.Scan(&hit.ID, &hit.Score); err != nil {
+				_ = keywordRows.Close()
+				return nil, err
 			}
+			keywordHits = append(keywordHits, hit)
+		}
+		if err := keywordRows.Err(); err != nil {
 			_ = keywordRows.Close()
+			return nil, err
+		}
+		if err := keywordRows.Close(); err != nil {
+			return nil, err
 		}
 	}
 	fused := retrieve.Fuse(vectorHits, keywordHits)
+	fused, err = h.rerank(ctx, question, fused)
+	if err != nil {
+		return nil, err
+	}
 	if len(fused) > 20 {
 		fused = fused[:20]
 	}
+	return h.expandSections(ctx, fused)
+}
+
+func (h hybridRetriever) rerank(ctx context.Context, question string, hits []retrieve.Hit) ([]retrieve.Hit, error) {
+	models, err := h.tiers.Resolve("rerank")
+	if err != nil || len(hits) < 2 {
+		return hits, nil
+	}
+	model := models[0]
+	reranker, err := h.protocols.Reranker(model)
+	if err != nil {
+		return nil, err
+	}
+	valid := []retrieve.Hit{}
+	documents := []string{}
+	input := int64(len(question) + 64)
+	for _, hit := range hits {
+		var text string
+		if err := h.db.QueryRowContext(ctx, "SELECT u.text FROM retrieval_units u JOIN documents d ON d.id=u.document_id WHERE u.id=? AND d.published=1", hit.ID).Scan(&text); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			return nil, err
+		}
+		valid = append(valid, hit)
+		documents = append(documents, text)
+		input += int64(len(text) + 32)
+	}
+	if len(valid) < 2 {
+		return valid, nil
+	}
+	settle, err := llm.Reserve(ctx, llm.Cost(model, protocol.Usage{InputTokens: input}))
+	if err != nil {
+		return nil, err
+	}
+	release, err := h.protocols.Acquire(ctx, model.Channel)
+	if err != nil {
+		settle(0)
+		return nil, err
+	}
+	scores, usage, callErr := reranker.Rerank(ctx, model.ID, question, documents)
+	release()
+	status := "success"
+	if callErr != nil {
+		status = "error"
+	}
+	if usage.InputTokens == 0 && usage.OutputTokens == 0 {
+		usage.InputTokens = input
+		status = "estimated_" + status
+	}
+	cost := llm.Cost(model, usage)
+	settle(cost)
+	if h.usage != nil {
+		accounting, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		usageErr := h.usage.WriteUsage(accounting, "rerank", model, usage, cost, status)
+		cancel()
+		if usageErr != nil {
+			return nil, errors.Join(callErr, usageErr)
+		}
+	}
+	if callErr != nil {
+		return valid, nil
+	}
+	if len(scores) != len(valid) {
+		return nil, errors.New("重排结果数量无效")
+	}
+	for index := range valid {
+		valid[index].Score = scores[index]
+	}
+	sort.SliceStable(valid, func(i, j int) bool { return valid[i].Score > valid[j].Score })
+	return valid, nil
+}
+
+func (h hybridRetriever) expandSections(ctx context.Context, hits []retrieve.Hit) ([]retrieve.Unit, error) {
 	result := []retrieve.Unit{}
-	for _, hit := range fused {
-		var value retrieve.Unit
-		if err := h.db.QueryRowContext(ctx, "SELECT u.id,u.document_id,u.text FROM retrieval_units u JOIN documents d ON d.id=u.document_id JOIN blocks b ON b.id=u.id WHERE u.id=? AND d.published=1 AND b.text=u.text", hit.ID).Scan(&value.ID, &value.DocumentID, &value.Text); err == nil {
-			result = append(result, value)
+	seen := map[string]bool{}
+	for _, hit := range hits {
+		var documentID, headingPath string
+		err := h.db.QueryRowContext(ctx, "SELECT b.document_id,b.heading_path FROM retrieval_units u JOIN retrieval_unit_blocks rb ON rb.unit_id=u.id JOIN blocks b ON b.id=rb.block_id JOIN documents d ON d.id=b.document_id WHERE u.id=? AND d.published=1 ORDER BY rb.position LIMIT 1", hit.ID).Scan(&documentID, &headingPath)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		rows, err := h.db.QueryContext(ctx, "SELECT id,text,position,heading_path FROM blocks WHERE document_id=? AND heading_path=? ORDER BY position LIMIT 24", documentID, headingPath)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var unit retrieve.Unit
+			var encoded string
+			if err := rows.Scan(&unit.ID, &unit.Text, &unit.Position, &encoded); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			if seen[unit.ID] || strings.TrimSpace(unit.Text) == "" {
+				continue
+			}
+			var headings []string
+			if err := json.Unmarshal([]byte(encoded), &headings); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			unit.DocumentID = documentID
+			if len(headings) > 0 {
+				unit.Heading = headings[len(headings)-1]
+			}
+			seen[unit.ID] = true
+			result = append(result, unit)
+			if len(result) >= 80 {
+				_ = rows.Close()
+				return result, nil
+			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
 		}
 	}
 	return result, nil
 }
+func (h hybridRetriever) ReadSection(ctx context.Context, documentID, heading string) ([]retrieve.Unit, error) {
+	rows, err := h.db.QueryContext(ctx, "SELECT b.id,b.text,b.position,b.heading_path FROM blocks b JOIN documents d ON d.id=b.document_id WHERE b.document_id=? AND d.published=1 ORDER BY b.position", documentID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	result := []retrieve.Unit{}
+	for rows.Next() {
+		var unit retrieve.Unit
+		var encoded string
+		if err := rows.Scan(&unit.ID, &unit.Text, &unit.Position, &encoded); err != nil {
+			return nil, err
+		}
+		var headings []string
+		if err := json.Unmarshal([]byte(encoded), &headings); err != nil {
+			return nil, err
+		}
+		if len(headings) == 0 || headings[len(headings)-1] != heading || strings.TrimSpace(unit.Text) == "" {
+			continue
+		}
+		unit.DocumentID = documentID
+		unit.Heading = heading
+		result = append(result, unit)
+		if len(result) >= 24 {
+			break
+		}
+	}
+	return result, rows.Err()
+}
+func (h hybridRetriever) Tree(ctx context.Context) (string, error) {
+	rows, err := h.db.QueryContext(ctx, "SELECT id,parent_id,title,path FROM documents WHERE published=1 ORDER BY sort_key,id")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = rows.Close() }()
+	values := []map[string]string{}
+	for rows.Next() {
+		var id, parent, title, path string
+		if err := rows.Scan(&id, &parent, &title, &path); err != nil {
+			return "", err
+		}
+		values = append(values, map[string]string{"id": id, "parentId": parent, "title": title, "path": path})
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	encoded, err := json.Marshal(values)
+	return string(encoded), err
+}
 
 type memoryAssistantModel struct{ client *llm.Client }
+
+func completeStructured[T any](ctx context.Context, client *llm.Client, task string, messages []protocol.Message) (T, error) {
+	var result T
+	_, err := client.CompleteValidated(ctx, task, messages, func(response protocol.Response) error {
+		value, decodeErr := llm.DecodeStructured[T](response.Text)
+		if decodeErr == nil {
+			result = value
+		}
+		return decodeErr
+	})
+	return result, err
+}
 
 func (m memoryAssistantModel) Propose(ctx context.Context, message string, items []memory.Item) ([]memory.Proposal, error) {
 	data, err := json.Marshal(items)
 	if err != nil {
 		return nil, err
 	}
-	response, err := m.client.Complete(ctx, "memory-assistant", []protocol.Message{{Role: "system", Content: "根据现有记忆提出 JSON 数组修改建议。"}, {Role: "user", Content: string(data) + "\n用户消息：" + message}})
+	prompt, err := prompts.Get("memory-assistant")
 	if err != nil {
 		return nil, err
 	}
-	return llm.DecodeStructured[[]memory.Proposal](response.Text)
+	return completeStructured[[]memory.Proposal](ctx, m.client, "memory-assistant", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: string(data) + "\n用户消息：" + message}})
 }
 
 type translationModel struct{ client *llm.Client }
 type compactModel struct{ client *llm.Client }
+type cacheAnswerTranslator struct {
+	client  *llm.Client
+	store   *memory.Store
+	mapping *memory.Mapping
+}
+type localeModel struct{ client *llm.Client }
+
+func (m localeModel) DecideLanguage(ctx context.Context, signals suggest.Signals, enabled []string) (string, error) {
+	prompt, err := prompts.Get("language-suggest")
+	if err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(map[string]any{"signals": signals, "enabled": enabled})
+	if err != nil {
+		return "", err
+	}
+	var result struct {
+		Language   string  `json:"language"`
+		Confidence float64 `json:"confidence"`
+	}
+	_, err = m.client.CompleteValidated(ctx, "language-suggest", []protocol.Message{{Role: "system", Content: prompt + "\n返回 JSON：{\"language\":\"语言代码\",\"confidence\":0.0}"}, {Role: "user", Content: string(data)}}, func(response protocol.Response) error {
+		value, decodeErr := llm.DecodeStructured[struct {
+			Language   string  `json:"language"`
+			Confidence float64 `json:"confidence"`
+		}](response.Text)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		if value.Confidence < 0.75 {
+			return errors.New("语言建议置信度不足")
+		}
+		result = value
+		return nil
+	})
+	return result.Language, err
+}
+
+func (m cacheAnswerTranslator) TranslateAnswer(ctx context.Context, answer, source, target string) (string, error) {
+	prompt, err := prompts.Get("translate-answer")
+	if err != nil {
+		return "", err
+	}
+	injected, _, err := memory.Inject(m.store, m.mapping, "translate-answer", target)
+	if err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(map[string]string{"sourceLanguage": source, "targetLanguage": target, "answer": answer})
+	if err != nil {
+		return "", err
+	}
+	response, err := m.client.Complete(ctx, "translate-answer", []protocol.Message{{Role: "system", Content: injected + "\n" + prompt}, {Role: "user", Content: string(data)}})
+	if err != nil {
+		return "", err
+	}
+	value := strings.TrimSpace(response.Text)
+	if value == "" {
+		return "", errors.New("缓存回答译文为空")
+	}
+	return value, nil
+}
 
 func (m compactModel) Compact(ctx context.Context, summary string, turns []qa.Turn) (string, error) {
 	data, err := json.Marshal(map[string]any{"summary": summary, "turns": turns})
 	if err != nil {
 		return "", err
 	}
-	response, err := m.client.Complete(ctx, "compact-conversation", []protocol.Message{{Role: "user", Content: string(data)}})
+	prompt, err := prompts.Get("compact-conversation")
+	if err != nil {
+		return "", err
+	}
+	response, err := m.client.Complete(ctx, "compact-conversation", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: string(data)}})
 	if err != nil {
 		return "", err
 	}
@@ -419,7 +1080,11 @@ func (m compactModel) Compact(ctx context.Context, summary string, turns []qa.Tu
 type overviewModel struct{ client *llm.Client }
 
 func (m overviewModel) Summarize(ctx context.Context, text string) (string, error) {
-	response, err := m.client.Complete(ctx, "site-summary", []protocol.Message{{Role: "user", Content: text}})
+	prompt, err := prompts.Get("site-summary")
+	if err != nil {
+		return "", err
+	}
+	response, err := m.client.Complete(ctx, "site-summary", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: text}})
 	if err != nil {
 		return "", err
 	}
@@ -431,22 +1096,33 @@ func (m translationModel) Translate(ctx context.Context, language string, segmen
 	if err != nil {
 		return nil, err
 	}
-	response, err := m.client.Complete(ctx, "translate-blocks", []protocol.Message{{Role: "user", Content: string(data)}})
+	prompt, err := prompts.Get("translate-blocks")
 	if err != nil {
 		return nil, err
 	}
-	return llm.DecodeStructured[map[string]string](response.Text)
+	return completeStructured[map[string]string](ctx, m.client, "translate-blocks", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: string(data)}})
 }
 func (m translationModel) TranslateStrings(ctx context.Context, language string, values map[string]string) (map[string]string, error) {
 	data, err := json.Marshal(map[string]any{"language": language, "strings": values})
 	if err != nil {
 		return nil, err
 	}
-	response, err := m.client.Complete(ctx, "translate-strings", []protocol.Message{{Role: "user", Content: string(data)}})
+	prompt, err := prompts.Get("translate-strings")
 	if err != nil {
 		return nil, err
 	}
-	return llm.DecodeStructured[map[string]string](response.Text)
+	return completeStructured[map[string]string](ctx, m.client, "translate-strings", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: string(data)}})
+}
+func (m translationModel) ExtractTerms(ctx context.Context, language, text string) ([]itranslate.Term, error) {
+	prompt, err := prompts.Get("extract-terms")
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(map[string]string{"language": language, "text": text})
+	if err != nil {
+		return nil, err
+	}
+	return completeStructured[[]itranslate.Term](ctx, m.client, "extract-terms", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: string(data)}})
 }
 
 func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result *App, err error) {
@@ -464,6 +1140,9 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	app := &App{Config: cfg, Logger: logger, Layout: layout, Lock: lock}
 	defer func() {
 		if err != nil {
+			if app.GeoIP != nil {
+				err = errors.Join(err, app.GeoIP.Close())
+			}
 			if app.DB != nil {
 				err = errors.Join(err, app.DB.Close())
 			}
@@ -505,7 +1184,11 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	if err != nil {
 		return nil, err
 	}
-	app.Catalog, err = llm.OpenCatalog(layout.ModelCatalog())
+	app.Catalog, err = llm.OpenCatalogWithSnapshot(layout.ModelCatalog())
+	if err != nil {
+		return nil, err
+	}
+	app.GeoIP, err = geoip.Open(layout.GeoIPDatabase())
 	if err != nil {
 		return nil, err
 	}
@@ -535,8 +1218,23 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	tiers := llm.NewTiers()
 	protocols := llm.ProtocolRegistry{Channels: app.Channels, HTTP: http.DefaultClient}
 	tiers.Source = func(tier aitask.Tier) []llm.Model {
+		assignments := app.Settings.ModelTiers()
+		selected := assignments[string(tier)]
+		fallbackVision := false
+		if tier == aitask.Vision && len(selected) == 0 {
+			selected = assignments[string(aitask.Fast)]
+			fallbackVision = true
+		}
+		catalog := map[string]llm.Model{}
+		for _, model := range llm.AvailableModels(app.Catalog, app.Channels) {
+			catalog[model.Channel+":"+model.ID] = model
+		}
 		result := []llm.Model{}
-		for _, model := range app.Catalog.List() {
+		for _, key := range selected {
+			model, exists := catalog[key]
+			if !exists {
+				continue
+			}
 			capability := llm.Chat
 			switch tier {
 			case aitask.Embedding:
@@ -546,11 +1244,15 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			case aitask.Rerank:
 				capability = llm.Rerank
 			}
-			if !model.Has(capability) {
+			if !model.Has(capability) || (tier == aitask.Vision && !model.Has(llm.Chat)) || (fallbackVision && !model.Has(llm.Vision)) {
 				continue
 			}
 			if tier == aitask.Embedding {
 				if _, err := protocols.Embedder(model); err != nil {
+					continue
+				}
+			} else if tier == aitask.Rerank {
+				if _, err := protocols.Reranker(model); err != nil {
 					continue
 				}
 			} else {
@@ -563,17 +1265,41 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		return result
 	}
 	ready := func() bool {
-		_, chatErr := tiers.Resolve("qa-answer")
+		_, routeErr := tiers.Resolve("qa-route")
+		_, answerErr := tiers.Resolve("qa-answer")
 		_, embedErr := tiers.Resolve("embed")
-		return chatErr == nil && embedErr == nil
+		return routeErr == nil && answerErr == nil && embedErr == nil
 	}
 	app.Settings.SetAIReadiness(ready)
 	modelsClient := llm.NewClient(tiers, protocols, usageWriter{db: app.DB})
+	app.Locale = suggest.NewDecider(localeModel{client: modelsClient})
+	app.TranslationEstimate = func(characters int) itranslate.Estimate {
+		models, err := tiers.Resolve("translate-blocks")
+		if err != nil || len(models) == 0 {
+			return itranslate.EstimateCost(characters, 0, 0)
+		}
+		return itranslate.EstimateCost(characters, models[0].InputPrice, models[0].OutputPrice)
+	}
 	app.Content.SetGenerators(meta.Slugger{Client: modelsClient}, meta.SEO{Client: modelsClient})
-	app.MemoryAssistant = &memory.Assistant{Store: app.Memory, Model: memoryAssistantModel{client: modelsClient}, Pending: memory.NewProposals()}
+	app.MemoryAssistant = &memory.Assistant{Store: app.Memory, Model: memoryAssistantModel{client: modelsClient}, Pending: memory.NewProposals(), Mapping: app.MemoryMapping}
 	app.Conversations = qa.NewConversations(30 * 24 * time.Hour)
 	app.Records = &qa.Records{Retention: 30 * 24 * time.Hour}
 	app.AnswerCache = cache.New()
+	if rows, queryErr := app.DB.QueryContext(ctx, "SELECT question,answer,citations,memory_hash,created_at,expires_at FROM answer_cache WHERE expires_at>?", time.Now().Unix()); queryErr == nil {
+		for rows.Next() {
+			var question, answer, encoded, memoryVersion string
+			var created, expires int64
+			if rows.Scan(&question, &answer, &encoded, &memoryVersion, &created, &expires) != nil {
+				continue
+			}
+			var payload answerCachePayload
+			if json.Unmarshal([]byte(encoded), &payload) != nil || payload.Language == "" {
+				continue
+			}
+			app.AnswerCache.Put(cache.Entry{Question: question, Answer: answer, Language: payload.Language, MemoryVersion: memoryVersion, Created: time.Unix(created, 0), Expires: time.Unix(expires, 0), References: payload.References, Sources: payload.Sources, Titles: payload.Titles, Vector: payload.Vector, EmbeddingModel: payload.EmbeddingModel})
+		}
+		_ = rows.Close()
+	}
 	if rows, queryErr := app.DB.QueryContext(ctx, "SELECT q.question,q.answer,q.language,q.citations FROM featured_answers f JOIN qa_records q ON q.id=f.record_id ORDER BY f.sort_key"); queryErr == nil {
 		for rows.Next() {
 			var question, answer, language, citations string
@@ -588,15 +1314,19 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 	app.Bans = guard.NewBans()
 	app.GuardEvents = &guard.Events{}
 	app.Budget = guard.NewBudget(app.Runtime.Get().DailySpendLimit, 0)
+	app.IPBudget = guard.NewBudget(0, 0)
 	app.Debug = qa.NewDebugStore()
 	app.Budget.Limit = func() float64 { return app.Runtime.Get().DailySpendLimit }
+	app.Budget.HourlyLimit = func() float64 { return app.Runtime.Get().SessionHourlySpendLimit }
+	app.IPBudget.HourlyLimit = func() float64 { return app.Runtime.Get().IPHourlySpendLimit }
 	app.Budget.Load = func(now time.Time) (float64, error) {
 		var total float64
 		err := app.DB.QueryRow("SELECT COALESCE(SUM(cost_usd),0) FROM llm_usage WHERE created_at>=? AND created_at<? AND task IN ('qa-route','qa-answer','compact-conversation','embed')", now.UTC().Truncate(24*time.Hour).Unix(), now.UTC().Truncate(24*time.Hour).Add(24*time.Hour).Unix()).Scan(&total)
 		return total, err
 	}
 	qaRetriever := hybridRetriever{db: app.DB, tiers: tiers, protocols: protocols, usage: usageWriter{db: app.DB}}
-	app.QA = &qa.Service{Models: modelsClient, Retriever: qaRetriever, Cache: app.AnswerCache, Limiter: guard.NewLimiter(10), MaxQuestion: app.Settings.AI().MaxQuestionLength, Conversations: app.Conversations, Records: app.Records, Persist: app.PersistQARecord, Budget: app.Budget, Compactor: compactModel{client: modelsClient}, MaxConversation: 64000, ResolveCitation: func(id string) (string, string, bool) {
+	agent := agenticRetriever{base: qaRetriever, planner: retrievalPlanner{client: modelsClient, store: app.Memory, mapping: app.MemoryMapping, language: func() string { return app.Settings.Languages().Base }}}
+	app.QA = &qa.Service{Models: modelsClient, Retriever: agent, Cache: app.AnswerCache, CacheTranslator: cacheAnswerTranslator{client: modelsClient, store: app.Memory, mapping: app.MemoryMapping}, Limiter: guard.NewLimiter(10), MaxQuestion: app.Settings.AI().MaxQuestionLength, Conversations: app.Conversations, Records: app.Records, Persist: app.PersistQARecord, LoadConversation: app.LoadQAConversation, SaveSummary: app.SaveQAConversationSummary, Budget: app.Budget, IPBudget: app.IPBudget, Compactor: compactModel{client: modelsClient}, MaxConversation: 64000, RouteAll: true, Bans: app.Bans, Events: app.GuardEvents, StreamAnswers: true, PersistCache: app.PersistAnswerCache, ResolveCitation: func(id string) (string, string, bool) {
 		file, err := app.Content.Get(id)
 		if err != nil || !file.Meta.Published {
 			return "", "", false
@@ -653,7 +1383,11 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		}
 		return "", false
 	}
-	app.Content.SetChangedHook(app.AnswerCache.InvalidateAll)
+	app.Content.SetChangedHook(func() {
+		if err := app.ClearAnswerCache(context.Background()); err != nil {
+			app.Logger.Error("正文变化后清理回答缓存失败")
+		}
+	})
 	app.Assets = assets.Open(layout, app.DB, assetSources{content: app.Content, settings: app.Settings}, logger)
 	app.Setup = &setup.Service{Auth: app.Auth, Settings: app.Settings, Channels: app.Channels, Layout: layout}
 	app.Jobs, err = jobs.Open(app.DB, &mergeStore{db: app.DB})
@@ -714,23 +1448,205 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if err != nil {
 			return err
 		}
+		blocks, err := doc.Blocks(file.Document)
+		if err != nil {
+			return err
+		}
+		unitIndex := map[string]int{}
+		for index, unit := range units {
+			unitIndex[unit.ID] = index
+		}
+		descriptionModel := assetDescriptionModel{client: modelsClient, assets: app.Assets, memory: app.Memory, mapping: app.MemoryMapping, language: func() string { return app.Settings.Languages().Base }}
+		descriptionStore := descriptionCacheStore{db: app.DB}
+		generatedDefaults := map[string]string{}
+		for _, media := range ingest.MediaItems(file.Document) {
+			if media.ID == "" {
+				continue
+			}
+			description := strings.TrimSpace(media.Title + " " + media.Description)
+			switch media.Kind {
+			case "image", "drawing":
+				if media.Hash != "" {
+					generated, describeErr := ingest.Describe(ctx, descriptionStore, descriptionModel, media.Hash, media.Kind)
+					if describeErr == nil {
+						description = strings.TrimSpace(description + "\n" + generated)
+						if strings.TrimSpace(media.Title) == "" {
+							generatedDefaults[media.ID] = generated
+						}
+					} else if description == "" {
+						app.Logger.Warn("媒体描述跳过", "kind", media.Kind)
+					}
+				}
+			case "attachment":
+				if media.Hash != "" {
+					metadata, reader, openErr := app.Assets.OpenFile(ctx, media.Hash)
+					if openErr == nil {
+						extracted, extractErr := ingest.ExtractAttachment(ctx, metadata.Name, metadata.MIME, reader, nil)
+						_ = reader.Close()
+						if extractErr == nil {
+							if len(extracted) > 8000 {
+								extracted = extracted[:8000]
+							}
+							description = strings.TrimSpace(description + "\n" + extracted)
+						}
+					}
+				}
+			case "video":
+				description = strings.TrimSpace(description + " " + media.Name)
+			}
+			if description == "" {
+				continue
+			}
+			position := -1
+			heading := ""
+			blockHash := ""
+			for index, block := range blocks {
+				if block.ID == media.ID {
+					position = block.Position
+					blockHash = block.ContentHash
+					if len(block.HeadingPath) > 0 {
+						heading = block.HeadingPath[len(block.HeadingPath)-1]
+					}
+					for _, neighbor := range []int{index - 1, index + 1} {
+						if neighbor >= 0 && neighbor < len(blocks) && strings.TrimSpace(blocks[neighbor].Text) != "" {
+							description += "\n上下文：" + blocks[neighbor].Text
+						}
+					}
+					break
+				}
+			}
+			if index, ok := unitIndex[media.ID]; ok {
+				units[index].Text = strings.TrimSpace(units[index].Text + "\n" + description)
+				units[index].SourceHash = textutil.Hash([]byte(units[index].SourceHash + "\x00" + textutil.Hash([]byte(description))))
+			} else {
+				unitIndex[media.ID] = len(units)
+				units = append(units, retrieve.Unit{ID: media.ID, DocumentID: id, Heading: heading, Text: description, Position: position, BlockIDs: []string{media.ID}, SourceHash: textutil.Hash([]byte(blockHash + "\x00" + textutil.Hash([]byte(description))))})
+			}
+		}
+		if len(generatedDefaults) > 0 {
+			changed, err := app.Content.ApplyGeneratedDescriptions(ctx, id, file.Meta.Revision, generatedDefaults)
+			if errors.Is(err, content.ErrConflict) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if changed {
+				if err := app.Jobs.Enqueue(ctx, jobs.IndexDocument, id); err != nil {
+					return err
+				}
+				if err := app.Jobs.Enqueue(ctx, jobs.TranslateDocument, id); err != nil {
+					return err
+				}
+				progress(100)
+				return nil
+			}
+		}
+		resolved, err := tiers.Resolve("embed")
+		if err != nil {
+			return err
+		}
+		model := resolved[0]
+		current := map[string]retrieve.Unit{}
+		changed := []retrieve.Unit{}
+		for index, unit := range units {
+			current[unit.ID] = unit
+			var storedText, storedContext, storedSource string
+			var storedModel, storedVectorHash sql.NullString
+			err := app.DB.QueryRowContext(ctx, "SELECT u.text,u.context,u.content_hash,v.model,v.content_hash FROM retrieval_units u LEFT JOIN vectors v ON v.unit_id=u.id WHERE u.id=?", unit.ID).Scan(&storedText, &storedContext, &storedSource, &storedModel, &storedVectorHash)
+			if errors.Is(err, sql.ErrNoRows) || err == nil && (storedSource != unit.SourceHash || !storedModel.Valid || storedModel.String != model.ID || !storedVectorHash.Valid || storedVectorHash.String != textutil.Hash([]byte(storedText))) {
+				changed = append(changed, unit)
+			} else if err != nil {
+				return err
+			} else {
+				units[index].Text = storedText
+				units[index].Context = storedContext
+			}
+		}
+		if len(changed) > 0 {
+			documentText, err := doc.RenderText(file.Document)
+			if err != nil {
+				return err
+			}
+			if runes := []rune(documentText); len(runes) > 200000 {
+				documentText = string(runes[:200000])
+			}
+			injected, _, err := memory.Inject(app.Memory, app.MemoryMapping, "contextualize", app.Settings.Languages().Base)
+			if err != nil {
+				return err
+			}
+			changed, err = ingest.Contextualize(ctx, unitContextModel{client: modelsClient, document: documentText, memory: injected}, changed)
+			if err != nil {
+				return err
+			}
+			for _, unit := range changed {
+				if index, ok := unitIndex[unit.ID]; ok {
+					units[index] = unit
+				}
+			}
+		}
+		stale := []string{}
+		rows, err := app.DB.QueryContext(ctx, "SELECT id FROM retrieval_units WHERE document_id=?", id)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var unitID string
+			if err := rows.Scan(&unitID); err != nil {
+				_ = rows.Close()
+				return err
+			}
+			if _, ok := current[unitID]; !ok {
+				stale = append(stale, unitID)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+		changedIDs := map[string]bool{}
+		for _, unit := range changed {
+			changedIDs[unit.ID] = true
+		}
 		err = app.Content.WithPublished(id, file.Meta.Revision, func() error {
 			return store.Transaction(ctx, app.DB, func(tx *sql.Tx) error {
-				for _, statement := range []string{"DELETE FROM keyword_index WHERE document_id=?", "DELETE FROM retrieval_unit_blocks WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM vectors WHERE unit_id IN (SELECT id FROM retrieval_units WHERE document_id=?)", "DELETE FROM retrieval_units WHERE document_id=?"} {
-					if _, err := tx.ExecContext(ctx, statement, id); err != nil {
+				for _, unitID := range stale {
+					if _, err := tx.ExecContext(ctx, "DELETE FROM keyword_index WHERE unit_id=?", unitID); err != nil {
+						return err
+					}
+					if _, err := tx.ExecContext(ctx, "DELETE FROM retrieval_units WHERE id=?", unitID); err != nil {
 						return err
 					}
 				}
 				for _, unit := range units {
-					hash := textutil.Hash([]byte(unit.Text))
-					if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_units(id,document_id,kind,text,content_hash,updated_at) VALUES(?,?,?,?,?,?)", unit.ID, id, "text", unit.Text, hash, time.Now().Unix()); err != nil {
+					if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_units(id,document_id,kind,text,context,content_hash,embedding_model,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET document_id=excluded.document_id,kind=excluded.kind,text=excluded.text,context=excluded.context,content_hash=excluded.content_hash,embedding_model=excluded.embedding_model,updated_at=excluded.updated_at", unit.ID, id, "text", unit.Text, unit.Context, unit.SourceHash, model.ID, time.Now().Unix()); err != nil {
 						return err
 					}
-					if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_unit_blocks(unit_id,block_id,position) VALUES(?,?,?)", unit.ID, unit.ID, unit.Position); err != nil {
+					if _, err := tx.ExecContext(ctx, "DELETE FROM retrieval_unit_blocks WHERE unit_id=?", unit.ID); err != nil {
 						return err
 					}
-					if _, err := tx.ExecContext(ctx, "INSERT INTO keyword_index(unit_id,document_id,text) VALUES(?,?,?)", unit.ID, id, unit.Text); err != nil {
+					blockIDs := unit.BlockIDs
+					if len(blockIDs) == 0 {
+						blockIDs = []string{unit.ID}
+					}
+					for offset, blockID := range blockIDs {
+						if _, err := tx.ExecContext(ctx, "INSERT INTO retrieval_unit_blocks(unit_id,block_id,position) VALUES(?,?,?)", unit.ID, blockID, unit.Position+offset); err != nil {
+							return err
+						}
+					}
+					if _, err := tx.ExecContext(ctx, "DELETE FROM keyword_index WHERE unit_id=?", unit.ID); err != nil {
 						return err
+					}
+					if _, err := tx.ExecContext(ctx, "INSERT INTO keyword_index(unit_id,document_id,text) VALUES(?,?,?)", unit.ID, id, textutil.KeywordText(unit.Text)); err != nil {
+						return err
+					}
+					if changedIDs[unit.ID] {
+						if _, err := tx.ExecContext(ctx, "DELETE FROM vectors WHERE unit_id=?", unit.ID); err != nil {
+							return err
+						}
 					}
 				}
 				return nil
@@ -743,23 +1659,46 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			return err
 		}
 		progress(50)
-		resolved, err := tiers.Resolve("embed")
+		if len(changed) == 0 {
+			progress(100)
+			return nil
+		}
+		embedder, err := protocols.Embedder(model)
 		if err != nil {
 			return err
 		}
-		embedder, err := protocols.Embedder(resolved[0])
+		release, err := protocols.Acquire(ctx, model.Channel)
 		if err != nil {
 			return err
 		}
-		texts := make([]string, len(units))
-		for index := range units {
-			texts[index] = units[index].Text
+		texts := make([]string, len(changed))
+		for index := range changed {
+			texts[index] = changed[index].Text
 		}
-		vectors, _, err := embedder.Embed(ctx, resolved[0].ID, texts)
+		vectors, usage, err := embedder.Embed(ctx, model.ID, texts)
+		release()
 		if err != nil {
+			status := "error"
+			if usage.InputTokens == 0 && usage.OutputTokens == 0 {
+				for _, text := range texts {
+					usage.InputTokens += int64(len(text) + 64)
+				}
+				status = "estimated_error"
+			}
+			_ = (usageWriter{db: app.DB}).WriteUsage(context.WithoutCancel(ctx), "embed", model, usage, llm.Cost(model, usage), status)
 			return err
 		}
-		if len(vectors) != len(units) {
+		status := "success"
+		if usage.InputTokens == 0 && usage.OutputTokens == 0 {
+			for _, text := range texts {
+				usage.InputTokens += int64(len(text) + 64)
+			}
+			status = "estimated_success"
+		}
+		if err := (usageWriter{db: app.DB}).WriteUsage(context.WithoutCancel(ctx), "embed", model, usage, llm.Cost(model, usage), status); err != nil {
+			return err
+		}
+		if len(vectors) != len(changed) {
 			return errors.New("嵌入结果数量无效")
 		}
 		err = app.Content.WithPublished(id, file.Meta.Revision, func() error {
@@ -771,8 +1710,8 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 							return err
 						}
 					}
-					hash := textutil.Hash([]byte(units[index].Text))
-					if _, err := tx.ExecContext(ctx, "INSERT INTO vectors(unit_id,dimensions,vector,model,content_hash) VALUES(?,?,?,?,?) ON CONFLICT(unit_id) DO UPDATE SET dimensions=excluded.dimensions,vector=excluded.vector,model=excluded.model,content_hash=excluded.content_hash", units[index].ID, len(vector), encoded.Bytes(), resolved[0].ID, hash); err != nil {
+					hash := textutil.Hash([]byte(changed[index].Text))
+					if _, err := tx.ExecContext(ctx, "INSERT INTO vectors(unit_id,dimensions,vector,model,content_hash) VALUES(?,?,?,?,?) ON CONFLICT(unit_id) DO UPDATE SET dimensions=excluded.dimensions,vector=excluded.vector,model=excluded.model,content_hash=excluded.content_hash", changed[index].ID, len(vector), encoded.Bytes(), model.ID, hash); err != nil {
 						return err
 					}
 				}
@@ -799,14 +1738,17 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if !file.Meta.Published {
 			return nil
 		}
-		taskTranslator := translator
-		taskTranslator.Commit = func(commit func() error) error { return app.Content.WithPublished(id, file.Meta.Revision, commit) }
 		blocks, err := doc.Blocks(file.Document)
 		if err != nil {
 			return err
 		}
-		segments := []itranslate.Segment{}
+		segments := []itranslate.Segment{{ID: itranslate.MetaTitleID, Text: file.Meta.Title, Heading: true}}
 		hashes := map[string]string{}
+		hashes[itranslate.MetaTitleID] = textutil.Hash([]byte(file.Meta.Title))
+		if strings.TrimSpace(file.Meta.SEODescription) != "" {
+			segments = append(segments, itranslate.Segment{ID: itranslate.MetaDescriptionID, Text: file.Meta.SEODescription})
+			hashes[itranslate.MetaDescriptionID] = textutil.Hash([]byte(file.Meta.SEODescription))
+		}
 		for _, block := range blocks {
 			if len(block.Translatable) == 0 {
 				continue
@@ -822,6 +1764,35 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			}
 		}
 		for index, language := range targets {
+			taskTranslator := translator
+			taskTranslator.Commit = func(commit func() error) error {
+				return app.Content.WithPublished(id, file.Meta.Revision, func() error {
+					if err := commit(); err != nil {
+						return err
+					}
+					if _, err := app.History.Commit(ctx, "nice-wiki", "更新文档译文 "+language, []string{"i18n/" + language + "/" + id + ".json"}); err != nil {
+						return err
+					}
+					return app.ClearAnswerCache(ctx)
+				})
+			}
+			existing, err := app.Translations.ReadOptional(language, id)
+			if err != nil {
+				return err
+			}
+			if len(existing.Blocks) == 0 {
+				var source strings.Builder
+				for _, segment := range segments {
+					source.WriteString(segment.Text)
+					source.WriteByte('\n')
+				}
+				if err := itranslate.ExtractTerms(ctx, translationModel{client: modelsClient}, app.Glossary, id, language, source.String()); err != nil {
+					return err
+				}
+				if _, err := app.History.Commit(ctx, "nice-wiki", "更新自动术语 "+language, []string{"i18n/glossary.json"}); err != nil {
+					return err
+				}
+			}
 			if _, err := taskTranslator.Run(ctx, id, language, segments, hashes); err != nil {
 				if errors.Is(err, content.ErrConflict) {
 					return nil
@@ -903,6 +1874,9 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 			if err := itranslate.TranslateStrings(ctx, model, language, uiPath, ui); err != nil {
 				return err
 			}
+			if _, err := app.History.Commit(ctx, "nice-wiki", "更新站点译文 "+language, []string{"i18n/" + language + "/_site.json", "i18n/" + language + "/_ui.json"}); err != nil {
+				return err
+			}
 			progress((index + 1) * 100 / max(1, len(targets)))
 		}
 		if len(targets) == 0 {
@@ -930,6 +1904,30 @@ func New(ctx context.Context, cfg config.Bootstrap, logger *slog.Logger) (result
 		if len(published) == 0 {
 			progress(100)
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = app.Jobs.Register(jobs.UpdateCatalog, func(ctx context.Context, _ string, progress func(int)) error {
+		if err := app.Catalog.Refresh(ctx, http.DefaultClient, "https://models.dev/api.json?type=all"); err != nil {
+			return err
+		}
+		progress(100)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = app.Jobs.Register(jobs.UpdateGeoIP, func(ctx context.Context, _ string, progress func(int)) error {
+		target := app.Layout.GeoIPDatabase()
+		if err := geoip.Download(ctx, http.DefaultClient, target, geoip.MonthlyURL(time.Now())); err != nil {
+			return err
+		}
+		if err := app.GeoIP.Reload(target); err != nil {
+			return err
+		}
+		progress(100)
 		return nil
 	})
 	if err != nil {

@@ -6,12 +6,13 @@ import (
 	"net"
 	"net/http"
 	"nice-wiki/internal/backup"
+	"nice-wiki/internal/geoip"
 	"nice-wiki/internal/jobs"
 	"time"
 )
 
 func (a *App) Run(ctx context.Context) (err error) {
-	defer func() { err = errors.Join(err, a.DB.Close(), a.Lock.Close()) }()
+	defer func() { err = errors.Join(err, a.GeoIP.Close(), a.DB.Close(), a.Lock.Close()) }()
 	handler, err := a.Handler()
 	if err != nil {
 		return err
@@ -33,6 +34,14 @@ func (a *App) Run(ctx context.Context) (err error) {
 	a.Jobs.Start(workerContext)
 	a.Jobs.Schedule(workerContext, time.Hour, jobs.Cleanup, "sessions", func(err error) { a.Logger.Error("会话清理任务投递失败") })
 	a.Jobs.Schedule(workerContext, 24*time.Hour, jobs.Rollup, "daily", func(err error) { a.Logger.Error("访问统计汇总任务投递失败") })
+	a.Jobs.Schedule(workerContext, 24*time.Hour, jobs.UpdateCatalog, "models.dev", func(err error) { a.Logger.Error("模型目录更新任务投递失败") })
+	a.Jobs.Schedule(workerContext, 24*time.Hour, jobs.UpdateSummary, "project", func(err error) { a.Logger.Error("项目概述更新任务投递失败") })
+	if geoip.NeedsUpdate(a.Layout.GeoIPDatabase(), time.Now()) {
+		if err := a.Jobs.Enqueue(workerContext, jobs.UpdateGeoIP, "db-ip-lite"); err != nil {
+			a.Logger.Error("GeoIP 更新任务投递失败")
+		}
+	}
+	a.Jobs.Schedule(workerContext, 30*24*time.Hour, jobs.UpdateGeoIP, "db-ip-lite", func(err error) { a.Logger.Error("GeoIP 更新任务投递失败") })
 	backup.Schedule(workerContext, func() int { return a.Runtime.Get().BackupHour }, func(ctx context.Context) error {
 		return a.Jobs.Enqueue(ctx, jobs.Backup, "scheduled")
 	}, func(err error) { a.Logger.Error("定时备份任务投递失败") })

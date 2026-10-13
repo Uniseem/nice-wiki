@@ -6,12 +6,12 @@ import (
 )
 
 type Record struct {
-	ID, ConversationID, Question, Answer, Language string
-	Citations                                      []Citation
-	Cost                                           float64
-	Duration                                       time.Duration
-	Created                                        time.Time
-	Helpful                                        *bool
+	ID, ConversationID, Question, NormalizedQuestion, Answer, Language string
+	Citations                                                          []Citation
+	Cost                                                               float64
+	Duration                                                           time.Duration
+	Created                                                            time.Time
+	Helpful                                                            *bool
 }
 type Records struct {
 	mu        sync.Mutex

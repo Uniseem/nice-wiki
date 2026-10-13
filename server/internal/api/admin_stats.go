@@ -6,7 +6,7 @@ import (
 
 func (s *Server) GetStats(w http.ResponseWriter, r *http.Request) {
 	if s.StatsSummary == nil {
-		writeJSON(w, map[string]any{"views": 0, "visitors": 0, "aiCrawls": 0, "popular": []any{}})
+		writeJSON(w, map[string]any{"views": 0, "visitors": 0, "aiCrawls": 0, "popular": []any{}, "languages": []any{}, "countries": []any{}, "referrers": []any{}})
 		return
 	}
 	value, err := s.StatsSummary(r.Context())

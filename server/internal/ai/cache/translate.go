@@ -13,5 +13,6 @@ func Translate(ctx context.Context, model Translator, value Entry, target string
 	}
 	value.Answer = answer
 	value.Language = target
+	value.Vector = append([]float32{}, value.Vector...)
 	return value, nil
 }

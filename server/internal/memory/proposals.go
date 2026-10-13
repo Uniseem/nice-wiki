@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"sync"
+	"time"
 )
 
 type Change string
@@ -23,10 +24,14 @@ type Proposal struct {
 }
 type Proposals struct {
 	mu     sync.Mutex
-	values map[string][]Proposal
+	values map[string]pendingProposals
+}
+type pendingProposals struct {
+	Values  []Proposal
+	Expires time.Time
 }
 
-func NewProposals() *Proposals { return &Proposals{values: map[string][]Proposal{}} }
+func NewProposals() *Proposals { return &Proposals{values: map[string]pendingProposals{}} }
 func (p *Proposals) Put(conversation string, values []Proposal) error {
 	for _, v := range values {
 		if v.ID == "" {
@@ -43,13 +48,18 @@ func (p *Proposals) Put(conversation string, values []Proposal) error {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.values[conversation] = append([]Proposal{}, values...)
+	p.values[conversation] = pendingProposals{Values: append([]Proposal{}, values...), Expires: time.Now().Add(30 * time.Minute)}
 	return nil
 }
 func (p *Proposals) Get(conversation string) []Proposal {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return append([]Proposal{}, p.values[conversation]...)
+	value, ok := p.values[conversation]
+	if !ok || time.Now().After(value.Expires) {
+		delete(p.values, conversation)
+		return nil
+	}
+	return append([]Proposal{}, value.Values...)
 }
 func (p *Proposals) Clear(conversation string) {
 	p.mu.Lock()

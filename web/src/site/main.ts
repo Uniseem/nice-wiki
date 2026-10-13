@@ -24,6 +24,15 @@ startCitationHighlight()
 startMath()
 startVideoFacades()
 startBeacon()
+document.querySelectorAll<HTMLSelectElement>('[data-language-switch]').forEach(select => {
+  select.value = document.documentElement.lang
+  select.addEventListener('change', () => {
+    const parts = location.pathname.split('/')
+    if (parts.length > 1) parts[1] = select.value
+    document.cookie = `nw_language=${encodeURIComponent(select.value)}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
+    location.assign(`${parts.join('/')}${location.search}${location.hash}`)
+  })
+})
 document.documentElement.dataset.ready = 'true'
 
 document.querySelectorAll<HTMLElement>('[data-island="ask-widget"],[data-island="ask-page"]').forEach(async element => {

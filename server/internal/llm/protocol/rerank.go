@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 )
@@ -13,6 +14,7 @@ import (
 type CohereRerank struct {
 	BaseURL, Key string
 	Client       *http.Client
+	Headers      map[string]string
 }
 
 func (c CohereRerank) Rerank(ctx context.Context, model, query string, documents []string) ([]float64, Usage, error) {
@@ -24,8 +26,9 @@ func (c CohereRerank) Rerank(ctx context.Context, model, query string, documents
 	if err != nil {
 		return nil, Usage{}, err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.Key)
 	req.Header.Set("Content-Type", "application/json")
+	applyHeaders(req, c.Headers)
+	req.Header.Set("Authorization", "Bearer "+c.Key)
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, Usage{}, err
@@ -44,9 +47,17 @@ func (c CohereRerank) Rerank(ctx context.Context, model, query string, documents
 		return nil, Usage{}, err
 	}
 	scores := make([]float64, len(documents))
+	seen := make([]bool, len(documents))
 	for _, item := range value.Results {
-		if item.Index >= 0 && item.Index < len(scores) {
-			scores[item.Index] = item.Score
+		if item.Index < 0 || item.Index >= len(scores) || seen[item.Index] || math.IsNaN(item.Score) || math.IsInf(item.Score, 0) {
+			return nil, Usage{}, errors.New("重排响应索引或分数无效")
+		}
+		seen[item.Index] = true
+		scores[item.Index] = item.Score
+	}
+	for _, ok := range seen {
+		if !ok {
+			return nil, Usage{}, errors.New("重排响应不完整")
 		}
 	}
 	return scores, Usage{}, nil

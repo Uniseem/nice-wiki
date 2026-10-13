@@ -16,7 +16,8 @@ func (s *Site) documentNavigation(lang, current string) ([]navigation, *navigati
 			}
 			if value.Published {
 				if path, err := s.Content.Path(value.ID); err == nil {
-					result = append(result, navigation{Title: value.Title, URL: "/" + lang + "/" + path, Depth: depth, ID: value.ID, Active: value.ID == current})
+					title, _ := s.translatedMetadata(lang, value.ID, value.Title, "")
+					result = append(result, navigation{Title: title, URL: "/" + lang + "/" + path, Depth: depth, ID: value.ID, Active: value.ID == current})
 				}
 			}
 			visit(value.ID, depth+1)

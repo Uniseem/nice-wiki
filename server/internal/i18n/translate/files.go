@@ -8,7 +8,9 @@ import (
 	"nice-wiki/internal/doc/nodes"
 	"nice-wiki/internal/fsutil"
 	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,8 +18,10 @@ import (
 type Source string
 
 const (
-	SourceMachine Source = "machine"
-	SourceHuman   Source = "human"
+	SourceMachine     Source = "machine"
+	SourceHuman       Source = "human"
+	MetaTitleID              = "meta-title"
+	MetaDescriptionID        = "meta-seo-description"
 )
 
 type Block struct {
@@ -60,6 +64,44 @@ func (f *Files) ReadOptional(language, document string) (File, error) {
 	}
 	return value, err
 }
+func (f *Files) Reusable(language string) (map[string]Block, error) {
+	probe, err := f.layout.Translation(language, "translation-memory")
+	if err != nil {
+		return nil, err
+	}
+	directory := filepath.Dir(probe)
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	entries, err := os.ReadDir(directory)
+	if errors.Is(err, os.ErrNotExist) {
+		return map[string]Block{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]Block{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" || entry.Name()[0] == '_' {
+			continue
+		}
+		var value File
+		if err := fsutil.ReadJSON(filepath.Join(directory, entry.Name()), &value); err != nil {
+			return nil, err
+		}
+		if err := ValidateFile(value); err != nil {
+			return nil, err
+		}
+		for _, block := range value.Blocks {
+			if block.SourceHash != "" && block.Text != "" {
+				result[block.SourceHash] = block
+			}
+		}
+	}
+	return result, nil
+}
 func (f *Files) Write(value File) error {
 	if err := ValidateFile(value); err != nil {
 		return err
@@ -77,7 +119,7 @@ func ValidateFile(value File) error {
 		return errors.New("译文文件结构无效")
 	}
 	for id, block := range value.Blocks {
-		if id != block.ID || !datadir.ValidID(id) || block.SourceHash == "" {
+		if id != block.ID || !datadir.ValidID(id) || block.SourceHash == "" || strings.TrimSpace(block.Text) == "" || block.Source != SourceMachine && block.Source != SourceHuman {
 			return errors.New("译文块结构无效")
 		}
 	}
@@ -94,7 +136,14 @@ func (f *Files) ReadStrings(language, name string) (map[string]string, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	return value, nil
+	result := map[string]string{}
+	for key, text := range value {
+		if len(key) >= len(sourceHashPrefix) && key[:len(sourceHashPrefix)] == sourceHashPrefix {
+			continue
+		}
+		result[key] = text
+	}
+	return result, nil
 }
 
 // MergeMachine 在文件锁内重新读取最新值，避免任务覆盖人工保存。

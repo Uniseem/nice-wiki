@@ -1815,6 +1815,7 @@
     },
     "/api/admin/models/channels/{id}": {"put":{"operationId":"UpdateChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChannelInput"}}}},"responses":{"200":{"description":"已更新","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Channel"}}}}}},"delete":{"operationId":"DeleteChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已删除"}}}},
     "/api/admin/models/channels/{id}/probe": {"post":{"operationId":"ProbeChannel","x-permission":"superadmin","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProbeInput"}}}},"responses":{"200":{"description":"连接正常"}}}},
+    "/api/admin/models/tiers": {"get":{"operationId":"GetModelTiers","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"模型档位","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ModelTiers"}}}}}},"put":{"operationId":"SaveModelTiers","x-permission":"superadmin","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ModelTiers"}}}},"responses":{"200":{"description":"已保存","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ModelTiers"}}}}}}},
     "/api/admin/system": {
       "get": {
         "operationId": "GetRuntime",
@@ -3211,9 +3212,10 @@
     "/api/admin/memory/assistant": {"post":{"operationId":"AskMemoryAssistant","x-permission":"aiMemory","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryAssistantInput"}}}},"responses":{"200":{"description":"修改提议","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/MemoryProposal"}}}}}}}},
     "/api/admin/memory/assistant/{conversation}/apply": {"post":{"operationId":"ApplyMemoryProposals","x-permission":"aiMemory","tags":["admin"],"parameters":[{"in":"path","name":"conversation","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/MemoryApplyInput"}}}},"responses":{"200":{"description":"已应用"}}}},
     "/api/admin/models/catalog": {"get":{"operationId":"ListModels","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"模型目录","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ModelInfo"}}}}}}},"put":{"operationId":"SaveModel","x-permission":"superadmin","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ModelInfo"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/models/catalog/refresh": {"post":{"operationId":"RefreshModelCatalog","x-permission":"superadmin","tags":["admin"],"responses":{"200":{"description":"已投递"}}}},
     "/api/admin/qa/records": {"get":{"operationId":"ListQARecords","x-permission":"manageQA","tags":["admin"],"responses":{"200":{"description":"问答记录","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/QARecord"}}}}}}}},
     "/api/admin/qa/records/{id}/featured": {"put":{"operationId":"FeatureAnswer","x-permission":"manageQA","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/FeaturedInput"}}}},"responses":{"200":{"description":"已设为精选"}}},"delete":{"operationId":"UnfeatureAnswer","x-permission":"manageQA","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已取消精选"}}}},
-    "/api/admin/languages": {"get":{"operationId":"ListLanguages","x-permission":"manageLanguages","tags":["admin"],"responses":{"200":{"description":"语言设置","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguagesAdmin"}}}}}},"put":{"operationId":"SaveLanguages","x-permission":"manageLanguages","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguageSettings"}}}},"responses":{"200":{"description":"已保存"}}}},
+    "/api/admin/languages": {"get":{"operationId":"ListLanguages","x-permission":"manageLanguages","tags":["admin"],"responses":{"200":{"description":"语言设置","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguagesAdmin"}}}}}},"put":{"operationId":"SaveLanguages","x-permission":"manageLanguages","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LanguagesUpdate"}}}},"responses":{"200":{"description":"已保存"}}}},
     "/api/admin/translations/status": {"get":{"operationId":"TranslationStatus","x-permission":"manageTranslations","tags":["admin"],"responses":{"200":{"description":"翻译进度","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TranslationProgress"}}}}}}}},
     "/api/admin/translations/{language}/{id}": {"get":{"operationId":"GetTranslation","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"path","name":"language","required":true,"schema":{"type":"string"}},{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"译文文件","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationFile"}}}}}},"put":{"operationId":"SaveTranslation","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"path","name":"language","required":true,"schema":{"type":"string"}},{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TranslationFile"}}}},"responses":{"200":{"description":"已保存"}}}},
     "/api/admin/glossary": {"get":{"operationId":"ListGlossary","x-permission":"manageTranslations","tags":["admin"],"parameters":[{"in":"query","name":"language","required":false,"schema":{"type":"string"}}],"responses":{"200":{"description":"术语表","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/GlossaryTerm"}}}}}}},"put":{"operationId":"SaveGlossaryTerm","x-permission":"manageTranslations","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GlossaryTerm"}}}},"responses":{"200":{"description":"已保存"}}}},
@@ -3221,7 +3223,8 @@
     "/api/admin/guard/events": {"get":{"operationId":"ListGuardEvents","x-permission":"aiSettings","tags":["admin"],"responses":{"200":{"description":"风险事件","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/GuardEvent"}}}}}}}},
     "/api/admin/guard/bans/{key}": {"delete":{"operationId":"Unban","x-permission":"aiSettings","tags":["admin"],"parameters":[{"in":"path","name":"key","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"已解封"}}}},
     "/api/admin/qa/cache": {"delete":{"operationId":"ClearAnswerCache","x-permission":"manageQA","tags":["admin"],"responses":{"200":{"description":"已清空普通回答缓存"}}}},
-    "/api/admin/qa/debug/{id}": {"get":{"operationId":"GetQADebug","x-permission":"aiSettings","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"调试轨迹","content":{"application/json":{"schema":{"$ref":"#/components/schemas/DebugTrace"}}}}}}}
+    "/api/admin/qa/debug/{id}": {"get":{"operationId":"GetQADebug","x-permission":"aiSettings","tags":["admin"],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"调试轨迹","content":{"application/json":{"schema":{"$ref":"#/components/schemas/DebugTrace"}}}}}}},
+    "/api/admin/qa/debug": {"post":{"operationId":"RunQADebug","x-permission":"aiSettings","tags":["admin"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/DebugInput"}}}},"responses":{"200":{"description":"调试轨迹","content":{"application/json":{"schema":{"$ref":"#/components/schemas/DebugTrace"}}}}}}}
   },
   "components": {
     "schemas": {
@@ -3532,6 +3535,10 @@
             "minLength": 1,
             "maxLength": 120
           },
+          "provider": {
+            "type": "string",
+            "maxLength": 128
+          },
           "baseURL": {
             "type": "string"
           },
@@ -3547,13 +3554,41 @@
           "apiKey": {
             "type": "string",
             "maxLength": 16384
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 600
+          },
+          "streamTimeoutSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 600
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 128
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {"type":"string"},
+            "writeOnly": true
           }
         },
         "required": [
           "name",
+          "provider",
           "baseURL",
           "protocol",
-          "apiKey"
+          "apiKey",
+          "enabled",
+          "timeoutSeconds",
+          "streamTimeoutSeconds",
+          "concurrency"
         ]
       },
       "Channel": {
@@ -3566,25 +3601,48 @@
           "name": {
             "type": "string"
           },
+          "provider": {
+            "type": "string"
+          },
           "baseURL": {
             "type": "string"
           },
           "protocol": {
             "type": "string",
-            "enum": [
-              "openai"
-            ]
+            "enum": ["openai", "anthropic", "gemini", "rerank"]
           },
           "hasKey": {
             "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": "integer"
+          },
+          "streamTimeoutSeconds": {
+            "type": "integer"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "headerNames": {
+            "type": "array",
+            "items": {"type":"string"}
           }
         },
         "required": [
           "id",
           "name",
+          "provider",
           "baseURL",
           "protocol",
-          "hasKey"
+          "hasKey",
+          "enabled",
+          "timeoutSeconds",
+          "streamTimeoutSeconds",
+          "concurrency",
+          "headerNames"
         ]
       },
       "DocMeta": {
@@ -3963,7 +4021,7 @@
           "endsAt"
         ]
       },
-      "AISettings":{"type":"object","additionalProperties":false,"properties":{"enabled":{"type":"boolean"},"exactCache":{"type":"boolean"},"semanticCache":{"type":"boolean"},"maxQuestionLength":{"type":"integer"},"maxTurns":{"type":"integer"},"maxOutputTokens":{"type":"integer"},"dailySpendLimit":{"type":"number"}},"required":["enabled","exactCache","semanticCache","maxQuestionLength","maxTurns","maxOutputTokens","dailySpendLimit"]},
+      "AISettings":{"type":"object","additionalProperties":false,"properties":{"enabled":{"type":"boolean"},"exactCache":{"type":"boolean"},"semanticCache":{"type":"boolean"},"semanticCacheMode":{"type":"string","enum":["ai","threshold"]},"semanticThreshold":{"type":"number","minimum":0.5,"maximum":0.999},"maxQuestionLength":{"type":"integer"},"maxTurns":{"type":"integer"},"maxOutputTokens":{"type":"integer"},"dailySpendLimit":{"type":"number"}},"required":["enabled","exactCache","semanticCache","semanticCacheMode","semanticThreshold","maxQuestionLength","maxTurns","maxOutputTokens","dailySpendLimit"]},
       "RuntimeSettings": {
         "type": "object",
         "additionalProperties": false,
@@ -3986,8 +4044,28 @@
             "type": "number",
             "format": "double"
           },
+          "sessionHourlySpendLimit": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0
+          },
+          "ipHourlySpendLimit": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0
+          },
           "gitRemote": {
             "type": "string"
+          },
+          "gitUsername": {
+            "type": "string",
+            "maxLength": 1024,
+            "writeOnly": true
+          },
+          "gitPassword": {
+            "type": "string",
+            "maxLength": 16384,
+            "writeOnly": true
           },
           "backupHour": {
             "type": "integer"
@@ -4000,6 +4078,8 @@
           "trustedProxies",
           "turnstileSiteKey",
           "dailySpendLimit",
+          "sessionHourlySpendLimit",
+          "ipHourlySpendLimit",
           "gitRemote",
           "backupHour",
           "backupKeep"
@@ -4052,7 +4132,7 @@
       "PublicSession":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"expiresAt":{"type":"integer","format":"int64"}},"required":["id","expiresAt"]},
       "PowChallenge":{"type":"object","additionalProperties":false,"properties":{"challenge":{"type":"string"},"difficulty":{"type":"integer"}},"required":["challenge","difficulty"]},
       "QACitation":{"type":"object","additionalProperties":false,"properties":{"documentId":{"type":"string"},"blockId":{"type":"string"},"title":{"type":"string"},"url":{"type":"string"},"sourceHash":{"type":"string"}},"required":["documentId","blockId","title","url"]},
-      "QAEvent":{"type":"object","additionalProperties":false,"properties":{"type":{"type":"string"},"text":{"type":"string"},"message":{"type":"string"},"conversationId":{"type":"string"},"recordId":{"type":"string"},"citations":{"type":"array","items":{"$ref":"#/components/schemas/QACitation"}}},"required":["type"]},
+      "QAEvent":{"type":"object","additionalProperties":false,"properties":{"type":{"type":"string"},"text":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"},"conversationId":{"type":"string"},"recordId":{"type":"string"},"citations":{"type":"array","items":{"$ref":"#/components/schemas/QACitation"}}},"required":["type"]},
       "AskInput":{"type":"object","additionalProperties":false,"properties":{"question":{"type":"string","maxLength":10000},"conversationId":{"type":"string"},"page":{"type":"string"},"language":{"type":"string","maxLength":32}},"required":["question","conversationId","page"]},
       "ChatTurn":{"type":"object","additionalProperties":false,"properties":{"role":{"type":"string"},"text":{"type":"string"},"createdAt":{"type":"string","format":"date-time"},"recordId":{"type":"string"}},"required":["role","text","createdAt"]},
       "Conversation":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"summary":{"type":"string"},"turns":{"type":"array","items":{"$ref":"#/components/schemas/ChatTurn"}}},"required":["id","summary","turns"]},
@@ -4062,7 +4142,8 @@
       "BeaconInput":{"type":"object","additionalProperties":false,"properties":{"path":{"type":"string"},"language":{"type":"string"},"referrer":{"type":"string"}},"required":["path","language","referrer"]},
       "JobProgress":{"type":"object","additionalProperties":false,"properties":{"kind":{"type":"string"},"subjectId":{"type":"string"},"percent":{"type":"integer"},"state":{"type":"string"}},"required":["kind","subjectId","percent","state"]},
       "PopularDocument":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"views":{"type":"integer","format":"int64"}},"required":["title","views"]},
-      "StatsSummary":{"type":"object","additionalProperties":false,"properties":{"views":{"type":"integer","format":"int64"},"visitors":{"type":"integer","format":"int64"},"aiCrawls":{"type":"integer","format":"int64"},"popular":{"type":"array","items":{"$ref":"#/components/schemas/PopularDocument"}}},"required":["views","visitors","aiCrawls","popular"]},
+      "StatBreakdown":{"type":"object","additionalProperties":false,"properties":{"value":{"type":"string"},"views":{"type":"integer","format":"int64"},"visitors":{"type":"integer","format":"int64"}},"required":["value","views","visitors"]},
+      "StatsSummary":{"type":"object","additionalProperties":false,"properties":{"views":{"type":"integer","format":"int64"},"visitors":{"type":"integer","format":"int64"},"aiCrawls":{"type":"integer","format":"int64"},"popular":{"type":"array","items":{"$ref":"#/components/schemas/PopularDocument"}},"languages":{"type":"array","items":{"$ref":"#/components/schemas/StatBreakdown"}},"countries":{"type":"array","items":{"$ref":"#/components/schemas/StatBreakdown"}},"referrers":{"type":"array","items":{"$ref":"#/components/schemas/StatBreakdown"}}},"required":["views","visitors","aiCrawls","popular","languages","countries","referrers"]},
       "BackupInput":{"type":"object","additionalProperties":false,"properties":{"includeSecrets":{"type":"boolean"}},"required":["includeSecrets"]},
       "BackupInfo":{"type":"object","additionalProperties":false,"properties":{"name":{"type":"string"},"size":{"type":"integer","format":"int64"},"createdAt":{"type":"integer","format":"int64"}},"required":["name","size","createdAt"]},
       "MemoryItem":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"languages":{"type":"array","items":{"type":"string"}},"source":{"type":"string"},"readOnly":{"type":"boolean"},"limit":{"type":"integer"},"content":{"type":"string"}},"required":["id","title","description","languages","source","readOnly","limit","content"]},
@@ -4071,10 +4152,13 @@
       "MemoryProposal":{"type":"object","additionalProperties":true,"properties":{"id":{"type":"string"},"change":{"type":"string"},"reason":{"type":"string"}},"required":["id","change","reason"]},
       "MemoryApplyInput":{"type":"object","additionalProperties":false,"properties":{"accepted":{"type":"object","additionalProperties":{"type":"boolean"}}},"required":["accepted"]},
       "ModelInfo":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"name":{"type":"string"},"channel":{"type":"string"},"capabilities":{"type":"array","items":{"type":"string"}},"inputPrice":{"type":"number"},"outputPrice":{"type":"number"},"context":{"type":"integer"},"maxOutput":{"type":"integer"}},"required":["id","name","channel","capabilities","inputPrice","outputPrice","context","maxOutput"]},
+      "ModelRef":{"type":"object","additionalProperties":false,"properties":{"channel":{"type":"string"},"id":{"type":"string"}},"required":["channel","id"]},
+      "ModelTiers":{"type":"object","additionalProperties":false,"properties":{"fast":{"type":"array","maxItems":8,"items":{"$ref":"#/components/schemas/ModelRef"}},"smart":{"type":"array","maxItems":8,"items":{"$ref":"#/components/schemas/ModelRef"}},"vision":{"type":"array","maxItems":8,"items":{"$ref":"#/components/schemas/ModelRef"}},"embedding":{"type":"array","maxItems":8,"items":{"$ref":"#/components/schemas/ModelRef"}},"rerank":{"type":"array","maxItems":8,"items":{"$ref":"#/components/schemas/ModelRef"}}},"required":["fast","smart","vision","embedding","rerank"]},
       "ProbeInput":{"type":"object","additionalProperties":false,"properties":{"model":{"type":"string"}},"required":["model"]},
       "QARecord":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"question":{"type":"string"},"answer":{"type":"string"},"language":{"type":"string"},"cost":{"type":"number"},"createdAt":{"type":"string","format":"date-time"}},"required":["id","question","answer","language","cost","createdAt"]},
       "FeaturedInput":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"sortKey":{"type":"string"}},"required":["title","sortKey"]},
       "LanguageInfo":{"type":"object","additionalProperties":false,"properties":{"code":{"type":"string"},"name":{"type":"string"},"nativeName":{"type":"string"},"rtl":{"type":"boolean"}},"required":["code","name","nativeName","rtl"]},
+      "LanguagesUpdate":{"type":"object","additionalProperties":false,"properties":{"enabled":{"type":"array","items":{"type":"string"}},"confirmCosts":{"type":"boolean"}},"required":["enabled","confirmCosts"]},
       "LanguagesAdmin":{"type":"object","additionalProperties":false,"properties":{"base":{"type":"string"},"enabled":{"type":"array","items":{"type":"string"}},"available":{"type":"array","items":{"$ref":"#/components/schemas/LanguageInfo"}}},"required":["base","enabled","available"]},
       "TranslationProgress":{"type":"object","additionalProperties":false,"properties":{"language":{"type":"string"},"total":{"type":"integer"},"translated":{"type":"integer"},"needsReview":{"type":"integer"},"percent":{"type":"integer"}},"required":["language","total","translated","needsReview","percent"]},
       "TranslationBlock":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"sourceHash":{"type":"string"},"text":{"type":"string"},"source":{"type":"string"},"needsReview":{"type":"boolean"}},"required":["id","sourceHash","text","source","needsReview"]},
@@ -4084,6 +4168,7 @@
       "TranslationEstimate":{"type":"object","additionalProperties":false,"properties":{"characters":{"type":"integer"},"inputTokens":{"type":"integer"},"outputTokens":{"type":"integer"},"cost":{"type":"number"}},"required":["characters","inputTokens","outputTokens","cost"]},
       "GuardEvent":{"type":"object","additionalProperties":false,"properties":{"scope":{"type":"string"},"reason":{"type":"string"},"risk":{"type":"string"},"created":{"type":"string","format":"date-time"}},"required":["scope","reason","risk","created"]},
       "DebugStep":{"type":"object","additionalProperties":false,"properties":{"name":{"type":"string"},"input":{"type":"string"},"output":{"type":"string"},"cost":{"type":"number"},"duration":{"type":"integer","format":"int64"}},"required":["name","input","output","cost","duration"]},
+      "DebugInput":{"type":"object","additionalProperties":false,"properties":{"question":{"type":"string","maxLength":10000},"language":{"type":"string","maxLength":32}},"required":["question","language"]},
       "DebugTrace":{"type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"steps":{"type":"array","items":{"$ref":"#/components/schemas/DebugStep"}},"created":{"type":"string","format":"date-time"}},"required":["id","steps","created"]}
       },
     "securitySchemes": {

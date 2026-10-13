@@ -1,6 +1,14 @@
 export interface SSEEvent<T = unknown> { event: string, data: T }
+export class SSERequestError extends Error {
+  constructor(public code: string, message: string, public status: number) { super(message) }
+}
 export async function readSSE(response: Response, receive: (event: SSEEvent) => void, signal?: AbortSignal): Promise<void> {
-  if (!response.ok || !response.body) throw new Error(`流式请求失败：${response.status}`)
+  if (!response.ok) {
+    let code = 'request_failed'; let message = `流式请求失败：${response.status}`
+    try { const value = await response.json() as { code?: string, message?: string }; code = value.code ?? code; message = value.message ?? message } catch { /* 使用通用错误。 */ }
+    throw new SSERequestError(code, message, response.status)
+  }
+  if (!response.body) throw new SSERequestError('empty_response', '流式响应为空', response.status)
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''
   while (!signal?.aborted) {
     const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true })

@@ -4,5 +4,6 @@
 <a class="font-semibold" href="/{{.Language}}/">{{.Site.Name}}</a></div>
 <a class="sr-only focus:not-sr-only" href="#main">跳到正文</a>
 {{if .AIEnabled}}<a href="/{{.Language}}/ask" class="text-sm">AI 问答</a>{{end}}
+{{if .MultiLanguage}}<label class="text-sm">语言<select data-language-switch class="ms-2" aria-label="切换语言">{{range .EnabledLanguages}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>{{end}}
 <button type="button" data-theme-toggle class="text-sm text-muted">亮暗主题</button>
 </header>{{end}}

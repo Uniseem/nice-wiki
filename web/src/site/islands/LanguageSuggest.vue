@@ -1,2 +1,18 @@
-<script setup lang="ts">import{onMounted,ref}from'vue';import{client,requireData}from'../../shared/api/client';const props=defineProps<{current:string}>();const suggestion=ref<{language:string,message:string}>();const hidden=ref(false);onMounted(async()=>{const languages=navigator.languages.length?[...navigator.languages]:[navigator.language];try{const value=requireData(await client.POST('/api/public/locale',{body:{languages,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,current:props.current}}));if(value.language!==props.current&&localStorage.getItem(`nw-language-dismissed:${value.language}`)!=='1')suggestion.value=value}catch{/* 建议失败不影响阅读。 */}});function close(){if(suggestion.value)localStorage.setItem(`nw-language-dismissed:${suggestion.value.language}`,'1');hidden.value=true}</script>
-<template><aside v-if="suggestion&&!hidden" class="fixed bottom-4 start-4 z-30 rounded-card border border-border bg-surface p-4 shadow-lg"><p>{{ suggestion.message }}</p><div class="mt-2 flex gap-3"><a :href="`/${suggestion.language}/`" class="text-primary">切换语言</a><button @click="close">忽略</button></div></aside></template>
+<script setup lang="ts">import{onMounted,ref}from'vue';import{client,requireData}from'../../shared/api/client';const props=defineProps<{current:string}>();const suggestion=ref<{language:string,message:string}>();const hidden=ref(false);onMounted(async()=>{if(document.cookie.split(';').some(value=>value.trim().startsWith('nw_language=')))return;const languages=navigator.languages.length?[...navigator.languages]:[navigator.language];try{const value=requireData(await client.POST('/api/public/locale',{body:{languages,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,current:props.current}}));if(value.language!==props.current&&localStorage.getItem(`nw-language-dismissed:${value.language}`)!=='1')suggestion.value=value}catch{/* 建议失败不影响阅读。 */}});function choose(){if(!suggestion.value)return;const language=suggestion.value.language;const parts=location.pathname.split('/');if(parts.length>1)parts[1]=language;document.cookie=`nw_language=${encodeURIComponent(language)}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`;location.assign(`${parts.join('/')}${location.search}${location.hash}`)}function close(){if(suggestion.value)localStorage.setItem(`nw-language-dismissed:${suggestion.value.language}`,'1');hidden.value=true}</script>
+<template>
+  <aside
+    v-if="suggestion&&!hidden"
+    class="fixed bottom-4 start-4 z-30 rounded-card border border-border bg-surface p-4 shadow-lg"
+  >
+    <p>{{ suggestion.message }}</p><div class="mt-2 flex gap-3">
+      <button
+        class="text-primary"
+        @click="choose"
+      >
+        切换语言
+      </button><button @click="close">
+        忽略
+      </button>
+    </div>
+  </aside>
+</template>

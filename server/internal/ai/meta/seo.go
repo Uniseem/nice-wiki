@@ -6,6 +6,7 @@ import (
 	"nice-wiki/internal/doc"
 	"nice-wiki/internal/llm"
 	"nice-wiki/internal/llm/protocol"
+	"nice-wiki/internal/prompts"
 	"strings"
 )
 
@@ -16,7 +17,11 @@ func (s SEO) GenerateDescription(ctx context.Context, file content.File) (string
 	if err != nil {
 		return "", err
 	}
-	response, err := s.Client.Complete(ctx, "seo-description", []protocol.Message{{Role: "user", Content: "用不超过 160 字概括以下文档：\n" + text}})
+	prompt, err := prompts.Get("seo-description")
+	if err != nil {
+		return "", err
+	}
+	response, err := s.Client.Complete(ctx, "seo-description", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: text}})
 	if err != nil {
 		return "", err
 	}

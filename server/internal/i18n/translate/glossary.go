@@ -17,9 +17,12 @@ const (
 )
 
 type Term struct {
-	ID, SourceText, TargetText, Language string
-	Source                               TermSource
-	DocumentID                           string
+	ID         string     `json:"id"`
+	SourceText string     `json:"sourceText"`
+	TargetText string     `json:"targetText"`
+	Language   string     `json:"language"`
+	Source     TermSource `json:"source"`
+	DocumentID string     `json:"documentId"`
 }
 type Glossary struct {
 	mu     sync.RWMutex

@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { client, requireData, errorMessage } from '../../../../shared/api/client'
 const emit = defineEmits<{ done: [] }>()
-const form = reactive({ name: '', baseURL: '', protocol: 'openai' as const, apiKey: '' })
+const form = reactive({ name: '', provider: '', baseURL: '', protocol: 'openai' as const, apiKey: '', enabled: true, timeoutSeconds: 90, streamTimeoutSeconds: 30, concurrency: 4 })
 const error = ref('')
 const busy = ref(false)
 const existing = ref(false)
@@ -22,6 +22,12 @@ async function save() { busy.value = true; error.value = ''; try { requireData(a
       required
       maxlength="120"
       class="nw-input"
+    ></label>
+    <label class="grid gap-2 text-sm">models.dev provider ID（可选）<input
+      v-model="form.provider"
+      maxlength="128"
+      class="nw-input"
+      placeholder="例如 openai"
     ></label>
     <label class="grid gap-2 text-sm">接口地址<input
       v-model="form.baseURL"

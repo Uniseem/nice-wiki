@@ -21,3 +21,5 @@
 ## DB-IP Lite
 
 IP 国家信息使用 DB-IP Lite 数据库。DB-IP Lite 依据 CC BY 4.0 发布，Copyright (c) DB-IP.com：<https://db-ip.com/db/lite.php>。公开站点页脚保留数据来源署名。
+
+数据库通过 maxminddb-golang v2.5.0 读取。该库依据 ISC License 发布，Copyright (c) 2015–2026 Gregory Oschwald：<https://github.com/oschwald/maxminddb-golang>。

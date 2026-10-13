@@ -1,9 +1,29 @@
 package guard
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 )
+
+func IPScope(secret []byte, raw string) string {
+	address, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil {
+		return "ip:unknown"
+	}
+	address = address.Unmap()
+	value := address.String()
+	if address.Is6() {
+		value = netip.PrefixFrom(address, 64).Masked().String()
+	}
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write([]byte(value))
+	return "ip:" + hex.EncodeToString(mac.Sum(nil))
+}
 
 type Bans struct {
 	mu    sync.Mutex

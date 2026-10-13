@@ -4,6 +4,7 @@ type Event struct {
 	Type           string     `json:"type"`
 	Text           string     `json:"text,omitempty"`
 	Message        string     `json:"message,omitempty"`
+	Code           string     `json:"code,omitempty"`
 	Citations      []Citation `json:"citations,omitempty"`
 	ConversationID string     `json:"conversationId,omitempty"`
 	RecordID       string     `json:"recordId,omitempty"`

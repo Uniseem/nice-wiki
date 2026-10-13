@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -10,27 +11,51 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Gemini struct {
-	BaseURL, Key string
-	Client       *http.Client
+	BaseURL, Key  string
+	Client        *http.Client
+	Headers       map[string]string
+	StreamTimeout time.Duration
 }
 
-func (g Gemini) Complete(ctx context.Context, r Request) (Response, error) {
+func geminiBody(r Request) ([]byte, error) {
 	contents := []map[string]any{}
+	system := strings.Builder{}
 	for _, m := range r.Messages {
 		role := m.Role
 		if role == "assistant" {
 			role = "model"
 		}
 		if role == "system" {
-			role = "user"
+			system.WriteString(m.Content)
+			system.WriteByte('\n')
+			continue
 		}
-		contents = append(contents, map[string]any{"role": role, "parts": []map[string]string{{"text": m.Content}}})
+		parts := []map[string]any{{"text": m.Content}}
+		for _, image := range m.Images {
+			mime, data, err := parseDataURL(image)
+			if err != nil {
+				return nil, err
+			}
+			parts = append(parts, map[string]any{"inlineData": map[string]string{"mimeType": mime, "data": data}})
+		}
+		contents = append(contents, map[string]any{"role": role, "parts": parts})
 	}
-	body := map[string]any{"contents": contents, "generationConfig": map[string]any{"maxOutputTokens": r.MaxTokens, "temperature": r.Temperature}}
-	data, err := json.Marshal(body)
+	config := map[string]any{"maxOutputTokens": r.MaxTokens, "temperature": r.Temperature}
+	if r.JSON {
+		config["responseMimeType"] = "application/json"
+	}
+	body := map[string]any{"contents": contents, "generationConfig": config}
+	if system.Len() > 0 {
+		body["systemInstruction"] = map[string]any{"parts": []map[string]string{{"text": strings.TrimSpace(system.String())}}}
+	}
+	return json.Marshal(body)
+}
+func (g Gemini) Complete(ctx context.Context, r Request) (Response, error) {
+	data, err := geminiBody(r)
 	if err != nil {
 		return Response{}, err
 	}
@@ -40,6 +65,7 @@ func (g Gemini) Complete(ctx context.Context, r Request) (Response, error) {
 		return Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	applyHeaders(req, g.Headers)
 	resp, err := g.Client.Do(req)
 	if err != nil {
 		return Response{}, err
@@ -74,12 +100,70 @@ func (g Gemini) Complete(ctx context.Context, r Request) (Response, error) {
 	return Response{Text: text, Model: r.Model, Usage: Usage{InputTokens: value.Usage.Input, OutputTokens: value.Usage.Output}}, nil
 }
 func (g Gemini) Stream(ctx context.Context, r Request, emit func(Chunk) error) error {
-	value, err := g.Complete(ctx, r)
+	streamCtx, stop, touch := idleContext(ctx, g.StreamTimeout)
+	defer stop()
+	data, err := geminiBody(r)
 	if err != nil {
 		return err
 	}
-	if err := emit(Chunk{Text: value.Text, Usage: value.Usage}); err != nil {
+	target := strings.TrimSuffix(g.BaseURL, "/") + "/v1beta/models/" + url.PathEscape(r.Model) + ":streamGenerateContent?alt=sse&key=" + url.QueryEscape(g.Key)
+	request, err := http.NewRequestWithContext(streamCtx, http.MethodPost, target, bytes.NewReader(data))
+	if err != nil {
 		return err
 	}
-	return emit(Chunk{Done: true, Usage: value.Usage})
+	request.Header.Set("Content-Type", "application/json")
+	applyHeaders(request, g.Headers)
+	response, err := g.Client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode/100 != 2 {
+		return fmt.Errorf("模型渠道返回状态 %d", response.StatusCode)
+	}
+	usage := Usage{}
+	scanner := bufio.NewScanner(response.Body)
+	scanner.Buffer(make([]byte, 4096), 1<<20)
+	for scanner.Scan() {
+		touch()
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var value struct {
+			Candidates []struct {
+				Content struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"content"`
+			} `json:"candidates"`
+			Usage struct {
+				Input  int64 `json:"promptTokenCount"`
+				Output int64 `json:"candidatesTokenCount"`
+			} `json:"usageMetadata"`
+		}
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &value); err != nil {
+			return err
+		}
+		if value.Usage.Input > 0 {
+			usage.InputTokens = value.Usage.Input
+		}
+		if value.Usage.Output > 0 {
+			usage.OutputTokens = value.Usage.Output
+		}
+		for _, candidate := range value.Candidates {
+			for _, part := range candidate.Content.Parts {
+				if part.Text != "" {
+					if err := emit(Chunk{Text: part.Text, Usage: usage}); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	return emit(Chunk{Done: true, Usage: usage})
 }

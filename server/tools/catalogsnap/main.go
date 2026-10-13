@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -71,13 +72,6 @@ func main() {
 	models := []model{}
 	for providerID, provider := range providers {
 		for modelID, value := range provider.Models {
-			capabilities := []string{"chat"}
-			if value.Attachment {
-				capabilities = append(capabilities, "vision")
-			}
-			if value.StructuredOutput {
-				capabilities = append(capabilities, "structured")
-			}
 			id := value.ID
 			if id == "" {
 				id = modelID
@@ -85,6 +79,20 @@ func main() {
 			name := value.Name
 			if name == "" {
 				name = id
+			}
+			kind := strings.ToLower(id + " " + name)
+			capabilities := []string{"chat"}
+			if strings.Contains(kind, "rerank") || strings.Contains(kind, "reranker") {
+				capabilities = []string{"rerank"}
+			} else if strings.Contains(kind, "embedding") || strings.Contains(kind, "-embed") || strings.Contains(kind, "/embed") {
+				capabilities = []string{"embedding"}
+			} else {
+				if value.Attachment {
+					capabilities = append(capabilities, "vision")
+				}
+				if value.StructuredOutput {
+					capabilities = append(capabilities, "structured")
+				}
 			}
 			models = append(models, model{ID: id, Name: name, Channel: providerID, Capabilities: capabilities, InputPrice: value.Cost.Input, OutputPrice: value.Cost.Output, Context: value.Limit.Context, MaxOutput: value.Limit.Output})
 		}

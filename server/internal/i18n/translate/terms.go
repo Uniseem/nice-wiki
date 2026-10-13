@@ -1,6 +1,9 @@
 package translate
 
-import "context"
+import (
+	"context"
+	"nice-wiki/internal/textutil"
+)
 
 type TermExtractor interface {
 	ExtractTerms(context.Context, string, string) ([]Term, error)
@@ -12,6 +15,9 @@ func ExtractTerms(ctx context.Context, model TermExtractor, glossary *Glossary, 
 		return err
 	}
 	for _, value := range values {
+		if value.ID == "" {
+			value.ID = textutil.Hash([]byte(language + "\x00" + value.SourceText))[:32]
+		}
 		value.Source = TermAutomatic
 		value.DocumentID = document
 		value.Language = language

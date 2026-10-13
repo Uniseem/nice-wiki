@@ -1,8 +1,10 @@
 package retrieve
 
 type Unit struct {
-	ID, DocumentID, Heading, Text string
-	Position                      int
+	ID, DocumentID, Heading, Text, Context string
+	Position                               int
+	BlockIDs                               []string
+	SourceHash                             string
 }
 
 func ExpandSection(hit Unit, all []Unit, limit int) []Unit {

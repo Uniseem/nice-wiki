@@ -14,7 +14,8 @@ func ValidateBatch(source []Segment, translated map[string]string) error {
 		if !ok || strings.TrimSpace(value) == "" {
 			return errors.New("译文缺少块")
 		}
-		if strings.TrimSpace(value) == strings.TrimSpace(segment.Text) {
+		plainSource := placeholder.ReplaceAllString(segment.Text, "")
+		if len([]rune(strings.TrimSpace(plainSource))) >= 20 && strings.TrimSpace(value) == strings.TrimSpace(segment.Text) {
 			return errors.New("译文与原文相同")
 		}
 		if err := ValidateInline(segment.Text, value); err != nil {

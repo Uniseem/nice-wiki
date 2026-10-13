@@ -51,6 +51,17 @@ func (s *Conversations) Append(id string, turn Turn) error {
 	s.values[id] = v
 	return nil
 }
+func (s *Conversations) Put(value Conversation) error {
+	if value.ID == "" {
+		return errors.New("对话无效")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	value.Turns = append([]Turn{}, value.Turns...)
+	value.Updated = time.Now()
+	s.values[value.ID] = value
+	return nil
+}
 func (s *Conversations) ReplaceSummary(id, summary string, keep []Turn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

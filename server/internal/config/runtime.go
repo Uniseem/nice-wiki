@@ -10,19 +10,21 @@ import (
 )
 
 type Runtime struct {
-	TrustedProxies   []string `json:"trustedProxies"`
-	TurnstileSiteKey string   `json:"turnstileSiteKey"`
-	DailySpendLimit  float64  `json:"dailySpendLimit"`
-	GitRemote        string   `json:"gitRemote"`
-	BackupHour       int      `json:"backupHour"`
-	BackupKeep       int      `json:"backupKeep"`
+	TrustedProxies          []string `json:"trustedProxies"`
+	TurnstileSiteKey        string   `json:"turnstileSiteKey"`
+	DailySpendLimit         float64  `json:"dailySpendLimit"`
+	SessionHourlySpendLimit float64  `json:"sessionHourlySpendLimit"`
+	IPHourlySpendLimit      float64  `json:"ipHourlySpendLimit"`
+	GitRemote               string   `json:"gitRemote"`
+	BackupHour              int      `json:"backupHour"`
+	BackupKeep              int      `json:"backupKeep"`
 }
 
 func DefaultRuntime() Runtime {
 	return Runtime{TrustedProxies: []string{}, BackupHour: 3, BackupKeep: 7}
 }
 func (r Runtime) Validate() error {
-	if r.DailySpendLimit < 0 || r.BackupHour < 0 || r.BackupHour > 23 || r.BackupKeep < 1 || r.BackupKeep > 365 {
+	if r.DailySpendLimit < 0 || r.SessionHourlySpendLimit < 0 || r.IPHourlySpendLimit < 0 || r.BackupHour < 0 || r.BackupHour > 23 || r.BackupKeep < 1 || r.BackupKeep > 365 {
 		return invalid("系统设置范围无效")
 	}
 	for _, raw := range r.TrustedProxies {

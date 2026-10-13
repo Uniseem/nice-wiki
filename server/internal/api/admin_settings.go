@@ -75,7 +75,7 @@ func (s *Server) SaveAISettings(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	value := settings.AI{Enabled: body.Enabled, ExactCache: body.ExactCache, SemanticCache: body.SemanticCache, MaxQuestionLength: body.MaxQuestionLength, MaxTurns: body.MaxTurns, MaxOutputTokens: body.MaxOutputTokens, DailySpendLimit: s.Settings.AI().DailySpendLimit}
+	value := settings.AI{Enabled: body.Enabled, ExactCache: body.ExactCache, SemanticCache: body.SemanticCache, SemanticCacheMode: string(body.SemanticCacheMode), SemanticThreshold: float64(body.SemanticThreshold), MaxQuestionLength: body.MaxQuestionLength, MaxTurns: body.MaxTurns, MaxOutputTokens: body.MaxOutputTokens, DailySpendLimit: s.Settings.AI().DailySpendLimit}
 	if err := s.Settings.SaveAI(value); err != nil {
 		s.validationOrFailure(w, err)
 		return

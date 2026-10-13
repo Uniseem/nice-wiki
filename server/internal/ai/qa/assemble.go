@@ -21,3 +21,21 @@ func Assemble(units []retrieve.Unit, maximum int) string {
 	}
 	return out.String()
 }
+func LimitUnits(units []retrieve.Unit, maximum int) []retrieve.Unit {
+	result := []retrieve.Unit{}
+	seen := map[string]bool{}
+	size := 0
+	for _, unit := range units {
+		if seen[unit.ID] {
+			continue
+		}
+		part := len("[块 "+unit.ID+"]\n") + len(unit.Text) + 2
+		if size+part > maximum {
+			break
+		}
+		seen[unit.ID] = true
+		size += part
+		result = append(result, unit)
+	}
+	return result
+}

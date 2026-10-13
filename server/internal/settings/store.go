@@ -16,9 +16,23 @@ type Store struct {
 	banner        Banner
 	languages     Languages
 	ai            AI
+	modelTiers    map[string][]string
 	onChange      func(string)
 	knownLanguage func(string) bool
 	aiReady       func() bool
+}
+
+type aiFile struct {
+	AI
+	ModelTiers map[string][]string `json:"modelTiers,omitempty"`
+}
+
+func cloneModelTiers(values map[string][]string) map[string][]string {
+	result := map[string][]string{}
+	for tier, models := range values {
+		result[tier] = append([]string{}, models...)
+	}
+	return result
 }
 
 func (s *Store) SetAIReadiness(check func() bool) {
@@ -27,15 +41,31 @@ func (s *Store) SetAIReadiness(check func() bool) {
 	s.aiReady = check
 }
 
+func (s *Store) AIReady() bool {
+	s.mu.RLock()
+	check := s.aiReady
+	s.mu.RUnlock()
+	return check != nil && check()
+}
+
 func Open(layout datadir.Layout, onChange func(string), knownLanguage func(string) bool) (*Store, error) {
-	s := &Store{layout: layout, site: DefaultSite(), home: DefaultHome(), languages: DefaultLanguages(), ai: DefaultAI(), onChange: onChange, knownLanguage: knownLanguage}
+	s := &Store{layout: layout, site: DefaultSite(), home: DefaultHome(), languages: DefaultLanguages(), ai: DefaultAI(), modelTiers: map[string][]string{}, onChange: onChange, knownLanguage: knownLanguage}
 	for _, entry := range []struct {
 		path  string
 		value any
-	}{{layout.Site(), &s.site}, {layout.Home(), &s.home}, {layout.Banner(), &s.banner}, {layout.Languages(), &s.languages}, {layout.AI(), &s.ai}} {
+	}{{layout.Site(), &s.site}, {layout.Home(), &s.home}, {layout.Banner(), &s.banner}, {layout.Languages(), &s.languages}} {
 		if err := fsutil.ReadJSON(entry.path, entry.value); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
+	}
+	storedAI := aiFile{AI: s.ai, ModelTiers: map[string][]string{}}
+	if err := fsutil.ReadJSON(layout.AI(), &storedAI); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+	s.ai = storedAI.AI
+	s.modelTiers = cloneModelTiers(storedAI.ModelTiers)
+	if err := validateModelTiers(s.modelTiers); err != nil {
+		return nil, err
 	}
 	s.home = s.home.normalized()
 	if err := s.site.Validate(); err != nil {

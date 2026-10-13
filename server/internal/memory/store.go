@@ -8,6 +8,7 @@ import (
 	"nice-wiki/internal/fsutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -58,6 +59,13 @@ func decode(data []byte) (Item, error) {
 }
 func (s *Store) Save(v Item) error {
 	if err := Validate(v); err != nil {
+		return err
+	}
+	if current, err := s.Get(v.ID); err == nil {
+		if current.ReadOnly && !reflect.DeepEqual(current, v) {
+			return errors.New("只读记忆不能修改")
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	path, err := s.layout.MemoryEntry(v.ID)

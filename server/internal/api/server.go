@@ -34,48 +34,59 @@ import (
 )
 
 type Server struct {
-	contract          *openapi3.T
-	Preview           func(http.ResponseWriter, *http.Request, string)
-	Assets            *assets.Store
-	Auth              *auth.Service
-	Content           *content.Repo
-	History           *history.Repo
-	Settings          *settings.Store
-	Runtime           *config.RuntimeStore
-	Secrets           *config.Secrets
-	Channels          *llm.Channels
-	Setup             *setup.Service
-	Logger            *slog.Logger
-	Dev               bool
-	Videos            *videoembed.Registry
-	QA                *qa.Service
-	Conversations     *qa.Conversations
-	Records           *qa.Records
-	Sessions          *guard.Sessions
-	PoW               *guard.PoW
-	Turnstile         *guard.Turnstile
-	turnstileMu       sync.RWMutex
-	Bans              *guard.Bans
-	GuardEvents       *guard.Events
-	Debug             *qa.DebugStore
-	AnswerCache       *cache.Store
-	Memory            *memory.Store
-	MemoryMapping     *memory.Mapping
-	MemoryAssistant   *memory.Assistant
-	Catalog           *llm.Catalog
-	Translations      *itranslate.Files
-	Glossary          *itranslate.Glossary
-	Locale            *suggest.Decider
-	Jobs              interface{ Progress() []jobs.Progress }
-	StatsSummary      func(context.Context) (stats.Summary, error)
-	RecordVisit       func(context.Context, *http.Request, string, string, string) error
-	CreateBackupFile  func(context.Context, bool) (BackupResult, error)
-	ListBackupFiles   func(context.Context) ([]BackupResult, error)
-	OpenBackupFile    func(context.Context, string) (io.ReadCloser, int64, error)
-	ListQARecordRows  func(context.Context) ([]qa.Record, error)
-	SaveQAFeedback    func(context.Context, string, string, bool) error
-	FeatureQAAnswer   func(context.Context, string, string, string) error
-	UnfeatureQAAnswer func(context.Context, string) error
+	contract        *openapi3.T
+	Preview         func(http.ResponseWriter, *http.Request, string)
+	Assets          *assets.Store
+	Auth            *auth.Service
+	Content         *content.Repo
+	History         *history.Repo
+	Settings        *settings.Store
+	Runtime         *config.RuntimeStore
+	Secrets         *config.Secrets
+	Channels        *llm.Channels
+	Setup           *setup.Service
+	Logger          *slog.Logger
+	Dev             bool
+	Videos          *videoembed.Registry
+	QA              *qa.Service
+	Conversations   *qa.Conversations
+	Records         *qa.Records
+	Sessions        *guard.Sessions
+	PoW             *guard.PoW
+	Turnstile       *guard.Turnstile
+	turnstileMu     sync.RWMutex
+	Bans            *guard.Bans
+	Checks          *guard.Checks
+	GuardEvents     *guard.Events
+	GuardScope      func(string) string
+	Debug           *qa.DebugStore
+	AnswerCache     *cache.Store
+	Memory          *memory.Store
+	MemoryMapping   *memory.Mapping
+	MemoryAssistant *memory.Assistant
+	Catalog         *llm.Catalog
+	Translations    *itranslate.Files
+	Glossary        *itranslate.Glossary
+	Locale          *suggest.Decider
+	LocaleLimiter   *guard.Limiter
+	CountryLookup   func(string) (string, error)
+	Jobs            interface {
+		Progress() []jobs.Progress
+		Enqueue(context.Context, jobs.Kind, string) error
+	}
+	StatsSummary         func(context.Context) (stats.Summary, error)
+	RecordVisit          func(context.Context, *http.Request, string, string, string) error
+	CreateBackupFile     func(context.Context, bool) (BackupResult, error)
+	ListBackupFiles      func(context.Context) ([]BackupResult, error)
+	OpenBackupFile       func(context.Context, string) (io.ReadCloser, int64, error)
+	ListQARecordRows     func(context.Context) ([]qa.Record, error)
+	LoadQAConversation   func(context.Context, string) (qa.Conversation, bool, error)
+	ClearQAConversation  func(context.Context, string) error
+	SaveQAFeedback       func(context.Context, string, string, bool) error
+	FeatureQAAnswer      func(context.Context, string, string, string) error
+	UnfeatureQAAnswer    func(context.Context, string) error
+	TranslationEstimate  func(int) itranslate.Estimate
+	ClearAnswerCacheData func(context.Context) error
 }
 
 type BackupResult struct {

@@ -28,6 +28,10 @@ func (p Pipeline) Run(ctx context.Context, document, language string, segments [
 	}
 	result := before
 	result.Blocks = map[string]Block{}
+	memory, err := p.Files.Reusable(language)
+	if err != nil {
+		return File{}, err
+	}
 	pending := []Segment{}
 	for _, segment := range segments {
 		if human, ok := before.Blocks[segment.ID]; ok && human.Source == SourceHuman {
@@ -35,7 +39,13 @@ func (p Pipeline) Run(ctx context.Context, document, language string, segments [
 			result.Blocks[segment.ID] = human
 			continue
 		}
-		if reused, ok := Reuse(before, segment.ID, hashes[segment.ID], p.ReuseMinimum); ok && compatibleInline(segment.Text, reused.Text, false) {
+		if reused, ok := Reuse(before, segment.ID, hashes[segment.ID], segment.Text, p.ReuseMinimum); ok && compatibleInline(segment.Text, reused.Text, false) {
+			result.Blocks[segment.ID] = reused
+		} else if reused, ok := memory[hashes[segment.ID]]; ok && reusableSource(segment.Text, p.ReuseMinimum) && compatibleInline(segment.Text, reused.Text, false) {
+			reused.ID = segment.ID
+			reused.SourceHash = hashes[segment.ID]
+			reused.Source = SourceMachine
+			reused.NeedsReview = false
 			result.Blocks[segment.ID] = reused
 		} else {
 			pending = append(pending, segment)
@@ -48,7 +58,18 @@ func (p Pipeline) Run(ctx context.Context, document, language string, segments [
 			return File{}, err
 		}
 		for _, segment := range batch {
-			result.Blocks[segment.ID] = Block{ID: segment.ID, SourceHash: hashes[segment.ID], Text: translated[segment.ID], Source: SourceMachine}
+			value := translated[segment.ID]
+			matched := p.Glossary.Relevant(language, segment.Text)
+			missing := CheckTerms(value, matched)
+			needsReview := false
+			if len(missing) > 0 {
+				retry, retryErr := p.Model.Translate(ctx, language, []Segment{segment}, missing)
+				if retryErr == nil && ValidateBatch([]Segment{segment}, retry) == nil {
+					value = retry[segment.ID]
+				}
+				needsReview = len(CheckTerms(value, matched)) > 0
+			}
+			result.Blocks[segment.ID] = Block{ID: segment.ID, SourceHash: hashes[segment.ID], Text: value, Source: SourceMachine, NeedsReview: needsReview}
 		}
 	}
 	result.UpdatedAt = time.Now().Unix()

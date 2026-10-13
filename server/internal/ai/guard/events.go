@@ -6,9 +6,10 @@ import (
 )
 
 type Event struct {
-	Scope, Reason string
-	Risk          Risk
-	Created       time.Time
+	Scope   string    `json:"scope"`
+	Reason  string    `json:"reason"`
+	Risk    Risk      `json:"risk"`
+	Created time.Time `json:"created"`
 }
 type Events struct {
 	mu     sync.Mutex
@@ -19,6 +20,9 @@ func (e *Events) Add(value Event) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.values = append(e.values, value)
+	if len(e.values) > 1000 {
+		e.values = append([]Event{}, e.values[len(e.values)-1000:]...)
+	}
 }
 func (e *Events) List(limit int) []Event {
 	e.mu.Lock()

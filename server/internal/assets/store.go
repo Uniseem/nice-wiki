@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"log/slog"
 	"nice-wiki/internal/datadir"
 	"nice-wiki/internal/store/sqlc"
@@ -34,6 +35,24 @@ func (s *Store) Get(ctx context.Context, hash string) (Metadata, error) {
 		return Metadata{}, err
 	}
 	return Metadata{Hash: value.Hash, Kind: value.Kind, Extension: value.Extension, MIME: value.MimeType, Size: value.Size, Name: value.OriginalName, CreatedAt: value.CreatedAt}, nil
+}
+func (s *Store) OpenFile(ctx context.Context, hash string) (Metadata, io.ReadCloser, error) {
+	value, err := s.Get(ctx, hash)
+	if err != nil {
+		return Metadata{}, nil, err
+	}
+	if err := s.exists(value); err != nil {
+		return Metadata{}, nil, err
+	}
+	path, err := s.path(value)
+	if err != nil {
+		return Metadata{}, nil, err
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return Metadata{}, nil, err
+	}
+	return value, file, nil
 }
 func (s *Store) path(value Metadata) (string, error) {
 	return s.layout.Asset(value.Kind, value.Hash, value.Extension)

@@ -61,7 +61,7 @@ func (r *Repo) rebuildLocked(ctx context.Context) error {
 			}
 		}
 		// 仅保留仍与已发布正文一致的付费派生数据。
-		invalid := "SELECT u.id FROM retrieval_units u WHERE NOT EXISTS (SELECT 1 FROM documents d JOIN blocks b ON b.document_id=d.id WHERE d.id=u.document_id AND d.published=1 AND b.id=u.id AND b.text=u.text)"
+		invalid := "SELECT u.id FROM retrieval_units u WHERE NOT EXISTS (SELECT 1 FROM documents d WHERE d.id=u.document_id AND d.published=1) OR NOT EXISTS (SELECT 1 FROM retrieval_unit_blocks rb JOIN blocks b ON b.id=rb.block_id WHERE rb.unit_id=u.id AND b.document_id=u.document_id) OR EXISTS (SELECT 1 FROM retrieval_unit_blocks rb LEFT JOIN blocks b ON b.id=rb.block_id WHERE rb.unit_id=u.id AND b.id IS NULL)"
 		for _, statement := range []string{
 			"DELETE FROM vectors WHERE unit_id IN (" + invalid + ")",
 			"DELETE FROM keyword_index WHERE unit_id IN (" + invalid + ")",

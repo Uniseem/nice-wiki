@@ -1,5 +1,13 @@
 package guard
 
+import "errors"
+
+var (
+	ErrVerificationRequired = errors.New("需要重新完成人机验证")
+	ErrBanned               = errors.New("AI 问答已暂时封禁")
+	ErrOutOfScope           = errors.New("问题与站点内容无关")
+)
+
 type Risk string
 
 const (

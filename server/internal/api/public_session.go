@@ -12,8 +12,13 @@ func (s *Server) GetPowChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "ai_unavailable", "问答验证尚未配置")
 		return
 	}
-	challenge := s.PoW.Challenge(httpx.ClientIP(r.Context()), 2, time.Now())
-	writeJSON(w, gen.PowChallenge{Challenge: challenge, Difficulty: 2})
+	now := time.Now()
+	difficulty := 2
+	if s.Checks != nil && s.GuardScope != nil {
+		difficulty = s.Checks.Difficulty(s.GuardScope(httpx.ClientIP(r.Context())), now)
+	}
+	challenge := s.PoW.Challenge(httpx.ClientIP(r.Context()), difficulty, now)
+	writeJSON(w, gen.PowChallenge{Challenge: challenge, Difficulty: difficulty})
 }
 func (s *Server) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
 	body, err := decode[gen.PublicSessionInput](w, r)
@@ -37,15 +42,29 @@ func (s *Server) CreatePublicSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "ai_unavailable", "问答会话尚未配置")
 		return
 	}
-	token, err := s.Sessions.New()
+	token := ""
+	id := ""
+	if cookie, cookieErr := r.Cookie("nw_qa"); cookieErr == nil {
+		if current, verifyErr := s.Sessions.Verify(cookie.Value); verifyErr == nil {
+			id = current
+			token, err = s.Sessions.Renew(id)
+		}
+	}
+	if token == "" {
+		token, err = s.Sessions.New()
+		if err == nil {
+			id, err = s.Sessions.Verify(token)
+		}
+	}
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	id, err := s.Sessions.Verify(token)
-	if err != nil {
-		s.fail(w, err)
-		return
+	if s.Checks != nil {
+		s.Checks.Reset("session:" + id)
+		if s.GuardScope != nil {
+			s.Checks.Reset(s.GuardScope(httpx.ClientIP(r.Context())))
+		}
 	}
 	expires := time.Now().Add(24 * time.Hour)
 	http.SetCookie(w, &http.Cookie{Name: "nw_qa", Value: token, Path: "/", Expires: expires, HttpOnly: true, Secure: s.secure(), SameSite: http.SameSiteLaxMode})

@@ -1,15 +1,30 @@
 package llm
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
+	"net/http"
 	"nice-wiki/internal/fsutil"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 )
+
+type remoteProvider struct {
+	Models map[string]remoteModel `json:"models"`
+}
+type remoteModel struct {
+	ID, Name         string
+	Attachment       bool                            `json:"attachment"`
+	StructuredOutput bool                            `json:"structured_output"`
+	Cost             struct{ Input, Output float64 } `json:"cost"`
+	Limit            struct{ Context, Output int }   `json:"limit"`
+}
 
 //go:embed catalog_snapshot.json
 var catalogSnapshot []byte
@@ -21,11 +36,19 @@ type Catalog struct {
 }
 
 func OpenCatalog(path string) (*Catalog, error) {
+	return openCatalog(path, false)
+}
+func OpenCatalogWithSnapshot(path string) (*Catalog, error) {
+	return openCatalog(path, true)
+}
+func openCatalog(path string, includeSnapshot bool) (*Catalog, error) {
 	var built struct {
 		Models []Model `json:"models"`
 	}
-	if err := json.Unmarshal(catalogSnapshot, &built); err != nil {
-		return nil, err
+	if includeSnapshot {
+		if err := json.Unmarshal(catalogSnapshot, &built); err != nil {
+			return nil, err
+		}
 	}
 	values := map[string]Model{}
 	for _, model := range built.Models {
@@ -73,4 +96,58 @@ func (c *Catalog) Merge(values []Model) error {
 	}
 	c.models = next
 	return nil
+}
+func (c *Catalog) Refresh(ctx context.Context, client *http.Client, url string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode/100 != 2 {
+		return errors.New("模型目录更新失败")
+	}
+	data, err := io.ReadAll(io.LimitReader(response.Body, 64<<20))
+	if err != nil {
+		return err
+	}
+	providers := map[string]remoteProvider{}
+	if err := json.Unmarshal(data, &providers); err != nil {
+		return err
+	}
+	models := []Model{}
+	for providerID, provider := range providers {
+		for modelID, value := range provider.Models {
+			id := value.ID
+			if id == "" {
+				id = modelID
+			}
+			name := value.Name
+			if name == "" {
+				name = id
+			}
+			kind := strings.ToLower(id + " " + name)
+			capabilities := []Capability{Chat}
+			if strings.Contains(kind, "rerank") || strings.Contains(kind, "reranker") {
+				capabilities = []Capability{Rerank}
+			} else if strings.Contains(kind, "embedding") || strings.Contains(kind, "-embed") || strings.Contains(kind, "/embed") {
+				capabilities = []Capability{Embedding}
+			} else {
+				if value.Attachment {
+					capabilities = append(capabilities, Vision)
+				}
+				if value.StructuredOutput {
+					capabilities = append(capabilities, Structured)
+				}
+			}
+			models = append(models, Model{ID: id, Name: name, Channel: providerID, Capabilities: capabilities, InputPrice: value.Cost.Input, OutputPrice: value.Cost.Output, Context: value.Limit.Context, MaxOutput: value.Limit.Output})
+		}
+	}
+	if len(models) == 0 {
+		return errors.New("模型目录为空")
+	}
+	return c.Merge(models)
 }

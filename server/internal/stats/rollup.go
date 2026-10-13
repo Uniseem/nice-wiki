@@ -10,7 +10,8 @@ import (
 )
 
 type Daily struct {
-	Day, Language, Path       string
+	Day, Dimension, Value     string
+	Language, Path            string
 	Views, Visitors, AICrawls int64
 }
 type Store interface {
@@ -57,9 +58,15 @@ func (s SQLStore) ReplaceDaily(ctx context.Context, day string, values []Daily) 
 		return err
 	}
 	for _, v := range values {
-		dimension, value := "path", v.Path
-		if v.Path == "" && v.AICrawls > 0 {
+		dimension, value := v.Dimension, v.Value
+		if dimension == "" {
+			dimension, value = "path", v.Path
+		}
+		if dimension == "path" && v.Path == "" && v.AICrawls > 0 {
 			dimension, value = "ai", "crawler"
+			v.Views = v.AICrawls
+		}
+		if dimension == "ai" {
 			v.Views = v.AICrawls
 		}
 		if _, err = tx.ExecContext(ctx, "INSERT INTO daily_stats(day,dimension,value,views,visitors) VALUES(?,?,?,?,?)", day, dimension, value, v.Views, v.Visitors); err != nil {
@@ -70,8 +77,19 @@ func (s SQLStore) ReplaceDaily(ctx context.Context, day string, values []Daily) 
 	return tx.Commit()
 }
 func (s SQLStore) DeleteBeaconsBefore(ctx context.Context, before time.Time) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM page_views WHERE created_at<?", before.Unix())
-	return err
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM page_views WHERE created_at<?", before.Unix()); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM daily_salts WHERE day<?", before.UTC().Format("2006-01-02")); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 var _ = sqlc.DailyStat{}
@@ -82,14 +100,26 @@ func Rollup(ctx context.Context, store Store, day time.Time, retention int) erro
 	if err != nil {
 		return err
 	}
-	type key struct{ lang, path string }
+	type key struct{ dimension, value string }
 	rows := map[key]*Daily{}
 	visitors := map[key]map[string]bool{}
+	add := func(dimension, value string, beacon Beacon) {
+		if value == "" {
+			return
+		}
+		k := key{dimension, value}
+		if rows[k] == nil {
+			rows[k] = &Daily{Day: start.Format("2006-01-02"), Dimension: dimension, Value: value}
+			visitors[k] = map[string]bool{}
+		}
+		rows[k].Views++
+		visitors[k][beacon.Visitor] = true
+	}
 	for _, v := range values {
 		if v.AI {
-			k := key{}
+			k := key{"ai", "crawler"}
 			if rows[k] == nil {
-				rows[k] = &Daily{Day: start.Format("2006-01-02")}
+				rows[k] = &Daily{Day: start.Format("2006-01-02"), Dimension: "ai", Value: "crawler"}
 				visitors[k] = map[string]bool{}
 			}
 			rows[k].AICrawls++
@@ -98,13 +128,11 @@ func Rollup(ctx context.Context, store Store, day time.Time, retention int) erro
 		if v.Bot {
 			continue
 		}
-		k := key{"", v.Path}
-		if rows[k] == nil {
-			rows[k] = &Daily{Day: start.Format("2006-01-02"), Language: v.Language, Path: v.Path}
-			visitors[k] = map[string]bool{}
-		}
-		rows[k].Views++
-		visitors[k][v.Visitor] = true
+		add("total", "all", v)
+		add("path", v.Path, v)
+		add("language", v.Language, v)
+		add("country", v.Country, v)
+		add("referrer", v.Referrer, v)
 	}
 	result := []Daily{}
 	for k, row := range rows {

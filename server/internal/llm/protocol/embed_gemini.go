@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,6 +27,7 @@ func (g Gemini) Embed(ctx context.Context, model string, input []string) ([][]fl
 		return nil, Usage{}, err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	applyHeaders(request, g.Headers)
 	response, err := g.Client.Do(request)
 	if err != nil {
 		return nil, Usage{}, err
@@ -46,7 +48,22 @@ func (g Gemini) Embed(ctx context.Context, model string, input []string) ([][]fl
 		return nil, Usage{}, errors.New("Gemini 嵌入响应不完整")
 	}
 	result := make([][]float32, len(input))
+	dimensions := 0
 	for i := range value.Embeddings {
+		if len(value.Embeddings[i].Values) == 0 {
+			return nil, Usage{}, errors.New("Gemini 嵌入响应包含空向量")
+		}
+		if dimensions == 0 {
+			dimensions = len(value.Embeddings[i].Values)
+		}
+		if len(value.Embeddings[i].Values) != dimensions {
+			return nil, Usage{}, errors.New("Gemini 嵌入响应维度不一致")
+		}
+		for _, number := range value.Embeddings[i].Values {
+			if math.IsNaN(float64(number)) || math.IsInf(float64(number), 0) {
+				return nil, Usage{}, errors.New("Gemini 嵌入响应包含无效向量")
+			}
+		}
 		result[i] = value.Embeddings[i].Values
 	}
 	return result, Usage{}, nil

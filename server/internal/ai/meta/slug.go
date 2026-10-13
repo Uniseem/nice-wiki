@@ -6,13 +6,18 @@ import (
 	"nice-wiki/internal/content"
 	"nice-wiki/internal/llm"
 	"nice-wiki/internal/llm/protocol"
+	"nice-wiki/internal/prompts"
 	"strings"
 )
 
 type Slugger struct{ Client *llm.Client }
 
 func (s Slugger) GenerateSlug(ctx context.Context, title string) (string, error) {
-	response, err := s.Client.Complete(ctx, "slug", []protocol.Message{{Role: "user", Content: "Generate one lowercase English URL slug for: " + title}})
+	prompt, err := prompts.Get("slug")
+	if err != nil {
+		return "", err
+	}
+	response, err := s.Client.Complete(ctx, "slug", []protocol.Message{{Role: "system", Content: prompt}, {Role: "user", Content: title}})
 	if err != nil {
 		return "", err
 	}

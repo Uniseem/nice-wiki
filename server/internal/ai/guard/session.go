@@ -20,6 +20,13 @@ func (s *Sessions) New() (string, error) {
 		return "", err
 	}
 	id := base64.RawURLEncoding.EncodeToString(raw)
+	return s.Renew(id)
+}
+func (s *Sessions) Renew(id string) (string, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(id)
+	if err != nil || len(raw) != 24 {
+		return "", errors.New("问答会话无效")
+	}
 	payload := id + "." + strconv.FormatInt(time.Now().Add(24*time.Hour).Unix(), 10)
 	mac := hmac.New(sha256.New, s.secret)
 	_, _ = mac.Write([]byte(payload))

@@ -9,6 +9,7 @@ import (
 	translate "nice-wiki/internal/i18n/translate"
 	"nice-wiki/internal/settings"
 	"nice-wiki/internal/textutil"
+	"strings"
 	"time"
 )
 
@@ -50,17 +51,19 @@ type page struct {
 	TurnstileSiteKey string
 	Untranslated     bool
 	MultiLanguage    bool
+	EnabledLanguages []string
 	ShareImage       string
 	UIMessages       template.JS
 }
 
 func (s *Site) page(lang, title string) page {
 	value := page{Language: lang, Title: title, Site: s.Settings.Site(), Home: s.Settings.Home(), Banner: s.Settings.Banner(), Navigation: s.navigation(lang), Dev: s.Dev}
-	value.AIEnabled = s.Settings.AI().Enabled
+	value.AIEnabled = s.Settings.AI().Enabled && s.Settings.AIReady()
 	if s.Runtime != nil {
 		value.TurnstileSiteKey = s.Runtime.Get().TurnstileSiteKey
 	}
 	value.MultiLanguage = len(s.Settings.Languages().Enabled) > 1
+	value.EnabledLanguages = s.Settings.Languages().Enabled
 	if lang != s.Settings.Languages().Base && s.Translations != nil {
 		if translated, err := s.Translations.ReadStrings(lang, "site"); err == nil {
 			if text := translated["site.name"]; text != "" {
@@ -98,17 +101,52 @@ func (s *Site) page(lang, title string) page {
 	}
 	return value
 }
+func (s *Site) translatedMetadata(lang, id, title, description string) (string, string) {
+	if lang == s.Settings.Languages().Base || s.Translations == nil {
+		return title, description
+	}
+	translated, err := s.Translations.ReadOptional(lang, id)
+	if err != nil {
+		return title, description
+	}
+	if value := translated.Blocks[translate.MetaTitleID].Text; value != "" {
+		title = value
+	}
+	if value := translated.Blocks[translate.MetaDescriptionID].Text; value != "" {
+		description = value
+	}
+	return title, description
+}
 func (s *Site) document(w http.ResponseWriter, r *http.Request, lang string, value content.File) {
 	renderDocument := value.Document
 	untranslated := false
 	if lang != s.Settings.Languages().Base && s.Translations != nil {
-		if translated, err := s.Translations.ReadOptional(lang, value.Meta.ID); err == nil && len(translated.Blocks) > 0 {
-			renderDocument = translate.Apply(value.Document, translated)
+		if translated, err := s.Translations.ReadOptional(lang, value.Meta.ID); err == nil {
+			if len(translated.Blocks) > 0 {
+				renderDocument = translate.Apply(value.Document, translated)
+			}
+			blocks, blockErr := doc.Blocks(value.Document)
+			if blockErr != nil {
+				s.errorPage(w, r, 503, "文档暂时不可用")
+				return
+			}
+			if translated.Blocks[translate.MetaTitleID].Text == "" || strings.TrimSpace(value.Meta.SEODescription) != "" && translated.Blocks[translate.MetaDescriptionID].Text == "" {
+				untranslated = true
+			}
+			for _, block := range blocks {
+				translatedBlock, exists := translated.Blocks[block.ID]
+				if len(block.Translatable) > 0 && (!exists || translatedBlock.Text == "") {
+					untranslated = true
+					break
+				}
+			}
 		} else {
-			untranslated = true
+			s.errorPage(w, r, 503, "文档暂时不可用")
+			return
 		}
 	}
-	data := s.page(lang, value.Meta.Title)
+	title, description := s.translatedMetadata(lang, value.Meta.ID, value.Meta.Title, value.Meta.SEODescription)
+	data := s.page(lang, title)
 	key, err := textutil.HashJSON([]any{lang, value.Meta, renderDocument, untranslated, data, s.Settings.Languages(), s.Content.List(), s.Manifest, s.Dev})
 	if err != nil {
 		s.errorPage(w, r, 503, "文档暂时不可用")
@@ -127,11 +165,11 @@ func (s *Site) document(w http.ResponseWriter, r *http.Request, lang string, val
 	data.Untranslated = untranslated
 	data.Navigation, data.Previous, data.Next = s.documentNavigation(lang, value.Meta.ID)
 	data.CacheKey = key
-	data.Description = value.Meta.SEODescription
+	data.Description = description
 	if data.Site.ShareImageHash != "" {
 		data.ShareImage = canonical(data.Site, "/assets/images/"+data.Site.ShareImageHash+".webp")
 	}
-	data.Breadcrumb = breadcrumbJSON(data.Site, r.URL.Path, value.Meta.Title)
+	data.Breadcrumb = breadcrumbJSON(data.Site, r.URL.Path, title)
 	data.Canonical = canonical(data.Site, r.URL.Path)
 	data.Alternates = alternates(data.Site, r.URL.Path, s.Settings.Languages())
 	data.Body = template.HTML(body)
@@ -141,7 +179,7 @@ func (s *Site) document(w http.ResponseWriter, r *http.Request, lang string, val
 		s.errorPage(w, r, 503, "文档暂时不可用")
 		return
 	}
-	data.Markdown = "# " + value.Meta.Title + "\n\n" + markdown
+	data.Markdown = "# " + title + "\n\n" + markdown
 	data.MarkdownURL = r.URL.Path + ".md"
 	w.Header().Set("Link", "<"+r.URL.Path+".md>; rel=\"alternate\"; type=\"text/markdown\"")
 	s.render(w, r, 200, "doc", data)

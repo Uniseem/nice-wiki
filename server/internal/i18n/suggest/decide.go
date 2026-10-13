@@ -42,6 +42,14 @@ func (d *Decider) Decide(ctx context.Context, signals Signals, enabled []string,
 		}
 	}
 	d.mu.Lock()
+	if len(d.cache) >= 1000 {
+		for candidate, cachedValue := range d.cache {
+			if time.Now().After(cachedValue.expires) || len(d.cache) >= 1000 {
+				delete(d.cache, candidate)
+				break
+			}
+		}
+	}
 	d.cache[key] = cached{language: language, expires: time.Now().Add(24 * time.Hour)}
 	d.mu.Unlock()
 	return language

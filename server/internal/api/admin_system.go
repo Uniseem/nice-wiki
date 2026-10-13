@@ -14,7 +14,11 @@ func (s *Server) SaveRuntime(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	value := config.Runtime{TrustedProxies: body.TrustedProxies, TurnstileSiteKey: body.TurnstileSiteKey, DailySpendLimit: body.DailySpendLimit, GitRemote: body.GitRemote, BackupHour: body.BackupHour, BackupKeep: body.BackupKeep}
+	value := config.Runtime{TrustedProxies: body.TrustedProxies, TurnstileSiteKey: body.TurnstileSiteKey, DailySpendLimit: body.DailySpendLimit, SessionHourlySpendLimit: body.SessionHourlySpendLimit, IPHourlySpendLimit: body.IpHourlySpendLimit, GitRemote: body.GitRemote, BackupHour: body.BackupHour, BackupKeep: body.BackupKeep}
+	if err := value.Validate(); err != nil {
+		s.validationOrFailure(w, err)
+		return
+	}
 	if body.TurnstileSecret != nil {
 		if err := s.Secrets.Set("turnstile", *body.TurnstileSecret); err != nil {
 			s.fail(w, err)
@@ -24,6 +28,18 @@ func (s *Server) SaveRuntime(w http.ResponseWriter, r *http.Request) {
 			s.setTurnstile(nil)
 		} else {
 			s.setTurnstile(&guard.Turnstile{Secret: *body.TurnstileSecret, Client: http.DefaultClient})
+		}
+	}
+	if body.GitUsername != nil {
+		if err := s.Secrets.Set("git-username", *body.GitUsername); err != nil {
+			s.fail(w, err)
+			return
+		}
+	}
+	if body.GitPassword != nil {
+		if err := s.Secrets.Set("git-password", *body.GitPassword); err != nil {
+			s.fail(w, err)
+			return
 		}
 	}
 	if err := s.Runtime.Save(value); err != nil {

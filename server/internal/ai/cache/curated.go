@@ -8,3 +8,11 @@ func (s *Store) Delete(question, language string) {
 	defer s.mu.Unlock()
 	delete(s.values, Key(question, language))
 }
+func (s *Store) DeleteAutomatic(question, language string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := Key(question, language)
+	if value, ok := s.values[key]; ok && !value.Curated {
+		delete(s.values, key)
+	}
+}

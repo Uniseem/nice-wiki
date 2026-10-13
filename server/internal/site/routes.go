@@ -1,6 +1,7 @@
 package site
 
 import (
+	"context"
 	"embed"
 	"html/template"
 	"net/http"
@@ -16,15 +17,16 @@ import (
 var templates embed.FS
 
 type Site struct {
-	Content      *content.Repo
-	Settings     *settings.Store
-	Manifest     webui.Manifest
-	Dev          bool
-	templates    *template.Template
-	cache        *Cache
-	videos       *videoembed.Registry
-	Translations *itranslate.Files
-	Runtime      *config.RuntimeStore
+	Content       *content.Repo
+	Settings      *settings.Store
+	Manifest      webui.Manifest
+	Dev           bool
+	templates     *template.Template
+	cache         *Cache
+	videos        *videoembed.Registry
+	Translations  *itranslate.Files
+	Runtime       *config.RuntimeStore
+	RecordCrawler func(context.Context, *http.Request, string, string) error
 }
 
 func New(repo *content.Repo, settings *settings.Store, manifest webui.Manifest, dev bool) (*Site, error) {

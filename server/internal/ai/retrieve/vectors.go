@@ -41,6 +41,9 @@ func (v *VectorIndex) Search(query []float32, limit int) []Hit {
 	defer v.mu.RUnlock()
 	result := make([]Hit, 0, len(v.values))
 	for id, value := range v.values {
+		if len(value) != len(query) {
+			continue
+		}
 		result = append(result, Hit{id, cosine(query, value)})
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Score > result[j].Score })

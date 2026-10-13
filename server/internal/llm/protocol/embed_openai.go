@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 )
 
 func (o OpenAI) Embed(ctx context.Context, model string, input []string) ([][]float32, Usage, error) {
@@ -29,10 +30,25 @@ func (o OpenAI) Embed(ctx context.Context, model string, input []string) ([][]fl
 		return nil, Usage{}, err
 	}
 	result := make([][]float32, len(input))
+	seen := make([]bool, len(input))
+	dimensions := 0
 	for _, item := range value.Data {
-		if item.Index >= 0 && item.Index < len(result) {
-			result[item.Index] = item.Embedding
+		if item.Index < 0 || item.Index >= len(result) || seen[item.Index] || len(item.Embedding) == 0 {
+			return nil, Usage{}, errors.New("嵌入响应索引无效")
 		}
+		if dimensions == 0 {
+			dimensions = len(item.Embedding)
+		}
+		if len(item.Embedding) != dimensions {
+			return nil, Usage{}, errors.New("嵌入响应维度不一致")
+		}
+		for _, number := range item.Embedding {
+			if math.IsNaN(float64(number)) || math.IsInf(float64(number), 0) {
+				return nil, Usage{}, errors.New("嵌入响应包含无效向量")
+			}
+		}
+		seen[item.Index] = true
+		result[item.Index] = item.Embedding
 	}
 	for _, v := range result {
 		if len(v) == 0 {
