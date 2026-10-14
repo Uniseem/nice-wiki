@@ -4,16 +4,16 @@
   "phase": "implementation",
   "contractSha256": "a72c9a81f8fab283299badd264a5030dfb452aaf2539203bab667381664492b9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-13（Codex，启动与契约生成准备）",
-  "branch": "codex/memory-r1-13-bootstrap",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
+  "assignedSession": "R1-13（Codex，私有持久化与启动恢复）",
+  "branch": "codex/memory-persistence",
+  "baseCommit": "5bd7347fc2ada5f79e48038e5cc1a68a61cdf845",
+  "deliveryCommit": "cb316303da36827d34461aa3ac560bae46241ef1",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/memory/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cb316303da36827d34461aa3ac560bae46241ef1",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -372,8 +372,8 @@
     },
     {
       "path": "modules/memory/migrations/001_initial.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cb316303da36827d34461aa3ac560bae46241ef1",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -413,7 +413,7 @@
     {
       "path": "modules/memory/go.mod",
       "state": "implemented",
-      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
+      "implementationCommit": "cb316303da36827d34461aa3ac560bae46241ef1",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -595,8 +595,8 @@
     {
       "id": "memory.LoadRuntime",
       "path": "modules/memory/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cb316303da36827d34461aa3ac560bae46241ef1",
       "verification": {
         "state": "not_run",
         "evidence": null
