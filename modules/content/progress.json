@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "content",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "fd5eb7fb13fd92655d9904f6a13d984435386fc9e17658315e9e438ce1e35d79",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-04（启动与契约生成准备）",
+  "branch": "codex/content-r1-04",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
   "deployment": "not_started",
   "files": [
     {
@@ -412,91 +412,91 @@
     },
     {
       "path": "modules/content/cmd/content/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未能运行go build/go vet/gofmt：当前环境无Go工具链，VPS不可用"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "path": "modules/content/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "配置/信任锚/运行权威/恢复入口已接入；未能运行Go构建检查"
       },
-      "blocker": null
+      "blocker": "本域业务存储、journal恢复、全部OpenAPI x-handler、后台函数与activation回执尚未实现，按合同返回DEPENDENCY_UNAVAILABLE；Go工具链验证环境不可用"
     },
     {
       "path": "modules/content/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "HTTP生命周期与匿名状态路由已写入；未能运行go build/go vet/gofmt"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "path": "modules/content/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "固定Go工具链与本域直接依赖已登记；未能运行go mod download"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，go.sum尚未生成"
     },
     {
       "path": "modules/content/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未能运行go mod download：当前环境无Go工具链，VPS不可用；未手写生成文件"
       },
-      "blocker": null
+      "blocker": "依赖锁文件必须由go mod download生成"
     },
     {
       "path": "modules/content/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已核对非root运行层、独占data卷和非敏感配置复制；未运行Docker构建"
       },
-      "blocker": null
+      "blocker": "Docker工具不可用"
     },
     {
       "path": "modules/content/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已登记generate/build/run/verify入口；未运行make verify"
       },
-      "blocker": null
+      "blocker": "当前环境无make与Go工具链"
     },
     {
       "path": "modules/content/config/service.defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地Python JSON解析通过；仅含保留地址、服务身份引用和依赖端点，无密钥原文"
       },
       "blocker": null
     },
     {
       "path": "modules/content/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地Python JSON解析通过；端口、独占卷、secret引用、依赖端点和healthz/readyz探针与本域清单一致"
       },
       "blocker": null
     },
@@ -1330,68 +1330,68 @@
     {
       "id": "content.main",
       "path": "modules/content/cmd/content/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅装配platform.ServiceSpec与lifecycle.RunService；Go构建未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现配置/信任锚/运行权威/ApplyRestoreSwap前置检查；依赖未实现时显式返回DEPENDENCY_UNAVAILABLE，未伪造联调成功"
       },
-      "blocker": null
+      "blocker": "业务存储、journal恢复、全部OpenAPI x-handler、后台函数与activation回执未实现；Go构建未运行"
     },
     {
       "id": "content.Serve",
       "path": "modules/content/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现单监听、ctx取消和HTTP错误映射；Go构建未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "id": "content.Shutdown",
       "path": "modules/content/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现draining、HTTP安全关闭、超时错误与sync.Once；Go构建未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "id": "content.Health",
       "path": "modules/content/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅读取本地生命周期并返回脱敏HealthStatus；Go构建未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用"
     },
     {
       "id": "content.Ready",
       "path": "modules/content/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现控制区/journal/业务依赖/epoch/runtime门禁字段；Go构建未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链验证环境不可用；业务依赖未实现时保持不可就绪"
     },
     {
       "id": "content.mountModuleUI",
@@ -1416,5 +1416,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "R1-04已创建启动入口、生命周期装配、默认配置、部署清单、Dockerfile、Makefile和go.mod；main/Serve/Shutdown/Health/Ready已写入但未通过Go工具链验证，BuildApplication按合同因本域业务处理器、私有存储、journal恢复、x-handler与后台函数未实现而保持blocked并返回DEPENDENCY_UNAVAILABLE。go.sum未能由go mod download生成。其余业务文件/函数仍planned，不能批量宣称已完成。"
 }
