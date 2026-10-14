@@ -2,22 +2,38 @@
 
 ## 本次事实
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+2026-10-15 已完成本域 R1 启动与契约生成准备。基线为
+`ac593c57861d2242f27d07562a2acae535d18c38`，独立分支为
+`codex/analytics-r1-bootstrap`，代码提交为
+`7d97e7e0e25b260d0d8edcd58802fe20613fc42a`，未 push。
 
-## 基线与文件
+本次只修改 `modules/analytics/`：
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+- `cmd/analytics/main.go`：只装配 `platform/lifecycle.RunService`、本域 `BuildApplication` 和运行权威客户端。
+- `internal/app/wire.go`：建立本域 `active/control/restore` 目录，加载信任锚与签名引用，接入 site-config 运行权威和 `ApplyRestoreSwap`，构造 HTTP 应用。
+- `internal/transport/server.go`：实现 `Serve`、`Shutdown`、`Health`、`Ready`，并完整绑定生成 server interface 的 17 个路由方法。
+- `go.mod`、`go.sum`、`Makefile`、`config/defaults.json`、`deploy/manifest.json`、`Dockerfile`：固定依赖、非敏感默认值和独立部署入口。
 
-独占范围是 modules/analytics/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
+业务路由没有伪造成功：匿名 beacon、审计、访问/费用汇总、导出、屏障和快照方法当前统一返回
+`DEPENDENCY_UNAVAILABLE`。生成目录中的 `openapi.gen.go`、`clients.gen.go`、`oapi-codegen.yaml` 和浏览器类型未手改。
 
-## 下一步（一项）
+## 台账状态
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
+`progress.json` 已切换为 `implementation`，记录本次分支、基线和提交。入口、生命周期、健康/就绪、配置与部署文件为 `implemented`；`BuildApplication` 文件与函数为 `blocked`，因为本域 SQLite/journal、恢复激活回执、后台任务/事件循环和真实 x-handler 业务函数尚未实现。其余业务文件/函数保持 `planned`。实现、验证、行为验收和部署状态严格区分。
 
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
+## 检查
 
-## 下一次结束填写
+- `python scripts/check_docs.py --privacy-only`：通过。
+- 配置与 manifest JSON 解析：通过。
+- 生成 server interface 的 17 个方法静态覆盖核对：通过。
+- `git diff --check`：通过。
+- `make gen`：未执行成功，当前环境没有 `make`；因此未触碰生成目录。
+- Go、gofmt、make 均不在当前环境，未运行编译、vet、格式化、业务测试、真实接口、真实模型或部署验收。
 
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
+根 `framework.json`、根 STATUS/plan、公共合同和其他模块属于集成会话所有权，本次未修改；集成时需登记新增 9 个本域文件并在可用 Go/VPS 环境复跑阶段检查。
 
-详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+## 阻塞与下一项
+
+阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。提交本身没有业务验收结论。
+
+下一项：先按本域 `data.md` 和 ADR0003 为 `migrations/0001_domain.sql` 配套登记并实现 analytics 私有存储/journal，再回到 `analytics.BuildApplication` 接入迁移恢复与真实 handler；完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。

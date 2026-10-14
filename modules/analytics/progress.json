@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "analytics",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "b3276f26d7d1f4a4da65bd1af4e903d4a09469f548726a729127a47221fdbe14",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "analytics-r1-bootstrap",
+  "branch": "codex/analytics-r1-bootstrap",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
   "deployment": "not_started",
   "files": [
     {
@@ -322,8 +322,8 @@
     },
     {
       "path": "modules/analytics/config/defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -342,8 +342,8 @@
     },
     {
       "path": "modules/analytics/cmd/analytics/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -352,18 +352,18 @@
     },
     {
       "path": "modules/analytics/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "启动装配已建立，但本域业务SQLite/journal、恢复激活回执、后台任务/事件循环及各x-handler业务函数尚未实现；本次仅按合同保留失败关闭路径"
     },
     {
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -372,8 +372,8 @@
     },
     {
       "path": "modules/analytics/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -382,8 +382,8 @@
     },
     {
       "path": "modules/analytics/go.sum",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -392,8 +392,8 @@
     },
     {
       "path": "modules/analytics/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -402,8 +402,8 @@
     },
     {
       "path": "modules/analytics/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -412,8 +412,8 @@
     },
     {
       "path": "modules/analytics/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1008,8 +1008,8 @@
     {
       "id": "analytics.main",
       "path": "modules/analytics/cmd/analytics/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1019,19 +1019,19 @@
     {
       "id": "analytics.BuildApplication",
       "path": "modules/analytics/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域业务存储/journal、恢复激活回执、后台任务与事件循环、真实x-handler依赖后续业务工作包；当前缺项按DEPENDENCY_UNAVAILABLE失败关闭"
     },
     {
       "id": "analytics.Serve",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1041,8 +1041,8 @@
     {
       "id": "analytics.Shutdown",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1052,8 +1052,8 @@
     {
       "id": "analytics.Health",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1063,8 +1063,8 @@
     {
       "id": "analytics.Ready",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7d97e7e0e25b260d0d8edcd58802fe20613fc42a",
       "verification": {
         "state": "not_run",
         "evidence": null
