@@ -7,13 +7,13 @@
   "assignedSession": "媒体私有存储与上传处理",
   "branch": "codex/media-upload-storage",
   "baseCommit": "3db911390e35a07007d70a1d2f5cc15fe4092667",
-  "deliveryCommit": null,
+  "deliveryCommit": "915bb77ad4779230dac284364714d440869b434a",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/media/internal/upload_service.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -23,7 +23,7 @@
     {
       "path": "modules/media/internal/upload_validator.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -83,7 +83,7 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -283,7 +283,7 @@
     {
       "path": "modules/media/internal/blob_recovery.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -333,7 +333,7 @@
     {
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -466,7 +466,7 @@
       "id": "media.BeginUpload",
       "path": "modules/media/internal/upload_service.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -477,7 +477,7 @@
       "id": "media.ReadUpload",
       "path": "modules/media/internal/upload_service.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -488,7 +488,7 @@
       "id": "media.AbortUpload",
       "path": "modules/media/internal/upload_service.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -499,7 +499,7 @@
       "id": "media.NormalizeOriginalName",
       "path": "modules/media/internal/upload_validator.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -510,7 +510,7 @@
       "id": "media.HashUpload",
       "path": "modules/media/internal/upload_validator.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -873,7 +873,7 @@
       "id": "media.RecoverBlobJournal",
       "path": "modules/media/internal/blob_recovery.go",
       "state": "implemented",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -972,7 +972,7 @@
       "id": "media.BuildApplication",
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "517719d",
+      "implementationCommit": "517719d66cf0e4a29390bc0f8b3e3e13f3f7d4e4",
       "verification": {
         "state": "not_run",
         "evidence": null
