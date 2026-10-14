@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "design",
-  "contractSha256": "9735ebbb14d24bb7a3f40262cb4ef0a0bcf25f3ccd3f6c63170253b4ddab1795",
+  "contractSha256": "da73f749aa156636e70901a75296b8e8fd0d3e669a0c9207a75cbb7bee9d6ec9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -242,16 +242,6 @@
     },
     {
       "path": "modules/traffic-guard/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/traffic-guard/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -887,7 +877,7 @@
       "blocker": null
     },
     {
-      "id": "traffic-guard.ValidateImport",
+      "id": "traffic-guard.StageSnapshot",
       "path": "modules/traffic-guard/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -898,41 +888,8 @@
       "blocker": null
     },
     {
-      "id": "traffic-guard.PrepareImport",
+      "id": "traffic-guard.DiscardSnapshot",
       "path": "modules/traffic-guard/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "traffic-guard.ActivateImport",
-      "path": "modules/traffic-guard/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "traffic-guard.AbortImport",
-      "path": "modules/traffic-guard/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "traffic-guard.ValidateRecoveryAuthorization",
-      "path": "modules/traffic-guard/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 50 个：手写 32、UI 4、生成 4、配置 9、迁移 1。函数 52 个：约束 30，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 49 个：手写 31、UI 4、生成 4、配置 9、迁移 1。函数 49 个：约束 28，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,8 +29,7 @@
 | `modules/analytics/internal/outbox.go` | 手写 | 派生事件outbox派发；同文件职责限本域以下登记函数 | `analytics.PublishAggregateEvents` |
 | `modules/analytics/internal/barrier.go` | 手写 | 进入analytics一致屏障；同文件职责限本域以下登记函数 | `analytics.EnterBarrier`、`analytics.ReleaseBarrier` |
 | `modules/analytics/internal/snapshot.go` | 手写 | 导出统计快照；同文件职责限本域以下登记函数 | `analytics.CreateSnapshot` |
-| `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | `analytics.ValidateImport`、`analytics.PrepareImport`、`analytics.ActivateImport`、`analytics.AbortImport` |
-| `modules/analytics/internal/recovery_authorization.go` | 手写 | 本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数 | `analytics.ValidateRecoveryAuthorization`（参考） |
+| `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | `analytics.StageSnapshot`、`analytics.DiscardSnapshot` |
 | `modules/analytics/web/src/OverviewPanel.vue` | UI | Vue3模块交互：LoadStatistics；同文件职责限本域以下登记函数 | `analytics.LoadStatistics`（参考） |
 | `modules/analytics/web/src/AuditExplorer.vue` | UI | Vue3模块交互：LoadAuditPage；同文件职责限本域以下登记函数 | `analytics.LoadAuditPage`（参考） |
 | `modules/analytics/web/src/client.ts` | UI | Vue3模块交互：DownloadAuthorizedExport；同文件职责限本域以下登记函数 | `analytics.DownloadAuthorizedExport`（参考） |

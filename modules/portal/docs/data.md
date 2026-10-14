@@ -26,12 +26,7 @@
 | SnapshotRef | SnapshotRef |
 | SnapshotExportRequest | SnapshotExportRequest |
 | SnapshotExportResult | SnapshotExportResult |
-| SnapshotValidateRequest | SnapshotValidateRequest |
-| SnapshotValidation | SnapshotValidation |
-| SnapshotPrepareRequest | SnapshotPrepareRequest |
 | SnapshotStageResult | SnapshotStageResult |
-| SnapshotCommitRequest | SnapshotCommitRequest |
-| SnapshotApplyResult | SnapshotApplyResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | PermissionRequirement | 路由权限 |

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 63 个：手写 47、UI 3、生成 3、配置 9、迁移 1。函数 61 个：约束 37，参考 24。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 63 个：手写 47、UI 3、生成 3、配置 9、迁移 1。函数 59 个：约束 35，参考 24。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -40,7 +40,7 @@
 | `modules/localization/internal/events/withdraw.go` | 手写 | 处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.InvalidateDocumentTranslations` |
 | `modules/localization/internal/runtime/recovery.go` | 手写 | 恢复翻译任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RecoverTranslationLeases`（参考） |
 | `modules/localization/internal/events/outbox.go` | 手写 | 持久发布翻译事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PublishOutbox` |
-| `modules/localization/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.AcquireBarrier`、`localization.ReleaseBarrier`、`localization.ExportSnapshot`、`localization.ValidateSnapshot`、`localization.PrepareSnapshot`、`localization.CommitSnapshot`、`localization.RollbackSnapshot` |
+| `modules/localization/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.AcquireBarrier`、`localization.ReleaseBarrier`、`localization.ExportSnapshot`、`localization.StageSnapshot`、`localization.DiscardSnapshot` |
 | `modules/localization/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `localization.LoadAdminOverview`（参考） |
 | `modules/localization/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `localization.SubmitPrimaryEdit`（参考） |
 | `modules/localization/internal/translation/tm.go` | 手写 | 精确翻译记忆复用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReuseTranslationMemory`（参考） |

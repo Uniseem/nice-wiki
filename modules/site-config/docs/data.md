@@ -1,6 +1,6 @@
 # 数据、权威与持久化
 
-site-config私有settings/siteId/revisionId.json是站点设置权威文件，banner正文同样不可变；私有head/journal只有COMMITTED可见。derived数据库仅设置索引、历史水位、receipt/outbox/stages。独立control.db保留runtimeState、恢复信任锚、activation回执，绝不被业务快照覆盖。设置文件（不含credentials/keys/可信代理）通过对象API由data-protection镜像纳入data git。
+site-config私有settings/siteId/revisionId.json是站点设置权威文件，banner正文同样不可变；私有head/journal只有COMMITTED可见。derived数据库仅设置索引、历史水位、receipt/outbox/stages。独立control.db保留runtimeState与恢复切换回执，绝不被业务快照覆盖。设置文件（不含credentials/keys/可信代理）通过对象API由data-protection镜像纳入data git。
 
 严格保留old home.md/D17、D34、admin.md站点设置。hero仅一屏，无卡片精选。主标题/副标题/按钮文字、站点名、footer/banner会翻译，Welcome To默认不翻译可开。bannerId是访客localStorage关闭身份。baseLanguage在初始化选择默认zh-Hans；已初始化无变更基准语言的新产品入口。
 
@@ -26,12 +26,7 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | SnapshotRef | SnapshotRef |
 | SnapshotExportRequest | SnapshotExportRequest |
 | SnapshotExportResult | SnapshotExportResult |
-| SnapshotValidateRequest | SnapshotValidateRequest |
-| SnapshotValidation | SnapshotValidation |
-| SnapshotPrepareRequest | SnapshotPrepareRequest |
 | SnapshotStageResult | SnapshotStageResult |
-| SnapshotCommitRequest | SnapshotCommitRequest |
-| SnapshotApplyResult | SnapshotApplyResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | LanguageTag | 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 |
@@ -41,7 +36,7 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | SecurityPolicy | 会话/预览非业务功能新增 |
 | SiteConfig | 版本化站点设置权威文件；既有功能不增添多内容首页 |
 | RuntimePhase | 独立控制库状态 |
-| ActivationReceipt | 恢复激活证明；只接受对应生产服务的签名 |
+| ActivationReceipt | 恢复切换/换回回执；只接受对应服务身份 |
 | RuntimeState | 运行状态权威；独立 control.db，不进入业务快照恢复覆盖 |
 | RuntimeTransition | 严格控制迁移；不能任意设置phase/maintenance/dataEpoch |
 | InitializationState | 首超管注册后的站点/语言两步向导；没有AI和owner reservation |
@@ -69,8 +64,8 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | TransitionRuntimeStateResult | 按CAS切换epoch与维护阶段的结果 |
 | ValidateRuntimeTransitionInput | 验证维护与恢复状态迁移矩阵的输入 |
 | ValidateRuntimeTransitionResult | 验证维护与恢复状态迁移矩阵的结果 |
-| RegisterActivationInput | 登记域恢复激活签名回执的输入 |
-| RegisterActivationResult | 登记域恢复激活签名回执的结果 |
+| RegisterActivationInput | 登记域恢复切换/换回回执的输入 |
+| RegisterActivationResult | 登记域恢复切换/换回回执的结果 |
 | CheckWriteEpochInput | 所有业务写入执行epoch与屏障检查的输入 |
 | CheckWriteEpochResult | 所有业务写入执行epoch与屏障检查的结果 |
 | InitializeSiteInput | D55初始化仅站点和基准语言两步；默认zh-Hans |

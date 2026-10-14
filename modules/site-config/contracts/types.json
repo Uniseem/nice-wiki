@@ -76,29 +76,9 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
       "description": "SnapshotExportResult"
     },
-    "SnapshotValidateRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
-      "description": "SnapshotValidateRequest"
-    },
-    "SnapshotValidation": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
-      "description": "SnapshotValidation"
-    },
-    "SnapshotPrepareRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
-      "description": "SnapshotPrepareRequest"
-    },
     "SnapshotStageResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
       "description": "SnapshotStageResult"
-    },
-    "SnapshotCommitRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
-      "description": "SnapshotCommitRequest"
-    },
-    "SnapshotApplyResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
-      "description": "SnapshotApplyResult"
     },
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
@@ -401,23 +381,21 @@
       "enum": [
         "running",
         "backup_barrier",
-        "restore_draining",
-        "restore_preparing",
-        "restore_activating",
+        "restore_staging",
+        "restore_switching",
         "restore_rolling_back",
         "restore_blocked"
       ]
     },
     "ActivationReceipt": {
       "type": "object",
-      "description": "恢复激活证明；只接受对应生产服务的签名",
+      "description": "恢复切换/换回回执；只接受对应服务身份",
       "additionalProperties": false,
       "properties": {
         "module": {
           "type": "string",
           "description": "全部注册域",
           "enum": [
-            "portal",
             "identity",
             "site-config",
             "content",
@@ -436,18 +414,17 @@
         },
         "stageId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "各域stage/gate"
+          "description": "本域暂存回执ID（restoreId+snapshotId）"
         },
         "targetDataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "已激活epoch"
+          "description": "全部域已换入的目标epoch"
         },
         "state": {
           "type": "string",
           "description": "结果",
           "enum": [
-            "prepared",
-            "committed",
+            "switched",
             "rolled-back"
           ]
         },
@@ -535,7 +512,7 @@
         },
         "requiredModules": {
           "type": "array",
-          "description": "激活要求集合",
+          "description": "需登记切换回执的有状态域集合",
           "items": {
             "type": "string",
             "description": "15个注册module slug",
@@ -589,11 +566,11 @@
             "begin_backup",
             "complete_backup",
             "begin_restore",
-            "begin_prepare",
-            "begin_activation",
-            "begin_rollback",
+            "abort_restore",
+            "begin_switch",
             "mark_blocked",
             "complete_restore",
+            "begin_rollback",
             "complete_rollback"
           ]
         },
@@ -1224,7 +1201,7 @@
     },
     "RegisterActivationInput": {
       "type": "object",
-      "description": "登记域恢复激活签名回执的输入",
+      "description": "登记域恢复切换/换回回执的输入",
       "additionalProperties": false,
       "properties": {
         "receipt": {
@@ -1248,7 +1225,7 @@
     },
     "RegisterActivationResult": {
       "type": "object",
-      "description": "登记域恢复激活签名回执的结果",
+      "description": "登记域恢复切换/换回回执的结果",
       "additionalProperties": false,
       "properties": {
         "state": {
@@ -2621,7 +2598,7 @@
         },
         "trustAnchorRef": {
           "type": "string",
-          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+          "description": "服务身份验证公钥的外部引用；identity签名密钥在control区，不随业务恢复替换"
         },
         "serviceIdentityRef": {
           "type": "string",
@@ -2713,7 +2690,7 @@
         },
         "restoreControlReady": {
           "type": "boolean",
-          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+          "description": "control区与服务身份信任锚可用，且不随业务恢复替换"
         }
       },
       "required": [
@@ -2744,7 +2721,7 @@
             "string",
             "null"
           ],
-          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+          "description": "未初始化null；恢复切换期间用于确认本域已换入的目标epoch"
         },
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"

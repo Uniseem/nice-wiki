@@ -148,10 +148,6 @@
         "cancellationId": {
           "$ref": "#/$defs/Identifier",
           "description": "根操作的贯穿取消标识"
-        },
-        "recoveryAuthorization": {
-          "$ref": "#/$defs/RecoveryAuthorization",
-          "description": "本次已批准恢复控制许可"
         }
       },
       "required": [
@@ -814,159 +810,44 @@
       ],
       "description": "已经导出并验证的本域快照引用"
     },
-    "SnapshotValidateRequest": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "snapshot": {
-          "$ref": "#/$defs/SnapshotRef",
-          "description": "被校验或恢复的快照引用"
-        },
-        "targetDataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "恢复后目标代次"
-        }
-      },
-      "required": [
-        "snapshot",
-        "targetDataEpoch"
-      ],
-      "description": "恢复前验证快照、schema兼容及哈希；不改变活动数据"
-    },
-    "SnapshotValidation": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "valid": {
-          "type": "boolean",
-          "description": "当前结构和版本是否有效"
-        },
-        "issues": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/FieldIssue"
-          },
-          "description": "逐字段输入错误，不能回显秘密原值"
-        },
-        "migrationPlanId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "SnapshotValidation.migrationPlanId；按类型、枚举及required约束使用"
-        }
-      },
-      "required": [
-        "valid",
-        "issues"
-      ],
-      "description": "结构与版本兼容结果，不代表已经恢复"
-    },
-    "SnapshotPrepareRequest": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "restoreId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "本次全域恢复ID"
-        },
-        "snapshot": {
-          "$ref": "#/$defs/SnapshotRef",
-          "description": "被校验或恢复的快照引用"
-        },
-        "barrierId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "本次安全屏障ID"
-        },
-        "targetDataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "恢复后目标代次"
-        }
-      },
-      "required": [
-        "restoreId",
-        "snapshot",
-        "barrierId",
-        "targetDataEpoch"
-      ],
-      "description": "在私有stage准备恢复空间，活动空间保持当前代"
-    },
     "SnapshotStageResult": {
       "type": "object",
       "additionalProperties": false,
+      "description": "本域暂存回执；live数据未变，切换在进程重启时完成",
       "properties": {
-        "stageId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "私有恢复准备空间ID"
-        },
         "restoreId": {
           "$ref": "#/$defs/Identifier",
           "description": "本次全域恢复ID"
         },
+        "owner": {
+          "type": "string",
+          "description": "暂存所属模块slug"
+        },
+        "snapshotId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "已暂存快照ID"
+        },
         "targetDataEpoch": {
           "$ref": "#/$defs/Identifier",
           "description": "恢复后目标代次"
         },
-        "ready": {
+        "checksum": {
+          "$ref": "#/$defs/Hash",
+          "description": "已校验的归档SHA-256"
+        },
+        "staged": {
           "type": "boolean",
-          "description": "当前是否就绪"
+          "description": "暂存目录已fsync并登记"
         }
       },
       "required": [
-        "stageId",
         "restoreId",
+        "owner",
+        "snapshotId",
         "targetDataEpoch",
-        "ready"
-      ],
-      "description": "准备好的stage及验证结果，用于后续commit或rollback"
-    },
-    "SnapshotCommitRequest": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "stageId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "私有恢复准备空间ID"
-        },
-        "targetDataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "恢复后目标代次"
-        },
-        "barrierId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "本次安全屏障ID"
-        }
-      },
-      "required": [
-        "stageId",
-        "targetDataEpoch",
-        "barrierId"
-      ],
-      "description": "已批准恢复操作的切换命令，必须匹配stage和目标代次"
-    },
-    "SnapshotApplyResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "stageId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "私有恢复准备空间ID"
-        },
-        "dataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "当前业务数据代次"
-        },
-        "state": {
-          "enum": [
-            "committed",
-            "rolled-back"
-          ],
-          "description": "精确枚举状态，未知值拒绝"
-        }
-      },
-      "required": [
-        "stageId",
-        "dataEpoch",
-        "state"
-      ],
-      "description": "本域切换或回滚结果；全站确认前继续维护"
+        "checksum",
+        "staged"
+      ]
     },
     "BarrierRequest": {
       "type": "object",
@@ -998,7 +879,7 @@
         "mode",
         "deadline"
       ],
-      "description": "超管委托的安全屏障申请，绑定操作、代次与截止"
+      "description": "超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging"
     },
     "BarrierStatus": {
       "type": "object",
@@ -1038,55 +919,6 @@
         "revisionWatermark"
       ],
       "description": "屏障状态及安全点；未到安全点不能导出完整快照"
-    },
-    "RecoveryAuthorization": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "预先批准且不被业务导入覆盖的恢复控制许可；普通业务不能使用",
-      "properties": {
-        "restoreId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "本次全域恢复ID"
-        },
-        "barrierId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "本次安全屏障ID"
-        },
-        "operatorId": {
-          "$ref": "#/$defs/Identifier",
-          "description": "批准操作的超管ID"
-        },
-        "sourceDataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "恢复前数据代次"
-        },
-        "targetDataEpoch": {
-          "$ref": "#/$defs/Identifier",
-          "description": "恢复后目标代次"
-        },
-        "audience": {
-          "type": "string",
-          "description": "许可唯一允许接收方"
-        },
-        "expiresAt": {
-          "$ref": "#/$defs/Timestamp",
-          "description": "凭证/租约到期UTC时刻；到期拒绝，不自动续命"
-        },
-        "token": {
-          "type": "string",
-          "description": "签名凭证，不记录到日志"
-        }
-      },
-      "required": [
-        "restoreId",
-        "barrierId",
-        "operatorId",
-        "sourceDataEpoch",
-        "targetDataEpoch",
-        "audience",
-        "expiresAt",
-        "token"
-      ]
     },
     "RelayOutboxInput": {
       "type": "object",
@@ -1187,6 +1019,89 @@
         "acknowledged",
         "skipped",
         "failed"
+      ]
+    },
+    "SnapshotStageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003）",
+      "properties": {
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotRef",
+          "description": "被暂存的本域快照引用"
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次安全屏障ID"
+        },
+        "targetDataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "恢复后目标代次"
+        },
+        "checksum": {
+          "$ref": "#/$defs/Hash",
+          "description": "本域归档SHA-256，暂存后必须一致"
+        }
+      },
+      "required": [
+        "restoreId",
+        "snapshot",
+        "barrierId",
+        "targetDataEpoch",
+        "checksum"
+      ]
+    },
+    "SnapshotDiscardRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "删除某次恢复的暂存目录或换出的旧数据目录",
+      "properties": {
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "scope": {
+          "enum": [
+            "staged",
+            "before"
+          ],
+          "description": "staged=未换入的暂存；before=恢复完成后换出的旧active"
+        }
+      },
+      "required": [
+        "restoreId",
+        "scope"
+      ]
+    },
+    "SnapshotDiscardResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "丢弃结果；目录不存在视为已删除",
+      "properties": {
+        "restoreId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次全域恢复ID"
+        },
+        "scope": {
+          "enum": [
+            "staged",
+            "before"
+          ],
+          "description": "已处理的目录类别"
+        },
+        "removed": {
+          "type": "boolean",
+          "description": "本次是否实际删除了目录"
+        }
+      },
+      "required": [
+        "restoreId",
+        "scope",
+        "removed"
       ]
     }
   }

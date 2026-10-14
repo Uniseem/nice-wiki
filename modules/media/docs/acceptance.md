@@ -8,7 +8,7 @@
 - 未执行 M05-R04：所有图片附件视频画板显示文档引用；无当前引用单列，历史风险明确确认，ready文件绝不自动删除。
 - 未执行 M05-R05：unknown source/pendingpin/新generation/readers阻止finaldelete；同fence保护新引用，事件重复乱序不回退。
 - 未执行 M05-R06：scene JSON+亮暗SVG各hash保存，旧历史保留；SVG CSP sandbox，public不React。
-- 未执行 M05-R07：blobjournal/hash完整；snapshot/control信任锚分离，确认人工delete决定才恢复补删。
+- 未执行 M05-R07：blobjournal/hash完整；snapshot与control区分离，确认人工delete决定才恢复补删。
 
 - 未执行：越权、撤回后陈旧缓存、并发 revision、event 重复/乱序、进程崩溃恢复及 epoch 恢复屏障行为。
 - 未执行：输入未知字段、schema 升级/不支持版本与完整性破坏时拒绝/隔离行为。

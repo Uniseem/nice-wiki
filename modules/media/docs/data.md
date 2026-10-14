@@ -26,15 +26,9 @@
 | SnapshotRef | SnapshotRef |
 | SnapshotExportRequest | SnapshotExportRequest |
 | SnapshotExportResult | SnapshotExportResult |
-| SnapshotValidateRequest | SnapshotValidateRequest |
-| SnapshotValidation | SnapshotValidation |
-| SnapshotPrepareRequest | SnapshotPrepareRequest |
 | SnapshotStageResult | SnapshotStageResult |
-| SnapshotCommitRequest | SnapshotCommitRequest |
-| SnapshotApplyResult | SnapshotApplyResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
-| RecoveryAuthorization | RecoveryAuthorization |
 | AssetVersionRef | 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 |
 | ImageVariant | 浏览器生成WebP尺寸，最多640/1280/1920且不放大原图 |
 | Asset | 资源元数据，不含OSpath；服务无图像处理或视频转码库 |

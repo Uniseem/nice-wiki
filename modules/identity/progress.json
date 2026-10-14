@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "design",
-  "contractSha256": "7ace48aab2340ae41914f4068d6656647330898a2e4d22710f94d460f37edd95",
+  "contractSha256": "a312d274bc67f223b8a5ca8d1f2e360dae4033b15c80ae37d9d25e948962eced",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -121,16 +121,6 @@
       "blocker": null
     },
     {
-      "path": "modules/identity/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/identity/internal/operation_repository.go",
       "state": "planned",
       "implementationCommit": null,
@@ -172,26 +162,6 @@
     },
     {
       "path": "modules/identity/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/identity/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/identity/internal/snapshot_repository.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -634,39 +604,6 @@
       "blocker": null
     },
     {
-      "id": "identity.IssueRecoveryAuthorization",
-      "path": "modules/identity/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "identity.ValidateRecoveryAuthorization",
-      "path": "modules/identity/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "identity.RevokeRecoveryAuthorization",
-      "path": "modules/identity/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "id": "identity.ResolveIdentityOperation",
       "path": "modules/identity/internal/operation_repository.go",
       "state": "planned",
@@ -744,7 +681,7 @@
       "blocker": null
     },
     {
-      "id": "identity.PrepareSnapshot",
+      "id": "identity.StageSnapshot",
       "path": "modules/identity/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
@@ -755,30 +692,8 @@
       "blocker": null
     },
     {
-      "id": "identity.ValidateSnapshot",
-      "path": "modules/identity/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "identity.CommitSnapshot",
-      "path": "modules/identity/internal/snapshot_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "identity.RollbackSnapshot",
-      "path": "modules/identity/internal/snapshot_repository.go",
+      "id": "identity.DiscardSnapshot",
+      "path": "modules/identity/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

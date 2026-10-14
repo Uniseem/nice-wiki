@@ -6,4 +6,4 @@ Sources：old docs/design/accounts.md、security-ops.md；D21、D35、D55优先�
 
 超时的写请求必须使用同 operationId 获取原结果。依赖失败不可假定权限、可见性或引用为空。日志记录 requestId、operationId、状态与安全字段，不记录正文、密码、token、原始文件路径或用户 IP。备份导出经只读 ObjectRef API；导出内容与 staging 根由本服务拥有。
 
-快照协议各阶段在 API/函数中登记；portal 仅 gate 屏障。prepare/commit/rollback 均需 data-protection 服务证明、superadmin 委托及维护状态；只要有域激活未完成，site-config 不能退出维护。
+快照协议各阶段在 API/函数中登记；portal 仅 gate 屏障。stage/discard 均需 data-protection 服务证明、superadmin 委托及维护状态；只要有域未登记切换回执，site-config 不能退出维护。

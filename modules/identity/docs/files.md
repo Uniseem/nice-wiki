@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 28 个：手写 22、生成 1、配置 5。函数 51 个：约束 33，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 25 个：手写 19、生成 1、配置 5。函数 46 个：约束 29，参考 17。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -17,14 +17,11 @@
 | `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization` |
 | `modules/identity/internal/preference_service.go` | 手写 | 读自身后台偏好 | `identity.ReadPreferences`、`identity.UpdatePreferences` |
 | `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考） |
-| `modules/identity/internal/recovery_authorization.go` | 手写 | 超管批准后签发有限恢复许可 | `identity.IssueRecoveryAuthorization`、`identity.ValidateRecoveryAuthorization`（参考）、`identity.RevokeRecoveryAuthorization` |
 | `modules/identity/internal/operation_repository.go` | 手写 | 读取幂等回执 | `identity.ResolveIdentityOperation`（参考） |
 | `modules/identity/internal/outbox_repository.go` | 手写 | 与身份提交原子登记事件 | `identity.PublishIdentityEvent`（参考）、`identity.RelayOutbox` |
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考） |
 | `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier` |
-| `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.PrepareSnapshot` |
-| `modules/identity/internal/snapshot_validator.go` | 手写 | 验证快照可恢复性 | `identity.ValidateSnapshot` |
-| `modules/identity/internal/snapshot_repository.go` | 手写 | 激活已准备恢复数据 | `identity.CommitSnapshot`、`identity.RollbackSnapshot` |
+| `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot` |
 | `modules/identity/cmd/identity/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `identity.main` |
 | `modules/identity/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `identity.BuildApplication` |
 | `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready` |

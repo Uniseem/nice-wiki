@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 43、UI 3、生成 3、配置 9、迁移 1。函数 59 个：约束 29，参考 30。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 43、UI 3、生成 3、配置 9、迁移 1。函数 57 个：约束 27，参考 30。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -40,7 +40,7 @@
 | `modules/knowledge/internal/runtime/gc.go` | 手写 | 回收失活索引代数所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.CollectRetiredIndexes`（参考） |
 | `modules/knowledge/internal/admin/diagnostics.go` | 手写 | 返回安全诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.RedactDiagnostics` |
 | `modules/knowledge/internal/search/sections.go` | 手写 | 按引用读取证据片段所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.ReadSections` |
-| `modules/knowledge/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.AcquireBarrier`、`knowledge.ReleaseBarrier`、`knowledge.ExportSnapshot`、`knowledge.ValidateSnapshot`、`knowledge.PrepareSnapshot`、`knowledge.CommitSnapshot`、`knowledge.RollbackSnapshot` |
+| `modules/knowledge/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.AcquireBarrier`、`knowledge.ReleaseBarrier`、`knowledge.ExportSnapshot`、`knowledge.StageSnapshot`、`knowledge.DiscardSnapshot` |
 | `modules/knowledge/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `knowledge.LoadAdminOverview`（参考） |
 | `modules/knowledge/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `knowledge.SubmitPrimaryEdit`（参考） |
 | `modules/knowledge/internal/chunk/context.go` | 手写 | 发布后补检索片段上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.EnrichChunkContext`（参考） |

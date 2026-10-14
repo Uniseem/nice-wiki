@@ -22,8 +22,8 @@ model-gateway是唯一费用和费用额度权威；调用前原子预留所有�
 
 site-config的dataEpoch和maintenanceRevision是权威。data-protection持久记录恢复决策，逐域安全屏障停止新写并等待在途调用到可结算安全点。所有域export校验和后才封存完整清单；任一失败不标完整成功。
 
-恢复先validate，再prepare新数据空间，校验所有域；持久提交决策并CAS全站目标epoch，然后逐域激活。任一域未确认则保持维护，按决策日志重试/回滚，不提供混代读写。旧队列、令牌、缓存和租约随代次失效；免费索引可重建，付费派生结果从备份恢复，绝不自动重新调用模型。
+恢复按[ADR0003](adr/0003-restore-by-restart.md)执行：先校验备份，再让每个域把归档暂存到自己的restore/<restoreId>/staged（不动active）；全部暂存后持久写切换决定，并在site-config记录目标epoch；各服务安全退出、由进程守护重启，启动时把active换成暂存数据并登记回执，全部回执齐后解除维护。任一域未确认则保持维护，可重试或整体换回（启动时把before换回active），不提供混代读写。旧队列、令牌、缓存和租约随代次失效；免费索引可重建，付费派生结果从备份恢复，绝不自动重新调用模型。
 
-恢复控制记录、屏障状态和本次管理信任锚不能被业务快照覆盖。进入维护前由超管批准专用RecoveryAuthorization，绑定restoreId、barrierId、旧/新epoch、目标audience与有效期；各域只在已准备的同一恢复操作内接受该许可。普通业务不能借此绕过epoch或权限。这个控制许可保证identity业务换代后仍能完成已批准的commit/rollback；全域激活结束后撤销许可。
+每域数据根分为active（业务数据，进入快照、恢复时整体替换）、control（屏障、恢复日志、identity服务签名密钥，永不替换）与restore/<restoreId>/staged|before（暂存与换出的旧数据）。恢复不签发专用许可：stage/discard只接受data-protection服务身份携带的superadmin委托，换目录发生在进程启动时、不需要跨服务授权。identity换入后撤销全部会话，管理员用备份中的账号重新登录；恢复进度凭只读进度令牌查看。部署必须配置进程守护自动重启。
 
 data git只是允许数据的版本镜像，源历史在各域持久保存；镜像延迟显式可见，镜像不含账号/配置密钥/数据库/资源，不能代替完整备份。

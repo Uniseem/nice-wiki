@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 50 个：手写 32、UI 4、生成 4、配置 9、迁移 1。函数 53 个：约束 31，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 49 个：手写 31、UI 4、生成 4、配置 9、迁移 1。函数 50 个：约束 29，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,8 +29,7 @@
 | `modules/traffic-guard/internal/retention.go` | 手写 | 清理匿名风控状态；同文件职责限本域以下登记函数 | `traffic-guard.PurgeAnonymousSignals`（参考） |
 | `modules/traffic-guard/internal/barrier.go` | 手写 | 停止准入并等安全点；同文件职责限本域以下登记函数 | `traffic-guard.EnterBarrier`、`traffic-guard.ReleaseBarrier` |
 | `modules/traffic-guard/internal/snapshot.go` | 手写 | 导出风控一致快照；同文件职责限本域以下登记函数 | `traffic-guard.CreateSnapshot` |
-| `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | `traffic-guard.ValidateImport`、`traffic-guard.PrepareImport`、`traffic-guard.ActivateImport`、`traffic-guard.AbortImport` |
-| `modules/traffic-guard/internal/recovery_authorization.go` | 手写 | 本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数 | `traffic-guard.ValidateRecoveryAuthorization`（参考） |
+| `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | `traffic-guard.StageSnapshot`、`traffic-guard.DiscardSnapshot` |
 | `modules/traffic-guard/web/src/PolicyEditor.vue` | UI | Vue3模块交互：SaveGuardPolicy；同文件职责限本域以下登记函数 | `traffic-guard.SaveGuardPolicy`（参考） |
 | `modules/traffic-guard/web/src/BanList.vue` | UI | Vue3模块交互：SubmitBan；同文件职责限本域以下登记函数 | `traffic-guard.SubmitBan`（参考） |
 | `modules/traffic-guard/web/src/client.ts` | UI | Vue3模块交互：RunPoWChallenge；同文件职责限本域以下登记函数 | `traffic-guard.RunPoWChallenge`（参考） |

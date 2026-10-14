@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "design",
-  "contractSha256": "5fb6649d3deaddd018e1f15df828747bd85508c62e162168b36db82d007ce6a8",
+  "contractSha256": "927ab1b5b56767da0752b32c70866d383d19f031846c2d67f62730e055b11f13",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -182,26 +182,6 @@
     },
     {
       "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/site-config/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/site-config/internal/snapshot_repository.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -693,7 +673,7 @@
       "blocker": null
     },
     {
-      "id": "site-config.PrepareSnapshot",
+      "id": "site-config.StageSnapshot",
       "path": "modules/site-config/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
@@ -704,30 +684,8 @@
       "blocker": null
     },
     {
-      "id": "site-config.ValidateSnapshot",
-      "path": "modules/site-config/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "site-config.CommitSnapshot",
-      "path": "modules/site-config/internal/snapshot_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "site-config.RollbackSnapshot",
-      "path": "modules/site-config/internal/snapshot_repository.go",
+      "id": "site-config.DiscardSnapshot",
+      "path": "modules/site-config/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

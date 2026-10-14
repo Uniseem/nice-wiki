@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "design",
-  "contractSha256": "865500833b9ec2e70ba3a3c18b3e36ddb526518e068f00bd4287b8ab8a7197dd",
+  "contractSha256": "06fb3772cf73c0b49b38292387f5e0b2518b09d12082996c560c82401fbda3e9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -282,26 +282,6 @@
     },
     {
       "path": "modules/data-protection/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/data-protection/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/data-protection/internal/recovery_control.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -792,7 +772,7 @@
       "blocker": null
     },
     {
-      "id": "data-protection.PrepareAllDomains",
+      "id": "data-protection.StageAllDomains",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -803,7 +783,7 @@
       "blocker": null
     },
     {
-      "id": "data-protection.ActivateAllDomains",
+      "id": "data-protection.SwitchAllDomains",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -814,7 +794,29 @@
       "blocker": null
     },
     {
-      "id": "data-protection.PrepareDomain",
+      "id": "data-protection.ServeRestoreArchive",
+      "path": "modules/data-protection/internal/restore.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.CleanupRestore",
+      "path": "modules/data-protection/internal/restore.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.StageDomain",
       "path": "modules/data-protection/internal/import_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -825,18 +827,7 @@
       "blocker": null
     },
     {
-      "id": "data-protection.ActivateDomain",
-      "path": "modules/data-protection/internal/import_client.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "data-protection.RollbackDomain",
+      "id": "data-protection.DiscardDomain",
       "path": "modules/data-protection/internal/import_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -858,7 +849,7 @@
       "blocker": null
     },
     {
-      "id": "data-protection.GetRestoreDecision",
+      "id": "data-protection.ReadRestoreProgress",
       "path": "modules/data-protection/internal/decision_log.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1067,7 +1058,7 @@
       "blocker": null
     },
     {
-      "id": "data-protection.ValidateImport",
+      "id": "data-protection.StageSnapshot",
       "path": "modules/data-protection/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1078,52 +1069,8 @@
       "blocker": null
     },
     {
-      "id": "data-protection.PrepareImport",
+      "id": "data-protection.DiscardSnapshot",
       "path": "modules/data-protection/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "data-protection.ActivateImport",
-      "path": "modules/data-protection/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "data-protection.AbortImport",
-      "path": "modules/data-protection/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "data-protection.ValidateRecoveryAuthorization",
-      "path": "modules/data-protection/internal/recovery_authorization.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "data-protection.IssueRestoreControlPermit",
-      "path": "modules/data-protection/internal/recovery_control.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

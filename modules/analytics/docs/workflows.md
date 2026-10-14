@@ -6,7 +6,7 @@ old D31：浏览器加载sendBeacon一次→UA过滤已知爬虫→可信peer/IP
 
 费用：gateway账项settled事件→按ledgerEntryId/revision投影→整数micros聚合→每日固定watermark只读对账；汇总缺漏不影响实时gateway额度判定。
 
-恢复管理校验：维护前由identity为每域签发RecoveryAuthorization；本域控制记录/屏障/信任锚独立于业务导入。维护中的prepare/commit/rollback按本地签名、audience、restore/barrier、两epoch、到期和决策状态校验，不回查已换代身份业务DB；普通业务不接受此许可；全域完成后撤销。
+恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
 状态迁移：
 

@@ -4,7 +4,7 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M15-R002** 全站备份manifest、校验报告、恢复prepare/commit决策日志及恢复进度
+**M15-R002** 全站备份manifest、校验报告、恢复暂存与切换决策日志及恢复进度
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -20,7 +20,7 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M15-R006** 不读取共享数据库或其他服务私有磁盘；仅HTTP导出/导入协议
+**M15-R006** 不读取共享数据库或其他服务私有磁盘；仅HTTP导出/暂存协议
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -40,7 +40,7 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M15-R011** 所有有状态域实现统一barrier/export/validate/prepare/commit/rollback；全域activate后才解除维护
+**M15-R011** 所有有状态域实现统一barrier/export/stage/discard；恢复时重启换入暂存数据，全部域登记switched回执后才解除维护
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -52,11 +52,11 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M15-R014** 任一必需域停机：备份/恢复不进入ready/completed；maintenance保持失败状态等待明确continue或commit前abort。
+**M15-R014** 任一必需域停机：备份/恢复不进入ready/completed；maintenance保持失败状态等待明确continue、切换前abort或切换后整体换回。
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M15-R015** 密钥provider停机：不创建不可解密ready包，不泄漏密钥；已有密文保存。解密校验失败阻止prepare。
+**M15-R015** 密钥provider停机：不创建不可解密ready包，不泄漏密钥；已有密文保存。解密校验失败阻止暂存。
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 

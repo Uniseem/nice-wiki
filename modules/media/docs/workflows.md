@@ -10,4 +10,4 @@
 
 平台视频一次公开信息与封面本地import；失败manual_required手填title/description，不能伪造capability。Bili/YouTube/抖音/TikTok按固定host template；YouTube nocookie。public-site页面先封面按钮，点击才加载第三方player，服务器请求每hop/DNS阻SSRF，不发送登录cookie。
 
-业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位，prepare 不修改活动数据，commit/rollback 都有持久决定日志。
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。

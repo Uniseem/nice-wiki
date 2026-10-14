@@ -1689,20 +1689,20 @@
         "job"
       ]
     },
-    "PrepareDomainInput": {
+    "StageDomainInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "准备单域导入输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "单域暂存输入",
       "properties": {
         "owner": {
           "type": "string",
-          "description": "owner；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "模块slug"
         },
         "request": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
-          "description": "公共 SnapshotPrepareRequest 合同，遵守其字段和空值规则"
+          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageRequest",
+          "description": "公共暂存请求"
         }
       },
       "required": [
@@ -1710,10 +1710,10 @@
         "request"
       ]
     },
-    "PrepareDomainResult": {
+    "StageDomainResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "准备单域导入成功结果；失败不返回半成功结果",
+      "description": "单域暂存成功结果；失败不返回半成功结果",
       "properties": {
         "result": {
           "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
@@ -1724,10 +1724,10 @@
         "result"
       ]
     },
-    "PrepareAllDomainsInput": {
+    "StageAllDomainsInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "准备所有域原子可见前置输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "全部域暂存输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "restoreId": {
           "type": "string",
@@ -1740,35 +1740,35 @@
         "restoreId"
       ]
     },
-    "PrepareAllDomainsResult": {
+    "StageAllDomainsResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "准备所有域原子可见前置成功结果；失败不返回半成功结果",
+      "description": "全部域暂存结果；失败不返回半成功结果",
       "properties": {
-        "stageIds": {
+        "stagedOwners": {
           "type": "array",
           "items": {
             "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "maxLength": 64,
+            "description": "模块slug"
           },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
+          "maxItems": 15,
+          "description": "有序列表；空列表表示没有"
         },
         "manifestHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "manifestHash；UTF-8；不得为 null"
+          "description": "全部暂存回执的manifest hash"
         }
       },
       "required": [
-        "stageIds",
+        "stagedOwners",
         "manifestHash"
       ]
     },
     "WriteRestoreDecisionInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "持久全局提交决定输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "持久全局切换决定输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "restoreId": {
           "type": "string",
@@ -1795,7 +1795,7 @@
     "WriteRestoreDecisionResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "持久全局提交决定成功结果；失败不返回半成功结果",
+      "description": "持久全局切换决定成功结果；失败不返回半成功结果",
       "properties": {
         "decisionId": {
           "type": "string",
@@ -1863,52 +1863,10 @@
         "runtimeRevision"
       ]
     },
-    "ActivateDomainInput": {
+    "SwitchAllDomainsInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "激活单域stage输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "owner；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        },
-        "request": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
-          "description": "公共 SnapshotCommitRequest 合同，遵守其字段和空值规则"
-        },
-        "decisionId": {
-          "type": "string",
-          "description": "decisionId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        }
-      },
-      "required": [
-        "owner",
-        "request",
-        "decisionId"
-      ]
-    },
-    "ActivateDomainResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "激活单域stage成功结果；失败不返回半成功结果",
-      "properties": {
-        "result": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
-          "description": "公共 SnapshotApplyResult 合同，遵守其字段和空值规则"
-        }
-      },
-      "required": [
-        "result"
-      ]
-    },
-    "ActivateAllDomainsInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "完成全域激活输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "全部域重启换入输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "restoreId": {
           "type": "string",
@@ -1928,79 +1886,120 @@
         "decisionId"
       ]
     },
-    "ActivateAllDomainsResult": {
+    "SwitchAllDomainsResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "完成全域激活成功结果；失败不返回半成功结果",
+      "description": "全部域切换结果；失败不返回半成功结果",
       "properties": {
-        "activatedOwners": {
+        "switchedOwners": {
           "type": "array",
           "items": {
             "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "maxLength": 64,
+            "description": "模块slug"
           },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
+          "maxItems": 15,
+          "description": "有序列表；空列表表示没有"
         }
       },
       "required": [
-        "activatedOwners"
+        "switchedOwners"
       ]
     },
-    "GetRestoreDecisionInput": {
+    "ReadRestoreProgressInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "读持久签名决策输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "读取恢复进度输入",
       "properties": {
         "restoreId": {
           "type": "string",
-          "description": "restoreId；UTF-8；不得为 null",
+          "minLength": 1,
           "maxLength": 128,
-          "minLength": 1
+          "description": "恢复ID"
+        },
+        "progressToken": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256,
+          "description": "可选；CreateRestore签发的只读进度令牌，superadmin会话可省略"
         }
       },
       "required": [
         "restoreId"
       ]
     },
-    "GetRestoreDecisionResult": {
+    "ReadRestoreProgressResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "读持久签名决策成功结果；失败不返回半成功结果",
+      "description": "恢复进度；不含数据内容",
       "properties": {
-        "decisionId": {
+        "restoreId": {
           "type": "string",
-          "description": "decisionId；UTF-8；不得为 null",
+          "minLength": 1,
           "maxLength": 128,
-          "minLength": 1
+          "description": "恢复ID"
         },
-        "decision": {
-          "type": "string",
-          "description": "decision；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+        "phase": {
+          "enum": [
+            "requested",
+            "staging",
+            "switching",
+            "blocked",
+            "rolling-back",
+            "completed",
+            "rolled-back",
+            "aborted"
+          ],
+          "description": "恢复阶段"
         },
-        "targetEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "domains": {
+          "type": "array",
+          "maxItems": 15,
+          "description": "各有状态域状态",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "单域状态",
+            "properties": {
+              "owner": {
+                "type": "string",
+                "maxLength": 64,
+                "description": "模块slug"
+              },
+              "state": {
+                "enum": [
+                  "pending",
+                  "staged",
+                  "switched",
+                  "rolled-back",
+                  "discarded",
+                  "failed"
+                ],
+                "description": "单域状态"
+              }
+            },
+            "required": [
+              "owner",
+              "state"
+            ]
+          }
         },
-        "manifestHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "manifestHash；UTF-8；不得为 null"
-        },
-        "signature": {
-          "type": "string",
-          "description": "signature；UTF-8；不得为 null",
-          "maxLength": 8192
+        "failedOwners": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "模块slug"
+          },
+          "maxItems": 15,
+          "description": "有序列表；空列表表示没有"
         }
       },
       "required": [
-        "decisionId",
-        "decision",
-        "targetEpoch",
-        "manifestHash",
-        "signature"
+        "restoreId",
+        "phase",
+        "domains",
+        "failedOwners"
       ]
     },
     "ContinueRestoreInput": {
@@ -2040,59 +2039,45 @@
         "state"
       ]
     },
-    "RollbackDomainInput": {
+    "DiscardDomainInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "撤销单域隔离stage输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "单域丢弃输入",
       "properties": {
         "owner": {
           "type": "string",
-          "description": "owner；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        },
-        "stageId": {
-          "type": "string",
-          "description": "stageId；UTF-8；不得为 null",
+          "minLength": 1,
           "maxLength": 128,
-          "minLength": 1
+          "description": "模块slug"
         },
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "targetEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "request": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotDiscardRequest",
+          "description": "公共丢弃请求"
         }
       },
       "required": [
         "owner",
-        "stageId",
-        "barrierId",
-        "targetEpoch"
+        "request"
       ]
     },
-    "RollbackDomainResult": {
+    "DiscardDomainResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "撤销单域隔离stage成功结果；失败不返回半成功结果",
+      "description": "单域丢弃结果",
       "properties": {
-        "rolledBack": {
-          "type": "boolean",
-          "description": "rolledBack 的明确真假结果，不可 null"
+        "result": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotDiscardResult",
+          "description": "公共丢弃结果"
         }
       },
       "required": [
-        "rolledBack"
+        "result"
       ]
     },
     "AbortRestoreInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "commit前撤销全域恢复输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "切换前撤销或切换后整体换回输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "restoreId": {
           "type": "string",
@@ -2113,7 +2098,7 @@
     "AbortRestoreResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "commit前撤销全域恢复成功结果；失败不返回半成功结果",
+      "description": "切换前撤销或切换后整体换回成功结果；失败不返回半成功结果",
       "properties": {
         "state": {
           "type": "string",
@@ -2661,133 +2646,6 @@
       },
       "required": [
         "status"
-      ]
-    },
-    "ValidateRecoveryAuthorizationInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "本地验证本次恢复专用控制许可输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "authorization": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
-          "description": "公共 RecoveryAuthorization 合同，遵守其字段和空值规则"
-        },
-        "restoreId": {
-          "type": "string",
-          "description": "restoreId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "sourceEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "targetEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        }
-      },
-      "required": [
-        "authorization",
-        "restoreId",
-        "barrierId",
-        "sourceEpoch",
-        "targetEpoch",
-        "action"
-      ]
-    },
-    "ValidateRecoveryAuthorizationResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "本地验证本次恢复专用控制许可成功结果；失败不返回半成功结果",
-      "properties": {
-        "valid": {
-          "type": "boolean",
-          "description": "valid 的明确真假结果，不可 null"
-        }
-      },
-      "required": [
-        "valid"
-      ]
-    },
-    "IssueRestoreControlPermitInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "维护前取得已批准恢复许可输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "restoreId": {
-          "type": "string",
-          "description": "restoreId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "sourceEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "targetEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "actor": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
-          "description": "公共 AuthContext 合同，遵守其字段和空值规则"
-        },
-        "audiences": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
-          },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
-        }
-      },
-      "required": [
-        "restoreId",
-        "barrierId",
-        "sourceEpoch",
-        "targetEpoch",
-        "actor",
-        "audiences"
-      ]
-    },
-    "IssueRestoreControlPermitResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "维护前取得已批准恢复许可成功结果；失败不返回半成功结果",
-      "properties": {
-        "authorizations": {
-          "type": "array",
-          "items": {
-            "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
-            "description": "公共 RecoveryAuthorization 合同，遵守其字段和空值规则"
-          },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
-        }
-      },
-      "required": [
-        "authorizations"
       ]
     },
     "RequestBackupInput": {
@@ -3354,7 +3212,7 @@
     "ContinueRestoreRequestBody": {
       "type": "object",
       "additionalProperties": false,
-      "description": "已commit仅继续激活；未commit按持久记录继续prepare；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
+      "description": "已决定切换则等待未就绪域重启换入；未决定则继续暂存；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
       "properties": {},
       "required": []
     },
@@ -3610,7 +3468,7 @@
         },
         "trustAnchorRef": {
           "type": "string",
-          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+          "description": "服务身份验证公钥的外部引用；identity签名密钥在control区，不随业务恢复替换"
         },
         "serviceIdentityRef": {
           "type": "string",
@@ -3702,7 +3560,7 @@
         },
         "restoreControlReady": {
           "type": "boolean",
-          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+          "description": "control区与服务身份信任锚可用，且不随业务恢复替换"
         }
       },
       "required": [
@@ -3733,7 +3591,7 @@
             "string",
             "null"
           ],
-          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+          "description": "未初始化null；恢复切换期间用于确认本域已换入的目标epoch"
         },
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
@@ -3831,6 +3689,86 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
+    },
+    "ServeRestoreArchiveInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "拉取恢复归档输入",
+      "properties": {
+        "restoreId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "恢复ID"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "归档所属模块slug"
+        }
+      },
+      "required": [
+        "restoreId",
+        "owner"
+      ]
+    },
+    "ServeRestoreArchiveResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "恢复归档描述；字节以流式响应输出",
+      "properties": {
+        "checksum": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "归档SHA-256"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "归档字节数"
+        }
+      },
+      "required": [
+        "checksum",
+        "byteSize"
+      ]
+    },
+    "CleanupRestoreInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "清理恢复保留目录输入",
+      "properties": {
+        "restoreId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "恢复ID"
+        }
+      },
+      "required": [
+        "restoreId"
+      ]
+    },
+    "CleanupRestoreResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "清理结果",
+      "properties": {
+        "cleanedOwners": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "模块slug"
+          },
+          "maxItems": 15,
+          "description": "有序列表；空列表表示没有"
+        }
+      },
+      "required": [
+        "cleanedOwners"
+      ]
     }
   }
 }

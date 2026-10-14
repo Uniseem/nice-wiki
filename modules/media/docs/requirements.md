@@ -10,7 +10,7 @@
 | M05-R04 | 资源库与纯手动清理 | 所有图片附件视频画板显示文档引用；无当前引用单列，历史风险明确确认，ready文件绝不自动删除 |
 | M05-R05 | 迟到引用与删除竞态保护 | unknown source/pendingpin/新generation/readers阻止finaldelete；同fence保护新引用，事件重复乱序不回退 |
 | M05-R06 | Excalidraw三文件/SVG安全 | scene JSON+亮暗SVG各hash保存，旧历史保留；SVG CSP sandbox，public不React |
-| M05-R07 | 私有存储与恢复 | blobjournal/hash完整；snapshot/control信任锚分离，确认人工delete决定才恢复补删 |
+| M05-R07 | 私有存储与恢复 | blobjournal/hash完整；snapshot与control区分离，确认人工delete决定才恢复补删 |
 
 每项当前状态均为未实现、未执行验收。
 

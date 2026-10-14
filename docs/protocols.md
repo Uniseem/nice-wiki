@@ -28,4 +28,4 @@
 
 EventEnvelope必须符合生产方events.json；至少一次持久投递，按对象revision拒绝旧事件，按eventId去重，dataEpoch不匹配拒写。事件传必要元数据与不可变ObjectRef，不任意抓客户端提供URL。
 
-有状态域的管理API为barriers和snapshots export/validate/prepare/commit/rollback；request/response使用公共schema。入口无业务存储只参加维护，不虚构快照。所有管理路径受服务调用方、超管委托、屏障以及dataEpoch共同限制。
+有状态域的管理API为barriers和snapshots export/stage/discard（ADR0003）；request/response使用公共schema。入口无业务存储只参加维护，不虚构快照。所有管理路径受服务调用方、超管委托、屏障以及dataEpoch共同限制。

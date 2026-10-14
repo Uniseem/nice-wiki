@@ -1,40 +1,37 @@
 # traffic-guard HTTP/JSON/SSE
 
-完整schema、参数、错误和security见 [OpenAPI](../contracts/openapi.json)。可信op由入口/服务鉴权构建，requestId由入口生成；Idempotency-Key绑定规范body hash，不同body返回CONFLICT。dataEpoch是runtime权威opaque ID，任何写入必须比较相等；operationContext和恢复许可由可信控制通道转发，不能由匿名请求自声明。
+完整schema、参数、错误和security见 [OpenAPI](../contracts/openapi.json)。可信op由入口/服务鉴权构建，requestId由入口生成；Idempotency-Key绑定规范body hash，不同body返回CONFLICT。dataEpoch是runtime权威opaque ID，任何写入必须比较相等；operationContext由可信控制通道转发，不能由匿名请求自声明。
 
-| 方法与路径 | operationId | handler ID | 权限 | 响应/行为 |
-|---|---|---|---|---|
-| POST `/v1/admissions` | `createAdmission` | `traffic-guard.HandleAdmission` | `service` | 准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单 |
-| POST `/v1/admissions/{admissionId}:renew` | `renewAdmission` | `traffic-guard.RenewPermit` | `service` | 仅签发者/绑定调用服务可续租，同主体、同 epoch |
-| POST `/v1/admissions/{admissionId}:release` | `releaseAdmission` | `traffic-guard.ReleasePermit` | `service` | 幂等释放并发占位 |
-| POST `/v1/challenges` | `issueChallenge` | `traffic-guard.IssueChallenge` | `anonymous` | 签发 PoW；限 6 次/分钟/主体且不返回主体 hash |
-| POST `/v1/challenges/{challengeId}:verify` | `verifyChallenge` | `traffic-guard.VerifyChallenge` | `anonymous` | 验证 proof，成功设置 HttpOnly/Secure/SameSite=Lax 短期签名证明 |
-| GET `/v1/policies` | `getPolicy` | `traffic-guard.GetPolicy` | `guard.manage` | 显示策略与 revision，不显示 pepper |
-| PUT `/v1/policies` | `updatePolicy` | `traffic-guard.UpdatePolicy` | `guard.manage` | expectedRevision CAS；无钱账字段 |
-| POST `/v1/bans` | `createBan` | `traffic-guard.CreateBan` | `guard.manage` | 指定匿名主体引用及动作 scope，禁止提交原始 IP |
-| DELETE `/v1/bans/{banId}` | `revokeBan` | `traffic-guard.RevokeBan` | `guard.manage` | 撤销 CAS，并发布审计事件 |
-| GET `/v1/bans` | `listBans` | `traffic-guard.ListBans` | `guard.manage` | 游标分页，默认 20 上限100 |
-| POST `/v1/admissions/{admissionId}:consume` | `consumeAdmission` | `traffic-guard.ConsumeAdmission` | `service` | 同一QA请求消费准入，重复同request幂等，不预占费用 |
-| POST `/v1/admissions/{admissionId}:verify` | `verifyAdmission` | `traffic-guard.VerifyAdmissionHTTP` | `service` | 仅QA在线确认；gateway本地验签不反向同步依赖 |
-| POST `/v1/question-risk` | `reportModelRisk` | `traffic-guard.ReportQuestionSignals` | `service` | 复评已有前置模型风险/匿名重复信号，abuse600秒AI禁令 |
-| POST `/v1/session-queue` | `queueSessionAdmission` | `traffic-guard.QueueSessionAdmission` | `service` | 同会话仅1处理，其余由qa持正文FIFO排队 |
-| POST `/v1/barriers` | `acquireBarrier` | `traffic-guard.EnterBarrier` | `service` | 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点 |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `traffic-guard.ReleaseBarrier` | `service` | 仅全域恢复完成或commit前全部abort确认后释放 |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `traffic-guard.CreateSnapshot` | `service` | 公共SnapshotExportRequest→SnapshotExportResult；必须safe |
-| POST `/v1/snapshots:validate` | `validateSnapshot` | `traffic-guard.ValidateImport` | `service` | 公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告 |
-| POST `/v1/snapshots:prepare` | `prepareSnapshot` | `traffic-guard.PrepareImport` | `service` | 公共SnapshotPrepareRequest→SnapshotStageResult；不切指针 |
-| POST `/v1/snapshots:commit` | `commitSnapshot` | `traffic-guard.ActivateImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定 |
-| POST `/v1/snapshots:rollback` | `rollbackSnapshot` | `traffic-guard.AbortImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止 |
+<!-- openapi:start -->
+## 接口清单
+
+本节由 `make docs` 从 [openapi.json](../contracts/openapi.json) 生成，不手改；节外说明为手写。
+
+| 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
+|---|---|---|---|---|---|---|
+| POST `/v1/admissions` | `createAdmission` | `traffic-guard.HandleAdmission` | `service` | `HandleAdmissionRequestBody` → 200 `HandleAdmissionResult` | 准入 HTTP | `FORBIDDEN`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/admissions/{admissionId}:renew` | `renewAdmission` | `traffic-guard.RenewPermit` | `service` | `RenewPermitRequestBody` → 200 `RenewPermitResult` | 延长活跃并发租约 | `STALE_RESULT`、`FORBIDDEN` |
+| POST `/v1/admissions/{admissionId}:release` | `releaseAdmission` | `traffic-guard.ReleasePermit` | `service` | `ReleasePermitRequestBody` → 200 `ReleasePermitResult` | 释放并发占位 | `FORBIDDEN`、`VERSION_MISMATCH` |
+| POST `/v1/challenges` | `issueChallenge` | `traffic-guard.IssueChallenge` | `anonymous` | `IssueChallengeRequestBody` → 200 `IssueChallengeResult` | 签发挑战 | `RATE_LIMITED`、`VALIDATION` |
+| POST `/v1/challenges/{challengeId}:verify` | `verifyChallenge` | `traffic-guard.VerifyChallenge` | `anonymous` | `VerifyChallengeRequestBody` → 200 `VerifyChallengeResult` | 核验并消费挑战 | `STALE_RESULT`、`VALIDATION` |
+| GET `/v1/policies` | `getPolicy` | `traffic-guard.GetPolicy` | `guard.manage` | `—` → 200 `GetPolicyResult` | 读取生效策略 | `VERSION_MISMATCH` |
+| PUT `/v1/policies` | `updatePolicy` | `traffic-guard.UpdatePolicy` | `guard.manage` | `UpdatePolicyRequestBody` → 200 `UpdatePolicyResult` | 更新策略 CAS | `FORBIDDEN`、`CONFLICT` |
+| GET `/v1/bans` | `listBans` | `traffic-guard.ListBans` | `guard.manage` | `—` → 200 `ListBansResult` | 分页禁令 | `VALIDATION`、`FORBIDDEN` |
+| POST `/v1/bans` | `createBan` | `traffic-guard.CreateBan` | `guard.manage` | `CreateBanRequestBody` → 200 `CreateBanResult` | 管理员建立临时禁令 | `FORBIDDEN`、`VALIDATION` |
+| DELETE `/v1/bans/{banId}` | `revokeBan` | `traffic-guard.RevokeBan` | `guard.manage` | `RevokeBanRequestBody` → 200 `RevokeBanResult` | 撤销禁令 | `FORBIDDEN`、`CONFLICT` |
+| POST `/v1/admissions/{admissionId}:consume` | `consumeAdmission` | `traffic-guard.ConsumeAdmission` | `service` | `ConsumeAdmissionRequestBody` → 200 `ConsumeAdmissionResult` | QA绑定准入使用权 | `FORBIDDEN`、`STALE_RESULT` |
+| POST `/v1/admissions/{admissionId}:verify` | `verifyAdmission` | `traffic-guard.VerifyAdmissionHTTP` | `service` | `VerifyAdmissionHTTPRequestBody` → 200 `VerifyAdmissionHTTPResult` | QA在线确认准入租约 | `FORBIDDEN`、`STALE_RESULT` |
+| POST `/v1/question-risk` | `reportModelRisk` | `traffic-guard.ReportQuestionSignals` | `service` | `ReportQuestionSignalsRequestBody` → 200 `ReportQuestionSignalsResult` | 接收qa已有检测信号 | `VALIDATION`、`FORBIDDEN` |
+| POST `/v1/session-queue` | `queueSessionAdmission` | `traffic-guard.QueueSessionAdmission` | `service` | `QueueSessionAdmissionRequestBody` → 200 `QueueSessionAdmissionResult` | 每会话1并发其余排队 | `RATE_LIMITED`、`VERSION_MISMATCH` |
+| POST `/v1/barriers` | `acquireBarrier` | `traffic-guard.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 停止准入并等安全点 | `DEADLINE_EXCEEDED`、`FORBIDDEN` |
+| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `traffic-guard.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 解除风控维护 | `LOCKED` |
+| POST `/v1/snapshots:export` | `exportSnapshot` | `traffic-guard.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出风控一致快照 | `LOCKED`、`INTERNAL` |
+| GET `/healthz` | `health` | `traffic-guard.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
+| GET `/readyz` | `ready` | `traffic-guard.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
+| POST `/v1/snapshots:stage` | `stageSnapshot` | `traffic-guard.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/snapshots:discard` | `discardSnapshot` | `traffic-guard.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+<!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 
-屏障请求持久draining并等待真实在途安全点；export要求safe；validate只读隔离；prepare不切active；commit校验签名决策；rollback只可commit前。已commit失败必须继续同一targetEpoch并保持维护。
-
-<!-- service-bootstrap:start -->
-## 独立进程健康与就绪
-
-- `GET /healthz` → `health`，匿名HealthStatus，只本进程存活；200/503，不查远程或模型。
-- `GET /readyz` → `ready`，匿名ServiceReadiness，检查schema/journal/control/epoch/关键依赖；维护control-ready不等于公开门禁解除，publicRequestsAllowed=false。
-
-函数及配置完整合同见本域启动函数和根[启动蓝图](../../../docs/service-bootstrap.md)。
-<!-- service-bootstrap:end -->
+屏障请求持久draining并等待真实在途安全点；export要求safe；stage只写restore/<restoreId>/staged，不动active；discard只删本次恢复的暂存或旧目录；切换在进程重启时完成（ADR0003）。

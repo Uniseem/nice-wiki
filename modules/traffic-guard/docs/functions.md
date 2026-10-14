@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 53 个函数：约束 31 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 50 个函数：约束 29 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## traffic-guard.ValidatePolicy
 
@@ -40,7 +40,7 @@ func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyI
 - `VALIDATION` / HTTP 400：INVALID_POLICY：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：guard.manage；rule：guard.manage 入口内部；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage 入口内部
 - 并发：纯函数
 - 幂等：同 JSON 规范化结果一致
 - 依赖：无
@@ -81,7 +81,7 @@ func GetPolicy(ctx context.Context, op OperationContext, in GetPolicyInput) (Get
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：guard.manage；rule：guard.manage 或 service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage 或 service
 - 并发：SQLite 快照读
 - 幂等：GET 幂等
 - 依赖：`site-config:readRuntimeState`
@@ -124,7 +124,7 @@ func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput
 - `CONFLICT` / HTTP 409：POLICY_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写策略/outbox
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：事务 CAS；旧 permit renew 用最新策略重检
 - 幂等：operationId 去重且相同 key 不同 body 409
 - 依赖：`identity:checkAuthorization`、`traffic-guard.ValidatePolicy`
@@ -166,7 +166,7 @@ func NormalizePeer(ctx context.Context, op OperationContext, in NormalizePeerInp
 - `VALIDATION` / HTTP 400：INVALID_PEER：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：不写日志/数据库
-- 授权：permission：service；rule：service ingress；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service ingress
 - 并发：每请求内存，返回值禁止进入 tracing attributes
 - 幂等：纯解析同输入同输出
 - 依赖：无
@@ -210,7 +210,7 @@ func DeriveSubject(ctx context.Context, op OperationContext, in DeriveSubjectInp
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：SUBJECT_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service ingress；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service ingress
 - 并发：pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban
 - 幂等：同 keyEpoch 同输入同主体
 - 依赖：无
@@ -253,7 +253,7 @@ func ClassifyAction(ctx context.Context, op OperationContext, in ClassifyActionI
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：只读注册表
 - 幂等：同路由匹配同结果
 - 依赖：无
@@ -295,7 +295,7 @@ func LoadSignals(ctx context.Context, op OperationContext, in LoadSignalsInput) 
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：统一事务读取一致 policy revision
 - 幂等：只读
 - 依赖：无
@@ -340,7 +340,7 @@ func ComputeRisk(ctx context.Context, op OperationContext, in ComputeRiskInput) 
 - `VALIDATION` / HTTP 400：INVALID_SIGNALS：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service 内部；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 内部
 - 并发：纯函数，不依据 UA 国别作身份判断
 - 幂等：确定性同信号同结果
 - 依赖：无
@@ -382,7 +382,7 @@ func RefillBucket(ctx context.Context, op OperationContext, in RefillBucketInput
 - `VALIDATION` / HTTP 400：INVALID_BUCKET：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：内部；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：内部
 - 并发：纯函数；使用单调时钟差映射持久 wall-time，时钟倒退补0
 - 幂等：同状态同结果
 - 依赖：无
@@ -424,7 +424,7 @@ func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsI
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写匿名 token bucket
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：SQLite 单事务；不能分别扣一层失败另一层
 - 幂等：requestId 去重不重复扣
 - 依赖：`traffic-guard.RefillBucket`、`traffic-guard.GetPolicy`
@@ -466,7 +466,7 @@ func AcquireConcurrency(ctx context.Context, op OperationContext, in AcquireConc
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 permit 并发占位
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：与 bucket 消耗同最终 admission 事务；失败回滚扣令牌
 - 幂等：requestId 唯一返回原 permit
 - 依赖：无
@@ -510,7 +510,7 @@ func RenewPermit(ctx context.Context, op OperationContext, in RenewPermitInput) 
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 expiresAt
-- 授权：permission：service；rule：service 原 audience；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 原 audience
 - 并发：admission revision CAS，与 release 互斥
 - 幂等：同续租 operationId 返回同 expiry
 - 依赖：`traffic-guard.CheckBan`、`traffic-guard.SignPermit`
@@ -552,7 +552,7 @@ func ReleasePermit(ctx context.Context, op OperationContext, in ReleasePermitInp
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 lease state
-- 授权：permission：service；rule：service 原 audience；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 原 audience
 - 并发：release/renew 相同事务序列
 - 幂等：重复 released 返回 true
 - 依赖：无
@@ -594,7 +594,7 @@ func SignPermit(ctx context.Context, op OperationContext, in SignPermitInput) (S
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：SIGNING_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service 内部；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 内部
 - 并发：只读密钥容器与 admission 快照
 - 幂等：同 admission 可重复生成等价 token
 - 依赖：无
@@ -638,7 +638,7 @@ func ValidatePermit(ctx context.Context, op OperationContext, in ValidatePermitI
 - `FORBIDDEN` / HTTP 403：ACTIVE_BAN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service 身份绑定；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 身份绑定
 - 并发：服务在线查询不能只信过期的本地签名状态
 - 幂等：只读重复验证
 - 依赖：`traffic-guard.GetPolicy`、`traffic-guard.CheckBan`
@@ -687,7 +687,7 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 - `RATE_LIMITED` / HTTP 429：CONCURRENCY_LIMIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 token bucket/permit/outbox denial 引用
-- 授权：permission：service；rule：service 白名单；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service 白名单
 - 并发：每站点事务；没有费用预占
 - 幂等：requestId+inputHash 幂等，不同 body 冲突
 - 依赖：`site-config:readRuntimeState`、`traffic-guard.ComputeRisk`、`traffic-guard.ConsumeBuckets`、`traffic-guard.AcquireConcurrency`、`traffic-guard.SignPermit`
@@ -731,7 +731,7 @@ func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissio
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：同 EvaluateAdmission，不泄漏 subjectKey
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：请求deadline 1500ms，失败不颁 permit
 - 幂等：requestId 幂等
 - 依赖：`traffic-guard.EvaluateAdmission`、`traffic-guard.DeriveSubject`
@@ -772,7 +772,7 @@ func ExpireLeases(ctx context.Context, op OperationContext, in ExpireLeasesInput
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 expired state
-- 授权：permission：service；rule：service worker；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service worker
 - 并发：批次事务；分布多实例通过 SQLite 单写协调
 - 幂等：重复 sweep 无新增效果
 - 依赖：无
@@ -814,7 +814,7 @@ func ExpireBans(ctx context.Context, op OperationContext, in ExpireBansInput) (E
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写状态/outbox
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：小事务，无同时策略修订
 - 幂等：相同时间重扫幂等
 - 依赖：无
@@ -858,7 +858,7 @@ func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeI
 - `VALIDATION` / HTTP 400：CHALLENGE_DISABLED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 challenge 哈希
-- 授权：permission：anonymous；rule：anonymous，经 ingress 派生主体；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：anonymous；rule：anonymous，经 ingress 派生主体
 - 并发：同主体挑战最多2个 active
 - 幂等：requestId 幂等，同 key method不同409
 - 依赖：`traffic-guard.ComputeRisk`
@@ -902,7 +902,7 @@ func VerifyChallenge(ctx context.Context, op OperationContext, in VerifyChalleng
 - `VALIDATION` / HTTP 400：INVALID_PROOF：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写 consumed 与匿名 challenge signal
-- 授权：permission：anonymous；rule：anonymous 主体必须绑定；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：anonymous；rule：anonymous 主体必须绑定
 - 并发：每 challenge最多5失败尝试；CAS阻止并发重放
 - 幂等：重复成功不再次授予，返回 CONFLICT
 - 依赖：`traffic-guard.VerifyPoW`、`traffic-guard.VerifyExternalChallenge`
@@ -943,7 +943,7 @@ func VerifyPoW(ctx context.Context, op OperationContext, in VerifyPoWInput) (Ver
 - `VALIDATION` / HTTP 400：INVALID_PROOF：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：challenge 内部；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：challenge 内部
 - 并发：纯函数、常数次数 hash；禁止无界搜索
 - 幂等：同 proof 同结果
 - 依赖：无
@@ -986,7 +986,7 @@ func VerifyExternalChallenge(ctx context.Context, op OperationContext, in Verify
 - `VALIDATION` / HTTP 400：INVALID_PROOF：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：单次外部认证请求，禁止重试同token
-- 授权：permission：anonymous；rule：anonymous challenge 请求；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：anonymous；rule：anonymous challenge 请求
 - 并发：凭证仅内存；无真实调用在文档阶段
 - 幂等：供应方 token单用途，失败需新挑战
 - 依赖：无
@@ -1028,7 +1028,7 @@ func CheckBan(ctx context.Context, op OperationContext, in CheckBanInput) (Check
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：准入/续租每次查询，无跨请求安全 TTL
 - 幂等：只读幂等
 - 依赖：无
@@ -1073,7 +1073,7 @@ func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (Cre
 - `VALIDATION` / HTTP 400：INVALID_BAN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写ban/permit revoked/outbox
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：主体范围事务原子封禁与撤租约
 - 幂等：operationId 去重
 - 依赖：`identity:checkAuthorization`
@@ -1115,7 +1115,7 @@ func RevokeBan(ctx context.Context, op OperationContext, in RevokeBanInput) (Rev
 - `CONFLICT` / HTTP 409：BAN_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写ban/outbox
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：revision CAS
 - 幂等：相同 operationId复用结果
 - 依赖：`identity:checkAuthorization`
@@ -1157,7 +1157,7 @@ func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListB
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：稳定banId排序，不含IP
 - 幂等：GET幂等
 - 依赖：`identity:checkAuthorization`
@@ -1199,7 +1199,7 @@ func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeId
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写inbox授权缓存标记
-- 授权：permission：service；rule：service identity事件；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service identity事件
 - 并发：按 subject权限修订取max
 - 幂等：eventId/revision幂等
 - 依赖：无
@@ -1232,7 +1232,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 **步骤**
 
 1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未激活该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
+2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
 3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
 4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
 5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
@@ -1244,7 +1244,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
 
 - 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
 - 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`traffic-guard.ConsumeIdentityEvent`
@@ -1285,7 +1285,7 @@ func PublishGuardEvents(ctx context.Context, op OperationContext, in PublishGuar
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：JOBS_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写outbox发送状态
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：outbox租约30s；至少一次
 - 幂等：eventId固定不因重试变
 - 依赖：`jobs:publishEvent`
@@ -1326,7 +1326,7 @@ func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAno
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：删除匿名状态
-- 授权：permission：service；rule：service；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service
 - 并发：500项批事务；active bans/leases禁止删除
 - 幂等：重复清理幂等
 - 依赖：无
@@ -1370,7 +1370,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：持久维护barrier状态
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
+- 授权：permission：service；rule：service+superadmin 委托
 - 并发：barrier独占；renew只能至barrier deadline
 - 幂等：barrierId重复返回同状态
 - 依赖：`site-config:readRuntimeState`、`jobs:coordinateBarrier`
@@ -1411,7 +1411,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier状态
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
+- 授权：permission：service；rule：service+superadmin 委托
 - 并发：不提前恢复准入
 - 幂等：重复release幂等
 - 依赖：`site-config:readRuntimeState`
@@ -1454,224 +1454,100 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写快照对象
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
+- 授权：permission：service；rule：service+superadmin 委托
 - 并发：维护屏障下固定水位
 - 幂等：backupId/barrierId幂等
 - 依赖：`jobs:coordinateBarrier`
 
-## traffic-guard.ValidateImport
+## traffic-guard.StageSnapshot
 
 - 级别：约束
 - 文件：`modules/traffic-guard/internal/import.go`
-- 作用：校验恢复输入
+- 作用：把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据
 
 ```go
-func ValidateImport(ctx context.Context, op OperationContext, request SnapshotValidateRequest) (SnapshotValidation, error)
+func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `request` | `SnapshotValidateRequest` | 校验恢复输入；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotStageRequest` | 暂存请求 | 必须通过公共schema；snapshot.owner等于本域 |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotValidation` | 校验恢复输入成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+| `result` | `SnapshotStageResult` | 暂存回执 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 验证hash/schema/无secret
-2. 策略全量校验
-3. 租约/challenge必须为空，ban期限RFC3339
+1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
+3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
+4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
 
 **错误**
 
-- `INTEGRITY_ERROR` / HTTP 422：IMPORT_INVALID：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
-- 副作用：隔离校验报告
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
-- 并发：隔离目录，禁止改现有准入
-- 幂等：snapshot hash/targetEpoch同结果
-- 依赖：`traffic-guard.ValidatePolicy`
+- 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
+- 授权：permission：service；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
+- 幂等：restoreId+checksum唯一；重复调用返回已记录回执
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
 
-## traffic-guard.PrepareImport
+## traffic-guard.DiscardSnapshot
 
 - 级别：约束
 - 文件：`modules/traffic-guard/internal/import.go`
-- 作用：准备本域导入
+- 作用：删除某次恢复的暂存目录或恢复完成后换出的旧数据目录
 
 ```go
-func PrepareImport(ctx context.Context, op OperationContext, request SnapshotPrepareRequest) (SnapshotStageResult, error)
+func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `request` | `SnapshotPrepareRequest` | 准备本域导入；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotDiscardRequest` | 丢弃请求 | 必须通过公共schema |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotStageResult` | 准备本域导入成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+| `result` | `SnapshotDiscardResult` | 丢弃结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 校验快照
-2. 建立隔离DB
-3. 清除租约/challenge/counters并重新绑定targetEpoch
-4. 有效ban保留
+1. 校验data-protection服务身份与superadmin委托
+2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
+3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
+4. 删除后在control区记录discarded；目录不存在返回removed=false
 
 **错误**
 
-- `INTEGRITY_ERROR` / HTTP 422：IMPORT_INVALID：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `INTERNAL` / HTTP 500：DISK_FULL：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
-- 副作用：写隔离DB/stage
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
-- 并发：本域safe且restoreId独占
-- 幂等：restoreId/snapshotHash去重
-- 依赖：`traffic-guard.ValidateImport`
-
-## traffic-guard.ActivateImport
-
-- 级别：约束
-- 文件：`modules/traffic-guard/internal/import.go`
-- 作用：激活新代次
-
-```go
-func ActivateImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `request` | `SnapshotCommitRequest` | 激活新代次；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 激活新代次成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 检查data-protection commit决策与stage
-2. 原子切DB指针
-3. 所有旧permit即失效
-
-**错误**
-
-- `LOCKED` / HTTP 409：DECISION_REQUIRED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `NOT_FOUND` / HTTP 404：PREPARE_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：切存储指针，禁用旧permit
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
-- 并发：全站继续维护到全部域完成
-- 幂等：stageId/targetEpoch幂等
-- 依赖：`data-protection:getRestoreDecision`
-
-## traffic-guard.AbortImport
-
-- 级别：约束
-- 文件：`modules/traffic-guard/internal/import.go`
-- 作用：撤销未提交stage
-
-```go
-func AbortImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `request` | `SnapshotCommitRequest` | 撤销未提交stage；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 撤销未提交stage成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 检查恢复决策未commit
-2. 删除隔离DB
-3. 已commit拒绝rollback要求续激活
-
-**错误**
-
-- `CONFLICT` / HTTP 409：RESTORE_COMMITTED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：删除隔离stage
-- 授权：permission：service；rule：service+superadmin 委托；recoveryAuthorization：barrier/snapshot管理在维护下调用ValidateRecoveryAuthorization；只许当前已批准restore。普通业务不可使用该许可
-- 并发：stage锁
-- 幂等：重复rolled-back幂等
-- 依赖：`data-protection:getRestoreDecision`
-
-## traffic-guard.ValidateRecoveryAuthorization
-
-- 级别：参考
-- 文件：`modules/traffic-guard/internal/recovery_authorization.go`
-- 作用：本地验证本次恢复专用控制许可
-
-```go
-func ValidateRecoveryAuthorization(ctx context.Context, op OperationContext, in ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ValidateRecoveryAuthorizationInput` | 本地验证本次恢复专用控制许可；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ValidateRecoveryAuthorizationResult` | 本地验证本次恢复专用控制许可成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 先校验不可被业务导入覆盖的信任锚签名/算法/keyId
-2. 核audience本域/expiry/restoreId/barrierId/旧新epoch
-3. 读取独立控制记录确认已批准同restore且action只在prepare/commit/rollback/barrier
-4. commit核持久commit决定，rollback拒任何commit证据
-5. 拒普通业务使用
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `STALE_RESULT` / HTTP 409：TOKEN_EXPIRED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `LOCKED` / HTTP 409：DECISION_REQUIRED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：RESTORE_COMMITTED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：无
-- 授权：permission：service；rule：service+superadmin预先批准委托；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
-- 并发：校验期间不查询已换代identity业务库；控制记录与信任锚独立目录不被快照覆盖
-- 幂等：同许可同控制阶段结果；提交决策变化会使rollback失效
-- 依赖：`data-protection:getRestoreDecision`
-- 其他依赖说明：不可变控制信任锚
+- 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
+- 授权：permission：service；rule：仅data-protection服务身份携带superadmin委托
+- 并发：control区按restoreId串行
+- 幂等：重复删除返回removed=false
+- 依赖：`site-config:readRuntimeState`
 
 ## traffic-guard.SaveGuardPolicy
 
@@ -1711,7 +1587,7 @@ function SaveGuardPolicy(input: SaveGuardPolicyInput, signal: AbortSignal): Prom
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
 - 依赖：无
@@ -1755,7 +1631,7 @@ function SubmitBan(input: SubmitBanInput, signal: AbortSignal): Promise<SubmitBa
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：guard.manage；rule：guard.manage；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：guard.manage；rule：guard.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
 - 依赖：无
@@ -1800,7 +1676,7 @@ function RunPoWChallenge(input: RunPoWChallengeInput, signal: AbortSignal): Prom
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：anonymous；rule：anonymous；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：anonymous；rule：anonymous
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
 - 依赖：无
@@ -1846,7 +1722,7 @@ func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQu
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写短期匿名signals或ban
-- 授权：permission：service；rule：service qa；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service qa
 - 并发：same questionOperationId去重，不能凭客户端自报风险
 - 幂等：questionOperationId/hash幂等
 - 依赖：`traffic-guard.ComputeRisk`、`traffic-guard.CreateBan`
@@ -1889,7 +1765,7 @@ func QueueSessionAdmission(ctx context.Context, op OperationContext, in QueueSes
 - `VERSION_MISMATCH` / HTTP 409：VERSION_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：仅短期匿名队列引用
-- 授权：permission：service；rule：service qa；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service qa
 - 并发：每session最多10等待，超出429；无问题正文
 - 幂等：requestId幂等
 - 依赖：`traffic-guard.ReleasePermit`
@@ -1934,7 +1810,7 @@ func ConsumeAdmission(ctx context.Context, op OperationContext, in ConsumeAdmiss
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写admission consumer绑定
-- 授权：permission：service；rule：service qa；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service qa
 - 并发：admissionId唯一request绑定，release后禁止再consume
 - 幂等：admissionId/requestId幂等
 - 依赖：`traffic-guard.SignPermit`
@@ -1978,7 +1854,7 @@ func VerifyAdmissionHTTP(ctx context.Context, op OperationContext, in VerifyAdmi
 - `STALE_RESULT` / HTTP 409：STALE_RESULT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：service；rule：service qa；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：service qa
 - 并发：只读当前lease；不能把检查缓存为永久授权
 - 幂等：GET语义重复安全
 - 依赖：`traffic-guard.CheckBan`
@@ -2046,22 +1922,22 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor
+2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 
 **错误**
 
 - `VALIDATION` / HTTP 400：配置/缺路由绑定（不可重试）
 - `INTEGRITY_ERROR` / HTTP 422：迁移或journal校验失败（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖/控制信任锚不可用（可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖、control区或服务身份信任锚不可用（可重试）
 
 - 副作用：打开本域DB/文件资源、注册router和本域worker；失败资源回滚
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：无
+- 依赖：`site-config:registerActivation`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve
@@ -2091,7 +1967,8 @@ func Serve(ctx context.Context, app *Application) error
 
 1. 仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout
 2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
-3. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
+4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
 
 **错误**
 
@@ -2212,9 +2089,9 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 **步骤**
 
-1. 确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready
+1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
+3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
 4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
 
 **错误**

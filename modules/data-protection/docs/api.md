@@ -1,42 +1,41 @@
 # data-protection HTTP/JSON/SSE
 
-完整schema、参数、错误和security见 [OpenAPI](../contracts/openapi.json)。可信op由入口/服务鉴权构建，requestId由入口生成；Idempotency-Key绑定规范body hash，不同body返回CONFLICT。dataEpoch是runtime权威opaque ID，任何写入必须比较相等；operationContext和恢复许可由可信控制通道转发，不能由匿名请求自声明。
+完整schema、参数、错误和security见 [OpenAPI](../contracts/openapi.json)。可信op由入口/服务鉴权构建，requestId由入口生成；Idempotency-Key绑定规范body hash，不同body返回CONFLICT。dataEpoch是runtime权威opaque ID，任何写入必须比较相等；operationContext由可信控制通道转发，不能由匿名请求自声明。
 
-| 方法与路径 | operationId | handler ID | 权限 | 响应/行为 |
-|---|---|---|---|---|
-| POST `/v1/backups` | `createBackup` | `data-protection.CreateBackup` | `backup.manage` | 202 backup引用；自动维护屏障到ready或failed |
-| GET `/v1/backups` | `listBackups` | `data-protection.ListBackups` | `backup.manage` | 状态/大小/manifest hash；不泄漏封装密钥 |
-| GET `/v1/backups/{backupId}` | `readBackup` | `data-protection.ReadBackup` | `backup.manage` | 完整域列表、schema、水位、校验报告 |
-| POST `/v1/backups/{backupId}:download` | `authorizeBackupDownload` | `data-protection.AuthorizeBackupDownload` | `superadmin` | 短期单用途下载授权，解密密钥另管 |
-| POST `/v1/restores:validate` | `validateRestore` | `data-protection.ValidateRestore` | `superadmin` | 全manifest+跨域引用校验报告；不切代 |
-| POST `/v1/restores` | `createRestore` | `data-protection.CreateRestore` | `superadmin` | 202恢复；完整备份指定targetEpoch，不允许部分域恢复 |
-| POST `/v1/restores/{restoreId}:continue` | `continueRestore` | `data-protection.ContinueRestore` | `superadmin` | 已commit仅继续激活；未commit按持久记录继续prepare |
-| POST `/v1/restores/{restoreId}:abort` | `abortRestore` | `data-protection.AbortRestore` | `superadmin` | 仅commit前可abort，需全部stage rollback确认 |
-| GET `/v1/restores/{restoreId}/decision` | `getRestoreDecision` | `data-protection.GetRestoreDecision` | `service` | 签名持久决策供各域激活验证 |
-| POST `/v1/mirrors` | `buildMirror` | `data-protection.BuildMirror` | `backup.manage` | 从ready backup的允许字段投影建立data git commit |
-| POST `/v1/mirrors/{mirrorId}:sync` | `syncMirror` | `data-protection.SyncMirror` | `backup.manage` | 仅显式已配置远程，fast-forward push；冲突409无force |
-| PUT `/v1/git-remote` | `configureRemote` | `data-protection.ConfigureRemote` | `backup.manage` | 只存无credential URL与外部credentialRef，CAS |
-| PUT `/v1/local-backup-schedule` | `scheduleLocalBackup` | `data-protection.ScheduleLocalBackup` | `backup.manage` | 每日本地备份配置，默认02:00站点时区/N=20 |
-| POST `/v1/setup:restore` | `restoreDuringSetup` | `data-protection.RestoreDuringSetup` | `superadmin` | 初始化受控setup授权入口，完整恢复且不要求AI |
-| POST `/v1/backups:import` | `importPortableBackup` | `data-protection.ImportPortableBackup` | `superadmin` | 既有恢复入口上传便携备份，源服务与源运行key不必在线 |
-| GET `/v1/backups/{backupId}/download` | `streamPortableBackup` | `data-protection.StreamPortableBackup` | `backup.manage` | 透明可移植ZIP流，原权限和内部单用途token，无额外人工步骤 |
-| POST `/v1/barriers` | `acquireBarrier` | `data-protection.EnterBarrier` | `service` | 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点 |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `data-protection.ReleaseBarrier` | `service` | 仅全域恢复完成或commit前全部abort确认后释放 |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `data-protection.CreateSnapshot` | `service` | 公共SnapshotExportRequest→SnapshotExportResult；必须safe |
-| POST `/v1/snapshots:validate` | `validateSnapshot` | `data-protection.ValidateImport` | `service` | 公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告 |
-| POST `/v1/snapshots:prepare` | `prepareSnapshot` | `data-protection.PrepareImport` | `service` | 公共SnapshotPrepareRequest→SnapshotStageResult；不切指针 |
-| POST `/v1/snapshots:commit` | `commitSnapshot` | `data-protection.ActivateImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定 |
-| POST `/v1/snapshots:rollback` | `rollbackSnapshot` | `data-protection.AbortImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止 |
+<!-- openapi:start -->
+## 接口清单
+
+本节由 `make docs` 从 [openapi.json](../contracts/openapi.json) 生成，不手改；节外说明为手写。
+
+| 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
+|---|---|---|---|---|---|---|
+| GET `/v1/backups` | `listBackups` | `data-protection.ListBackups` | `backup.manage` | `—` → 200 `ListBackupsResult` | 分页备份目录 | `FORBIDDEN`、`VALIDATION` |
+| POST `/v1/backups` | `createBackup` | `data-protection.CreateBackup` | `backup.manage` | `CreateBackupRequestBody` → 202 `CreateBackupResult` | 建立备份操作 | `FORBIDDEN`、`CONFLICT` |
+| GET `/v1/backups/{backupId}` | `readBackup` | `data-protection.ReadBackup` | `backup.manage` | `—` → 200 `ReadBackupResult` | 读取备份描述 | `FORBIDDEN`、`NOT_FOUND` |
+| POST `/v1/backups/{backupId}:download` | `authorizeBackupDownload` | `data-protection.AuthorizeBackupDownload` | `superadmin` | `AuthorizeBackupDownloadRequestBody` → 200 `AuthorizeBackupDownloadResult` | 下载私有备份授权 | `FORBIDDEN`、`LOCKED` |
+| POST `/v1/restores:validate` | `validateRestore` | `data-protection.ValidateRestore` | `superadmin` | `ValidateRestoreRequestBody` → 200 `ValidateRestoreResult` | 全域恢复预检 | `FORBIDDEN`、`INTEGRITY_ERROR` |
+| POST `/v1/restores` | `createRestore` | `data-protection.CreateRestore` | `superadmin` | `CreateRestoreRequestBody` → 202 `CreateRestoreResult` | 建立完整恢复 | `FORBIDDEN`、`VERSION_MISMATCH` |
+| POST `/v1/restores/{restoreId}:continue` | `continueRestore` | `data-protection.ContinueRestore` | `superadmin` | `ContinueRestoreRequestBody` → 200 `ContinueRestoreResult` | 继续中断恢复 | `FORBIDDEN`、`NOT_FOUND` |
+| POST `/v1/restores/{restoreId}:abort` | `abortRestore` | `data-protection.AbortRestore` | `superadmin` | `AbortRestoreRequestBody` → 200 `AbortRestoreResult` | 切换前撤销或切换后整体换回 | `FORBIDDEN`、`CONFLICT` |
+| GET `/v1/restores/{restoreId}/progress` | `readRestoreProgress` | `data-protection.ReadRestoreProgress` | `anonymous` | `—` → 200 `ReadRestoreProgressResult` | 读取恢复进度 | `FORBIDDEN`、`NOT_FOUND` |
+| POST `/v1/mirrors` | `buildMirror` | `data-protection.BuildMirror` | `backup.manage` | `BuildMirrorRequestBody` → 200 `BuildMirrorResult` | 建立data git版本镜像 | `FORBIDDEN`、`VALIDATION` |
+| POST `/v1/mirrors/{mirrorId}:sync` | `syncMirror` | `data-protection.SyncMirror` | `backup.manage` | `SyncMirrorRequestBody` → 200 `SyncMirrorResult` | 显式远程fast-forward同步 | `FORBIDDEN`、`CONFLICT`、`DEPENDENCY_UNAVAILABLE` |
+| PUT `/v1/git-remote` | `configureRemote` | `data-protection.ConfigureRemote` | `backup.manage` | `ConfigureRemoteRequestBody` → 200 `ConfigureRemoteResult` | 设置远程同步目标 | `FORBIDDEN`、`VALIDATION`、`CONFLICT` |
+| PUT `/v1/local-backup-schedule` | `scheduleLocalBackup` | `data-protection.ScheduleLocalBackup` | `backup.manage` | `ScheduleLocalBackupRequestBody` → 200 `ScheduleLocalBackupResult` | 每日本地备份 | `FORBIDDEN`、`VALIDATION` |
+| POST `/v1/setup:restore` | `restoreDuringSetup` | `data-protection.RestoreDuringSetup` | `superadmin` | `RestoreDuringSetupRequestBody` → 200 `RestoreDuringSetupResult` | 初始化向导从完整备份恢复 | `FORBIDDEN`、`INTEGRITY_ERROR` |
+| POST `/v1/backups:import` | `importPortableBackup` | `data-protection.ImportPortableBackup` | `superadmin` | `ImportPortableBackupRequestBody` → 200 `ImportPortableBackupResult` | 恢复入口接收完整备份 | `FORBIDDEN`、`INTEGRITY_ERROR` |
+| GET `/v1/backups/{backupId}/download` | `streamPortableBackup` | `data-protection.StreamPortableBackup` | `backup.manage` | `—` → 200 `application/zip` | 下载可移植完整备份 | `FORBIDDEN`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/barriers` | `acquireBarrier` | `data-protection.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得本域快照安全截点 | `DEADLINE_EXCEEDED` |
+| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `data-protection.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 解除本域维护 | `LOCKED` |
+| POST `/v1/snapshots:export` | `exportSnapshot` | `data-protection.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出本域操作目录快照 | `LOCKED`、`INTERNAL` |
+| GET `/healthz` | `health` | `data-protection.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
+| GET `/readyz` | `ready` | `data-protection.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
+| POST `/v1/snapshots:stage` | `stageSnapshot` | `data-protection.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/snapshots:discard` | `discardSnapshot` | `data-protection.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| GET `/v1/restores/{restoreId}/archives/{owner}` | `serveRestoreArchive` | `data-protection.ServeRestoreArchive` | `service` | `—` → 200 `application/octet-stream` | 向暂存中的域提供其归档 | `FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`INTEGRITY_ERROR` |
+| POST `/v1/restores/{restoreId}:cleanup` | `cleanupRestore` | `data-protection.CleanupRestore` | `superadmin` | `CleanupRestoreInput` → 200 `CleanupRestoreResult` | 清理恢复保留目录 | `FORBIDDEN`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
+<!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 
-屏障请求持久draining并等待真实在途安全点；export要求safe；validate只读隔离；prepare不切active；commit校验签名决策；rollback只可commit前。已commit失败必须继续同一targetEpoch并保持维护。
-
-<!-- service-bootstrap:start -->
-## 独立进程健康与就绪
-
-- `GET /healthz` → `health`，匿名HealthStatus，只本进程存活；200/503，不查远程或模型。
-- `GET /readyz` → `ready`，匿名ServiceReadiness，检查schema/journal/control/epoch/关键依赖；维护control-ready不等于公开门禁解除，publicRequestsAllowed=false。
-
-函数及配置完整合同见本域启动函数和根[启动蓝图](../../../docs/service-bootstrap.md)。
-<!-- service-bootstrap:end -->
+屏障请求持久draining并等待真实在途安全点；export要求safe；stage只写restore/<restoreId>/staged，不动active；discard只删本次恢复的暂存或旧目录；切换在进程重启时完成（ADR0003）。

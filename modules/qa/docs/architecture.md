@@ -20,6 +20,6 @@ jobs：压缩任务与持久事件。失败策略：必需读取失败关闭；�
 
 site-config：公开问答配置及dataEpoch。失败策略：必需读取失败关闭；写命令先本地事务+outbox，最多3次transport重试500/1000/2000ms，仍失败保留待处理；模型自动备用用新attempt新预留，旧未知费用保留held。
 
-可信执行上下文使用公共OperationContext；浏览器仅提交业务schema，入口认证后构造actor/rootOperationId/costClass/dataEpoch/cancellationId。普通业务使用active epoch，恢复七项控制操作使用预授权恢复许可，control.db不被业务导入覆盖。
+可信执行上下文使用公共OperationContext；浏览器仅提交业务schema，入口认证后构造actor/rootOperationId/costClass/dataEpoch/cancellationId。普通业务使用active epoch；备份恢复控制操作只接受data-protection服务身份与superadmin委托，control区不随恢复替换。
 
 费用归MG；本域不推算余额，网络超时不表示未收费。

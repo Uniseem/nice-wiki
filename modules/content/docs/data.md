@@ -26,15 +26,9 @@
 | SnapshotRef | SnapshotRef |
 | SnapshotExportRequest | SnapshotExportRequest |
 | SnapshotExportResult | SnapshotExportResult |
-| SnapshotValidateRequest | SnapshotValidateRequest |
-| SnapshotValidation | SnapshotValidation |
-| SnapshotPrepareRequest | SnapshotPrepareRequest |
 | SnapshotStageResult | SnapshotStageResult |
-| SnapshotCommitRequest | SnapshotCommitRequest |
-| SnapshotApplyResult | SnapshotApplyResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
-| RecoveryAuthorization | RecoveryAuthorization |
 | LinkTarget | 站内链接按当前语言和树路径渲染，移动/改名不失效 |
 | InlineMark | old8项行内能力：5文本marks+highlight+link+inlineMath；同种mark至多一次 |
 | InlineNode | Tiptap受控行内联合体，未知节点不静默丢弃 |

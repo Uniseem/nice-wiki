@@ -2369,65 +2369,6 @@
         "status"
       ]
     },
-    "ValidateRecoveryAuthorizationInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "本地验证本次恢复专用控制许可输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "authorization": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
-          "description": "公共 RecoveryAuthorization 合同，遵守其字段和空值规则"
-        },
-        "restoreId": {
-          "type": "string",
-          "description": "restoreId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "sourceEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "targetEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        },
-        "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        }
-      },
-      "required": [
-        "authorization",
-        "restoreId",
-        "barrierId",
-        "sourceEpoch",
-        "targetEpoch",
-        "action"
-      ]
-    },
-    "ValidateRecoveryAuthorizationResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "本地验证本次恢复专用控制许可成功结果；失败不返回半成功结果",
-      "properties": {
-        "valid": {
-          "type": "boolean",
-          "description": "valid 的明确真假结果，不可 null"
-        }
-      },
-      "required": [
-        "valid"
-      ]
-    },
     "SaveGuardPolicyInput": {
       "type": "object",
       "additionalProperties": false,
@@ -3252,7 +3193,7 @@
         },
         "trustAnchorRef": {
           "type": "string",
-          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+          "description": "服务身份验证公钥的外部引用；identity签名密钥在control区，不随业务恢复替换"
         },
         "serviceIdentityRef": {
           "type": "string",
@@ -3344,7 +3285,7 @@
         },
         "restoreControlReady": {
           "type": "boolean",
-          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+          "description": "control区与服务身份信任锚可用，且不随业务恢复替换"
         }
       },
       "required": [
@@ -3375,7 +3316,7 @@
             "string",
             "null"
           ],
-          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+          "description": "未初始化null；恢复切换期间用于确认本域已换入的目标epoch"
         },
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"

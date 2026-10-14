@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 34、UI 12、生成 2、配置 9。函数 74 个：约束 43，参考 31。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 55 个：手写 32、UI 12、生成 2、配置 9。函数 72 个：约束 41，参考 31。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -33,9 +33,7 @@
 | `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |
 | `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.RelayOutbox` |
 | `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
-| `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.PrepareSnapshot` |
-| `modules/content/internal/snapshot_validator.go` | 手写 | 验证快照可恢复性 | `content.ValidateSnapshot` |
-| `modules/content/internal/snapshot_repository.go` | 手写 | 激活已准备恢复数据 | `content.CommitSnapshot`、`content.RollbackSnapshot` |
+| `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
 | `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath` |
 | `modules/content/web/src/editor/editor-runtime.ts` | UI | 创建Tiptap3/Vue编辑器会话 | `content.createEditorSession`（参考） |
 | `modules/content/web/src/editor/block-actions.ts` | UI | 拖拽手柄菜单排序/转换/复制/删除 | `content.applyBlockAction`（参考） |

@@ -10,6 +10,6 @@
 
 不持久化原始 IP、问题正文、captcha secret 或凭证 token
 
-恢复控制journal、barrier和信任锚独立于业务快照。维护下验证RecoveryAuthorization的签名、audience、restore/barrier、两epoch和期限，不回查已被替换的identity数据。不得用恢复许可执行普通业务。
+恢复控制journal与barrier在control区，不随业务快照替换。备份恢复控制操作只接受data-protection服务身份与superadmin委托；active目录只在进程重启时换入或换回（ADR0003）。
 
 可以读old产品设计/ADR确认产品，后续ADR优先；不复用旧业务代码结构，不读vps.txt。本文不授权本阶段源码、测试样例、真实模型或接口、远程push。

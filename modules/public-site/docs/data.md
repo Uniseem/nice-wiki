@@ -1,6 +1,6 @@
 # public-site 数据与持久化
 
-未来私有目录 `data/public-site/active/` 保存SQLite和领域对象；`data/public-site/staging/<restoreId>/` 为隔离导入区；`data/public-site/control/` 保存不被业务恢复替换的barrier/recovery授权信任锚和操作journal。外域不得直接读这些路径。
+未来私有目录 `data/public-site/active/` 保存SQLite和领域对象；`data/public-site/restore/<restoreId>/staged|before/` 为恢复暂存与换出的旧数据；`data/public-site/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
 
 - `render_cache(cache_key PK, data_epoch, document_id, publication_revision, locale, theme_revision, html_path, sha256, expires_at, bytes, last_access_at)`
 
@@ -14,4 +14,4 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
-快照只经HTTP六管理协议，在safe屏障固定revisionWatermark；导入全域校验通过后prepare，持久commit决定后切代，全部域activate才解维护。当前恢复control记录不得由导入覆盖。迁移先隔离拷贝、schema校验、SQL迁移、完整性验证，失败保留旧active指针。
+快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。

@@ -331,7 +331,7 @@
 
 取得本地维护屏障。
 
-1. 1 校验服务身份及superadmin委托或限定RecoveryAuthorization
+1. 1 校验data-protection服务身份及superadmin委托
 2. 2 将本地control.db屏障draining并拒绝新业务写
 3. 3 屏障停止条目编辑、批准和command dispatch，保留revision history、proposalHash、批准人及未确认批准命令
 4. 导入pending command不能重新批准，先按proposalId/hash等持久回执，不重复创建术语。
@@ -341,9 +341,9 @@
 
 释放已授权维护屏障。
 
-1. 1 校验相同barrierId/operationId恢复许可
-2. 2 不允许未决prepared stage直接释放
-3. 3 runtime dataEpoch与最终commit/rollback结果一致
+1. 1 校验相同barrierId/operationId与data-protection服务身份
+2. 2 暂存目录不影响释放；切换只在进程重启时发生
+3. 3 runtime处于restore_switching或restore_rolling_back时不恢复业务worker，等待重启换目录
 4. 4 released后开放该epoch业务写。
 
 ## ExportSnapshot
@@ -356,41 +356,23 @@
 4. 导入pending command不能重新批准，先按proposalId/hash等持久回执，不重复创建术语。
 5. 4 写不可变ObjectRef及SHA256后返回SnapshotRef，失败删除本域临时输出不释放屏障。
 
-## ValidateSnapshot
+## StageSnapshot
 
-只读检查候选快照。
+把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据。
 
-1. 1 校验owner/对象SHA256/byteSize且不接受本地任意路径
-2. 2 schemaVersion仅支持1否则UNSUPPORTED_SCHEMA
-3. 3 检查本域字段/唯一约束/引用/密钥兼容性
-4. 4 返回field issues无业务写，任何integrity失败valid=false。
+1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
+3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
+4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
 
-## PrepareSnapshot
+## DiscardSnapshot
 
-隔离准备恢复数据。
+删除某次恢复的暂存目录或恢复完成后换出的旧数据目录。
 
-1. 1 验证限定restoreId/barrierId/旧新epoch/audience/期限许可及safe屏障
-2. 2 重复validate并读可信ObjectRef
-3. 3 写独立staging DB/文件且不覆盖control.db、屏障、信任锚
-4. 4 staging checksum一致才ready并记录恢复前指针。
-
-## CommitSnapshot
-
-原子激活隔离恢复数据。
-
-1. 1 校验stage属于许可restore且目标epoch匹配
-2. 2 safe屏障下禁止业务worker
-3. 3 原子切换本域数据指针并持久旧指针
-4. 4 committed幂等回执，屏障仍safe等待全域runtime epoch激活。
-
-## RollbackSnapshot
-
-回退未完成全域恢复。
-
-1. 1 验证同一许可restore/barrier
-2. 2 读取control保存旧指针
-3. 3 原子恢复旧数据且stage rolled-back
-4. 4 回执旧dataEpoch并保持safe，重复rollback返回同回执。
+1. 校验data-protection服务身份与superadmin委托
+2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
+3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
+4. 删除后在control区记录discarded；目录不存在返回removed=false
 
 ## ValidateProjectedBudgets
 
@@ -446,7 +428,7 @@
 3. 3 依jobType执行同域已登记函数，所有中间/提交校验lease与epoch
 4. 4 completeJob/failJob持久报告，lease过期停止写，未知MG attempt留held不重放。
 
-共通恢复顺序：AcquireBarrier全部域safe→Export或Validate→Prepare全部stage→Commit全部域指针→site-config transitionRuntimeState激活目标dataEpoch→ReleaseBarrier；任一prepare/commit失败在屏障内Rollback已提交域，回旧epoch后才释放。
+共通恢复顺序（ADR0003）：AcquireBarrier全部域safe→StageSnapshot全部域暂存→data-protection写切换决定→各服务重启时换入active并登记switched→全部就绪后complete_restore解除维护；暂存失败DiscardSnapshot丢弃后退出维护，切换后失败可整体换回。
 
 任务执行由本域RunWorker主动claim/heartbeat/complete，jobs不调用影子execute-task接口。
 

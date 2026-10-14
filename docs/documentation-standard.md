@@ -10,8 +10,8 @@ types.json 使用 JSON Schema Draft2020-12，业务类型放 $defs，显式 requ
 
 events.json 顶层 module/version/events；每事件含 name、version、direction(publish/consume)、payloadSchema、purpose、delivery(at-least-once)、ordering、idempotency；consume 条目另含 handler（本域 binding 函数 ID）。载荷不用任意对象代替字段规格；事件默认只传不可变引用与必要元数据，不广播提问正文、密钥或 IP。
 
-functions.md 与 files.md 由 `make docs` 从 implementation.json 生成，不手改；`make check` 比对生成结果。acceptance.md 是验收行为规格，不是运行测试授权。本阶段未实现，不把业务事项打勾。
+functions.md 与 files.md 由 `make docs` 从 implementation.json 生成；api.md 中 `<!-- openapi:start -->` 与 `<!-- openapi:end -->` 之间的接口清单由 openapi.json 生成，标记外的说明手写。生成部分不手改，`make check` 比对生成结果。acceptance.md 是验收行为规格，不是运行测试授权。本阶段未实现，不把业务事项打勾。
 
 公共接口：POST /v1/authorizations/check（identity）；POST /v1/publications:validate（content，refs 为 PublishedRevisionRef 数组，返回 PublicationValidation 数组）；POST /v1/context:resolve（memory，taskId/language 返回 MemoryContext）；POST /v1/inferences（model-gateway）；POST /v1/admissions（traffic-guard）。其他跨服务操作引用生产方 OpenAPI，不复制第二份类型。
 
-所有有状态域必须设计 /v1/barriers、/v1/snapshots:export、/v1/snapshots:validate、/v1/snapshots:prepare、/v1/snapshots:commit、/v1/snapshots:rollback 管理协议；写入受服务身份、超管委托、屏障与 dataEpoch 校验。公共字段见 common.schema.json。portal 无业务存储时只参与入口维护，不虚构数据快照。
+所有有状态域必须设计 /v1/barriers、/v1/snapshots:export、/v1/snapshots:stage、/v1/snapshots:discard 管理协议，并在启动时按 runtime 换入或换回 active 目录（ADR0003）；写入受服务身份、超管委托、屏障与 dataEpoch 校验。公共字段见 common.schema.json。portal 无业务存储时只参与入口维护，不虚构数据快照。

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "memory",
   "phase": "design",
-  "contractSha256": "8554db636280ed255e1aa7350c63e921f28194ac8f72b97745504fea51d2d042",
+  "contractSha256": "73ad9ede97bb369a58499d90c82483364366efafbb019942a61f9c68a2088e3c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -972,7 +972,7 @@
       "blocker": null
     },
     {
-      "id": "memory.ValidateSnapshot",
+      "id": "memory.StageSnapshot",
       "path": "modules/memory/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,
@@ -983,29 +983,7 @@
       "blocker": null
     },
     {
-      "id": "memory.PrepareSnapshot",
-      "path": "modules/memory/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "memory.CommitSnapshot",
-      "path": "modules/memory/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "memory.RollbackSnapshot",
+      "id": "memory.DiscardSnapshot",
       "path": "modules/memory/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,

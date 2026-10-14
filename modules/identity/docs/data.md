@@ -1,6 +1,6 @@
 # 数据、权威与持久化
 
-私有accounts/credential/session/permission/receipt/outbox业务库；独立control.db保存bootstrapClaim、唯一超管身份核对、recovery批准/撤销和信任锚。control/account-index.json可供服务器查明文账号名；control/reset-superadmin.txt为带外一次恢复输入。账号/密钥/索引不纳入git。控制库及恢复信任锚不被业务快照覆盖。
+私有accounts/credential/session/permission/receipt/outbox业务库；独立control.db保存bootstrapClaim、唯一超管身份核对和服务签名密钥。control/account-index.json可供服务器查明文账号名；control/reset-superadmin.txt为带外一次恢复输入。账号/密钥/索引不纳入git。控制库与服务签名密钥不随业务快照替换。
 
 账号名不可修改，删除账户保留墓碑姓名供git历史/审计署名。权限只10项功能全站勾选，首次创建schema permissions可省略且后端默认全选；技术grants仅映射实现，不增加产品文档scope。会话可重建，丢失仅要求重新登录。
 
@@ -28,15 +28,9 @@
 | SnapshotRef | SnapshotRef |
 | SnapshotExportRequest | SnapshotExportRequest |
 | SnapshotExportResult | SnapshotExportResult |
-| SnapshotValidateRequest | SnapshotValidateRequest |
-| SnapshotValidation | SnapshotValidation |
-| SnapshotPrepareRequest | SnapshotPrepareRequest |
 | SnapshotStageResult | SnapshotStageResult |
-| SnapshotCommitRequest | SnapshotCommitRequest |
-| SnapshotApplyResult | SnapshotApplyResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
-| RecoveryAuthorization | RecoveryAuthorization |
 | AccountName | 创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号 |
 | Password | 敏感口令，至少8位；不强制大小写符号组合；不trim；禁止日志 |
 | FunctionPermission | 已确认10项功能，默认全部勾选 |
@@ -111,12 +105,6 @@
 | ObserveSuperadminResetFileResult | 检测服务器超管重置文件的结果 |
 | ApplySuperadminResetInput | 用服务器文件恢复唯一超管口令的输入 |
 | ApplySuperadminResetResult | 用服务器文件恢复唯一超管口令的结果 |
-| IssueRecoveryAuthorizationInput | 超管批准后签发有限恢复许可的输入 |
-| IssueRecoveryAuthorizationResult | 超管批准后签发有限恢复许可的结果 |
-| ValidateRecoveryAuthorizationInput | 本地验证不会被identity换代阻断的恢复许可的输入 |
-| ValidateRecoveryAuthorizationResult | 本地验证不会被identity换代阻断的恢复许可的结果 |
-| RevokeRecoveryAuthorizationInput | 撤销尚未完成的恢复许可的输入 |
-| RevokeRecoveryAuthorizationResult | 撤销尚未完成的恢复许可的结果 |
 | ResolveIdentityOperationInput | 读取幂等回执的输入 |
 | ResolveIdentityOperationResult | 读取幂等回执的结果 |
 | PublishIdentityEventInput | 与身份提交原子登记事件的输入 |
@@ -130,6 +118,5 @@
 | setAccountPermissionsRequest | 修改10项功能权限请求体 |
 | resetAccountPasswordRequest | 超管重置子账号初始口令请求体 |
 | revokeSessionRequest | 退出当前或指定自身登录请求体 |
-| revokeRecoveryAuthorizationRequest | 撤销尚未完成的恢复许可请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。

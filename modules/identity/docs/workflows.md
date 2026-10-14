@@ -6,6 +6,6 @@
 
 服务器查control/account-index.json找账号；忘密在identity私有control/reset-superadmin.txt写新口令，watcher核对固定路径/hash与OS权限，凭据提交后删除该文件，mustChangePassword=true。
 
-超级管理员批准恢复后签发公共RecoveryAuthorization；各域保留不随导入覆盖的本地信任锚，只允许绑定restore/barrier/旧新epoch/audience/action/期限的快照控制。普通业务仍按账号功能授权，不能借恢复许可访问正文或改权限。
+恢复由data-protection服务身份携带发起恢复的superadmin委托驱动，不签发专用恢复许可（ADR0003）。identity服务签名密钥在control区，不随恢复替换；换入恢复数据后启动流程撤销全部会话，管理员用备份中的账号重新登录。
 
-业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位，prepare 不修改活动数据，commit/rollback 都有持久决定日志。
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。

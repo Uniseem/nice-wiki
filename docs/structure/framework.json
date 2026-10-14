@@ -89,6 +89,11 @@
       "purpose": "全局0002事件投递与两级函数合同决策记录"
     },
     {
+      "path": "docs/adr/0003-restore-by-restart.md",
+      "kind": "documentation",
+      "purpose": "全局0003恢复改为暂存后重启换目录决策记录"
+    },
+    {
       "path": "docs/adr/README.md",
       "kind": "documentation",
       "purpose": "全局README设计/手册/状态记录"

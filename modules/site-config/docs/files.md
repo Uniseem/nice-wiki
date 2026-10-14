@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 35 个：手写 29、生成 1、配置 5。函数 48 个：约束 32，参考 16。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 33 个：手写 27、生成 1、配置 5。函数 46 个：约束 30，参考 16。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -23,9 +23,7 @@
 | `modules/site-config/internal/outbox_repository.go` | 手写 | 将配置事件与业务提交原子登记 | `site-config.PublishConfigEvent`（参考）、`site-config.RelayOutbox` |
 | `modules/site-config/internal/object_reader.go` | 手写 | 经协议读取本域正文或快照对象 | `site-config.ReadConfigObject` |
 | `modules/site-config/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `site-config.AcquireBarrier`、`site-config.ReleaseBarrier` |
-| `modules/site-config/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `site-config.ExportSnapshot`、`site-config.PrepareSnapshot` |
-| `modules/site-config/internal/snapshot_validator.go` | 手写 | 验证快照可恢复性 | `site-config.ValidateSnapshot` |
-| `modules/site-config/internal/snapshot_repository.go` | 手写 | 激活已准备恢复数据 | `site-config.CommitSnapshot`、`site-config.RollbackSnapshot` |
+| `modules/site-config/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `site-config.ExportSnapshot`、`site-config.StageSnapshot`、`site-config.DiscardSnapshot` |
 | `modules/site-config/internal/branding_service.go` | 手写 | 更新站名/logo/图标/主题色/默认分享图 | `site-config.UpdateBranding` |
 | `modules/site-config/internal/footer_service.go` | 手写 | 更新页脚版权/自定义链接/ICP备案/源码链接 | `site-config.UpdateFooter` |
 | `modules/site-config/internal/banner_service.go` | 手写 | 保存单条可关闭公告横幅 | `site-config.UpdateBanner` |

@@ -101,9 +101,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -121,7 +121,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -178,6 +178,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -358,9 +359,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -674,9 +675,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -694,7 +695,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -751,6 +752,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -931,9 +933,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -1164,9 +1166,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -1184,7 +1186,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -1241,6 +1243,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -1421,9 +1424,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -1657,9 +1660,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -1677,7 +1680,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -1734,6 +1737,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -1914,9 +1918,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -2232,9 +2236,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -2252,7 +2256,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -2309,6 +2313,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -2489,9 +2494,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -2727,9 +2732,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -2747,7 +2752,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -2804,6 +2809,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -2984,9 +2990,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -3306,9 +3312,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -3326,7 +3332,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -3383,6 +3389,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -3563,9 +3570,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -3883,9 +3890,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -3903,7 +3910,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -3960,6 +3967,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -4140,9 +4148,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -4461,9 +4469,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -4481,7 +4489,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -4538,6 +4546,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -4718,9 +4727,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -5041,9 +5050,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -5061,7 +5070,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -5118,6 +5127,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -5298,9 +5308,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -5619,9 +5629,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -5639,7 +5649,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -5696,6 +5706,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -5876,9 +5887,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -6196,9 +6207,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -6216,7 +6227,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -6273,6 +6284,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -6453,9 +6465,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -6772,9 +6784,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -6792,7 +6804,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -6849,6 +6861,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -7029,9 +7042,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -7357,9 +7370,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -7377,7 +7390,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -7434,6 +7447,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -7614,9 +7628,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -7934,9 +7948,9 @@
               "purpose": "装配本域存储、客户端、函数路由与worker",
               "steps": [
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-                "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
+                "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -7954,7 +7968,7 @@
                 },
                 {
                   "code": "DEPENDENCY_UNAVAILABLE",
-                  "condition": "基础关键依赖/控制信任锚不可用",
+                  "condition": "基础关键依赖、control区或服务身份信任锚不可用",
                   "httpStatus": 503,
                   "retryable": true
                 }
@@ -8011,6 +8025,7 @@
               "steps": [
                 "仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout",
                 "启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no",
+                "运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录",
                 "ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态"
               ],
               "errors": [
@@ -8191,9 +8206,9 @@
               ],
               "purpose": "GET /readyz普通HTTP就绪检查",
               "steps": [
-                "确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready",
+                "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
                 "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-                "维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
+                "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
                 "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
               ],
               "errors": [
@@ -8552,7 +8567,7 @@
         },
         "trustAnchorRef": {
           "type": "string",
-          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+          "description": "服务身份验证公钥的外部引用；identity签名密钥在control区，不随业务恢复替换"
         },
         "serviceIdentityRef": {
           "type": "string",
@@ -8644,7 +8659,7 @@
         },
         "restoreControlReady": {
           "type": "boolean",
-          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+          "description": "control区与服务身份信任锚可用，且不随业务恢复替换"
         }
       },
       "required": [
@@ -8675,7 +8690,7 @@
             "string",
             "null"
           ],
-          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+          "description": "未初始化null；恢复切换期间用于确认本域已换入的目标epoch"
         },
         "runtimeRevision": {
           "$ref": "./common.schema.json#/$defs/Revision"

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "design",
-  "contractSha256": "8503b8be8368e5dd00d7b9cc651e0deca0d72ba0fab321f7069a620dfa8221c2",
+  "contractSha256": "e72ab9ff8a98e81b97a6c4f44b882c02994cde5802fc7383407e9039be87825c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -1072,7 +1072,7 @@
       "blocker": null
     },
     {
-      "id": "localization.ValidateSnapshot",
+      "id": "localization.StageSnapshot",
       "path": "modules/localization/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1083,29 +1083,7 @@
       "blocker": null
     },
     {
-      "id": "localization.PrepareSnapshot",
-      "path": "modules/localization/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "localization.CommitSnapshot",
-      "path": "modules/localization/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "localization.RollbackSnapshot",
+      "id": "localization.DiscardSnapshot",
       "path": "modules/localization/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,

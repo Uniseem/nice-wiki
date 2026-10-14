@@ -4,7 +4,7 @@
 
 未来Go服务拥有本域SQLite/对象目录，HTTP严格绑定→授权/epoch→领域函数→私有存储；Vue3后台模块通过portal入口使用本域HTTP/JSON/SSE，界面不持有service凭证或secret。
 
-全站备份manifest、校验报告、恢复prepare/commit决策日志及恢复进度
+全站备份manifest、校验报告、恢复暂存与切换决策日志及恢复进度
 
 加密备份对象、保留策略、下载授权
 

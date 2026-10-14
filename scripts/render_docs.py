@@ -1,4 +1,4 @@
-"""从各域 implementation.json 生成 docs/functions.md 与 docs/files.md，保证人类文档与机器合同一致。"""
+"""从各域合同生成 docs/functions.md、docs/files.md 与 docs/api.md 的接口清单，保证人类文档与机器合同一致。"""
 
 import argparse
 import json
@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 KINDS = {'handwritten': '手写', 'ui': 'UI', 'generated': '生成', 'config': '配置', 'migration': '迁移'}
 LEVELS = {'binding': '约束', 'reference': '参考'}
+API_START, API_END = '<!-- openapi:start -->', '<!-- openapi:end -->'
+METHODS = ('get', 'post', 'put', 'patch', 'delete', 'head', 'options')
 
 
 def cell(value):
@@ -88,14 +90,63 @@ def render_files(slug, impl):
     return '\n'.join(lines) + '\n'
 
 
+def schema_name(content):
+    for media, body in (content or {}).items():
+        schema = body.get('schema', {})
+        if '$ref' in schema:
+            return schema['$ref'].split('/')[-1]
+        if schema.get('format') == 'binary':
+            return media
+        return schema.get('type', media)
+    return '—'
+
+
+def render_api(api, codes):
+    lines = [
+        '## 接口清单', '',
+        '本节由 `make docs` 从 [openapi.json](../contracts/openapi.json) 生成，不手改；节外说明为手写。', '',
+        '| 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |', '|---|---|---|---|---|---|---|',
+    ]
+    for route, methods in api.get('paths', {}).items():
+        for method in METHODS:
+            op = methods.get(method)
+            if not isinstance(op, dict):
+                continue
+            responses = op.get('responses', {})
+            ok = next((c for c in responses if str(c).startswith('2')), None)
+            result = (str(ok) + ' `' + schema_name(responses[ok].get('content')) + '`') if ok else '—'
+            request = schema_name(op.get('requestBody', {}).get('content'))
+            errors = []
+            for status, body in responses.items():
+                if str(status).startswith('2'):
+                    continue
+                found = [c for c in codes if re.search(r'(?<![A-Z_])' + c + r'(?![A-Z_])', body.get('description', ''))]
+                errors.extend('`' + c + '`' for c in found or ['HTTP ' + str(status)])
+            lines.append('| ' + method.upper() + ' `' + route + '` | `' + op.get('operationId', '') + '` | `' + str(op.get('x-handler')) + '` | `' + str(op.get('x-permission')) + '` | `'
+                         + request + '` → ' + result + ' | ' + cell(op.get('summary', '')) + ' | ' + ('、'.join(errors) or '—') + ' |')
+    return '\n'.join(lines) + '\n'
+
+
+def merge_api(current, block):
+    if current is None or API_START not in current or API_END not in current:
+        return (current or '').rstrip() + '\n\n' + API_START + '\n' + block + API_END + '\n'
+    before, rest = current.split(API_START, 1)
+    after = rest.split(API_END, 1)[1]
+    return before + API_START + '\n' + block + API_END + after
+
+
 def expected_docs():
     modules = json.loads((ROOT / 'contracts/modules.json').read_text(encoding='utf-8')).get('modules', [])
+    codes = json.loads((ROOT / 'contracts/errors.json').read_text(encoding='utf-8')).get('codes', [])
     result = {}
     for module in modules:
         folder = ROOT / module['root']
         impl = json.loads((folder / 'contracts/implementation.json').read_text(encoding='utf-8'))
         result[folder / 'docs/functions.md'] = render_functions(module['slug'], impl)
         result[folder / 'docs/files.md'] = render_files(module['slug'], impl)
+        api_path = folder / 'docs/api.md'
+        api = json.loads((folder / 'contracts/openapi.json').read_text(encoding='utf-8'))
+        result[api_path] = merge_api(api_path.read_text(encoding='utf-8') if api_path.exists() else None, render_api(api, codes))
     return result
 
 

@@ -19,3 +19,9 @@
 - 用户请Claude审阅GPT-6.1 Sol产出的十五域规格，并授权按审阅结论修改（“你自己帮我改吧”）。审阅抽查发现：多个消费域没有接收事件的路径；部分生产域发件箱无转发；签名与函数ID各域不统一；约一半依赖引用无法机器校验。
 - 已修订：事件统一经jobs拉取投递（订阅循环、handler、outbox转发、到期重投/死信）；Go与浏览器函数签名统一；函数ID统一；依赖规范化并新增resources；函数分约束/参考两级；新增scripts/render_docs.py与make docs生成functions.md/files.md；check_docs.py新增对应校验并在改动前的合同上验证能报出原问题；新增ADR0002，更新根/模块AGENTS、文档标准、结构契约、手册、协议、计划与状态。
 - 未做：备份恢复简化仅登记为R0-07待确认；未创建业务代码、测试或样例；未调用真实模型；本地make check通过，未在VPS复跑；已本地提交，未push。合著者为Claude Opus 5.5。
+
+## 2026-10-14：恢复改为暂存后重启换目录（ADR0003）
+
+- 用户确认R0-07“按你说的改”。为保持old产品“初始化向导/后台从备份恢复”的界面入口，没有采用需要登录服务器的离线命令，改为各域暂存→切换决定→进程守护重启时换目录。
+- 合同：删除14个有状态域的snapshots:validate/prepare/commit/rollback、identity恢复许可签发/撤销、各域许可校验函数与RecoveryAuthorization类型；新增各域snapshots:stage/discard，data-protection的serveRestoreArchive、cleanupRestore与凭进度令牌读取的readRestoreProgress；site-config运行阶段与回执状态改为staging/switching/rolling_back与switched/rolled-back；启动与Serve函数增加换目录、登记回执和切换时安全退出步骤。
+- 文档：重写一致性、架构、协议、运维、启动蓝图与各域相关段落；api.md接口清单改由make docs从OpenAPI生成（标记外手写说明保留）。本地make check通过，未在VPS复跑；未创建业务代码或测试；已本地提交，未push。合著者为Claude Opus 5.5。

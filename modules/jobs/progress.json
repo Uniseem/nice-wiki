@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "design",
-  "contractSha256": "94fdec4e20880d98676adcd38edd71458d0df92737edc112b0fcec8e1d6ecdef",
+  "contractSha256": "73abdfd57a5356c1175694acbe4bd491232ebbee5c822be7534d180946396383",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -212,16 +212,6 @@
     },
     {
       "path": "modules/jobs/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/jobs/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -826,7 +816,7 @@
       "blocker": null
     },
     {
-      "id": "jobs.ValidateImport",
+      "id": "jobs.StageSnapshot",
       "path": "modules/jobs/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -837,41 +827,8 @@
       "blocker": null
     },
     {
-      "id": "jobs.PrepareImport",
+      "id": "jobs.DiscardSnapshot",
       "path": "modules/jobs/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "jobs.ActivateImport",
-      "path": "modules/jobs/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "jobs.AbortImport",
-      "path": "modules/jobs/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "jobs.ValidateRecoveryAuthorization",
-      "path": "modules/jobs/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

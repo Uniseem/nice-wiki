@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "design",
-  "contractSha256": "d43095ef3d43534e3fb81ef49c7f4015e20a7ab1ad07ef7e279ed5de31ba7556",
+  "contractSha256": "38c6ae50951d657ffdfdf5f07cc8dd768af01e56d1345e4c5d72e936fff276cc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -282,26 +282,6 @@
     },
     {
       "path": "modules/content/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/content/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/content/internal/snapshot_repository.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1111,7 +1091,7 @@
       "blocker": null
     },
     {
-      "id": "content.PrepareSnapshot",
+      "id": "content.StageSnapshot",
       "path": "modules/content/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1122,30 +1102,8 @@
       "blocker": null
     },
     {
-      "id": "content.ValidateSnapshot",
-      "path": "modules/content/internal/snapshot_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "content.CommitSnapshot",
-      "path": "modules/content/internal/snapshot_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "content.RollbackSnapshot",
-      "path": "modules/content/internal/snapshot_repository.go",
+      "id": "content.DiscardSnapshot",
+      "path": "modules/content/internal/snapshot_service.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

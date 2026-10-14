@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 45 个：手写 26、UI 4、生成 5、配置 9、迁移 1。函数 49 个：约束 30，参考 19。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 44 个：手写 25、UI 4、生成 5、配置 9、迁移 1。函数 46 个：约束 28，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -26,8 +26,7 @@
 | `modules/jobs/internal/barrier.go` | 手写 | 取得jobs本域屏障；同文件职责限本域以下登记函数 | `jobs.EnterBarrier`、`jobs.ReleaseBarrier` |
 | `modules/jobs/internal/retention.go` | 手写 | 清理已完成记录；同文件职责限本域以下登记函数 | `jobs.PurgeExpiredHistory`（参考） |
 | `modules/jobs/internal/snapshot.go` | 手写 | 导出队列与事件一致快照；同文件职责限本域以下登记函数 | `jobs.CreateSnapshot` |
-| `modules/jobs/internal/import.go` | 手写 | 验证任务快照；同文件职责限本域以下登记函数 | `jobs.ValidateImport`、`jobs.PrepareImport`、`jobs.ActivateImport`、`jobs.AbortImport` |
-| `modules/jobs/internal/recovery_authorization.go` | 手写 | 本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数 | `jobs.ValidateRecoveryAuthorization`（参考） |
+| `modules/jobs/internal/import.go` | 手写 | 验证任务快照；同文件职责限本域以下登记函数 | `jobs.StageSnapshot`、`jobs.DiscardSnapshot` |
 | `modules/jobs/web/src/QueuePanel.vue` | UI | Vue3模块交互：RequestJobCancellation；同文件职责限本域以下登记函数 | `jobs.RequestJobCancellation`（参考） |
 | `modules/jobs/web/src/ScheduleEditor.vue` | UI | Vue3模块交互：SaveSchedule；同文件职责限本域以下登记函数 | `jobs.SaveSchedule`（参考） |
 | `modules/jobs/web/src/progress.ts` | UI | Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数 | `jobs.ReconnectProgress`（参考） |

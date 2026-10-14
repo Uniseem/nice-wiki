@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "design",
-  "contractSha256": "31cc9c7da92061424492af0a0192c9d5d485d1f5e55da0d6488a8955a8ec85eb",
+  "contractSha256": "3abb2af13300ac400978e8cb354220a2265860e3c52b50aa849d779294896434",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -242,16 +242,6 @@
     },
     {
       "path": "modules/analytics/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/analytics/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -876,7 +866,7 @@
       "blocker": null
     },
     {
-      "id": "analytics.ValidateImport",
+      "id": "analytics.StageSnapshot",
       "path": "modules/analytics/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -887,41 +877,8 @@
       "blocker": null
     },
     {
-      "id": "analytics.PrepareImport",
+      "id": "analytics.DiscardSnapshot",
       "path": "modules/analytics/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "analytics.ActivateImport",
-      "path": "modules/analytics/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "analytics.AbortImport",
-      "path": "modules/analytics/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "analytics.ValidateRecoveryAuthorization",
-      "path": "modules/analytics/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

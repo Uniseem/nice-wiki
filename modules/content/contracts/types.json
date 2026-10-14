@@ -76,29 +76,9 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
       "description": "SnapshotExportResult"
     },
-    "SnapshotValidateRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidateRequest",
-      "description": "SnapshotValidateRequest"
-    },
-    "SnapshotValidation": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotValidation",
-      "description": "SnapshotValidation"
-    },
-    "SnapshotPrepareRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotPrepareRequest",
-      "description": "SnapshotPrepareRequest"
-    },
     "SnapshotStageResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
       "description": "SnapshotStageResult"
-    },
-    "SnapshotCommitRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotCommitRequest",
-      "description": "SnapshotCommitRequest"
-    },
-    "SnapshotApplyResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotApplyResult",
-      "description": "SnapshotApplyResult"
     },
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
@@ -107,10 +87,6 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
-    },
-    "RecoveryAuthorization": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/RecoveryAuthorization",
-      "description": "RecoveryAuthorization"
     },
     "LinkTarget": {
       "oneOf": [
@@ -5837,7 +5813,7 @@
         },
         "trustAnchorRef": {
           "type": "string",
-          "description": "控制面不可被业务导入覆盖的信任锚外部引用"
+          "description": "服务身份验证公钥的外部引用；identity签名密钥在control区，不随业务恢复替换"
         },
         "serviceIdentityRef": {
           "type": "string",
@@ -5929,7 +5905,7 @@
         },
         "restoreControlReady": {
           "type": "boolean",
-          "description": "本次恢复控制区与信任锚可用且不被导入覆盖"
+          "description": "control区与服务身份信任锚可用，且不随业务恢复替换"
         }
       },
       "required": [
@@ -5960,7 +5936,7 @@
             "string",
             "null"
           ],
-          "description": "未初始化null；维护激活期间用于确认本域新epoch"
+          "description": "未初始化null；恢复切换期间用于确认本域已换入的目标epoch"
         },
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"

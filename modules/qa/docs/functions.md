@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 62 个函数：约束 35 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 60 个函数：约束 33 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## qa.LoadRuntime
 
@@ -1816,13 +1816,13 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 
 **步骤**
 
-1. 校验服务身份及superadmin委托或限定RecoveryAuthorization
+1. 校验data-protection服务身份及superadmin委托
 2. 将本地control.db屏障draining并拒绝新业务写
 3. 屏障停止新turn/cache审批/压缩提交
 4. 取消活动turn并持久终态和原MG调用引用
 5. 导入的visitor cookie不得恢复授权，恢复dataEpoch使旧流/permit失效，原消息只经重新授权可读。
 6. 排空/终止worker到安全watermark后safe，deadline失败保持failed及拒写。
-7. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1837,9 +1837,9 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：持久控制屏障；不纳入业务快照
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
+- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
+- 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
 
 ## qa.ReleaseBarrier
@@ -1869,11 +1869,11 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input BarrierReque
 
 **步骤**
 
-1. 校验相同barrierId/operationId恢复许可
-2. 不允许未决prepared stage直接释放
-3. runtime dataEpoch与最终commit/rollback结果一致
+1. 校验相同barrierId/operationId与data-protection服务身份
+2. 暂存目录不影响释放；切换只在进程重启时发生
+3. runtime处于restore_switching或restore_rolling_back时不恢复业务worker，等待重启换目录
 4. released后开放该epoch业务写。
-5. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+5. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1888,9 +1888,9 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：更新本地control.db；不修改导入业务
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
+- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
+- 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
 
 ## qa.ExportSnapshot
@@ -1926,7 +1926,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 4. 取消活动turn并持久终态和原MG调用引用
 5. 导入的visitor cookie不得恢复授权，恢复dataEpoch使旧流/permit失效，原消息只经重新授权可读。
 6. 写不可变ObjectRef及SHA256后返回SnapshotRef，失败删除本域临时输出不释放屏障。
-7. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1941,213 +1941,99 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：创建本服务不可变快照对象
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
+- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
+- 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
 
-## qa.ValidateSnapshot
+## qa.StageSnapshot
 
 - 级别：约束
 - 文件：`modules/qa/internal/protection/protocol.go`
-- 作用：只读检查候选快照
+- 作用：把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据
 
 ```go
-func ValidateSnapshot(ctx context.Context, op OperationContext, input SnapshotValidateRequest) (SnapshotValidation, error)
+func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SnapshotValidateRequest` | 封闭业务输入；逐字段见types $defs/SnapshotValidateRequest | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotStageRequest` | 暂存请求 | 必须通过公共schema；snapshot.owner等于本域 |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotValidation` | 成功结果；逐字段见types $defs/SnapshotValidation | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+| `result` | `SnapshotStageResult` | 暂存回执 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 校验owner/对象SHA256/byteSize且不接受本地任意路径
-2. schemaVersion仅支持1否则UNSUPPORTED_SCHEMA
-3. 检查本域字段/唯一约束/引用/密钥兼容性
-4. 返回field issues无业务写，任何integrity失败valid=false。
-5. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
+3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
+4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `CONFLICT` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
-- 副作用：仅记录验证审计；不载入active数据
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
-- 依赖：`site-config:readRuntimeState`
+- 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
+- 授权：permission：superadmin；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
+- 幂等：restoreId+checksum唯一；重复调用返回已记录回执
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
 
-## qa.PrepareSnapshot
+## qa.DiscardSnapshot
 
 - 级别：约束
 - 文件：`modules/qa/internal/protection/protocol.go`
-- 作用：隔离准备恢复数据
+- 作用：删除某次恢复的暂存目录或恢复完成后换出的旧数据目录
 
 ```go
-func PrepareSnapshot(ctx context.Context, op OperationContext, input SnapshotPrepareRequest) (SnapshotStageResult, error)
+func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SnapshotPrepareRequest` | 封闭业务输入；逐字段见types $defs/SnapshotPrepareRequest | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotDiscardRequest` | 丢弃请求 | 必须通过公共schema |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotStageResult` | 成功结果；逐字段见types $defs/SnapshotStageResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+| `result` | `SnapshotDiscardResult` | 丢弃结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 验证限定restoreId/barrierId/旧新epoch/audience/期限许可及safe屏障
-2. 重复validate并读可信ObjectRef
-3. 写独立staging DB/文件且不覆盖control.db、屏障、信任锚
-4. staging checksum一致才ready并记录恢复前指针。
-5. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 校验data-protection服务身份与superadmin委托
+2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
+3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
+4. 删除后在control区记录discarded；目录不存在返回removed=false
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `CONFLICT` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
-- 副作用：创建隔离stage及本地control恢复记录
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
-- 依赖：`site-config:readRuntimeState`
-
-## qa.CommitSnapshot
-
-- 级别：约束
-- 文件：`modules/qa/internal/protection/protocol.go`
-- 作用：原子激活隔离恢复数据
-
-```go
-func CommitSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SnapshotCommitRequest` | 封闭业务输入；逐字段见types $defs/SnapshotCommitRequest | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 成功结果；逐字段见types $defs/SnapshotApplyResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 校验stage属于许可restore且目标epoch匹配
-2. safe屏障下禁止业务worker
-3. 原子切换本域数据指针并持久旧指针
-4. committed幂等回执，屏障仍safe等待全域runtime epoch激活。
-5. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `CONFLICT` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：原子active指针切换；保留rollback数据
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
-- 依赖：`site-config:readRuntimeState`
-
-## qa.RollbackSnapshot
-
-- 级别：约束
-- 文件：`modules/qa/internal/protection/protocol.go`
-- 作用：回退未完成全域恢复
-
-```go
-func RollbackSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SnapshotCommitRequest` | 封闭业务输入；逐字段见types $defs/SnapshotCommitRequest | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 成功结果；逐字段见types $defs/SnapshotApplyResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 验证同一许可restore/barrier
-2. 读取control保存旧指针
-3. 原子恢复旧数据且stage rolled-back
-4. 回执旧dataEpoch并保持safe，重复rollback返回同回执。
-5. 恢复控制校验RecoveryAuthorization范围与本地safe屏障；op.dataEpoch可以在许可source/target epoch内，不依赖已导入的新identity会话；control.db及信任锚不导入覆盖。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `CONFLICT` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：回退本域active指针；保留审计及失败stage
-- 授权：service身份+mTLS和superadmin预授权；正常控制调用要求当前epoch，恢复控制只接受op.recoveryAuthorization限定的restoreId/barrierId/sourceEpoch/targetEpoch/audience/expiresAt及预冻结信任锚；本地control.db不被导入覆盖。
-- 并发：本域control.db按barrierId/restoreId串行CAS；业务worker屏障排空，stage指针切换独占锁，reader固定代数；恢复许可不解除其他业务权限。
-- 幂等：相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。
+- 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
+- 授权：permission：superadmin；rule：仅data-protection服务身份携带superadmin委托
+- 并发：control区按restoreId串行
+- 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
 
 ## qa.LoadAdminOverview
@@ -2756,22 +2642,22 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor
+2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 
 **错误**
 
 - `VALIDATION` / HTTP 400：配置/缺路由绑定（不可重试）
 - `INTEGRITY_ERROR` / HTTP 422：迁移或journal校验失败（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖/控制信任锚不可用（可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖、control区或服务身份信任锚不可用（可重试）
 
 - 副作用：打开本域DB/文件资源、注册router和本域worker；失败资源回滚
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：无
+- 依赖：`site-config:registerActivation`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## qa.Serve
@@ -2801,7 +2687,8 @@ func Serve(ctx context.Context, app *Application) error
 
 1. 仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout
 2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
-3. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
+4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
 
 **错误**
 
@@ -2922,9 +2809,9 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 **步骤**
 
-1. 确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready
+1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
+3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
 4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
 
 **错误**
@@ -3004,7 +2891,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 **步骤**
 
 1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未激活该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
+2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
 3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
 4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
 5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
@@ -3016,7 +2903,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
 
 - 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
 - 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`qa.InvalidateCache`、`qa.StoreLocalizedCacheAnswer`

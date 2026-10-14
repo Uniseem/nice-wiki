@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 43 个：手写 37、生成 1、配置 5。函数 54 个：约束 36，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 41 个：手写 35、生成 1、配置 5。函数 52 个：约束 34，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -36,9 +36,7 @@
 | `modules/media/internal/blob_recovery.go` | 手写 | 恢复blob完成/删除持久日志 | `media.RecoverBlobJournal`（参考） |
 | `modules/media/internal/outbox_repository.go` | 手写 | 原子写最小资源状态outbox | `media.PublishAssetEvent`（参考）、`media.RelayOutbox` |
 | `modules/media/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `media.AcquireBarrier`、`media.ReleaseBarrier` |
-| `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `media.ExportSnapshot`、`media.PrepareSnapshot` |
-| `modules/media/internal/snapshot_validator.go` | 手写 | 验证快照可恢复性 | `media.ValidateSnapshot` |
-| `modules/media/internal/snapshot_repository.go` | 手写 | 激活已准备恢复数据 | `media.CommitSnapshot`、`media.RollbackSnapshot` |
+| `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `media.ExportSnapshot`、`media.StageSnapshot`、`media.DiscardSnapshot` |
 | `modules/media/cmd/media/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `media.main` |
 | `modules/media/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `media.BuildApplication` |
 | `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready` |

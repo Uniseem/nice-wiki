@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 54 个函数：约束 36 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 52 个函数：约束 34 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## media.BeginUpload
 
@@ -1702,7 +1702,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 1. 进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务
 2. 逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq
 3. 网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除
-4. 屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复激活新epoch后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准
+4. 屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准
 
 **错误**
 
@@ -1711,7 +1711,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 - `VERSION_MISMATCH`：dataEpoch与当前active epoch不一致；旧代行按恢复规则丢弃（不可重试）
 
 - 副作用：读写本域outbox行状态与租约；HTTP调用jobs:publishEvent
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
 - 依赖：`jobs:publishEvent`
@@ -1757,9 +1757,9 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
 
 - 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
+- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
+- 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
+- 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
 - 依赖：`site-config:readRuntimeState`
 
 ## media.ReleaseBarrier
@@ -1790,7 +1790,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 **步骤**
 
 1. 查询持久屏障
-2. 验证维护退出决定、所有激活/回滚步骤已完成及 epoch 一致
+2. 验证维护退出决定、全部域切换/换回回执已齐及 epoch 一致
 3. 原子改 released 并恢复业务接入
 
 **错误**
@@ -1800,7 +1800,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 
 - 副作用：私有屏障状态写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
+- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`site-config:readRuntimeState`
@@ -1846,19 +1846,19 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
 
 - 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
+- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
+- 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
+- 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
 - 依赖：`site-config:readRuntimeState`
 
-## media.PrepareSnapshot
+## media.StageSnapshot
 
 - 级别：约束
 - 文件：`modules/media/internal/snapshot_service.go`
-- 作用：在私有 staging 区准备恢复
+- 作用：把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据
 
 ```go
-func PrepareSnapshot(ctx context.Context, op OperationContext, input SnapshotPrepareRequest) (SnapshotStageResult, error)
+func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)
 ```
 
 **输入**
@@ -1866,45 +1866,46 @@ func PrepareSnapshot(ctx context.Context, op OperationContext, input SnapshotPre
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `SnapshotPrepareRequest` | 在私有 staging 区准备恢复的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotStageRequest` | 暂存请求 | 必须通过公共schema；snapshot.owner等于本域 |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotStageResult` | 在私有 staging 区准备恢复的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
+| `result` | `SnapshotStageResult` | 暂存回执 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 要求 restore barrier=safe 和 site-config 维护状态
-2. 重新验证快照并复制到以 restoreId 命名的 staging 根，路径由服务生成
-3. 迁移到当前 schema，记录 stageId、目标 epoch 和旧活动 manifest；重复同摘要复用 stage
+1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
+3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
+4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
 
 **错误**
 
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
-- 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
-- 依赖：`site-config:readRuntimeState`
+- 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
+- 授权：permission：superadmin；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
+- 幂等：restoreId+checksum唯一；重复调用返回已记录回执
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
 
-## media.ValidateSnapshot
+## media.DiscardSnapshot
 
 - 级别：约束
-- 文件：`modules/media/internal/snapshot_validator.go`
-- 作用：验证快照可恢复性
+- 文件：`modules/media/internal/snapshot_service.go`
+- 作用：删除某次恢复的暂存目录或恢复完成后换出的旧数据目录
 
 ```go
-func ValidateSnapshot(ctx context.Context, op OperationContext, input SnapshotValidateRequest) (SnapshotValidation, error)
+func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)
 ```
 
 **输入**
@@ -1912,127 +1913,32 @@ func ValidateSnapshot(ctx context.Context, op OperationContext, input SnapshotVa
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `SnapshotValidateRequest` | 验证快照可恢复性的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotDiscardRequest` | 丢弃请求 | 必须通过公共schema |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `SnapshotValidation` | 验证快照可恢复性的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
+| `result` | `SnapshotDiscardResult` | 丢弃结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
 
 **步骤**
 
-1. 只经对象读取 API 获取本域快照，拒绝其他域目录访问
-2. 核对 owner、hash、schemaVersion、引用与状态机；检查目标 epoch
-3. 列出精确 field issues 和受支持迁移计划；不写活动数据
+1. 校验data-protection服务身份与superadmin委托
+2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
+3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
+4. 删除后在control区记录discarded；目录不存在返回removed=false
 
 **错误**
 
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
-- 副作用：无
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
-- 依赖：`site-config:readRuntimeState`
-
-## media.CommitSnapshot
-
-- 级别：约束
-- 文件：`modules/media/internal/snapshot_repository.go`
-- 作用：激活已准备恢复数据
-
-```go
-func CommitSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `SnapshotCommitRequest` | 激活已准备恢复数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 激活已准备恢复数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
-
-**步骤**
-
-1. 要求维护、匹配 barrier/targetDataEpoch 与完整 stage 校验摘要
-2. 持久记录激活决定，原子切换活动 manifest/私有库连接到 stage 并 fsync
-3. 更新本域 epoch 和 commit receipt；保留旧 manifest 可回滚；进程崩溃按决定日志继续，不能部分激活
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
-
-- 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
-- 依赖：`site-config:readRuntimeState`
-
-## media.RollbackSnapshot
-
-- 级别：约束
-- 文件：`modules/media/internal/snapshot_repository.go`
-- 作用：按协调决定回滚恢复阶段
-
-```go
-func RollbackSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `SnapshotCommitRequest` | 按协调决定回滚恢复阶段的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotApplyResult` | 按协调决定回滚恢复阶段的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
-
-**步骤**
-
-1. 要求维护和同一 restore stage；仅接受协调者 rollback 决定
-2. 未激活 stage 删除；已激活则按持久旧 manifest 原子切回并验证 hash
-3. 记录 rolled-back 回执与原 epoch；无法回滚保持屏障并返回 INTEGRITY_ERROR
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
-
-- 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection，备份超管委托；恢复专用RecoveryAuthorization严格restore/barrier/epoch/audience/action，本地control信任锚不被快照覆盖
-- 并发：屏障与恢复按 barrierId/stageId 串行；活动事务计数达到零后才 safe；恢复通过原子 manifest 切换
-- 幂等：operationId/backupId/restoreId/stageId+摘要去重；重复返回已记录阶段，不能重新激活
+- 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
+- 授权：permission：superadmin；rule：仅data-protection服务身份携带superadmin委托
+- 并发：control区按restoreId串行
+- 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
 
 ## media.main
@@ -2097,22 +2003,22 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor
+2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 
 **错误**
 
 - `VALIDATION` / HTTP 400：配置/缺路由绑定（不可重试）
 - `INTEGRITY_ERROR` / HTTP 422：迁移或journal校验失败（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖/控制信任锚不可用（可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：基础关键依赖、control区或服务身份信任锚不可用（可重试）
 
 - 副作用：打开本域DB/文件资源、注册router和本域worker；失败资源回滚
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：无
+- 依赖：`site-config:registerActivation`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -2142,7 +2048,8 @@ func Serve(ctx context.Context, app *Application) error
 
 1. 仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout
 2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
-3. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
+4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
 
 **错误**
 
@@ -2263,9 +2170,9 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 **步骤**
 
-1. 确认配置/本域schema/journal/control信任锚完整并在lifecycle ready或维护控制ready
+1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域新epoch已激活可返回200 control-ready但publicRequestsAllowed=false，使全域激活检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
+3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
 4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
 
 **错误**
@@ -2307,7 +2214,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 **步骤**
 
 1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未激活该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
+2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
 3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
 4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
 5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
@@ -2319,7 +2226,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
 
 - 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发；recoveryAuthorization：不适用；本函数不得扩大已鉴权调用上下文
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
 - 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`media.ApplyReferenceEvent`

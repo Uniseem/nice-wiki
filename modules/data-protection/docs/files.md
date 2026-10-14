@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 39、UI 4、生成 4、配置 9、迁移 1。函数 66 个：约束 38，参考 28。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 55 个：手写 37、UI 4、生成 4、配置 9、迁移 1。函数 63 个：约束 38，参考 25。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -16,9 +16,9 @@
 | `modules/data-protection/internal/queries.go` | 手写 | 分页备份目录；同文件职责限本域以下登记函数 | `data-protection.ListBackups`、`data-protection.ReadBackup`、`data-protection.ReadMirrorStatus`（参考） |
 | `modules/data-protection/internal/download.go` | 手写 | 下载私有备份授权；同文件职责限本域以下登记函数 | `data-protection.AuthorizeBackupDownload` |
 | `modules/data-protection/internal/restore_validation.go` | 手写 | 全域恢复预检；同文件职责限本域以下登记函数 | `data-protection.ValidateRestore` |
-| `modules/data-protection/internal/restore.go` | 手写 | 建立完整恢复；同文件职责限本域以下登记函数 | `data-protection.CreateRestore`、`data-protection.PrepareAllDomains`、`data-protection.ActivateAllDomains` |
-| `modules/data-protection/internal/import_client.go` | 手写 | 准备单域导入；同文件职责限本域以下登记函数 | `data-protection.PrepareDomain`（参考）、`data-protection.ActivateDomain`（参考）、`data-protection.RollbackDomain`（参考） |
-| `modules/data-protection/internal/decision_log.go` | 手写 | 持久全局提交决定；同文件职责限本域以下登记函数 | `data-protection.WriteRestoreDecision`、`data-protection.GetRestoreDecision` |
+| `modules/data-protection/internal/restore.go` | 手写 | 建立完整恢复；同文件职责限本域以下登记函数 | `data-protection.CreateRestore`、`data-protection.StageAllDomains`、`data-protection.SwitchAllDomains`、`data-protection.ServeRestoreArchive`、`data-protection.CleanupRestore` |
+| `modules/data-protection/internal/import_client.go` | 手写 | 单域暂存；同文件职责限本域以下登记函数 | `data-protection.StageDomain`（参考）、`data-protection.DiscardDomain`（参考） |
+| `modules/data-protection/internal/decision_log.go` | 手写 | 持久全局切换决定；同文件职责限本域以下登记函数 | `data-protection.WriteRestoreDecision`、`data-protection.ReadRestoreProgress` |
 | `modules/data-protection/internal/runtime_client.go` | 手写 | 提交运行epoch权威；同文件职责限本域以下登记函数 | `data-protection.TransitionRuntimeEpoch`（参考） |
 | `modules/data-protection/internal/restore_recovery.go` | 手写 | 继续中断恢复；同文件职责限本域以下登记函数 | `data-protection.ContinueRestore`、`data-protection.AbortRestore` |
 | `modules/data-protection/internal/journal.go` | 手写 | 恢复自身文件和决策操作；同文件职责限本域以下登记函数 | `data-protection.RecoverProtectionJournal`（参考） |
@@ -33,9 +33,7 @@
 | `modules/data-protection/internal/events.go` | 手写 | 屏障通知消费；同文件职责限本域以下登记函数 | `data-protection.ConsumeBarrierEvent`、`data-protection.ConsumeEvents` |
 | `modules/data-protection/internal/barrier.go` | 手写 | 取得本域快照安全截点；同文件职责限本域以下登记函数 | `data-protection.EnterBarrier`、`data-protection.ReleaseBarrier` |
 | `modules/data-protection/internal/snapshot.go` | 手写 | 导出本域操作目录快照；同文件职责限本域以下登记函数 | `data-protection.CreateSnapshot` |
-| `modules/data-protection/internal/import.go` | 手写 | 校验保护域快照；同文件职责限本域以下登记函数 | `data-protection.ValidateImport`、`data-protection.PrepareImport`、`data-protection.ActivateImport`、`data-protection.AbortImport` |
-| `modules/data-protection/internal/recovery_authorization.go` | 手写 | 本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数 | `data-protection.ValidateRecoveryAuthorization`（参考） |
-| `modules/data-protection/internal/recovery_control.go` | 手写 | 维护前取得已批准恢复许可；同文件职责限本域以下登记函数 | `data-protection.IssueRestoreControlPermit`（参考） |
+| `modules/data-protection/internal/import.go` | 手写 | 校验保护域快照；同文件职责限本域以下登记函数 | `data-protection.StageSnapshot`、`data-protection.DiscardSnapshot` |
 | `modules/data-protection/web/src/BackupPanel.vue` | UI | Vue3模块交互：RequestBackup；同文件职责限本域以下登记函数 | `data-protection.RequestBackup`（参考） |
 | `modules/data-protection/web/src/RestoreWizard.vue` | UI | Vue3模块交互：ApproveFullRestore；同文件职责限本域以下登记函数 | `data-protection.ApproveFullRestore`（参考） |
 | `modules/data-protection/web/src/GitSyncPanel.vue` | UI | Vue3模块交互：RequestMirrorSync；同文件职责限本域以下登记函数 | `data-protection.RequestMirrorSync`（参考） |

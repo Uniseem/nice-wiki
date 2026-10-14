@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "design",
-  "contractSha256": "9c4b68f751195e8674ddfe3a59444532f28fd0fed4fea96aca6b2f8b6df7e809",
+  "contractSha256": "1877501b59f574a1531e3e4b7b4e4b8289dbaca055001df4c767aa779c3c2c26",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -352,16 +352,6 @@
     },
     {
       "path": "modules/public-site/internal/barrier.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/public-site/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1120,7 +1110,7 @@
       "blocker": null
     },
     {
-      "id": "public-site.ValidateImport",
+      "id": "public-site.StageSnapshot",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1131,29 +1121,7 @@
       "blocker": null
     },
     {
-      "id": "public-site.PrepareImport",
-      "path": "modules/public-site/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "public-site.ActivateImport",
-      "path": "modules/public-site/internal/import.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "public-site.AbortImport",
+      "id": "public-site.DiscardSnapshot",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1177,17 +1145,6 @@
     {
       "id": "public-site.ReleaseBarrier",
       "path": "modules/public-site/internal/barrier.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "public-site.ValidateRecoveryAuthorization",
-      "path": "modules/public-site/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

@@ -129,4 +129,4 @@
 
 引用：`../../model-gateway/contracts/types.json#/$defs/GatewayMessage`。
 
-恢复特殊数据：屏障停止新翻译批次和人工写入，保留human/protected/generation及术语版本；导入必须恢复保护位与源ref，sourceEpoch未激活前译文不能交付，不自动重翻。
+恢复特殊数据：屏障停止新翻译批次和人工写入，保留human/protected/generation及术语版本；导入必须恢复保护位与源ref，恢复切换完成前译文不能交付，不自动重翻。

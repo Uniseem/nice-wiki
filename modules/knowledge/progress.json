@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "design",
-  "contractSha256": "6e8b4620b4a009bb21cc4d890ee6ea503245b5d045c34b649cfac8b792f60529",
+  "contractSha256": "d9475f6881bbf1709e9c40bcbed968a7b0516d5cd7e7dfc76153159e1a00b82c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -1054,7 +1054,7 @@
       "blocker": null
     },
     {
-      "id": "knowledge.ValidateSnapshot",
+      "id": "knowledge.StageSnapshot",
       "path": "modules/knowledge/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1065,29 +1065,7 @@
       "blocker": null
     },
     {
-      "id": "knowledge.PrepareSnapshot",
-      "path": "modules/knowledge/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "knowledge.CommitSnapshot",
-      "path": "modules/knowledge/internal/protection/protocol.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "knowledge.RollbackSnapshot",
+      "id": "knowledge.DiscardSnapshot",
       "path": "modules/knowledge/internal/protection/protocol.go",
       "state": "planned",
       "implementationCommit": null,

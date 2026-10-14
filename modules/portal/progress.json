@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "design",
-  "contractSha256": "79c559d2c01933dca7766bd84553cbe66660f225b38b227ff42c2be4d766af2f",
+  "contractSha256": "46e135e6e762c863a8e40165eed8048f77fa8fa6f425a22e3037c7e101592466",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,

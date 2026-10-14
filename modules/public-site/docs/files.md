@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 70 个：手写 52、UI 4、生成 4、配置 9、迁移 1。函数 67 个：约束 32，参考 35。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 69 个：手写 51、UI 4、生成 4、配置 9、迁移 1。函数 64 个：约束 30，参考 34。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -39,9 +39,8 @@
 | `modules/public-site/internal/http_preview.go` | 手写 | 预览 HTTP 入口；同文件职责限本域以下登记函数 | `public-site.HandlePreview` |
 | `modules/public-site/internal/beacon.go` | 手写 | AI爬虫Markdown访问单独计数；同文件职责限本域以下登记函数 | `public-site.RecordAnonymousView`（参考） |
 | `modules/public-site/internal/snapshot.go` | 手写 | 创建本域一致快照；同文件职责限本域以下登记函数 | `public-site.CreateSnapshot` |
-| `modules/public-site/internal/import.go` | 手写 | 验证待恢复快照；同文件职责限本域以下登记函数 | `public-site.ValidateImport`、`public-site.PrepareImport`、`public-site.ActivateImport`、`public-site.AbortImport` |
+| `modules/public-site/internal/import.go` | 手写 | 验证待恢复快照；同文件职责限本域以下登记函数 | `public-site.StageSnapshot`、`public-site.DiscardSnapshot` |
 | `modules/public-site/internal/barrier.go` | 手写 | 公开渲染域进入安全屏障；同文件职责限本域以下登记函数 | `public-site.EnterBarrier`、`public-site.ReleaseBarrier` |
-| `modules/public-site/internal/recovery_authorization.go` | 手写 | 本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数 | `public-site.ValidateRecoveryAuthorization`（参考） |
 | `modules/public-site/web/src/PreviewPanel.vue` | UI | Vue3模块交互：LoadPreview；同文件职责限本域以下登记函数 | `public-site.LoadPreview`（参考） |
 | `modules/public-site/web/src/PublicSettingsPanel.vue` | UI | Vue3模块交互：LoadPublicCapabilities；同文件职责限本域以下登记函数 | `public-site.LoadPublicCapabilities`（参考） |
 | `modules/public-site/web/src/client.ts` | UI | Vue3模块交互：RequestPublicNavigation；同文件职责限本域以下登记函数 | `public-site.RequestPublicNavigation`（参考） |
