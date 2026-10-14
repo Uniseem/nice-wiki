@@ -1,0 +1,43 @@
+{
+  "slug": "model-gateway",
+  "image": "nice-wiki-model-gateway",
+  "command": ["/model-gateway", "--config", "/config/service.config.json"],
+  "httpPort": 8105,
+  "dataVolume": "/data/model-gateway",
+  "secrets": [
+    {
+      "name": "trust-anchors",
+      "path": "/run/secrets/trust-anchors.json"
+    },
+    {
+      "name": "model-gateway-signing-key",
+      "path": "/run/secrets/model-gateway-signing-key.json"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "identity",
+      "endpoint": "http://identity:8101",
+      "env": "NW_DEP_IDENTITY"
+    },
+    {
+      "module": "site-config",
+      "endpoint": "http://site-config:8102",
+      "env": "NW_DEP_SITE_CONFIG"
+    },
+    {
+      "module": "media",
+      "endpoint": "http://media:8104",
+      "env": "NW_DEP_MEDIA"
+    },
+    {
+      "module": "jobs",
+      "endpoint": "http://jobs:8111",
+      "env": "NW_DEP_JOBS"
+    }
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}

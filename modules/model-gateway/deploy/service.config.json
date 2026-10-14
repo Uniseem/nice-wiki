@@ -1,0 +1,13 @@
+{
+  "module": "model-gateway",
+  "listen": "127.0.0.1:8105",
+  "dataRoot": "/data/model-gateway",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/model-gateway-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "site-config": "http://127.0.0.1:8102",
+    "media": "http://127.0.0.1:8104",
+    "jobs": "http://127.0.0.1:8111"
+  }
+}
