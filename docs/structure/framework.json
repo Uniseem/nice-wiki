@@ -2502,6 +2502,411 @@
       "path": "docs/push-log/2026-10-14-0007.md",
       "kind": "documentation",
       "purpose": "推送记录0007：R1-02启动装配组与R1-01私有持久化"
+    },
+    {
+      "path": "modules/analytics/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/analytics/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/analytics与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/analytics/cmd/analytics/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/analytics/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/analytics/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/analytics/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/analytics；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/analytics/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/analytics/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/analytics/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/content/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/content/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/content与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/content/cmd/content/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/content/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/content/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/content/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/content/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/content/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/identity/internal/account_validator.go",
+      "kind": "handwritten",
+      "purpose": "规范不可变账号名"
+    },
+    {
+      "path": "modules/identity/internal/credential_service.go",
+      "kind": "handwritten",
+      "purpose": "生成Argon2id口令哈希"
+    },
+    {
+      "path": "modules/jobs/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/jobs；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/jobs/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/jobs与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/jobs/cmd/jobs/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/jobs/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/jobs/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/jobs/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/jobs；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/jobs/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/jobs/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/jobs/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/localization/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/localization；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/localization/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/localization与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/localization/cmd/localization/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/localization/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/localization/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/localization/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/localization；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/localization/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/localization/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/localization/ui/index.html",
+      "kind": "config",
+      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret"
+    },
+    {
+      "path": "modules/localization/ui/package.json",
+      "kind": "config",
+      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务"
+    },
+    {
+      "path": "modules/localization/ui/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest"
+    },
+    {
+      "path": "modules/localization/ui/src/main.ts",
+      "kind": "ui",
+      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务"
+    },
+    {
+      "path": "modules/localization/ui/tsconfig.json",
+      "kind": "config",
+      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像"
+    },
+    {
+      "path": "modules/localization/ui/vite.config.ts",
+      "kind": "config",
+      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token"
+    },
+    {
+      "path": "modules/media/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/media；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/media/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/media与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/media/cmd/media/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/media/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/media/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/media/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/media；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/media/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/media/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/media/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/memory/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/memory；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/memory/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/memory与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/memory/cmd/memory/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/memory/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/memory/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/memory/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/memory；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/memory/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/memory/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/model-gateway/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/model-gateway；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/model-gateway/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/model-gateway与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/model-gateway/cmd/model-gateway/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/model-gateway/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/model-gateway/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/model-gateway/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/model-gateway；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/model-gateway/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/model-gateway/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/0001_control.sql",
+      "kind": "migration",
+      "purpose": "初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域control.db只追加SQL迁移并校验编号连续"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_state_service.go",
+      "kind": "handwritten",
+      "purpose": "读取独立控制库权威运行状态"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_store.go",
+      "kind": "handwritten",
+      "purpose": "打开独立control.db并持久化RuntimeState、激活回执与操作幂等记录"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "kind": "handwritten",
+      "purpose": "按CAS切换epoch与维护阶段"
+    },
+    {
+      "path": "modules/site-config/internal/write_epoch.go",
+      "kind": "handwritten",
+      "purpose": "所有业务写入执行epoch与屏障检查"
+    },
+    {
+      "path": "modules/traffic-guard/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/traffic-guard；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/traffic-guard/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/traffic-guard与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
+      "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/traffic-guard/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/traffic-guard/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/traffic-guard/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/traffic-guard；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/traffic-guard/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/traffic-guard/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
     }
   ]
 }
