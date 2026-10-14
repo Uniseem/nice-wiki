@@ -2,11 +2,11 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "e66d7bce647655f47f1f023cdd736370f275de55e49a09317f14961397348c25",
+  "contractSha256": "5edab272347ecfb4e0bf2bd9b4f5a57be39fae69c5c2c9ac8fdbcddc1da2eaf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（GLM/ZCode，启动装配组）",
-  "branch": "codex/identity-r1-01",
-  "baseCommit": "9c667f3580ee1656d161f3b08311333e08a8ebb5",
+  "assignedSession": "R1-01（GLM/ZCode，私有持久化）",
+  "branch": "codex/identity-r1-01-storage",
+  "baseCommit": "bbb1e535c2f1efa93b11af80e3fe853f3fefbecf",
   "deliveryCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
   "deployment": "not_started",
   "files": [
@@ -162,6 +162,36 @@
     },
     {
       "path": "modules/identity/internal/snapshot_service.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/storage.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/migrations/migrations.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/migrations/0001_domain.sql",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -733,6 +763,50 @@
       "blocker": null
     },
     {
+      "id": "identity.OpenDatabase",
+      "path": "modules/identity/internal/storage.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.RunMigrations",
+      "path": "modules/identity/internal/storage.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.RecoverJournal",
+      "path": "modules/identity/internal/storage.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.All",
+      "path": "modules/identity/migrations/migrations.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "identity.main",
       "path": "modules/identity/cmd/identity/main.go",
       "state": "blocked",
@@ -799,5 +873,5 @@
       "blocker": null
     }
   ],
-  "rule": "R1-01首个工作包已交付启动装配组：9个文件创建，Serve/Shutdown/Health/Ready按合同实现并过已有检查；main与BuildApplication的部分合同步骤依赖业务函数，保持blocked如实登记。其余业务文件/函数仍planned，逐项认领。"
+  "rule": "R1-01第二工作包交付：私有持久化（打开active区SQLite、只追加迁移、决定日志恢复）已实现；BuildApplication存储步骤与Ready深度校验生效。业务函数（x-handler绑定、注册/会话/权限等）仍planned，逐项认领。"
 }

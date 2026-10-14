@@ -14,6 +14,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/modules/identity/internal"
 	"nice-wiki/modules/identity/internal/gen"
 )
 
@@ -34,6 +35,8 @@ type Application struct {
 	config       platform.ServiceConfig
 	anchors      platform.TrustAnchors
 	runtime      platform.SiteConfigClient
+	store        *identity.Store
+	openedEpoch  platform.Identifier
 	state        atomic.Int32
 	serveStarted atomic.Bool
 	shutdownOnce sync.Once
@@ -41,9 +44,10 @@ type Application struct {
 	httpServer   *http.Server
 }
 
-// NewApplication 组装 HTTP 容器并直接注册匿名健康/就绪路由。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient) *Application {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority}
+// NewApplication 组装 HTTP 容器并直接注册匿名健康/就绪路由；
+// openedEpoch 是本次打开业务库时观察到的运行代次，供就绪比对。
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier) *Application {
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, store: store, openedEpoch: openedEpoch}
 	mux := http.NewServeMux()
 	application.registerHealthRoutes(mux)
 	application.httpServer = &http.Server{
@@ -102,6 +106,10 @@ func Shutdown(ctx context.Context, app *Application) error {
 		app.state.CompareAndSwap(stateReady, stateDraining)
 		err := app.httpServer.Shutdown(ctx)
 		if err == nil {
+			if storeErr := app.store.Close(); storeErr != nil {
+				app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭业务库失败")
+				return
+			}
 			app.state.Store(stateClosed)
 			return
 		}
@@ -127,8 +135,8 @@ func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
 	}, nil
 }
 
-// Ready 确认本域配置与信任锚完整、运行权威可达；就绪不代表维护已解除。
-// 业务存储落地后补充 schema/journal 校验与 activeDataEpoch 比对。
+// Ready 确认本域配置、信任锚、业务库schema与决定日志完整且运行权威
+// 可达；数据代次与打开时不一致返回503。就绪不代表维护已解除。
 func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) {
 	if app.state.Load() == stateClosed {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
@@ -141,11 +149,19 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
+	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
+	}
+	initialized, err := app.store.HasSuperadmin(ctx)
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
+	openedEpoch := string(app.openedEpoch)
 	return gen.ServiceReadiness{
 		Health:                health,
-		Initialized:           false,
-		JournalRecovered:      true,
-		ActiveDataEpoch:       nil,
+		Initialized:           initialized,
+		JournalRecovered:      app.store.JournalRecovered,
+		ActiveDataEpoch:       &openedEpoch,
 		Maintenance:           view.Maintenance,
 		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
 		RuntimeRevision:       0,

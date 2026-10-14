@@ -3598,6 +3598,179 @@
       ]
     },
     {
+      "path": "modules/identity/internal/storage.go",
+      "kind": "handwritten",
+      "purpose": "打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志",
+      "functions": [
+        {
+          "id": "identity.OpenDatabase",
+          "name": "OpenDatabase",
+          "signature": "func OpenDatabase(dataRoot string) (*Store, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "打开本域active区业务库与control区决定日志句柄",
+          "steps": [
+            "按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化",
+            "以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域active区DB与control区决定日志；迁移在事务中写入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "单连接串行；决定日志append串行加锁",
+          "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.RunMigrations",
+          "name": "RunMigrations",
+          "signature": "func (s *Store) RunMigrations() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序在事务中应用未执行迁移",
+          "steps": [
+            "读取schema_migrations已应用记录（缺表视为空集，首个迁移自举该表）",
+            "逐个在事务中执行迁移SQL并登记版本；已应用版本超出迁移集返回INTEGRITY_ERROR"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域active区DB与control区决定日志；迁移在事务中写入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "单连接串行；决定日志append串行加锁",
+          "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [
+            "identity.All"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.RecoverJournal",
+          "name": "RecoverJournal",
+          "signature": "func (s *Store) RecoverJournal() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "恢复决定日志并使未完成决定可见",
+          "steps": [
+            "逐行读取决定日志，同一id以最后一行状态生效",
+            "存在open状态条目返回INTEGRITY_ERROR隔离启动；全部完结则标记JournalRecovered"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域active区DB与control区决定日志；迁移在事务中写入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "单连接串行；决定日志append串行加锁",
+          "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/identity/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续",
+      "functions": [
+        {
+          "id": "identity.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回全部内嵌迁移并校验编号连续",
+          "steps": [
+            "go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开本域active区DB与control区决定日志；迁移在事务中写入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "单连接串行；决定日志append串行加锁",
+          "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/identity/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "初始权威表：accounts（唯一超管部分唯一索引）、credentials、account_permissions、sessions、preferences、operation_receipts、schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记",
+      "functions": []
+    },
+    {
       "path": "modules/identity/cmd/identity/main.go",
       "kind": "handwritten",
       "purpose": "本域唯一Go可执行入口；不放产品算法",
@@ -3732,7 +3905,10 @@
             "identity.ObserveSuperadminResetFile",
             "identity.RelayOutbox",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "identity.OpenDatabase",
+            "identity.RunMigrations",
+            "identity.RecoverJournal"
           ],
           "resources": [
             "本域implementation全部x-handler",

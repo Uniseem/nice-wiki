@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/identity/internal"
 	"nice-wiki/modules/identity/internal/gen"
 	"nice-wiki/modules/identity/internal/transport"
 )
@@ -20,10 +21,11 @@ const ModuleSlug = "identity"
 
 // BuildApplication 验证本域配置，建立 active/control/restore 目录布局，
 // 加载服务身份信任锚与签名密钥，读取运行权威状态并执行恢复换目录，
-// 最后返回注册了匿名健康/就绪路由的应用容器。
+// 打开active区业务库执行schema迁移与决定日志恢复，最后返回注册了
+// 匿名健康/就绪路由的应用容器。
 //
-// 业务存储打开、OpenAPI x-handler 绑定、恢复换目录后的会话失效与
-// 回执登记、后台任务循环随对应业务工作包逐项接入。
+// OpenAPI x-handler 绑定、恢复换目录后的会话失效与回执登记、后台
+// 任务循环随对应业务工作包逐项接入。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -55,7 +57,19 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		// （后续工作包）提供；在此之前换入数据拒绝开放入口。
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖暂存/屏障函数，尚未实现")
 	}
-	return transport.NewApplication(config, anchors, runtimeAuthority), nil
+	store, err := identity.OpenDatabase(config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	if err := store.RunMigrations(); err != nil {
+		store.Close()
+		return nil, err
+	}
+	if err := store.RecoverJournal(); err != nil {
+		store.Close()
+		return nil, err
+	}
+	return transport.NewApplication(config, anchors, runtimeAuthority, store, view.DataEpoch), nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端（platform.SiteConfigClient），

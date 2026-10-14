@@ -2149,6 +2149,21 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
     },
     {
+      "path": "modules/identity/internal/storage.go",
+      "kind": "handwritten",
+      "purpose": "打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志"
+    },
+    {
+      "path": "modules/identity/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续"
+    },
+    {
+      "path": "modules/identity/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "初始权威表：accounts/credentials/account_permissions/sessions/preferences/operation_receipts/schema_migrations；平台outbox/inbox表不在此登记"
+    },
+    {
       "path": "modules/identity/Makefile",
       "kind": "tool",
       "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/identity；run传配置；verify核编译和格式。无共享业务启动器，不创建测试样例"

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 28 个：手写 19、生成 3、配置 6。函数 46 个：约束 29，参考 17。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 31 个：手写 21、生成 3、配置 6、迁移 1。函数 50 个：约束 29，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -22,6 +22,9 @@
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考） |
 | `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier` |
 | `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot` |
+| `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考） |
+| `modules/identity/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续 | `identity.All`（参考） |
+| `modules/identity/migrations/0001_domain.sql` | 迁移 | 初始权威表：accounts（唯一超管部分唯一索引）、credentials、account_permissions、sessions、preferences、operation_receipts、schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/identity/cmd/identity/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `identity.main` |
 | `modules/identity/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `identity.BuildApplication` |
 | `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready` |

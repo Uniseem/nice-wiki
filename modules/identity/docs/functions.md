@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 46 个函数：约束 29 个，参考 17 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 50 个函数：约束 29 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## identity.ReadRegistrationState
 
@@ -1714,6 +1714,141 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
 
+## identity.OpenDatabase
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：打开本域active区业务库与control区决定日志句柄
+
+```go
+func OpenDatabase(dataRoot string) (*Store, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化
+2. 以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：打开本域active区DB与control区决定日志；迁移在事务中写入
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：单连接串行；决定日志append串行加锁
+- 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：无
+
+## identity.RunMigrations
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：按编号升序在事务中应用未执行迁移
+
+```go
+func (s *Store) RunMigrations() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取schema_migrations已应用记录（缺表视为空集，首个迁移自举该表）
+2. 逐个在事务中执行迁移SQL并登记版本；已应用版本超出迁移集返回INTEGRITY_ERROR
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：打开本域active区DB与control区决定日志；迁移在事务中写入
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：单连接串行；决定日志append串行加锁
+- 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：`identity.All`
+
+## identity.RecoverJournal
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：恢复决定日志并使未完成决定可见
+
+```go
+func (s *Store) RecoverJournal() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐行读取决定日志，同一id以最后一行状态生效
+2. 存在open状态条目返回INTEGRITY_ERROR隔离启动；全部完结则标记JournalRecovered
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：打开本域active区DB与control区决定日志；迁移在事务中写入
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：单连接串行；决定日志append串行加锁
+- 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：无
+
+## identity.All
+
+- 级别：参考
+- 文件：`modules/identity/migrations/migrations.go`
+- 作用：按编号升序返回全部内嵌迁移并校验编号连续
+
+```go
+func All() ([]Migration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：打开本域active区DB与control区决定日志；迁移在事务中写入
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：单连接串行；决定日志append串行加锁
+- 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：无
+
 ## identity.main
 
 - 级别：约束
@@ -1794,7 +1929,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## identity.Serve
