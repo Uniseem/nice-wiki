@@ -4,21 +4,21 @@
   "phase": "implementation",
   "contractSha256": "c67c4d463c5da5003beadc1f1a9fb2a9313b44ba7fd82eb830706c576e568630",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-03（jobs启动与契约生成准备，Codex）",
-  "branch": "codex/jobs-r1-03",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
+  "assignedSession": "R1-04 ValidateJobSpec（Codex）",
+  "branch": "codex/jobs-r1-04-validation",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": "03ac7eff1ed562be4fdc18794080ae50ecfd900c",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/jobs/internal/validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "03ac7eff1ed562be4fdc18794080ae50ecfd900c",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已运行静态隐私检查；环境无go/gofmt/make，未编译、格式化或执行行为验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，尚未完成编译、gofmt与行为验收"
     },
     {
       "path": "modules/jobs/internal/queue.go",
@@ -495,13 +495,13 @@
     {
       "id": "jobs.ValidateJobSpec",
       "path": "modules/jobs/internal/validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "03ac7eff1ed562be4fdc18794080ae50ecfd900c",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已运行静态隐私检查；环境无go/gofmt/make，未编译、格式化或执行行为验收"
       },
-      "blocker": null
+      "blocker": "去重键不在ValidateJobSpecInput；由后续CreateJob按合同校验。Go工具链不可用，尚未完成编译与行为验收"
     },
     {
       "id": "jobs.CreateJob",
@@ -1043,5 +1043,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本域按单项工作包更新实现状态；implemented仅表示源码已提交，verified需有可复现检查证据，accepted仅在未来行为验收通过后登记。"
 }
