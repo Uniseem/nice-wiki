@@ -11,7 +11,7 @@
 - 基线：`8ae6fcfc6302e2fd41a998faef18be52e2a9714c`
 - 实现提交：`77fe57291ab9bcc0f53df2d35018e055e61ca12f`
 - 本次修改：`go.mod`、`internal/chunk/normalize.go`
-- 状态记录待本交接提交补齐；未提交文件应为空。
+- 状态记录提交：`808d734bb802514ba606da2f31937baacbd6d48c`；未提交文件应为空。
 
 `NormalizeSource` 已标记 `implemented`，尚未标记 `verified` 或 `accepted`。本机无 Go/gofmt，不能完成编译/格式化/行为验证；`go.sum` 尚未生成。公共 `docs/structure/framework.json` 未在本域修改范围内登记新文件。
 

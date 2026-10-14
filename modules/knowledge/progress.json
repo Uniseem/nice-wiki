@@ -7,7 +7,7 @@
   "assignedSession": "R1-知识域文本规范化",
   "branch": "codex/knowledge-normalize",
   "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
-  "deliveryCommit": null,
+  "deliveryCommit": "808d734bb802514ba606da2f31937baacbd6d48c",
   "deployment": "not_started",
   "files": [
     {
