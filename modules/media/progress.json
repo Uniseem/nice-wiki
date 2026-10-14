@@ -7,7 +7,7 @@
   "assignedSession": "R1-08启动与契约生成准备",
   "branch": "codex/media-r1-bootstrap",
   "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": null,
+  "deliveryCommit": "88078f96c51971b3f51604751f92ef69e4c53c0b",
   "deployment": "not_started",
   "files": [
     {
@@ -323,7 +323,7 @@
     {
       "path": "modules/media/cmd/media/main.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -333,7 +333,7 @@
     {
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -343,7 +343,7 @@
     {
       "path": "modules/media/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -353,7 +353,7 @@
     {
       "path": "modules/media/go.mod",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -363,7 +363,7 @@
     {
       "path": "modules/media/go.sum",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -373,7 +373,7 @@
     {
       "path": "modules/media/Dockerfile",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -383,7 +383,7 @@
     {
       "path": "modules/media/Makefile",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -393,7 +393,7 @@
     {
       "path": "modules/media/config/service.defaults.json",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -403,7 +403,7 @@
     {
       "path": "modules/media/deploy/manifest.json",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -983,7 +983,7 @@
       "id": "media.Serve",
       "path": "modules/media/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -994,7 +994,7 @@
       "id": "media.Shutdown",
       "path": "modules/media/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1005,7 +1005,7 @@
       "id": "media.Health",
       "path": "modules/media/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1016,7 +1016,7 @@
       "id": "media.Ready",
       "path": "modules/media/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "b253a693b305e35881af46678e0403526e84818b",
       "verification": {
         "state": "not_run",
         "evidence": null
