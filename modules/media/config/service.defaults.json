@@ -1,0 +1,13 @@
+{
+  "module": "media",
+  "listen": "127.0.0.1:8104",
+  "dataRoot": "/data/media",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/media-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "site-config": "http://127.0.0.1:8102",
+    "content": "http://127.0.0.1:8103",
+    "jobs": "http://127.0.0.1:8111"
+  }
+}

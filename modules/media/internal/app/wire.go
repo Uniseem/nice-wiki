@@ -1,0 +1,161 @@
+// Package app 装配 media 域的数据目录、服务身份与运行权威客户端。
+// 产品业务处理器和私有存储在后续工作包中接入，本文件不提供伪处理器。
+package app
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/media/internal/gen"
+	"nice-wiki/modules/media/internal/transport"
+)
+
+// ModuleSlug 是本域服务身份；配置指向其他域时拒绝装配。
+const ModuleSlug = "media"
+
+var requiredDependencies = [...]string{"identity", "site-config", "content", "jobs"}
+
+// BuildApplication 验证启动边界、建立本域目录并接入恢复/运行权威。
+//
+// 本工作包尚未实现 media 私有存储、OpenAPI 业务处理器、事件订阅和任务
+// 执行器。按启动合同，缺少这些约束级依赖时返回
+// DEPENDENCY_UNAVAILABLE，不创建空路由或伪造就绪结果。
+func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
+	if ctx == nil {
+		return nil, platform.NewError(platform.CodeValidation, false, "启动上下文缺失")
+	}
+	if config.Module != ModuleSlug {
+		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
+	}
+	if err := ensureDataLayout(config.DataRoot); err != nil {
+		return nil, err
+	}
+	if _, err := loadTrustAnchors(config.TrustAnchorRef); err != nil {
+		return nil, err
+	}
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateDependencyEndpoints(config); err != nil {
+		return nil, err
+	}
+	runtimeAuthority, err := newRuntimeClient(config, key)
+	if err != nil {
+		return nil, err
+	}
+	view, err := lifecycle.ReadRuntime(ctx, runtimeAuthority)
+	if err != nil {
+		return nil, err
+	}
+	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
+	if err != nil {
+		return nil, err
+	}
+	if swap.Action != platform.SwapNone {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障工作包")
+	}
+
+	// 业务存储、所有 x-handler、blob journal 恢复、outbox/事件循环和
+	// jobs worker 尚未实现；启动必须明确失败，不能让健康路由掩盖缺口。
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "media业务装配依赖尚未实现")
+}
+
+// NewRuntimeClient 构造 site-config 运行权威客户端，供平台进程模板读取
+// dataEpoch、维护状态和恢复阶段；不共享 site-config 的内部存储。
+func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error) {
+	if config.Module != ModuleSlug {
+		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
+	}
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	return newRuntimeClient(config, key)
+}
+
+func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (platform.SiteConfigClient, error) {
+	baseURL := strings.TrimSpace(config.Dependencies["site-config"])
+	if baseURL == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "缺少site-config依赖地址")
+	}
+	return &runtimeAuthority{
+		client: gen.NewSiteConfigClient(baseURL, ModuleSlug, key),
+	}, nil
+}
+
+// runtimeAuthority 把生成客户端的安全JSON响应适配为平台 RuntimeView。
+type runtimeAuthority struct {
+	client *gen.SiteConfigClient
+}
+
+func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
+	raw, err := r.client.ReadRuntimeState(ctx)
+	if err != nil {
+		return platform.RuntimeView{}, err
+	}
+	var view platform.RuntimeView
+	if err := json.Unmarshal(raw, &view); err != nil || view.DataEpoch == "" || view.Phase == "" {
+		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
+	}
+	return view, nil
+}
+
+func validateDependencyEndpoints(config platform.ServiceConfig) error {
+	for _, module := range requiredDependencies {
+		if strings.TrimSpace(config.Dependencies[module]) == "" {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "缺少本域启动依赖")
+		}
+	}
+	return nil
+}
+
+// ensureDataLayout 建立 active/control/restore 三区；control 区不随业务
+// 恢复替换，restore 区供平台换目录协议使用。
+func ensureDataLayout(dataRoot string) error {
+	if !filepath.IsAbs(dataRoot) {
+		return platform.NewError(platform.CodeValidation, false, "数据根必须为绝对路径")
+	}
+	for _, name := range [...]string{"active", "control", "restore"} {
+		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
+			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
+		}
+	}
+	return nil
+}
+
+// loadTrustAnchors 读取服务公钥表；引用不可读或内容不完整时阻止启动。
+func loadTrustAnchors(ref string) (platform.TrustAnchors, error) {
+	raw, err := os.ReadFile(ref)
+	if err != nil {
+		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不可读")
+	}
+	var anchors platform.TrustAnchors
+	if err := json.Unmarshal(raw, &anchors); err != nil || len(anchors.Services) == 0 {
+		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不合法")
+	}
+	return anchors, nil
+}
+
+// loadSigningKey 只读取签名密钥引用并验证私钥可解析，私钥内容不进入
+// 日志或配置结构的序列化结果。
+func loadSigningKey(ref string) (platform.SigningKey, error) {
+	raw, err := os.ReadFile(ref)
+	if err != nil {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不可读")
+	}
+	var key platform.SigningKey
+	if err := json.Unmarshal(raw, &key); err != nil || key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不合法")
+	}
+	if _, err := serviceauth.LoadSigningKey(key); err != nil {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名私钥不可用")
+	}
+	return key, nil
+}

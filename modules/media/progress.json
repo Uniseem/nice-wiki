@@ -1,12 +1,12 @@
 {
   "version": 1,
   "module": "media",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "7c1f14a72fd3255c4cd014fae3e6cd8128da57be619a406617874410072c421d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
+  "assignedSession": "R1-08启动与契约生成准备",
+  "branch": "codex/media-r1-bootstrap",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
@@ -322,77 +322,77 @@
     },
     {
       "path": "modules/media/cmd/media/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "平台进程模板已接线；BuildApplication仍因本域业务存储、全部OpenAPI处理器、恢复journal与后台循环未实现而按合同返回DEPENDENCY_UNAVAILABLE"
     },
     {
       "path": "modules/media/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "已接入目录/信任锚/签名引用/运行权威/ApplyRestoreSwap边界；缺少本域存储、x-handler、blob恢复、outbox/订阅/worker依赖"
     },
     {
       "path": "modules/media/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本地无Go/gofmt且未获VPS检查证据，保持未验证"
     },
     {
       "path": "modules/media/go.mod",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "依赖版本沿用R1-00已接受的kin-openapi/oapi-codegen/runtime；本地无Go，未执行模块解析"
     },
     {
       "path": "modules/media/go.sum",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "锁定内容与site-config相同依赖闭包；本地无Go，未执行go mod download复核"
     },
     {
       "path": "modules/media/Dockerfile",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未执行容器构建"
     },
     {
       "path": "modules/media/Makefile",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "verify需要Go工具链，尚未执行"
     },
     {
       "path": "modules/media/config/service.defaults.json",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -402,7 +402,7 @@
     },
     {
       "path": "modules/media/deploy/manifest.json",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -960,68 +960,68 @@
     {
       "id": "media.main",
       "path": "modules/media/cmd/media/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "步骤1-3已由platform.RunService接线；BuildApplication依赖本域业务装配，当前按DEPENDENCY_UNAVAILABLE退出"
     },
     {
       "id": "media.BuildApplication",
       "path": "modules/media/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域私有存储、全部x-handler、RecoverBlobJournal、registerActivation回执、RelayOutbox、ConsumeEvents与RunWorker未实现"
     },
     {
       "id": "media.Serve",
       "path": "modules/media/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未取得Go编译检查证据"
     },
     {
       "id": "media.Shutdown",
       "path": "modules/media/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未取得Go编译检查证据"
     },
     {
       "id": "media.Health",
       "path": "modules/media/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未取得Go编译检查证据"
     },
     {
       "id": "media.Ready",
       "path": "modules/media/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未取得Go编译检查证据；业务journal依赖缺失时按合同返回DEPENDENCY_UNAVAILABLE"
     },
     {
       "id": "media.ConsumeEvents",
@@ -1046,5 +1046,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本次仅实现启动与契约生成准备；业务上传、变体、引用、平台视频、清理、事件与任务函数保持planned，启动装配在依赖未实现时按合同返回DEPENDENCY_UNAVAILABLE。"
 }
