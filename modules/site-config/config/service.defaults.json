@@ -1,0 +1,13 @@
+{
+  "module": "site-config",
+  "listen": "127.0.0.1:8102",
+  "dataRoot": "/data/site-config",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/site-config-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "content": "http://127.0.0.1:8103",
+    "media": "http://127.0.0.1:8104",
+    "jobs": "http://127.0.0.1:8111"
+  }
+}

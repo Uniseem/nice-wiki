@@ -1,0 +1,43 @@
+{
+  "slug": "site-config",
+  "image": "nice-wiki-site-config",
+  "command": ["/site-config", "--config", "/config/service.defaults.json"],
+  "httpPort": 8102,
+  "dataVolume": "/data/site-config",
+  "secrets": [
+    {
+      "name": "trust-anchors",
+      "path": "/run/secrets/trust-anchors.json"
+    },
+    {
+      "name": "site-config-signing-key",
+      "path": "/run/secrets/site-config-signing-key.json"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "identity",
+      "endpoint": "http://identity:8101",
+      "env": "NW_DEP_IDENTITY"
+    },
+    {
+      "module": "content",
+      "endpoint": "http://content:8103",
+      "env": "NW_DEP_CONTENT"
+    },
+    {
+      "module": "media",
+      "endpoint": "http://media:8104",
+      "env": "NW_DEP_MEDIA"
+    },
+    {
+      "module": "jobs",
+      "endpoint": "http://jobs:8111",
+      "env": "NW_DEP_JOBS"
+    }
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}
