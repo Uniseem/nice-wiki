@@ -1,8 +1,10 @@
 # 文档生命周期当前进度
 
-更新：2026-10-15。阶段：实现准备；本域业务尚未验收、尚未部署。
+更新：2026-10-15。阶段：R1 实施中；本域业务尚未验收、尚未部署。
 
-- 本次基线为 `ac593c57861d2242f27d07562a2acae535d18c38`，独立分支为 `codex/content-r1-04`。
+- 本次 `R1-05` 基线为 `82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`，独立分支为 `codex/content-r1-05-recovery`；前序启动准备仍由 `f62ea3d7c52bc98ebd73d94c1428ca8794caf751` 提供。
+- 本次已实现 `content.RecoverPreparedCommits`（提交 `f376a3e779cd7cffc0f1f214a99b8b6ea5090055`）：恢复只能在注入的独占启动/safe 屏障内进行；校验严格 journal、正文哈希与已有 head；有 committed receipt 的 PREPARED 才补记 COMMITTED；缺正文、哈希不符或 head 不一致的提交隔离并关闭文档可见性；函数没有推进 head 的能力。`content.WriteRevisionFile` 及 `BuildApplication` 接线仍按范围保持 planned/blocked。
+- 状态区分：上述源码为 `implemented`；仅完成 JSON、隐私、差异空白和暂存内容静态检查，Go 编译/gofmt/行为恢复检查未运行，故未标 `verified`；业务验收为 `accepted` 之前的未执行状态。
 - 已创建启动与部署准备文件：`cmd/content/main.go`、`internal/app/wire.go`、`internal/transport/server.go`、`go.mod`、`Makefile`、`config/service.defaults.json`、`deploy/manifest.json`、`Dockerfile`；实现提交为 `f62ea3d7c52bc98ebd73d94c1428ca8794caf751`。
 - `content.main`、`content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready` 已写入；`content.BuildApplication` 已接入配置、信任锚、site-config运行权威和恢复换目录前置检查，但因业务存储、journal恢复、全部OpenAPI x-handler、后台函数和activation回执未实现，按合同返回 `DEPENDENCY_UNAVAILABLE`，保持 blocked。
 - `go.sum` 未创建：当前环境无Go工具链，VPS不可用，不能用手写内容代替 `go mod download`。Go build、vet、gofmt、make verify、Docker构建和业务验收均未执行。

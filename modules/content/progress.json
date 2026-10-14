@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "fd5eb7fb13fd92655d9904f6a13d984435386fc9e17658315e9e438ce1e35d79",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-04（启动与契约生成准备）",
-  "branch": "codex/content-r1-04",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+  "assignedSession": "R1-05（正文提交日志恢复）",
+  "branch": "codex/content-r1-05-recovery",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
   "deployment": "not_started",
   "files": [
     {
@@ -132,13 +132,13 @@
     },
     {
       "path": "modules/content/internal/revision_files.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已完成静态 JSON/隐私/差异空白检查；当前环境无 Go/gofmt，未运行编译或恢复行为检查"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用；未接入BuildApplication，未进行业务行为验收"
     },
     {
       "path": "modules/content/internal/revision_repository.go",
@@ -879,13 +879,13 @@
     {
       "id": "content.RecoverPreparedCommits",
       "path": "modules/content/internal/revision_files.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现启动/safe屏障内journal扫描、COMMITTED正文/hash/head核对、PREPARED receipt规则、正文与文档隔离；未运行Go编译和行为验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用；BuildApplication接线留待后续任务"
     },
     {
       "id": "content.CommitDraftJournal",
@@ -1416,5 +1416,5 @@
       "blocker": null
     }
   ],
-  "rule": "R1-04已创建启动入口、生命周期装配、默认配置、部署清单、Dockerfile、Makefile和go.mod；main/Serve/Shutdown/Health/Ready已写入但未通过Go工具链验证，BuildApplication按合同因本域业务处理器、私有存储、journal恢复、x-handler与后台函数未实现而保持blocked并返回DEPENDENCY_UNAVAILABLE。go.sum未能由go mod download生成。其余业务文件/函数仍planned，不能批量宣称已完成。"
+  "rule": "R1-04已创建启动入口、生命周期装配、默认配置、部署清单、Dockerfile、Makefile和go.mod；main/Serve/Shutdown/Health/Ready已写入但未通过Go工具链验证，BuildApplication按合同因本域业务处理器、私有存储、journal恢复、x-handler与后台函数未实现而保持blocked并返回DEPENDENCY_UNAVAILABLE。R1-05仅实现content.RecoverPreparedCommits及其恢复依赖注入/隔离辅助逻辑，未接入BuildApplication、HTTP或其他发布/回滚用例；源码状态implemented，静态检查有记录但Go编译和业务验收未执行，不能标verified或accepted。go.sum未能由go mod download生成，其余业务文件/函数仍planned，不能批量宣称已完成。"
 }
