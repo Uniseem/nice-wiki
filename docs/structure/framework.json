@@ -2497,6 +2497,11 @@
       "path": "docs/push-log/2026-10-14-0006.md",
       "kind": "documentation",
       "purpose": "推送记录0006：R1-01 identity启动装配组"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0007.md",
+      "kind": "documentation",
+      "purpose": "推送记录0007：R1-02启动装配组与R1-01私有持久化"
     }
   ]
 }
