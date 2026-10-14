@@ -2,6 +2,10 @@
 
 ## 本次事实
 
+2026-10-15 本次工作包在分支 `codex/analytics-r1-storage-contract-audit`、基线
+`3db911390e35a07007d70a1d2f5cc15fe4092667` 上复核了交接指定的
+`migrations/0001_domain.sql` 与 `analytics.BuildApplication` 依赖。未实现业务代码；仅更新本域台账并记录阻塞。
+
 2026-10-15 已完成本域 R1 启动与契约生成准备。基线为
 `ac593c57861d2242f27d07562a2acae535d18c38`，独立分支为
 `codex/analytics-r1-bootstrap`，代码提交为
@@ -32,8 +36,18 @@
 
 根 `framework.json`、根 STATUS/plan、公共合同和其他模块属于集成会话所有权，本次未修改；集成时需登记新增 9 个本域文件并在可用 Go/VPS 环境复跑阶段检查。
 
+## 本次合同阻塞
+
+交接要求的“SQLite/迁移/journal”不是当前机器合同中的可实施切片：
+
+- `implementation.json` 只有迁移文件的概括性 purpose，没有登记迁移执行器、SQLite 打开/配置、control journal 恢复、fsync/完整性收敛的文件、函数、精确签名、错误、副作用、并发和调用边界。
+- `analytics.BuildApplication` 只将“本域journal恢复函数”列为 resource，未给出可实现的函数合同。
+- `types.json` 只有供 `Application` 使用的 `*sql.DB` 和状态布尔字段，没有上述内部存储/journal接口或恢复记录类型。
+
+因此本次没有创建 `migrations/0001_domain.sql`，没有新增 `internal/storage.go` 或 `internal/journal.go`，也没有接线 `BuildApplication`；否则会把未定义行为藏入实现，违反本域 AGENTS.md 的“缺约束先修契约”要求。需要公共/本域合同所有者先登记该切片后，才能继续编码。
+
 ## 阻塞与下一项
 
-阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。提交本身没有业务验收结论。
+阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。本次提交只有台账记录，没有业务验收结论。
 
-下一项：先按本域 `data.md` 和 ADR0003 为 `migrations/0001_domain.sql` 配套登记并实现 analytics 私有存储/journal，再回到 `analytics.BuildApplication` 接入迁移恢复与真实 handler；完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。
+下一项：由合同所有者先登记 SQLite/journal 切片（目标文件、约束级函数/签名、迁移版本、journal状态机、错误与恢复边界）；登记完成后再按 `data.md`、ADR0003 和该合同实现 `migrations/0001_domain.sql`、私有存储/journal，并回到 `analytics.BuildApplication` 接入。完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。
