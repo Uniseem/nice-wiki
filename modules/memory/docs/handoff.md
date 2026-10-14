@@ -2,22 +2,23 @@
 
 ## 本次事实
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+2026-10-15 在独立 worktree 分支 `codex/memory-r1-13-bootstrap` 从基线 `ac593c57861d2242f27d07562a2acae535d18c38` 认领本域唯一任务：启动与契约生成准备。提交 `fa8de2243d3865be49411739ea3afc5ccb3c68b9` 已建立入口、装配、生命周期、独立 module、Makefile、非敏感默认配置、部署 manifest 与非 root Dockerfile；未 push。
 
-## 基线与文件
+本次只修改 `modules/memory/`。未修改四份 contracts，合同摘要仍为 `a72c9a81f8fab283299badd264a5030dfb452aaf2539203bab667381664492b9`；未手改 `internal/gen` 或 `ui/src/gen`。没有实现记忆条目、映射、上下文注入、助手提议/批准、数据库、迁移、事件处理、模型调用、测试或样例。
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+## 实现与阻塞
 
-独占范围是 modules/memory/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
+- `memory.main`：入口已用 `platform.ServiceSpec` 装配 `lifecycle.RunService`，整体状态因后续 `BuildApplication` 依赖未齐而 blocked。
+- `memory.BuildApplication`：已装配配置模块校验、五项依赖存在性检查、active/control/restore 目录、信任锚、签名密钥、site-config 运行态客户端、`ApplyRestoreSwap`；缺少业务存储、全部 OpenAPI x-handler、恢复激活回执、outbox/订阅、任务执行器和后台循环时按合同返回 `DEPENDENCY_UNAVAILABLE`，状态 blocked。
+- `memory.Serve`、`memory.Shutdown`、`memory.Health`、`memory.Ready`：生命周期与匿名健康/就绪路由已建立，当前为 implemented、未验证。Ready 不报告业务 journal 已恢复，也不开放业务请求。
+- `go.mod`、Makefile、`deploy/service.config.json`、`deploy/manifest.json`、Dockerfile：已建立，未完成构建验证。`go.sum` 未创建，因为本机没有 Go 工具链，不能伪造生成文件。
+
+## 检查与环境
+
+- 通过：`python scripts/check_docs.py --privacy-only`、memory JSON 解析、`git diff --check`。
+- `python scripts/check_docs.py` 失败原因仅为根公共 `docs/structure/framework.json` 未登记本次 8 个新文件；按并行规则留给集成会话处理。
+- 本机缺少 Go、gofmt、make、Docker；因此未运行 `make check`、`make gen`、Go 编译/vet/gofmt、Docker build，也未读 `vps.txt`。没有真实接口/模型调用，没有新增测试/样例。
 
 ## 下一步（一项）
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
-
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
-
-## 下一次结束填写
-
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
-
-详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+实现 memory 私有持久化与启动恢复：先读本域 `docs/data.md`、`docs/workflows.md`、`memory.LoadRuntime` 的 `functions.md` 合同及 `migrations/001_initial.sql` 登记，建立正文 Markdown、索引、journal、CAS、dataEpoch 和恢复安全点；完成后再接入 handler、outbox、订阅与 worker。需在独立分支继续，只修改 `modules/memory/`，并按新会话流程先核对 HEAD/脏文件。

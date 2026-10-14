@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "memory",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "a72c9a81f8fab283299badd264a5030dfb452aaf2539203bab667381664492b9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-13（Codex，启动与契约生成准备）",
+  "branch": "codex/memory-r1-13-bootstrap",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
   "deployment": "not_started",
   "files": [
     {
@@ -362,8 +362,8 @@
     },
     {
       "path": "modules/memory/deploy/service.config.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -382,28 +382,28 @@
     },
     {
       "path": "modules/memory/cmd/memory/main.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "RunService入口已装配；完整进程启动仍依赖本域业务handler、恢复回执与后台函数"
     },
     {
       "path": "modules/memory/internal/app/wire.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "配置/信任锚/运行态/恢复换目录前置已装配；业务存储、x-handler、激活回执、outbox/订阅与worker尚未实现"
     },
     {
       "path": "modules/memory/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -412,8 +412,8 @@
     },
     {
       "path": "modules/memory/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -422,18 +422,18 @@
     },
     {
       "path": "modules/memory/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机没有Go工具链，无法按合同生成go.sum；待VPS执行go mod tidy/download后登记"
     },
     {
       "path": "modules/memory/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -442,8 +442,8 @@
     },
     {
       "path": "modules/memory/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -452,8 +452,8 @@
     },
     {
       "path": "modules/memory/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1145,30 +1145,30 @@
     {
       "id": "memory.main",
       "path": "modules/memory/cmd/memory/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "配置/信号/RunService步骤已装配；完整启动依赖后续BuildApplication业务绑定，当前按合同不以伪实现放行"
     },
     {
       "id": "memory.BuildApplication",
       "path": "modules/memory/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "业务存储、全部OpenAPI x-handler、恢复激活回执、outbox/订阅、任务执行器和后台循环未实现；当前明确返回DEPENDENCY_UNAVAILABLE"
     },
     {
       "id": "memory.Serve",
       "path": "modules/memory/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1178,8 +1178,8 @@
     {
       "id": "memory.Shutdown",
       "path": "modules/memory/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1189,8 +1189,8 @@
     {
       "id": "memory.Health",
       "path": "modules/memory/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1200,8 +1200,8 @@
     {
       "id": "memory.Ready",
       "path": "modules/memory/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "fa8de2243d3865be49411739ea3afc5ccb3c68b9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1253,5 +1253,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "R1-13启动与契约生成准备：启动入口、生命周期、默认配置、独立module、Makefile、镜像与manifest已建立；main/BuildApplication仍因后续业务绑定blocked，未实现业务文件/函数不得提前标记完成。"
 }
