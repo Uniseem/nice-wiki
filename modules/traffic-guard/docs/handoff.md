@@ -1,5 +1,27 @@
 # 流量风控会话交接
 
+## 本次事实（R1-13 私有策略库启动恢复切片，2026-10-15）
+
+- 实际基线：`588de8fa991340df7dcf019f8c11849f85e1b796`；当前共享工作区分支：`codex/analytics-r1-storage-contract-audit`，分支名与本域不一致；traffic-guard 源码提交：`7aa44567609713b8810b9b8ca9ba61579648d55a`，迁移辅助文件收回提交：`13396bc`；未push、未部署。
+- 独占范围：仅 `modules/traffic-guard/`；并行会话期间另有 identity/jobs 未提交或提交变化，本次未暂存、未修改其文件；根 `docs/structure/framework.json` 未越权修改。
+
+## 本次完成
+
+- 新增 `internal/policy_store.go`：打开 `active/traffic-guard.db`，启用 SQLite WAL/foreign_keys/busy_timeout=3000ms，单连接串行；调用公共 `outbox.EnsureSchema`；执行本域只追加迁移；打开 `control/traffic-guard-journal.jsonl` 并校验损坏/未完成条目；提供安全关闭。
+- 新增已登记迁移 `migrations/0001_domain.sql`：`guard_policy`、`policy_operation_receipts`（只存 operationId 输入摘要/修订/代次，不存正文）和 `schema_migrations`。`go.mod` 增加 `modernc.org/sqlite v1.59.0`；未手写 `go.sum`。
+- `BuildApplication` 在继续 fail-closed 的前提下真实执行策略库打开、迁移和journal恢复；缺少完整 x-handler、identity授权客户端、activation回执与后台循环时仍返回 `DEPENDENCY_UNAVAILABLE`，不以健康路由冒充可用服务。
+- `GetPolicy`、`UpdatePolicy` 未猜测实现：保留为 blocked。没有改变 OpenAPI、types、events 或生成目录。
+
+## 契约阻塞审计
+
+- `GetPolicyInput`要求 `siteId`，但 GET `/v1/policies` 没有 query/path 参数；合同未规定是否从可信 `OperationContext.Actor.SiteID` 推导。策略行缺失时的错误也只登记了 `VERSION_MISMATCH`，没有初始化/不存在语义。
+- `UpdatePolicy`要求调用 `identity:checkAuthorization`、同事务 policy-changed outbox 和 operationId 同输入幂等；精确函数签名没有客户端/存储注入边界，原数据文档也没有幂等回执表。本次仅在私有迁移中预留摘要表，未假装完成绑定函数。
+
+## 检查与下一步
+
+- 已通过 traffic-guard contracts JSON 解析、`git diff --check` 和暂存差异检查；本机缺少 Go/gofmt/make，未运行编译、vet、迁移运行验证或 `make check`；未新增测试、样例、真实接口、模型调用或部署。
+- 下一步一项：先由契约负责人收口 `GetPolicy` 的站点来源/缺失策略错误、`UpdatePolicy` 的授权与存储注入及 operationId 回执语义，再在本域实现 `GetPolicy`/`UpdatePolicy` 和把 `PolicyStore` 挂入完整 Application；收口前不得猜测 HTTP 或外域调用。
+
 ## 本次事实（R1-12 ValidatePolicy 纯规则，2026-10-15）
 
 - 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`。
