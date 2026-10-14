@@ -3,6 +3,7 @@
 ## 本次事实（R1-03 启动与契约生成准备，2026-10-15）
 
 - 独立 worktree（Codex 管理路径）；分支：`codex/jobs-r1-03`；基线：`ac593c57861d2242f27d07562a2acae535d18c38`。
+- 启动骨架实现提交：`dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd`；台账同步提交：`8745387d74c7fe7715c291ce3be429ef9b1a2d09`；未 push。
 - 独占范围：`modules/jobs/`；根 AGENTS/STATUS/README、根 docs、scripts、contracts、libs、deploy 拓扑和其他模块未修改。未 push、未部署。
 - 本次修改文件：`cmd/jobs/main.go`、`internal/app/wire.go`、`internal/transport/server.go`、`go.mod`、`go.sum`、`Makefile`、`Dockerfile`、`config/defaults.json`、`deploy/manifest.json`，并更新本模块 `STATUS.md`、`progress.json` 和本交接文件。
 
@@ -15,7 +16,8 @@
 ## 检查与验收
 
 - 已核对合同登记、路径范围、默认配置和部署 manifest；未改合同，未运行 `make gen`，也没有手改生成目录。
-- 已执行工作区路径与 JSON 结构检查准备；待执行本地可用的 Python 合同/隐私检查和 `git diff --check`。环境没有 `go`、`gofmt`、`make`，无法执行 Go build/vet/format、模块 verify 或 Docker 构建；按仓库规则未改用本地编译冒充 VPS 证据。
+- 已通过新增配置/台账/四份合同 JSON 解析、依赖端点 13/13 一致性、`python scripts/check_docs.py --privacy-only` 和 `git diff --check`；基线到当前提交的变更路径全部在本域，生成目录未修改。完整 `python scripts/check_docs.py` 仅因根 `docs/structure/framework.json` 尚未登记本次 9 个新增文件而失败，该公共清单交集成会话维护。
+- 环境没有 `go`、`gofmt`、`make`，无法执行 Go build/vet/format、模块 verify 或 Docker 构建；按仓库规则未改用本地编译冒充 VPS 证据。
 - 业务行为验收、真实服务联调、模型调用、测试样例和部署验收均未执行，不能将启动骨架标为 verified/accepted。
 
 ## 下一步（一项）

@@ -3,6 +3,7 @@
 更新：2026-10-15。阶段：R1-03 启动与契约生成准备实施中；业务验收与部署未开始。
 
 - 本次会话在独立 worktree 分支 `codex/jobs-r1-03` 领取 jobs 启动装配工作包，基线为 `ac593c57861d2242f27d07562a2acae535d18c38`。
+- 启动骨架实现提交为 `dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd`；台账与交接记录随后单独同步，未 push。
 - 已创建合同登记的 `cmd/jobs/main.go`、`internal/app/wire.go`、`internal/transport/server.go`、`go.mod`、`go.sum`、`Makefile`、`Dockerfile`、`config/defaults.json` 和 `deploy/manifest.json`。
 - 入口已接入 `libs/platform/lifecycle.RunService`；装配层已实现 module/目录/信任锚/签名引用/runtime/恢复换目录前置检查。缺少完整任务、事件、死信、定时、屏障、存储及全部 OpenAPI handler 时按合同返回 `DEPENDENCY_UNAVAILABLE`，不启动不完整服务。
 - `Serve`、`Shutdown`、`Health`、`Ready` 的生命周期骨架已实现；Ready 在业务 handler 未完整绑定时明确返回 `DEPENDENCY_UNAVAILABLE`。这些代码尚未因 Go 工具链缺失而完成编译、vet、gofmt 或运行验证。

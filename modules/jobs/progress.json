@@ -7,7 +7,7 @@
   "assignedSession": "R1-03（jobs启动与契约生成准备，Codex）",
   "branch": "codex/jobs-r1-03",
   "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": null,
+  "deliveryCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
   "deployment": "not_started",
   "files": [
     {
@@ -263,7 +263,7 @@
     {
       "path": "modules/jobs/config/defaults.json",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -303,7 +303,7 @@
     {
       "path": "modules/jobs/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -313,7 +313,7 @@
     {
       "path": "modules/jobs/go.mod",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -323,7 +323,7 @@
     {
       "path": "modules/jobs/go.sum",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -333,7 +333,7 @@
     {
       "path": "modules/jobs/Dockerfile",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -343,7 +343,7 @@
     {
       "path": "modules/jobs/Makefile",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -353,7 +353,7 @@
     {
       "path": "modules/jobs/deploy/manifest.json",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -958,7 +958,7 @@
       "id": "jobs.Serve",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -969,7 +969,7 @@
       "id": "jobs.Shutdown",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -980,7 +980,7 @@
       "id": "jobs.Health",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -991,7 +991,7 @@
       "id": "jobs.Ready",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "dba434efae70fb0c4aa81ab0e6f5d9b8cf74ba4a",
       "verification": {
         "state": "not_run",
         "evidence": null
