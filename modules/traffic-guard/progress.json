@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "traffic-guard",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "5e01965ea0c39b4708208afaeb2673f8259fab6dcd40c1456d0e8ee25158c1a3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-11（Codex，启动与契约生成准备）",
+  "branch": "codex/traffic-guard-r1-11",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
   "deployment": "not_started",
   "files": [
     {
@@ -322,8 +322,8 @@
     },
     {
       "path": "modules/traffic-guard/config/defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -342,83 +342,83 @@
     },
     {
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "入口已接入platform.RunService；BuildApplication因本域业务handler、持久化与后台循环未实现而按合同返回DEPENDENCY_UNAVAILABLE"
     },
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "基础配置/目录/信任锚/签名密钥/runtime读取/ApplyRestoreSwap已接入；完整x-handler、业务存储、journal恢复、activation回执和后台函数未实现，不能返回半成品Application"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少gofmt/Go工具链，尚未完成构建与vet证据；业务worker/journal/DB安全点留待后续"
     },
     {
       "path": "modules/traffic-guard/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "依赖锁与构建验证需可用Go工具链"
     },
     {
       "path": "modules/traffic-guard/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少Go工具链，不能运行go mod tidy/download生成锁文件；未手写伪造go.sum"
     },
     {
       "path": "modules/traffic-guard/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未执行Docker构建；依赖go.sum和业务handler后续补齐"
     },
     {
       "path": "modules/traffic-guard/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少make/Go，未执行目标"
     },
     {
       "path": "modules/traffic-guard/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未部署或启动真实服务"
     },
     {
       "path": "modules/traffic-guard/web/package.json",
@@ -482,43 +482,43 @@
     },
     {
       "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "基线已有生成物但本次make gen未能执行；本机缺少make/Go，不能将其标为本次生成已验证"
     },
     {
       "path": "modules/traffic-guard/internal/gen/clients.gen.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "基线已有生成物但本次make gen未能执行；本机缺少make/Go，不能将其标为本次生成已验证"
     },
     {
       "path": "modules/traffic-guard/internal/gen/oapi-codegen.yaml",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "make gen未执行；配置来源仍为合同生成入口"
     },
     {
       "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "make gen未执行；本机缺少make，不能将基线生成物标为本次已验证"
     },
     {
       "path": "modules/traffic-guard/internal/queries.go",
@@ -1008,68 +1008,68 @@
     {
       "id": "traffic-guard.main",
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "已接入platform.RunService与RuntimeClient；完整启动仍受BuildApplication的业务handler/持久化依赖阻塞"
     },
     {
       "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "基础装配步骤已实现；完整OpenAPI绑定、业务DB迁移/journal恢复、activation回执、后台循环尚未实现，按合同返回DEPENDENCY_UNAVAILABLE"
     },
     {
       "id": "traffic-guard.Serve",
       "path": "modules/traffic-guard/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少Go/gofmt，尚未完成构建验证；后台worker与恢复监视由后续接入"
     },
     {
       "id": "traffic-guard.Shutdown",
       "path": "modules/traffic-guard/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少Go/gofmt，尚未完成构建验证；业务journal/outbox flush由后续接入"
     },
     {
       "id": "traffic-guard.Health",
       "path": "modules/traffic-guard/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机缺少Go/gofmt，尚未完成构建验证"
     },
     {
       "id": "traffic-guard.Ready",
       "path": "modules/traffic-guard/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "实现了运行权威/代次/控制journal门禁；本机缺少Go/gofmt，尚未完成构建验证，业务存储接入后需补真实ready深度校验"
     },
     {
       "id": "traffic-guard.mountModuleUI",
