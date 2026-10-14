@@ -1,0 +1,38 @@
+{
+  "slug": "identity",
+  "image": "nice-wiki-identity",
+  "command": ["/identity", "--config", "/config/service.defaults.json"],
+  "httpPort": 8101,
+  "dataVolume": "/data/identity",
+  "secrets": [
+    {
+      "name": "trust-anchors",
+      "path": "/run/secrets/trust-anchors.json"
+    },
+    {
+      "name": "identity-signing-key",
+      "path": "/run/secrets/identity-signing-key.json"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "site-config",
+      "endpoint": "http://site-config:8102",
+      "env": "NW_DEP_SITE_CONFIG"
+    },
+    {
+      "module": "traffic-guard",
+      "endpoint": "http://traffic-guard:8110",
+      "env": "NW_DEP_TRAFFIC_GUARD"
+    },
+    {
+      "module": "jobs",
+      "endpoint": "http://jobs:8111",
+      "env": "NW_DEP_JOBS"
+    }
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}

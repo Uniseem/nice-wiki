@@ -1,0 +1,10 @@
+{
+  "module": "identity",
+  "listen": "127.0.0.1:8101",
+  "dataRoot": "/data/identity",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/identity-signing-key.json",
+  "dependencies": {
+    "site-config": "http://127.0.0.1:8102"
+  }
+}
