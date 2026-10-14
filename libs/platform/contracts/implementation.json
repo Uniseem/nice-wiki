@@ -1,0 +1,1327 @@
+{
+  "moduleId": "L01",
+  "module": "platform",
+  "version": 1,
+  "phase": "design",
+  "requirements": [
+    {
+      "id": "L01-R01",
+      "description": "服务间身份与用户委托的签发和验证只在本库实现一次",
+      "acceptance": "各服务不自写签名或验签逻辑"
+    },
+    {
+      "id": "L01-R02",
+      "description": "outbox、inbox、事件订阅、任务领取、模型调用、恢复换目录与进程模板的通用实现",
+      "acceptance": "各服务对应约束函数只装配本域参数并调用本库"
+    },
+    {
+      "id": "L01-R03",
+      "description": "本库不含任何业务规则、不访问任何服务的私有数据、不导入服务代码",
+      "acceptance": "依赖只有标准库、已登记第三方库与生成客户端"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "jobs",
+      "mode": "sync",
+      "purpose": "事件与任务接口",
+      "failurePolicy": "退避重试，不丢outbox"
+    },
+    {
+      "module": "model-gateway",
+      "mode": "sync",
+      "purpose": "模型调用",
+      "failurePolicy": "按网关Problem返回"
+    },
+    {
+      "module": "site-config",
+      "mode": "sync",
+      "purpose": "运行状态",
+      "failurePolicy": "失联时写请求关闭"
+    }
+  ],
+  "files": [
+    {
+      "path": "libs/platform/serviceauth/assertion.go",
+      "kind": "handwritten",
+      "purpose": "服务断言签发与验证",
+      "functions": [
+        {
+          "id": "platform.SignAssertion",
+          "name": "SignAssertion",
+          "signature": "func SignAssertion(key SigningKey, claims AssertionClaims) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "本服务部署时生成的Ed25519私钥引用",
+              "constraints": [
+                "只从secret文件读取，不进日志"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "AssertionClaims",
+              "description": "断言内容",
+              "constraints": [
+                "expiresAt-issuedAt≤60秒"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "token",
+              "type": "string",
+              "description": "JWS compact断言",
+              "constraints": [
+                "只放Authorization头"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "为一次服务间请求签发短期断言",
+          "steps": [
+            "校验claims：issuer为本服务slug，audience为目标服务，method/path/bodyHash齐全，有效期≤60秒",
+            "以EdDSA签名生成JWS compact，header含keyId",
+            "返回token；不缓存、不记录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "声明不完整或有效期过长",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "纯函数，可并发",
+          "idempotency": "每次生成新jti",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "platform.VerifyAssertion",
+          "name": "VerifyAssertion",
+          "signature": "func VerifyAssertion(anchors TrustAnchors, token string, expect AssertionExpectation) (AssertionClaims, error)",
+          "inputs": [
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "服务公钥表（trustAnchorRef加载）",
+              "constraints": [
+                "只接受EdDSA"
+              ]
+            },
+            {
+              "name": "token",
+              "type": "string",
+              "description": "请求携带的断言",
+              "constraints": [
+                "长度≤4096"
+              ]
+            },
+            {
+              "name": "expect",
+              "type": "AssertionExpectation",
+              "description": "本请求的期望值",
+              "constraints": [
+                "audience为本服务"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "claims",
+              "type": "AssertionClaims",
+              "description": "已验证声明",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "验证服务间请求断言",
+          "steps": [
+            "按keyId查公钥，拒绝未知key、非EdDSA算法与alg=none",
+            "核audience、method、path、bodyHash、有效期（允许30秒时钟偏差）",
+            "jti在有效期内只接受一次（进程内重放缓存）",
+            "返回已验证的调用服务slug"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "签名、有效期或声明不符",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "jti重放",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写进程内重放缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "重放缓存加锁",
+          "idempotency": "jti唯一",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/serviceauth/delegation.go",
+      "kind": "handwritten",
+      "purpose": "portal用户委托证明验证",
+      "functions": [
+        {
+          "id": "platform.VerifyDelegation",
+          "name": "VerifyDelegation",
+          "signature": "func VerifyDelegation(anchors TrustAnchors, proof string, expect DelegationExpectation) (DelegationClaims, error)",
+          "inputs": [
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "含portal委托公钥",
+              "constraints": [
+                "只接受EdDSA"
+              ]
+            },
+            {
+              "name": "proof",
+              "type": "string",
+              "description": "X-Portal-Proof头",
+              "constraints": [
+                "长度≤8192"
+              ]
+            },
+            {
+              "name": "expect",
+              "type": "DelegationExpectation",
+              "description": "本请求的路由与正文摘要",
+              "constraints": [
+                "必填"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "claims",
+              "type": "DelegationClaims",
+              "description": "已验证的用户委托",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "验证portal签发的用户委托证明",
+          "steps": [
+            "用portal委托公钥验签，拒绝未知key与过期（≤10秒）",
+            "核route与bodyHash；下游链路允许原样转发同一证明",
+            "返回actor、grants与sessionVersion；权限仍须由业务函数经identity:checkAuthorization核实"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "证明无效或过期",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "无状态",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/opctx/context.go",
+      "kind": "handwritten",
+      "purpose": "可信OperationContext构建",
+      "functions": [
+        {
+          "id": "platform.BuildOperationContext",
+          "name": "BuildOperationContext",
+          "signature": "func BuildOperationContext(r *http.Request, anchors TrustAnchors, runtime RuntimeView) (OperationContext, error)",
+          "inputs": [
+            {
+              "name": "r",
+              "type": "*http.Request",
+              "description": "入站请求",
+              "constraints": [
+                "只读头部"
+              ]
+            },
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "公钥表",
+              "constraints": [
+                "必填"
+              ]
+            },
+            {
+              "name": "runtime",
+              "type": "RuntimeView",
+              "description": "当前运行状态",
+              "constraints": [
+                "1秒内读取"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "从入站请求构建可信OperationContext",
+          "steps": [
+            "VerifyAssertion确定callerService；有X-Portal-Proof时VerifyDelegation得到actor",
+            "读取X-Operation-Id、X-Root-Operation-Id、X-Cost-Class（只接受可信调用方传递）、截止与取消标识",
+            "dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH",
+            "浏览器自报的身份、费用类别、网络作用域一律忽略"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "断言或委托无效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每请求独立",
+          "idempotency": "无状态",
+          "dependencies": [
+            "platform.VerifyAssertion",
+            "platform.VerifyDelegation"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/problem/problem.go",
+      "kind": "handwritten",
+      "purpose": "公共Problem输出",
+      "functions": [
+        {
+          "id": "platform.WriteProblem",
+          "name": "WriteProblem",
+          "signature": "func WriteProblem(w http.ResponseWriter, problem Problem) error",
+          "inputs": [
+            {
+              "name": "w",
+              "type": "http.ResponseWriter",
+              "description": "响应",
+              "constraints": [
+                "未写头"
+              ]
+            },
+            {
+              "name": "problem",
+              "type": "Problem",
+              "description": "公共Problem",
+              "constraints": [
+                "code登记于errors.json"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "按RFC9457输出公共错误",
+          "steps": [
+            "按errors.json映射HTTP状态",
+            "输出application/problem+json，detail去除路径、堆栈与密钥",
+            "附requestId与retryable"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "写HTTP响应"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每请求一次",
+          "idempotency": "无状态",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/outbox/outbox.go",
+      "kind": "handwritten",
+      "purpose": "事务内outbox登记",
+      "functions": [
+        {
+          "id": "platform.EnqueueEvent",
+          "name": "EnqueueEvent",
+          "signature": "func EnqueueEvent(tx Tx, envelope EventEnvelope) error",
+          "inputs": [
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "调用方业务事务",
+              "constraints": [
+                "必须是同一提交"
+              ]
+            },
+            {
+              "name": "envelope",
+              "type": "EventEnvelope",
+              "description": "事件信封",
+              "constraints": [
+                "eventType已在本域events.json登记"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "在业务事务内登记outbox事件",
+          "steps": [
+            "校验信封字段与载荷不含正文、密钥、IP",
+            "计算payloadHash，按eventId唯一插入outbox行（状态pending）",
+            "随业务事务一起提交；事务回滚则事件不存在"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "信封不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同eventId异hash",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写本域outbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "与业务事务同锁",
+          "idempotency": "eventId唯一",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/outbox/relay.go",
+      "kind": "handwritten",
+      "purpose": "outbox转发循环",
+      "functions": [
+        {
+          "id": "platform.RunRelay",
+          "name": "RunRelay",
+          "signature": "func RunRelay(ctx context.Context, store OutboxStore, client JobsClient, config RelayConfig) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "store",
+              "type": "OutboxStore",
+              "description": "本域outbox访问",
+              "constraints": [
+                "同一数据库"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "JobsClient",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "RelayConfig",
+              "description": "批量与轮询参数",
+              "constraints": [
+                "batchLimit≤100"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "outbox转发循环的通用实现",
+          "steps": [
+            "按序号以30秒行租约领取已提交pending行",
+            "逐条调用jobs:publishEvent，确认后标relayed",
+            "失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined",
+            "屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读写outbox",
+            "HTTP调用jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "行级租约防多实例重复",
+          "idempotency": "eventId固定",
+          "dependencies": [
+            "jobs:publishEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/inbox/inbox.go",
+      "kind": "handwritten",
+      "purpose": "事件inbox去重",
+      "functions": [
+        {
+          "id": "platform.ClaimInbox",
+          "name": "ClaimInbox",
+          "signature": "func ClaimInbox(tx Tx, envelope EventEnvelope) (bool, error)",
+          "inputs": [
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "处理函数的业务事务",
+              "constraints": [
+                "与业务写入同一提交"
+              ]
+            },
+            {
+              "name": "envelope",
+              "type": "EventEnvelope",
+              "description": "收到的事件",
+              "constraints": [
+                "已校验"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "fresh",
+              "type": "bool",
+              "description": "true表示首次处理",
+              "constraints": [
+                "false时调用方只确认不写业务"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "事件处理函数的inbox去重",
+          "steps": [
+            "按eventId查inbox；同ID同hash返回false",
+            "同ID异hash返回INTEGRITY_ERROR并隔离",
+            "同subject低于已处理revision返回false",
+            "首次则插入inbox行并返回true"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写本域inbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "与业务事务同锁",
+          "idempotency": "eventId唯一",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/inbox/consumer.go",
+      "kind": "handwritten",
+      "purpose": "事件订阅循环",
+      "functions": [
+        {
+          "id": "platform.RunConsumer",
+          "name": "RunConsumer",
+          "signature": "func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, handlers EventHandlerRegistry) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "JobsClient",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "ConsumerConfig",
+              "description": "订阅的事件名/版本与并发",
+              "constraints": [
+                "来自本域events.json"
+              ]
+            },
+            {
+              "name": "handlers",
+              "type": "EventHandlerRegistry",
+              "description": "事件名→处理函数",
+              "constraints": [
+                "与events.json handler一致"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "事件订阅循环的通用实现",
+          "steps": [
+            "durable模式jobs:subscribeEvents，Last-Event-ID续传",
+            "校验信封、payloadSchema与dataEpoch；旧代事件确认跳过，未换入的新代事件不确认",
+            "按事件名调用登记处理函数；成功后jobs:acknowledgeEvent，失败不确认等待重投",
+            "同subject串行，不同subject并发≤maxInFlight；屏障draining时停止领取"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP长连接与确认"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每进程一个订阅",
+          "idempotency": "依赖处理函数inbox去重",
+          "dependencies": [
+            "jobs:subscribeEvents",
+            "jobs:acknowledgeEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/worker/loop.go",
+      "kind": "handwritten",
+      "purpose": "任务领取循环",
+      "functions": [
+        {
+          "id": "platform.RunWorkerLoop",
+          "name": "RunWorkerLoop",
+          "signature": "func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, executors JobExecutorRegistry) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "JobsClient",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "WorkerConfig",
+              "description": "本域jobTypes与并发",
+              "constraints": [
+                "来自implementation.json"
+              ]
+            },
+            {
+              "name": "executors",
+              "type": "JobExecutorRegistry",
+              "description": "jobType→执行函数",
+              "constraints": [
+                "与jobTypes一致"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "任务领取循环的通用实现",
+          "steps": [
+            "jobs:claimJob只领取登记类型；维护期间暂停",
+            "jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消",
+            "写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob",
+            "lease过期立即停止写入，不重放已派发模型调用"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用jobs租约接口"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "并发≤maxConcurrency",
+          "idempotency": "jobs按jobId与fence去重",
+          "dependencies": [
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "jobs:completeJob",
+            "jobs:failJob"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/modelclient/invoke.go",
+      "kind": "handwritten",
+      "purpose": "模型调用助手",
+      "functions": [
+        {
+          "id": "platform.InvokeModel",
+          "name": "InvokeModel",
+          "signature": "func InvokeModel(ctx context.Context, client GatewayClient, op OperationContext, input InvokeModelRequest) (InvokeModelOutcome, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": [
+                "取消即调用cancelInference"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "GatewayClient",
+              "description": "模型网关客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信上下文",
+              "constraints": [
+                "费用类别与根操作继承"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "InvokeModelRequest",
+              "description": "调用请求",
+              "constraints": [
+                "taskId在根AI任务目录"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "outcome",
+              "type": "InvokeModelOutcome",
+              "description": "终态与事件",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "模型调用助手的通用实现",
+          "steps": [
+            "model-gateway:createInference（幂等键=操作ID+步骤名）",
+            "model-gateway:resumeInference按序号读取到终态，流式时逐条回调",
+            "取消或截止时model-gateway:cancelInference",
+            "failed/charge_unknown按网关Problem返回，不在调用方重放"
+          ],
+          "errors": [
+            {
+              "code": "CANCELLED",
+              "when": "已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "网关失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用网关"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每次调用独立",
+          "idempotency": "幂等键固定",
+          "dependencies": [
+            "model-gateway:createInference",
+            "model-gateway:resumeInference",
+            "model-gateway:cancelInference"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/config.go",
+      "kind": "handwritten",
+      "purpose": "服务配置加载",
+      "functions": [
+        {
+          "id": "platform.LoadServiceConfig",
+          "name": "LoadServiceConfig",
+          "signature": "func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)",
+          "inputs": [
+            {
+              "name": "args",
+              "type": "[]string",
+              "description": "命令行参数",
+              "constraints": [
+                "--config/--data-dir/--listen"
+              ]
+            },
+            {
+              "name": "env",
+              "type": "[]string",
+              "description": "环境变量",
+              "constraints": [
+                "只读取NW_前缀"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "config",
+              "type": "ServiceConfig",
+              "description": "严格解析后的配置",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "按CLI>env>文件>默认值加载并严格校验服务配置",
+          "steps": [
+            "读取配置文件，拒绝未知字段",
+            "按优先级合并并校验端口、数据根、依赖地址与secret引用",
+            "secret只保存引用路径，不读入日志"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "配置不合法",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读配置文件"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动时调用一次",
+          "idempotency": "纯函数",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/runtime.go",
+      "kind": "handwritten",
+      "purpose": "运行状态读取与监视",
+      "functions": [
+        {
+          "id": "platform.ReadRuntime",
+          "name": "ReadRuntime",
+          "signature": "func ReadRuntime(ctx context.Context, client SiteConfigClient) (RuntimeView, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "截止",
+              "constraints": [
+                "≤2秒"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "SiteConfigClient",
+              "description": "site-config客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "runtime",
+              "type": "RuntimeView",
+              "description": "运行状态",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "读取site-config权威运行状态（最多缓存1秒）",
+          "steps": [
+            "调用site-config:readRuntimeState并核签名",
+            "缓存≤1秒；失联时写请求一律关闭"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "site-config不可达",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用site-config"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "缓存加锁",
+          "idempotency": "只读",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "platform.WatchRuntime",
+          "name": "WatchRuntime",
+          "signature": "func WatchRuntime(ctx context.Context, client SiteConfigClient, dataRoot string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "SiteConfigClient",
+              "description": "site-config客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域数据根",
+              "constraints": [
+                "必填"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "运行中发现恢复切换时请求安全退出",
+          "steps": [
+            "每5秒ReadRuntime",
+            "phase为restore_switching或restore_rolling_back且本域有对应staged或已换入目录时返回ErrRestartForRestore",
+            "调用方据此Shutdown并以退出码75退出，由进程守护重启"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "site-config不可达",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每进程一个",
+          "idempotency": "只读",
+          "dependencies": [
+            "platform.ReadRuntime"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/restore_swap.go",
+      "kind": "handwritten",
+      "purpose": "恢复换目录",
+      "functions": [
+        {
+          "id": "platform.ApplyRestoreSwap",
+          "name": "ApplyRestoreSwap",
+          "signature": "func ApplyRestoreSwap(dataRoot string, runtime RuntimeView) (SwapResult, error)",
+          "inputs": [
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域数据根",
+              "constraints": [
+                "含active、control、restore子目录"
+              ]
+            },
+            {
+              "name": "runtime",
+              "type": "RuntimeView",
+              "description": "启动时读取的运行状态",
+              "constraints": [
+                "必填"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SwapResult",
+              "description": "是否换入或换回",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "启动时按恢复阶段换入或换回active目录（ADR0003）",
+          "steps": [
+            "读control区恢复日志",
+            "restore_switching且存在restore/<id>/staged且未换入：active→restore/<id>/before，staged→active，fsync父目录，写日志",
+            "restore_rolling_back且已换入：反向换回并写日志",
+            "其余情况不动目录；目录状态与日志矛盾时拒绝启动"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "目录与日志不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "重命名数据目录",
+            "写control日志"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动阶段独占，入口开放前完成",
+          "idempotency": "按restoreId与日志状态幂等",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/service.go",
+      "kind": "handwritten",
+      "purpose": "进程模板",
+      "functions": [
+        {
+          "id": "platform.RunService",
+          "name": "RunService",
+          "signature": "func RunService(spec ServiceSpec) int",
+          "inputs": [
+            {
+              "name": "spec",
+              "type": "ServiceSpec",
+              "description": "本域slug与装配回调",
+              "constraints": [
+                "必填"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "exitCode",
+              "type": "int",
+              "description": "0正常、1失败、2配置错误、75恢复重启",
+              "constraints": [
+                "main直接os.Exit"
+              ]
+            }
+          ],
+          "purpose": "各服务main的通用进程模板",
+          "steps": [
+            "LoadServiceConfig；配置错误返回2",
+            "注册SIGINT/SIGTERM；调用spec的BuildApplication（其中先ApplyRestoreSwap）",
+            "运行Serve与WatchRuntime；收到信号或恢复切换时以30秒上限Shutdown",
+            "返回对应退出码；不能安全关闭返回1并保留journal"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "when": "装配或运行失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "监听HTTP",
+            "启动后台任务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每进程一次",
+          "idempotency": "重启按journal恢复",
+          "dependencies": [
+            "platform.LoadServiceConfig",
+            "platform.WatchRuntime"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/cmd/nw-keys/main.go",
+      "kind": "handwritten",
+      "purpose": "服务密钥生成工具",
+      "functions": [
+        {
+          "id": "platform.main",
+          "name": "main",
+          "signature": "func main()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "生成各服务Ed25519密钥对与公钥表的运维工具",
+          "steps": [
+            "读取deploy/config/services.json中的服务清单",
+            "为每个服务与portal委托各生成一对Ed25519密钥，私钥写入各自secret目录（0600）",
+            "汇总公钥写deploy/config/trust-anchors.json；已存在的密钥不覆盖，--rotate时新增keyId并保留旧公钥一个过渡期"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "服务清单不合法",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写secret文件与公钥表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "离线运行",
+          "idempotency": "已存在密钥不覆盖",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/go.mod",
+      "kind": "config",
+      "purpose": "Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用",
+      "functions": []
+    },
+    {
+      "path": "libs/platform/go.sum",
+      "kind": "generated",
+      "purpose": "依赖校验锁；由go mod download生成",
+      "functions": []
+    }
+  ],
+  "jobTypes": [],
+  "backgroundTasks": []
+}

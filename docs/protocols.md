@@ -29,3 +29,19 @@
 EventEnvelope必须符合生产方events.json；至少一次持久投递，按对象revision拒绝旧事件，按eventId去重，dataEpoch不匹配拒写。事件传必要元数据与不可变ObjectRef，不任意抓客户端提供URL。
 
 有状态域的管理API为barriers和snapshots export/stage/discard（ADR0003）；request/response使用公共schema。入口无业务存储只参加维护，不虚构快照。所有管理路径受服务调用方、超管委托、屏障以及dataEpoch共同限制。
+
+## 服务身份与委托（[ADR0004](adr/0004-wiring-and-service-identity.md)）
+
+服务之间的每个请求携带服务断言：调用方用部署时登记的 Ed25519 私钥签发≤60秒的 JWS（iss=调用服务、aud=目标服务、method、path、bodyHash、jti），接收方按公钥表验证并拒绝重放。用户请求由 portal 签发≤10秒的委托证明（X-Portal-Proof：actor、grants、sessionVersion、route、bodyHash），下游链路原样传递；接收方仍经 identity:checkAuthorization 核实权限与会话版本。访客只持 traffic-guard 签署的伪名会话。全部 OpenAPI 使用同一组安全方案：serviceAssertion、userDelegation、visitorSession、admissionPermit；portal 与 identity 另有 sessionCookie、csrfToken。签发与验证只在 libs/platform 实现。
+
+## 公开 AI 准入
+
+OpenAPI 用 `x-admission` 标记公开 AI 接口。portal 对这类请求用可信代理链得到的访客地址（只在内存）调用 traffic-guard:createAdmission，通过后附 X-Admission-Permit 转发；拒绝时返回 429/403 与 retryAfter 或挑战要求。qa 消费许可，长回答每10秒续租，排队轮次出队时换取活动许可；网关本地验签，不回查 guard。
+
+## 模型调用
+
+createInference 只返回 202 受理。调用方一律经本域 InvokeModel（libs/platform 实现）按序号读取 resumeInference 直到终态，取消或截止时 cancelInference；失败与备用重试由网关负责，调用方不换模型、不重放。
+
+## 任务与后台登记
+
+每个 implementation.json 登记 `jobTypes`（类型、执行函数、触发、可选系统定时）与 `backgroundTasks`（函数、运行时机）。RunWorker 只领取登记类型并调用对应执行函数；BuildApplication 启动全部后台函数，并以服务身份经 jobs:createSchedule 幂等登记系统定时。jobs 的类型白名单、事件订阅目录与 portal 路由表由全部合同生成。

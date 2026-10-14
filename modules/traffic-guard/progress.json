@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "design",
-  "contractSha256": "da73f749aa156636e70901a75296b8e8fd0d3e669a0c9207a75cbb7bee9d6ec9",
+  "contractSha256": "5e01965ea0c39b4708208afaeb2673f8259fab6dcd40c1456d0e8ee25158c1a3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -321,26 +321,6 @@
       "blocker": null
     },
     {
-      "path": "modules/traffic-guard/internal/types.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/traffic-guard/internal/http_bindings.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/traffic-guard/config/defaults.json",
       "state": "planned",
       "implementationCommit": null,
@@ -492,6 +472,56 @@
     },
     {
       "path": "modules/traffic-guard/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1044,6 +1074,17 @@
     {
       "id": "traffic-guard.mountModuleUI",
       "path": "modules/traffic-guard/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "traffic-guard.ListRiskEvents",
+      "path": "modules/traffic-guard/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

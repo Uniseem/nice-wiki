@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "http://knowledge:8080",
-      "description": "私网服务地址；生产入口TLS与服务mTLS由部署层终止。"
+      "description": "私网服务地址；生产入口TLS与服务服务断言由部署层终止。"
     }
   ],
   "paths": {
@@ -135,10 +135,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -151,6 +149,42 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "readIndexConfig",
+        "summary": "读取索引配置",
+        "description": "读取索引配置",
+        "x-handler": "knowledge.ReadIndexConfig",
+        "x-permission": "knowledge.manage",
+        "responses": {
+          "200": {
+            "description": "读取索引配置成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadIndexConfigResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
       }
     },
     "/v1/builds": {
@@ -276,10 +310,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -430,10 +462,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -551,10 +581,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -682,10 +710,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -823,7 +849,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -961,10 +987,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1082,7 +1106,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1102,9 +1126,9 @@
         "operationId": "acquireBarrier",
         "summary": "取得本地维护屏障",
         "x-handler": "knowledge.AcquireBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -1210,10 +1234,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1233,9 +1254,9 @@
         "operationId": "releaseBarrier",
         "summary": "释放已授权维护屏障",
         "x-handler": "knowledge.ReleaseBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "barrierId",
@@ -1350,10 +1371,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1373,9 +1391,9 @@
         "operationId": "exportSnapshot",
         "summary": "导出安全watermark快照",
         "x-handler": "knowledge.ExportSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -1481,10 +1499,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1612,7 +1627,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1750,7 +1765,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1832,7 +1847,7 @@
         "operationId": "stageSnapshot",
         "summary": "暂存本域恢复归档，不改active目录",
         "x-handler": "knowledge.StageSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -1910,10 +1925,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1933,7 +1945,7 @@
         "operationId": "discardSnapshot",
         "summary": "删除恢复暂存或换出的旧数据目录",
         "x-handler": "knowledge.DiscardSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -1991,10 +2003,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2008,27 +2017,151 @@
           }
         }
       }
+    },
+    "/v1/rebuild-plans": {
+      "post": {
+        "operationId": "estimateRebuildPlan",
+        "summary": "估算全量重建费用",
+        "description": "估算全量重建费用",
+        "x-handler": "knowledge.EstimateRebuildPlan",
+        "x-permission": "knowledge.manage",
+        "responses": {
+          "200": {
+            "description": "估算全量重建费用成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/EstimateRebuildPlanResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/EstimateRebuildPlanInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rebuild-plans/{planId}:approve": {
+      "post": {
+        "operationId": "approveRebuildPlan",
+        "summary": "批准全量重建",
+        "description": "批准全量重建",
+        "x-handler": "knowledge.ApproveRebuildPlan",
+        "x-permission": "knowledge.manage",
+        "responses": {
+          "200": {
+            "description": "批准全量重建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ApproveRebuildPlanResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：计划过期或不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：已批准",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "计划ID"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ApproveRebuildPlanInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "securitySchemes": {
-      "ServiceToken": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "mTLS服务身份且audience=knowledge；备份恢复控制另校验data-protection服务身份与superadmin委托。"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "AdminSession": {
+      "userDelegation": {
         "type": "apiKey",
-        "in": "cookie",
-        "name": "nw_admin_session",
-        "description": "identity管理会话且CSRF token；浏览器写请求校验Origin/CSRF。"
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
       },
-      "VisitorCookie": {
+      "visitorSession": {
         "type": "apiKey",
         "in": "cookie",
         "name": "nw_visitor",
-        "description": "guard签署伪名访客；读取校验owner，写入另验AdmissionPermit。"
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
     }
   }

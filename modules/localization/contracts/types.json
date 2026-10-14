@@ -3752,6 +3752,351 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "InvokeModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "经模型网关执行一次调用的输入",
+      "properties": {
+        "request": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
+          "description": "网关调用请求；taskId/档位/能力按根AI任务目录"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "true时逐条把delta交给调用方回调"
+        }
+      },
+      "required": [
+        "request",
+        "stream"
+      ]
+    },
+    "InvokeModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用终态",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "网关调用ID"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "网关终态"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+          },
+          "description": "按序号排列的全部流事件"
+        }
+      },
+      "required": [
+        "invocationId",
+        "state",
+        "events"
+      ]
+    },
+    "EstimateLanguagePlanInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "估算启用语言翻译费用的输入",
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "BCP47目标语言"
+        }
+      },
+      "required": [
+        "language"
+      ]
+    },
+    "EstimateLanguagePlanResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "启用语言翻译计划与估价",
+      "properties": {
+        "planId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "计划ID，24小时内可批准"
+        },
+        "documentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "需翻译的已发布文档数"
+        },
+        "unitCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "需新翻译的单元数（已扣除翻译记忆复用）"
+        },
+        "interfaceKeyCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "需翻译的界面字符串数"
+        },
+        "quote": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult",
+          "description": "网关保守估价；缺价时含price_unknown警告"
+        },
+        "quoteHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "批准时必须一致"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "计划过期时间"
+        }
+      },
+      "required": [
+        "planId",
+        "documentCount",
+        "unitCount",
+        "interfaceKeyCount",
+        "quote",
+        "quoteHash",
+        "expiresAt"
+      ]
+    },
+    "ApproveLanguagePlanInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "批准启用语言计划的输入",
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "BCP47目标语言"
+        },
+        "planId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "EstimateLanguagePlan返回"
+        },
+        "quoteHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "估价hash"
+        }
+      },
+      "required": [
+        "language",
+        "planId",
+        "quoteHash"
+      ]
+    },
+    "ApproveLanguagePlanResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "批准结果",
+      "properties": {
+        "documentJobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "创建的文档翻译任务数"
+        },
+        "interfaceJob": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob",
+          "description": "界面字符串翻译任务"
+        }
+      },
+      "required": [
+        "documentJobs",
+        "interfaceJob"
+      ]
+    },
+    "RequestInterfaceTranslationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "手动补译界面缺项的输入",
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "BCP47目标语言"
+        }
+      },
+      "required": [
+        "language"
+      ]
+    },
+    "RequestInterfaceTranslationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "补译任务",
+      "properties": {
+        "job": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob",
+          "description": "localization.ui任务"
+        }
+      },
+      "required": [
+        "job"
+      ]
+    },
+    "ListTranslationProgressInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "翻译进度筛选",
+      "properties": {
+        "language": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "可选；语言"
+        }
+      },
+      "required": []
+    },
+    "ListTranslationProgressResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "各语言翻译进度",
+      "properties": {
+        "languages": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "语言进度",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "语言进度",
+            "properties": {
+              "language": {
+                "type": "string",
+                "maxLength": 35,
+                "description": "语言"
+              },
+              "completedUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "已完成单元"
+              },
+              "queuedUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "排队单元"
+              },
+              "reviewUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "待复核人工译文"
+              }
+            },
+            "required": [
+              "language",
+              "completedUnits",
+              "queuedUnits",
+              "reviewUnits"
+            ]
+          }
+        }
+      },
+      "required": [
+        "languages"
+      ]
+    },
+    "ReadTranslationUnitsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取对照编辑单元",
+      "properties": {
+        "translationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "译文"
+        },
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "分页请求"
+        }
+      },
+      "required": [
+        "translationId",
+        "page"
+      ]
+    },
+    "ReadTranslationUnitsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "按块对齐的原文与译文",
+      "properties": {
+        "units": {
+          "type": "array",
+          "maxItems": 200,
+          "description": "单元",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "单元",
+            "properties": {
+              "unitId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "单元"
+              },
+              "blockId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "块"
+              },
+              "source": {
+                "type": "string",
+                "maxLength": 65536,
+                "description": "原文"
+              },
+              "target": {
+                "type": "string",
+                "maxLength": 65536,
+                "description": "译文"
+              },
+              "origin": {
+                "type": "string",
+                "maxLength": 16,
+                "description": "machine或human"
+              },
+              "protected": {
+                "type": "boolean",
+                "description": "人工保护"
+              },
+              "needsReview": {
+                "type": "boolean",
+                "description": "源已变需复核"
+              }
+            },
+            "required": [
+              "unitId",
+              "blockId",
+              "source",
+              "target",
+              "origin",
+              "protected",
+              "needsReview"
+            ]
+          }
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "分页信息"
+        }
+      },
+      "required": [
+        "units",
+        "pageInfo"
+      ]
     }
   }
 }

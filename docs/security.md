@@ -1,6 +1,6 @@
 # 安全与隐私
 
-后台的账户、密钥、费用配置、恢复、审计等管理动作限定超管；其他权限依据全局permissions登记与本域operation映射。会话/账号停用及权限撤销查权威版本，不仅靠异步通知。公共访客凭证不换成后台身份。内部服务仅暴露内网管理API并校验双重身份，不因经过portal就跳过授权。
+后台的账户、密钥、费用配置、恢复、审计等管理动作限定超管；其他权限依据全局permissions登记与本域operation映射。会话/账号停用及权限撤销查权威版本，不仅靠异步通知。公共访客凭证不换成后台身份。内部服务仅暴露内网API，并同时校验服务断言与用户委托证明（[ADR0004](adr/0004-wiring-and-service-identity.md)），不因经过portal就跳过授权。
 
 产品权限保持 old 的10项全站功能勾选，首次创建子账号默认全选，不增加文档级权限或继承角色。identity按 [权限组映射](../contracts/permission-groups.json) 派生技术grants；语言管理与译文管理分别授权，已配置模型的使用不等于修改模型渠道权限。后台服务查委托用户实际权限，不能凭service身份扩大管理范围。
 
@@ -13,3 +13,5 @@ HTTP写操作防CSRF、限制Content-Type与体积；公开AI在贵操作前执�
 AdmissionPermit由guard签名全部字段，包含请求、主体、动作、短期到期、dataEpoch、MG audience以及伪名sessionBudgetScope/networkBudgetScope。QA只向MG继承该许可，所有前置、检索、回答、缓存判定/翻译子调用共享根操作费用作用域；MG验签后自己构造额度键，不能相信客户端传来的budgetScopes。网络作用域不含原始IP，轮换不得在同一小时内重置费用上限。
 
 密钥只写不读，备份选择包含时由超管明确授权并标记；data git禁止秘密。代码提交按D42政策扫描内容、消息、身份，真实个人信息不能用“已经公开”当免责。
+
+备份、导出、暂存、丢弃与维护状态切换只接受 data-protection 的服务身份；手动备份与恢复由 data-protection 核验 superadmin，定时备份按超管保存的设置执行（[ADR0004](adr/0004-wiring-and-service-identity.md)）。服务私钥以文件 secret 挂载，只写不读、不进日志；公钥表由 nw-keys 生成，轮换时保留旧公钥一个过渡期。

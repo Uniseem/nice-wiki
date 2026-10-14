@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "design",
-  "contractSha256": "e72ab9ff8a98e81b97a6c4f44b882c02994cde5802fc7383407e9039be87825c",
+  "contractSha256": "02c1a90a759bb421b0d59c1585167e2e5c352f242a3926a4f76a0b5a1082a313",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -461,16 +461,6 @@
       "blocker": null
     },
     {
-      "path": "modules/localization/contracts/generated/schema.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/localization/deploy/service.config.json",
       "state": "planned",
       "implementationCommit": null,
@@ -639,6 +629,66 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/language/plan.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/localization/ui/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -786,6 +836,17 @@
       "blocker": null
     },
     {
+      "id": "localization.ExecuteTranslation",
+      "path": "modules/localization/internal/translation/execute.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "localization.ValidateTranslationOutput",
       "path": "modules/localization/internal/translation/validate.go",
       "state": "planned",
@@ -820,6 +881,28 @@
     },
     {
       "id": "localization.ReadTranslation",
+      "path": "modules/localization/internal/translation/read.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.ListTranslationProgress",
+      "path": "modules/localization/internal/translation/read.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.ReadTranslationUnits",
       "path": "modules/localization/internal/translation/read.go",
       "state": "planned",
       "implementationCommit": null,
@@ -951,6 +1034,17 @@
       "blocker": null
     },
     {
+      "id": "localization.RequestInterfaceTranslation",
+      "path": "modules/localization/internal/interface/translate.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "localization.ReadInterfaceCatalog",
       "path": "modules/localization/internal/interface/read.go",
       "state": "planned",
@@ -985,6 +1079,17 @@
     },
     {
       "id": "localization.TranslateCachedAnswer",
+      "path": "modules/localization/internal/cache-answer/create.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.ExecuteCacheAnswerTranslation",
       "path": "modules/localization/internal/cache-answer/create.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1283,6 +1388,39 @@
     {
       "id": "localization.ConsumeEvents",
       "path": "modules/localization/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.InvokeModel",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.EstimateLanguagePlan",
+      "path": "modules/localization/internal/language/plan.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.ApproveLanguagePlan",
+      "path": "modules/localization/internal/language/plan.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

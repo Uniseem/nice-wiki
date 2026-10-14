@@ -11,3 +11,36 @@
 平台视频一次公开信息与封面本地import；失败manual_required手填title/description，不能伪造capability。Bili/YouTube/抖音/TikTok按固定host template；YouTube nocookie。public-site页面先封面按钮，点击才加载第三方player，服务器请求每hop/DNS阻SSRF，不发送登录cookie。
 
 业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `content.resources.changed` | 1 | `media.ApplyReferenceEvent` | 更新当前/历史refs，不以迟到事件替代最终权威检查 |
+
+### 异步任务
+
+#### `media.cleanup`
+
+- 执行函数：`media.ExecuteManualCleanup`
+- 触发：ConfirmManualCleanup创建，notBefore≥24小时
+
+1. jobs worker claim确认plan/notBefore/approvalhash，未知或未确认拒绝
+2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
+3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `media.RecoverBlobJournal` | 启动时（入口开放前） | 恢复blob完成/删除持久日志 |
+| `media.ExpireUploadSessions` | 每10分钟 | 仅回收过期未完成临时字节 |
+| `media.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
+| `media.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
+| `media.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
+<!-- flows:end -->

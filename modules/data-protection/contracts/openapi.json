@@ -86,7 +86,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       },
@@ -165,7 +166,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -236,7 +238,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -327,7 +330,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -406,7 +410,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -485,7 +490,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -576,7 +582,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -667,7 +674,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -741,7 +749,8 @@
             "restoreProgressToken": []
           },
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -820,7 +829,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -921,7 +931,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1010,7 +1021,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1089,7 +1101,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1168,7 +1181,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1247,7 +1261,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1329,7 +1344,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1398,7 +1414,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1479,7 +1495,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1558,7 +1574,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1719,7 +1735,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1798,7 +1814,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1902,7 +1918,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -2003,7 +2019,84 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/mirrors/status": {
+      "get": {
+        "operationId": "readMirrorStatus",
+        "summary": "读取镜像与远程同步状态",
+        "description": "读取镜像与远程同步状态",
+        "x-handler": "data-protection.ReadMirrorStatus",
+        "x-permission": "backup.manage",
+        "responses": {
+          "200": {
+            "description": "读取镜像与远程同步状态成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadMirrorStatusResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：无backup.manage",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/settings": {
+      "get": {
+        "operationId": "readProtectionSettings",
+        "summary": "读取备份与镜像设置",
+        "description": "读取备份与镜像设置",
+        "x-handler": "data-protection.ReadProtectionSettings",
+        "x-permission": "backup.manage",
+        "responses": {
+          "200": {
+            "description": "读取备份与镜像设置成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadProtectionSettingsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -2011,15 +2104,29 @@
   },
   "components": {
     "securitySchemes": {
-      "serviceAuth": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "description": "服务身份签名凭证，绑定audience；secret不进合同"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "adminAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "identity管理会话或入口转发短期授权，需实时权限检查"
+      "userDelegation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
+      },
+      "visitorSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_visitor",
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       },
       "restoreProgressToken": {
         "type": "apiKey",

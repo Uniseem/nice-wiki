@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 33 个：手写 15、UI 7、生成 2、配置 9。函数 51 个：约束 14，参考 37。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 38 个：手写 15、UI 7、生成 6、配置 10。函数 52 个：约束 15，参考 37。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,7 +10,7 @@
 | `modules/portal/internal/request_validation.go` | 手写 | 限制请求体、请求头与 operationId | `portal.ValidateEnvelope`（参考）、`portal.NormalizeForwardHeaders`（参考） |
 | `modules/portal/internal/origin_guard.go` | 手写 | 对写入及凭据请求检查来源 | `portal.AssertSameOrigin`（参考）、`portal.VerifyCSRF`（参考） |
 | `modules/portal/internal/auth_proof.go` | 手写 | 取得经 identity 校验的当前权限上下文 | `portal.ResolveAuthContext`（参考）、`portal.BuildInternalProof`（参考）、`portal.AuthorizeRoute`（参考） |
-| `modules/portal/internal/proxy_stream.go` | 手写 | 发送一次有界请求到拥有服务 | `portal.ForwardRequest`（参考）、`portal.StreamResponse`（参考）、`portal.MapUpstreamFailure`（参考） |
+| `modules/portal/internal/proxy_stream.go` | 手写 | 发送一次有界请求到拥有服务 | `portal.ForwardRequest`（参考）、`portal.StreamResponse`（参考）、`portal.MapUpstreamFailure`（参考）、`portal.ProxyRequest` |
 | `modules/portal/internal/bootstrap_service.go` | 手写 | 聚合当前站点与用户后台壳信息 | `portal.LoadBootstrap`、`portal.BuildCapabilities`（参考）、`portal.BuildNavigation`（参考） |
 | `modules/portal/internal/preferences_service.go` | 手写 | 读取用户的显示偏好 | `portal.ReadPreferences`、`portal.UpdatePreferences`、`portal.ValidatePreferenceRoute`（参考） |
 | `modules/portal/internal/event_bridge.go` | 手写 | 提供后台权限过滤 SSE | `portal.OpenEventStream`、`portal.FilterPortalEvent`（参考）、`portal.EncodeSSEFrame`（参考）、`portal.ResumeEventCursor`（参考） |
@@ -39,3 +39,8 @@
 | `modules/portal/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
 | `modules/portal/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/portal/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `portal.mountModuleUI` |
+| `modules/portal/config/routes.json` | 生成 | 由全部模块openapi.json生成的入口路由表：非service接口的方法/路径→owner、operationId、x-permission、x-admission、超时与流式标志；CompileRouteRegistry启动时加载，未登记路径一律404 | 无 |
+| `modules/portal/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/portal/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/portal/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/portal/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |

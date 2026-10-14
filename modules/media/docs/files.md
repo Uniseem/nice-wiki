@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 41 个：手写 35、生成 1、配置 5。函数 52 个：约束 34，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 45 个：手写 36、生成 3、配置 6。函数 53 个：约束 36，参考 17。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -22,7 +22,7 @@
 | `modules/media/internal/reference_reader.go` | 手写 | 列哪些文档当前/历史引用资源 | `media.ReadAssetReferences` |
 | `modules/media/internal/cleanup_service.go` | 手写 | 后台单列当前未引用文件 | `media.ListUnusedAssets`、`media.ProposeManualCleanup`、`media.ConfirmManualCleanup`、`media.CancelManualCleanup` |
 | `modules/media/internal/cleanup_sources.go` | 手写 | 确认所有权威引用源后才认定可清理 | `media.ValidateCleanupSources`（参考） |
-| `modules/media/internal/cleanup_worker.go` | 手写 | 只执行已人工确认的安全清理计划 | `media.ExecuteManualCleanup`（参考） |
+| `modules/media/internal/cleanup_worker.go` | 手写 | 只执行已人工确认的安全清理计划 | `media.ExecuteManualCleanup` |
 | `modules/media/internal/range_service.go` | 手写 | 规范Range支持iOS视频 | `media.ParseByteRange`（参考） |
 | `modules/media/internal/asset_delivery.go` | 手写 | 鉴权读取immutable bytes和Range | `media.ReadAssetBytes`、`media.HeadAssetBytes` |
 | `modules/media/internal/reader_lease.go` | 手写 | 防正在下载资源被最终删除 | `media.AcquireReaderLease`（参考） |
@@ -47,3 +47,7 @@
 | `modules/media/config/service.defaults.json` | 配置 | ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/media/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
 | `modules/media/internal/event_subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `media.ConsumeEvents` |
+| `modules/media/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `media.RunWorker` |
+| `modules/media/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/media/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/media/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |

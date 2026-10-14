@@ -256,7 +256,8 @@
             "site-config.CheckWriteEpoch",
             "site-config.ValidateSiteConfig",
             "site-config.WriteConfigRevision",
-            "site-config.CommitConfigHead"
+            "site-config.CommitConfigHead",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -556,7 +557,8 @@
             "site-config.ValidateHomeLinks",
             "media:acquireResourceReferences",
             "media:confirmResourceReferences",
-            "media:releaseResourceReferences"
+            "media:releaseResourceReferences",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -894,7 +896,7 @@
           ],
           "purpose": "按CAS切换epoch与维护阶段",
           "steps": [
-            "校验system.manage近期step-up，或data-protection服务身份携带的superadmin委托",
+            "校验调用方为data-protection服务身份（用户授权已由data-protection核验）",
             "ValidateRuntimeTransition检查当前phase与expectedRevision",
             "control.db事务落持久迁移：begin_switch记录restoreId与targetDataEpoch；complete_restore仅在全部有状态域switched回执齐全后切dataEpoch并phase=running；complete_rollback在已换入域全部rolled-back后保持原dataEpoch并phase=running"
           ],
@@ -928,7 +930,10 @@
           "sideEffects": [
             "独立control.db运行状态和决定日志"
           ],
-          "authorization": "system.manage + superadmin批准；恢复协调由service:data-protection携superadmin委托",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；手动备份/恢复的superadmin授权与定时备份设置由data-protection核验"
+          },
           "concurrency": "控制库全局单写事务；不能从导入快照覆盖runtimeState",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
@@ -1289,7 +1294,8 @@
           "dependencies": [
             "site-config.PrepareDefaultConfig",
             "site-config.PersistInitializationDecision",
-            "site-config.ResumeInitialization"
+            "site-config.ResumeInitialization",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -2200,7 +2206,9 @@
           "authorization": "私有配置提交",
           "concurrency": "与configRevision同一事务",
           "idempotency": "eventId唯一",
-          "dependencies": [],
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -2290,7 +2298,8 @@
           "concurrency": "每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送",
           "idempotency": "eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -2494,7 +2503,10 @@
           "sideEffects": [
             "本服务屏障/快照/恢复日志与私有对象写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
           "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
           "dependencies": [
@@ -2583,7 +2595,10 @@
           "sideEffects": [
             "私有屏障状态写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
@@ -2697,7 +2712,10 @@
           "sideEffects": [
             "本服务屏障/快照/恢复日志与私有对象写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
           "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
           "dependencies": [
@@ -2759,7 +2777,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -2801,8 +2819,8 @@
             "HTTP读取data-protection恢复归档"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -2865,7 +2883,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -2887,8 +2905,8 @@
             "写control区回执"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -2997,7 +3015,8 @@
           "dependencies": [
             "site-config.CommitConfigHead",
             "media:acquireResourceReferences",
-            "media:confirmResourceReferences"
+            "media:confirmResourceReferences",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -3100,7 +3119,8 @@
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
             "site-config.CommitConfigHead",
-            "site-config.PublishConfigEvent"
+            "site-config.PublishConfigEvent",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -3205,7 +3225,8 @@
             "site-config.ValidateAnnouncementBody",
             "site-config.WriteAnnouncementRevision",
             "site-config.CommitAnnouncementHead",
-            "site-config.PublishConfigEvent"
+            "site-config.PublishConfigEvent",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -3573,7 +3594,8 @@
             "site-config.ReadConfigHistory",
             "site-config.WriteConfigRevision",
             "site-config.CommitConfigHead",
-            "media:readAsset"
+            "media:readAsset",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -3715,7 +3737,8 @@
           "dependencies": [
             "site-config.BuildApplication",
             "site-config.Serve",
-            "site-config.Shutdown"
+            "site-config.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -3765,7 +3788,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -3797,7 +3821,11 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config.RegisterActivation"
+            "site-config.RegisterActivation",
+            "site-config.RecoverAnnouncementJournal",
+            "site-config.RelayOutbox",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3871,7 +3899,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "site-config.BuildApplication",
-            "site-config.Shutdown"
+            "site-config.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -4094,6 +4125,35 @@
       "kind": "config",
       "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证",
       "functions": []
+    },
+    {
+      "path": "modules/site-config/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    }
+  ],
+  "jobTypes": [],
+  "backgroundTasks": [
+    {
+      "function": "site-config.RecoverAnnouncementJournal",
+      "schedule": "启动时（入口开放前）"
+    },
+    {
+      "function": "site-config.RelayOutbox",
+      "schedule": "启动后持续，空闲每1秒"
     }
   ]
 }

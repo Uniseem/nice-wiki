@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 51 个函数：约束 14 个，参考 37 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 52 个函数：约束 15 个，参考 37 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## portal.CompileRouteRegistry
 
@@ -410,7 +410,7 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：同一 operationId 不盲重放非幂等请求；取消不视为未提交
 - 幂等：仅拥有服务决定业务幂等
-- 依赖：`portal.NormalizeForwardHeaders`
+- 依赖：`portal.NormalizeForwardHeaders`、`platform.SignAssertion`
 
 ## portal.StreamResponse
 
@@ -492,6 +492,53 @@ func MapUpstreamFailure(input MapUpstreamFailureInput) (MapUpstreamFailureResult
 - 并发：纯函数
 - 幂等：纯函数
 - 依赖：无
+
+## portal.ProxyRequest
+
+- 级别：约束
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：同源入口：把浏览器请求安全转发到拥有服务
+
+```go
+func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestInput) (ProxyRequestResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ProxyRequestInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ProxyRequestResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. ResolveRoute在启动时编译的路由表中精确匹配方法与路径；ValidateEnvelope限制体积、媒体类型与operationId；CheckEntranceGate执行维护与epoch门禁
+2. 写入或带凭据请求先AssertSameOrigin与VerifyCSRF；管理路由ResolveAuthContext经identity核会话与权限，AuthorizeRoute预检，BuildInternalProof签发≤10秒用户委托证明
+3. 路由标记x-admission的公开AI请求：从可信代理链取访客地址（只在内存），携访客会话、动作与请求摘要调用traffic-guard:createAdmission；拒绝返回429/403与retryAfter或挑战要求，通过则附X-Admission-Permit头
+4. ForwardRequest以本服务断言与委托证明转发；StreamResponse有背压地回传（SSE与Range透传），失败经MapUpstreamFailure映射
+5. RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计
+
+**错误**
+
+- `NOT_FOUND`：未登记路由（不可重试）
+- `FORBIDDEN`：来源、CSRF或权限不符（不可重试）
+- `RATE_LIMITED`：风控拒绝（不可重试）
+- `LOCKED`：维护中（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：上游不可用（可重试）
+
+- 副作用：转发HTTP请求；调用identity、traffic-guard；访问审计
+- 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
+- 并发：每请求独立；上游取消随客户端断开传播
+- 幂等：幂等由上游operationId保证；入口不重放写请求
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`
 
 ## portal.LoadBootstrap
 
@@ -697,7 +744,7 @@ func UpdatePreferences(ctx context.Context, op OperationContext, input UpdatePre
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：用户/站点键事务 CAS
 - 幂等：同 operationId 同 digest 返回原结果
-- 依赖：`identity:updatePreferences`
+- 依赖：`identity:updatePreferences`、`portal.ValidatePreferenceRoute`
 
 ## portal.ValidatePreferenceRoute
 
@@ -780,7 +827,7 @@ func OpenEventStream(ctx context.Context, op OperationContext, input OpenEventSt
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：每用户最多 3 流；背压队列 256 条；超限断开并给重连 cursor
 - 幂等：相同 cursor 可重新读取
-- 依赖：`jobs:subscribeEvents`
+- 依赖：`jobs:subscribeEvents`、`portal.FilterPortalEvent`、`portal.EncodeSSEFrame`、`portal.ResumeEventCursor`
 
 ## portal.FilterPortalEvent
 
@@ -1737,7 +1784,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 
 **步骤**
 
-1. 验证 data-protection 与 superadmin 委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. 记录运行内屏障且向 site-config 验证维护已开启
 3. 拒绝新业务写入，排空在途写请求后返回 safe；重启仍从 runtimeState 恢复关闭
 
@@ -1748,7 +1795,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 
 - 副作用：本进程接入 gate 与在途计数
-- 授权：service:data-protection + superadmin 委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：请求登记与 gate 切换同一互斥区
 - 幂等：barrierId 相同返回当前 gate 状态；不生成数据快照
 - 依赖：`site-config:readRuntimeState`
@@ -1791,7 +1838,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 
 - 副作用：进程入口 gate 开启
-- 授权：service:data-protection + superadmin 委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：与新请求登记原子切换
 - 幂等：同 barrierId 重复释放无副作用
 - 依赖：`site-config:readRuntimeState`
@@ -1829,7 +1876,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`portal.BuildApplication`、`portal.Serve`、`portal.Shutdown`
+- 依赖：`portal.BuildApplication`、`portal.Serve`、`portal.Shutdown`、`platform.RunService`
 
 ## portal.BuildApplication
 
@@ -1862,6 +1909,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -1873,7 +1921,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：无
+- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## portal.Serve
@@ -1905,6 +1953,7 @@ func Serve(ctx context.Context, app *Application) error
 2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
 3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
 4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+5. 除本域接口外，其余路径全部交给ProxyRequest；路由表外的路径返回404
 
 **错误**
 
@@ -1915,7 +1964,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`portal.BuildApplication`、`portal.Shutdown`
+- 依赖：`portal.BuildApplication`、`portal.Shutdown`、`portal.ProxyRequest`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## portal.Shutdown

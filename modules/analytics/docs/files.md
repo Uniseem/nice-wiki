@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 49 个：手写 31、UI 4、生成 4、配置 9、迁移 1。函数 49 个：约束 28，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 52 个：手写 32、UI 4、生成 5、配置 10、迁移 1。函数 51 个：约束 30，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -22,7 +22,7 @@
 | `modules/analytics/internal/usage_aggregation.go` | 手写 | 费用派生聚合；同文件职责限本域以下登记函数 | `analytics.AggregateUsage` |
 | `modules/analytics/internal/gateway_client.go` | 手写 | 取得权威账本投影输入；同文件职责限本域以下登记函数 | `analytics.FetchUsagePage`（参考） |
 | `modules/analytics/internal/reconciliation.go` | 手写 | 对账修复派生统计；同文件职责限本域以下登记函数 | `analytics.ReconcileUsage` |
-| `modules/analytics/internal/event_handler.go` | 手写 | 消费安全审计和费用事件；同文件职责限本域以下登记函数 | `analytics.ConsumeAnalyticsEvent`、`analytics.ConsumeEvents` |
+| `modules/analytics/internal/event_handler.go` | 手写 | 消费安全审计和费用事件；同文件职责限本域以下登记函数 | `analytics.ConsumeAnalyticsEvent`、`analytics.ConsumeEvents`、`analytics.ProjectQaTurn` |
 | `modules/analytics/internal/export.go` | 手写 | 受权限保护统计导出；同文件职责限本域以下登记函数 | `analytics.CreateExport` |
 | `modules/analytics/internal/csv.go` | 手写 | 安全CSV单元格；同文件职责限本域以下登记函数 | `analytics.ValidateCSVCell`（参考） |
 | `modules/analytics/internal/retention.go` | 手写 | 清理短期匿名行；同文件职责限本域以下登记函数 | `analytics.PurgeBeacons`（参考）、`analytics.PurgeAuditHistory`（参考）、`analytics.PurgeExports`（参考） |
@@ -37,8 +37,6 @@
 | `modules/analytics/internal/geoip.go` | 手写 | 离线GeoIP国家；同文件职责限本域以下登记函数 | `analytics.LookupCountry`（参考） |
 | `modules/analytics/internal/crawler_store.go` | 手写 | AI Markdown访问独立计数；同文件职责限本域以下登记函数 | `analytics.RecordCrawlerAccess` |
 | `modules/analytics/internal/content_gaps.go` | 手写 | 热门文档与答不出问题联动；同文件职责限本域以下登记函数 | `analytics.QueryContentGaps` |
-| `modules/analytics/internal/types.gen.go` | 生成 | 从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module analytics --target go-types，输出不得手改 | 无 |
-| `modules/analytics/internal/http_bindings.gen.go` | 生成 | 从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module analytics --target go-http，x-handler映射仅转调手写函数 | 无 |
 | `modules/analytics/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/analytics/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/analytics/cmd/analytics/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `analytics.main` |
@@ -55,3 +53,8 @@
 | `modules/analytics/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
 | `modules/analytics/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/analytics/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `analytics.mountModuleUI` |
+| `modules/analytics/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `analytics.RunWorker` |
+| `modules/analytics/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/analytics/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/analytics/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/analytics/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |

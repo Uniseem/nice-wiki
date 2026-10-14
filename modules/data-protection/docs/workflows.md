@@ -21,3 +21,46 @@ mirror idle→building→committed→syncing→synced/conflict/failed；镜像�
 manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据只参与maintenance
 
 并发和幂等：每个修改函数明确CAS、fencing/租约或事务边界，见functions；公共事件至少一次，不能依赖全局顺序。接收eventId相同但hash不同拒CONFLICT；较低sourceRevision记已见但不应用；旧dataEpoch拒绝并不能重绑新epoch。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `jobs.barrier-state-changed.v1` | 1 | `data-protection.ConsumeBarrierEvent` | 继续等待安全点，事件不是safe的唯一证据 |
+| `content.publication.changed` | 1 | `data-protection.MirrorSourceRevision` | 每次发布写一次data git版本镜像 |
+
+### 异步任务
+
+#### `data-protection.backup`
+
+- 执行函数：`data-protection.ExecuteBackup`
+- 触发：CreateBackup与ScheduleLocalBackup登记的每日定时
+
+1. 读取备份记录与发起方授权（手动=superadmin，定时=超管保存的定时设置）；AcquireMaintenance进入备份维护并让全部域屏障safe
+2. CollectSnapshots逐域导出；FinalizeBackup校验、加密并置ready
+3. ReleaseMaintenance释放屏障退出维护；成功后PruneBackups按保留策略清理
+4. 任一域失败整体failed并释放维护，不产生部分可恢复包
+
+#### `data-protection.restore`
+
+- 执行函数：`data-protection.ExecuteRestore`
+- 触发：CreateRestore与RestoreDuringSetup创建
+
+1. 读取恢复记录与批准人；StageAllDomains让全部有状态域暂存归档
+2. 全部暂存后SwitchAllDomains写切换决定并等待各域重启换入与回执
+3. 本服务在切换中重启时按control日志续接，不重复已完成步骤
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `data-protection.RecoverProtectionJournal` | 启动时（入口开放前） | 恢复自身文件和决策操作 |
+| `data-protection.PublishProtectionEvents` | 启动后持续，空闲每1秒 | 可靠发送操作状态 |
+| `data-protection.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
+| `data-protection.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
+<!-- flows:end -->

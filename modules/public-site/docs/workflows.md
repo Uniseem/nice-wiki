@@ -21,3 +21,37 @@
 并发和幂等：每个修改函数明确CAS、fencing/租约或事务边界，见functions；公共事件至少一次，不能依赖全局顺序。接收eventId相同但hash不同拒CONFLICT；较低sourceRevision记已见但不应用；旧dataEpoch拒绝并不能重绑新epoch。
 
 持久事件由public-site.ConsumeEvents从jobs订阅content.publication.changed/content.publication.withdrawn/translation.ready，交给public-site.InvalidatePublication按inbox与单调revision失效投影；changed与translation.ready再登记public-site.render-publication任务由PrewarmPublication预热，withdrawn不预热。配置与启用语言每请求读当前权威值；事件只是投影优化，最终发布门禁不能省略。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `content.publication.changed` | 1 | `public-site.InvalidatePublication` | public-site.ConsumeEvents消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验 |
+| `content.publication.withdrawn` | 1 | `public-site.InvalidatePublication` | public-site.ConsumeEvents消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验 |
+| `translation.ready` | 1 | `public-site.InvalidatePublication` | public-site.ConsumeEvents消费已提交状态，失效或预热同源公开投影；公开交付仍权威校验 |
+
+### 异步任务
+
+#### `public-site.render-publication`
+
+- 执行函数：`public-site.PrewarmPublication`
+- 触发：InvalidatePublication在发布与译文就绪后创建
+
+1. 事件去重/epoch校验
+2. 各启用语言RenderPublicPage并存修订缓存
+3. 失败标派生任务错误不回滚正文
+4. 撤回再验阻止旧缓存输出
+5. 预热失败只标派生任务错误，公开请求可按同一不可变ref实时渲染，最终可见性门禁仍生效
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `public-site.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
+| `public-site.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
+<!-- flows:end -->

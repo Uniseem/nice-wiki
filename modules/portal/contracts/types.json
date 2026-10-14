@@ -3576,6 +3576,64 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "ProxyRequestInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "入口代理的一次请求",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "HEAD",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "description": "HTTP方法"
+        },
+        "rawPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "未解码请求路径"
+        },
+        "contentLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "声明的请求体字节数"
+        }
+      },
+      "required": [
+        "method",
+        "rawPath",
+        "contentLength"
+      ]
+    },
+    "ProxyRequestResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "代理结果摘要",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "返回给浏览器的状态码"
+        },
+        "owner": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "处理请求的服务slug"
+        }
+      },
+      "required": [
+        "status",
+        "owner"
+      ]
     }
   }
 }

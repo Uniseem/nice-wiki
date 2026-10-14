@@ -29,6 +29,36 @@
       "purpose": "仓库根CLAUDE.md框架约定或工程入口"
     },
     {
+      "path": "LICENSE",
+      "kind": "documentation",
+      "purpose": "仓库根LICENSE框架约定或工程入口"
+    },
+    {
+      "path": "Makefile",
+      "kind": "tool",
+      "purpose": "仓库根Makefile框架约定或工程入口"
+    },
+    {
+      "path": "README.md",
+      "kind": "documentation",
+      "purpose": "仓库根README.md框架约定或工程入口"
+    },
+    {
+      "path": "STATUS.md",
+      "kind": "documentation",
+      "purpose": "仓库根STATUS.md框架约定或工程入口"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "kind": "documentation",
+      "purpose": "仓库根THIRD_PARTY_NOTICES.md框架约定或工程入口"
+    },
+    {
+      "path": "contracts/README.md",
+      "kind": "documentation",
+      "purpose": "全局README版本化公共契约"
+    },
+    {
       "path": "contracts/ai-tasks.json",
       "kind": "contract",
       "purpose": "全局ai-tasks版本化公共契约"
@@ -64,14 +94,39 @@
       "purpose": "全局product-baseline版本化公共契约"
     },
     {
-      "path": "contracts/README.md",
-      "kind": "documentation",
-      "purpose": "全局README版本化公共契约"
-    },
-    {
       "path": "contracts/service-bootstrap.json",
       "kind": "contract",
       "purpose": "全局service-bootstrap版本化公共契约"
+    },
+    {
+      "path": "deploy/README.md",
+      "kind": "documentation",
+      "purpose": "部署编排总入口"
+    },
+    {
+      "path": "deploy/contracts/implementation.json",
+      "kind": "documentation",
+      "purpose": "部署编排文件机器合同"
+    },
+    {
+      "path": "deploy/docs/files.md",
+      "kind": "documentation",
+      "purpose": "部署编排文件目录（生成）"
+    },
+    {
+      "path": "deploy/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "部署编排函数合同（生成）"
+    },
+    {
+      "path": "deploy/progress.json",
+      "kind": "documentation",
+      "purpose": "部署编排进度台账"
+    },
+    {
+      "path": "docs/README.md",
+      "kind": "documentation",
+      "purpose": "全局README设计/手册/状态记录"
     },
     {
       "path": "docs/acceptance.md",
@@ -92,6 +147,16 @@
       "path": "docs/adr/0003-restore-by-restart.md",
       "kind": "documentation",
       "purpose": "全局0003恢复改为暂存后重启换目录决策记录"
+    },
+    {
+      "path": "docs/adr/0004-wiring-and-service-identity.md",
+      "kind": "documentation",
+      "purpose": "全局0004接线完整性与服务身份决策记录"
+    },
+    {
+      "path": "docs/adr/0005-engineering-and-deployment.md",
+      "kind": "documentation",
+      "purpose": "全局0005工程选型与部署决策记录"
     },
     {
       "path": "docs/adr/README.md",
@@ -162,6 +227,11 @@
       "path": "docs/playbooks/push.md",
       "kind": "documentation",
       "purpose": "全局push设计/手册/状态记录"
+    },
+    {
+      "path": "docs/product-baseline/README.md",
+      "kind": "documentation",
+      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
     },
     {
       "path": "docs/product-baseline/adr/0003-positioning.md",
@@ -414,11 +484,6 @@
       "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
     },
     {
-      "path": "docs/product-baseline/README.md",
-      "kind": "documentation",
-      "purpose": "冻结原产品功能/ADR需求快照；只引用产品行为，不复用旧业务实现"
-    },
-    {
       "path": "docs/product-preservation.md",
       "kind": "documentation",
       "purpose": "全局product-preservation设计/手册/状态记录"
@@ -439,19 +504,14 @@
       "purpose": "全局2026-10-14-0002设计/手册/状态记录"
     },
     {
-      "path": "docs/push-log/_pending.md",
-      "kind": "documentation",
-      "purpose": "全局_pending设计/手册/状态记录"
-    },
-    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
     },
     {
-      "path": "docs/README.md",
+      "path": "docs/push-log/_pending.md",
       "kind": "documentation",
-      "purpose": "全局README设计/手册/状态记录"
+      "purpose": "全局_pending设计/手册/状态记录"
     },
     {
       "path": "docs/requirements.md",
@@ -474,6 +534,11 @@
       "purpose": "全局service-map设计/手册/状态记录"
     },
     {
+      "path": "docs/structure/README.md",
+      "kind": "documentation",
+      "purpose": "全局README设计/手册/状态记录"
+    },
+    {
       "path": "docs/structure/framework.json",
       "kind": "contract",
       "purpose": "全局framework设计/手册/状态记录"
@@ -484,29 +549,54 @@
       "purpose": "全局functions设计/手册/状态记录"
     },
     {
-      "path": "docs/structure/README.md",
-      "kind": "documentation",
-      "purpose": "全局README设计/手册/状态记录"
-    },
-    {
       "path": "docs/structure/tooling.md",
       "kind": "documentation",
       "purpose": "全局tooling设计/手册/状态记录"
     },
     {
-      "path": "LICENSE",
+      "path": "libs/platform/README.md",
       "kind": "documentation",
-      "purpose": "仓库根LICENSE框架约定或工程入口"
+      "purpose": "平台公共库总入口"
     },
     {
-      "path": "Makefile",
-      "kind": "tool",
-      "purpose": "仓库根Makefile框架约定或工程入口"
+      "path": "libs/platform/contracts/implementation.json",
+      "kind": "documentation",
+      "purpose": "平台公共库文件与函数机器合同"
+    },
+    {
+      "path": "libs/platform/contracts/types.json",
+      "kind": "documentation",
+      "purpose": "平台公共库类型"
+    },
+    {
+      "path": "libs/platform/docs/files.md",
+      "kind": "documentation",
+      "purpose": "平台公共库文件目录（生成）"
+    },
+    {
+      "path": "libs/platform/docs/functions.md",
+      "kind": "documentation",
+      "purpose": "平台公共库函数合同（生成）"
+    },
+    {
+      "path": "libs/platform/progress.json",
+      "kind": "documentation",
+      "purpose": "平台公共库进度台账"
     },
     {
       "path": "modules/analytics/AGENTS.md",
       "kind": "documentation",
       "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/README.md",
+      "kind": "documentation",
+      "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/STATUS.md",
+      "kind": "documentation",
+      "purpose": "analytics人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/analytics/contracts/events.json",
@@ -584,19 +674,19 @@
       "purpose": "analytics逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/analytics/README.md",
-      "kind": "documentation",
-      "purpose": "analytics分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/analytics/STATUS.md",
-      "kind": "documentation",
-      "purpose": "analytics人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/content/AGENTS.md",
       "kind": "documentation",
       "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/README.md",
+      "kind": "documentation",
+      "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/STATUS.md",
+      "kind": "documentation",
+      "purpose": "content人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/content/contracts/events.json",
@@ -674,19 +764,19 @@
       "purpose": "content逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/content/README.md",
-      "kind": "documentation",
-      "purpose": "content分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/content/STATUS.md",
-      "kind": "documentation",
-      "purpose": "content人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/data-protection/AGENTS.md",
       "kind": "documentation",
       "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/README.md",
+      "kind": "documentation",
+      "purpose": "data-protection分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/data-protection/STATUS.md",
+      "kind": "documentation",
+      "purpose": "data-protection人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/data-protection/contracts/events.json",
@@ -764,19 +854,19 @@
       "purpose": "data-protection逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/data-protection/README.md",
-      "kind": "documentation",
-      "purpose": "data-protection分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/data-protection/STATUS.md",
-      "kind": "documentation",
-      "purpose": "data-protection人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/identity/AGENTS.md",
       "kind": "documentation",
       "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/README.md",
+      "kind": "documentation",
+      "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/STATUS.md",
+      "kind": "documentation",
+      "purpose": "identity人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/identity/contracts/events.json",
@@ -854,19 +944,19 @@
       "purpose": "identity逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/identity/README.md",
-      "kind": "documentation",
-      "purpose": "identity分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/identity/STATUS.md",
-      "kind": "documentation",
-      "purpose": "identity人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/jobs/AGENTS.md",
       "kind": "documentation",
       "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/README.md",
+      "kind": "documentation",
+      "purpose": "jobs分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/jobs/STATUS.md",
+      "kind": "documentation",
+      "purpose": "jobs人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/jobs/contracts/events.json",
@@ -944,19 +1034,19 @@
       "purpose": "jobs逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/jobs/README.md",
-      "kind": "documentation",
-      "purpose": "jobs分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/jobs/STATUS.md",
-      "kind": "documentation",
-      "purpose": "jobs人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/knowledge/AGENTS.md",
       "kind": "documentation",
       "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/README.md",
+      "kind": "documentation",
+      "purpose": "knowledge分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/knowledge/STATUS.md",
+      "kind": "documentation",
+      "purpose": "knowledge人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/knowledge/contracts/events.json",
@@ -1039,19 +1129,19 @@
       "purpose": "knowledge逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/knowledge/README.md",
-      "kind": "documentation",
-      "purpose": "knowledge分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/knowledge/STATUS.md",
-      "kind": "documentation",
-      "purpose": "knowledge人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/localization/AGENTS.md",
       "kind": "documentation",
       "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/README.md",
+      "kind": "documentation",
+      "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/STATUS.md",
+      "kind": "documentation",
+      "purpose": "localization人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/localization/contracts/events.json",
@@ -1134,19 +1224,19 @@
       "purpose": "localization逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/localization/README.md",
-      "kind": "documentation",
-      "purpose": "localization分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/localization/STATUS.md",
-      "kind": "documentation",
-      "purpose": "localization人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/media/AGENTS.md",
       "kind": "documentation",
       "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/README.md",
+      "kind": "documentation",
+      "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/STATUS.md",
+      "kind": "documentation",
+      "purpose": "media人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/media/contracts/events.json",
@@ -1224,19 +1314,19 @@
       "purpose": "media逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/media/README.md",
-      "kind": "documentation",
-      "purpose": "media分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/media/STATUS.md",
-      "kind": "documentation",
-      "purpose": "media人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/memory/AGENTS.md",
       "kind": "documentation",
       "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/README.md",
+      "kind": "documentation",
+      "purpose": "memory分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/memory/STATUS.md",
+      "kind": "documentation",
+      "purpose": "memory人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/memory/contracts/events.json",
@@ -1319,19 +1409,19 @@
       "purpose": "memory逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/memory/README.md",
-      "kind": "documentation",
-      "purpose": "memory分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/memory/STATUS.md",
-      "kind": "documentation",
-      "purpose": "memory人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/model-gateway/AGENTS.md",
       "kind": "documentation",
       "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/README.md",
+      "kind": "documentation",
+      "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/STATUS.md",
+      "kind": "documentation",
+      "purpose": "model-gateway人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/model-gateway/contracts/events.json",
@@ -1414,19 +1504,19 @@
       "purpose": "model-gateway逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/model-gateway/README.md",
-      "kind": "documentation",
-      "purpose": "model-gateway分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/model-gateway/STATUS.md",
-      "kind": "documentation",
-      "purpose": "model-gateway人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/portal/AGENTS.md",
       "kind": "documentation",
       "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/README.md",
+      "kind": "documentation",
+      "purpose": "portal分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/portal/STATUS.md",
+      "kind": "documentation",
+      "purpose": "portal人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/portal/contracts/events.json",
@@ -1504,19 +1594,19 @@
       "purpose": "portal逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/portal/README.md",
-      "kind": "documentation",
-      "purpose": "portal分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/portal/STATUS.md",
-      "kind": "documentation",
-      "purpose": "portal人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/public-site/AGENTS.md",
       "kind": "documentation",
       "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/README.md",
+      "kind": "documentation",
+      "purpose": "public-site分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/public-site/STATUS.md",
+      "kind": "documentation",
+      "purpose": "public-site人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/public-site/contracts/events.json",
@@ -1594,19 +1684,19 @@
       "purpose": "public-site逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/public-site/README.md",
-      "kind": "documentation",
-      "purpose": "public-site分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/public-site/STATUS.md",
-      "kind": "documentation",
-      "purpose": "public-site人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/qa/AGENTS.md",
       "kind": "documentation",
       "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/README.md",
+      "kind": "documentation",
+      "purpose": "qa分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/qa/STATUS.md",
+      "kind": "documentation",
+      "purpose": "qa人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/qa/contracts/events.json",
@@ -1689,19 +1779,19 @@
       "purpose": "qa逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/qa/README.md",
-      "kind": "documentation",
-      "purpose": "qa分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/qa/STATUS.md",
-      "kind": "documentation",
-      "purpose": "qa人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/site-config/AGENTS.md",
       "kind": "documentation",
       "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/README.md",
+      "kind": "documentation",
+      "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/STATUS.md",
+      "kind": "documentation",
+      "purpose": "site-config人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/site-config/contracts/events.json",
@@ -1779,19 +1869,19 @@
       "purpose": "site-config逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/site-config/README.md",
-      "kind": "documentation",
-      "purpose": "site-config分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/site-config/STATUS.md",
-      "kind": "documentation",
-      "purpose": "site-config人类进度摘要，与台账/交接一致"
-    },
-    {
       "path": "modules/traffic-guard/AGENTS.md",
       "kind": "documentation",
       "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/README.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/traffic-guard/STATUS.md",
+      "kind": "documentation",
+      "purpose": "traffic-guard人类进度摘要，与台账/交接一致"
     },
     {
       "path": "modules/traffic-guard/contracts/events.json",
@@ -1869,21 +1959,6 @@
       "purpose": "traffic-guard逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/traffic-guard/README.md",
-      "kind": "documentation",
-      "purpose": "traffic-guard分级规格/实现约束/文档索引"
-    },
-    {
-      "path": "modules/traffic-guard/STATUS.md",
-      "kind": "documentation",
-      "purpose": "traffic-guard人类进度摘要，与台账/交接一致"
-    },
-    {
-      "path": "README.md",
-      "kind": "documentation",
-      "purpose": "仓库根README.md框架约定或工程入口"
-    },
-    {
       "path": "scripts/check_docs.py",
       "kind": "tool",
       "purpose": "标准库设计结构、引用、台账、权限、依赖、暂存与隐私检查"
@@ -1892,16 +1967,6 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
-    },
-    {
-      "path": "STATUS.md",
-      "kind": "documentation",
-      "purpose": "仓库根STATUS.md框架约定或工程入口"
-    },
-    {
-      "path": "THIRD_PARTY_NOTICES.md",
-      "kind": "documentation",
-      "purpose": "仓库根THIRD_PARTY_NOTICES.md框架约定或工程入口"
     }
   ]
 }

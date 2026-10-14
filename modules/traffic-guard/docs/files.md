@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 49 个：手写 31、UI 4、生成 4、配置 9、迁移 1。函数 50 个：约束 29，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 52 个：手写 32、UI 4、生成 5、配置 10、迁移 1。函数 51 个：约束 30，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -37,8 +37,6 @@
 | `modules/traffic-guard/internal/session_queue.go` | 手写 | 每会话1并发其余排队；同文件职责限本域以下登记函数 | `traffic-guard.QueueSessionAdmission` |
 | `modules/traffic-guard/internal/admission_consumption.go` | 手写 | QA绑定准入使用权；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeAdmission` |
 | `modules/traffic-guard/internal/http_verify.go` | 手写 | QA在线确认准入租约；同文件职责限本域以下登记函数 | `traffic-guard.VerifyAdmissionHTTP` |
-| `modules/traffic-guard/internal/types.gen.go` | 生成 | 从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module traffic-guard --target go-types，输出不得手改 | 无 |
-| `modules/traffic-guard/internal/http_bindings.gen.go` | 生成 | 从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module traffic-guard --target go-http，x-handler映射仅转调手写函数 | 无 |
 | `modules/traffic-guard/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/traffic-guard/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/traffic-guard/cmd/traffic-guard/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `traffic-guard.main` |
@@ -55,3 +53,8 @@
 | `modules/traffic-guard/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
 | `modules/traffic-guard/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/traffic-guard/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `traffic-guard.mountModuleUI` |
+| `modules/traffic-guard/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/traffic-guard/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/traffic-guard/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/traffic-guard/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/traffic-guard/internal/queries.go` | 手写 | 查看最近可疑事件 | `traffic-guard.ListRiskEvents` |

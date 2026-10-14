@@ -38,3 +38,5 @@
 多会话开发按 [并行开发规则](playbooks/parallel-development.md)，新会话与跨天继续按 [交接流程](playbooks/handoff.md)。每个模块的 STATUS/progress/handoff 记录当前事实；设计台账初始全部未实现。
 
 各模块独立构建、进程入口、健康与退出的共同工程要求见 [服务启动蓝图](service-bootstrap.md)，具体文件和函数已合入每模块合同。
+
+共享组件：[平台公共库](../libs/platform/README.md)（服务身份、outbox/inbox、任务与订阅循环、模型调用、恢复换目录、进程模板）与 [部署编排](../deploy/README.md)（单机 Compose、Caddy、服务清单、公钥表）。工程选型见 [ADR0005](adr/0005-engineering-and-deployment.md)，后台页面与接口对照见 [界面装配](frontend.md)。

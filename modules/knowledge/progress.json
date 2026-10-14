@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "design",
-  "contractSha256": "d9475f6881bbf1709e9c40bcbed968a7b0516d5cd7e7dfc76153159e1a00b82c",
+  "contractSha256": "5d6a734905083880f2f347e9d0f264d00d7710204a2ed424fd6c54d7e8fa9bce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -431,16 +431,6 @@
       "blocker": null
     },
     {
-      "path": "modules/knowledge/contracts/generated/schema.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/knowledge/deploy/service.config.json",
       "state": "planned",
       "implementationCommit": null,
@@ -599,6 +589,76 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/build/execute.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/ui/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/build/rebuild.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -615,6 +675,17 @@
     },
     {
       "id": "knowledge.PutIndexConfig",
+      "path": "modules/knowledge/internal/config/config.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.ReadIndexConfig",
       "path": "modules/knowledge/internal/config/config.go",
       "state": "planned",
       "implementationCommit": null,
@@ -670,6 +741,17 @@
     },
     {
       "id": "knowledge.CreateExtraction",
+      "path": "modules/knowledge/internal/extract/create.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.ExecuteExtraction",
       "path": "modules/knowledge/internal/extract/create.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1221,6 +1303,50 @@
     {
       "id": "knowledge.mountModuleUI",
       "path": "modules/knowledge/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.InvokeModel",
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.ExecuteBuild",
+      "path": "modules/knowledge/internal/build/execute.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.EstimateRebuildPlan",
+      "path": "modules/knowledge/internal/build/rebuild.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.ApproveRebuildPlan",
+      "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

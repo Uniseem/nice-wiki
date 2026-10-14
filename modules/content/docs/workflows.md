@@ -11,3 +11,25 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 媒体历史文件可经管理员手动清理并有风险提示。回滚先列缺失文件，需要显式承认后按历史恢复，新发布可能有缺资源占位；不得造bytes。预览只有已登录管理账号，public样式但noindex/no-store，不提供匿名分享。
 
 业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+本域不消费事件。
+
+### 异步任务
+
+本域没有登记的异步任务类型。
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `content.RecoverPreparedCommits` | 启动时（入口开放前） | 恢复崩溃前正文提交日志 |
+| `content.ExpireIdleLocks` | 每30秒 | 释放失联或提示后仍空闲锁 |
+| `content.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
+<!-- flows:end -->

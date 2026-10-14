@@ -14,7 +14,7 @@
 | GET `/sitemap.xml` | `handleSitemapIndex` | `public-site.HandleSitemapIndex` | `anonymous` | `—` → 200 `string` | sitemap 索引 HTTP | `DEPENDENCY_UNAVAILABLE` |
 | GET `/sitemap/{locale}/{shard}.xml` | `handleSitemapShard` | `public-site.HandleSitemapShard` | `anonymous` | `—` → 200 `string` | 单分片 sitemap | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/preview/tokens` | `issuePreviewToken` | `public-site.IssuePreviewToken` | `content.preview` | `IssuePreviewTokenRequestBody` → 200 `IssuePreviewTokenResult` | 签发草稿预览授权 | `FORBIDDEN`、`NOT_FOUND` |
-| GET `/v1/preview/{token}` | `handlePreview` | `public-site.HandlePreview` | `service` | `—` → 200 `string` | 预览 HTTP 入口 | `STALE_RESULT`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/preview/{token}` | `handlePreview` | `public-site.HandlePreview` | `content.preview` | `—` → 200 `string` | 预览 HTTP 入口 | `STALE_RESULT`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/` | `handleRootRedirect` | `public-site.HandleRootRedirect` | `anonymous` | `—` → — | 根语言选择HTTP | `HTTP 302` |
 | GET `/{locale}/` | `handleHome` | `public-site.HandleHome` | `anonymous` | `—` → 200 `string` | 站点首页 | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/{locale}/{slug}` | `handlePage` | `public-site.HandlePage` | `anonymous` | `—` → 200 `string` | 页面 HTTP 入口 | `VALIDATION`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`HTTP 304`、`HTTP 301`、`HTTP 410` |

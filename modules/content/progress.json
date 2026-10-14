@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "design",
-  "contractSha256": "38c6ae50951d657ffdfdf5f07cc8dd768af01e56d1345e4c5d72e936fff276cc",
+  "contractSha256": "fd5eb7fb13fd92655d9904f6a13d984435386fc9e17658315e9e438ce1e35d79",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -552,6 +552,56 @@
     },
     {
       "path": "modules/content/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/internal/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/web/src/gen/api.gen.ts",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1346,6 +1396,17 @@
     {
       "id": "content.mountModuleUI",
       "path": "modules/content/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.InvokeModel",
+      "path": "modules/content/internal/model_client.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

@@ -3414,6 +3414,82 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
+    },
+    "ListRiskEventsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "可疑事件筛选",
+      "properties": {
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "分页请求"
+        },
+        "since": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "起始时间"
+        }
+      },
+      "required": [
+        "page",
+        "since"
+      ]
+    },
+    "ListRiskEventsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "可疑事件列表；不含原始IP",
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "description": "事件",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "事件",
+            "properties": {
+              "eventId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "事件"
+              },
+              "action": {
+                "type": "string",
+                "maxLength": 64,
+                "description": "动作"
+              },
+              "decision": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "拒绝/验证/限流"
+              },
+              "networkKey": {
+                "type": "string",
+                "maxLength": 64,
+                "description": "不可逆网络标识"
+              },
+              "occurredAt": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+                "description": "时间"
+              }
+            },
+            "required": [
+              "eventId",
+              "action",
+              "decision",
+              "networkKey",
+              "occurredAt"
+            ]
+          }
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "分页信息"
+        }
+      },
+      "required": [
+        "items",
+        "pageInfo"
+      ]
     }
   }
 }

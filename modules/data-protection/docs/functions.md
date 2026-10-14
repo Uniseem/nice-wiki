@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 63 个函数：约束 38 个，参考 25 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 67 个函数：约束 42 个，参考 25 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## data-protection.ValidateBackupRequest
 
@@ -94,7 +94,7 @@ func CreateBackup(ctx context.Context, op OperationContext, in CreateBackupInput
 
 ## data-protection.CollectSnapshots
 
-- 级别：约束
+- 级别：参考
 - 文件：`modules/data-protection/internal/backup.go`
 - 作用：收集全域快照
 
@@ -139,7 +139,7 @@ func CollectSnapshots(ctx context.Context, op OperationContext, in CollectSnapsh
 
 ## data-protection.FinalizeBackup
 
-- 级别：约束
+- 级别：参考
 - 文件：`modules/data-protection/internal/backup.go`
 - 作用：把完整备份置ready
 
@@ -178,6 +178,49 @@ func FinalizeBackup(ctx context.Context, op OperationContext, in FinalizeBackupI
 - 并发：文件与SQLite无单事务；ready只在恢复日志验证完成后
 - 幂等：backupId/hash幂等
 - 依赖：`data-protection.BuildManifest`、`data-protection.ValidateCrossDomainRefs`、`data-protection.EncryptBackupObject`
+
+## data-protection.ExecuteBackup
+
+- 级别：约束
+- 文件：`modules/data-protection/internal/backup.go`
+- 作用：执行一次全站一致备份
+
+```go
+func ExecuteBackup(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 读取备份记录与发起方授权（手动=superadmin，定时=超管保存的定时设置）；AcquireMaintenance进入备份维护并让全部域屏障safe
+2. CollectSnapshots逐域导出；FinalizeBackup校验、加密并置ready
+3. ReleaseMaintenance释放屏障退出维护；成功后PruneBackups按保留策略清理
+4. 任一域失败整体failed并释放维护，不产生部分可恢复包
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：有状态域不可达或屏障超时（可重试）
+- `INTEGRITY_ERROR`：导出校验失败（不可重试）
+
+- 副作用：全站维护；写备份对象
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：全站同时只一个备份或恢复
+- 幂等：按backupId唯一；失败可续
+- 依赖：`data-protection.AcquireMaintenance`、`data-protection.CollectSnapshots`、`data-protection.FinalizeBackup`、`data-protection.ReleaseMaintenance`、`data-protection.PruneBackups`
 
 ## data-protection.AcquireMaintenance
 
@@ -655,7 +698,7 @@ func ReadBackup(ctx context.Context, op OperationContext, in ReadBackupInput) (R
 
 ## data-protection.ReadMirrorStatus
 
-- 级别：参考
+- 级别：约束
 - 文件：`modules/data-protection/internal/queries.go`
 - 作用：读取镜像同步状态
 
@@ -694,6 +737,46 @@ func ReadMirrorStatus(ctx context.Context, op OperationContext, in ReadMirrorSta
 - 并发：只读本域catalog，不能声称远端最新
 - 幂等：GET幂等
 - 依赖：`identity:checkAuthorization`
+
+## data-protection.ReadProtectionSettings
+
+- 级别：约束
+- 文件：`modules/data-protection/internal/queries.go`
+- 作用：读取备份与镜像设置
+
+```go
+func ReadProtectionSettings(ctx context.Context, op OperationContext, input ReadProtectionSettingsInput) (ReadProtectionSettingsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ReadProtectionSettingsInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadProtectionSettingsResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. backup.manage
+2. 返回定时备份设置、保留份数、是否包含密钥与远程仓库地址（不含凭据）
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+
+- 副作用：无
+- 授权：permission：backup.manage；rule：后台管理员
+- 并发：只读快照
+- 幂等：只读
+- 依赖：无
 
 ## data-protection.AuthorizeBackupDownload
 
@@ -995,6 +1078,48 @@ func CleanupRestore(ctx context.Context, op OperationContext, in CleanupRestoreI
 - 并发：按restoreId串行
 - 幂等：重复清理返回已清理域
 - 依赖：`data-protection.DiscardDomain`
+
+## data-protection.ExecuteRestore
+
+- 级别：约束
+- 文件：`modules/data-protection/internal/restore.go`
+- 作用：执行已批准的恢复：暂存后重启换目录
+
+```go
+func ExecuteRestore(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 读取恢复记录与批准人；StageAllDomains让全部有状态域暂存归档
+2. 全部暂存后SwitchAllDomains写切换决定并等待各域重启换入与回执
+3. 本服务在切换中重启时按control日志续接，不重复已完成步骤
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：域不可达（可重试）
+- `INTEGRITY_ERROR`：归档校验失败（不可重试）
+
+- 副作用：全站维护与切换
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：全站同时只一个备份或恢复
+- 幂等：按restoreId唯一
+- 依赖：`data-protection.StageAllDomains`、`data-protection.SwitchAllDomains`
 
 ## data-protection.StageDomain
 
@@ -1732,7 +1857,7 @@ func PublishProtectionEvents(ctx context.Context, op OperationContext, in Publis
 - 授权：permission：service；rule：service
 - 并发：30s租约，至少一次
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`
 
 ## data-protection.ConsumeBarrierEvent
 
@@ -1774,7 +1899,7 @@ func ConsumeBarrierEvent(ctx context.Context, op OperationContext, in ConsumeBar
 - 授权：permission：service；rule：service jobs事件
 - 并发：sourceRevision取max
 - 幂等：eventId/revision幂等
-- 依赖：`data-protection.WaitAllSafe`
+- 依赖：`data-protection.WaitAllSafe`、`platform.ClaimInbox`
 
 ## data-protection.ConsumeEvents
 
@@ -1819,7 +1944,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`data-protection.ConsumeBarrierEvent`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`data-protection.ConsumeBarrierEvent`、`data-protection.MirrorSourceRevision`、`platform.RunConsumer`
 
 ## data-protection.EnterBarrier
 
@@ -1857,7 +1982,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `DEADLINE_EXCEEDED` / HTTP 504：BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写本域barrier
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：controller元数据journal与快照冻结区分；不递归自己对象
 - 幂等：barrierId幂等
 - 依赖：无
@@ -1899,7 +2024,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `LOCKED` / HTTP 409：RESTORE_INCOMPLETE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：不会解除commit-decided恢复锁
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`
@@ -1941,7 +2066,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写本域snapshot对象
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：备份不无限嵌套；本轮操作journal保留控制面外部恢复锚
 - 幂等：backupId/barrierId幂等
 - 依赖：无
@@ -1974,7 +2099,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection.ServeRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -1989,7 +2114,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection.ServeRestoreArchive`、`site-config:readRuntimeState`
@@ -2021,7 +2146,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -2032,7 +2157,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -2215,7 +2340,7 @@ func ScheduleLocalBackup(ctx context.Context, op OperationContext, in ScheduleLo
 
 ## data-protection.MirrorSourceRevision
 
-- 级别：参考
+- 级别：约束
 - 文件：`modules/data-protection/internal/publication_mirror.go`
 - 作用：每次发布写data git镜像
 
@@ -2241,7 +2366,7 @@ func MirrorSourceRevision(ctx context.Context, op OperationContext, in MirrorSou
 **步骤**
 
 1. content已完成发布事件
-2. 读取其源历史不可变portable正文/对应译文术语设置refs
+2. 经content:readContentObject读取该发布修订的不可变正文，site-config:readConfigObject读取相关设置文件；译文与术语只取引用
 3. author=发布账号timestamp=发布时间
 4. 同revision构建版本commit，mirror失败只告警不回滚源发布
 
@@ -2254,8 +2379,7 @@ func MirrorSourceRevision(ctx context.Context, op OperationContext, in MirrorSou
 - 授权：permission：service；rule：service content事件
 - 并发：按sourceRevision排序，缺前序先拉源历史不能重排删历史
 - 幂等：publicationId/hash幂等
-- 依赖：`data-protection.CommitMirrorTree`
-- 其他依赖说明：content源历史portable API
+- 依赖：`data-protection.CommitMirrorTree`、`content:readContentObject`、`site-config:readConfigObject`、`platform.ClaimInbox`
 
 ## data-protection.RestoreDuringSetup
 
@@ -2468,7 +2592,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`data-protection.BuildApplication`、`data-protection.Serve`、`data-protection.Shutdown`
+- 依赖：`data-protection.BuildApplication`、`data-protection.Serve`、`data-protection.Shutdown`、`platform.RunService`
 
 ## data-protection.BuildApplication
 
@@ -2501,6 +2625,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -2512,7 +2637,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`
+- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## data-protection.Serve
@@ -2554,7 +2679,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`data-protection.BuildApplication`、`data-protection.Shutdown`
+- 依赖：`data-protection.BuildApplication`、`data-protection.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## data-protection.Shutdown
@@ -2717,3 +2842,45 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 幂等：同DOM/buildRevision重复挂载复用实例
 - 依赖：无
 - 其他依赖说明：本域已登记UI页面函数
+
+## data-protection.RunWorker
+
+- 级别：约束
+- 文件：`modules/data-protection/internal/worker.go`
+- 作用：主动领取并执行本域登记的持久任务
+
+```go
+func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) (WorkerLoopResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `WorkerLoopInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `WorkerLoopResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
+2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
+3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
+4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用；退避后重试领取（可重试）
+
+- 副作用：HTTP调用jobs租约接口；执行本域登记的任务函数
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
+- 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`data-protection.ExecuteBackup`、`data-protection.ExecuteRestore`、`platform.RunWorkerLoop`

@@ -7,6 +7,7 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
+| GET `/v1/index-config` | `readIndexConfig` | `knowledge.ReadIndexConfig` | `knowledge.manage` | `—` → 200 `ReadIndexConfigResult` | 读取索引配置 | `FORBIDDEN` |
 | PUT `/v1/index-config` | `putIndexConfig` | `knowledge.PutIndexConfig` | `knowledge.manage` | `PutIndexConfigInput` → 200 `PutIndexConfigResult` | 更新索引配置 | `HTTP 400`、`HTTP 409`、`HTTP 422`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/builds` | `listBuilds` | `knowledge.ListBuilds` | `knowledge.manage` | `—` → 200 `ListBuildsResult` | 列入库任务 | `HTTP 403`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/builds` | `createBuild` | `knowledge.CreateBuild` | `knowledge.manage` | `CreateBuildInput` → 202 `CreateBuildResult` | 人工或事件申请构建 | `HTTP 404`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
@@ -15,15 +16,17 @@
 | POST `/v1/retrievals` | `searchKnowledge` | `knowledge.Retrieve` | `service` | `RetrieveInput` → 200 `RetrieveResult` | 统一混合检索 | `HTTP 503`、`HTTP 422`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/builds/{buildId}/diagnostics` | `redactDiagnostics` | `knowledge.RedactDiagnostics` | `knowledge.manage` | `—` → 200 `RedactDiagnosticsResult` | 返回安全诊断 | `HTTP 403`、`HTTP 404`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/sections:read` | `readSections` | `knowledge.ReadSections` | `service` | `ReadSectionsInput` → 200 `ReadSectionsResult` | 按引用读取证据片段 | `HTTP 403`、`HTTP 409`、`HTTP 404`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| POST `/v1/barriers` | `acquireBarrier` | `knowledge.AcquireBarrier` | `superadmin` | `BarrierRequest` → 200 `BarrierStatus` | 取得本地维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `knowledge.ReleaseBarrier` | `superadmin` | `BarrierRequest` → 200 `BarrierStatus` | 释放已授权维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `knowledge.ExportSnapshot` | `superadmin` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出安全watermark快照 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
+| POST `/v1/barriers` | `acquireBarrier` | `knowledge.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得本地维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
+| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `knowledge.ReleaseBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 释放已授权维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
+| POST `/v1/snapshots:export` | `exportSnapshot` | `knowledge.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出安全watermark快照 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
 | POST `/v1/evidence:inspect` | `inspectEvidence` | `knowledge.InspectEvidence` | `service` | `InspectEvidenceInput` → 200 `InspectEvidenceResult` | 快速检索员有限核查 | `HTTP 503`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/query-embeddings` | `createQueryEmbedding` | `knowledge.CreateQueryEmbedding` | `service` | `CreateQueryEmbeddingInput` → 200 `CreateQueryEmbeddingResult` | 统一生成并复用查询嵌入 | `HTTP 503`、`HTTP 422`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/healthz` | `health` | `knowledge.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `knowledge.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `knowledge.StageSnapshot` | `superadmin` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `knowledge.DiscardSnapshot` | `superadmin` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| POST `/v1/snapshots:stage` | `stageSnapshot` | `knowledge.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/snapshots:discard` | `discardSnapshot` | `knowledge.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| POST `/v1/rebuild-plans` | `estimateRebuildPlan` | `knowledge.EstimateRebuildPlan` | `knowledge.manage` | `EstimateRebuildPlanInput` → 200 `EstimateRebuildPlanResult` | 估算全量重建费用 | `FORBIDDEN` |
+| POST `/v1/rebuild-plans/{planId}:approve` | `approveRebuildPlan` | `knowledge.ApproveRebuildPlan` | `knowledge.manage` | `ApproveRebuildPlanInput` → 200 `ApproveRebuildPlanResult` | 批准全量重建 | `VALIDATION`、`CONFLICT` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

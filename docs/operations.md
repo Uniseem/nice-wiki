@@ -9,3 +9,5 @@
 只从私有vps.txt读连接信息；该文件与环境/凭据/运行数据/Git元数据均不同步。使用隔离检查目录，不改变旧线上实例、域名、代理或数据库。本次未授权发布新实例，也未授权push。
 
 备份和恢复必须遵循全站维护屏障与切换决策日志（ADR0003：暂存后由进程守护重启换目录，部署须配置自动重启）；失败保留最后可用备份与旧代，恢复不自动调用模型。远程data git凭据只属data-protection，代码Git同步仍遵循用户每次授权规则。
+
+部署编排见 [ADR0005](adr/0005-engineering-and-deployment.md) 与 [deploy](../deploy/README.md)：Docker Compose 运行 15 个服务与 Caddy，`restart: unless-stopped`；端口、内存上限（GOMEMLIMIT 合计约 2.6GiB）、数据卷与公钥表各有唯一来源。部署、升级、日志与密钥轮换都在 deploy/ 中完成，代码与部署变更仍需用户每次授权。

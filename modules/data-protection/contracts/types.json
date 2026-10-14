@@ -3769,6 +3769,63 @@
       "required": [
         "cleanedOwners"
       ]
+    },
+    "ReadProtectionSettingsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取备份与镜像设置的输入",
+      "properties": {},
+      "required": []
+    },
+    "ReadProtectionSettingsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取备份与镜像设置的结果；不含密钥",
+      "properties": {
+        "schedule": {
+          "$ref": "#/$defs/ScheduleLocalBackupInput",
+          "description": "当前定时备份设置"
+        },
+        "remote": {
+          "$ref": "#/$defs/RemoteSettings",
+          "description": "远程仓库（不含凭据）"
+        }
+      },
+      "required": [
+        "schedule",
+        "remote"
+      ]
+    },
+    "RemoteSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "远程仓库设置（不含凭据）",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "url；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "branch": {
+          "type": "string",
+          "description": "branch；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "expectedRevision 非负 int64；不用浮点数"
+        },
+        "actor": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "公共 AuthContext 合同，遵守其字段和空值规则"
+        }
+      },
+      "required": [
+        "url",
+        "branch",
+        "expectedRevision",
+        "actor"
+      ]
     }
   }
 }

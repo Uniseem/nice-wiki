@@ -1,6 +1,6 @@
 # 文件结构契约
 
-实际文档/工具与未来业务源码分开。根框架的实际路径见 [框架文件清单](framework.json)，模块未来源码见各域contracts/implementation.json与docs/files.md。main不创建未来源码，目录存在不代表实现完成。
+实际文档/工具与未来业务源码分开。根框架的实际路径见 [框架文件清单](framework.json)，模块未来源码见各域contracts/implementation.json与docs/files.md，共享组件（libs/platform、deploy）未来文件见各自contracts/implementation.json。main不创建未来源码，目录存在不代表实现完成。
 
 所有后续文件、生成来源、迁移和约束函数均须登记；参考级函数及 internal/、界面 src/ 内的拆分按 [函数登记要求](functions.md) 在交付时同步。除用户明确授权重建外，其他结构外增加/移动/删除/改名/职责变更先确认，参照 [合同修改手册](../playbooks/change-contract.md)。
 

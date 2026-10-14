@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 63 个：手写 47、UI 3、生成 3、配置 9、迁移 1。函数 60 个：约束 33，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 65 个：约束 38，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -27,11 +27,11 @@
 | `modules/qa/internal/turn/cancel.go` | 手写 | 取消问答及所有子调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CancelTurn` |
 | `modules/qa/internal/feedback/feedback.go` | 手写 | 保存访客单条反馈所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RecordFeedback` |
 | `modules/qa/internal/cache/curation.go` | 手写 | 人工创建精选候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ProposeCacheEntry`、`qa.ApproveCacheEntry`、`qa.DisableCacheEntry` |
-| `modules/qa/internal/cache/embedding.go` | 手写 | 为已批准缓存构建语义向量所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.BuildCacheEmbedding`（参考） |
+| `modules/qa/internal/cache/embedding.go` | 手写 | 为已批准缓存构建语义向量所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.BuildCacheEmbedding` |
 | `modules/qa/internal/cache/invalidate.go` | 手写 | 失效受版本变化影响缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.InvalidateCache` |
 | `modules/qa/internal/admin/cache.go` | 手写 | 管理精选缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ListCacheEntries` |
-| `modules/qa/internal/cache/translation.go` | 手写 | 请求精选答案翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.TranslateCacheEntry` |
-| `modules/qa/internal/history/compaction.go` | 手写 | 申请有界历史摘要所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CreateCompaction`（参考）、`qa.RunCompaction`（参考） |
+| `modules/qa/internal/cache/translation.go` | 手写 | 请求精选答案翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.TranslateCacheEntry`（参考） |
+| `modules/qa/internal/history/compaction.go` | 手写 | 申请有界历史摘要所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CreateCompaction`（参考）、`qa.RunCompaction` |
 | `modules/qa/internal/history/commit.go` | 手写 | 保护新历史不被旧摘要覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CommitCompaction`（参考） |
 | `modules/qa/internal/debug/create.go` | 手写 | 隔离管理诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CreateDebugTurn` |
 | `modules/qa/internal/debug/read.go` | 手写 | 读取管理诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ReadDebugTurn` |
@@ -51,7 +51,6 @@
 | `modules/qa/internal/cache/localized.go` | 手写 | 保存缓存的多语言回答所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.StoreLocalizedCacheAnswer` |
 | `modules/qa/internal/admin/calibration.go` | 手写 | 缓存阈值校准所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ReadCacheCalibration` |
 | `modules/qa/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RunWorker` |
-| `modules/qa/contracts/generated/schema.gen.go` | 生成 | 未来由根contract compiler从本域types/openapi生成DTO，Generator(inputSchemas []SchemaRef, outputDirectory string) error；生成前schema refs必须解析，禁止手写编辑。 | 无 |
 | `modules/qa/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/qa/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
 | `modules/qa/cmd/qa/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `qa.main` |
@@ -69,3 +68,11 @@
 | `modules/qa/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/qa/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `qa.mountModuleUI` |
 | `modules/qa/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `qa.ConsumeEvents` |
+| `modules/qa/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `qa.InvokeModel`（参考） |
+| `modules/qa/internal/turn/execute.go` | 手写 | 按固定顺序执行一轮问答 | `qa.ExecuteTurn` |
+| `modules/qa/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/qa/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/qa/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/qa/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/qa/internal/admin/records.go` | 手写 | 浏览与筛选问答记录 | `qa.ListTurnRecords`、`qa.ReadTurnRecord` |
+| `modules/qa/internal/admin/policy.go` | 手写 | 读取问答策略 | `qa.ReadQaPolicy` |

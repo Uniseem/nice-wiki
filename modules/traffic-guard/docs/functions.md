@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 50 个函数：约束 29 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 51 个函数：约束 30 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## traffic-guard.ValidatePolicy
 
@@ -243,7 +243,7 @@ func ClassifyAction(ctx context.Context, op OperationContext, in ClassifyActionI
 
 **步骤**
 
-1. 匹配服务白名单 qa.ask/search/export/admin
+1. 匹配路由表x-admission动作白名单：qa.conversation、qa.ask、localization.suggest、identity.login
 2. 拒绝客户端覆盖
 3. 公共读取仅受边缘基本速率
 
@@ -734,7 +734,7 @@ func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissio
 - 授权：permission：service；rule：service
 - 并发：请求deadline 1500ms，失败不颁 permit
 - 幂等：requestId 幂等
-- 依赖：`traffic-guard.EvaluateAdmission`、`traffic-guard.DeriveSubject`
+- 依赖：`traffic-guard.EvaluateAdmission`、`traffic-guard.DeriveSubject`、`traffic-guard.NormalizePeer`、`traffic-guard.ClassifyAction`、`traffic-guard.LoadSignals`
 
 ## traffic-guard.ExpireLeases
 
@@ -1202,7 +1202,7 @@ func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeId
 - 授权：permission：service；rule：service identity事件
 - 并发：按 subject权限修订取max
 - 幂等：eventId/revision幂等
-- 依赖：无
+- 依赖：`platform.ClaimInbox`
 
 ## traffic-guard.ConsumeEvents
 
@@ -1247,7 +1247,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`traffic-guard.ConsumeIdentityEvent`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`traffic-guard.ConsumeIdentityEvent`、`platform.RunConsumer`
 
 ## traffic-guard.PublishGuardEvents
 
@@ -1288,7 +1288,7 @@ func PublishGuardEvents(ctx context.Context, op OperationContext, in PublishGuar
 - 授权：permission：service；rule：service
 - 并发：outbox租约30s；至少一次
 - 幂等：eventId固定不因重试变
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`
 
 ## traffic-guard.PurgeAnonymousSignals
 
@@ -1370,7 +1370,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：持久维护barrier状态
-- 授权：permission：service；rule：service+superadmin 委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：barrier独占；renew只能至barrier deadline
 - 幂等：barrierId重复返回同状态
 - 依赖：`site-config:readRuntimeState`、`jobs:coordinateBarrier`
@@ -1411,7 +1411,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier状态
-- 授权：permission：service；rule：service+superadmin 委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：不提前恢复准入
 - 幂等：重复release幂等
 - 依赖：`site-config:readRuntimeState`
@@ -1454,7 +1454,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写快照对象
-- 授权：permission：service；rule：service+superadmin 委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：维护屏障下固定水位
 - 幂等：backupId/barrierId幂等
 - 依赖：`jobs:coordinateBarrier`
@@ -1486,7 +1486,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -1501,7 +1501,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
@@ -1533,7 +1533,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -1544,7 +1544,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -1813,7 +1813,7 @@ func ConsumeAdmission(ctx context.Context, op OperationContext, in ConsumeAdmiss
 - 授权：permission：service；rule：service qa
 - 并发：admissionId唯一request绑定，release后禁止再consume
 - 幂等：admissionId/requestId幂等
-- 依赖：`traffic-guard.SignPermit`
+- 依赖：`traffic-guard.SignPermit`、`traffic-guard.ValidatePermit`
 - 其他依赖说明：私有lease状态
 
 ## traffic-guard.VerifyAdmissionHTTP
@@ -1893,7 +1893,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`traffic-guard.BuildApplication`、`traffic-guard.Serve`、`traffic-guard.Shutdown`
+- 依赖：`traffic-guard.BuildApplication`、`traffic-guard.Serve`、`traffic-guard.Shutdown`、`platform.RunService`
 
 ## traffic-guard.BuildApplication
 
@@ -1926,6 +1926,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -1937,7 +1938,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve
@@ -1979,7 +1980,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`traffic-guard.BuildApplication`、`traffic-guard.Shutdown`
+- 依赖：`traffic-guard.BuildApplication`、`traffic-guard.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## traffic-guard.Shutdown
@@ -2142,3 +2143,44 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 幂等：同DOM/buildRevision重复挂载复用实例
 - 依赖：无
 - 其他依赖说明：本域已登记UI页面函数
+
+## traffic-guard.ListRiskEvents
+
+- 级别：约束
+- 文件：`modules/traffic-guard/internal/queries.go`
+- 作用：查看最近可疑事件
+
+```go
+func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEventsInput) (ListRiskEventsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ListRiskEventsInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListRiskEventsResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. guard.manage
+2. 分页读取准入拒绝、挑战失败与封禁记录
+3. 只返回不可逆网络标识，不返回原始IP
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+
+- 副作用：无
+- 授权：permission：guard.manage；rule：后台管理员按登记权限
+- 并发：只读快照或CAS
+- 幂等：读取幂等；写入按operationId
+- 依赖：无

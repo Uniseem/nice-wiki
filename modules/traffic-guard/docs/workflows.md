@@ -19,3 +19,29 @@ old D22/D23/D50 产品保留：Turnstile首选，加载失败PoW；可疑交互�
 禁令 active→expired/revoked；每次 admission 和 permit renew 都重新检查
 
 并发和幂等：每个修改函数明确CAS、fencing/租约或事务边界，见functions；公共事件至少一次，不能依赖全局顺序。接收eventId相同但hash不同拒CONFLICT；较低sourceRevision记已见但不应用；旧dataEpoch拒绝并不能重绑新epoch。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `identity.authorization.changed` | 1 | `traffic-guard.ConsumeIdentityEvent` | 只触发管理会话重新授权，真实身份仍查identity.checkAuthorization |
+
+### 异步任务
+
+本域没有登记的异步任务类型。
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `traffic-guard.ExpireLeases` | 每5秒 | 回收过期并发 |
+| `traffic-guard.ExpireBans` | 每60秒 | 回收临时禁令 |
+| `traffic-guard.PurgeAnonymousSignals` | 每小时 | 清理匿名风控状态 |
+| `traffic-guard.PublishGuardEvents` | 启动后持续，空闲每1秒 | 可靠派发风控引用事件 |
+| `traffic-guard.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
+<!-- flows:end -->

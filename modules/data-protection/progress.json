@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "design",
-  "contractSha256": "06fb3772cf73c0b49b38292387f5e0b2518b09d12082996c560c82401fbda3e9",
+  "contractSha256": "f72f3587cfd172d87631731767a46a4e486305fa79cca3719f527194d93fb47c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -381,26 +381,6 @@
       "blocker": null
     },
     {
-      "path": "modules/data-protection/internal/types.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/data-protection/internal/http_bindings.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/data-protection/config/defaults.json",
       "state": "planned",
       "implementationCommit": null,
@@ -559,6 +539,56 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/data-protection/internal/worker.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/data-protection/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/data-protection/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/data-protection/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/data-protection/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -597,6 +627,17 @@
     },
     {
       "id": "data-protection.FinalizeBackup",
+      "path": "modules/data-protection/internal/backup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.ExecuteBackup",
       "path": "modules/data-protection/internal/backup.go",
       "state": "planned",
       "implementationCommit": null,
@@ -739,6 +780,17 @@
       "blocker": null
     },
     {
+      "id": "data-protection.ReadProtectionSettings",
+      "path": "modules/data-protection/internal/queries.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "data-protection.AuthorizeBackupDownload",
       "path": "modules/data-protection/internal/download.go",
       "state": "planned",
@@ -806,6 +858,17 @@
     },
     {
       "id": "data-protection.CleanupRestore",
+      "path": "modules/data-protection/internal/restore.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.ExecuteRestore",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1247,6 +1310,17 @@
     {
       "id": "data-protection.mountModuleUI",
       "path": "modules/data-protection/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.RunWorker",
+      "path": "modules/data-protection/internal/worker.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

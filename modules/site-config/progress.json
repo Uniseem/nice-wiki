@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "design",
-  "contractSha256": "927ab1b5b56767da0752b32c70866d383d19f031846c2d67f62730e055b11f13",
+  "contractSha256": "4cd202692e443d73cbd4c215d241e14e55fe6407be18a2f45ad3ebfd614a96ce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -332,6 +332,36 @@
     },
     {
       "path": "modules/site-config/deploy/manifest.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

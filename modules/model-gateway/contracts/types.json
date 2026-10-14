@@ -4108,6 +4108,91 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "ExecuteInvocationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "执行已受理调用的输入",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "已持久accepted的调用"
+        }
+      },
+      "required": [
+        "invocationId"
+      ]
+    },
+    "ExecuteInvocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "调用执行终态",
+      "properties": {
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "终态"
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ReadAdminCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取渠道、模型、档位与任务分配的输入",
+      "properties": {},
+      "required": []
+    },
+    "ReadAdminCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取渠道、模型、档位与任务分配的结果；不含密钥",
+      "properties": {
+        "providers": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/Provider"
+          },
+          "description": "供应方（密钥只返回版本与状态，不返回密文）"
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Model"
+          },
+          "description": "模型"
+        },
+        "profiles": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/Profile"
+          },
+          "description": "档位"
+        },
+        "taskAssignments": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/TaskAssignment"
+          },
+          "description": "任务分配"
+        }
+      },
+      "required": [
+        "providers",
+        "models",
+        "profiles",
+        "taskAssignments"
+      ]
     }
   }
 }

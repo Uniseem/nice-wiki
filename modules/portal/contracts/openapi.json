@@ -21,8 +21,7 @@
         "x-permission": "portal.use",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "sessionCookie": []
           }
         ],
         "parameters": [],
@@ -79,8 +78,7 @@
         "x-permission": "portal.use",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "sessionCookie": []
           }
         ],
         "parameters": [],
@@ -183,8 +181,7 @@
         "x-permission": "portal.use",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "sessionCookie": []
           }
         ],
         "parameters": [
@@ -254,10 +251,10 @@
         "summary": "读取入口 readiness",
         "description": "调用函数 portal.CollectReadiness；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "portal.CollectReadiness",
-        "x-permission": "service",
+        "x-permission": "system.manage",
         "security": [
           {
-            "serviceProof": []
+            "sessionCookie": []
           }
         ],
         "parameters": [],
@@ -291,11 +288,10 @@
         "summary": "取得入口维护屏障",
         "description": "调用函数 portal.AcquireBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "portal.AcquireBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -359,11 +355,10 @@
         "summary": "释放入口屏障",
         "description": "调用函数 portal.ReleaseBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "portal.ReleaseBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [
@@ -487,27 +482,41 @@
   },
   "components": {
     "securitySchemes": {
-      "serviceProof": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "description": "mTLS 绑定的短期服务 proof，必须核对 audience/caller/dataEpoch"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "adminDelegation": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "superadmin 短期委托；不能仅凭普通服务 token 执行备份恢复"
+      "userDelegation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
+      },
+      "visitorSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_visitor",
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       },
       "sessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "sid",
-        "description": "identity 签发 HttpOnly Secure SameSite=Strict sid"
+        "name": "nw_sid",
+        "description": "identity签发的HttpOnly Secure SameSite=Strict会话；只由portal读取"
       },
       "csrfToken": {
         "type": "apiKey",
         "in": "header",
         "name": "X-CSRF-Token",
-        "description": "写操作必需；读取可以不发送但会话验证仍执行"
+        "description": "写操作必需；portal经identity核对会话绑定"
       }
     }
   }

@@ -37,3 +37,27 @@ lease fencingToken 单调增加；expired lease 重排时旧worker结果必须�
 | `data-protection.mirror` | `data-protection` | `data-protection.BuildMirror` |
 
 AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner的工作流登记其函数ID。jobs只校验目录，不能嵌入领域算法或发影子execute-task请求。
+
+<!-- flows:start -->
+## 入口与后台流程
+
+本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。
+
+### 事件处理
+
+本域不消费事件。
+
+### 异步任务
+
+本域没有登记的异步任务类型。
+
+### 后台任务
+
+| 函数 | 运行时机 | 作用 |
+|---|---|---|
+| `jobs.RequeueDue` | 每1秒 | 到期重排 |
+| `jobs.ReapExpiredLeases` | 每5秒 | 处理失联worker |
+| `jobs.TickSchedules` | 每1秒 | 定时生成任务 |
+| `jobs.RequeueExpiredDeliveries` | 每5秒 | 把已经推送给订阅者但确认租约到期的投递重新排队或转死信 |
+| `jobs.PurgeExpiredHistory` | 每日 | 清理已完成记录 |
+<!-- flows:end -->

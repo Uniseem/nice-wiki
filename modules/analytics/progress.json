@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "design",
-  "contractSha256": "3abb2af13300ac400978e8cb354220a2265860e3c52b50aa849d779294896434",
+  "contractSha256": "b3276f26d7d1f4a4da65bd1af4e903d4a09469f548726a729127a47221fdbe14",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -321,26 +321,6 @@
       "blocker": null
     },
     {
-      "path": "modules/analytics/internal/types.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/analytics/internal/http_bindings.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/analytics/config/defaults.json",
       "state": "planned",
       "implementationCommit": null,
@@ -492,6 +472,56 @@
     },
     {
       "path": "modules/analytics/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/worker.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/web/src/gen/api.gen.ts",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -757,6 +787,17 @@
     },
     {
       "id": "analytics.ConsumeEvents",
+      "path": "modules/analytics/internal/event_handler.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "analytics.ProjectQaTurn",
       "path": "modules/analytics/internal/event_handler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1033,6 +1074,17 @@
     {
       "id": "analytics.mountModuleUI",
       "path": "modules/analytics/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "analytics.RunWorker",
+      "path": "modules/analytics/internal/worker.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

@@ -2474,7 +2474,7 @@
           "purpose": "人工优先准备首次slug和SEO",
           "steps": [
             "人工slug/SEO优先且不被模型覆盖；已有英文slug保持",
-            "首次空slug仅在content.slug已配置时经model-gateway生成并ValidatePathSegment；无模型提示补填字段，不造doc-ID/fake结果",
+            "首次空slug仅在content.slug已配置时经content.InvokeModel生成并ValidatePathSegment；无模型提示补填字段，不造doc-ID/fake结果",
             "SEO未人工设且任务可用时content.seo生成；无模型仅提示缺项/人工填写，不能以AI缺项阻塞已提供合法元数据的基础发布"
           ],
           "errors": [
@@ -2502,7 +2502,7 @@
           "idempotency": "父operationId子任务幂等；manual字段不覆写",
           "dependencies": [
             "content.ValidatePathSegment",
-            "model-gateway:createInference"
+            "content.InvokeModel"
           ],
           "resources": [],
           "contract": "reference"
@@ -4116,7 +4116,9 @@
           "authorization": "私有contenttxn",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "eventId唯一",
-          "dependencies": [],
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -4206,7 +4208,8 @@
           "concurrency": "每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送",
           "idempotency": "eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -4316,7 +4319,10 @@
           "sideEffects": [
             "本服务屏障/快照/恢复日志与私有对象写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
           "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
           "dependencies": [
@@ -4405,7 +4411,10 @@
           "sideEffects": [
             "私有屏障状态写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
@@ -4519,7 +4528,10 @@
           "sideEffects": [
             "本服务屏障/快照/恢复日志与私有对象写入"
           ],
-          "authorization": "service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
           "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
           "dependencies": [
@@ -4581,7 +4593,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -4623,8 +4635,8 @@
             "HTTP读取data-protection恢复归档"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -4687,7 +4699,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -4709,8 +4721,8 @@
             "写control区回执"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -6116,7 +6128,8 @@
           "dependencies": [
             "content.BuildApplication",
             "content.Serve",
-            "content.Shutdown"
+            "content.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -6166,7 +6179,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -6198,7 +6212,12 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "content.RecoverPreparedCommits",
+            "content.ExpireIdleLocks",
+            "content.RelayOutbox",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6272,7 +6291,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "content.BuildApplication",
-            "content.Shutdown"
+            "content.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -6580,6 +6602,150 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/content/internal/model_client.go",
+      "kind": "handwritten",
+      "purpose": "经模型网关执行一次调用并读取到终态",
+      "functions": [
+        {
+          "id": "content.InvokeModel",
+          "name": "InvokeModel",
+          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "InvokeModelInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "InvokeModelResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "经模型网关执行一次调用并读取到终态",
+          "steps": [
+            "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
+            "循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传",
+            "ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费",
+            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）"
+          ],
+          "errors": [
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "网关额度不足",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用被取消",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "网关不可用或调用失败",
+              "retryable": true
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "任务未配置模型",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用model-gateway推理接口",
+            "模型费用由网关记账"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "以本服务身份调用网关，费用类别继承可信op"
+          },
+          "concurrency": "每次调用独立；同一根操作的子调用共享网关费用作用域",
+          "idempotency": "幂等键固定，重试返回原invocation",
+          "dependencies": [
+            "model-gateway:createInference",
+            "model-gateway:resumeInference",
+            "model-gateway:cancelInference",
+            "platform.InvokeModel"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/content/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/content/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/content/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/content/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    }
+  ],
+  "jobTypes": [],
+  "backgroundTasks": [
+    {
+      "function": "content.RecoverPreparedCommits",
+      "schedule": "启动时（入口开放前）"
+    },
+    {
+      "function": "content.ExpireIdleLocks",
+      "schedule": "每30秒"
+    },
+    {
+      "function": "content.RelayOutbox",
+      "schedule": "启动后持续，空闲每1秒"
     }
   ]
 }

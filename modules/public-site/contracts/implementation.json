@@ -485,84 +485,6 @@
       ]
     },
     {
-      "path": "modules/public-site/internal/markdown.go",
-      "kind": "handwritten",
-      "purpose": "构建确定性 Markdown AST；同文件职责限本域以下登记函数",
-      "functions": [
-        {
-          "id": "public-site.ParseMarkdown",
-          "name": "ParseMarkdown",
-          "signature": "func ParseMarkdown(ctx context.Context, op OperationContext, in ParseMarkdownInput) (ParseMarkdownResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "ParseMarkdownInput",
-              "description": "构建确定性 Markdown AST；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ParseMarkdownResult",
-              "description": "构建确定性 Markdown AST成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "构建确定性 Markdown AST",
-          "steps": [
-            "校验 UTF-8 和大小",
-            "禁用原始 HTML 执行",
-            "解析 fenced code/表格/脚注/数学占位并保留源码位置"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "condition": "INVALID_MARKDOWN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "VALIDATION",
-              "condition": "BODY_TOO_LARGE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "已通过 published 或 preview 授权"
-          },
-          "concurrency": "请求隔离 parser；深度上限 64",
-          "idempotency": "相同 body/parserVersion 同 AST",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/public-site/internal/sanitize.go",
       "kind": "handwritten",
       "purpose": "移除危险结构及协议；同文件职责限本域以下登记函数",
@@ -1638,7 +1560,8 @@
           "concurrency": "事务 inbox+索引；重复或乱序不复活缓存",
           "idempotency": "eventId 与 sourceRevision 去重",
           "dependencies": [
-            "jobs:createJob"
+            "jobs:createJob",
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -1690,12 +1613,11 @@
           ],
           "purpose": "编排公开正文输出",
           "steps": [
-            "权威publication校验",
-            "读取同修订预渲染缓存或权威TiptapJSON/译文",
-            "RenderTiptapHTML完整渲染",
-            "发响应前再次权威校验",
-            "主题修订变化或撤回不输出旧缓存",
-            "返回no-cache/ETag，前端仅渐进增强"
+            "CheckPublication权威校验当前发布修订与epoch；SelectLocale确定展示语言",
+            "BuildCacheKey后ReadRenderCache；命中且修订/主题/语言仍当前则使用缓存正文",
+            "未命中：LoadPublishedBundle取得正文与译文回退，ResolvePublicMedia取公开资源清单，RenderTiptapHTML渲染；BuildTOC、BuildBreadcrumbs、BuildNavigation、BuildPreviousNext、RenderAnnouncement、BuildCanonical、BuildHreflang、BuildSEOMetadata后ComposeHTML，WriteRenderCache保存",
+            "发送响应前再次CheckPublication；撤回或主题修订变化不输出旧缓存",
+            "返回no-cache与ETag，前端只做渐进增强"
           ],
           "errors": [
             {
@@ -1737,10 +1659,23 @@
           "concurrency": "5s 总 deadline；撤回后新检查不通过；检查后流式正文禁用",
           "idempotency": "相同修订只生成一个缓存对象",
           "dependencies": [
-            "content:validatePublications",
             "public-site.LoadPublishedBundle",
             "public-site.RenderTiptapHTML",
-            "public-site.ComposeHTML"
+            "public-site.ComposeHTML",
+            "public-site.CheckPublication",
+            "public-site.SelectLocale",
+            "public-site.BuildCacheKey",
+            "public-site.ReadRenderCache",
+            "public-site.ResolvePublicMedia",
+            "public-site.BuildTOC",
+            "public-site.BuildBreadcrumbs",
+            "public-site.BuildNavigation",
+            "public-site.BuildPreviousNext",
+            "public-site.RenderAnnouncement",
+            "public-site.BuildCanonical",
+            "public-site.BuildHreflang",
+            "public-site.BuildSEOMetadata",
+            "public-site.WriteRenderCache"
           ],
           "resources": [],
           "contract": "reference"
@@ -1794,7 +1729,8 @@
           "steps": [
             "解析路由",
             "render 并最终权威校验",
-            "校验成功且 etag 相等才 304，否则完整 200"
+            "校验成功且 etag 相等才 304，否则完整 200",
+            "不存在或已删除时输出RenderNotFound（404）或410；页面访问统计由浏览器sendBeacon上报，服务端不重复计数"
           ],
           "errors": [
             {
@@ -1831,7 +1767,7 @@
           "dependencies": [
             "public-site.ResolveRoute",
             "public-site.RenderPublicPage",
-            "analytics:ingestBeacon"
+            "public-site.RenderNotFound"
           ],
           "resources": [],
           "contract": "binding"
@@ -1916,7 +1852,8 @@
           "dependencies": [
             "site-config:readConfigObject",
             "media:buildDeliveryManifest",
-            "public-site.RenderHero"
+            "public-site.RenderHero",
+            "public-site.RenderAnnouncement"
           ],
           "resources": [],
           "contract": "binding"
@@ -2085,7 +2022,7 @@
             "public-site.LoadPublishedBundle",
             "public-site.RenderTiptapMarkdown",
             "content:validatePublications",
-            "analytics:recordCrawlerAccess"
+            "public-site.RecordAnonymousView"
           ],
           "resources": [],
           "contract": "binding"
@@ -3115,7 +3052,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "data-protection.snapshot"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "维护 barrier 下禁止索引写入",
           "idempotency": "snapshotId 重复返回同 manifest",
@@ -3185,7 +3122,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -3228,7 +3165,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -3291,7 +3228,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -3314,7 +3251,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -3389,7 +3326,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "单barrier独占，不能截断正在写文件宣称safe",
           "idempotency": "barrierId幂等",
@@ -3464,7 +3401,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "全站maintenance退出前不放行",
           "idempotency": "barrierId幂等",
@@ -4358,11 +4295,10 @@
           "concurrency": "重新authority导航",
           "idempotency": "GET幂等",
           "dependencies": [
-            "public-site.BuildNavigation"
+            "public-site.BuildNavigation",
+            "site-config:readConfigObject"
           ],
-          "resources": [
-            "site-config公开AI能力"
-          ],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -4435,10 +4371,11 @@
           },
           "concurrency": "qa拥有会话，不创建第二份会话",
           "idempotency": "GET幂等",
-          "dependencies": [],
+          "dependencies": [
+            "site-config:readConfigObject"
+          ],
           "resources": [
-            "qa公开会话接口",
-            "site-config公开能力"
+            "浏览器问答岛经portal调用qa公开接口"
           ],
           "contract": "binding"
         }
@@ -4521,8 +4458,7 @@
           "concurrency": "每文档2并发，不重复付费调用",
           "idempotency": "publicationHash/locale/rendererVersion幂等",
           "dependencies": [
-            "public-site.RenderPublicPage",
-            "jobs:createJob"
+            "public-site.RenderPublicPage"
           ],
           "resources": [],
           "contract": "binding"
@@ -4677,18 +4613,6 @@
       ]
     },
     {
-      "path": "modules/public-site/internal/types.gen.go",
-      "kind": "generated",
-      "purpose": "从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module public-site --target go-types，输出不得手改",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/internal/http_bindings.gen.go",
-      "kind": "generated",
-      "purpose": "从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module public-site --target go-http，x-handler映射仅转调手写函数",
-      "functions": []
-    },
-    {
       "path": "modules/public-site/config/defaults.json",
       "kind": "config",
       "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
@@ -4743,7 +4667,8 @@
           "dependencies": [
             "public-site.BuildApplication",
             "public-site.Serve",
-            "public-site.Shutdown"
+            "public-site.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -4794,7 +4719,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影"
+            "public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -4827,7 +4753,10 @@
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
             "public-site.ConsumeEvents",
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "public-site.RunWorker",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4901,7 +4830,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "public-site.BuildApplication",
-            "public-site.Shutdown"
+            "public-site.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -5299,12 +5231,148 @@
           "dependencies": [
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
-            "public-site.InvalidatePublication"
+            "public-site.InvalidatePublication",
+            "platform.RunConsumer"
           ],
           "resources": [],
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/public-site/internal/worker.go",
+      "kind": "handwritten",
+      "purpose": "主动领取本域持久任务的循环",
+      "functions": [
+        {
+          "id": "public-site.RunWorker",
+          "name": "RunWorker",
+          "signature": "func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) (WorkerLoopResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "WorkerLoopInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "WorkerLoopResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "主动领取并执行本域登记的持久任务",
+          "steps": [
+            "进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取",
+            "领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested",
+            "执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束",
+            "lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用；退避后重试领取",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用jobs租约接口",
+            "执行本域登记的任务函数"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
+          },
+          "concurrency": "每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回",
+          "idempotency": "jobs按jobId与fence去重；执行函数自身按输入引用幂等",
+          "dependencies": [
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "jobs:completeJob",
+            "jobs:failJob",
+            "public-site.PrewarmPublication",
+            "platform.RunWorkerLoop"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/public-site/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/public-site/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/public-site/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/public-site/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    }
+  ],
+  "jobTypes": [
+    {
+      "type": "public-site.render-publication",
+      "executor": "public-site.PrewarmPublication",
+      "trigger": "InvalidatePublication在发布与译文就绪后创建"
+    }
+  ],
+  "backgroundTasks": [
+    {
+      "function": "public-site.ConsumeEvents",
+      "schedule": "启动后持续"
+    },
+    {
+      "function": "public-site.RunWorker",
+      "schedule": "启动后持续"
     }
   ]
 }

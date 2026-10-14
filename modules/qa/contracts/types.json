@@ -3357,17 +3357,28 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "代际"
+        },
+        "answerKind": {
+          "enum": [
+            "answered",
+            "no_evidence",
+            "clarification",
+            "out_of_scope",
+            "cached"
+          ],
+          "description": "回答类型，供统计无答案比率"
         }
       },
       "required": [
-        "turnId",
-        "conversationId",
-        "rootOperationId",
+        "answerKind",
         "answerRevision",
-        "language",
         "cacheHit",
+        "conversationId",
+        "dataEpoch",
         "durationMs",
-        "dataEpoch"
+        "language",
+        "rootOperationId",
+        "turnId"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -3859,6 +3870,227 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "InvokeModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "经模型网关执行一次调用的输入",
+      "properties": {
+        "request": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
+          "description": "网关调用请求；taskId/档位/能力按根AI任务目录"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "true时逐条把delta交给调用方回调"
+        }
+      },
+      "required": [
+        "request",
+        "stream"
+      ]
+    },
+    "InvokeModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用终态",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "网关调用ID"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "网关终态"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+          },
+          "description": "按序号排列的全部流事件"
+        }
+      },
+      "required": [
+        "invocationId",
+        "state",
+        "events"
+      ]
+    },
+    "ListTurnRecordsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "问答记录筛选",
+      "properties": {
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "分页请求"
+        },
+        "filter": {
+          "enum": [
+            "all",
+            "no_evidence",
+            "unhelpful",
+            "failed",
+            "cached"
+          ],
+          "description": "筛选条件"
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "可选；语言"
+        }
+      },
+      "required": [
+        "page",
+        "filter"
+      ]
+    },
+    "ListTurnRecordsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "问答记录列表；只含摘要",
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "description": "记录摘要",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "记录摘要",
+            "properties": {
+              "turnId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "轮次"
+              },
+              "questionPreview": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "问题前200字"
+              },
+              "answerKind": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "回答类型"
+              },
+              "feedback": {
+                "type": "string",
+                "maxLength": 16,
+                "description": "反馈"
+              },
+              "createdAt": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+                "description": "时间"
+              }
+            },
+            "required": [
+              "turnId",
+              "questionPreview",
+              "answerKind",
+              "feedback",
+              "createdAt"
+            ]
+          }
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "分页信息"
+        }
+      },
+      "required": [
+        "items",
+        "pageInfo"
+      ]
+    },
+    "ReadTurnRecordInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取一条问答记录",
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        }
+      },
+      "required": [
+        "turnId"
+      ]
+    },
+    "ReadTurnRecordResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "问答记录详情",
+      "properties": {
+        "turnId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "轮次"
+        },
+        "question": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "问题正文"
+        },
+        "answer": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "回答正文"
+        },
+        "citations": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+          },
+          "description": "引用"
+        },
+        "answerKind": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "回答类型"
+        }
+      },
+      "required": [
+        "turnId",
+        "question",
+        "answer",
+        "citations",
+        "answerKind"
+      ]
+    },
+    "ReadQaPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取问答策略的输入",
+      "properties": {},
+      "required": []
+    },
+    "ReadQaPolicyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取问答策略的结果；不含密钥",
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/QaPolicy",
+          "description": "当前问答策略"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "策略版本"
+        }
+      },
+      "required": [
+        "policy",
+        "version"
+      ]
     }
   }
 }

@@ -3216,6 +3216,244 @@
         "requeued",
         "deadLettered"
       ]
+    },
+    "ListJobsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "任务筛选",
+      "properties": {
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "分页请求"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "failed",
+            "dead-letter",
+            "all"
+          ],
+          "description": "状态"
+        },
+        "owner": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "可选；owner"
+        }
+      },
+      "required": [
+        "page",
+        "state"
+      ]
+    },
+    "ListJobsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "任务列表",
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "description": "任务",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob"
+          }
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "分页信息"
+        }
+      },
+      "required": [
+        "items",
+        "pageInfo"
+      ]
+    },
+    "RetryJobInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "重试失败任务",
+      "properties": {
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务"
+        }
+      },
+      "required": [
+        "jobId"
+      ]
+    },
+    "RetryJobResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "重试结果",
+      "properties": {
+        "job": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob",
+          "description": "重新排队的任务"
+        }
+      },
+      "required": [
+        "job"
+      ]
+    },
+    "ListDeliveriesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "死信投递筛选",
+      "properties": {
+        "page": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+          "description": "分页请求"
+        }
+      },
+      "required": [
+        "page"
+      ]
+    },
+    "ListDeliveriesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "死信投递列表",
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "description": "投递",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "投递",
+            "properties": {
+              "deliveryId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "投递"
+              },
+              "eventType": {
+                "type": "string",
+                "maxLength": 128,
+                "description": "事件"
+              },
+              "consumer": {
+                "type": "string",
+                "maxLength": 64,
+                "description": "消费方"
+              },
+              "attempts": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "尝试次数"
+              },
+              "lastErrorCode": {
+                "type": "string",
+                "maxLength": 64,
+                "description": "最后错误码"
+              }
+            },
+            "required": [
+              "deliveryId",
+              "eventType",
+              "consumer",
+              "attempts",
+              "lastErrorCode"
+            ]
+          }
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo",
+          "description": "分页信息"
+        }
+      },
+      "required": [
+        "items",
+        "pageInfo"
+      ]
+    },
+    "ListSchedulesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "查看定时任务的输入",
+      "properties": {},
+      "required": []
+    },
+    "ListSchedulesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "查看定时任务的结果；不含密钥",
+      "properties": {
+        "schedules": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/Schedule"
+          },
+          "description": "定时任务"
+        }
+      },
+      "required": [
+        "schedules"
+      ]
+    },
+    "Schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "定时任务记录",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "owner；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "type；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "inputRef": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+          "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+        },
+        "cron": {
+          "type": "string",
+          "description": "cron；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "timezone": {
+          "type": "string",
+          "description": "timezone；UTF-8；不得为 null",
+          "maxLength": 8192
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "scheduleId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "schedule ID"
+        },
+        "nextAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "下次触发"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否启用"
+        }
+      },
+      "required": [
+        "cron",
+        "dataEpoch",
+        "enabled",
+        "inputRef",
+        "nextAt",
+        "owner",
+        "scheduleId",
+        "timezone",
+        "type"
+      ]
     }
   }
 }

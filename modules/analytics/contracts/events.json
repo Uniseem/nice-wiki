@@ -38,6 +38,32 @@
       "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
       "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用",
       "handler": "analytics.ConsumeAnalyticsEvent"
+    },
+    {
+      "name": "qa.turn.completed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../qa/contracts/types.json#/$defs/EventQaTurnCompletedPayload"
+      },
+      "purpose": "统计问答量、缓存命中与无答案比率",
+      "delivery": "at-least-once",
+      "ordering": "按turnId单调",
+      "idempotency": "eventId去重",
+      "handler": "analytics.ProjectQaTurn"
+    },
+    {
+      "name": "qa.turn.failed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../qa/contracts/types.json#/$defs/EventQaTurnFailedPayload"
+      },
+      "purpose": "统计问答量、缓存命中与无答案比率",
+      "delivery": "at-least-once",
+      "ordering": "按turnId单调",
+      "idempotency": "eventId去重",
+      "handler": "analytics.ProjectQaTurn"
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 49 个函数：约束 28 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 51 个函数：约束 30 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## analytics.ValidateBeacon
 
@@ -260,7 +260,7 @@ func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput
 - 授权：permission：anonymous；rule：anonymous
 - 并发：4096队列；每site3000/min入口限制；不影响页面返回
 - 幂等：beaconId去重在flush落盘
-- 依赖：`analytics.ValidateBeacon`、`analytics.HashDayToken`、`analytics.ClassifyCrawler`、`analytics.LookupCountry`
+- 依赖：`analytics.ValidateBeacon`、`analytics.HashDayToken`、`analytics.ClassifyCrawler`、`analytics.LookupCountry`、`analytics.BucketLatency`、`analytics.CheckPrivacyFields`
 
 ## analytics.FlushBeacons
 
@@ -984,7 +984,7 @@ func ConsumeAnalyticsEvent(ctx context.Context, op OperationContext, in ConsumeA
 - 授权：permission：service；rule：service白名单
 - 并发：按subject/entry修订取max，乱序不回退
 - 幂等：eventId/revision/hash幂等
-- 依赖：`model-gateway:queryUsage`、`analytics.ProjectUsage`
+- 依赖：`model-gateway:queryUsage`、`analytics.ProjectUsage`、`platform.ClaimInbox`
 
 ## analytics.ConsumeEvents
 
@@ -1029,7 +1029,48 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ConsumeAnalyticsEvent`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ConsumeAnalyticsEvent`、`analytics.ProjectQaTurn`、`platform.RunConsumer`
+
+## analytics.ProjectQaTurn
+
+- 级别：约束
+- 文件：`modules/analytics/internal/event_handler.go`
+- 作用：把问答轮次事件投影为按日计数
+
+```go
+func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `EventDelivery` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `EventHandled` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. inbox按eventId+payloadHash去重
+2. qa.turn.completed按日期/语言累加问答量、缓存命中与answerKind（answered/no_evidence/clarification/out_of_scope）；qa.turn.failed累加失败数与错误码
+3. 只保存ID、计数与分类，不保存问题正文或访客标识
+
+**错误**
+
+- `VERSION_MISMATCH`：旧代事件（不可重试）
+
+- 副作用：写问答日计数
+- 授权：permission：service；rule：仅由本域ConsumeEvents调用
+- 并发：日计数行CAS
+- 幂等：eventId去重
+- 依赖：`platform.ClaimInbox`
 
 ## analytics.CreateExport
 
@@ -1072,7 +1113,7 @@ func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput
 - 授权：permission：stats.read；rule：stats.read或audit.read
 - 并发：内存最多1000行块写；文件temp fsync rename再DB记录
 - 幂等：operationId/filterHash/actor幂等
-- 依赖：`analytics.QueryPageStatistics`、`analytics.QueryAudits`、`analytics.QueryUsageStatistics`
+- 依赖：`analytics.QueryPageStatistics`、`analytics.QueryAudits`、`analytics.QueryUsageStatistics`、`analytics.ValidateCSVCell`、`analytics.CheckPrivacyFields`
 
 ## analytics.ValidateCSVCell
 
@@ -1282,7 +1323,7 @@ func PublishAggregateEvents(ctx context.Context, op OperationContext, in Publish
 - 授权：permission：service；rule：service
 - 并发：30s发送租约，至少一次
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`
 
 ## analytics.EnterBarrier
 
@@ -1321,7 +1362,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `DEADLINE_EXCEEDED` / HTTP 504：BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier，匿名队列可以明确漏数
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：等待所有在途事务和export file恢复日志到安全点
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`
@@ -1362,7 +1403,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `LOCKED` / HTTP 409：RESTORE_INCOMPLETE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier/对账引用任务
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：不释放到混代读取
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`、`jobs:createJob`
@@ -1405,7 +1446,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写snapshot对象
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：固定watermark无写入
 - 幂等：backupId/barrierId幂等
 - 依赖：无
@@ -1438,7 +1479,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -1453,7 +1494,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
@@ -1485,7 +1526,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -1496,7 +1537,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -1788,10 +1829,10 @@ func QueryContentGaps(ctx context.Context, op OperationContext, in QueryContentG
 
 **步骤**
 
-1. checkstats.read和qa记录读取权限
-2. 热门文档按语言
-3. qa只返回安全recordId/分类计数，问题正文仍由qa权限页面读取
-4. 显示QA量/缓存命中率/无答案比率
+1. 校验stats.read
+2. 热门文档按语言读取页面统计
+3. 问答量、缓存命中率与无答案比率读取本域ProjectQaTurn投影；问题正文仍只在qa权限页面查看
+4. 显示统计水位与事件延迟说明
 
 **错误**
 
@@ -1803,7 +1844,6 @@ func QueryContentGaps(ctx context.Context, op OperationContext, in QueryContentG
 - 并发：两源固定watermark附更新时间
 - 幂等：GET幂等
 - 依赖：`analytics.QueryPageStatistics`
-- 其他依赖说明：qa统计引用API
 
 ## analytics.main
 
@@ -1838,7 +1878,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`analytics.BuildApplication`、`analytics.Serve`、`analytics.Shutdown`
+- 依赖：`analytics.BuildApplication`、`analytics.Serve`、`analytics.Shutdown`、`platform.RunService`
 
 ## analytics.BuildApplication
 
@@ -1871,6 +1911,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环
 
 **错误**
 
@@ -1882,7 +1923,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## analytics.Serve
@@ -1924,7 +1965,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`analytics.BuildApplication`、`analytics.Shutdown`
+- 依赖：`analytics.BuildApplication`、`analytics.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## analytics.Shutdown
@@ -2087,3 +2128,45 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 幂等：同DOM/buildRevision重复挂载复用实例
 - 依赖：无
 - 其他依赖说明：本域已登记UI页面函数
+
+## analytics.RunWorker
+
+- 级别：约束
+- 文件：`modules/analytics/internal/worker.go`
+- 作用：主动领取并执行本域登记的持久任务
+
+```go
+func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) (WorkerLoopResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `WorkerLoopInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `WorkerLoopResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
+2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
+3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
+4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用；退避后重试领取（可重试）
+
+- 副作用：HTTP调用jobs租约接口；执行本域登记的任务函数
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
+- 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`analytics.AggregateHourly`、`analytics.AggregateDaily`、`analytics.AggregateUsage`、`analytics.ReconcileUsage`、`platform.RunWorkerLoop`

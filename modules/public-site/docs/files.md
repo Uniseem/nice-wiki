@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 69 个：手写 51、UI 4、生成 4、配置 9、迁移 1。函数 64 个：约束 30，参考 34。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 71 个：手写 51、UI 4、生成 5、配置 10、迁移 1。函数 64 个：约束 31，参考 33。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,7 +10,6 @@
 | `modules/public-site/internal/locale.go` | 手写 | 确定展示语言；同文件职责限本域以下登记函数 | `public-site.SelectLocale`（参考） |
 | `modules/public-site/internal/authority.go` | 手写 | 执行正文公开权威检查；同文件职责限本域以下登记函数 | `public-site.CheckPublication`（参考） |
 | `modules/public-site/internal/content_client.go` | 手写 | 取得同一发布修订完整包；同文件职责限本域以下登记函数 | `public-site.LoadPublishedBundle`（参考） |
-| `modules/public-site/internal/markdown.go` | 手写 | 构建确定性 Markdown AST；同文件职责限本域以下登记函数 | `public-site.ParseMarkdown`（参考） |
 | `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.SanitizeHTML`（参考） |
 | `modules/public-site/internal/toc.go` | 手写 | 生成稳定锚点目录；同文件职责限本域以下登记函数 | `public-site.BuildTOC`（参考） |
 | `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考） |
@@ -56,8 +55,6 @@
 | `modules/public-site/internal/prewarm.go` | 手写 | 发布事件预渲染缓存；同文件职责限本域以下登记函数 | `public-site.PrewarmPublication` |
 | `modules/public-site/internal/http_llms_root.go` | 手写 | 根llms语言索引；同文件职责限本域以下登记函数 | `public-site.HandleLLMsRoot` |
 | `modules/public-site/internal/http_language_sitemap.go` | 手写 | 每语言sitemap；同文件职责限本域以下登记函数 | `public-site.HandleLanguageSitemap` |
-| `modules/public-site/internal/types.gen.go` | 生成 | 从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module public-site --target go-types，输出不得手改 | 无 |
-| `modules/public-site/internal/http_bindings.gen.go` | 生成 | 从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module public-site --target go-http，x-handler映射仅转调手写函数 | 无 |
 | `modules/public-site/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/public-site/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/public-site/cmd/public-site/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `public-site.main` |
@@ -75,3 +72,8 @@
 | `modules/public-site/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/public-site/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `public-site.mountModuleUI` |
 | `modules/public-site/internal/events/consume.go` | 手写 | 公开投影持久事件消费和恢复预热，不能改变内容权威 | `public-site.ConsumeEvents` |
+| `modules/public-site/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `public-site.RunWorker` |
+| `modules/public-site/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/public-site/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/public-site/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/public-site/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |

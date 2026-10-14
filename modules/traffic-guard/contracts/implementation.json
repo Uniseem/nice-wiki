@@ -532,7 +532,7 @@
           ],
           "purpose": "选择可信风控动作",
           "steps": [
-            "匹配服务白名单 qa.ask/search/export/admin",
+            "匹配路由表x-admission动作白名单：qa.conversation、qa.ask、localization.suggest、identity.login",
             "拒绝客户端覆盖",
             "公共读取仅受边缘基本速率"
           ],
@@ -1453,7 +1453,10 @@
           "idempotency": "requestId 幂等",
           "dependencies": [
             "traffic-guard.EvaluateAdmission",
-            "traffic-guard.DeriveSubject"
+            "traffic-guard.DeriveSubject",
+            "traffic-guard.NormalizePeer",
+            "traffic-guard.ClassifyAction",
+            "traffic-guard.LoadSignals"
           ],
           "resources": [],
           "contract": "binding"
@@ -2304,7 +2307,9 @@
           },
           "concurrency": "按 subject权限修订取max",
           "idempotency": "eventId/revision幂等",
-          "dependencies": [],
+          "dependencies": [
+            "platform.ClaimInbox"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -2398,7 +2403,8 @@
           "dependencies": [
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
-            "traffic-guard.ConsumeIdentityEvent"
+            "traffic-guard.ConsumeIdentityEvent",
+            "platform.RunConsumer"
           ],
           "resources": [],
           "contract": "binding"
@@ -2473,7 +2479,8 @@
           "concurrency": "outbox租约30s；至少一次",
           "idempotency": "eventId固定不因重试变",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -2626,7 +2633,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin 委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "barrier独占；renew只能至barrier deadline",
           "idempotency": "barrierId重复返回同状态",
@@ -2701,7 +2708,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin 委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "不提前恢复准入",
           "idempotency": "重复release幂等",
@@ -2784,7 +2791,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin 委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "维护屏障下固定水位",
           "idempotency": "backupId/barrierId幂等",
@@ -2854,7 +2861,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -2897,7 +2904,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -2960,7 +2967,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -2983,7 +2990,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -3508,7 +3515,8 @@
           "concurrency": "admissionId唯一request绑定，release后禁止再consume",
           "idempotency": "admissionId/requestId幂等",
           "dependencies": [
-            "traffic-guard.SignPermit"
+            "traffic-guard.SignPermit",
+            "traffic-guard.ValidatePermit"
           ],
           "resources": [
             "私有lease状态"
@@ -3601,18 +3609,6 @@
       ]
     },
     {
-      "path": "modules/traffic-guard/internal/types.gen.go",
-      "kind": "generated",
-      "purpose": "从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module traffic-guard --target go-types，输出不得手改",
-      "functions": []
-    },
-    {
-      "path": "modules/traffic-guard/internal/http_bindings.gen.go",
-      "kind": "generated",
-      "purpose": "从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module traffic-guard --target go-http，x-handler映射仅转调手写函数",
-      "functions": []
-    },
-    {
       "path": "modules/traffic-guard/config/defaults.json",
       "kind": "config",
       "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
@@ -3667,7 +3663,8 @@
           "dependencies": [
             "traffic-guard.BuildApplication",
             "traffic-guard.Serve",
-            "traffic-guard.Shutdown"
+            "traffic-guard.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -3717,7 +3714,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -3749,7 +3747,14 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "traffic-guard.ExpireLeases",
+            "traffic-guard.ExpireBans",
+            "traffic-guard.PurgeAnonymousSignals",
+            "traffic-guard.PublishGuardEvents",
+            "traffic-guard.ConsumeEvents",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3823,7 +3828,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "traffic-guard.BuildApplication",
-            "traffic-guard.Shutdown"
+            "traffic-guard.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -4125,6 +4133,134 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/queries.go",
+      "kind": "handwritten",
+      "purpose": "查看最近可疑事件",
+      "functions": [
+        {
+          "id": "traffic-guard.ListRiskEvents",
+          "name": "ListRiskEvents",
+          "signature": "func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEventsInput) (ListRiskEventsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListRiskEventsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListRiskEventsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看最近可疑事件",
+          "steps": [
+            "guard.manage",
+            "分页读取准入拒绝、挑战失败与封禁记录",
+            "只返回不可逆网络标识，不返回原始IP"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    }
+  ],
+  "jobTypes": [],
+  "backgroundTasks": [
+    {
+      "function": "traffic-guard.ExpireLeases",
+      "schedule": "每5秒"
+    },
+    {
+      "function": "traffic-guard.ExpireBans",
+      "schedule": "每60秒"
+    },
+    {
+      "function": "traffic-guard.PurgeAnonymousSignals",
+      "schedule": "每小时"
+    },
+    {
+      "function": "traffic-guard.PublishGuardEvents",
+      "schedule": "启动后持续，空闲每1秒"
+    },
+    {
+      "function": "traffic-guard.ConsumeEvents",
+      "schedule": "启动后持续"
     }
   ]
 }

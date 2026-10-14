@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 
@@ -9,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 KINDS = {'handwritten': '手写', 'ui': 'UI', 'generated': '生成', 'config': '配置', 'migration': '迁移'}
 LEVELS = {'binding': '约束', 'reference': '参考'}
 API_START, API_END = '<!-- openapi:start -->', '<!-- openapi:end -->'
+FLOW_START, FLOW_END = '<!-- flows:start -->', '<!-- flows:end -->'
 METHODS = ('get', 'post', 'put', 'patch', 'delete', 'head', 'options')
 
 
@@ -59,12 +61,14 @@ def render_function(file, fn):
     return '\n'.join(lines) + '\n'
 
 
-def render_functions(slug, impl):
+def render_functions(slug, impl, folder):
     items = functions_of(impl)
+    common = os.path.relpath(ROOT / 'contracts/common.schema.json', folder / 'docs').replace(os.sep, '/')
+    local = '类型字段见 [types.json](../contracts/types.json)，' if (folder / 'contracts/types.json').is_file() else ''
     binding = sum(1 for _, fn in items if fn.get('contract') == 'binding')
     head = [
         '# ' + slug + ' 函数合同', '',
-        '本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。', '',
+        '本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。' + local + '公共类型见 [common.schema.json](' + common + ')。', '',
         '共 ' + str(len(items)) + ' 个函数：约束 ' + str(binding) + ' 个，参考 ' + str(len(items) - binding) + ' 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。', '',
     ]
     return '\n'.join(head) + '\n' + '\n'.join(render_function(f, fn) for f, fn in items)
@@ -127,26 +131,69 @@ def render_api(api, codes):
     return '\n'.join(lines) + '\n'
 
 
+def merge_block(current, block, start, end):
+    if current is None or start not in current or end not in current:
+        return (current or '').rstrip() + '\n\n' + start + '\n' + block + end + '\n'
+    before, rest = current.split(start, 1)
+    after = rest.split(end, 1)[1]
+    return before + start + '\n' + block + end + after
+
+
 def merge_api(current, block):
-    if current is None or API_START not in current or API_END not in current:
-        return (current or '').rstrip() + '\n\n' + API_START + '\n' + block + API_END + '\n'
-    before, rest = current.split(API_START, 1)
-    after = rest.split(API_END, 1)[1]
-    return before + API_START + '\n' + block + API_END + after
+    return merge_block(current, block, API_START, API_END)
+
+
+def render_flows(impl, events):
+    fns = {fn['id']: fn for _, fn in functions_of(impl)}
+    lines = ['## 入口与后台流程', '', '本节由 `make docs` 从 implementation.json 的 jobTypes、backgroundTasks 与 events.json 生成，不手改；节外为手写的状态机与规则。', '']
+    consumed = [e for e in events.get('events', []) if e.get('direction') == 'consume']
+    lines += ['### 事件处理', '']
+    if consumed:
+        lines += ['| 事件 | 版本 | 处理函数 | 作用 |', '|---|---|---|---|']
+        lines += ['| `' + e['name'] + '` | ' + str(e.get('version')) + ' | `' + str(e.get('handler')) + '` | ' + cell(e.get('purpose', '')) + ' |' for e in consumed]
+    else:
+        lines.append('本域不消费事件。')
+    lines += ['', '### 异步任务', '']
+    if not impl.get('jobTypes'):
+        lines.append('本域没有登记的异步任务类型。')
+    for job in impl.get('jobTypes', []):
+        fn = fns.get(job['executor'], {})
+        lines += ['#### `' + job['type'] + '`', '', '- 执行函数：`' + job['executor'] + '`', '- 触发：' + job['trigger']]
+        if job.get('schedule'):
+            lines.append('- 系统定时：`' + job['schedule'] + '`')
+        lines.append('')
+        lines += [str(i) + '. ' + re.sub(r'^\d+[.、]?\s+', '', st) for i, st in enumerate(fn.get('steps', []), 1)]
+        lines.append('')
+    lines += ['', '### 后台任务', '']
+    if impl.get('backgroundTasks'):
+        lines += ['| 函数 | 运行时机 | 作用 |', '|---|---|---|']
+        lines += ['| `' + t['function'] + '` | ' + cell(t['schedule']) + ' | ' + cell(fns.get(t['function'], {}).get('purpose', '')) + ' |' for t in impl['backgroundTasks']]
+    else:
+        lines.append('本域没有后台任务。')
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)) + '\n'
 
 
 def expected_docs():
-    modules = json.loads((ROOT / 'contracts/modules.json').read_text(encoding='utf-8')).get('modules', [])
+    catalog = json.loads((ROOT / 'contracts/modules.json').read_text(encoding='utf-8'))
+    modules = catalog.get('modules', [])
     codes = json.loads((ROOT / 'contracts/errors.json').read_text(encoding='utf-8')).get('codes', [])
     result = {}
     for module in modules:
         folder = ROOT / module['root']
         impl = json.loads((folder / 'contracts/implementation.json').read_text(encoding='utf-8'))
-        result[folder / 'docs/functions.md'] = render_functions(module['slug'], impl)
+        result[folder / 'docs/functions.md'] = render_functions(module['slug'], impl, folder)
         result[folder / 'docs/files.md'] = render_files(module['slug'], impl)
         api_path = folder / 'docs/api.md'
         api = json.loads((folder / 'contracts/openapi.json').read_text(encoding='utf-8'))
         result[api_path] = merge_api(api_path.read_text(encoding='utf-8') if api_path.exists() else None, render_api(api, codes))
+        flow_path = folder / 'docs/workflows.md'
+        events = json.loads((folder / 'contracts/events.json').read_text(encoding='utf-8'))
+        result[flow_path] = merge_block(flow_path.read_text(encoding='utf-8') if flow_path.exists() else None, render_flows(impl, events), FLOW_START, FLOW_END)
+    for component in catalog.get('shared', []):
+        folder = ROOT / component['root']
+        impl = json.loads((folder / 'contracts/implementation.json').read_text(encoding='utf-8'))
+        result[folder / 'docs/functions.md'] = render_functions(component['slug'], impl, folder)
+        result[folder / 'docs/files.md'] = render_files(component['slug'], impl)
     return result
 
 

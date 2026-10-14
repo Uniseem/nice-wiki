@@ -6030,6 +6030,58 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "InvokeModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "经模型网关执行一次调用的输入",
+      "properties": {
+        "request": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
+          "description": "网关调用请求；taskId/档位/能力按根AI任务目录"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "true时逐条把delta交给调用方回调"
+        }
+      },
+      "required": [
+        "request",
+        "stream"
+      ]
+    },
+    "InvokeModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用终态",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "网关调用ID"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "网关终态"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+          },
+          "description": "按序号排列的全部流事件"
+        }
+      },
+      "required": [
+        "invocationId",
+        "state",
+        "events"
+      ]
     }
   }
 }

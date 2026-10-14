@@ -76,7 +76,91 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "listJobs",
+        "summary": "查看任务队列",
+        "description": "查看任务队列",
+        "x-handler": "jobs.ListJobs",
+        "x-permission": "job.manage",
+        "responses": {
+          "200": {
+            "description": "查看任务队列成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListJobsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "enum": [
+                "active",
+                "failed",
+                "dead-letter",
+                "all"
+              ],
+              "default": "active"
+            },
+            "description": "状态"
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "owner"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "上一页返回的签名游标"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "每页条数"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -145,7 +229,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -226,7 +310,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -317,7 +401,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -408,7 +492,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -499,7 +583,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -570,7 +655,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -662,7 +748,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -741,7 +828,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -832,7 +919,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -911,7 +998,44 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "listSchedules",
+        "summary": "查看定时任务",
+        "description": "查看定时任务",
+        "x-handler": "jobs.ListSchedules",
+        "x-permission": "job.manage",
+        "responses": {
+          "200": {
+            "description": "查看定时任务成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListSchedulesResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1002,7 +1126,8 @@
         ],
         "security": [
           {
-            "adminAuth": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1081,7 +1206,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1162,7 +1287,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1223,7 +1348,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1303,7 +1428,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1372,7 +1497,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1453,7 +1578,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1532,7 +1657,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1693,7 +1818,7 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1772,7 +1897,208 @@
         ],
         "security": [
           {
-            "serviceAuth": []
+            "serviceAssertion": []
+          }
+        ]
+      }
+    },
+    "/v1/deliveries/{deliveryId}:replay": {
+      "post": {
+        "operationId": "replayDelivery",
+        "summary": "重放死信投递",
+        "description": "重放死信投递",
+        "x-handler": "jobs.ReplayDelivery",
+        "x-permission": "job.manage",
+        "responses": {
+          "200": {
+            "description": "重放死信投递成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReplayDeliveryResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：无job.manage",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：投递不存在",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：非当前epoch",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deliveryId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "投递ID"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ReplayDeliveryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}:retry": {
+      "post": {
+        "operationId": "retryJob",
+        "summary": "重试失败任务",
+        "description": "重试失败任务",
+        "x-handler": "jobs.RetryJob",
+        "x-permission": "job.manage",
+        "responses": {
+          "200": {
+            "description": "重试失败任务成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/RetryJobResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "任务"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/RetryJobInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/deliveries": {
+      "get": {
+        "operationId": "listDeliveries",
+        "summary": "查看死信投递",
+        "description": "查看死信投递",
+        "x-handler": "jobs.ListDeliveries",
+        "x-permission": "job.manage",
+        "responses": {
+          "200": {
+            "description": "查看死信投递成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListDeliveriesResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "上一页返回的签名游标"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "每页条数"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1780,15 +2106,29 @@
   },
   "components": {
     "securitySchemes": {
-      "serviceAuth": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "description": "服务身份签名凭证，绑定audience；secret不进合同"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "adminAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "identity管理会话或入口转发短期授权，需实时权限检查"
+      "userDelegation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
+      },
+      "visitorSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_visitor",
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
     }
   }

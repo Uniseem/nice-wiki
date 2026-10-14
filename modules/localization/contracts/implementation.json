@@ -421,7 +421,8 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:readProfiles"
+            "model-gateway:readProfiles",
+            "localization.NormalizeLanguageTag"
           ],
           "resources": [],
           "contract": "binding"
@@ -470,7 +471,8 @@
             "2 enabled保存状态",
             "3 disabled取消该语言未完成翻译",
             "4 保留人工译文历史",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "启用且automatic=true时必须来自ApproveLanguagePlan的已批准计划；直接调用只能启用为手动翻译"
           ],
           "errors": [
             {
@@ -744,7 +746,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:createJob",
-            "content:validatePublications"
+            "content:validatePublications",
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -1482,7 +1485,7 @@
           "steps": [
             "1 校验cancel/lease/source计划",
             "2 costClass/background可信继承",
-            "3 MG createInference translation",
+            "3 localization.InvokeModel translation",
             "4 解析候选不直接写target",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
@@ -1537,10 +1540,110 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:createInference"
+            "localization.InvokeModel"
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "localization.ExecuteTranslation",
+          "name": "ExecuteTranslation",
+          "signature": "func ExecuteTranslation(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "JobExecutionInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "JobExecutionResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "执行一篇文档到一种语言的增量翻译",
+          "steps": [
+            "FetchTranslationSource读取固定发布修订；SplitTranslationUnits按稳定blockId切分；PlanIncrementalTranslation选出待译单元，先ReuseTranslationMemory复用≥20字同源译文",
+            "memory:resolveContext取localization.document任务记忆；ResolveGlossary固定术语快照；BuildTranslationPrompt按约1000输出token分批",
+            "每批RunTranslationBatch→ValidateTranslationOutput；失败按PlanTranslationFallback对半→逐块→保留原文；CheckTerminologyCompliance不符时带提醒重译一次；开启反思时ReflectTranslation",
+            "CommitTranslationBatch按源修订/术语/人工代数CAS写入，protected单元跳过；首次翻译该文档时ExtractAutomaticGlossary",
+            "全部单元终态后CompleteTranslation写manifest并登记translation.ready"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "when": "源修订或人工代数已变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "content或网关不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "写译文与进度",
+            "模型费用经网关"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
+          },
+          "concurrency": "同document/target一次一个任务；所有写入核lease与代数",
+          "idempotency": "按source/target/generation唯一",
+          "dependencies": [
+            "localization.FetchTranslationSource",
+            "localization.SplitTranslationUnits",
+            "localization.PlanIncrementalTranslation",
+            "localization.ReuseTranslationMemory",
+            "memory:resolveContext",
+            "localization.ResolveGlossary",
+            "localization.BuildTranslationPrompt",
+            "localization.RunTranslationBatch",
+            "localization.ValidateTranslationOutput",
+            "localization.PlanTranslationFallback",
+            "localization.CheckTerminologyCompliance",
+            "localization.ReflectTranslation",
+            "localization.CommitTranslationBatch",
+            "localization.ExtractAutomaticGlossary",
+            "localization.CompleteTranslation"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2003,6 +2106,155 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "localization.ListTranslationProgress",
+          "name": "ListTranslationProgress",
+          "signature": "func ListTranslationProgress(ctx context.Context, op OperationContext, input ListTranslationProgressInput) (ListTranslationProgressResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListTranslationProgressInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListTranslationProgressResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看各语言翻译进度",
+          "steps": [
+            "localization.manage",
+            "按语言汇总完成、排队与待复核单元"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.ReadTranslationUnits",
+          "name": "ReadTranslationUnits",
+          "signature": "func ReadTranslationUnits(ctx context.Context, op OperationContext, input ReadTranslationUnitsInput) (ReadTranslationUnitsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadTranslationUnitsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadTranslationUnitsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "按块对齐读取原文与译文供对照编辑",
+          "steps": [
+            "localization.manage",
+            "经content:readPublishedRevision读取当前源块，与本域译文按blockId对齐",
+            "标注人工保护与需复核单元；编辑经EditTranslationUnit提交"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [
+            "content:readPublishedRevision"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2449,7 +2701,9 @@
           "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.HandleGlossaryChange"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -2555,7 +2809,9 @@
           "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.HandleGlossaryChange"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -2774,7 +3030,8 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "identity:checkAuthorization"
+            "identity:checkAuthorization",
+            "localization.HandleGlossaryChange"
           ],
           "resources": [],
           "contract": "binding"
@@ -2826,11 +3083,10 @@
           ],
           "purpose": "使机翻版本按术语变化失效",
           "steps": [
-            "1 inbox去重",
-            "2 只更高generation",
-            "3 受影响machine manifest stale",
-            "4 protected文本保持并管理review提示",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "1 由术语写入函数在同一提交后本地调用，不经事件",
+            "2 只处理更高glossary generation",
+            "3 受影响machine manifest标stale并在后台提示重译估价，不自动产生费用",
+            "4 protected文本保持并给出review提示"
           ],
           "errors": [
             {
@@ -3157,11 +3413,9 @@
           ],
           "purpose": "显式翻译界面缺项",
           "steps": [
-            "1 管理授权且profile配置",
-            "2 排除protected/未变sourceHash",
-            "3 固定catalog generation",
-            "4 任务每批16key并输出严格schema",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "读取固定catalog generation与目标语言缺项，排除protected与sourceHash未变的key",
+            "每批16个key经InvokeModel（localization.ui任务）输出严格schema",
+            "ValidateInterfaceCatalog校验占位符与HTML后CAS写machine译文，catalog generation++并登记interface-catalog.changed"
           ],
           "errors": [
             {
@@ -3220,11 +3474,93 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "jobs:createJob",
-            "model-gateway:createInference"
+            "localization.InvokeModel",
+            "localization.ValidateInterfaceCatalog"
           ],
           "resources": [],
-          "contract": "reference"
+          "contract": "binding"
+        },
+        {
+          "id": "localization.RequestInterfaceTranslation",
+          "name": "RequestInterfaceTranslation",
+          "signature": "func RequestInterfaceTranslation(ctx context.Context, op OperationContext, input RequestInterfaceTranslationInput) (RequestInterfaceTranslationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RequestInterfaceTranslationInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RequestInterfaceTranslationResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "手动补译界面字符串缺项",
+          "steps": [
+            "localization.manage权限且语言已启用、localization.ui档位已配置",
+            "创建localization.ui任务（按language/catalog generation去重）"
+          ],
+          "errors": [
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "未配置翻译模型",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "语言未启用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "创建翻译任务"
+          ],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "翻译管理员"
+          },
+          "concurrency": "同语言同generation一个任务",
+          "idempotency": "去重键language+generation",
+          "dependencies": [
+            "jobs:createJob"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3441,7 +3777,7 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:createInference"
+            "localization.InvokeModel"
           ],
           "resources": [],
           "contract": "binding"
@@ -3551,7 +3887,7 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
           "resources": [],
-          "contract": "reference"
+          "contract": "binding"
         }
       ]
     },
@@ -3603,7 +3939,7 @@
             "1 callerService=qa且源为active普通或精选cache，不新增人工批准或模型配置权限门槛",
             "2 核对sourceHash和基准answerRevision，已配置根qa.cache-translate fast任务并分别取翻译任务记忆",
             "3 继承原qa rootOperationId/costClass及同一签名admissionPermit到每个MG调用，费用计相同session/network小时作用域",
-            "4 异步翻译完成自动ready，发cache-answer.translated，由QA自动保存对应语言答案",
+            "4 创建localization.cache-answer任务由ExecuteCacheAnswerTranslation执行，完成自动ready，发cache-answer.translated，由QA自动保存对应语言答案",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -3664,8 +4000,93 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:createJob",
+            "memory:resolveContext"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.ExecuteCacheAnswerTranslation",
+          "name": "ExecuteCacheAnswerTranslation",
+          "signature": "func ExecuteCacheAnswerTranslation(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "JobExecutionInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "JobExecutionResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "把一条缓存答案翻译为目标语言",
+          "steps": [
+            "读取命令固定的源答案hash与answerRevision；memory:resolveContext取qa.cache-translate任务记忆",
+            "以继承的qa根操作、费用类别与准入许可调用InvokeModel（fast档），保留引用token",
+            "CommitCacheAnswerTranslation核对源版本后保存ready译文并登记cache-answer.translated"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "when": "源答案已变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "网关不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "写缓存答案译文",
+            "模型费用经网关"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
+          },
+          "concurrency": "同cacheId/language一次一个",
+          "idempotency": "按cacheId/answerRevision/language唯一",
+          "dependencies": [
             "memory:resolveContext",
-            "model-gateway:createInference"
+            "localization.InvokeModel",
+            "localization.CommitCacheAnswerTranslation"
           ],
           "resources": [],
           "contract": "binding"
@@ -3888,7 +4309,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:cancelJob",
-            "model-gateway:cancelInference"
+            "model-gateway:cancelInference",
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -4107,7 +4529,8 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -4159,12 +4582,12 @@
           ],
           "purpose": "取得本地维护屏障",
           "steps": [
-            "1 校验data-protection服务身份及superadmin委托",
+            "1 校验data-protection服务身份（用户授权已由data-protection核验）",
             "2 将本地control.db屏障draining并拒绝新业务写",
             "3 屏障停止新翻译批次和人工写入，保留human/protected/generation及术语版本",
             "导入必须恢复保护位与源ref，恢复切换完成前译文不能交付，不自动重翻。",
             "4 排空/终止worker到安全watermark后safe，deadline失败保持failed及拒写。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4225,7 +4648,10 @@
           "sideEffects": [
             "持久控制屏障；不纳入业务快照"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4278,7 +4704,7 @@
             "2 暂存目录不影响释放；切换只在进程重启时发生",
             "3 runtime处于restore_switching或restore_rolling_back时不恢复业务worker，等待重启换目录",
             "4 released后开放该epoch业务写。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4339,7 +4765,10 @@
           "sideEffects": [
             "更新本地control.db；不修改导入业务"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4393,7 +4822,7 @@
             "3 屏障停止新翻译批次和人工写入，保留human/protected/generation及术语版本",
             "导入必须恢复保护位与源ref，恢复切换完成前译文不能交付，不自动重翻。",
             "4 写不可变ObjectRef及SHA256后返回SnapshotRef，失败删除本域临时输出不释放屏障。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4454,7 +4883,10 @@
           "sideEffects": [
             "创建本服务不可变快照对象"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4516,7 +4948,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -4558,8 +4990,8 @@
             "HTTP读取data-protection恢复归档"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -4622,7 +5054,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -4644,8 +5076,8 @@
             "写control区回执"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -5066,7 +5498,8 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:createInference"
+            "localization.InvokeModel",
+            "localization.HandleGlossaryChange"
           ],
           "resources": [],
           "contract": "reference"
@@ -5174,7 +5607,9 @@
           "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.HandleGlossaryChange"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -5508,7 +5943,7 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:createInference"
+            "localization.InvokeModel"
           ],
           "resources": [],
           "contract": "reference"
@@ -5671,11 +6106,10 @@
           ],
           "purpose": "主动领取本域持久任务",
           "steps": [
-            "1 向jobs claimJob仅领取本域JOB_HANDLERS登记jobType",
-            "2 每10秒heartbeatJob续30秒租约并检查cancel/deadline",
-            "3 依jobType执行同域已登记函数，所有中间/提交校验lease与epoch",
-            "4 completeJob/failJob持久报告，lease过期停止写，未知MG attempt留held不重放。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取",
+            "领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested",
+            "执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束",
+            "lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账"
           ],
           "errors": [
             {
@@ -5737,18 +6171,18 @@
             "jobs:claimJob",
             "jobs:heartbeatJob",
             "jobs:completeJob",
-            "jobs:failJob"
+            "jobs:failJob",
+            "jobs:startJob",
+            "jobs:checkLease",
+            "localization.ExecuteTranslation",
+            "localization.TranslateInterfaceCatalog",
+            "localization.ExecuteCacheAnswerTranslation",
+            "platform.RunWorkerLoop"
           ],
           "resources": [],
           "contract": "binding"
         }
       ]
-    },
-    {
-      "path": "modules/localization/contracts/generated/schema.gen.go",
-      "kind": "generated",
-      "purpose": "未来由根contract compiler从本域types/openapi生成DTO，Generator(inputSchemas []SchemaRef, outputDirectory string) error；生成前schema refs必须解析，禁止手写编辑。",
-      "functions": []
     },
     {
       "path": "modules/localization/deploy/service.config.json",
@@ -5805,7 +6239,8 @@
           "dependencies": [
             "localization.BuildApplication",
             "localization.Serve",
-            "localization.Shutdown"
+            "localization.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -5855,7 +6290,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -5887,7 +6323,14 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "localization.LoadRuntime",
+            "localization.RecoverTranslationLeases",
+            "localization.PublishOutbox",
+            "localization.ConsumeEvents",
+            "localization.RunWorker",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -5961,7 +6404,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "localization.BuildApplication",
-            "localization.Shutdown"
+            "localization.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -6360,17 +6806,368 @@
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
             "localization.HandlePublication",
-            "localization.InvalidateDocumentTranslations"
+            "localization.InvalidateDocumentTranslations",
+            "platform.RunConsumer"
           ],
           "resources": [],
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "kind": "handwritten",
+      "purpose": "经模型网关执行一次调用并读取到终态",
+      "functions": [
+        {
+          "id": "localization.InvokeModel",
+          "name": "InvokeModel",
+          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "InvokeModelInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "InvokeModelResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "经模型网关执行一次调用并读取到终态",
+          "steps": [
+            "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
+            "循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传",
+            "ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费",
+            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）"
+          ],
+          "errors": [
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "网关额度不足",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用被取消",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "网关不可用或调用失败",
+              "retryable": true
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "任务未配置模型",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用model-gateway推理接口",
+            "模型费用由网关记账"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "以本服务身份调用网关，费用类别继承可信op"
+          },
+          "concurrency": "每次调用独立；同一根操作的子调用共享网关费用作用域",
+          "idempotency": "幂等键固定，重试返回原invocation",
+          "dependencies": [
+            "model-gateway:createInference",
+            "model-gateway:resumeInference",
+            "model-gateway:cancelInference",
+            "platform.InvokeModel"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/language/plan.go",
+      "kind": "handwritten",
+      "purpose": "启用语言前估算全量翻译费用",
+      "functions": [
+        {
+          "id": "localization.EstimateLanguagePlan",
+          "name": "EstimateLanguagePlan",
+          "signature": "func EstimateLanguagePlan(ctx context.Context, op OperationContext, input EstimateLanguagePlanInput) (EstimateLanguagePlanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "EstimateLanguagePlanInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "EstimateLanguagePlanResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "启用语言前估算全量翻译费用",
+          "steps": [
+            "localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false",
+            "content:readPublicTree列出已发布文档，逐篇content:readPublishedRevision后SplitTranslationUnits与ReuseTranslationMemory统计需新译单元；统计界面字符串缺项",
+            "按单元字节估算输入/输出token，调用model-gateway:quoteCost分别估localization.document与localization.ui任务；缺价保留price_unknown警告，不伪造0",
+            "保存计划（文档修订集合、单元数、quoteHash、24小时过期），只读不调用模型"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "语言不合法或已启用",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "content或网关不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "写语言计划"
+          ],
+          "authorization": {
+            "permission": "localization.languages",
+            "rule": "语言管理员"
+          },
+          "concurrency": "同语言同时一个有效计划，新估价替换旧计划",
+          "idempotency": "同语言与源集合重复估价返回同一计划",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "content:readPublicTree",
+            "content:readPublishedRevision",
+            "localization.SplitTranslationUnits",
+            "localization.ReuseTranslationMemory",
+            "model-gateway:quoteCost"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.ApproveLanguagePlan",
+          "name": "ApproveLanguagePlan",
+          "signature": "func ApproveLanguagePlan(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (ApproveLanguagePlanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ApproveLanguagePlanInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ApproveLanguagePlanResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "批准估价后启用语言并创建全量翻译任务",
+          "steps": [
+            "localization.languages权限；计划未过期且quoteHash一致",
+            "SetLanguageEnabled启用该语言（automatic=true），记录批准人与估价",
+            "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务",
+            "翻译完成前公开页面按旧译或原文回退并提示"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "计划过期或hash不符",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "计划已被批准",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "启用语言",
+            "创建翻译任务"
+          ],
+          "authorization": {
+            "permission": "localization.languages",
+            "rule": "语言管理员显式批准费用"
+          },
+          "concurrency": "计划CAS pending→approved",
+          "idempotency": "同planId重复批准返回原结果",
+          "dependencies": [
+            "localization.SetLanguageEnabled",
+            "jobs:createJob"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
     }
   ],
   "jobHandlers": {
     "localization.document": "localization.FetchTranslationSource",
     "localization.ui": "localization.TranslateInterfaceCatalog",
     "localization.cache-answer": "localization.TranslateCachedAnswer"
-  }
+  },
+  "jobTypes": [
+    {
+      "type": "localization.document",
+      "executor": "localization.ExecuteTranslation",
+      "trigger": "HandlePublication、CreateTranslation、ApproveLanguagePlan、RecoverTranslationLeases创建"
+    },
+    {
+      "type": "localization.ui",
+      "executor": "localization.TranslateInterfaceCatalog",
+      "trigger": "ApproveLanguagePlan与RequestInterfaceTranslation创建"
+    },
+    {
+      "type": "localization.cache-answer",
+      "executor": "localization.ExecuteCacheAnswerTranslation",
+      "trigger": "TranslateCachedAnswer创建"
+    }
+  ],
+  "backgroundTasks": [
+    {
+      "function": "localization.LoadRuntime",
+      "schedule": "启动时"
+    },
+    {
+      "function": "localization.RecoverTranslationLeases",
+      "schedule": "启动时及每60秒"
+    },
+    {
+      "function": "localization.PublishOutbox",
+      "schedule": "启动后持续，空闲每1秒"
+    },
+    {
+      "function": "localization.ConsumeEvents",
+      "schedule": "启动后持续"
+    },
+    {
+      "function": "localization.RunWorker",
+      "schedule": "启动后持续"
+    }
+  ]
 }

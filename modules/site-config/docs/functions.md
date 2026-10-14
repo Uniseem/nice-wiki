@@ -90,7 +90,7 @@ func UpdateSiteConfig(ctx context.Context, op OperationContext, input UpdateSite
 - 授权：site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.CheckWriteEpoch`、`site-config.ValidateSiteConfig`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`
+- 依赖：`site-config.CheckWriteEpoch`、`site-config.ValidateSiteConfig`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`、`site-config.ResolveConfigOperation`
 
 ## site-config.ValidateSiteConfig
 
@@ -253,7 +253,7 @@ func UpdateHome(ctx context.Context, op OperationContext, input UpdateHomeInput)
 - 授权：site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ValidateHomeLinks`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`
+- 依赖：`site-config.ValidateHomeLinks`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`、`site-config.ResolveConfigOperation`
 
 ## site-config.ReadPublicHome
 
@@ -410,7 +410,7 @@ func TransitionRuntimeState(ctx context.Context, op OperationContext, input Runt
 
 **步骤**
 
-1. 校验system.manage近期step-up，或data-protection服务身份携带的superadmin委托
+1. 校验调用方为data-protection服务身份（用户授权已由data-protection核验）
 2. ValidateRuntimeTransition检查当前phase与expectedRevision
 3. control.db事务落持久迁移：begin_switch记录restoreId与targetDataEpoch；complete_restore仅在全部有状态域switched回执齐全后切dataEpoch并phase=running；complete_rollback在已换入域全部rolled-back后保持原dataEpoch并phase=running
 
@@ -423,7 +423,7 @@ func TransitionRuntimeState(ctx context.Context, op OperationContext, input Runt
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 
 - 副作用：独立control.db运行状态和决定日志
-- 授权：system.manage + superadmin批准；恢复协调由service:data-protection携superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；手动备份/恢复的superadmin授权与定时备份设置由data-protection核验
 - 并发：控制库全局单写事务；不能从导入快照覆盖runtimeState
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`site-config.ValidateRuntimeTransition`
@@ -599,7 +599,7 @@ func InitializeSite(ctx context.Context, op OperationContext, input InitializeSi
 - 授权：superadmin；已完成identity首注册，向导只有站点/基准语言两步
 - 并发：全站初始化唯一锁；相同operationId继续原阶段，不生成第二site
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.PrepareDefaultConfig`、`site-config.PersistInitializationDecision`、`site-config.ResumeInitialization`
+- 依赖：`site-config.PrepareDefaultConfig`、`site-config.PersistInitializationDecision`、`site-config.ResumeInitialization`、`site-config.ResolveConfigOperation`
 
 ## site-config.ReadInitializationStatus
 
@@ -1059,7 +1059,7 @@ func PublishConfigEvent(ctx context.Context, op OperationContext, input PublishC
 - 授权：私有配置提交
 - 并发：与configRevision同一事务
 - 幂等：eventId唯一
-- 依赖：无
+- 依赖：`platform.EnqueueEvent`
 
 ## site-config.RelayOutbox
 
@@ -1103,7 +1103,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`
 
 ## site-config.ReadConfigObject
 
@@ -1189,7 +1189,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
 
 - 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
 - 依赖：`site-config.ReadRuntimeState`
@@ -1232,7 +1232,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 
 - 副作用：私有屏障状态写入
-- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`site-config.ReadRuntimeState`
@@ -1278,7 +1278,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
 
 - 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：service:data-protection + 发起备份或恢复的superadmin委托；本地control区不随恢复替换
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
 - 依赖：`site-config.ReadRuntimeState`
@@ -1310,7 +1310,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -1325,7 +1325,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：superadmin；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection:serveRestoreArchive`、`site-config.ReadRuntimeState`
@@ -1357,7 +1357,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -1368,7 +1368,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：superadmin；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config.ReadRuntimeState`
@@ -1415,7 +1415,7 @@ func UpdateBranding(ctx context.Context, op OperationContext, input UpdateBrandi
 - 授权：site.manage；所有业务写入CheckWriteEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.CommitConfigHead`、`media:acquireResourceReferences`、`media:confirmResourceReferences`
+- 依赖：`site-config.CommitConfigHead`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`site-config.ResolveConfigOperation`
 
 ## site-config.UpdateFooter
 
@@ -1459,7 +1459,7 @@ func UpdateFooter(ctx context.Context, op OperationContext, input UpdateFooterIn
 - 授权：site.manage；所有业务写入CheckWriteEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.CommitConfigHead`、`site-config.PublishConfigEvent`
+- 依赖：`site-config.CommitConfigHead`、`site-config.PublishConfigEvent`、`site-config.ResolveConfigOperation`
 
 ## site-config.UpdateBanner
 
@@ -1503,7 +1503,7 @@ func UpdateBanner(ctx context.Context, op OperationContext, input UpdateBannerIn
 - 授权：site.manage；所有业务写入CheckWriteEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ValidateAnnouncementBody`、`site-config.WriteAnnouncementRevision`、`site-config.CommitAnnouncementHead`、`site-config.PublishConfigEvent`
+- 依赖：`site-config.ValidateAnnouncementBody`、`site-config.WriteAnnouncementRevision`、`site-config.CommitAnnouncementHead`、`site-config.PublishConfigEvent`、`site-config.ResolveConfigOperation`
 
 ## site-config.WriteConfigRevision
 
@@ -1675,7 +1675,7 @@ func RestoreConfigRevision(ctx context.Context, op OperationContext, input Resto
 - 授权：site.manage；所有业务写入CheckWriteEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ReadConfigHistory`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`、`media:readAsset`
+- 依赖：`site-config.ReadConfigHistory`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`、`media:readAsset`、`site-config.ResolveConfigOperation`
 
 ## site-config.ListResourceReferences
 
@@ -1753,7 +1753,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`site-config.BuildApplication`、`site-config.Serve`、`site-config.Shutdown`
+- 依赖：`site-config.BuildApplication`、`site-config.Serve`、`site-config.Shutdown`、`platform.RunService`
 
 ## site-config.BuildApplication
 
@@ -1786,6 +1786,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -1797,7 +1798,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.RegisterActivation`
+- 依赖：`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## site-config.Serve
@@ -1839,7 +1840,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`site-config.BuildApplication`、`site-config.Shutdown`
+- 依赖：`site-config.BuildApplication`、`site-config.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## site-config.Shutdown

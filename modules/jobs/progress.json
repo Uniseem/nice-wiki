@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "design",
-  "contractSha256": "73abdfd57a5356c1175694acbe4bd491232ebbee5c822be7534d180946396383",
+  "contractSha256": "c67c4d463c5da5003beadc1f1a9fb2a9313b44ba7fd82eb830706c576e568630",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -261,26 +261,6 @@
       "blocker": null
     },
     {
-      "path": "modules/jobs/internal/types.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/jobs/internal/http_bindings.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/jobs/config/defaults.json",
       "state": "planned",
       "implementationCommit": null,
@@ -442,6 +422,66 @@
     },
     {
       "path": "modules/jobs/config/event-subscriptions.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/config/job-types.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -761,6 +801,17 @@
       "blocker": null
     },
     {
+      "id": "jobs.ListSchedules",
+      "path": "modules/jobs/internal/schedule_store.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "jobs.CoordinateBarrier",
       "path": "modules/jobs/internal/barrier_coordinator.go",
       "state": "planned",
@@ -950,6 +1001,39 @@
     {
       "id": "jobs.mountModuleUI",
       "path": "modules/jobs/web/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.ListJobs",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.RetryJob",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.ListDeliveries",
+      "path": "modules/jobs/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

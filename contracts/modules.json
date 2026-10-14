@@ -107,5 +107,23 @@
       "scope": "一致备份、恢复、版本镜像与 data git 同步",
       "root": "modules/data-protection"
     }
+  ],
+  "shared": [
+    {
+      "id": "L01",
+      "slug": "platform",
+      "kind": "library",
+      "name": "平台公共库",
+      "scope": "服务身份、操作上下文、outbox/inbox、订阅与任务循环、模型调用、恢复换目录与进程模板",
+      "root": "libs/platform"
+    },
+    {
+      "id": "L02",
+      "slug": "deploy",
+      "kind": "deployment",
+      "name": "部署编排",
+      "scope": "单机Compose、反向代理、服务清单与公钥表",
+      "root": "deploy"
+    }
   ]
 }

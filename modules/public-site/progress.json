@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "design",
-  "contractSha256": "1877501b59f574a1531e3e4b7b4e4b8289dbaca055001df4c767aa779c3c2c26",
+  "contractSha256": "7061c695d8bee7c2a124be1f6a64f5540acd88d50f163fa2b157ef53b6542df7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -42,16 +42,6 @@
     },
     {
       "path": "modules/public-site/internal/content_client.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/public-site/internal/markdown.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -511,26 +501,6 @@
       "blocker": null
     },
     {
-      "path": "modules/public-site/internal/types.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/public-site/internal/http_bindings.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/public-site/config/defaults.json",
       "state": "planned",
       "implementationCommit": null,
@@ -699,6 +669,56 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/public-site/internal/worker.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/public-site/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/public-site/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/public-site/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/public-site/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -738,17 +758,6 @@
     {
       "id": "public-site.LoadPublishedBundle",
       "path": "modules/public-site/internal/content_client.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "public-site.ParseMarkdown",
-      "path": "modules/public-site/internal/markdown.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1398,6 +1407,17 @@
     {
       "id": "public-site.ConsumeEvents",
       "path": "modules/public-site/internal/events/consume.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "public-site.RunWorker",
+      "path": "modules/public-site/internal/worker.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

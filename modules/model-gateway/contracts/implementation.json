@@ -407,7 +407,10 @@
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.ValidateProvider",
+            "model-gateway.SetProviderEnabled"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -869,7 +872,9 @@
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.ValidateModel"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -1473,7 +1478,8 @@
             "2 MG验证permit签名/audience=model-gateway/dataEpoch/expiresAt/root request归属，从其构造内部FeeScopeBinding；不接受浏览器指定scope",
             "3 按能力检查payload与模型声明，vision资源经media授权；canonical hash含task/model/content及已验证admissionId",
             "4 同幂等键同hash返回原调用，不同CONFLICT；此时不派发供应方请求",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "5 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态"
           ],
           "errors": [
             {
@@ -1533,7 +1539,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "identity:checkAuthorization",
-            "media:readAsset"
+            "media:readAsset",
+            "model-gateway.ExecuteInvocation"
           ],
           "resources": [],
           "contract": "binding"
@@ -1820,7 +1827,8 @@
             "2 获取供应方slot",
             "3 将dispatching与attempt持久化后发送",
             "4 记录响应或charge_unknown",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "按供应方协议选择MapAnthropicRequest、MapGeminiRequest或OpenAI兼容编码；rerank响应经ParseRerankResponse校验"
           ],
           "errors": [
             {
@@ -1885,7 +1893,113 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway.BuildProviderRequest"
+            "model-gateway.BuildProviderRequest",
+            "model-gateway.MapAnthropicRequest",
+            "model-gateway.MapGeminiRequest",
+            "model-gateway.ParseRerankResponse"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ExecuteInvocation",
+          "name": "ExecuteInvocation",
+          "signature": "func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteInvocationInput) (ExecuteInvocationResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ExecuteInvocationInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ExecuteInvocationResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "按固定路线执行已受理调用：预留、派发、流式、结算与备用",
+          "steps": [
+            "CreateInvocation持久accepted后在本进程以调用租约启动；ResolveProfile与ResolveRoute固定候选模型，EstimateTokens计算本次预留上限",
+            "每个attempt先ReserveCost（额度不足写BUDGET_EXCEEDED终态且不派发），再AcquireProviderSlot与DispatchInvocation发送；embedding结果先ValidateEmbeddingSpace",
+            "流式delta经AppendStreamEvent持久并广播；输出超出预估时ExtendReservation，不足则在安全点停止并按已产生用量结算",
+            "成功：RecordUsage→SettleInvocation→ReleaseProviderSlot，EnqueueOutbox写invocation.settled；运行日志只经RedactLog输出",
+            "失败：ClassifyFailure；尚未向调用方输出且路线未耗尽时CreateFallbackAttempt回到第2步；接受状态未知时MarkUnknownCharge；全部失败写failed终态并EnqueueOutbox"
+          ],
+          "errors": [
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "额度不足",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "全部候选失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "供应方请求",
+            "费用预留与结算",
+            "流事件与outbox"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅由CreateInvocation在进程内启动"
+          },
+          "concurrency": "每调用一个执行协程，持调用租约；崩溃后由RecoverLeases收敛",
+          "idempotency": "每attempt唯一；已派发attempt不重放",
+          "dependencies": [
+            "model-gateway.ResolveProfile",
+            "model-gateway.ResolveRoute",
+            "model-gateway.EstimateTokens",
+            "model-gateway.ReserveCost",
+            "model-gateway.ExtendReservation",
+            "model-gateway.AcquireProviderSlot",
+            "model-gateway.DispatchInvocation",
+            "model-gateway.ValidateEmbeddingSpace",
+            "model-gateway.AppendStreamEvent",
+            "model-gateway.RecordUsage",
+            "model-gateway.SettleInvocation",
+            "model-gateway.ReleaseProviderSlot",
+            "model-gateway.ClassifyFailure",
+            "model-gateway.CreateFallbackAttempt",
+            "model-gateway.MarkUnknownCharge",
+            "model-gateway.EnqueueOutbox",
+            "model-gateway.RedactLog"
           ],
           "resources": [],
           "contract": "reference"
@@ -3482,7 +3596,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -3583,7 +3699,8 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -4310,6 +4427,80 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "model-gateway.ReadAdminCatalog",
+          "name": "ReadAdminCatalog",
+          "signature": "func ReadAdminCatalog(ctx context.Context, op OperationContext, input ReadAdminCatalogInput) (ReadAdminCatalogResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadAdminCatalogInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadAdminCatalogResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "读取渠道、模型、档位与任务分配",
+          "steps": [
+            "model.manage",
+            "同一快照读取供应方（不含密钥，只返回密钥版本与状态）、模型、档位与任务分配",
+            "附各供应方启停状态与最近连接测试结果"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "model.manage",
+            "rule": "后台管理员"
+          },
+          "concurrency": "只读快照",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -4568,13 +4759,13 @@
           ],
           "purpose": "取得本地维护屏障",
           "steps": [
-            "1 校验data-protection服务身份及superadmin委托",
+            "1 校验data-protection服务身份（用户授权已由data-protection核验）",
             "2 将本地control.db屏障draining并拒绝新业务写",
             "3 屏障停止新预留/新派发",
             "在途请求本地终止后标charge_unknown保留held与providerRequestId，不自动记零费用。导出包含不可变账本和预留证据，密钥仅在includeSecrets=true时导出加密信封",
             "部署主密钥不导出。缺密钥恢复后所有供应方disabled。",
             "4 排空/终止worker到安全watermark后safe，deadline失败保持failed及拒写。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4635,7 +4826,10 @@
           "sideEffects": [
             "持久控制屏障；不纳入业务快照"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4688,7 +4882,7 @@
             "2 暂存目录不影响释放；切换只在进程重启时发生",
             "3 runtime处于restore_switching或restore_rolling_back时不恢复业务worker，等待重启换目录",
             "4 released后开放该epoch业务写。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4749,7 +4943,10 @@
           "sideEffects": [
             "更新本地control.db；不修改导入业务"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4804,7 +5001,7 @@
             "在途请求本地终止后标charge_unknown保留held与providerRequestId，不自动记零费用。导出包含不可变账本和预留证据，密钥仅在includeSecrets=true时导出加密信封",
             "部署主密钥不导出。缺密钥恢复后所有供应方disabled。",
             "4 写不可变ObjectRef及SHA256后返回SnapshotRef，失败删除本域临时输出不释放屏障。",
-            "备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
             {
@@ -4865,7 +5062,10 @@
           "sideEffects": [
             "创建本服务不可变快照对象"
           ],
-          "authorization": "service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
           "concurrency": "本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。",
           "idempotency": "相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。",
           "dependencies": [
@@ -4927,7 +5127,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -4969,8 +5169,8 @@
             "HTTP读取data-protection恢复归档"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -5033,7 +5233,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -5055,8 +5255,8 @@
             "写control区回执"
           ],
           "authorization": {
-            "permission": "superadmin",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -5683,7 +5883,9 @@
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.ExecuteInvocation"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -6130,130 +6332,6 @@
       ]
     },
     {
-      "path": "modules/model-gateway/internal/runtime/worker.go",
-      "kind": "handwritten",
-      "purpose": "主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "model-gateway.RunWorker",
-          "name": "RunWorker",
-          "signature": "func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (RunWorkerResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "RunWorkerInput",
-              "description": "封闭业务输入；逐字段见types $defs/RunWorkerInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "RunWorkerResult",
-              "description": "成功结果；逐字段见types $defs/RunWorkerResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "主动领取本域持久任务",
-          "steps": [
-            "1 向jobs claimJob仅领取本域JOB_HANDLERS登记jobType",
-            "2 每10秒heartbeatJob续30秒租约并检查cancel/deadline",
-            "3 依jobType执行同域已登记函数，所有中间/提交校验lease与epoch",
-            "4 completeJob/failJob持久报告，lease过期停止写，未知MG attempt留held不重放。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "jobs租约/完成状态及本域工作链副作用"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "jobs:claimJob",
-            "jobs:heartbeatJob",
-            "jobs:completeJob",
-            "jobs:failJob"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/model-gateway/contracts/generated/schema.gen.go",
-      "kind": "generated",
-      "purpose": "未来由根contract compiler从本域types/openapi生成DTO，Generator(inputSchemas []SchemaRef, outputDirectory string) error；生成前schema refs必须解析，禁止手写编辑。",
-      "functions": []
-    },
-    {
       "path": "modules/model-gateway/deploy/service.config.json",
       "kind": "config",
       "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
@@ -6308,7 +6386,8 @@
           "dependencies": [
             "model-gateway.BuildApplication",
             "model-gateway.Serve",
-            "model-gateway.Shutdown"
+            "model-gateway.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -6358,7 +6437,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -6390,7 +6470,12 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "model-gateway.LoadRuntime",
+            "model-gateway.RecoverLeases",
+            "model-gateway.PublishOutbox",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6464,7 +6549,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "model-gateway.BuildApplication",
-            "model-gateway.Shutdown"
+            "model-gateway.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -6766,10 +6854,49 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
     }
   ],
   "jobHandlers": {
     "model.dispatch": "model-gateway.DispatchInvocation",
     "model.reconcile": "model-gateway.ReconcileCharge"
-  }
+  },
+  "jobTypes": [],
+  "backgroundTasks": [
+    {
+      "function": "model-gateway.LoadRuntime",
+      "schedule": "启动时"
+    },
+    {
+      "function": "model-gateway.RecoverLeases",
+      "schedule": "启动时及每30秒"
+    },
+    {
+      "function": "model-gateway.PublishOutbox",
+      "schedule": "启动后持续，空闲每1秒"
+    }
+  ]
 }

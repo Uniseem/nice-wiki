@@ -8,4 +8,4 @@
 
 运行 `make check` 检查文档与契约；改合同后运行 `make docs` 重新生成各模块函数与文件目录。无 Make 环境可用 `python scripts/check_docs.py` 读取检查；编译、lint、类型和业务普通测试按 AGENTS.md 优先 VPS。当前未创建业务测试、样例或服务代码。
 
-所有业务模块分别构建部署，通过 API/事件协作；统一后台外壳装配模块页面。许可证见 [LICENSE](LICENSE)，借用规则见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+所有业务模块分别构建部署，通过 API/事件协作；统一后台外壳装配模块页面。服务共用的基础机制在 [libs/platform](libs/platform/README.md)，单机部署编排在 [deploy](deploy/README.md)。许可证见 [LICENSE](LICENSE)，借用规则见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

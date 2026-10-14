@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 64 个函数：约束 30 个，参考 34 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 64 个函数：约束 31 个，参考 33 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## public-site.ResolveRoute
 
@@ -176,48 +176,6 @@ func LoadPublishedBundle(ctx context.Context, op OperationContext, in LoadPublis
 - 并发：content token 只绑定单修订；失配至多重走一次检查
 - 幂等：读取无写；不能回退旧正文
 - 依赖：`content:readPublishedRevision`、`localization:readTranslation`、`content:validatePublications`
-
-## public-site.ParseMarkdown
-
-- 级别：参考
-- 文件：`modules/public-site/internal/markdown.go`
-- 作用：构建确定性 Markdown AST
-
-```go
-func ParseMarkdown(ctx context.Context, op OperationContext, in ParseMarkdownInput) (ParseMarkdownResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ParseMarkdownInput` | 构建确定性 Markdown AST；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ParseMarkdownResult` | 构建确定性 Markdown AST成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 校验 UTF-8 和大小
-2. 禁用原始 HTML 执行
-3. 解析 fenced code/表格/脚注/数学占位并保留源码位置
-
-**错误**
-
-- `VALIDATION` / HTTP 400：INVALID_MARKDOWN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VALIDATION` / HTTP 400：BODY_TOO_LARGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：无
-- 授权：permission：content.preview；rule：已通过 published 或 preview 授权
-- 并发：请求隔离 parser；深度上限 64
-- 幂等：相同 body/parserVersion 同 AST
-- 依赖：无
 
 ## public-site.SanitizeHTML
 
@@ -809,7 +767,7 @@ func InvalidatePublication(ctx context.Context, op OperationContext, in Invalida
 - 授权：permission：service；rule：签名 content 事件
 - 并发：事务 inbox+索引；重复或乱序不复活缓存
 - 幂等：eventId 与 sourceRevision 去重
-- 依赖：`jobs:createJob`
+- 依赖：`jobs:createJob`、`platform.ClaimInbox`
 
 ## public-site.RenderPublicPage
 
@@ -838,12 +796,11 @@ func RenderPublicPage(ctx context.Context, op OperationContext, in RenderPublicP
 
 **步骤**
 
-1. 权威publication校验
-2. 读取同修订预渲染缓存或权威TiptapJSON/译文
-3. RenderTiptapHTML完整渲染
-4. 发响应前再次权威校验
-5. 主题修订变化或撤回不输出旧缓存
-6. 返回no-cache/ETag，前端仅渐进增强
+1. CheckPublication权威校验当前发布修订与epoch；SelectLocale确定展示语言
+2. BuildCacheKey后ReadRenderCache；命中且修订/主题/语言仍当前则使用缓存正文
+3. 未命中：LoadPublishedBundle取得正文与译文回退，ResolvePublicMedia取公开资源清单，RenderTiptapHTML渲染；BuildTOC、BuildBreadcrumbs、BuildNavigation、BuildPreviousNext、RenderAnnouncement、BuildCanonical、BuildHreflang、BuildSEOMetadata后ComposeHTML，WriteRenderCache保存
+4. 发送响应前再次CheckPublication；撤回或主题修订变化不输出旧缓存
+5. 返回no-cache与ETag，前端只做渐进增强
 
 **错误**
 
@@ -856,7 +813,7 @@ func RenderPublicPage(ctx context.Context, op OperationContext, in RenderPublicP
 - 授权：permission：anonymous；rule：公开请求
 - 并发：5s 总 deadline；撤回后新检查不通过；检查后流式正文禁用
 - 幂等：相同修订只生成一个缓存对象
-- 依赖：`content:validatePublications`、`public-site.LoadPublishedBundle`、`public-site.RenderTiptapHTML`、`public-site.ComposeHTML`
+- 依赖：`public-site.LoadPublishedBundle`、`public-site.RenderTiptapHTML`、`public-site.ComposeHTML`、`public-site.CheckPublication`、`public-site.SelectLocale`、`public-site.BuildCacheKey`、`public-site.ReadRenderCache`、`public-site.ResolvePublicMedia`、`public-site.BuildTOC`、`public-site.BuildBreadcrumbs`、`public-site.BuildNavigation`、`public-site.BuildPreviousNext`、`public-site.RenderAnnouncement`、`public-site.BuildCanonical`、`public-site.BuildHreflang`、`public-site.BuildSEOMetadata`、`public-site.WriteRenderCache`
 
 ## public-site.HandlePage
 
@@ -888,6 +845,7 @@ func HandlePage(ctx context.Context, op OperationContext, in HandlePageInput) (H
 1. 解析路由
 2. render 并最终权威校验
 3. 校验成功且 etag 相等才 304，否则完整 200
+4. 不存在或已删除时输出RenderNotFound（404）或410；页面访问统计由浏览器sendBeacon上报，服务端不重复计数
 
 **错误**
 
@@ -899,7 +857,7 @@ func HandlePage(ctx context.Context, op OperationContext, in HandlePageInput) (H
 - 授权：permission：anonymous；rule：anonymous
 - 并发：请求缓冲到最终授权完成；不可先写 header
 - 幂等：GET 可重复；statusCode 不缓存安全结论
-- 依赖：`public-site.ResolveRoute`、`public-site.RenderPublicPage`、`analytics:ingestBeacon`
+- 依赖：`public-site.ResolveRoute`、`public-site.RenderPublicPage`、`public-site.RenderNotFound`
 
 ## public-site.HandleHome
 
@@ -942,7 +900,7 @@ func HandleHome(ctx context.Context, op OperationContext, in HandleHomeInput) (H
 - 授权：permission：anonymous；rule：anonymous
 - 并发：主题配置 revision 绑定 cacheKey
 - 幂等：GET 幂等
-- 依赖：`site-config:readConfigObject`、`media:buildDeliveryManifest`、`public-site.RenderHero`
+- 依赖：`site-config:readConfigObject`、`media:buildDeliveryManifest`、`public-site.RenderHero`、`public-site.RenderAnnouncement`
 
 ## public-site.HandleNavigation
 
@@ -1029,7 +987,7 @@ func HandleMarkdown(ctx context.Context, op OperationContext, in HandleMarkdownI
 - 授权：permission：anonymous；rule：anonymous
 - 并发：同 HTML 5s deadline 与最终状态校验
 - 幂等：GET 幂等
-- 依赖：`public-site.ResolveRoute`、`public-site.LoadPublishedBundle`、`public-site.RenderTiptapMarkdown`、`content:validatePublications`、`analytics:recordCrawlerAccess`
+- 依赖：`public-site.ResolveRoute`、`public-site.LoadPublishedBundle`、`public-site.RenderTiptapMarkdown`、`content:validatePublications`、`public-site.RecordAnonymousView`
 
 ## public-site.HandleRobots
 
@@ -1578,7 +1536,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写临时快照目录
-- 授权：permission：service；rule：data-protection.snapshot
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：维护 barrier 下禁止索引写入
 - 幂等：snapshotId 重复返回同 manifest
 - 依赖：`jobs:coordinateBarrier`
@@ -1610,7 +1568,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -1625,7 +1583,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
@@ -1657,7 +1615,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -1668,7 +1626,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -1709,7 +1667,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `DEADLINE_EXCEEDED` / HTTP 504：BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier状态
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：单barrier独占，不能截断正在写文件宣称safe
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`
@@ -1751,7 +1709,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier/清缓存
-- 授权：permission：service；rule：service+superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：全站maintenance退出前不放行
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`
@@ -2237,8 +2195,7 @@ func RenderNotFound(ctx context.Context, op OperationContext, in RenderNotFoundI
 - 授权：permission：anonymous；rule：anonymous
 - 并发：重新authority导航
 - 幂等：GET幂等
-- 依赖：`public-site.BuildNavigation`
-- 其他依赖说明：site-config公开AI能力
+- 依赖：`public-site.BuildNavigation`、`site-config:readConfigObject`
 
 ## public-site.HandleAskShell
 
@@ -2280,8 +2237,8 @@ func HandleAskShell(ctx context.Context, op OperationContext, in HandleAskShellI
 - 授权：permission：anonymous；rule：anonymous
 - 并发：qa拥有会话，不创建第二份会话
 - 幂等：GET幂等
-- 依赖：无
-- 其他依赖说明：qa公开会话接口；site-config公开能力
+- 依赖：`site-config:readConfigObject`
+- 其他依赖说明：浏览器问答岛经portal调用qa公开接口
 
 ## public-site.PrewarmPublication
 
@@ -2325,7 +2282,7 @@ func PrewarmPublication(ctx context.Context, op OperationContext, in PrewarmPubl
 - 授权：permission：service；rule：service content事件
 - 并发：每文档2并发，不重复付费调用
 - 幂等：publicationHash/locale/rendererVersion幂等
-- 依赖：`public-site.RenderPublicPage`、`jobs:createJob`
+- 依赖：`public-site.RenderPublicPage`
 
 ## public-site.HandleLLMsRoot
 
@@ -2443,7 +2400,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`public-site.BuildApplication`、`public-site.Serve`、`public-site.Shutdown`
+- 依赖：`public-site.BuildApplication`、`public-site.Serve`、`public-site.Shutdown`、`platform.RunService`
 
 ## public-site.BuildApplication
 
@@ -2477,6 +2434,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影
+7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -2488,7 +2446,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`
+- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`、`public-site.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## public-site.Serve
@@ -2530,7 +2488,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`public-site.BuildApplication`、`public-site.Shutdown`
+- 依赖：`public-site.BuildApplication`、`public-site.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## public-site.Shutdown
@@ -2737,4 +2695,46 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`public-site.InvalidatePublication`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`public-site.InvalidatePublication`、`platform.RunConsumer`
+
+## public-site.RunWorker
+
+- 级别：约束
+- 文件：`modules/public-site/internal/worker.go`
+- 作用：主动领取并执行本域登记的持久任务
+
+```go
+func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) (WorkerLoopResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `WorkerLoopInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `WorkerLoopResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
+2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
+3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
+4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用；退避后重试领取（可重试）
+
+- 副作用：HTTP调用jobs租约接口；执行本域登记的任务函数
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
+- 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`public-site.PrewarmPublication`、`platform.RunWorkerLoop`

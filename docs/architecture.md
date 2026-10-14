@@ -25,3 +25,9 @@ content拥有正文、修订、发布可见性、草稿与树；media拥有资�
 单仓便于契约审阅，每个模块只构建自身登记文件和版本化契约客户端，不要求其他模块重编译。前端域页面以manifest接入portal；公共纯类型和视觉令牌可按版本固定，不共享业务状态或跨域源导入。拓扑地址仅配置，不硬编码。
 
 设计从边界和需求开始，尚无业务实现。旧分支的产品设计是功能需求基线，旧代码不是实现结构参考；不自动迁移旧运行数据。
+
+## 入口、公共库与部署（[ADR0004](adr/0004-wiring-and-service-identity.md)、[ADR0005](adr/0005-engineering-and-deployment.md)）
+
+portal.ProxyRequest 是浏览器访问后台与公开 API 的唯一入口：按生成的路由表匹配，执行维护门禁、同源与 CSRF、身份与预授权，对标记 x-admission 的公开 AI 请求先向 traffic-guard 申请准入，再以服务断言与委托证明转发，并流式回传。公开页面由 public-site 直接输出。
+
+各服务共用的机制（服务身份、操作上下文、outbox/inbox、订阅与任务循环、模型调用、恢复换目录、进程模板）只在 `libs/platform` 实现一次，服务的入口函数只装配本域参数。部署配置集中在 `deploy/`：单机 Docker Compose 加 Caddy，HTTPS 只在 Caddy 终止。

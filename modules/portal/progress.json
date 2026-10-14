@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "design",
-  "contractSha256": "46e135e6e762c863a8e40165eed8048f77fa8fa6f425a22e3037c7e101592466",
+  "contractSha256": "6fd33e21e72752ead12a18a268293713f7f39db678ea070e689732016608f6e6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -339,6 +339,56 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/portal/config/routes.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/portal/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/portal/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/portal/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/portal/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -465,6 +515,17 @@
     },
     {
       "id": "portal.MapUpstreamFailure",
+      "path": "modules/portal/internal/proxy_stream.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "portal.ProxyRequest",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "planned",
       "implementationCommit": null,

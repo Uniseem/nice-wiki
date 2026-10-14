@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 63 个：手写 47、UI 3、生成 3、配置 9、迁移 1。函数 59 个：约束 35，参考 24。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 68 个：手写 49、UI 3、生成 5、配置 10、迁移 1。函数 67 个：约束 44，参考 23。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -17,11 +17,11 @@
 | `modules/localization/internal/translation/incremental.go` | 手写 | 增量选择待翻译单元所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PlanIncrementalTranslation`（参考） |
 | `modules/localization/internal/glossary/resolve.go` | 手写 | 取得确定性术语快照所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ResolveGlossary`（参考） |
 | `modules/localization/internal/translation/prompt.go` | 手写 | 构造有界翻译请求所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.BuildTranslationPrompt`（参考） |
-| `modules/localization/internal/translation/execute.go` | 手写 | 执行统一网关翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RunTranslationBatch`（参考） |
+| `modules/localization/internal/translation/execute.go` | 手写 | 执行统一网关翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RunTranslationBatch`（参考）、`localization.ExecuteTranslation` |
 | `modules/localization/internal/translation/validate.go` | 手写 | 校验模型输出格式保护所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ValidateTranslationOutput`（参考） |
 | `modules/localization/internal/translation/commit.go` | 手写 | 提交翻译防旧覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CommitTranslationBatch`（参考） |
 | `modules/localization/internal/translation/complete.go` | 手写 | 完成派生翻译manifest所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CompleteTranslation`（参考） |
-| `modules/localization/internal/translation/read.go` | 手写 | 公开读取当前译文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadTranslation` |
+| `modules/localization/internal/translation/read.go` | 手写 | 公开读取当前译文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadTranslation`、`localization.ListTranslationProgress`、`localization.ReadTranslationUnits` |
 | `modules/localization/internal/human/edit.go` | 手写 | 人工编辑并自动保护所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.EditTranslationUnit` |
 | `modules/localization/internal/human/protection.go` | 手写 | 显式启停人工保护所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SetUnitProtection` |
 | `modules/localization/internal/translation/cancel.go` | 手写 | 取消翻译子链路所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CancelTranslation` |
@@ -31,11 +31,11 @@
 | `modules/localization/internal/events/glossary.go` | 手写 | 使机翻版本按术语变化失效所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.HandleGlossaryChange`（参考） |
 | `modules/localization/internal/interface/validate.go` | 手写 | 校验界面字符串契约所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ValidateInterfaceCatalog`（参考） |
 | `modules/localization/internal/interface/write.go` | 手写 | 人工编辑界面文本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PutInterfaceString` |
-| `modules/localization/internal/interface/translate.go` | 手写 | 显式翻译界面缺项所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateInterfaceCatalog`（参考） |
+| `modules/localization/internal/interface/translate.go` | 手写 | 显式翻译界面缺项所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateInterfaceCatalog`、`localization.RequestInterfaceTranslation` |
 | `modules/localization/internal/interface/read.go` | 手写 | 读取运行界面字典所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadInterfaceCatalog` |
 | `modules/localization/internal/suggestion/select.go` | 手写 | 给访客语言建议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SuggestLanguage` |
-| `modules/localization/internal/suggestion/preference.go` | 手写 | 保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SaveLanguagePreference`（参考） |
-| `modules/localization/internal/cache-answer/create.go` | 手写 | 接受QA精选翻译命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateCachedAnswer` |
+| `modules/localization/internal/suggestion/preference.go` | 手写 | 保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SaveLanguagePreference` |
+| `modules/localization/internal/cache-answer/create.go` | 手写 | 接受QA精选翻译命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateCachedAnswer`、`localization.ExecuteCacheAnswerTranslation` |
 | `modules/localization/internal/cache-answer/commit.go` | 手写 | 保存精选翻译供QA审核所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CommitCacheAnswerTranslation`（参考） |
 | `modules/localization/internal/events/withdraw.go` | 手写 | 处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.InvalidateDocumentTranslations` |
 | `modules/localization/internal/runtime/recovery.go` | 手写 | 恢复翻译任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RecoverTranslationLeases`（参考） |
@@ -51,7 +51,6 @@
 | `modules/localization/internal/translation/reflection.go` | 手写 | 可选反思润色所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReflectTranslation`（参考） |
 | `modules/localization/internal/cache-answer/read.go` | 手写 | 读取已完成的自动缓存翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadCacheAnswerTranslation` |
 | `modules/localization/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RunWorker` |
-| `modules/localization/contracts/generated/schema.gen.go` | 生成 | 未来由根contract compiler从本域types/openapi生成DTO，Generator(inputSchemas []SchemaRef, outputDirectory string) error；生成前schema refs必须解析，禁止手写编辑。 | 无 |
 | `modules/localization/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/localization/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
 | `modules/localization/cmd/localization/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `localization.main` |
@@ -69,3 +68,9 @@
 | `modules/localization/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/localization/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `localization.mountModuleUI` |
 | `modules/localization/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `localization.ConsumeEvents` |
+| `modules/localization/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `localization.InvokeModel`（参考） |
+| `modules/localization/internal/language/plan.go` | 手写 | 启用语言前估算全量翻译费用 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan` |
+| `modules/localization/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/localization/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/localization/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/localization/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |

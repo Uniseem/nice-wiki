@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "design",
-  "contractSha256": "e723013ea0056e037b85379ee717e8088c72d416003878031a0745d7b881f9b3",
+  "contractSha256": "7c7c63d80c6f98793fc4bf890ebfc15209d08088307eae930f23e6aaf5880192",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -461,16 +461,6 @@
       "blocker": null
     },
     {
-      "path": "modules/qa/contracts/generated/schema.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/qa/deploy/service.config.json",
       "state": "planned",
       "implementationCommit": null,
@@ -632,6 +622,86 @@
     },
     {
       "path": "modules/qa/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/turn/execute.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/ui/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/admin/records.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/admin/policy.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1294,6 +1364,61 @@
     {
       "id": "qa.ConsumeEvents",
       "path": "modules/qa/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.InvokeModel",
+      "path": "modules/qa/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ExecuteTurn",
+      "path": "modules/qa/internal/turn/execute.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ListTurnRecords",
+      "path": "modules/qa/internal/admin/records.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ReadTurnRecord",
+      "path": "modules/qa/internal/admin/records.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ReadQaPolicy",
+      "path": "modules/qa/internal/admin/policy.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

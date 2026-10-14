@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 57 个函数：约束 27 个，参考 30 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 63 个函数：约束 32 个，参考 31 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## knowledge.LoadRuntime
 
@@ -105,6 +105,46 @@ func PutIndexConfig(ctx context.Context, op OperationContext, input PutIndexConf
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`model-gateway:readModels`
 
+## knowledge.ReadIndexConfig
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/config/config.go`
+- 作用：读取索引配置
+
+```go
+func ReadIndexConfig(ctx context.Context, op OperationContext, input ReadIndexConfigInput) (ReadIndexConfigResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ReadIndexConfigInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadIndexConfigResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. knowledge.manage
+2. 返回当前分块参数、嵌入空间与版本
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：后台管理员
+- 并发：只读快照
+- 幂等：只读
+- 依赖：无
+
 ## knowledge.HandlePublication
 
 - 级别：约束
@@ -153,7 +193,7 @@ func HandlePublication(ctx context.Context, op OperationContext, input HandlePub
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:createJob`、`content:validatePublications`
+- 依赖：`jobs:createJob`、`content:validatePublications`、`knowledge.ConsumeInbox`、`platform.ClaimInbox`
 
 ## knowledge.CreateBuild
 
@@ -285,7 +325,7 @@ func ListExtractableAssets(ctx context.Context, op OperationContext, input ListE
 **步骤**
 
 1. 按正文schema解析引用
-2. media批量授权验证
+2. 逐项media:readAsset核验读取授权与hash（只读，不预留引用）
 3. 限制每文档100资源单件50MiB
 4. 不支持类型标明unsupported
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
@@ -304,7 +344,7 @@ func ListExtractableAssets(ctx context.Context, op OperationContext, input ListE
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:acquireResourceReferences`
+- 依赖：`media:readAsset`
 
 ## knowledge.CreateExtraction
 
@@ -354,6 +394,48 @@ func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtr
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`media:readAsset`、`jobs:createJob`
+
+## knowledge.ExecuteExtraction
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/extract/create.go`
+- 作用：按资源类型执行一次派生文本提取
+
+```go
+func ExecuteExtraction(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 读取提取记录与资源hash，按MIME分派：PDF→ExtractPdfText，图片/画板/视频封面→ExtractImageDescription，视频→ExtractVideoMetadata，其他附件→DescribeAttachment
+2. 结果按assetHash/extractorVersion/模型/记忆版本保存为机器派生文本，不覆盖人工caption
+3. 不支持或无文本标unsupported，不自动OCR或转写
+
+**错误**
+
+- `UNSUPPORTED_CAPABILITY`：类型不支持或未配置视觉档（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：media或网关不可用（可重试）
+
+- 副作用：写提取结果
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：同assetHash/extractorVersion一次一个
+- 幂等：按assetHash/extractorVersion幂等复用
+- 依赖：`knowledge.ExtractPdfText`、`knowledge.ExtractImageDescription`、`knowledge.ExtractVideoMetadata`、`knowledge.DescribeAttachment`
 
 ## knowledge.ExtractPdfText
 
@@ -453,7 +535,7 @@ func ExtractImageDescription(ctx context.Context, op OperationContext, input Ext
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`、`media:readAsset`
+- 依赖：`media:readAsset`、`knowledge.InvokeModel`
 
 ## knowledge.ExtractVideoMetadata
 
@@ -751,7 +833,7 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`
+- 依赖：`knowledge.InvokeModel`
 
 ## knowledge.StoreEmbeddings
 
@@ -1000,7 +1082,7 @@ func RetireDocumentIndex(ctx context.Context, op OperationContext, input RetireD
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:cancelJob`
+- 依赖：`jobs:cancelJob`、`knowledge.ConsumeInbox`、`platform.ClaimInbox`
 
 ## knowledge.NormalizeQuery
 
@@ -1099,7 +1181,7 @@ func EmbedQuery(ctx context.Context, op OperationContext, input EmbedQueryInput)
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`
+- 依赖：`knowledge.InvokeModel`
 
 ## knowledge.SearchLexical
 
@@ -1345,7 +1427,7 @@ func RerankCandidates(ctx context.Context, op OperationContext, input RerankCand
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`
+- 依赖：`knowledge.InvokeModel`
 
 ## knowledge.SelectContext
 
@@ -1423,11 +1505,10 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 
 **步骤**
 
-1. query与base language规范
-2. embedding存在时校验queryHash/space/vectorHash/epoch后复用，否则MG生成
-3. lexical/vector各80→RRF40→可选rerank fast fallback
-4. 当前页权威范围可优先且最终content可见性validate。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. NormalizeQuery规范query与基准语言
+2. 请求携带的queryEmbedding校验queryHash/space/vectorHash/epoch后复用，否则EmbedQuery
+3. SearchLexical与SearchVector各80→FuseCandidates取40→ValidateCandidates权威过滤→可选RerankCandidates
+4. SelectContext按预算选材；当前页范围可优先，最终仍经content可见性校验
 
 **错误**
 
@@ -1444,7 +1525,7 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`model-gateway:createInference`、`memory:resolveContext`
+- 依赖：`content:validatePublications`、`memory:resolveContext`、`knowledge.NormalizeQuery`、`knowledge.EmbedQuery`、`knowledge.SearchLexical`、`knowledge.SearchVector`、`knowledge.FuseCandidates`、`knowledge.ValidateCandidates`、`knowledge.RerankCandidates`、`knowledge.SelectContext`
 
 ## knowledge.GetBuild
 
@@ -1638,7 +1719,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`knowledge.HandlePublication`、`knowledge.RetireDocumentIndex`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`knowledge.HandlePublication`、`knowledge.RetireDocumentIndex`、`platform.RunConsumer`
 
 ## knowledge.PublishOutbox
 
@@ -1687,7 +1768,7 @@ func PublishOutbox(ctx context.Context, op OperationContext, input PublishOutbox
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`
 
 ## knowledge.RecoverBuildLeases
 
@@ -1914,13 +1995,13 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 
 **步骤**
 
-1. 校验data-protection服务身份及superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. 将本地control.db屏障draining并拒绝新业务写
 3. 屏障停止新build、active切换和staging写入，等待reader lease排空
 4. 导出active manifest/分块/词项/向量与空间身份。导入空间不匹配的代数隔离且不得自动发模型重建
 5. 派生索引可由管理员另发重建任务。
 6. 排空/终止worker到安全watermark后safe，deadline失败保持failed及拒写。
-7. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1935,7 +2016,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：持久控制屏障；不纳入业务快照
-- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
 - 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
@@ -1971,7 +2052,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input BarrierReque
 2. 暂存目录不影响释放；切换只在进程重启时发生
 3. runtime处于restore_switching或restore_rolling_back时不恢复业务worker，等待重启换目录
 4. released后开放该epoch业务写。
-5. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+5. 备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1986,7 +2067,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：更新本地control.db；不修改导入业务
-- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
 - 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
@@ -2024,7 +2105,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 4. 导出active manifest/分块/词项/向量与空间身份。导入空间不匹配的代数隔离且不得自动发模型重建
 5. 派生索引可由管理员另发重建任务。
 6. 写不可变ObjectRef及SHA256后返回SnapshotRef，失败删除本域临时输出不释放屏障。
-7. 备份恢复控制只接受data-protection服务身份与superadmin委托，并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 备份恢复控制只接受校验data-protection服务身份（用户授权已由data-protection核验），并校验本地safe屏障与op.dataEpoch；control区不随恢复替换。截止=min(ctx deadline,op.deadline,本函数120000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -2039,7 +2120,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：创建本服务不可变快照对象
-- 授权：service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：本域control区按barrierId/restoreId串行CAS；业务worker屏障排空，reader固定代数；active目录只在进程启动时换入或换回。
 - 幂等：相同barrierId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；暂存与丢弃均可安全重放。
 - 依赖：`site-config:readRuntimeState`
@@ -2071,7 +2152,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
 2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
 3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
 4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
@@ -2086,7 +2167,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：superadmin；rule：仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
@@ -2118,7 +2199,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 
 **步骤**
 
-1. 校验data-protection服务身份与superadmin委托
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
 2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
 3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
 4. 删除后在control区记录discarded；目录不存在返回removed=false
@@ -2129,7 +2210,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：superadmin；rule：仅data-protection服务身份携带superadmin委托
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -2277,7 +2358,7 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`、`memory:resolveContext`
+- 依赖：`memory:resolveContext`、`knowledge.InvokeModel`
 
 ## knowledge.InspectEvidence
 
@@ -2326,7 +2407,7 @@ func InspectEvidence(ctx context.Context, op OperationContext, input InspectEvid
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`、`content:validatePublications`、`memory:resolveContext`
+- 依赖：`content:validatePublications`、`memory:resolveContext`、`knowledge.InvokeModel`
 
 ## knowledge.CreateQueryEmbedding
 
@@ -2376,7 +2457,7 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:createInference`
+- 依赖：`knowledge.InvokeModel`
 
 ## knowledge.DescribeAttachment
 
@@ -2427,7 +2508,7 @@ func DescribeAttachment(ctx context.Context, op OperationContext, input Describe
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`、`model-gateway:createInference`、`memory:resolveContext`
+- 依赖：`media:readAsset`、`memory:resolveContext`、`knowledge.InvokeModel`
 
 ## knowledge.RunWorker
 
@@ -2456,11 +2537,10 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 
 **步骤**
 
-1. 向jobs claimJob仅领取本域JOB_HANDLERS登记jobType
-2. 每10秒heartbeatJob续30秒租约并检查cancel/deadline
-3. 依jobType执行同域已登记函数，所有中间/提交校验lease与epoch
-4. completeJob/failJob持久报告，lease过期停止写，未知MG attempt留held不重放。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
+2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
+3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
+4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
 
 **错误**
 
@@ -2477,7 +2557,7 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`
+- 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:startJob`、`jobs:checkLease`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.RunWorkerLoop`
 
 ## knowledge.main
 
@@ -2512,7 +2592,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`knowledge.BuildApplication`、`knowledge.Serve`、`knowledge.Shutdown`
+- 依赖：`knowledge.BuildApplication`、`knowledge.Serve`、`knowledge.Shutdown`、`platform.RunService`
 
 ## knowledge.BuildApplication
 
@@ -2545,6 +2625,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -2556,7 +2637,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`
+- 依赖：`site-config:registerActivation`、`knowledge.LoadRuntime`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.PublishOutbox`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## knowledge.Serve
@@ -2598,7 +2679,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`knowledge.BuildApplication`、`knowledge.Shutdown`
+- 依赖：`knowledge.BuildApplication`、`knowledge.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
 - 其他依赖说明：本域OpenAPI路由
 
 ## knowledge.Shutdown
@@ -2761,3 +2842,176 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 幂等：同DOM/buildRevision重复挂载复用实例
 - 依赖：无
 - 其他依赖说明：本域已登记UI页面函数
+
+## knowledge.InvokeModel
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 作用：经模型网关执行一次调用并读取到终态
+
+```go
+func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `InvokeModelInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `InvokeModelResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费
+2. 循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传
+3. ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费
+4. completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）
+
+**错误**
+
+- `BUDGET_EXCEEDED`：网关额度不足（不可重试）
+- `CANCELLED`：调用被取消（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：网关不可用或调用失败（可重试）
+- `UNSUPPORTED_CAPABILITY`：任务未配置模型（不可重试）
+
+- 副作用：HTTP调用model-gateway推理接口；模型费用由网关记账
+- 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
+- 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
+- 幂等：幂等键固定，重试返回原invocation
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+
+## knowledge.ExecuteBuild
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/build/execute.go`
+- 作用：执行一次文档索引构建
+
+```go
+func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. FetchPublishedSource取得固定发布修订；ListExtractableAssets列出引用媒体，未有派生文本的资源CreateExtraction排队并等待其完成或标unsupported
+2. NormalizeSource→SplitChunks→EnrichChunkContext（仅变更块付费）→WriteStagingChunks写独立代数
+3. BuildLexicalIndex；RequestEmbeddings分批后StoreEmbeddings，复用同chunkHash/空间已有向量
+4. ValidateBuild后ActivateBuild原子切换；修订已被替代则标superseded；ActivateBuild在同一事务登记index.ready outbox
+
+**错误**
+
+- `STALE_RESULT`：源修订已被替代（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：content/media/网关不可用（可重试）
+
+- 副作用：写staging与active索引；模型费用经网关
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：同document/space一次只运行一个build；所有写入核lease与epoch
+- 幂等：按document/revision/space/generation唯一
+- 依赖：`knowledge.FetchPublishedSource`、`knowledge.ListExtractableAssets`、`knowledge.CreateExtraction`、`knowledge.NormalizeSource`、`knowledge.SplitChunks`、`knowledge.EnrichChunkContext`、`knowledge.WriteStagingChunks`、`knowledge.BuildLexicalIndex`、`knowledge.RequestEmbeddings`、`knowledge.StoreEmbeddings`、`knowledge.ValidateBuild`、`knowledge.ActivateBuild`
+
+## knowledge.EstimateRebuildPlan
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：全量重建前估算费用
+
+```go
+func EstimateRebuildPlan(ctx context.Context, op OperationContext, input EstimateRebuildPlanInput) (EstimateRebuildPlanResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `EstimateRebuildPlanInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `EstimateRebuildPlanResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. knowledge.manage；content:readPublicTree列出已发布文档
+2. 按当前分块配置估算分块数，扣除同chunkHash/空间可复用向量与描述
+3. model-gateway:quoteCost估算knowledge.embed、knowledge.context与描述任务费用；缺价保留price_unknown
+4. 保存计划（文档修订集合、quoteHash、24小时过期），不调用模型
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖不可用（可重试）
+
+- 副作用：写重建计划
+- 授权：permission：knowledge.manage；rule：后台管理员按登记权限
+- 并发：只读快照或CAS
+- 幂等：读取幂等；写入按operationId
+- 依赖：`content:readPublicTree`、`model-gateway:quoteCost`
+
+## knowledge.ApproveRebuildPlan
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：批准估价后创建全量重建任务
+
+```go
+func ApproveRebuildPlan(ctx context.Context, op OperationContext, input ApproveRebuildPlanInput) (ApproveRebuildPlanResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ApproveRebuildPlanInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ApproveRebuildPlanResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 计划未过期且quoteHash一致
+2. 为计划内每篇文档CreateBuild（force新generation，保留旧active直到新代数激活）
+3. 记录批准人与估价
+
+**错误**
+
+- `VALIDATION`：计划过期或不符（不可重试）
+- `CONFLICT`：已批准（不可重试）
+
+- 副作用：创建构建任务
+- 授权：permission：knowledge.manage；rule：后台管理员按登记权限
+- 并发：只读快照或CAS
+- 幂等：读取幂等；写入按operationId
+- 依赖：`knowledge.CreateBuild`

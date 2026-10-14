@@ -3090,6 +3090,181 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "InvokeModelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "经模型网关执行一次调用的输入",
+      "properties": {
+        "request": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
+          "description": "网关调用请求；taskId/档位/能力按根AI任务目录"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "true时逐条把delta交给调用方回调"
+        }
+      },
+      "required": [
+        "request",
+        "stream"
+      ]
+    },
+    "InvokeModelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用终态",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "网关调用ID"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "网关终态"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+          },
+          "description": "按序号排列的全部流事件"
+        }
+      },
+      "required": [
+        "invocationId",
+        "state",
+        "events"
+      ]
+    },
+    "EstimateRebuildPlanInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "估算全量重建的输入",
+      "properties": {
+        "reason": {
+          "enum": [
+            "embedding_space_changed",
+            "chunking_changed",
+            "manual"
+          ],
+          "description": "重建原因"
+        }
+      },
+      "required": [
+        "reason"
+      ]
+    },
+    "EstimateRebuildPlanResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "全量重建计划与估价",
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "计划ID，24小时内可批准"
+        },
+        "documentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "需重建的已发布文档数"
+        },
+        "chunkCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "预计分块数（扣除可复用向量）"
+        },
+        "quote": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult",
+          "description": "网关保守估价"
+        },
+        "quoteHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "批准时必须一致"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "过期时间"
+        }
+      },
+      "required": [
+        "planId",
+        "documentCount",
+        "chunkCount",
+        "quote",
+        "quoteHash",
+        "expiresAt"
+      ]
+    },
+    "ApproveRebuildPlanInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "批准全量重建",
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "计划ID"
+        },
+        "quoteHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "估价hash"
+        }
+      },
+      "required": [
+        "planId",
+        "quoteHash"
+      ]
+    },
+    "ApproveRebuildPlanResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "批准结果",
+      "properties": {
+        "buildJobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "创建的构建任务数"
+        }
+      },
+      "required": [
+        "buildJobs"
+      ]
+    },
+    "ReadIndexConfigInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取索引配置的输入",
+      "properties": {},
+      "required": []
+    },
+    "ReadIndexConfigResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "读取索引配置的结果；不含密钥",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/IndexConfig",
+          "description": "当前索引配置"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "配置版本，用于CAS"
+        }
+      },
+      "required": [
+        "config",
+        "version"
+      ]
     }
   }
 }

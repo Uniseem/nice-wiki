@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "http://model-gateway:8080",
-      "description": "私网服务地址；生产入口TLS与服务mTLS由部署层终止。"
+      "description": "私网服务地址；生产入口TLS与服务服务断言由部署层终止。"
     }
   ],
   "paths": {
@@ -144,10 +144,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -295,10 +293,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -446,10 +442,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -596,10 +590,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -746,10 +738,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -877,7 +867,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1005,7 +995,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1133,7 +1123,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -1287,7 +1277,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1415,10 +1405,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -1593,10 +1581,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1724,10 +1710,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1865,7 +1849,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -1980,7 +1964,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -2088,7 +2072,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -2098,9 +2082,9 @@
         "operationId": "acquireBarrier",
         "summary": "取得本地维护屏障",
         "x-handler": "model-gateway.AcquireBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2206,10 +2190,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2229,9 +2210,9 @@
         "operationId": "releaseBarrier",
         "summary": "释放已授权维护屏障",
         "x-handler": "model-gateway.ReleaseBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "barrierId",
@@ -2346,10 +2327,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2369,9 +2347,9 @@
         "operationId": "exportSnapshot",
         "summary": "导出安全watermark快照",
         "x-handler": "model-gateway.ExportSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2477,10 +2455,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2617,10 +2592,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -2740,7 +2713,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ]
       }
@@ -2868,10 +2841,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -3009,10 +2980,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -3150,7 +3119,7 @@
         },
         "security": [
           {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -3288,10 +3257,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       },
@@ -3417,10 +3384,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -3502,7 +3467,7 @@
         "operationId": "stageSnapshot",
         "summary": "暂存本域恢复归档，不改active目录",
         "x-handler": "model-gateway.StageSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -3580,10 +3545,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -3603,7 +3565,7 @@
         "operationId": "discardSnapshot",
         "summary": "删除恢复暂存或换出的旧数据目录",
         "x-handler": "model-gateway.DiscardSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -3661,10 +3623,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -3678,27 +3637,71 @@
           }
         }
       }
+    },
+    "/v1/admin/catalog": {
+      "get": {
+        "operationId": "readAdminCatalog",
+        "summary": "读取渠道、模型、档位与任务分配",
+        "description": "读取渠道、模型、档位与任务分配",
+        "x-handler": "model-gateway.ReadAdminCatalog",
+        "x-permission": "model.manage",
+        "responses": {
+          "200": {
+            "description": "读取渠道、模型、档位与任务分配成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadAdminCatalogResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "securitySchemes": {
-      "ServiceToken": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "mTLS服务身份且audience=model-gateway；备份恢复控制另校验data-protection服务身份与superadmin委托。"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "AdminSession": {
+      "userDelegation": {
         "type": "apiKey",
-        "in": "cookie",
-        "name": "nw_admin_session",
-        "description": "identity管理会话且CSRF token；浏览器写请求校验Origin/CSRF。"
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
       },
-      "VisitorCookie": {
+      "visitorSession": {
         "type": "apiKey",
         "in": "cookie",
         "name": "nw_visitor",
-        "description": "guard签署伪名访客；读取校验owner，写入另验AdmissionPermit。"
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
     }
   }

@@ -1,0 +1,25 @@
+# platform 未来文件目录
+
+本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
+
+文件 17 个：手写 15、生成 1、配置 1。函数 17 个：约束 17，参考 0。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+
+| 未来路径 | 类别 | 职责 | 函数 |
+|---|---|---|---|
+| `libs/platform/serviceauth/assertion.go` | 手写 | 服务断言签发与验证 | `platform.SignAssertion`、`platform.VerifyAssertion` |
+| `libs/platform/serviceauth/delegation.go` | 手写 | portal用户委托证明验证 | `platform.VerifyDelegation` |
+| `libs/platform/opctx/context.go` | 手写 | 可信OperationContext构建 | `platform.BuildOperationContext` |
+| `libs/platform/problem/problem.go` | 手写 | 公共Problem输出 | `platform.WriteProblem` |
+| `libs/platform/outbox/outbox.go` | 手写 | 事务内outbox登记 | `platform.EnqueueEvent` |
+| `libs/platform/outbox/relay.go` | 手写 | outbox转发循环 | `platform.RunRelay` |
+| `libs/platform/inbox/inbox.go` | 手写 | 事件inbox去重 | `platform.ClaimInbox` |
+| `libs/platform/inbox/consumer.go` | 手写 | 事件订阅循环 | `platform.RunConsumer` |
+| `libs/platform/worker/loop.go` | 手写 | 任务领取循环 | `platform.RunWorkerLoop` |
+| `libs/platform/modelclient/invoke.go` | 手写 | 模型调用助手 | `platform.InvokeModel` |
+| `libs/platform/lifecycle/config.go` | 手写 | 服务配置加载 | `platform.LoadServiceConfig` |
+| `libs/platform/lifecycle/runtime.go` | 手写 | 运行状态读取与监视 | `platform.ReadRuntime`、`platform.WatchRuntime` |
+| `libs/platform/lifecycle/restore_swap.go` | 手写 | 恢复换目录 | `platform.ApplyRestoreSwap` |
+| `libs/platform/lifecycle/service.go` | 手写 | 进程模板 | `platform.RunService` |
+| `libs/platform/cmd/nw-keys/main.go` | 手写 | 服务密钥生成工具 | `platform.main` |
+| `libs/platform/go.mod` | 配置 | Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用 | 无 |
+| `libs/platform/go.sum` | 生成 | 依赖校验锁；由go mod download生成 | 无 |

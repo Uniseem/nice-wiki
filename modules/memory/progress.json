@@ -2,7 +2,7 @@
   "version": 1,
   "module": "memory",
   "phase": "design",
-  "contractSha256": "73ad9ede97bb369a58499d90c82483364366efafbb019942a61f9c68a2088e3c",
+  "contractSha256": "a72c9a81f8fab283299badd264a5030dfb452aaf2539203bab667381664492b9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -361,16 +361,6 @@
       "blocker": null
     },
     {
-      "path": "modules/memory/contracts/generated/schema.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/memory/deploy/service.config.json",
       "state": "planned",
       "implementationCommit": null,
@@ -539,6 +529,66 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/events/publication-count.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/ui/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -698,6 +748,17 @@
     },
     {
       "id": "memory.ReadTaskBudget",
+      "path": "modules/memory/internal/context/budget.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "memory.ListTaskBudgets",
       "path": "modules/memory/internal/context/budget.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1161,6 +1222,28 @@
     {
       "id": "memory.ConsumeEvents",
       "path": "modules/memory/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "memory.InvokeModel",
+      "path": "modules/memory/internal/runtime/model_client.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "memory.CountPublication",
+      "path": "modules/memory/internal/events/publication-count.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

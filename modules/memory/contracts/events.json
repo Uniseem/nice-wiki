@@ -87,6 +87,19 @@
       "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
       "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。",
       "handler": "memory.HandleGlossaryProposalResult"
+    },
+    {
+      "name": "content.publication.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationChangedPayload"
+      },
+      "purpose": "统计新发布数，达到20篇触发项目概述自动更新",
+      "delivery": "at-least-once",
+      "ordering": "按documentId发布修订单调",
+      "idempotency": "eventId去重",
+      "handler": "memory.CountPublication"
     }
   ]
 }

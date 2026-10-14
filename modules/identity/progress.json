@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "design",
-  "contractSha256": "a312d274bc67f223b8a5ca8d1f2e360dae4033b15c80ae37d9d25e948962eced",
+  "contractSha256": "e66d7bce647655f47f1f023cdd736370f275de55e49a09317f14961397348c25",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -252,6 +252,36 @@
     },
     {
       "path": "modules/identity/deploy/manifest.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/gen/oapi-codegen.yaml",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

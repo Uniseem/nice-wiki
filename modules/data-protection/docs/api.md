@@ -34,6 +34,8 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `data-protection.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/restores/{restoreId}/archives/{owner}` | `serveRestoreArchive` | `data-protection.ServeRestoreArchive` | `service` | `—` → 200 `application/octet-stream` | 向暂存中的域提供其归档 | `FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`INTEGRITY_ERROR` |
 | POST `/v1/restores/{restoreId}:cleanup` | `cleanupRestore` | `data-protection.CleanupRestore` | `superadmin` | `CleanupRestoreInput` → 200 `CleanupRestoreResult` | 清理恢复保留目录 | `FORBIDDEN`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/mirrors/status` | `readMirrorStatus` | `data-protection.ReadMirrorStatus` | `backup.manage` | `—` → 200 `ReadMirrorStatusResult` | 读取镜像与远程同步状态 | `FORBIDDEN` |
+| GET `/v1/settings` | `readProtectionSettings` | `data-protection.ReadProtectionSettings` | `backup.manage` | `—` → 200 `ReadProtectionSettingsResult` | 读取备份与镜像设置 | `FORBIDDEN` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

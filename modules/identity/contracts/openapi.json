@@ -18,11 +18,10 @@
         "summary": "取得可恢复的数据屏障",
         "description": "调用函数 identity.AcquireBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "identity.AcquireBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -106,11 +105,10 @@
         "summary": "导出屏障水位的一致快照",
         "description": "调用函数 identity.ExportSnapshot；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "identity.ExportSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -194,11 +192,10 @@
         "summary": "释放屏障",
         "description": "调用函数 identity.ReleaseBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "identity.ReleaseBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [
@@ -370,8 +367,8 @@
         "x-permission": "superadmin",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [],
@@ -456,8 +453,8 @@
         "x-permission": "superadmin",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -527,8 +524,8 @@
         "x-permission": "account.self",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [],
@@ -575,8 +572,8 @@
         "x-permission": "superadmin",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -674,8 +671,8 @@
         "x-permission": "superadmin",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -773,8 +770,8 @@
         "x-permission": "superadmin",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -872,8 +869,8 @@
         "x-permission": "account.self",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [],
@@ -1021,8 +1018,8 @@
         "x-permission": "account.self",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -1145,8 +1142,8 @@
         "x-permission": "account.self",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -1224,7 +1221,7 @@
         "x-permission": "service",
         "security": [
           {
-            "serviceProof": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -1291,7 +1288,7 @@
         "x-permission": "service",
         "security": [
           {
-            "serviceProof": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -1358,8 +1355,8 @@
         "x-permission": "portal.use",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [],
@@ -1404,8 +1401,8 @@
         "x-permission": "portal.use",
         "security": [
           {
-            "sessionCookie": [],
-            "csrfToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [],
@@ -1551,11 +1548,10 @@
         "summary": "暂存本域恢复归档，不改active目录",
         "description": "暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准",
         "x-handler": "identity.StageSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -1629,11 +1625,10 @@
         "summary": "删除恢复暂存或换出的旧数据目录",
         "description": "删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准",
         "x-handler": "identity.DiscardSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "security": [
           {
-            "serviceProof": [],
-            "adminDelegation": []
+            "serviceAssertion": []
           }
         ],
         "parameters": [],
@@ -1684,27 +1679,41 @@
   },
   "components": {
     "securitySchemes": {
-      "serviceProof": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "description": "mTLS 绑定的短期服务 proof，必须核对 audience/caller/dataEpoch"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "adminDelegation": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "superadmin 短期委托；不能仅凭普通服务 token 执行备份恢复"
+      "userDelegation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
+      },
+      "visitorSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_visitor",
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       },
       "sessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "sid",
-        "description": "identity 签发 HttpOnly Secure SameSite=Strict sid"
+        "name": "nw_sid",
+        "description": "identity签发的HttpOnly Secure SameSite=Strict会话；只由portal读取"
       },
       "csrfToken": {
         "type": "apiKey",
         "in": "header",
         "name": "X-CSRF-Token",
-        "description": "写操作必需；读取可以不发送但会话验证仍执行"
+        "description": "写操作必需；portal经identity核对会话绑定"
       }
     }
   }

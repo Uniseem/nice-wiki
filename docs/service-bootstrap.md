@@ -131,3 +131,7 @@ ServiceConfig明确module/listen/dataDirectory/超时/日志/HTTP依赖端点/�
 ## 已合入模块合同
 
 本轮启动条目已合入每域implementation/types/openapi及functions/files/api文档；后续以模块契约为唯一实现来源。本蓝图说明共同规则，变更必须同步模块实例。业务源码和业务验收尚未开始。
+
+## 平台库实现（[ADR0005](adr/0005-engineering-and-deployment.md)）
+
+上述 main、BuildApplication、Serve、Shutdown 的通用部分由 libs/platform 的 RunService、LoadServiceConfig、ApplyRestoreSwap、ReadRuntime、WatchRuntime、BuildOperationContext、WriteProblem 实现；各服务函数只提供本域装配回调、后台任务清单与任务执行函数表。

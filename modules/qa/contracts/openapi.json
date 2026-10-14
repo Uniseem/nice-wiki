@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "http://qa:8080",
-      "description": "私网服务地址；生产入口TLS与服务mTLS由部署层终止。"
+      "description": "私网服务地址；生产入口TLS与服务服务断言由部署层终止。"
     }
   ],
   "paths": {
@@ -115,7 +115,9 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": [],
+            "admissionPermit": []
           }
         ],
         "requestBody": {
@@ -127,7 +129,8 @@
               }
             }
           }
-        }
+        },
+        "x-admission": "qa.conversation"
       }
     },
     "/v1/conversations/{conversationId}": {
@@ -268,7 +271,8 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": []
           }
         ]
       },
@@ -396,7 +400,8 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": []
           }
         ]
       }
@@ -524,7 +529,9 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": [],
+            "admissionPermit": []
           }
         ],
         "requestBody": {
@@ -536,7 +543,8 @@
               }
             }
           }
-        }
+        },
+        "x-admission": "qa.ask"
       }
     },
     "/v1/turns/{turnId}/events": {
@@ -678,7 +686,8 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": []
           }
         ]
       }
@@ -806,7 +815,8 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": []
           }
         ],
         "requestBody": {
@@ -934,7 +944,8 @@
         },
         "security": [
           {
-            "VisitorCookie": []
+            "serviceAssertion": [],
+            "visitorSession": []
           }
         ],
         "requestBody": {
@@ -1062,10 +1073,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -1078,6 +1087,42 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "readQaPolicy",
+        "summary": "读取问答策略",
+        "description": "读取问答策略",
+        "x-handler": "qa.ReadQaPolicy",
+        "x-permission": "qa.manage",
+        "responses": {
+          "200": {
+            "description": "读取问答策略成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadQaPolicyResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
       }
     },
     "/v1/admin/cache": {
@@ -1183,10 +1228,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -1339,10 +1382,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -1460,10 +1501,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -1601,10 +1640,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -1613,134 +1650,6 @@
             "application/json": {
               "schema": {
                 "$ref": "./types.json#/$defs/DisableCacheEntryInput"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/admin/cache/{cacheId}/translations": {
-      "post": {
-        "operationId": "translateCacheEntry",
-        "summary": "请求精选答案翻译",
-        "x-handler": "qa.TranslateCacheEntry",
-        "x-permission": "service",
-        "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-        "parameters": [
-          {
-            "name": "cacheId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "源精选"
-            },
-            "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 128
-            },
-            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
-            },
-            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "请求精选答案翻译成功；202仅accepted，不保证模型完成或收费已结算。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "./types.json#/$defs/TranslateCacheEntryResult"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "身份、租户、对象拥有者或登记权限不满足。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "公共Problem；错误code必须来自处理函数集合。",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ServiceToken": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "./types.json#/$defs/TranslateCacheEntryInput"
               }
             }
           }
@@ -1860,10 +1769,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "requestBody": {
@@ -2003,10 +1910,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -2016,9 +1921,9 @@
         "operationId": "acquireBarrier",
         "summary": "取得本地维护屏障",
         "x-handler": "qa.AcquireBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2124,10 +2029,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2147,9 +2049,9 @@
         "operationId": "releaseBarrier",
         "summary": "释放已授权维护屏障",
         "x-handler": "qa.ReleaseBarrier",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "barrierId",
@@ -2264,10 +2166,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2287,9 +2186,9 @@
         "operationId": "exportSnapshot",
         "summary": "导出安全watermark快照",
         "x-handler": "qa.ExportSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service身份+mTLS和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2395,10 +2294,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2546,10 +2442,8 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }
@@ -2621,7 +2515,7 @@
         "operationId": "stageSnapshot",
         "summary": "暂存本域恢复归档，不改active目录",
         "x-handler": "qa.StageSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -2699,10 +2593,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2722,7 +2613,7 @@
         "operationId": "discardSnapshot",
         "summary": "删除恢复暂存或换出的旧数据目录",
         "x-handler": "qa.DiscardSnapshot",
-        "x-permission": "superadmin",
+        "x-permission": "service",
         "x-timeout-ms": 120000,
         "description": "删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准",
         "parameters": [
@@ -2780,10 +2671,7 @@
         },
         "security": [
           {
-            "AdminSession": []
-          },
-          {
-            "ServiceToken": []
+            "serviceAssertion": []
           }
         ],
         "requestBody": {
@@ -2797,27 +2685,180 @@
           }
         }
       }
+    },
+    "/v1/admin/turns": {
+      "get": {
+        "operationId": "listTurnRecords",
+        "summary": "浏览与筛选问答记录",
+        "description": "浏览与筛选问答记录",
+        "x-handler": "qa.ListTurnRecords",
+        "x-permission": "qa.manage",
+        "responses": {
+          "200": {
+            "description": "浏览与筛选问答记录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListTurnRecordsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "no_evidence",
+                "unhelpful",
+                "failed",
+                "cached"
+              ],
+              "default": "all"
+            },
+            "description": "筛选条件"
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 35
+            },
+            "description": "语言"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "上一页返回的签名游标"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "每页条数"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/turns/{turnId}": {
+      "get": {
+        "operationId": "readTurnRecord",
+        "summary": "查看问答记录",
+        "description": "查看问答记录",
+        "x-handler": "qa.ReadTurnRecord",
+        "x-permission": "qa.manage",
+        "responses": {
+          "200": {
+            "description": "查看问答记录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadTurnRecordResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：不存在",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "turnId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "轮次"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "securitySchemes": {
-      "ServiceToken": {
+      "serviceAssertion": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "mTLS服务身份且audience=qa；备份恢复控制另校验data-protection服务身份与superadmin委托。"
+        "bearerFormat": "JWT(EdDSA)",
+        "description": "调用方服务用部署时登记的Ed25519私钥签发≤60秒断言（iss=调用服务、aud=本服务、method、path、bodyHash、jti）；接收方按trustAnchorRef服务公钥表验证并拒绝重放"
       },
-      "AdminSession": {
+      "userDelegation": {
         "type": "apiKey",
-        "in": "cookie",
-        "name": "nw_admin_session",
-        "description": "identity管理会话且CSRF token；浏览器写请求校验Origin/CSRF。"
+        "in": "header",
+        "name": "X-Portal-Proof",
+        "description": "portal为当前请求签发的≤10秒用户委托证明（actor、grants、sessionVersion、route、bodyHash）；下游链路原样传递，接收方仍经identity:checkAuthorization核权限与会话版本"
       },
-      "VisitorCookie": {
+      "visitorSession": {
         "type": "apiKey",
         "in": "cookie",
         "name": "nw_visitor",
-        "description": "guard签署伪名访客；读取校验owner，写入另验AdmissionPermit。"
+        "description": "traffic-guard签署的伪名访客会话；只用于公开问答与语言偏好，不含IP"
+      },
+      "admissionPermit": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admission-Permit",
+        "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
     }
   }

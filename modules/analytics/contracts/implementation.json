@@ -560,7 +560,9 @@
             "analytics.ValidateBeacon",
             "analytics.HashDayToken",
             "analytics.ClassifyCrawler",
-            "analytics.LookupCountry"
+            "analytics.LookupCountry",
+            "analytics.BucketLatency",
+            "analytics.CheckPrivacyFields"
           ],
           "resources": [],
           "contract": "binding"
@@ -1901,7 +1903,8 @@
           "idempotency": "eventId/revision/hash幂等",
           "dependencies": [
             "model-gateway:queryUsage",
-            "analytics.ProjectUsage"
+            "analytics.ProjectUsage",
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -1996,7 +1999,87 @@
           "dependencies": [
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
-            "analytics.ConsumeAnalyticsEvent"
+            "analytics.ConsumeAnalyticsEvent",
+            "analytics.ProjectQaTurn",
+            "platform.RunConsumer"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "analytics.ProjectQaTurn",
+          "name": "ProjectQaTurn",
+          "signature": "func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "EventDelivery",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "EventHandled",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "把问答轮次事件投影为按日计数",
+          "steps": [
+            "inbox按eventId+payloadHash去重",
+            "qa.turn.completed按日期/语言累加问答量、缓存命中与answerKind（answered/no_evidence/clarification/out_of_scope）；qa.turn.failed累加失败数与错误码",
+            "只保存ID、计数与分类，不保存问题正文或访客标识"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "旧代事件",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写问答日计数"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅由本域ConsumeEvents调用"
+          },
+          "concurrency": "日计数行CAS",
+          "idempotency": "eventId去重",
+          "dependencies": [
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -2081,7 +2164,9 @@
           "dependencies": [
             "analytics.QueryPageStatistics",
             "analytics.QueryAudits",
-            "analytics.QueryUsageStatistics"
+            "analytics.QueryUsageStatistics",
+            "analytics.ValidateCSVCell",
+            "analytics.CheckPrivacyFields"
           ],
           "resources": [],
           "contract": "binding"
@@ -2447,7 +2532,8 @@
           "concurrency": "30s发送租约，至少一次",
           "idempotency": "eventId固定",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.RunRelay"
           ],
           "resources": [],
           "contract": "binding"
@@ -2518,7 +2604,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "等待所有在途事务和export file恢复日志到安全点",
           "idempotency": "barrierId幂等",
@@ -2586,7 +2672,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "不释放到混代读取",
           "idempotency": "barrierId幂等",
@@ -2670,7 +2756,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "固定watermark无写入",
           "idempotency": "backupId/barrierId幂等",
@@ -2740,7 +2826,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -2783,7 +2869,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -2846,7 +2932,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -2869,7 +2955,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -3417,10 +3503,10 @@
           ],
           "purpose": "热门文档与答不出问题联动",
           "steps": [
-            "checkstats.read和qa记录读取权限",
-            "热门文档按语言",
-            "qa只返回安全recordId/分类计数，问题正文仍由qa权限页面读取",
-            "显示QA量/缓存命中率/无答案比率"
+            "校验stats.read",
+            "热门文档按语言读取页面统计",
+            "问答量、缓存命中率与无答案比率读取本域ProjectQaTurn投影；问题正文仍只在qa权限页面查看",
+            "显示统计水位与事件延迟说明"
           ],
           "errors": [
             {
@@ -3448,24 +3534,10 @@
           "dependencies": [
             "analytics.QueryPageStatistics"
           ],
-          "resources": [
-            "qa统计引用API"
-          ],
+          "resources": [],
           "contract": "binding"
         }
       ]
-    },
-    {
-      "path": "modules/analytics/internal/types.gen.go",
-      "kind": "generated",
-      "purpose": "从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module analytics --target go-types，输出不得手改",
-      "functions": []
-    },
-    {
-      "path": "modules/analytics/internal/http_bindings.gen.go",
-      "kind": "generated",
-      "purpose": "从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module analytics --target go-http，x-handler映射仅转调手写函数",
-      "functions": []
     },
     {
       "path": "modules/analytics/config/defaults.json",
@@ -3522,7 +3594,8 @@
           "dependencies": [
             "analytics.BuildApplication",
             "analytics.Serve",
-            "analytics.Shutdown"
+            "analytics.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -3572,7 +3645,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -3604,7 +3678,17 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "analytics.FlushBeacons",
+            "analytics.PurgeBeacons",
+            "analytics.PurgeAuditHistory",
+            "analytics.PurgeExports",
+            "analytics.PublishAggregateEvents",
+            "analytics.ConsumeEvents",
+            "analytics.RunWorker",
+            "jobs:createSchedule",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3678,7 +3762,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "analytics.BuildApplication",
-            "analytics.Shutdown"
+            "analytics.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -3980,6 +4067,183 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/analytics/internal/worker.go",
+      "kind": "handwritten",
+      "purpose": "主动领取本域持久任务的循环",
+      "functions": [
+        {
+          "id": "analytics.RunWorker",
+          "name": "RunWorker",
+          "signature": "func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) (WorkerLoopResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "WorkerLoopInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "WorkerLoopResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "主动领取并执行本域登记的持久任务",
+          "steps": [
+            "进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取",
+            "领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested",
+            "执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束",
+            "lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用；退避后重试领取",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用jobs租约接口",
+            "执行本域登记的任务函数"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
+          },
+          "concurrency": "每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回",
+          "idempotency": "jobs按jobId与fence去重；执行函数自身按输入引用幂等",
+          "dependencies": [
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "jobs:completeJob",
+            "jobs:failJob",
+            "analytics.AggregateHourly",
+            "analytics.AggregateDaily",
+            "analytics.AggregateUsage",
+            "analytics.ReconcileUsage",
+            "platform.RunWorkerLoop"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    }
+  ],
+  "jobTypes": [
+    {
+      "type": "analytics.aggregate-hourly",
+      "executor": "analytics.AggregateHourly",
+      "trigger": "系统定时",
+      "schedule": "5 * * * *"
+    },
+    {
+      "type": "analytics.aggregate-daily",
+      "executor": "analytics.AggregateDaily",
+      "trigger": "系统定时（站点时区）",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "type": "analytics.aggregate-usage",
+      "executor": "analytics.AggregateUsage",
+      "trigger": "系统定时",
+      "schedule": "20 * * * *"
+    },
+    {
+      "type": "analytics.reconcile-usage",
+      "executor": "analytics.ReconcileUsage",
+      "trigger": "系统定时；ReleaseBarrier恢复后创建",
+      "schedule": "30 3 * * *"
+    }
+  ],
+  "backgroundTasks": [
+    {
+      "function": "analytics.FlushBeacons",
+      "schedule": "每5秒"
+    },
+    {
+      "function": "analytics.PurgeBeacons",
+      "schedule": "每日"
+    },
+    {
+      "function": "analytics.PurgeAuditHistory",
+      "schedule": "每日"
+    },
+    {
+      "function": "analytics.PurgeExports",
+      "schedule": "每小时"
+    },
+    {
+      "function": "analytics.PublishAggregateEvents",
+      "schedule": "启动后持续，空闲每1秒"
+    },
+    {
+      "function": "analytics.ConsumeEvents",
+      "schedule": "启动后持续"
+    },
+    {
+      "function": "analytics.RunWorker",
+      "schedule": "启动后持续"
     }
   ]
 }

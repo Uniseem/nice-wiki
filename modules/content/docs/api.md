@@ -9,9 +9,9 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| POST `/v1/barriers` | `acquireBarrier` | `content.AcquireBarrier` | `superadmin` | `BarrierRequest` → 200 `BarrierStatus` | 取得可恢复的数据屏障 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `content.ExportSnapshot` | `superadmin` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出屏障水位的一致快照 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `content.ReleaseBarrier` | `superadmin` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
+| POST `/v1/barriers` | `acquireBarrier` | `content.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得可恢复的数据屏障 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
+| POST `/v1/snapshots:export` | `exportSnapshot` | `content.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出屏障水位的一致快照 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
+| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `content.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | GET `/v1/documents` | `listDocuments` | `content.ListDocuments` | `content.read` | `—` → 200 `ListDocumentsResult` | 文档及回收站分页列表 | `VALIDATION`、`FORBIDDEN` |
 | POST `/v1/documents` | `createDocument` | `content.CreateDocument` | `content.edit` | `CreateDocumentInput` → 200 `CreateDocumentResult` | 新建共享草稿文档 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/tree` | `readDocumentTree` | `content.ReadDocumentTree` | `content.read` | `—` → 200 `ReadDocumentTreeResult` | 后台读取整站文档树 | `FORBIDDEN`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
@@ -42,7 +42,7 @@
 | GET `/v1/public-path:resolve` | `resolvePublicPath` | `content.ResolvePublicPath` | `anonymous` | `—` → 200 `ResolvePublicPathResult` | 解析301/410公开路径 | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/healthz` | `health` | `content.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `content.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `content.StageSnapshot` | `superadmin` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `content.DiscardSnapshot` | `superadmin` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| POST `/v1/snapshots:stage` | `stageSnapshot` | `content.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/snapshots:discard` | `discardSnapshot` | `content.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 <!-- openapi:end -->
 

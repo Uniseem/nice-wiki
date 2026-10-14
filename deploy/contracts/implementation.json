@@ -1,0 +1,58 @@
+{
+  "moduleId": "L02",
+  "module": "deploy",
+  "version": 1,
+  "phase": "design",
+  "requirements": [
+    {
+      "id": "L02-R01",
+      "description": "单机Docker Compose部署15个服务与Caddy反代，进程守护自动重启",
+      "acceptance": "任一服务以退出码75退出后自动拉起"
+    },
+    {
+      "id": "L02-R02",
+      "description": "HTTPS只在Caddy终止；公开页面直达public-site，/api、/admin、/ui经portal",
+      "acceptance": "内部服务端口不暴露到宿主机外"
+    },
+    {
+      "id": "L02-R03",
+      "description": "服务地址、端口、数据卷与公钥表各有唯一来源",
+      "acceptance": "服务配置从services.json与trust-anchors.json读取"
+    }
+  ],
+  "dependencies": [],
+  "jobTypes": [],
+  "backgroundTasks": [],
+  "files": [
+    {
+      "path": "deploy/docker-compose.yml",
+      "kind": "config",
+      "purpose": "15个服务与Caddy的编排：restart unless-stopped；每服务独占数据卷/data/<slug>（active、control、restore）；备份卷/backups只挂data-protection；内部网络；GOMEMLIMIT按operations.md；secret以文件挂载",
+      "functions": []
+    },
+    {
+      "path": "deploy/caddy/Caddyfile",
+      "kind": "config",
+      "purpose": "HTTPS终止与路由：/api/*、/admin*、/ui/*→portal:8080，其余→public-site:8081；只信任本机Caddy转发头；压缩与静态缓存头",
+      "functions": []
+    },
+    {
+      "path": "deploy/config/services.json",
+      "kind": "config",
+      "purpose": "服务清单唯一来源：slug→内部URL、端口、数据卷与依赖；各服务ServiceConfig.dependencies与nw-keys从此读取",
+      "functions": []
+    },
+    {
+      "path": "deploy/config/trust-anchors.json",
+      "kind": "generated",
+      "purpose": "由nw-keys生成的服务与portal委托公钥表；不含私钥",
+      "functions": []
+    },
+    {
+      "path": "deploy/.env.example",
+      "kind": "config",
+      "purpose": "部署变量模板（域名、站点时区、镜像版本）；不含任何密钥",
+      "functions": []
+    }
+  ]
+}

@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.example.com/nice-wiki/libs/platform/types",
+  "$defs": {
+    "SigningKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "私钥引用；私钥字节只在内存",
+      "properties": {
+        "keyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "密钥ID"
+        },
+        "privateKeyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "secret文件路径引用"
+        }
+      },
+      "required": [
+        "keyId",
+        "privateKeyRef"
+      ]
+    },
+    "AssertionClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "服务断言声明",
+      "properties": {
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "调用服务slug"
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "目标服务slug"
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "HTTP方法"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "请求路径"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "请求体SHA-256"
+        },
+        "issuedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "签发时刻"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "≤签发后60秒"
+        },
+        "jti": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "一次性ID"
+        }
+      },
+      "required": [
+        "issuer",
+        "audience",
+        "method",
+        "path",
+        "bodyHash",
+        "issuedAt",
+        "expiresAt",
+        "jti"
+      ]
+    },
+    "AssertionExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "验证断言时的期望值",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本服务slug"
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "HTTP方法"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "请求路径"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "请求体SHA-256"
+        }
+      },
+      "required": [
+        "audience",
+        "method",
+        "path",
+        "bodyHash"
+      ]
+    },
+    "TrustAnchors": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "服务公钥表",
+      "properties": {
+        "services": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "每服务公钥",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "一个公钥",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "服务slug"
+              },
+              "keyId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "密钥ID"
+              },
+              "publicKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Ed25519公钥base64url"
+              }
+            },
+            "required": [
+              "slug",
+              "keyId",
+              "publicKey"
+            ]
+          }
+        },
+        "portalDelegationKeys": {
+          "type": "array",
+          "maxItems": 4,
+          "description": "portal委托公钥",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "一个公钥",
+            "properties": {
+              "keyId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "密钥ID"
+              },
+              "publicKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Ed25519公钥base64url"
+              }
+            },
+            "required": [
+              "keyId",
+              "publicKey"
+            ]
+          }
+        }
+      },
+      "required": [
+        "services",
+        "portalDelegationKeys"
+      ]
+    },
+    "DelegationClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "用户委托声明",
+      "properties": {
+        "actor": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
+          "description": "委托主体"
+        },
+        "sessionVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "会话版本"
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "路由ID"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "请求体SHA-256"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "≤签发后10秒"
+        }
+      },
+      "required": [
+        "actor",
+        "sessionVersion",
+        "route",
+        "bodyHash",
+        "expiresAt"
+      ]
+    },
+    "DelegationExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "验证委托时的期望值",
+      "properties": {
+        "route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "路由ID"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "请求体SHA-256"
+        }
+      },
+      "required": [
+        "route",
+        "bodyHash"
+      ]
+    },
+    "RuntimeView": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "运行状态摘要",
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "当前active epoch"
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "site-config RuntimePhase"
+        },
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可选；恢复ID"
+        },
+        "targetDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可选；目标epoch"
+        },
+        "maintenance": {
+          "type": "boolean",
+          "description": "是否维护中"
+        }
+      },
+      "required": [
+        "dataEpoch",
+        "phase",
+        "maintenance"
+      ]
+    },
+    "Tx": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域数据库事务句柄（Go接口，不序列化）"
+    },
+    "OutboxStore": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域outbox表访问接口"
+    },
+    "JobsClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "由jobs openapi生成的客户端，自动附服务断言"
+    },
+    "GatewayClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "由model-gateway openapi生成的客户端"
+    },
+    "SiteConfigClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "由site-config openapi生成的客户端"
+    },
+    "EventHandlerRegistry": {
+      "type": "object",
+      "x-internal": true,
+      "description": "事件名→处理函数映射，由本域events.json生成"
+    },
+    "JobExecutorRegistry": {
+      "type": "object",
+      "x-internal": true,
+      "description": "jobType→执行函数映射，由本域jobTypes生成"
+    },
+    "ServiceSpec": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域slug与BuildApplication/Serve/Shutdown回调"
+    },
+    "RelayConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "转发循环参数",
+      "properties": {
+        "batchLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "单批行数"
+        },
+        "pollMillis": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "空闲轮询间隔"
+        }
+      },
+      "required": [
+        "batchLimit",
+        "pollMillis"
+      ]
+    },
+    "ConsumerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "订阅循环参数",
+      "properties": {
+        "consumerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本域slug"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "事件名@版本"
+          },
+          "description": "订阅的事件"
+        },
+        "maxInFlight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "description": "并发上限"
+        }
+      },
+      "required": [
+        "consumerId",
+        "events",
+        "maxInFlight"
+      ]
+    },
+    "WorkerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "领取循环参数",
+      "properties": {
+        "jobTypes": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "任务类型"
+          },
+          "description": "本域登记类型"
+        },
+        "maxConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "并发上限"
+        }
+      },
+      "required": [
+        "jobTypes",
+        "maxConcurrency"
+      ]
+    },
+    "InvokeModelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用请求",
+      "properties": {
+        "request": {
+          "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
+          "description": "网关请求"
+        },
+        "idempotencyKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "操作ID+步骤名"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "是否逐条回调"
+        }
+      },
+      "required": [
+        "request",
+        "idempotencyKey",
+        "stream"
+      ]
+    },
+    "InvokeModelOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型调用终态",
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "网关调用ID"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "charge_unknown"
+          ],
+          "description": "终态"
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/StreamEvent"
+          },
+          "description": "全部事件"
+        }
+      },
+      "required": [
+        "invocationId",
+        "state",
+        "events"
+      ]
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "通用服务配置",
+      "properties": {
+        "module": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "服务slug"
+        },
+        "listen": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "监听地址"
+        },
+        "dataRoot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "数据根"
+        },
+        "trustAnchorRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "公钥表路径"
+        },
+        "signingKeyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本服务私钥路径"
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "description": "依赖服务slug→内部URL"
+        }
+      },
+      "required": [
+        "module",
+        "listen",
+        "dataRoot",
+        "trustAnchorRef",
+        "signingKeyRef",
+        "dependencies"
+      ]
+    },
+    "SwapResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "换目录结果",
+      "properties": {
+        "action": {
+          "enum": [
+            "none",
+            "switched",
+            "rolled-back"
+          ],
+          "description": "执行的动作"
+        },
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "可选；恢复ID"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  }
+}

@@ -2,26 +2,26 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 53 个：手写 37、UI 3、生成 3、配置 9、迁移 1。函数 57 个：约束 35，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 39、UI 3、生成 5、配置 10、迁移 1。函数 60 个：约束 42，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/memory/internal/runtime/bootstrap.go` | 手写 | 启动记忆服务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.LoadRuntime`（参考） |
 | `modules/memory/internal/entry/validate.go` | 手写 | 验证记忆内容与预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ValidateEntry`（参考） |
-| `modules/memory/internal/entry/write.go` | 手写 | 创建人工记忆条目所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.CreateEntry`、`memory.UpdateEntry`、`memory.ArchiveEntry`、`memory.RestoreEntry`（参考） |
+| `modules/memory/internal/entry/write.go` | 手写 | 创建人工记忆条目所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.CreateEntry`、`memory.UpdateEntry`、`memory.ArchiveEntry`、`memory.RestoreEntry` |
 | `modules/memory/internal/entry/read.go` | 手写 | 读取人工记忆或历史所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReadEntry`、`memory.ListEntries` |
 | `modules/memory/internal/entry/history.go` | 手写 | 读取不可变记忆历史所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ListEntryRevisions` |
 | `modules/memory/internal/mapping/write.go` | 手写 | 维护任务映射所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PutMapping`、`memory.RemoveMapping` |
-| `modules/memory/internal/mapping/order.go` | 手写 | 稳定重排任务记忆所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReorderMappings`（参考） |
+| `modules/memory/internal/mapping/order.go` | 手写 | 稳定重排任务记忆所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReorderMappings` |
 | `modules/memory/internal/mapping/read.go` | 手写 | 读取任务映射所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ListMappings` |
-| `modules/memory/internal/context/budget.go` | 手写 | 配置任务注入上限所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PutTaskBudget`、`memory.ReadTaskBudget`（参考） |
+| `modules/memory/internal/context/budget.go` | 手写 | 配置任务注入上限所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PutTaskBudget`、`memory.ReadTaskBudget`（参考）、`memory.ListTaskBudgets` |
 | `modules/memory/internal/context/select.go` | 手写 | 按范围确定注入候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.SelectContextEntries`（参考）、`memory.ApplyContextBudget`（参考） |
 | `modules/memory/internal/context/render.go` | 手写 | 生成防混淆记忆上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RenderContext`（参考） |
 | `modules/memory/internal/context/service.go` | 手写 | 跨服务取得版本化记忆上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ResolveContext` |
-| `modules/memory/internal/context/manifest.go` | 手写 | 查询版本证据清单所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReadContextManifest`（参考） |
+| `modules/memory/internal/context/manifest.go` | 手写 | 查询版本证据清单所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReadContextManifest` |
 | `modules/memory/internal/assistant/create.go` | 手写 | 显式运行记忆助手所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.CreateAssistantRun` |
 | `modules/memory/internal/assistant/prompt.go` | 手写 | 构造只允许提议助手输入所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.BuildAssistantPrompt`（参考） |
-| `modules/memory/internal/assistant/execute.go` | 手写 | 通过MG产生候选提议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RunAssistant`（参考） |
+| `modules/memory/internal/assistant/execute.go` | 手写 | 通过MG产生候选提议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RunAssistant` |
 | `modules/memory/internal/proposal/validate.go` | 手写 | 验证候选提议闭包所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ValidateProposal`（参考） |
 | `modules/memory/internal/assistant/commit.go` | 手写 | 提交候选防旧覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.CommitAssistantProposals`（参考） |
 | `modules/memory/internal/assistant/read.go` | 手写 | 管理助手提议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReadAssistantRun` |
@@ -38,10 +38,9 @@
 | `modules/memory/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `memory.LoadAdminOverview`（参考） |
 | `modules/memory/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `memory.SubmitPrimaryEdit`（参考） |
 | `modules/memory/internal/context/preflight.go` | 手写 | 保存前完整投影注入预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ValidateProjectedBudgets`（参考） |
-| `modules/memory/internal/assistant/overview.go` | 手写 | 自动维护项目概述并保护人工修改所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.UpdateProjectOverview`（参考） |
+| `modules/memory/internal/assistant/overview.go` | 手写 | 自动维护项目概述并保护人工修改所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.UpdateProjectOverview` |
 | `modules/memory/internal/assistant/conversation.go` | 手写 | 保存可连续的记忆助手对话所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AppendAssistantMessage`、`memory.ReadAssistantConversation`、`memory.DeleteAssistantConversation` |
 | `modules/memory/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RunWorker` |
-| `modules/memory/contracts/generated/schema.gen.go` | 生成 | 未来由根contract compiler从本域types/openapi生成DTO，Generator(inputSchemas []SchemaRef, outputDirectory string) error；生成前schema refs必须解析，禁止手写编辑。 | 无 |
 | `modules/memory/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/memory/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
 | `modules/memory/cmd/memory/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `memory.main` |
@@ -59,3 +58,9 @@
 | `modules/memory/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/memory/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `memory.mountModuleUI` |
 | `modules/memory/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `memory.ConsumeEvents` |
+| `modules/memory/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `memory.InvokeModel`（参考） |
+| `modules/memory/internal/events/publication-count.go` | 手写 | 统计新发布数以触发项目概述更新 | `memory.CountPublication` |
+| `modules/memory/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
+| `modules/memory/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/memory/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/memory/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |

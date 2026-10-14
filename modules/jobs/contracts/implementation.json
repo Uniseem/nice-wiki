@@ -221,7 +221,7 @@
           ],
           "purpose": "验证任务入口",
           "steps": [
-            "owner/type注册白名单",
+            "owner/type须在config/job-types.json（由各域jobTypes生成）登记",
             "引用owner与hash/size检查",
             "dataEpoch匹配运行权威"
           ],
@@ -380,7 +380,8 @@
             "验lease",
             "classify",
             "事务running→retry-wait/dead-letter/cancelled并释放lease",
-            "只存错误码不存正文"
+            "只存错误码不存正文",
+            "任务处于cancel-requested且owner报告cancelled时经ConfirmCancelled结束，保留已付费结果引用"
           ],
           "errors": [
             {
@@ -409,7 +410,8 @@
           "idempotency": "jobId/fence/failureOperationId幂等",
           "dependencies": [
             "jobs.ClassifyFailure",
-            "jobs.ComputeRetryAt"
+            "jobs.ComputeRetryAt",
+            "jobs.ConfirmCancelled"
           ],
           "resources": [],
           "contract": "binding"
@@ -490,7 +492,9 @@
           },
           "concurrency": "只允许owner领取自己的任务；CAS防双领",
           "idempotency": "同claim operationId返回原batch",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.DispatchOwnerTask"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -615,7 +619,8 @@
             "续now+30s",
             "返回cancelRequested与barrier safePointRequested",
             "maintenance限定deadline",
-            "到期后不允许复活"
+            "到期后不允许复活",
+            "心跳可携带进度，经AppendProgress持久"
           ],
           "errors": [
             {
@@ -642,7 +647,9 @@
           },
           "concurrency": "过期后不允许复活",
           "idempotency": "operationId去重同expiry",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.AppendProgress"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -1957,7 +1964,7 @@
             "identity:checkAuthorization"
           ],
           "resources": [],
-          "contract": "reference"
+          "contract": "binding"
         }
       ]
     },
@@ -2037,7 +2044,6 @@
           "concurrency": "失败由租约协议重试，owner须jobId/fence去重",
           "idempotency": "jobId/fence稳定请求key",
           "dependencies": [
-            "jobs.ClaimJob",
             "jobs.CheckLease"
           ],
           "resources": [],
@@ -2237,7 +2243,7 @@
           ],
           "purpose": "创建定时任务",
           "steps": [
-            "查job.manage+owner/type权限",
+            "job.manage管理员，或owner服务身份只为本域jobTypes登记系统默认schedule（固定scheduleId，重复登记返回原记录）",
             "校验cron",
             "存nextAt/启用状态和审计事件"
           ],
@@ -2348,6 +2354,79 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.ListSchedules",
+          "name": "ListSchedules",
+          "signature": "func ListSchedules(ctx context.Context, op OperationContext, input ListSchedulesInput) (ListSchedulesResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListSchedulesInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListSchedulesResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看定时任务",
+          "steps": [
+            "job.manage",
+            "列出系统默认与管理员登记的schedule、下次触发时间与启用状态"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "job.manage",
+            "rule": "后台管理员"
+          },
+          "concurrency": "只读快照",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2396,7 +2475,7 @@
           ],
           "purpose": "等待全域安全点",
           "steps": [
-            "验证data-protection+superadmin",
+            "验证data-protection服务身份（用户授权已由data-protection核验）",
             "持久stop claims/newjobs/schedules",
             "向每有状态域acquireBarrier",
             "SSE等待所有safe和领域fence水位"
@@ -2422,7 +2501,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "不能只等jobs lease；每域实际在途写入/文件恢复日志都到安全点",
           "idempotency": "barrierId重复查询并继续原协调",
@@ -2499,7 +2578,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "事件接收暂拒503让producer outbox保留；ack安全落点后冻结",
           "idempotency": "barrierId幂等",
@@ -2574,7 +2653,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "旧任务不能改epoch后自动继续",
           "idempotency": "barrierId幂等",
@@ -2732,7 +2811,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service+superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "barrier水位之后无事件提交",
           "idempotency": "backupId/barrierId幂等",
@@ -2802,7 +2881,7 @@
           ],
           "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
           "steps": [
-            "校验data-protection服务身份与superadmin委托；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
             "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
             "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
             "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
@@ -2845,7 +2924,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带发起恢复的superadmin委托；普通业务调用拒绝"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -2908,7 +2987,7 @@
           ],
           "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
           "steps": [
-            "校验data-protection服务身份与superadmin委托",
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
             "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
             "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
             "删除后在control区记录discarded；目录不存在返回removed=false"
@@ -2931,7 +3010,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份携带superadmin委托"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -3292,18 +3371,6 @@
       ]
     },
     {
-      "path": "modules/jobs/internal/types.gen.go",
-      "kind": "generated",
-      "purpose": "从contracts/types.json和公共schema生成Go字段模型；生成器接口 contractgen --module jobs --target go-types，输出不得手改",
-      "functions": []
-    },
-    {
-      "path": "modules/jobs/internal/http_bindings.gen.go",
-      "kind": "generated",
-      "purpose": "从OpenAPI生成严格入参绑定和Problem输出；接口 contractgen --module jobs --target go-http，x-handler映射仅转调手写函数",
-      "functions": []
-    },
-    {
       "path": "modules/jobs/config/defaults.json",
       "kind": "config",
       "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref",
@@ -3358,7 +3425,8 @@
           "dependencies": [
             "jobs.BuildApplication",
             "jobs.Serve",
-            "jobs.Shutdown"
+            "jobs.Shutdown",
+            "platform.RunService"
           ],
           "resources": [],
           "contract": "binding"
@@ -3408,7 +3476,8 @@
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
-            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
+            "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
           ],
           "errors": [
             {
@@ -3440,7 +3509,14 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation"
+            "site-config:registerActivation",
+            "jobs.RequeueDue",
+            "jobs.ReapExpiredLeases",
+            "jobs.TickSchedules",
+            "jobs.RequeueExpiredDeliveries",
+            "jobs.PurgeExpiredHistory",
+            "platform.ApplyRestoreSwap",
+            "platform.ReadRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3514,7 +3590,10 @@
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
             "jobs.BuildApplication",
-            "jobs.Shutdown"
+            "jobs.Shutdown",
+            "platform.WatchRuntime",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -3822,6 +3901,294 @@
       "kind": "generated",
       "purpose": "事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝",
       "functions": []
+    },
+    {
+      "path": "modules/jobs/config/job-types.json",
+      "kind": "generated",
+      "purpose": "任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/internal/queries.go",
+      "kind": "handwritten",
+      "purpose": "查看任务队列",
+      "functions": [
+        {
+          "id": "jobs.ListJobs",
+          "name": "ListJobs",
+          "signature": "func ListJobs(ctx context.Context, op OperationContext, input ListJobsInput) (ListJobsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListJobsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListJobsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看任务队列",
+          "steps": [
+            "job.manage",
+            "按状态与owner分页读取任务，含进度摘要与最后错误码",
+            "不返回任务输入正文"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "job.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "jobs.RetryJob",
+          "name": "RetryJob",
+          "signature": "func RetryJob(ctx context.Context, op OperationContext, input RetryJobInput) (RetryJobResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RetryJobInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RetryJobResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "人工重试失败或死信任务",
+          "steps": [
+            "job.manage；只接受failed或dead-letter且当前epoch的任务",
+            "保留rootOperationId与已付费结果引用，重新排队并重置attempt计数",
+            "写job-state事件"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "非当前epoch或状态不允许",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写任务状态"
+          ],
+          "authorization": {
+            "permission": "job.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "jobs.ListDeliveries",
+          "name": "ListDeliveries",
+          "signature": "func ListDeliveries(ctx context.Context, op OperationContext, input ListDeliveriesInput) (ListDeliveriesResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListDeliveriesInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListDeliveriesResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看死信投递",
+          "steps": [
+            "job.manage",
+            "分页读取dead-letter投递与最后错误码"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "job.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    }
+  ],
+  "jobTypes": [],
+  "backgroundTasks": [
+    {
+      "function": "jobs.RequeueDue",
+      "schedule": "每1秒"
+    },
+    {
+      "function": "jobs.ReapExpiredLeases",
+      "schedule": "每5秒"
+    },
+    {
+      "function": "jobs.TickSchedules",
+      "schedule": "每1秒"
+    },
+    {
+      "function": "jobs.RequeueExpiredDeliveries",
+      "schedule": "每5秒"
+    },
+    {
+      "function": "jobs.PurgeExpiredHistory",
+      "schedule": "每日"
     }
   ]
 }

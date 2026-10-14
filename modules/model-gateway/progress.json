@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "design",
-  "contractSha256": "8c4908c69313a9ade1ec6d761f1b941ea4eedc189944b83fca10a818fc24a973",
+  "contractSha256": "a1af42cc8f5668e70dd64ec664bb15771daa93c41e8b08c6069059f63679aa32",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -351,26 +351,6 @@
       "blocker": null
     },
     {
-      "path": "modules/model-gateway/internal/runtime/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/model-gateway/contracts/generated/schema.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/model-gateway/deploy/service.config.json",
       "state": "planned",
       "implementationCommit": null,
@@ -522,6 +502,46 @@
     },
     {
       "path": "modules/model-gateway/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/openapi.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/clients.gen.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/oapi-codegen.yaml",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -699,6 +719,17 @@
     },
     {
       "id": "model-gateway.DispatchInvocation",
+      "path": "modules/model-gateway/internal/invocation/dispatch.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.ExecuteInvocation",
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
       "state": "planned",
       "implementationCommit": null,
@@ -962,6 +993,17 @@
       "blocker": null
     },
     {
+      "id": "model-gateway.ReadAdminCatalog",
+      "path": "modules/model-gateway/internal/admin/read.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "model-gateway.RedactLog",
       "path": "modules/model-gateway/internal/security/redact.go",
       "state": "planned",
@@ -1140,17 +1182,6 @@
     {
       "id": "model-gateway.ParseRerankResponse",
       "path": "modules/model-gateway/internal/provider/rerank.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
-      "id": "model-gateway.RunWorker",
-      "path": "modules/model-gateway/internal/runtime/worker.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
