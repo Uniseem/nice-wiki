@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "identity",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "e66d7bce647655f47f1f023cdd736370f275de55e49a09317f14961397348c25",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-01（GLM/ZCode，启动装配组）",
+  "branch": "codex/identity-r1-01",
+  "baseCommit": "9c667f3580ee1656d161f3b08311333e08a8ebb5",
+  "deliveryCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
   "deployment": "not_started",
   "files": [
     {
@@ -172,58 +172,58 @@
     },
     {
       "path": "modules/identity/cmd/identity/main.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "accounts子命令与整体完工依赖ReadServerAccountIndex（后续业务包）；其余入口步骤已随交付提交实现"
     },
     {
       "path": "modules/identity/internal/app/wire.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "步骤3-7的存储打开/x-handler绑定/换向后会话失效与回执/后台循环依赖业务函数；目录布局、信任锚、运行权威与ApplyRestoreSwap已随交付提交实现"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/go.sum",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -232,8 +232,8 @@
     },
     {
       "path": "modules/identity/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -242,8 +242,8 @@
     },
     {
       "path": "modules/identity/config/service.defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -252,8 +252,8 @@
     },
     {
       "path": "modules/identity/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -735,69 +735,69 @@
     {
       "id": "identity.main",
       "path": "modules/identity/cmd/identity/main.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第4步accounts运维子命令依赖identity.ReadServerAccountIndex（server_recovery.go，后续业务包）；步骤1-3（配置解析/信号/RunService模板/Shutdown退出语义）已随交付提交实现，接线后翻implemented"
     },
     {
       "id": "identity.BuildApplication",
       "path": "modules/identity/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "合同步骤3-7未完：业务存储打开与schema迁移、全部OpenAPI x-handler绑定、换入后InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；已实现：module/data目录/secretRef验证、active-control-restore布局、信任锚与签名密钥加载、site-config运行权威读取、ApplyRestoreSwap接入（换向后因回执依赖未实现而拒绝开放入口）"
     },
     {
       "id": "identity.Serve",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；Ready的schema/journal/epoch深度校验随业务存储落地（见handoff）"
       },
       "blocker": null
     },
     {
       "id": "identity.Shutdown",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；Ready的schema/journal/epoch深度校验随业务存储落地（见handoff）"
       },
       "blocker": null
     },
     {
       "id": "identity.Health",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；Ready的schema/journal/epoch深度校验随业务存储落地（见handoff）"
       },
       "blocker": null
     },
     {
       "id": "identity.Ready",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；Ready的schema/journal/epoch深度校验随业务存储落地（见handoff）"
       },
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "R1-01首个工作包已交付启动装配组：9个文件创建，Serve/Shutdown/Health/Ready按合同实现并过已有检查；main与BuildApplication的部分合同步骤依赖业务函数，保持blocked如实登记。其余业务文件/函数仍planned，逐项认领。"
 }
