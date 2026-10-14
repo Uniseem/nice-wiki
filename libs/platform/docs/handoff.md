@@ -32,5 +32,5 @@
 
 - deploy 会话需按上述口径创建 deploy/config/services.json；jobs 会话对齐 ClaimedJob.attempt/dataEpoch 与 CompleteJob.resultRef 可空口径。
 - 各域 progress.json 中生成文件保持 planned（其模块仍处design阶段），生成物由make gen随时重建；模块自身实现包交付时一并翻状态。
-- 署名约定：本次实现由GLM（ZCode）完成，提交以Co-Authored-By trailer如实标注；GLM的代用地址尚未在AGENTS登记，如需统一映射请用户确认后补入。
+- 署名约定：本次实现由GLM（ZCode）完成；2026-10-14用户确认GLM代用地址 noreply@z.ai，已登记AGENTS与隐私扫描白名单，后续提交直接使用。
 - 下一项任务：合并R1-00后按 plan.md 认领 R1-01（identity），其 main/BuildApplication装配全部经本库。

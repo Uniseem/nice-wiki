@@ -34,7 +34,7 @@ nice-wiki 从零重建为可独立开发部署的微服务文档站。旧实现�
 
 ## Git、隐私和外部代码
 
-不主动 push、不强推；每次明确授权后按 docs/playbooks/push.md 执行。保持用户 Git 身份，不自行改配置，邮箱须为 GitHub 代用地址；实际 AI 合著者如实署名，GPT-6 使用 noreply@openai.com，Claude 使用 noreply@anthropic.com。
+不主动 push、不强推；每次明确授权后按 docs/playbooks/push.md 执行。保持用户 Git 身份，不自行改配置，邮箱须为 GitHub 代用地址；实际 AI 合著者如实署名，GPT-6 使用 noreply@openai.com，Claude 使用 noreply@anthropic.com，GLM（ZCode）使用 noreply@z.ai。
 
 扫描暂存内容、提交信息、作者、提交者和待推送提交。禁止真实个人邮箱、姓名、地址、电话、本机用户路径、真实 IP、密钥、访客数据；示例用保留域名和文档地址，署名代用地址例外。
 

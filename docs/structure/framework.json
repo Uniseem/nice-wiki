@@ -2382,6 +2382,11 @@
       "path": "modules/data-protection/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0005.md",
+      "kind": "documentation",
+      "purpose": "R1-00推送记录"
     }
   ]
 }

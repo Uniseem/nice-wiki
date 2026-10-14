@@ -71,7 +71,7 @@ def check_ref(base, target):
 def scan_privacy(label, text):
     for address in re.findall(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', text):
         domain = address.split('@')[1].lower()
-        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and address not in ('noreply@openai.com', 'noreply@anthropic.com'):
+        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and address not in ('noreply@openai.com', 'noreply@anthropic.com', 'noreply@z.ai'):
             fail(label, '不允许的邮箱，具体值不输出')
     if re.search(r'(?:[A-Za-z]:[\\/]Users[\\/][A-Za-z0-9_.-]+|(?:^|[\s\"\x27])/(?:Users|home)/[A-Za-z0-9_.-]+)', text):
         fail(label, '本机用户路径')
