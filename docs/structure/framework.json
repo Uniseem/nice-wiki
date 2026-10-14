@@ -2942,6 +2942,11 @@
       "path": "modules/traffic-guard/internal/policy.go",
       "kind": "handwritten",
       "purpose": "校验风控参数；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0001.md",
+      "kind": "documentation",
+      "purpose": "记录R1两轮并行工作包的main分支推送准备与核对结果"
     }
   ]
 }
