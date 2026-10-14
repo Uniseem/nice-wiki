@@ -19,7 +19,7 @@
 
 ## 检查与下一步
 
-- 已通过 traffic-guard contracts JSON 解析、`git diff --check` 和暂存差异检查；本机缺少 Go/gofmt/make，未运行编译、vet、迁移运行验证或 `make check`；未新增测试、样例、真实接口、模型调用或部署。
+- 已通过 traffic-guard contracts JSON 解析、traffic-guard 台账/合同覆盖核对、`git diff --check` 和暂存差异检查；本机缺少 Go/gofmt/make，未运行编译、vet、迁移运行验证或 `make check`；未新增测试、样例、真实接口、模型调用或部署。完整 `python scripts/check_docs.py` 当前被并行会话新增文件未登记根 `docs/structure/framework.json` 及其他会话台账未落提交SHA阻塞，traffic-guard 自身合同摘要与台账覆盖已通过。
 - 下一步一项：先由契约负责人收口 `GetPolicy` 的站点来源/缺失策略错误、`UpdatePolicy` 的授权与存储注入及 operationId 回执语义，再在本域实现 `GetPolicy`/`UpdatePolicy` 和把 `PolicyStore` 挂入完整 Application；收口前不得猜测 HTTP 或外域调用。
 
 ## 本次事实（R1-12 ValidatePolicy 纯规则，2026-10-15）
