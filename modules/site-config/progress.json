@@ -33,7 +33,7 @@
     {
       "path": "modules/site-config/internal/language_service.go",
       "state": "implemented",
-      "implementationCommit": "663bf07",
+      "implementationCommit": "663bf0741a5af3f6e911f05d7e499babd32c98f6",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -460,7 +460,7 @@
       "id": "site-config.ValidateLanguageTag",
       "path": "modules/site-config/internal/language_service.go",
       "state": "implemented",
-      "implementationCommit": "663bf07",
+      "implementationCommit": "663bf0741a5af3f6e911f05d7e499babd32c98f6",
       "verification": {
         "state": "not_run",
         "evidence": null

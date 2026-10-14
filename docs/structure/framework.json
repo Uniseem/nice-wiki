@@ -2947,6 +2947,221 @@
       "path": "docs/push-log/2026-10-15-0001.md",
       "kind": "documentation",
       "purpose": "记录R1两轮并行工作包的main分支推送准备与核对结果"
+    },
+    {
+      "path": "modules/content/internal/revision_repository.go",
+      "kind": "handwritten",
+      "purpose": "草稿正文提交、版本CAS、journal回执与outbox事务边界"
+    },
+    {
+      "path": "modules/identity/internal/account_service.go",
+      "kind": "handwritten",
+      "purpose": "账号索引读取、写入与运维子命令服务"
+    },
+    {
+      "path": "modules/identity/internal/operation_repository.go",
+      "kind": "handwritten",
+      "purpose": "身份操作幂等回执持久化"
+    },
+    {
+      "path": "modules/identity/internal/outbox_repository.go",
+      "kind": "handwritten",
+      "purpose": "身份域事件outbox持久化"
+    },
+    {
+      "path": "modules/identity/internal/permission_mapping.go",
+      "kind": "handwritten",
+      "purpose": "账号权限映射与校验"
+    },
+    {
+      "path": "modules/identity/internal/registration_service.go",
+      "kind": "handwritten",
+      "purpose": "首个超管注册状态与前置校验"
+    },
+    {
+      "path": "modules/identity/internal/restore_security.go",
+      "kind": "handwritten",
+      "purpose": "恢复后会话失效与身份安全边界"
+    },
+    {
+      "path": "modules/identity/internal/server_recovery.go",
+      "kind": "handwritten",
+      "purpose": "身份恢复回执与重置监视"
+    },
+    {
+      "path": "modules/jobs/internal/queue.go",
+      "kind": "handwritten",
+      "purpose": "任务提交、去重、屏障检查与队列持久化"
+    },
+    {
+      "path": "modules/jobs/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "任务域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/knowledge/go.mod",
+      "kind": "config",
+      "purpose": "知识域独立Go module依赖"
+    },
+    {
+      "path": "modules/knowledge/internal/chunk/normalize.go",
+      "kind": "handwritten",
+      "purpose": "知识源文本规范化及原文偏移映射"
+    },
+    {
+      "path": "modules/localization/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "本地化运行时私有持久化与启动恢复"
+    },
+    {
+      "path": "modules/localization/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "本地化域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/media/internal/blob_recovery.go",
+      "kind": "handwritten",
+      "purpose": "媒体blob journal恢复与孤儿隔离"
+    },
+    {
+      "path": "modules/media/internal/upload_service.go",
+      "kind": "handwritten",
+      "purpose": "上传会话、配额、分块前置与不可变资源提交"
+    },
+    {
+      "path": "modules/memory/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "记忆域私有持久化、epoch与启动恢复"
+    },
+    {
+      "path": "modules/memory/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "记忆域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/model.go",
+      "kind": "handwritten",
+      "purpose": "模型目录字段与纯规则校验"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/provider.go",
+      "kind": "handwritten",
+      "purpose": "供应方目录字段与纯规则校验"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "模型网关私有存储、CAS与启动恢复"
+    },
+    {
+      "path": "modules/model-gateway/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "模型网关域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/portal/cmd/portal/main.go",
+      "kind": "handwritten",
+      "purpose": "后台入口服务启动装配"
+    },
+    {
+      "path": "modules/portal/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "后台入口默认配置与环境覆盖"
+    },
+    {
+      "path": "modules/portal/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "后台入口服务部署清单"
+    },
+    {
+      "path": "modules/portal/go.mod",
+      "kind": "config",
+      "purpose": "后台入口独立Go module依赖"
+    },
+    {
+      "path": "modules/portal/go.sum",
+      "kind": "config",
+      "purpose": "后台入口Go依赖校验记录"
+    },
+    {
+      "path": "modules/portal/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "后台入口依赖装配与路由绑定"
+    },
+    {
+      "path": "modules/portal/internal/auth_proof.go",
+      "kind": "handwritten",
+      "purpose": "后台委托证明校验"
+    },
+    {
+      "path": "modules/portal/internal/bootstrap_service.go",
+      "kind": "handwritten",
+      "purpose": "后台入口启动与依赖就绪装配"
+    },
+    {
+      "path": "modules/portal/internal/maintenance_gate.go",
+      "kind": "handwritten",
+      "purpose": "维护状态入口门禁"
+    },
+    {
+      "path": "modules/portal/internal/origin_guard.go",
+      "kind": "handwritten",
+      "purpose": "同源与来源校验"
+    },
+    {
+      "path": "modules/portal/internal/proxy_stream.go",
+      "kind": "handwritten",
+      "purpose": "后台代理HTTP与流式响应转发"
+    },
+    {
+      "path": "modules/portal/internal/request_validation.go",
+      "kind": "handwritten",
+      "purpose": "后台请求字段与CSRF前置校验"
+    },
+    {
+      "path": "modules/portal/internal/route_registry.go",
+      "kind": "handwritten",
+      "purpose": "后台路由表加载、匹配与服务断言"
+    },
+    {
+      "path": "modules/portal/internal/runtime_state_client.go",
+      "kind": "handwritten",
+      "purpose": "读取站点运行状态与维护阶段"
+    },
+    {
+      "path": "modules/portal/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "后台HTTP生命周期、健康与就绪"
+    },
+    {
+      "path": "modules/qa/go.mod",
+      "kind": "config",
+      "purpose": "问答域独立Go module依赖"
+    },
+    {
+      "path": "modules/qa/internal/turn/normalize.go",
+      "kind": "handwritten",
+      "purpose": "问题规范化、缓存键与稳定锚点"
+    },
+    {
+      "path": "modules/site-config/internal/language_service.go",
+      "kind": "handwritten",
+      "purpose": "语言标签规范化与校验"
+    },
+    {
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "kind": "handwritten",
+      "purpose": "风控策略私有存储、迁移与恢复"
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "风控域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0002.md",
+      "kind": "documentation",
+      "purpose": "记录R1两轮业务切片收尾与main推送核对结果"
     }
   ]
 }
