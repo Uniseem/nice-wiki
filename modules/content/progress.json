@@ -143,7 +143,7 @@
     {
       "path": "modules/content/internal/revision_repository.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "448ad37",
       "verification": {
         "state": "not_run",
         "evidence": "已实现CommitDraftJournal事务边界与PREPARED正文核验；git diff --check通过，Go编译/gofmt/行为检查未运行"
@@ -891,7 +891,7 @@
       "id": "content.CommitDraftJournal",
       "path": "modules/content/internal/revision_repository.go",
       "state": "implemented",
-      "implementationCommit": null,
+      "implementationCommit": "448ad37",
       "verification": {
         "state": "not_run",
         "evidence": "已实现输入/journal/head/版本/对象一致性、operationId+摘要幂等、fence事务钩子、PREPARED文件SHA/大小/fsync/目录同步和原子提交委托；未运行Go编译与行为验收"

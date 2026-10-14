@@ -2,7 +2,7 @@
 
 ## 本次事实（R1-06 草稿提交事务边界，2026-10-15）
 
-- 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`。分支：当前为 detached HEAD；模块交付源码提交待本地提交后回填。
+- 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`。分支：当前为 detached HEAD；模块交付源码提交：`448ad37`。
 - 独占范围：`modules/content/`。本次新增 `internal/revision_repository.go`，并更新本模块 `STATUS.md`、`progress.json`、`docs/handoff.md`；未修改根文件、公共契约、生成物、其他模块、测试、样例、真实接口、真实模型或部署；未 push。
 - 合同摘要 `fd5eb7fb13fd92655d9904f6a13d984435386fc9e17658315e9e438ce1e35d79` 未改变。
 
