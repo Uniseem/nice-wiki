@@ -1,0 +1,88 @@
+{
+  "slug": "jobs",
+  "image": "nice-wiki-jobs",
+  "command": ["/jobs", "--config", "/config/defaults.json", "--listen", "0.0.0.0:8111"],
+  "httpPort": 8111,
+  "dataVolume": "/data/jobs",
+  "secrets": [
+    {
+      "name": "trust-anchors",
+      "path": "/run/secrets/trust-anchors.json"
+    },
+    {
+      "name": "jobs-signing-key",
+      "path": "/run/secrets/jobs-signing-key.json"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "site-config",
+      "endpoint": "http://site-config:8102",
+      "env": "NW_DEP_SITE_CONFIG"
+    },
+    {
+      "module": "identity",
+      "endpoint": "http://identity:8101",
+      "env": "NW_DEP_IDENTITY"
+    },
+    {
+      "module": "data-protection",
+      "endpoint": "http://data-protection:8113",
+      "env": "NW_DEP_DATA_PROTECTION"
+    },
+    {
+      "module": "content",
+      "endpoint": "http://content:8103",
+      "env": "NW_DEP_CONTENT"
+    },
+    {
+      "module": "media",
+      "endpoint": "http://media:8104",
+      "env": "NW_DEP_MEDIA"
+    },
+    {
+      "module": "model-gateway",
+      "endpoint": "http://model-gateway:8105",
+      "env": "NW_DEP_MODEL_GATEWAY"
+    },
+    {
+      "module": "knowledge",
+      "endpoint": "http://knowledge:8106",
+      "env": "NW_DEP_KNOWLEDGE"
+    },
+    {
+      "module": "qa",
+      "endpoint": "http://qa:8107",
+      "env": "NW_DEP_QA"
+    },
+    {
+      "module": "localization",
+      "endpoint": "http://localization:8108",
+      "env": "NW_DEP_LOCALIZATION"
+    },
+    {
+      "module": "memory",
+      "endpoint": "http://memory:8109",
+      "env": "NW_DEP_MEMORY"
+    },
+    {
+      "module": "traffic-guard",
+      "endpoint": "http://traffic-guard:8110",
+      "env": "NW_DEP_TRAFFIC_GUARD"
+    },
+    {
+      "module": "analytics",
+      "endpoint": "http://analytics:8112",
+      "env": "NW_DEP_ANALYTICS"
+    },
+    {
+      "module": "public-site",
+      "endpoint": "http://public-site:8081",
+      "env": "NW_DEP_PUBLIC_SITE"
+    }
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "module": "jobs",
+  "listen": "127.0.0.1:8111",
+  "dataRoot": "/data/jobs",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/jobs-signing-key.json",
+  "dependencies": {
+    "site-config": "http://127.0.0.1:8102",
+    "identity": "http://127.0.0.1:8101",
+    "data-protection": "http://127.0.0.1:8113",
+    "content": "http://127.0.0.1:8103",
+    "media": "http://127.0.0.1:8104",
+    "model-gateway": "http://127.0.0.1:8105",
+    "knowledge": "http://127.0.0.1:8106",
+    "qa": "http://127.0.0.1:8107",
+    "localization": "http://127.0.0.1:8108",
+    "memory": "http://127.0.0.1:8109",
+    "traffic-guard": "http://127.0.0.1:8110",
+    "analytics": "http://127.0.0.1:8112",
+    "public-site": "http://127.0.0.1:8081"
+  }
+}

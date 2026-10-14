@@ -1,23 +1,23 @@
 # 任务与事件会话交接
 
-## 本次事实
+## 本次事实（R1-03 启动与契约生成准备，2026-10-15）
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+- 独立 worktree（Codex 管理路径）；分支：`codex/jobs-r1-03`；基线：`ac593c57861d2242f27d07562a2acae535d18c38`。
+- 独占范围：`modules/jobs/`；根 AGENTS/STATUS/README、根 docs、scripts、contracts、libs、deploy 拓扑和其他模块未修改。未 push、未部署。
+- 本次修改文件：`cmd/jobs/main.go`、`internal/app/wire.go`、`internal/transport/server.go`、`go.mod`、`go.sum`、`Makefile`、`Dockerfile`、`config/defaults.json`、`deploy/manifest.json`，并更新本模块 `STATUS.md`、`progress.json` 和本交接文件。
 
-## 基线与文件
+## 本次完成与未完成
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+- 已实现：main 通过 `platform.ServiceSpec` 接入统一进程模板；BuildApplication 的目录、信任锚、签名引用、site-config runtime、恢复换目录前置装配；HTTP server 的 `/healthz`、`/readyz` 路由、Serve/Shutdown/Health/Ready 生命周期骨架；固定 Go module、默认配置、非 root Docker 镜像和部署探针。
+- 明确阻塞：jobs 的任务租约、任务结果、事件投递/确认/重放/死信、定时、屏障、快照、私有存储/迁移、全部 OpenAPI x-handler、后台函数和恢复激活回执仍未实现。BuildApplication 不创建假 Application，按合同返回 `DEPENDENCY_UNAVAILABLE`。
+- `go.sum` 目前沿用同一直接依赖图的 site-config 锁内容；本环境没有 Go 工具链，未能运行 `go mod tidy` 重新生成，已在 progress.json 标明待 VPS 核对。
 
-独占范围是 modules/jobs/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
+## 检查与验收
+
+- 已核对合同登记、路径范围、默认配置和部署 manifest；未改合同，未运行 `make gen`，也没有手改生成目录。
+- 已执行工作区路径与 JSON 结构检查准备；待执行本地可用的 Python 合同/隐私检查和 `git diff --check`。环境没有 `go`、`gofmt`、`make`，无法执行 Go build/vet/format、模块 verify 或 Docker 构建；按仓库规则未改用本地编译冒充 VPS 证据。
+- 业务行为验收、真实服务联调、模型调用、测试样例和部署验收均未执行，不能将启动骨架标为 verified/accepted。
 
 ## 下一步（一项）
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
-
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
-
-## 下一次结束填写
-
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
-
-详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+实现 `modules/jobs/internal/validation.go` 的 `jobs.ValidateJobSpec`（参考级）：先读本函数合同、types.json 任务字段和 M13-R002/R009/R014；只做输入/owner/epoch/去重键规则校验，不写任务状态、不调用外部服务；完成后同步本域台账并在可用 VPS 上运行既有检查。
