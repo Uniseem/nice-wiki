@@ -19,6 +19,7 @@
 
 - `git diff --check`：通过。
 - Python JSON 解析 `modules/knowledge/progress.json` 及既有本域实现合同：通过。
+- `python scripts/check_docs.py`：失败；根 `framework.json` 未登记本轮及其他并行会话新增文件，并报告已有 `site-config` 台账缺少提交 SHA。本次未修改根文件。
 - Go 编译、gofmt、VPS `make check`：未运行，本机无 Go/gofmt 且本次不读取私有连接配置。
 - 普通测试、E2E、真实接口、真实模型：未运行/未调用，未新增测试授权。
 

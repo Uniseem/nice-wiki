@@ -6,6 +6,7 @@
 - 已实现 2 个文件、1 个函数：`internal/chunk/normalize.go` 的 `knowledge.NormalizeSource`，以及本域 `go.mod`；实现提交为 `77fe57291ab9bcc0f53df2d35018e055e61ca12f`。
 - `NormalizeSource` 完成输入大小/UTF-8校验、CRLF/CR→LF、Unicode NFKC 和规范化 UTF-8 到原文偏移映射；无数据库、模型、媒体读取或外部副作用。
 - 当前本机无 Go/gofmt；未编译、未运行行为测试、未调用真实接口或模型。实现状态与验证状态分开记录在 [progress.json](progress.json)。
+- `git diff --check` 与本域 JSON 解析通过；`python scripts/check_docs.py` 因根 `framework.json` 未登记本轮及其他并行会话新增文件、并存在既有台账缺 SHA 而失败，未越权修改根文件。
 - `SplitChunks` 暂不实现：现有输入只有整段规范文本，输出却要求每块的 `BlockRef`，缺少块边界、blockId 与 blockHash 来源；继续实现会猜测契约。
 
 并行工作只改本域，公共资料交集成会话；根结构登记、公共契约修订和 VPS 检查均未在本次修改。

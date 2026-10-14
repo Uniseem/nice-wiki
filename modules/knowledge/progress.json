@@ -116,7 +116,7 @@
       "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": "已实现 NFKC、CRLF/CR→LF 与规范化 UTF-8 到原文偏移映射；git diff --check 通过；本机无 Go/gofmt，未编译或行为验收"
+        "evidence": "已实现 NFKC、CRLF/CR→LF 与规范化 UTF-8 到原文偏移映射；git diff --check 与本域 JSON 解析通过；本机无 Go/gofmt，未编译或行为验收；check_docs 因根结构登记缺口失败"
       },
       "blocker": "本机无 Go/gofmt；业务行为验收尚未运行"
     },
@@ -486,7 +486,7 @@
       "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": "声明本域独立 module、platform replace 与已登记 x/text v0.20.0；未执行 go mod tidy/build"
+        "evidence": "声明本域独立 module、platform replace 与已登记 x/text v0.20.0；本域 JSON 解析通过；未执行 go mod tidy/build；check_docs 因根结构登记缺口失败"
       },
       "blocker": "本机无 Go 工具链；go.sum 尚未生成"
     },
@@ -801,7 +801,7 @@
       "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": "纯规则实现已提交；JSON 与 git diff --check 通过；本机无 Go/gofmt，未编译或行为验收"
+        "evidence": "纯规则实现已提交；JSON 与 git diff --check 通过；check_docs 因根结构登记缺口失败；本机无 Go/gofmt，未编译或行为验收"
       },
       "blocker": "本机无 Go/gofmt；未在 VPS 编译"
     },
