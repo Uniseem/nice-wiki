@@ -55,23 +55,11 @@ type RegistrationRuntime interface {
 	ReadInitializationStatus(context.Context, OperationContext) (InitializationStatus, error)
 }
 
-type registrationStoreContextKey struct{}
 type registrationRuntimeContextKey struct{}
-
-// WithIdentityStore 仅供 identity 装配和内部 handler 注入本域已打开的 Store。
-// 未注入时业务函数返回 DEPENDENCY_UNAVAILABLE，不伪造成功结果。
-func WithIdentityStore(ctx context.Context, store *Store) context.Context {
-	return context.WithValue(ctx, registrationStoreContextKey{}, store)
-}
 
 // WithRegistrationRuntime 注入 site-config 初始化状态读取边界。
 func WithRegistrationRuntime(ctx context.Context, runtime RegistrationRuntime) context.Context {
 	return context.WithValue(ctx, registrationRuntimeContextKey{}, runtime)
-}
-
-func identityStoreFromContext(ctx context.Context) *Store {
-	store, _ := ctx.Value(registrationStoreContextKey{}).(*Store)
-	return store
 }
 
 func registrationRuntimeFromContext(ctx context.Context) RegistrationRuntime {
@@ -86,9 +74,9 @@ func ReadRegistrationState(ctx context.Context, op OperationContext, input ReadR
 	if err := validateIdentityOperation(ctx, op); err != nil {
 		return ReadRegistrationStateResult{}, err
 	}
-	store := identityStoreFromContext(ctx)
+	store, ok := identityStoreFromContext(ctx)
 	runtime := registrationRuntimeFromContext(ctx)
-	if store == nil || runtime == nil {
+	if !ok || runtime == nil {
 		return ReadRegistrationStateResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份注册依赖尚未装配")
 	}
 	initialization, err := runtime.ReadInitializationStatus(ctx, op)
@@ -136,7 +124,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if subtle.ConstantTimeCompare([]byte(input.Password), []byte(input.PasswordConfirmation)) != 1 {
 		return RegisterFirstSuperadminResult{}, platform.NewError(platform.CodeValidation, false, "两次口令不一致")
 	}
-	if identityStoreFromContext(ctx) == nil || registrationRuntimeFromContext(ctx) == nil {
+	if store, ok := identityStoreFromContext(ctx); !ok || store == nil || registrationRuntimeFromContext(ctx) == nil {
 		return RegisterFirstSuperadminResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "注册事务依赖尚未装配")
 	}
 	_ = normalized

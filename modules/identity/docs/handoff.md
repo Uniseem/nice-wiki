@@ -1,5 +1,32 @@
 # 身份权限会话交接
 
+## 本次事实（R1-01 账号索引、注册前置、幂等与恢复安全边界，2026-10-15）
+
+- 当前集成分支：`codex/analytics-r1-storage-contract-audit`；本轮从 `7aa44567609713b8810b9b8ca9ba61579648d55a` 接续。源码切片提交：账号索引 `138a2b45ae088431e25b0a3694d453f51c49a6f4`、注册/权限前置 `484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55`、幂等/事件/恢复安全 `1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4`；未 push、未部署。
+- 独占范围仍仅为 `modules/identity/`。本轮新增 `internal/server_recovery.go`、`internal/registration_service.go`、`internal/account_service.go`、`internal/permission_mapping.go`、`internal/operation_repository.go`、`internal/outbox_repository.go`、`internal/restore_security.go`，并扩展 `cmd/identity/main.go`；未修改 contracts、生成目录、根文件或其他模块。合并后补充了 Store 上下文冲突修复和损坏索引拒绝覆盖修复，待随本轮台账一起提交。
+
+## 本次完成
+
+- `ReadServerAccountIndex`/`WriteAccountIndex`：读取或原子写入 `control/account-index.json`，校验私有目录/文件权限、UTF-8、未知字段、账号名/状态/唯一超管、revision 单调性；索引只含账号元数据，不含凭据、会话或口令哈希。`accounts` 子命令已读取该索引并输出账号名与状态，不启动 HTTP。
+- `ReadRegistrationState`：读取本域账户权威表并调用已注入的 site-config 初始化状态边界；无账户才开放注册，已有账户返回站点标识。
+- `MapFunctionGrants`：按已确认的十项功能组、authenticated 基础权限和 superadmin-only 权限做确定性排序映射，拒绝未知/重复功能。
+- `ResolveIdentityOperation`：按 site/actor/operation 唯一键读取状态与结果哈希，不返回敏感输入。
+- `PublishIdentityEvent`：在业务事务中登记固定身份事件信封、outbox 与幂等回执，投递仍必须由后续 `RelayOutbox` 经 jobs 完成。
+- `InvalidateRestoredSessions`：要求启动编排显式注入已验证 `restoreId`，以 control journal 的 open/done 决定和事务批量撤销恢复数据中的会话；尚未接入 `BuildApplication`。
+- 注册与账号创建目前只实现输入、授权、依赖和权限前置校验；未返回假成功，完整写事务仍保持阻塞。
+
+## 检查与阻塞
+
+- `git diff --check` 通过；本机无 Go、gofmt、make，未运行 `go build ./...`、`go vet ./...`、`gofmt -l` 或 `make check`，新增实现全部保持 `verification.not_run`。
+- 合并时发现两个并行切片重复定义 `WithIdentityStore`/`identityStoreFromContext`，已在 identity 内统一为 operation repository 提供的受信 Store 上下文；该修复必须在下一提交中保留。
+- `BuildApplication` 仍缺完整 OpenAPI x-handler 绑定、site-config `registerActivation` 回执、恢复后 `restoreId` 注入与 `InvalidateRestoredSessions` 调用、`ObserveSuperadminResetFile` watcher、`RelayOutbox` jobs 客户端/后台循环；因此 main 只能解除 `accounts` 子命令阻塞，不能标记整体完成。
+- `ChangePassword`/会话/CSRF 代理审计确认当前 sessions 表缺少 refresh family、access/refresh/CSRF 摘要字段，且签发/撤销/幂等回执与 Store 注入未齐；未猜实现，相关函数仍未完成。
+- 根 `docs/structure/framework.json` 尚未登记本轮新增实际文件；按并行规则不在本模块会话修改，交集成会话处理。未新增测试、样例、真实接口或模型调用。
+
+## 下一步（一项）
+
+先在具备 Go 工具链的 VPS 或集成环境编译/gofmt/vet 本轮 identity 源码，修正真实编译问题后，再实现并接入 `BuildApplication` 的完整 handler 装配与恢复回执；不要把结构检查或源码存在视为业务验收。
+
 ## 本次事实（R1-01 超管不可变纯规则，2026-10-15）
 
 - 分支：`codex/identity-r1-05-superadmin`；基线 `82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；源码提交 `7a059d4e95f8043808cecc21537afc5a18f38a6a`。未 push、未部署。

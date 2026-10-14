@@ -139,7 +139,7 @@ func WriteAccountIndex(ctx context.Context, op OperationContext, input WriteAcco
 	}
 	path := filepath.Join(controlDir, accountIndexFileName)
 	current, _, readErr := readAccountIndexFile(state.dataRoot)
-	if readErr != nil && !isCode(readErr, platform.CodeDependencyUnavailable) && !isCode(readErr, platform.CodeIntegrityError) {
+	if readErr != nil && !isCode(readErr, platform.CodeDependencyUnavailable) {
 		return WriteAccountIndexResult{}, readErr
 	}
 	if readErr == nil {

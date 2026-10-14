@@ -41,7 +41,7 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 	if _, err := MapFunctionGrants(MapFunctionGrantsInput{Permissions: input.Permissions}); err != nil {
 		return CreateAccountResult{}, err
 	}
-	if identityStoreFromContext(ctx) == nil {
+	if store, ok := identityStoreFromContext(ctx); !ok || store == nil {
 		return CreateAccountResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
 	}
 	_ = normalized

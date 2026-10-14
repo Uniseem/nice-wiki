@@ -4,31 +4,31 @@
   "phase": "implementation",
   "contractSha256": "5edab272347ecfb4e0bf2bd9b4f5a57be39fae69c5c2c9ac8fdbcddc1da2eaf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（identity.AssertSuperadminImmutable）",
-  "branch": "codex/identity-r1-05-superadmin",
-  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
+  "assignedSession": "R1-01（账号索引、注册前置、幂等与恢复安全边界）",
+  "branch": "codex/analytics-r1-storage-contract-audit",
+  "baseCommit": "7aa44567609713b8810b9b8ca9ba61579648d55a",
+  "deliveryCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "ReadRegistrationState已实现；RegisterFirstSuperadmin仍需会话签发、bootstrapClaim、traffic-guard、幂等回执与outbox同事务接线"
     },
     {
       "path": "modules/identity/internal/account_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "CreateAccount仅完成授权/输入/权限前置校验；仍需HashPassword、事务、幂等回执、账户索引与撤销事件接线"
     },
     {
       "path": "modules/identity/internal/account_validator.go",
@@ -42,13 +42,13 @@
     },
     {
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "path": "modules/identity/internal/credential_service.go",
@@ -112,43 +112,43 @@
     },
     {
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；账号manifest与全域revision来源仍需设计确认"
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "path": "modules/identity/internal/outbox_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "PublishIdentityEvent已实现；约束级RelayOutbox仍缺jobs批量确认/计数客户端与BuildApplication后台接线"
     },
     {
       "path": "modules/identity/internal/restore_security.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "InvalidateRestoredSessions需BuildApplication注入已验证restoreId并在换入后调用；Go编译与gofmt尚未运行"
     },
     {
       "path": "modules/identity/internal/barrier_service.go",
@@ -203,12 +203,12 @@
     {
       "path": "modules/identity/cmd/identity/main.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "accounts子命令与整体完工依赖ReadServerAccountIndex（后续业务包）；其余入口步骤已随交付提交实现"
+      "blocker": "accounts子命令已接入；整体启动仍依赖BuildApplication完整handler、恢复回执和后台循环，Go编译与gofmt尚未运行"
     },
     {
       "path": "modules/identity/internal/app/wire.go",
@@ -218,7 +218,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "步骤4-7剩余：全部OpenAPI x-handler绑定、换向后InvalidateRestoredSessions与registerActivation回执、ObserveSuperadminResetFile/RelayOutbox后台循环；存储打开/迁移/恢复已随交付提交实现"
+      "blocker": "步骤4-7剩余：全部OpenAPI x-handler绑定、换入后注入restoreId并调用InvalidateRestoredSessions、registerActivation回执、ObserveSuperadminResetFile/RelayOutbox后台循环；存储打开/迁移/恢复已实现"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
@@ -325,35 +325,35 @@
     {
       "id": "identity.ReadRegistrationState",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "id": "identity.RegisterFirstSuperadmin",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "仅完成输入与依赖前置校验；仍需bootstrapClaim、HashPassword、session签发、traffic-guard、幂等回执与outbox同事务接线"
     },
     {
       "id": "identity.CreateAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "仅完成授权、账号名、口令和功能权限前置校验；仍需事务、幂等回执、账户索引与撤销事件接线"
     },
     {
       "id": "identity.ReadSelf",
@@ -435,13 +435,13 @@
     {
       "id": "identity.MapFunctionGrants",
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "id": "identity.HashPassword",
@@ -622,24 +622,24 @@
     {
       "id": "identity.ReadServerAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；账号manifest与全域revision来源仍需设计确认"
     },
     {
       "id": "identity.WriteAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；账号manifest与全域revision来源仍需设计确认"
     },
     {
       "id": "identity.ObserveSuperadminResetFile",
@@ -666,24 +666,24 @@
     {
       "id": "identity.ResolveIdentityOperation",
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；RelayOutbox仍未实现"
     },
     {
       "id": "identity.RelayOutbox",
@@ -699,13 +699,13 @@
     {
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "需BuildApplication注入已验证restoreId并在换入后调用；Go编译与gofmt尚未运行"
     },
     {
       "id": "identity.AcquireBarrier",
@@ -809,13 +809,13 @@
     {
       "id": "identity.main",
       "path": "modules/identity/cmd/identity/main.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第4步accounts运维子命令依赖identity.ReadServerAccountIndex（server_recovery.go，后续业务包）；步骤1-3（配置解析/信号/RunService模板/Shutdown退出语义）已随交付提交实现，接线后翻implemented"
+      "blocker": "accounts运维子命令已实现；整体服务仍依赖BuildApplication完成全部handler、恢复回执与后台循环，Go编译与gofmt尚未运行"
     },
     {
       "id": "identity.BuildApplication",
@@ -826,7 +826,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "合同步骤剩余：全部OpenAPI x-handler绑定、换入后InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；已实现：配置/目录/信任锚/签名密钥/运行权威读取/ApplyRestoreSwap/打开active区DB并迁移/决定日志恢复（本包交付28af316bf6a）"
+      "blocker": "合同步骤剩余：全部OpenAPI x-handler绑定、换入后注入restoreId并调用InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；配置/目录/信任锚/签名密钥/运行权威读取/ApplyRestoreSwap/active区DB迁移/决定日志恢复已实现"
     },
     {
       "id": "identity.Serve",
