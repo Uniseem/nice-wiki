@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "5edab272347ecfb4e0bf2bd9b4f5a57be39fae69c5c2c9ac8fdbcddc1da2eaf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（identity纯规则函数组）",
-  "branch": "codex/identity-r1-04-pure-rules",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+  "assignedSession": "R1-01（identity.AssertSuperadminImmutable）",
+  "branch": "codex/identity-r1-05-superadmin",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
   "deployment": "not_started",
   "files": [
     {
@@ -32,13 +32,13 @@
     },
     {
       "path": "modules/identity/internal/account_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "NormalizeAccountName已实现；同文件AssertSuperadminImmutable仍待后续工作包"
+      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
     },
     {
       "path": "modules/identity/internal/permission_mapping.go",
@@ -424,8 +424,8 @@
     {
       "id": "identity.AssertSuperadminImmutable",
       "path": "modules/identity/internal/account_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -873,5 +873,5 @@
       "blocker": null
     }
   ],
-  "rule": "R1-01纯规则工作包：NormalizeAccountName与Argon2id口令三函数已实现；Go编译/格式检查待具备Go工具链的VPS，根THIRD_PARTY_NOTICES与framework登记由集成会话处理；会话、账号CRUD、HTTP与后台循环仍未实现。"
+  "rule": "R1-01纯规则工作包：NormalizeAccountName、AssertSuperadminImmutable与Argon2id口令三函数已实现；Go编译/格式检查待具备Go工具链的环境，业务验收未执行；根THIRD_PARTY_NOTICES与framework登记由集成会话处理；会话、账号CRUD、HTTP与后台循环仍未实现。"
 }

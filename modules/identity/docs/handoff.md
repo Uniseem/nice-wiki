@@ -1,5 +1,19 @@
 # 身份权限会话交接
 
+## 本次事实（R1-01 超管不可变纯规则，2026-10-15）
+
+- 分支：`codex/identity-r1-05-superadmin`；基线 `82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；源码提交 `7a059d4e95f8043808cecc21537afc5a18f38a6a`。未 push、未部署。
+- 独占范围：仅 `modules/identity/`；本次实际修改 `internal/account_validator.go`、`STATUS.md`、`progress.json`、`docs/handoff.md`。未修改 contracts、生成目录、根文件、其他模块或公共库。
+- `identity.AssertSuperadminImmutable` 已实现为纯规则函数：输入状态枚举先校验；`isSuperadmin=true` 仅允许当前与目标状态均为 `active`；非超管按 `active↔disabled→deleted` 状态机判断；不从 `permissions` 推断超管身份；无持久化、网络、会话或HTTP副作用。
+- 状态口径：源码与台账为 `implemented`；因本环境无 Go/gofmt，验证为 `not_run`；M02-R01 业务验收为未执行、未接受。
+- 未新增测试、样例、快照、E2E、真实接口或真实模型调用。
+
+## 本次检查与阻塞
+
+- `git diff --check` 与提交前暂存差异检查已通过。
+- Go、gofmt、make 在当前环境不可用，未运行 `go build ./...`、`go vet ./...`、`gofmt -l` 或 `make check`；不可将本次实现标为 verified。
+- 根 `docs/structure/framework.json` 与 `THIRD_PARTY_NOTICES.md` 的既有公共登记缺口仍由集成会话处理；本模块会话未修改公共文件。
+
 ## 本次事实（R1-01 纯规则函数组，2026-10-15）
 
 - 分支：`codex/identity-r1-04-pure-rules`（managed worktree）；基线 `ac593c57861d2242f27d07562a2acae535d18c38`；源码与依赖提交 `bdcb9128d3ec5983d54c57f0fddc7abb793e93f4`。无未提交文件、未 push、未部署。
