@@ -3,7 +3,7 @@
 ## 本次事实（R1-02 语言标签纯规则切片，2026-10-15）
 
 - 独占范围：`modules/site-config/`；实际共享工作区分支为 `codex/analytics-r1-storage-contract-audit`。并行 `jobs` 会话留下的工作区变更未暂存、未修改、未纳入本提交。
-- 本次实现提交：`a2599e2`。只新增 `internal/language_service.go`，未修改根文件、公共契约、生成目录、其他模块，未新增测试/样例、真实接口、模型、部署或 push。
+- 本次实现提交：`a2599e2`、`663bf07`。只新增/修订 `internal/language_service.go`，未修改根文件、公共契约、生成目录、其他模块，未新增测试/样例、真实接口、模型、部署或 push；提交窗口误带入的 `jobs` 变更已在本地拆回未提交工作树。
 - `ValidateLanguageTag` 已按本域类型合同实现：输入结构、BCP47 基本语法、扩展/私有子标签、重复子标签拒绝，以及语言/脚本/区域/扩展大小写规范化。
 - 已运行 `python scripts/check_docs.py --privacy-only` 与 `git diff --check`；本机没有 `go`/`gofmt`，未执行格式化、构建、vet、普通测试或业务验收。
 

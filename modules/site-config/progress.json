@@ -7,7 +7,7 @@
   "assignedSession": "R1-02（语言标签纯规则切片）",
   "branch": "codex/analytics-r1-storage-contract-audit",
   "baseCommit": "685cd3d",
-  "deliveryCommit": "d0904ce",
+  "deliveryCommit": "663bf07",
   "deployment": "not_started",
   "files": [
     {
@@ -33,7 +33,7 @@
     {
       "path": "modules/site-config/internal/language_service.go",
       "state": "implemented",
-      "implementationCommit": "a2599e2",
+      "implementationCommit": "663bf07",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -460,7 +460,7 @@
       "id": "site-config.ValidateLanguageTag",
       "path": "modules/site-config/internal/language_service.go",
       "state": "implemented",
-      "implementationCommit": "a2599e2",
+      "implementationCommit": "663bf07",
       "verification": {
         "state": "not_run",
         "evidence": null
