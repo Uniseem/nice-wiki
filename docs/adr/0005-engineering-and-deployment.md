@@ -1,7 +1,7 @@
 # ADR0005：工程选型、平台公共库与单机部署
 
 - 日期：2026-10-14。
-- 状态：用户授权由 Claude 按建议决定；第三方代码借用与新依赖仍按 AGENTS 在实施时逐项核对许可后写入 THIRD_PARTY_NOTICES.md。
+- 状态：已确认（2026-10-14 用户授权由 Claude 代为确认）；第三方代码借用与新依赖仍按 AGENTS 在实施时逐项核对许可后写入 THIRD_PARTY_NOTICES.md。
 - 来源：old D2、D5、D18、D23、D51 的已确认选型；本轮接线后 15 个服务共有的基础设施。
 
 ## 选择
@@ -31,7 +31,7 @@ old D51 的“后台任务队列直接使用 Backlite”由 jobs 服务取代，
 
 ### 借用代码
 
-- Docmost 社区版编辑器扩展：沿用 D51，按用户当时的确认直接借用（Docmost 与本仓库同为 AGPL-3.0，许可兼容）；文件头注明出处与原版权，登记 THIRD_PARTY_NOTICES.md，只借社区版文件。这是 AGENTS“GPL 项目只参考不复制”的已确认例外，待用户在 R0-05 再次确认。
+- Docmost 社区版编辑器扩展：沿用 D51，按用户当时的确认直接借用（Docmost 与本仓库同为 AGPL-3.0，许可兼容）；文件头注明出处与原版权，登记 THIRD_PARTY_NOTICES.md，只借社区版文件。这是 AGENTS“GPL 项目只参考不复制”的唯一例外；2026-10-14 用户授权由 Claude 代为确认，已写入 AGENTS。
 - Halo（GPL-3.0）、New API、Gitea、PageIndex 只参考思路，不复制代码。
 
 ### 平台公共库

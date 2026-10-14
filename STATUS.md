@@ -13,4 +13,4 @@
 - Git作者使用用户已授权的既有GitHub代用身份，只修改本仓库配置。私有vps.txt被忽略且未同步；旧线上实例与数据未改变。
 - 用户已明确授权规格收口后push old与main。两分支已普通原子推送并核对远端：old=272bddc，main规格基准=333b219；实际结果见docs/push-log/2026-10-14-0001.md，本条结果记录随后随main同步。
 
-下一步：用户确认R0-05整体设计（含Docmost借用例外）；实施从identity、site-config、content、jobs、public-site最小链路开始，按docs/plan.md和目标模块交接认领一个工作包；先确认固定工程依赖/生成器与模块实现范围，不能把本轮文档push当作已实现或已上线。
+下一步：R0-05已由用户授权Claude代为确认（含Docmost借用例外）；实施从R1-00平台公共库与生成器开始，按docs/plan.md工作包顺序认领。业务代码、测试、部署仍按AGENTS另行确认。
