@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "839a8190d4794b5bdd3f7d4f51121cbb8070bb83eeabaa0f2c7142bcb174a6ba",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-02（active业务存储与公告journal）",
-  "branch": "codex/site-config-r1-02-active-storage",
-  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
+  "assignedSession": "R1-02（语言标签纯规则切片）",
+  "branch": "codex/analytics-r1-storage-contract-audit",
+  "baseCommit": "685cd3d",
+  "deliveryCommit": "a2599e2",
   "deployment": "not_started",
   "files": [
     {
@@ -32,13 +32,13 @@
     },
     {
       "path": "modules/site-config/internal/language_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "a2599e2",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，待执行gofmt、build与vet"
     },
     {
       "path": "modules/site-config/internal/home_service.go",
@@ -459,13 +459,13 @@
     {
       "id": "site-config.ValidateLanguageTag",
       "path": "modules/site-config/internal/language_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "a2599e2",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，未完成编译与运行验证"
     },
     {
       "id": "site-config.UpdateHome",

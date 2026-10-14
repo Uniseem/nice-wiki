@@ -1,5 +1,22 @@
 # 站点配置与初始化会话交接
 
+## 本次事实（R1-02 语言标签纯规则切片，2026-10-15）
+
+- 独占范围：`modules/site-config/`；实际共享工作区分支为 `codex/analytics-r1-storage-contract-audit`。并行 `jobs` 会话留下的工作区变更未暂存、未修改、未纳入本提交。
+- 本次实现提交：`a2599e2`。只新增 `internal/language_service.go`，未修改根文件、公共契约、生成目录、其他模块，未新增测试/样例、真实接口、模型、部署或 push。
+- `ValidateLanguageTag` 已按本域类型合同实现：输入结构、BCP47 基本语法、扩展/私有子标签、重复子标签拒绝，以及语言/脚本/区域/扩展大小写规范化。
+- 已运行 `python scripts/check_docs.py --privacy-only` 与 `git diff --check`；本机没有 `go`/`gofmt`，未执行格式化、构建、vet、普通测试或业务验收。
+
+## 本次阻塞与契约缺口
+
+- `PrepareDefaultConfig` 的输入需要 `publicBaseURL`，但初始化 HTTP 输入和 `ServiceConfig` 都没有受控来源；合同也未给出主题色、资源限额、安全策略、源码链接的默认值。
+- `InitializationState` 要求未初始化状态仍提供非空 `operationId` 与 `siteId`，但身份服务尚未向该函数提供合法来源；不能生成占位 ID，也不能提前创建站点。
+- 因上述缺口，本次没有猜测实现初始化、持久 commit、默认配置文件或 HTTP handler；`BuildApplication` 仍因完整 x-handler/恢复回执/outbox 等后续装配保持 blocked。
+
+## 下一步（一项）
+
+先由设计/集成会话补齐上述受控字段来源与未初始化状态表示，再在具备 Go 工具链后运行本域 gofmt/build/vet；之后实现初始化决定持久化与 handler，不把语言纯规则的提交标记为业务验收通过。
+
 ## 本次事实（R1-02 active 业务存储与公告 journal，2026-10-15）
 
 - 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；分支：`codex/site-config-r1-02-active-storage`。
