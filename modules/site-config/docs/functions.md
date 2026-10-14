@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 46 个函数：约束 30 个，参考 16 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 48 个函数：约束 30 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## site-config.ReadSiteConfig
 
@@ -383,6 +383,47 @@ func ReadRuntimeState(ctx context.Context, op OperationContext, input ReadRuntim
 - 幂等：只读
 - 依赖：无
 
+## site-config.OpenRuntimeStore
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：按ADR0005打开控制库并恢复RuntimeState权威
+
+```go
+func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 打开控制库的取消与截止传播 | 取消或截止立即停止新数据库副作用 |
+| `dataRoot` | `string` | 本域独占数据根 | 必须为非空受控路径；不写入日志 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `RuntimeStore` | 独立control.db句柄 | control.db位于control区，不随active恢复换目录 |
+| `error` | `Error` | 打开、迁移或初始状态完整性失败 | 失败不返回可用句柄；不泄露路径和密钥 |
+
+**步骤**
+
+1. 设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接
+2. 执行编号连续的只追加迁移；未知已应用版本拒绝启动
+3. 首次建库生成持久dataEpoch、running phase、revision=1和14个requiredModules
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：控制库不可打开或不可读（可重试）
+- `INTEGRITY_ERROR`：迁移集、schema或RuntimeState不一致（不可重试）
+
+- 副作用：创建或更新control/control.db
+- 授权：service启动控制面
+- 并发：一个进程单控制库句柄；SQLite事务串行写入
+- 幂等：重复启动读取已有RuntimeState，不重新生成epoch
+- 依赖：`site-config.All`
+
 ## site-config.TransitionRuntimeState
 
 - 级别：约束
@@ -555,6 +596,38 @@ func CheckWriteEpoch(ctx context.Context, op OperationContext, input CheckWriteE
 - 授权：私有业务写入入口
 - 并发：与屏障登记及事务计数共享gate
 - 幂等：只读判定
+- 依赖：无
+
+## site-config.All
+
+- 级别：参考
+- 文件：`modules/site-config/internal/migrations/migrations.go`
+- 作用：按编号升序返回内嵌控制库迁移
+
+```go
+func All() ([]Migration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错
+
+**错误**
+
+- `INTEGRITY_ERROR`：迁移文件名、编号或内容不可读取（不可重试）
+
+- 副作用：无
+- 授权：内部装配
+- 并发：只读，可并发
+- 幂等：只读
 - 依赖：无
 
 ## site-config.InitializeSite
@@ -1798,7 +1871,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## site-config.Serve

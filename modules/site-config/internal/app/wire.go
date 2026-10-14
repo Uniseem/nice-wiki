@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	siteconfig "nice-wiki/modules/site-config/internal"
+	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/transport"
 )
 
@@ -21,10 +24,9 @@ const ModuleSlug = "site-config"
 // 加载服务身份信任锚与签名密钥，读取本域运行权威并执行恢复换目录，
 // 最后返回注册了匿名健康/就绪路由的应用容器。
 //
-// 本域即运行状态权威：运行状态从自身控制库（独立 control.db，随
-// runtime_state_service 工作包落地）读取，不经 HTTP 自调用。控制库
-// 读取函数落地前 localRuntime 如实返回 DEPENDENCY_UNAVAILABLE，装配
-// 失败交进程守护重试，不用占位数据冒充权威。
+// 本域即运行状态权威：运行状态从自身控制库（独立 control.db）读取，
+// 不经 HTTP 自调用。控制库不可用时 localRuntime 如实返回
+// DEPENDENCY_UNAVAILABLE，装配失败交进程守护重试，不用占位数据冒充权威。
 //
 // 业务存储打开、OpenAPI x-handler 绑定、初始化/公告 journal 恢复、
 // 换目录回执登记与后台任务循环随对应业务工作包逐项接入。
@@ -48,18 +50,21 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	view, err := lifecycle.ReadRuntime(ctx, runtimeAuthority)
 	if err != nil {
+		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
 	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
 	if err != nil {
+		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
 	if swap.Action != platform.SwapNone {
 		// 回执需要 stageId/manifestHash/域签名，只能由暂存与屏障函数
 		// （后续工作包）提供；在此之前换入数据拒绝开放入口。
+		_ = closeRuntime(runtimeAuthority)
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖暂存/屏障函数，尚未实现")
 	}
-	return transport.NewApplication(config, anchors, runtimeAuthority), nil
+	return transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch), nil
 }
 
 // NewRuntimeClient 构造本域运行权威读取器（platform.SiteConfigClient），
@@ -70,16 +75,61 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
 	}
-	return &localRuntime{}, nil
+	key := filepath.Clean(config.DataRoot)
+	runtimeClientsMu.Lock()
+	defer runtimeClientsMu.Unlock()
+	if existing, ok := runtimeClients[key]; ok {
+		return existing, nil
+	}
+	store, err := siteconfig.OpenRuntimeStore(context.Background(), config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	client := &localRuntime{key: key, store: store}
+	runtimeClients[key] = client
+	return client, nil
 }
 
 // localRuntime 从本域控制库读取权威运行状态，供进程模板监视与Ready
-// 使用；控制库读取（site-config.ReadRuntimeState 的存储实现）落地前
-// 如实返回 DEPENDENCY_UNAVAILABLE，不返回占位状态。
-type localRuntime struct{}
+// 使用；不通过HTTP自调用，也不返回占位状态。
+type localRuntime struct {
+	key   string
+	store *siteconfig.RuntimeStore
+}
 
 func (l *localRuntime) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
-	return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域运行控制库读取尚未实现")
+	return l.store.ReadRuntimeView(ctx)
+}
+
+// ReadRuntimeStateDetails 为Ready提供revision与本域活动epoch的同源快照。
+func (l *localRuntime) ReadRuntimeStateDetails(ctx context.Context) (gen.RuntimeState, error) {
+	return l.store.ReadRuntimeState(ctx)
+}
+
+// Close 关闭BuildApplication与RunService共享的本地控制库客户端。
+func (l *localRuntime) Close() error {
+	if l == nil || l.store == nil {
+		return nil
+	}
+	err := l.store.Close()
+	runtimeClientsMu.Lock()
+	if runtimeClients[l.key] == l {
+		delete(runtimeClients, l.key)
+	}
+	runtimeClientsMu.Unlock()
+	return err
+}
+
+var (
+	runtimeClientsMu sync.Mutex
+	runtimeClients   = map[string]*localRuntime{}
+)
+
+func closeRuntime(client platform.SiteConfigClient) error {
+	if closer, ok := client.(interface{ Close() error }); ok {
+		return closer.Close()
+	}
+	return nil
 }
 
 // ensureDataLayout 建立 active/control/restore 三区；control 区承载独立

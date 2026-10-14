@@ -36,6 +36,7 @@ type Application struct {
 	config       platform.ServiceConfig
 	anchors      platform.TrustAnchors
 	runtime      platform.SiteConfigClient
+	openedEpoch  platform.Identifier
 	state        atomic.Int32
 	serveStarted atomic.Bool
 	shutdownOnce sync.Once
@@ -44,8 +45,8 @@ type Application struct {
 }
 
 // NewApplication 组装 HTTP 容器并直接注册匿名健康/就绪路由。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient) *Application {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority}
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier) *Application {
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, openedEpoch: openedEpoch}
 	mux := http.NewServeMux()
 	application.registerHealthRoutes(mux)
 	application.httpServer = &http.Server{
@@ -104,6 +105,12 @@ func Shutdown(ctx context.Context, app *Application) error {
 		app.state.CompareAndSwap(stateReady, stateDraining)
 		err := app.httpServer.Shutdown(ctx)
 		if err == nil {
+			if closer, ok := app.runtime.(interface{ Close() error }); ok {
+				if closeErr := closer.Close(); closeErr != nil {
+					app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭运行控制库失败")
+					return
+				}
+			}
 			app.state.Store(stateClosed)
 			return
 		}
@@ -131,8 +138,9 @@ func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
 
 // Ready 确认本域配置与信任锚完整、自身运行权威可读；就绪不代表维护已
 // 解除。本域即运行权威，经本地控制库读取（site-config本域读取自身权威），
-// 控制库落地前如实返回 DEPENDENCY_UNAVAILABLE（503）。
-// 业务存储落地后补充 schema/journal 校验与 activeDataEpoch 比对。
+// 控制库不可用时如实返回 DEPENDENCY_UNAVAILABLE（503）；当前工作包
+// 已把活动epoch、maintenance和runtime revision接入，业务存储/journal
+// 校验仍由后续工作包补充。
 func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) {
 	if app.state.Load() == stateClosed {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
@@ -145,16 +153,33 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
-	return gen.ServiceReadiness{
+	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
+	}
+	activeEpoch := string(app.openedEpoch)
+	if activeEpoch == "" {
+		activeEpoch = string(view.DataEpoch)
+	}
+	readiness := gen.ServiceReadiness{
 		Health:                health,
 		Initialized:           false,
 		JournalRecovered:      true,
-		ActiveDataEpoch:       nil,
+		ActiveDataEpoch:       &activeEpoch,
 		Maintenance:           view.Maintenance,
 		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
 		RuntimeRevision:       0,
 		SafePoint:             true,
-	}, nil
+	}
+	if detailed, ok := app.runtime.(interface {
+		ReadRuntimeStateDetails(context.Context) (gen.RuntimeState, error)
+	}); ok {
+		state, err := detailed.ReadRuntimeStateDetails(ctx)
+		if err != nil {
+			return gen.ServiceReadiness{}, err
+		}
+		readiness.RuntimeRevision = state.Revision
+	}
+	return readiness, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {

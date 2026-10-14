@@ -834,6 +834,63 @@
       ]
     },
     {
+      "path": "modules/site-config/internal/runtime_store.go",
+      "kind": "handwritten",
+      "purpose": "打开独立control.db并持久化RuntimeState、激活回执与操作幂等记录",
+      "functions": [
+        {
+          "id": "site-config.OpenRuntimeStore",
+          "name": "OpenRuntimeStore",
+          "signature": "func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "打开控制库的取消与截止传播",
+              "constraints": ["取消或截止立即停止新数据库副作用"]
+            },
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域独占数据根",
+              "constraints": ["必须为非空受控路径；不写入日志"]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "store",
+              "type": "RuntimeStore",
+              "description": "独立control.db句柄",
+              "constraints": ["control.db位于control区，不随active恢复换目录"]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "打开、迁移或初始状态完整性失败",
+              "constraints": ["失败不返回可用句柄；不泄露路径和密钥"]
+            }
+          ],
+          "purpose": "按ADR0005打开控制库并恢复RuntimeState权威",
+          "steps": [
+            "设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接",
+            "执行编号连续的只追加迁移；未知已应用版本拒绝启动",
+            "首次建库生成持久dataEpoch、running phase、revision=1和14个requiredModules"
+          ],
+          "errors": [
+            {"code": "DEPENDENCY_UNAVAILABLE", "condition": "控制库不可打开或不可读", "retryable": true},
+            {"code": "INTEGRITY_ERROR", "condition": "迁移集、schema或RuntimeState不一致", "retryable": false}
+          ],
+          "sideEffects": ["创建或更新control/control.db"],
+          "authorization": "service启动控制面",
+          "concurrency": "一个进程单控制库句柄；SQLite事务串行写入",
+          "idempotency": "重复启动读取已有RuntimeState，不重新生成epoch",
+          "dependencies": ["site-config.All"],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
       "path": "modules/site-config/internal/runtime_transition.go",
       "kind": "handwritten",
       "purpose": "按CAS切换epoch与维护阶段",
@@ -1196,6 +1253,38 @@
           "contract": "reference"
         }
       ]
+    },
+    {
+      "path": "modules/site-config/internal/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域control.db只追加SQL迁移并校验编号连续",
+      "functions": [
+        {
+          "id": "site-config.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回内嵌控制库迁移",
+          "steps": ["go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错"],
+          "errors": [
+            {"code": "INTEGRITY_ERROR", "condition": "迁移文件名、编号或内容不可读取", "retryable": false}
+          ],
+          "sideEffects": [],
+          "authorization": "内部装配",
+          "concurrency": "只读，可并发",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/migrations/0001_control.sql",
+      "kind": "migration",
+      "purpose": "初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations",
+      "functions": []
     },
     {
       "path": "modules/site-config/internal/initialization_service.go",
@@ -3820,7 +3909,8 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+      "dependencies": [
+        "site-config.OpenRuntimeStore",
             "site-config.RegisterActivation",
             "site-config.RecoverAnnouncementJournal",
             "site-config.RelayOutbox",

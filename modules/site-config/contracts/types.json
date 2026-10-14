@@ -515,12 +515,12 @@
           "description": "需登记切换回执的有状态域集合",
           "items": {
             "type": "string",
-            "description": "15个注册module slug",
+          "description": "14个有状态注册module slug（portal无状态，不登记回执）",
             "minLength": 1,
             "maxLength": 64
           },
-          "minItems": 15,
-          "maxItems": 15
+          "minItems": 14,
+          "maxItems": 14
         },
         "activationReceipts": {
           "type": "array",
@@ -549,6 +549,11 @@
         "activationReceipts",
         "updatedAt"
       ]
+    },
+    "RuntimeStore": {
+      "type": "object",
+      "description": "仅内部使用的独立control.db句柄，不作为HTTP DTO",
+      "x-internal": true
     },
     "RuntimeTransition": {
       "type": "object",

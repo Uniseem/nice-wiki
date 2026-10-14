@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 36 个：手写 27、生成 3、配置 6。函数 46 个：约束 30，参考 16。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 39 个：手写 29、生成 3、配置 6、迁移 1。函数 48 个：约束 30，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -12,8 +12,11 @@
 | `modules/site-config/internal/home_service.go` | 手写 | 配置首页介绍、卡片和精选文档 | `site-config.UpdateHome`、`site-config.ReadPublicHome` |
 | `modules/site-config/internal/home_validator.go` | 手写 | 验证首页目标与引用 | `site-config.ValidateHomeLinks`（参考） |
 | `modules/site-config/internal/runtime_state_service.go` | 手写 | 读取独立控制库权威运行状态 | `site-config.ReadRuntimeState` |
+| `modules/site-config/internal/runtime_store.go` | 手写 | 打开独立control.db并持久化RuntimeState、激活回执与操作幂等记录 | `site-config.OpenRuntimeStore`（参考） |
 | `modules/site-config/internal/runtime_transition.go` | 手写 | 按CAS切换epoch与维护阶段 | `site-config.TransitionRuntimeState`、`site-config.ValidateRuntimeTransition`（参考）、`site-config.RegisterActivation` |
 | `modules/site-config/internal/write_epoch.go` | 手写 | 所有业务写入执行epoch与屏障检查 | `site-config.CheckWriteEpoch`（参考） |
+| `modules/site-config/internal/migrations/migrations.go` | 手写 | 内嵌本域control.db只追加SQL迁移并校验编号连续 | `site-config.All`（参考） |
+| `modules/site-config/internal/migrations/0001_control.sql` | 迁移 | 初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations | 无 |
 | `modules/site-config/internal/initialization_service.go` | 手写 | 无需AI完成首站点初始化 | `site-config.InitializeSite`、`site-config.ReadInitializationStatus`、`site-config.ResumeInitialization`、`site-config.AbortInitialization` |
 | `modules/site-config/internal/initialization_defaults.go` | 手写 | 确定性生成首次基础配置 | `site-config.PrepareDefaultConfig`（参考） |
 | `modules/site-config/internal/initialization_repository.go` | 手写 | 持久化不可反悔的初始化决定 | `site-config.PersistInitializationDecision`（参考） |
