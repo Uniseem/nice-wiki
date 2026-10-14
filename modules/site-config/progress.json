@@ -7,7 +7,7 @@
   "assignedSession": "R1-02（语言标签纯规则切片）",
   "branch": "codex/analytics-r1-storage-contract-audit",
   "baseCommit": "685cd3d",
-  "deliveryCommit": "a2599e2",
+  "deliveryCommit": "d0904ce",
   "deployment": "not_started",
   "files": [
     {
