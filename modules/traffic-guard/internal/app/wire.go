@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	trafficguard "nice-wiki/modules/traffic-guard/internal"
 	"nice-wiki/modules/traffic-guard/internal/gen"
 	"nice-wiki/modules/traffic-guard/internal/transport"
 )
@@ -54,11 +55,24 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if swap.Action != platform.SwapNone {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障与暂存函数")
 	}
+	store, err := trafficguard.OpenPolicyStore(config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	if err := store.RunMigrations(); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	if err := store.RecoverJournal(); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	// 完整 x-handler、后台循环和恢复回执仍未登记齐全；不能返回只装配
+	// 健康路由的半成品 Application。先关闭本次校验打开的资源。
+	_ = store.Close()
 
-	// 本工作包不实现业务存储、完整 x-handler 绑定和后台函数。启动
-	// 不能开放仅有健康路由的半成品，因此把缺失依赖交给进程守护重试。
 	_ = anchors
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域业务handler与持久化尚未实现")
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、授权客户端与后台循环尚未实现")
 }
 
 // NewRuntimeClient 为 RunService 构造 site-config 运行权威客户端；它只

@@ -4,6 +4,8 @@
 
 - `guard_policy(site_id, revision, policy_json, data_epoch; PK site_id)`
 
+- `policy_operation_receipts(site_id, operation_id, input_hash, revision, data_epoch, created_at; PK site_id+operation_id；只保存幂等摘要，不保存正文)`
+
 - `buckets(scope_key PK, capacity, tokens_milli, updated_at_ms, data_epoch)`
 
 - `permits(admission_id PK, request_id UNIQUE, subject_key, action, expires_at, hard_deadline, state, policy_revision, data_epoch)`
