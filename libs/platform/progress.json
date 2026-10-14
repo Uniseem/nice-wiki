@@ -1,192 +1,192 @@
 {
   "version": 1,
   "module": "platform",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "a818ba4a53dd91c41038fa0b8d2d93c650af414751e851fe2708e855f93400a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-00",
+  "branch": "codex/platform-r1-00",
+  "baseCommit": "d7cf792431d8fe1c4669ce05957ff288c3e182aa",
+  "deliveryCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
   "deployment": "not_started",
   "files": [
     {
       "path": "libs/platform/platform.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/opctx/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/problem/problem.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/outbox/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/outbox/relay.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/inbox/inbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/inbox/consumer.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/worker/loop.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/modelclient/invoke.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/lifecycle/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/lifecycle/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/cmd/nw-keys/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过；nw-keys临时目录冒烟通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "path": "libs/platform/go.sum",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "工具生成；当前无第三方依赖故为空；go build通过"
       },
       "blocker": null
     }
@@ -195,190 +195,190 @@
     {
       "id": "platform.SignAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.VerifyAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.VerifyDelegation",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.BuildOperationContext",
       "path": "libs/platform/opctx/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.WriteProblem",
       "path": "libs/platform/problem/problem.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.EnqueueEvent",
       "path": "libs/platform/outbox/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.RunRelay",
       "path": "libs/platform/outbox/relay.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.ClaimInbox",
       "path": "libs/platform/inbox/inbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.RunConsumer",
       "path": "libs/platform/inbox/consumer.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.InvokeModel",
       "path": "libs/platform/modelclient/invoke.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.ReadRuntime",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.WatchRuntime",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.ApplyRestoreSwap",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.RunService",
       "path": "libs/platform/lifecycle/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
     {
       "id": "platform.main",
       "path": "libs/platform/cmd/nw-keys/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过；nw-keys临时目录冒烟通过"
       },
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。条目全部planned，由集成会话实现并记录提交与检查证据。"
+  "rule": "R1-00交付：全部条目verified（实现+已有检查通过），行为验收待R2；生成物与合同一致性由make gen可重现与make check保证。"
 }

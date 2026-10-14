@@ -1,5 +1,9 @@
 # platform 交接（R1-00）
 
+- 分支：codex/platform-r1-00；基线提交 d7cf792431d8fe1c4669ce05957ff288c3e182aa；实现提交 fa70c657322cfabbb575282f3436f4605f31d69d；台账交付记录紧随其后单独提交。
+- 独占范围：libs/platform/ 全部、scripts/gen_code.py、Makefile的gen目标、15域internal/gen与web|ui生成物、jobs/portal生成配置；跨域合同修订仅jobs ClaimedJob（attempt/dataEpoch）与各域clients.gen.go职责措辞（合并时同步）。
+- 未提交文件：无。
+
 ## 本次完成
 
 - libs/platform 全部17个约束函数按合同实现：serviceauth（断言签发/验证、委托验证、签名传输层）、opctx、problem、outbox（登记+转发循环）、inbox（去重+订阅循环）、worker（领取循环）、modelclient、lifecycle（配置/运行状态/恢复换目录/进程模板）、cmd/nw-keys。
@@ -27,5 +31,6 @@
 ## 遗留与下一步
 
 - deploy 会话需按上述口径创建 deploy/config/services.json；jobs 会话对齐 ClaimedJob.attempt/dataEpoch 与 CompleteJob.resultRef 可空口径。
-- 根 STATUS/plan 由集成会话汇总；本模块交付提交后 progress.json 逐项翻为 implemented/verified。
+- 各域 progress.json 中生成文件保持 planned（其模块仍处design阶段），生成物由make gen随时重建；模块自身实现包交付时一并翻状态。
+- 署名约定：本次实现由GLM（ZCode）完成，提交以Co-Authored-By trailer如实标注；GLM的代用地址尚未在AGENTS登记，如需统一映射请用户确认后补入。
 - 下一项任务：合并R1-00后按 plan.md 认领 R1-01（identity），其 main/BuildApplication装配全部经本库。
