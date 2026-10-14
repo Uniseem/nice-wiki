@@ -7,7 +7,7 @@
   "assignedSession": "R1-01（GLM/ZCode，私有持久化）",
   "branch": "codex/identity-r1-01-storage",
   "baseCommit": "bbb1e535c2f1efa93b11af80e3fe853f3fefbecf",
-  "deliveryCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
+  "deliveryCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
   "deployment": "not_started",
   "files": [
     {
@@ -172,31 +172,31 @@
     },
     {
       "path": "modules/identity/internal/storage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/migrations/migrations.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/migrations/0001_domain.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
@@ -218,7 +218,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "步骤3-7的存储打开/x-handler绑定/换向后会话失效与回执/后台循环依赖业务函数；目录布局、信任锚、运行权威与ApplyRestoreSwap已随交付提交实现"
+      "blocker": "步骤4-7剩余：全部OpenAPI x-handler绑定、换向后InvalidateRestoredSessions与registerActivation回执、ObserveSuperadminResetFile/RelayOutbox后台循环；存储打开/迁移/恢复已随交付提交实现"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
@@ -765,44 +765,44 @@
     {
       "id": "identity.OpenDatabase",
       "path": "modules/identity/internal/storage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
     {
       "id": "identity.RunMigrations",
       "path": "modules/identity/internal/storage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
     {
       "id": "identity.RecoverJournal",
       "path": "modules/identity/internal/storage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
     {
       "id": "identity.All",
       "path": "modules/identity/migrations/migrations.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
       },
       "blocker": null
     },
@@ -826,7 +826,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "合同步骤3-7未完：业务存储打开与schema迁移、全部OpenAPI x-handler绑定、换入后InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；已实现：module/data目录/secretRef验证、active-control-restore布局、信任锚与签名密钥加载、site-config运行权威读取、ApplyRestoreSwap接入（换向后因回执依赖未实现而拒绝开放入口）"
+      "blocker": "合同步骤剩余：全部OpenAPI x-handler绑定、换入后InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；已实现：配置/目录/信任锚/签名密钥/运行权威读取/ApplyRestoreSwap/打开active区DB并迁移/决定日志恢复（本包交付28af316bf6a）"
     },
     {
       "id": "identity.Serve",
@@ -865,10 +865,10 @@
       "id": "identity.Ready",
       "path": "modules/identity/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
+      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
       "verification": {
         "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；Ready的schema/journal/epoch深度校验随业务存储落地（见handoff）"
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）；initialized/journalRecovered/activeDataEpoch已基于真实存储与运行代次"
       },
       "blocker": null
     }
