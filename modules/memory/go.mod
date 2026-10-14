@@ -6,6 +6,7 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/oapi-codegen/runtime v1.1.2
 	nice-wiki/libs/platform v0.0.0
+	modernc.org/sqlite v1.59.0
 )
 
 replace nice-wiki/libs/platform => ../../libs/platform
