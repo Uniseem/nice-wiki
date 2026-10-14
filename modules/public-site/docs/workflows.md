@@ -20,4 +20,4 @@
 
 并发和幂等：每个修改函数明确CAS、fencing/租约或事务边界，见functions；公共事件至少一次，不能依赖全局顺序。接收eventId相同但hash不同拒CONFLICT；较低sourceRevision记已见但不应用；旧dataEpoch拒绝并不能重绑新epoch。
 
-持久事件由M06-F060消费content.publication.changed/content.publication.withdrawn/translation.ready，按inbox与单调revision失效/预热。配置与启用语言每请求读当前权威值；事件只是投影优化，最终发布门禁不能省略。
+持久事件由public-site.ConsumeEvents从jobs订阅content.publication.changed/content.publication.withdrawn/translation.ready，交给public-site.InvalidatePublication按inbox与单调revision失效投影；changed与translation.ready再登记public-site.render-publication任务由PrewarmPublication预热，withdrawn不预热。配置与启用语言每请求读当前权威值；事件只是投影优化，最终发布门禁不能省略。

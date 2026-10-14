@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "design",
-  "contractSha256": "57e6a80c5ef99315f50dc790531854977761d0a715625667700a33f0698f9860",
+  "contractSha256": "9c4b68f751195e8674ddfe3a59444532f28fd0fed4fea96aca6b2f8b6df7e809",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -713,7 +713,7 @@
   ],
   "functions": [
     {
-      "id": "M06-F001",
+      "id": "public-site.ResolveRoute",
       "path": "modules/public-site/internal/routing.go",
       "state": "planned",
       "implementationCommit": null,
@@ -724,7 +724,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F002",
+      "id": "public-site.SelectLocale",
       "path": "modules/public-site/internal/locale.go",
       "state": "planned",
       "implementationCommit": null,
@@ -735,7 +735,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F003",
+      "id": "public-site.CheckPublication",
       "path": "modules/public-site/internal/authority.go",
       "state": "planned",
       "implementationCommit": null,
@@ -746,7 +746,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F004",
+      "id": "public-site.LoadPublishedBundle",
       "path": "modules/public-site/internal/content_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -757,7 +757,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F005",
+      "id": "public-site.ParseMarkdown",
       "path": "modules/public-site/internal/markdown.go",
       "state": "planned",
       "implementationCommit": null,
@@ -768,7 +768,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F006",
+      "id": "public-site.SanitizeHTML",
       "path": "modules/public-site/internal/sanitize.go",
       "state": "planned",
       "implementationCommit": null,
@@ -779,7 +779,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F007",
+      "id": "public-site.BuildTOC",
       "path": "modules/public-site/internal/toc.go",
       "state": "planned",
       "implementationCommit": null,
@@ -790,7 +790,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F008",
+      "id": "public-site.RewriteInternalLinks",
       "path": "modules/public-site/internal/links.go",
       "state": "planned",
       "implementationCommit": null,
@@ -801,7 +801,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F009",
+      "id": "public-site.ResolvePublicMedia",
       "path": "modules/public-site/internal/media_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -812,7 +812,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F010",
+      "id": "public-site.BuildNavigation",
       "path": "modules/public-site/internal/navigation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -823,7 +823,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F011",
+      "id": "public-site.BuildBreadcrumbs",
       "path": "modules/public-site/internal/breadcrumbs.go",
       "state": "planned",
       "implementationCommit": null,
@@ -834,7 +834,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F012",
+      "id": "public-site.BuildCanonical",
       "path": "modules/public-site/internal/seo.go",
       "state": "planned",
       "implementationCommit": null,
@@ -845,7 +845,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F013",
+      "id": "public-site.BuildHreflang",
       "path": "modules/public-site/internal/hreflang.go",
       "state": "planned",
       "implementationCommit": null,
@@ -856,7 +856,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F014",
+      "id": "public-site.BuildSEOMetadata",
       "path": "modules/public-site/internal/metadata.go",
       "state": "planned",
       "implementationCommit": null,
@@ -867,7 +867,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F015",
+      "id": "public-site.ComposeHTML",
       "path": "modules/public-site/internal/html.go",
       "state": "planned",
       "implementationCommit": null,
@@ -878,7 +878,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F016",
+      "id": "public-site.BuildCacheKey",
       "path": "modules/public-site/internal/cache_key.go",
       "state": "planned",
       "implementationCommit": null,
@@ -889,7 +889,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F017",
+      "id": "public-site.ReadRenderCache",
       "path": "modules/public-site/internal/cache_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -900,7 +900,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F018",
+      "id": "public-site.WriteRenderCache",
       "path": "modules/public-site/internal/cache_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -911,7 +911,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F019",
+      "id": "public-site.InvalidatePublication",
       "path": "modules/public-site/internal/invalidation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -922,7 +922,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F020",
+      "id": "public-site.RenderPublicPage",
       "path": "modules/public-site/internal/renderer.go",
       "state": "planned",
       "implementationCommit": null,
@@ -933,7 +933,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F021",
+      "id": "public-site.HandlePage",
       "path": "modules/public-site/internal/http_pages.go",
       "state": "planned",
       "implementationCommit": null,
@@ -944,7 +944,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F022",
+      "id": "public-site.HandleHome",
       "path": "modules/public-site/internal/http_home.go",
       "state": "planned",
       "implementationCommit": null,
@@ -955,7 +955,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F023",
+      "id": "public-site.HandleNavigation",
       "path": "modules/public-site/internal/http_navigation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -966,7 +966,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F024",
+      "id": "public-site.HandleMarkdown",
       "path": "modules/public-site/internal/http_markdown.go",
       "state": "planned",
       "implementationCommit": null,
@@ -977,7 +977,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F025",
+      "id": "public-site.HandleRobots",
       "path": "modules/public-site/internal/http_robots.go",
       "state": "planned",
       "implementationCommit": null,
@@ -988,7 +988,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F026",
+      "id": "public-site.BuildLLMsIndex",
       "path": "modules/public-site/internal/llms.go",
       "state": "planned",
       "implementationCommit": null,
@@ -999,7 +999,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F027",
+      "id": "public-site.HandleLLMsIndex",
       "path": "modules/public-site/internal/http_llms.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1010,7 +1010,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F028",
+      "id": "public-site.HandleLLMsFull",
       "path": "modules/public-site/internal/http_llms.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1021,7 +1021,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F029",
+      "id": "public-site.BuildSitemapEntries",
       "path": "modules/public-site/internal/sitemap.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1032,7 +1032,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F030",
+      "id": "public-site.HandleSitemapIndex",
       "path": "modules/public-site/internal/http_sitemap.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1043,7 +1043,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F031",
+      "id": "public-site.HandleSitemapShard",
       "path": "modules/public-site/internal/http_sitemap.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1054,7 +1054,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F032",
+      "id": "public-site.IssuePreviewToken",
       "path": "modules/public-site/internal/preview.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1065,7 +1065,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F033",
+      "id": "public-site.ValidatePreviewToken",
       "path": "modules/public-site/internal/preview.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1076,7 +1076,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F034",
+      "id": "public-site.RenderPreview",
       "path": "modules/public-site/internal/preview_renderer.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1087,7 +1087,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F035",
+      "id": "public-site.HandlePreview",
       "path": "modules/public-site/internal/http_preview.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1098,7 +1098,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F036",
+      "id": "public-site.RecordAnonymousView",
       "path": "modules/public-site/internal/beacon.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1109,7 +1109,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F037",
+      "id": "public-site.CreateSnapshot",
       "path": "modules/public-site/internal/snapshot.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1120,7 +1120,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F038",
+      "id": "public-site.ValidateImport",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1131,7 +1131,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F039",
+      "id": "public-site.PrepareImport",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1142,7 +1142,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F040",
+      "id": "public-site.ActivateImport",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1153,7 +1153,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F041",
+      "id": "public-site.AbortImport",
       "path": "modules/public-site/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1164,7 +1164,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F042",
+      "id": "public-site.EnterBarrier",
       "path": "modules/public-site/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1175,7 +1175,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F043",
+      "id": "public-site.ReleaseBarrier",
       "path": "modules/public-site/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1186,7 +1186,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F044",
+      "id": "public-site.ValidateRecoveryAuthorization",
       "path": "modules/public-site/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1197,7 +1197,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F045",
+      "id": "public-site.LoadPreview",
       "path": "modules/public-site/web/src/PreviewPanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -1208,7 +1208,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F046",
+      "id": "public-site.LoadPublicCapabilities",
       "path": "modules/public-site/web/src/PublicSettingsPanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -1219,7 +1219,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F047",
+      "id": "public-site.RequestPublicNavigation",
       "path": "modules/public-site/web/src/client.ts",
       "state": "planned",
       "implementationCommit": null,
@@ -1230,7 +1230,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F048",
+      "id": "public-site.HandleRootRedirect",
       "path": "modules/public-site/internal/http_root.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1241,7 +1241,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F049",
+      "id": "public-site.ParseTiptapDocument",
       "path": "modules/public-site/internal/tiptap.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1252,7 +1252,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F050",
+      "id": "public-site.RenderTiptapHTML",
       "path": "modules/public-site/internal/tiptap_html.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1263,7 +1263,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F051",
+      "id": "public-site.RenderTiptapMarkdown",
       "path": "modules/public-site/internal/tiptap_markdown.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1274,7 +1274,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F052",
+      "id": "public-site.RenderHero",
       "path": "modules/public-site/internal/hero.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1285,7 +1285,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F053",
+      "id": "public-site.RenderAnnouncement",
       "path": "modules/public-site/internal/announcement.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1296,7 +1296,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F054",
+      "id": "public-site.BuildPreviousNext",
       "path": "modules/public-site/internal/navigation_neighbors.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1307,7 +1307,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F055",
+      "id": "public-site.RenderNotFound",
       "path": "modules/public-site/internal/http_errors.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1318,7 +1318,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F056",
+      "id": "public-site.HandleAskShell",
       "path": "modules/public-site/internal/http_ask.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1329,7 +1329,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F057",
+      "id": "public-site.PrewarmPublication",
       "path": "modules/public-site/internal/prewarm.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1340,7 +1340,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F058",
+      "id": "public-site.HandleLLMsRoot",
       "path": "modules/public-site/internal/http_llms_root.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1351,7 +1351,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F059",
+      "id": "public-site.HandleLanguageSitemap",
       "path": "modules/public-site/internal/http_language_sitemap.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1362,7 +1362,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F901",
+      "id": "public-site.main",
       "path": "modules/public-site/cmd/public-site/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1373,7 +1373,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F902",
+      "id": "public-site.BuildApplication",
       "path": "modules/public-site/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1384,7 +1384,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F903",
+      "id": "public-site.Serve",
       "path": "modules/public-site/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1395,7 +1395,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F904",
+      "id": "public-site.Shutdown",
       "path": "modules/public-site/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1406,7 +1406,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F905",
+      "id": "public-site.Health",
       "path": "modules/public-site/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1417,7 +1417,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F906",
+      "id": "public-site.Ready",
       "path": "modules/public-site/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1428,7 +1428,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F907",
+      "id": "public-site.mountModuleUI",
       "path": "modules/public-site/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,
@@ -1439,7 +1439,7 @@
       "blocker": null
     },
     {
-      "id": "M06-F060",
+      "id": "public-site.ConsumeEvents",
       "path": "modules/public-site/internal/events/consume.go",
       "state": "planned",
       "implementationCommit": null,

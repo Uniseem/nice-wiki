@@ -19,7 +19,7 @@
 - [openapi](contracts/openapi.json)
 - [events](contracts/events.json)
 
-本域登记 55 个未来文件：手写业务 48、UI 3、生成 2、配置 1、迁移 1；具体函数 59 个。文件仅登记路径，没有创建未来源码。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
+文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。文件仅登记路径，没有创建未来源码。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
 
 ## 进度与新会话交接
 

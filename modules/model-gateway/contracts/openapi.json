@@ -3963,7 +3963,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M07-F905",
+        "x-handler": "model-gateway.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -3994,7 +3994,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M07-F906",
+        "x-handler": "model-gateway.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

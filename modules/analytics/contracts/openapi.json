@@ -17,7 +17,7 @@
         "operationId": "ingestBeacon",
         "summary": "匿名HTTP接收",
         "description": "204；严格allowlist，未知字段拒绝400，不携带IP/正文",
-        "x-handler": "M14-F004",
+        "x-handler": "analytics.IngestBeacon",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -85,7 +85,7 @@
         "operationId": "queryPageStatistics",
         "summary": "访问汇总查询",
         "description": "按UTC小时或站点时区日聚合访问",
-        "x-handler": "M14-F009",
+        "x-handler": "analytics.QueryPageStatistics",
         "x-permission": "stats.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -185,7 +185,7 @@
         "operationId": "queryUsageStatistics",
         "summary": "费用汇总查询",
         "description": "派生费用汇总附gateway watermark与lastReconciledAt",
-        "x-handler": "M14-F019",
+        "x-handler": "analytics.QueryUsageStatistics",
         "x-permission": "stats.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -272,7 +272,7 @@
         "operationId": "queryAudits",
         "summary": "审计分页",
         "description": "管理操作审计游标查询，无正文/密钥",
-        "x-handler": "M14-F014",
+        "x-handler": "analytics.QueryAudits",
         "x-permission": "audit.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -362,7 +362,7 @@
         "operationId": "appendAudit",
         "summary": "追加安全审计",
         "description": "已鉴权服务审计事件；不能提交任意message",
-        "x-handler": "M14-F013",
+        "x-handler": "analytics.AppendAudit",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -441,7 +441,7 @@
         "operationId": "readAudit",
         "summary": "读取单条审计",
         "description": "读取安全审计记录与链校验结果",
-        "x-handler": "M14-F015",
+        "x-handler": "analytics.ReadAudit",
         "x-permission": "audit.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -512,7 +512,7 @@
         "operationId": "createExport",
         "summary": "受权限保护统计导出",
         "description": "已授权过滤范围生成CSV引用，最多10万行",
-        "x-handler": "M14-F023",
+        "x-handler": "analytics.CreateExport",
         "x-permission": "stats.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -591,7 +591,7 @@
         "operationId": "reconcileUsage",
         "summary": "对账修复派生统计",
         "description": "只读gateway完整ledger watermark对账；不修改gateway",
-        "x-handler": "M14-F021",
+        "x-handler": "analytics.ReconcileUsage",
         "x-permission": "system.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -665,91 +665,12 @@
         ]
       }
     },
-    "/v1/events": {
-      "post": {
-        "operationId": "consumeAnalyticsEvent",
-        "summary": "消费安全审计和费用事件",
-        "description": "接受版本审计/费用事件，返回durable inbox确认",
-        "x-handler": "M14-F022",
-        "x-permission": "service",
-        "x-data-epoch-required": true,
-        "responses": {
-          "200": {
-            "description": "接受版本审计/费用事件，返回durable inbox确认",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "./types.json#/$defs/ConsumeAnalyticsEventResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "公共错误；VALIDATION",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "公共错误；VERSION_MISMATCH",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "./types.json#/$defs/ConsumeAnalyticsEventRequestBody"
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-Request-Id",
-            "required": false,
-            "schema": {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "公共 Identifier 合同，遵守其字段和空值规则"
-            },
-            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
-          },
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": true,
-            "schema": {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "公共 Identifier 合同，遵守其字段和空值规则"
-            },
-            "description": "本操作幂等键，同键不同规范body hash返回409"
-          }
-        ],
-        "security": [
-          {
-            "serviceAuth": []
-          }
-        ]
-      }
-    },
     "/v1/crawler-access": {
       "post": {
         "operationId": "recordCrawlerAccess",
         "summary": "AI Markdown访问独立计数",
         "description": "AI爬虫.md访问独立统计，不记录IP/UA原文",
-        "x-handler": "M14-F043",
+        "x-handler": "analytics.RecordCrawlerAccess",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -828,7 +749,7 @@
         "operationId": "queryContentGaps",
         "summary": "热门文档与答不出问题联动",
         "description": "热门文档+答不上来问题引用、QA量/缓存命中率/无答案比",
-        "x-handler": "M14-F044",
+        "x-handler": "analytics.QueryContentGaps",
         "x-permission": "stats.read",
         "x-data-epoch-required": true,
         "responses": {
@@ -905,7 +826,7 @@
         "operationId": "acquireBarrier",
         "summary": "进入analytics一致屏障",
         "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
-        "x-handler": "M14-F030",
+        "x-handler": "analytics.EnterBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -975,7 +896,7 @@
         "operationId": "releaseBarrier",
         "summary": "解除统计维护",
         "description": "仅全域恢复完成或commit前全部abort确认后释放",
-        "x-handler": "M14-F031",
+        "x-handler": "analytics.ReleaseBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1057,7 +978,7 @@
         "operationId": "exportSnapshot",
         "summary": "导出统计快照",
         "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
-        "x-handler": "M14-F032",
+        "x-handler": "analytics.CreateSnapshot",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1137,7 +1058,7 @@
         "operationId": "validateSnapshot",
         "summary": "校验统计恢复",
         "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
-        "x-handler": "M14-F033",
+        "x-handler": "analytics.ValidateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1207,7 +1128,7 @@
         "operationId": "prepareSnapshot",
         "summary": "准备统计导入",
         "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
-        "x-handler": "M14-F034",
+        "x-handler": "analytics.PrepareImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1287,7 +1208,7 @@
         "operationId": "commitSnapshot",
         "summary": "激活统计新代次",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
-        "x-handler": "M14-F035",
+        "x-handler": "analytics.ActivateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1357,7 +1278,7 @@
         "operationId": "rollbackSnapshot",
         "summary": "撤销未提交stage",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
-        "x-handler": "M14-F036",
+        "x-handler": "analytics.AbortImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1426,7 +1347,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M14-F905",
+        "x-handler": "analytics.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -1457,7 +1378,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M14-F906",
+        "x-handler": "analytics.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

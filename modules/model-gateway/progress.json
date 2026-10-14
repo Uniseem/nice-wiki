@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "design",
-  "contractSha256": "3e4a08a150ee017c59f8c94ba7b919031908dcc1e99f1835e2c07997070ecaff",
+  "contractSha256": "86208470af11646f50a1514a46ec4ef245b973d90390c8b08396006d8035f036",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -1182,7 +1182,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F901",
+      "id": "model-gateway.main",
       "path": "modules/model-gateway/cmd/model-gateway/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1193,7 +1193,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F902",
+      "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1204,7 +1204,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F903",
+      "id": "model-gateway.Serve",
       "path": "modules/model-gateway/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1215,7 +1215,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F904",
+      "id": "model-gateway.Shutdown",
       "path": "modules/model-gateway/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1226,7 +1226,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F905",
+      "id": "model-gateway.Health",
       "path": "modules/model-gateway/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1237,7 +1237,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F906",
+      "id": "model-gateway.Ready",
       "path": "modules/model-gateway/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1248,7 +1248,7 @@
       "blocker": null
     },
     {
-      "id": "M07-F907",
+      "id": "model-gateway.mountModuleUI",
       "path": "modules/model-gateway/ui/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

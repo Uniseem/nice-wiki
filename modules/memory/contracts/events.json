@@ -72,7 +72,8 @@
       "purpose": "消费glossary.proposal.applied执行本域失效/任务/批准回执；不同步反向请求生产方。",
       "delivery": "at-least-once",
       "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
-      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。",
+      "handler": "memory.HandleGlossaryProposalResult"
     },
     {
       "name": "glossary.proposal.rejected",
@@ -84,7 +85,8 @@
       "purpose": "消费glossary.proposal.rejected执行本域失效/任务/批准回执；不同步反向请求生产方。",
       "delivery": "at-least-once",
       "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
-      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。"
+      "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。",
+      "handler": "memory.HandleGlossaryProposalResult"
     }
   ]
 }

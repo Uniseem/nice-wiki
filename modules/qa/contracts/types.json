@@ -833,9 +833,6 @@
     "OperationContext": {
       "$ref": "../../../contracts/common.schema.json#/$defs/OperationContext"
     },
-    "RequestContext": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext"
-    },
     "ErrorCode": {
       "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
     },

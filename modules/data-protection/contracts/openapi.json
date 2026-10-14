@@ -17,7 +17,7 @@
         "operationId": "createBackup",
         "summary": "建立备份操作",
         "description": "202 backup引用；自动维护屏障到ready或failed",
-        "x-handler": "M15-F002",
+        "x-handler": "data-protection.CreateBackup",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -94,7 +94,7 @@
         "operationId": "listBackups",
         "summary": "分页备份目录",
         "description": "状态/大小/manifest hash；不泄漏封装密钥",
-        "x-handler": "M15-F013",
+        "x-handler": "data-protection.ListBackups",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -175,7 +175,7 @@
         "operationId": "readBackup",
         "summary": "读取备份描述",
         "description": "完整域列表、schema、水位、校验报告",
-        "x-handler": "M15-F014",
+        "x-handler": "data-protection.ReadBackup",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -246,7 +246,7 @@
         "operationId": "authorizeBackupDownload",
         "summary": "下载私有备份授权",
         "description": "短期单用途下载授权，解密密钥另管",
-        "x-handler": "M15-F015",
+        "x-handler": "data-protection.AuthorizeBackupDownload",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -337,7 +337,7 @@
         "operationId": "validateRestore",
         "summary": "全域恢复预检",
         "description": "全manifest+跨域引用校验报告；不切代",
-        "x-handler": "M15-F017",
+        "x-handler": "data-protection.ValidateRestore",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -416,7 +416,7 @@
         "operationId": "createRestore",
         "summary": "建立完整恢复",
         "description": "202恢复；完整备份指定targetEpoch，不允许部分域恢复",
-        "x-handler": "M15-F018",
+        "x-handler": "data-protection.CreateRestore",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -495,7 +495,7 @@
         "operationId": "continueRestore",
         "summary": "继续中断恢复",
         "description": "已commit仅继续激活；未commit按持久记录继续prepare",
-        "x-handler": "M15-F026",
+        "x-handler": "data-protection.ContinueRestore",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -586,7 +586,7 @@
         "operationId": "abortRestore",
         "summary": "commit前撤销全域恢复",
         "description": "仅commit前可abort，需全部stage rollback确认",
-        "x-handler": "M15-F028",
+        "x-handler": "data-protection.AbortRestore",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -677,7 +677,7 @@
         "operationId": "getRestoreDecision",
         "summary": "读持久签名决策",
         "description": "签名持久决策供各域激活验证",
-        "x-handler": "M15-F025",
+        "x-handler": "data-protection.GetRestoreDecision",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -748,7 +748,7 @@
         "operationId": "buildMirror",
         "summary": "建立data git版本镜像",
         "description": "从ready backup的允许字段投影建立data git commit",
-        "x-handler": "M15-F032",
+        "x-handler": "data-protection.BuildMirror",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -827,7 +827,7 @@
         "operationId": "syncMirror",
         "summary": "显式远程fast-forward同步",
         "description": "仅显式已配置远程，fast-forward push；冲突409无force",
-        "x-handler": "M15-F036",
+        "x-handler": "data-protection.SyncMirror",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -928,7 +928,7 @@
         "operationId": "configureRemote",
         "summary": "设置远程同步目标",
         "description": "只存无credential URL与外部credentialRef，CAS",
-        "x-handler": "M15-F034",
+        "x-handler": "data-protection.ConfigureRemote",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -1017,7 +1017,7 @@
         "operationId": "scheduleLocalBackup",
         "summary": "每日本地备份",
         "description": "每日本地备份配置，默认02:00站点时区/N=20",
-        "x-handler": "M15-F053",
+        "x-handler": "data-protection.ScheduleLocalBackup",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -1096,7 +1096,7 @@
         "operationId": "restoreDuringSetup",
         "summary": "初始化向导从完整备份恢复",
         "description": "初始化受控setup授权入口，完整恢复且不要求AI",
-        "x-handler": "M15-F055",
+        "x-handler": "data-protection.RestoreDuringSetup",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -1175,7 +1175,7 @@
         "operationId": "importPortableBackup",
         "summary": "恢复入口接收完整备份",
         "description": "既有恢复入口上传便携备份，源服务与源运行key不必在线",
-        "x-handler": "M15-F058",
+        "x-handler": "data-protection.ImportPortableBackup",
         "x-permission": "superadmin",
         "x-data-epoch-required": true,
         "responses": {
@@ -1254,7 +1254,7 @@
         "operationId": "streamPortableBackup",
         "summary": "下载可移植完整备份",
         "description": "透明可移植ZIP流，原权限和内部单用途token，无额外人工步骤",
-        "x-handler": "M15-F056",
+        "x-handler": "data-protection.StreamPortableBackup",
         "x-permission": "backup.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -1336,7 +1336,7 @@
         "operationId": "acquireBarrier",
         "summary": "取得本域快照安全截点",
         "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
-        "x-handler": "M15-F041",
+        "x-handler": "data-protection.EnterBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1406,7 +1406,7 @@
         "operationId": "releaseBarrier",
         "summary": "解除本域维护",
         "description": "仅全域恢复完成或commit前全部abort确认后释放",
-        "x-handler": "M15-F042",
+        "x-handler": "data-protection.ReleaseBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1488,7 +1488,7 @@
         "operationId": "exportSnapshot",
         "summary": "导出本域操作目录快照",
         "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
-        "x-handler": "M15-F043",
+        "x-handler": "data-protection.CreateSnapshot",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1568,7 +1568,7 @@
         "operationId": "validateSnapshot",
         "summary": "校验保护域快照",
         "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
-        "x-handler": "M15-F044",
+        "x-handler": "data-protection.ValidateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1638,7 +1638,7 @@
         "operationId": "prepareSnapshot",
         "summary": "准备保护域数据导入",
         "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
-        "x-handler": "M15-F045",
+        "x-handler": "data-protection.PrepareImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1718,7 +1718,7 @@
         "operationId": "commitSnapshot",
         "summary": "激活本域新catalog",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
-        "x-handler": "M15-F046",
+        "x-handler": "data-protection.ActivateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1788,7 +1788,7 @@
         "operationId": "rollbackSnapshot",
         "summary": "撤销保护域未commit导入",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
-        "x-handler": "M15-F047",
+        "x-handler": "data-protection.AbortImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1857,7 +1857,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M15-F905",
+        "x-handler": "data-protection.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -1888,7 +1888,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M15-F906",
+        "x-handler": "data-protection.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "design",
-  "contractSha256": "c2238714f370bbb452136c5159a92fa35ef613a941b8f7aa947603986ef8fa82",
+  "contractSha256": "8e26ba8df3705e7e707a9679359474ea1a98533bc6a91e810a5e7b46e53d8e39",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -629,6 +629,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -1227,7 +1237,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F901",
+      "id": "qa.main",
       "path": "modules/qa/cmd/qa/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1238,7 +1248,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F902",
+      "id": "qa.BuildApplication",
       "path": "modules/qa/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1249,7 +1259,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F903",
+      "id": "qa.Serve",
       "path": "modules/qa/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1260,7 +1270,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F904",
+      "id": "qa.Shutdown",
       "path": "modules/qa/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1271,7 +1281,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F905",
+      "id": "qa.Health",
       "path": "modules/qa/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1282,7 +1292,7 @@
       "blocker": null
     },
     {
-      "id": "M09-F906",
+      "id": "qa.Ready",
       "path": "modules/qa/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1293,8 +1303,19 @@
       "blocker": null
     },
     {
-      "id": "M09-F907",
+      "id": "qa.mountModuleUI",
       "path": "modules/qa/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ConsumeEvents",
+      "path": "modules/qa/internal/events/subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

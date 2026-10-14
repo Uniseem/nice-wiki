@@ -17,7 +17,7 @@
         "operationId": "createAdmission",
         "summary": "准入 HTTP",
         "description": "准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单",
-        "x-handler": "M12-F015",
+        "x-handler": "traffic-guard.HandleAdmission",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -106,7 +106,7 @@
         "operationId": "renewAdmission",
         "summary": "延长活跃并发租约",
         "description": "仅签发者/绑定调用服务可续租，同主体、同 epoch",
-        "x-handler": "M12-F016",
+        "x-handler": "traffic-guard.RenewPermit",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -197,7 +197,7 @@
         "operationId": "releaseAdmission",
         "summary": "释放并发占位",
         "description": "幂等释放并发占位",
-        "x-handler": "M12-F017",
+        "x-handler": "traffic-guard.ReleasePermit",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -288,7 +288,7 @@
         "operationId": "issueChallenge",
         "summary": "签发挑战",
         "description": "签发 PoW；限 6 次/分钟/主体且不返回主体 hash",
-        "x-handler": "M12-F019",
+        "x-handler": "traffic-guard.IssueChallenge",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -363,7 +363,7 @@
         "operationId": "verifyChallenge",
         "summary": "核验并消费挑战",
         "description": "验证 proof，成功设置 HttpOnly/Secure/SameSite=Lax 短期签名证明",
-        "x-handler": "M12-F022",
+        "x-handler": "traffic-guard.VerifyChallenge",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -450,7 +450,7 @@
         "operationId": "getPolicy",
         "summary": "读取生效策略",
         "description": "显示策略与 revision，不显示 pepper",
-        "x-handler": "M12-F002",
+        "x-handler": "traffic-guard.GetPolicy",
         "x-permission": "guard.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -497,7 +497,7 @@
         "operationId": "updatePolicy",
         "summary": "更新策略 CAS",
         "description": "expectedRevision CAS；无钱账字段",
-        "x-handler": "M12-F003",
+        "x-handler": "traffic-guard.UpdatePolicy",
         "x-permission": "guard.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -576,7 +576,7 @@
         "operationId": "createBan",
         "summary": "管理员建立临时禁令",
         "description": "指定匿名主体引用及动作 scope，禁止提交原始 IP",
-        "x-handler": "M12-F024",
+        "x-handler": "traffic-guard.CreateBan",
         "x-permission": "guard.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -653,7 +653,7 @@
         "operationId": "listBans",
         "summary": "分页禁令",
         "description": "游标分页，默认 20 上限100",
-        "x-handler": "M12-F026",
+        "x-handler": "traffic-guard.ListBans",
         "x-permission": "guard.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -734,7 +734,7 @@
         "operationId": "revokeBan",
         "summary": "撤销禁令",
         "description": "撤销 CAS，并发布审计事件",
-        "x-handler": "M12-F025",
+        "x-handler": "traffic-guard.RevokeBan",
         "x-permission": "guard.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -825,7 +825,7 @@
         "operationId": "consumeAdmission",
         "summary": "QA绑定准入使用权",
         "description": "同一QA请求消费准入，重复同request幂等，不预占费用",
-        "x-handler": "M12-F044",
+        "x-handler": "traffic-guard.ConsumeAdmission",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -916,7 +916,7 @@
         "operationId": "verifyAdmission",
         "summary": "QA在线确认准入租约",
         "description": "仅QA在线确认；gateway本地验签不反向同步依赖",
-        "x-handler": "M12-F045",
+        "x-handler": "traffic-guard.VerifyAdmissionHTTP",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1007,7 +1007,7 @@
         "operationId": "reportModelRisk",
         "summary": "接收qa已有检测信号",
         "description": "复评已有前置模型风险/匿名重复信号，abuse600秒AI禁令",
-        "x-handler": "M12-F042",
+        "x-handler": "traffic-guard.ReportQuestionSignals",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1086,7 +1086,7 @@
         "operationId": "queueSessionAdmission",
         "summary": "每会话1并发其余排队",
         "description": "同会话仅1处理，其余由qa持正文FIFO排队",
-        "x-handler": "M12-F043",
+        "x-handler": "traffic-guard.QueueSessionAdmission",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1165,7 +1165,7 @@
         "operationId": "acquireBarrier",
         "summary": "停止准入并等安全点",
         "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
-        "x-handler": "M12-F031",
+        "x-handler": "traffic-guard.EnterBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1245,7 +1245,7 @@
         "operationId": "releaseBarrier",
         "summary": "解除风控维护",
         "description": "仅全域恢复完成或commit前全部abort确认后释放",
-        "x-handler": "M12-F032",
+        "x-handler": "traffic-guard.ReleaseBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1327,7 +1327,7 @@
         "operationId": "exportSnapshot",
         "summary": "导出风控一致快照",
         "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
-        "x-handler": "M12-F033",
+        "x-handler": "traffic-guard.CreateSnapshot",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1407,7 +1407,7 @@
         "operationId": "validateSnapshot",
         "summary": "校验恢复输入",
         "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
-        "x-handler": "M12-F034",
+        "x-handler": "traffic-guard.ValidateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1477,7 +1477,7 @@
         "operationId": "prepareSnapshot",
         "summary": "准备本域导入",
         "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
-        "x-handler": "M12-F035",
+        "x-handler": "traffic-guard.PrepareImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1557,7 +1557,7 @@
         "operationId": "commitSnapshot",
         "summary": "激活新代次",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
-        "x-handler": "M12-F036",
+        "x-handler": "traffic-guard.ActivateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1637,7 +1637,7 @@
         "operationId": "rollbackSnapshot",
         "summary": "撤销未提交stage",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
-        "x-handler": "M12-F037",
+        "x-handler": "traffic-guard.AbortImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1706,7 +1706,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M12-F905",
+        "x-handler": "traffic-guard.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -1737,7 +1737,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M12-F906",
+        "x-handler": "traffic-guard.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

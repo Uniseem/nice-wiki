@@ -2297,7 +2297,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M05-F905",
+        "x-handler": "media.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -2328,7 +2328,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M05-F906",
+        "x-handler": "media.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "design",
-  "contractSha256": "7b48b4a05dd3ea728b8edccc1da68b22b9a010b18f76a92dff71969daf1127b0",
+  "contractSha256": "94fdec4e20880d98676adcd38edd71458d0df92737edc112b0fcec8e1d6ecdef",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -449,11 +449,21 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/jobs/config/event-subscriptions.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
     {
-      "id": "M13-F001",
+      "id": "jobs.ValidateJobSpec",
       "path": "modules/jobs/internal/validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -464,7 +474,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F002",
+      "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
       "state": "planned",
       "implementationCommit": null,
@@ -475,7 +485,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F010",
+      "id": "jobs.FailJob",
       "path": "modules/jobs/internal/queue.go",
       "state": "planned",
       "implementationCommit": null,
@@ -486,7 +496,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F003",
+      "id": "jobs.ClaimJob",
       "path": "modules/jobs/internal/leases.go",
       "state": "planned",
       "implementationCommit": null,
@@ -497,7 +507,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F004",
+      "id": "jobs.StartJob",
       "path": "modules/jobs/internal/leases.go",
       "state": "planned",
       "implementationCommit": null,
@@ -508,7 +518,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F005",
+      "id": "jobs.HeartbeatJob",
       "path": "modules/jobs/internal/leases.go",
       "state": "planned",
       "implementationCommit": null,
@@ -519,7 +529,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F006",
+      "id": "jobs.CheckLease",
       "path": "modules/jobs/internal/leases.go",
       "state": "planned",
       "implementationCommit": null,
@@ -530,7 +540,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F007",
+      "id": "jobs.CompleteJob",
       "path": "modules/jobs/internal/results.go",
       "state": "planned",
       "implementationCommit": null,
@@ -541,7 +551,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F008",
+      "id": "jobs.ClassifyFailure",
       "path": "modules/jobs/internal/retry.go",
       "state": "planned",
       "implementationCommit": null,
@@ -552,7 +562,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F009",
+      "id": "jobs.ComputeRetryAt",
       "path": "modules/jobs/internal/retry.go",
       "state": "planned",
       "implementationCommit": null,
@@ -563,7 +573,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F011",
+      "id": "jobs.RequeueDue",
       "path": "modules/jobs/internal/scheduler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -574,7 +584,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F012",
+      "id": "jobs.ReapExpiredLeases",
       "path": "modules/jobs/internal/scheduler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -585,7 +595,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F028",
+      "id": "jobs.TickSchedules",
       "path": "modules/jobs/internal/scheduler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -596,7 +606,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F013",
+      "id": "jobs.RequestCancel",
       "path": "modules/jobs/internal/cancellation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -607,7 +617,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F014",
+      "id": "jobs.ConfirmCancelled",
       "path": "modules/jobs/internal/cancellation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -618,7 +628,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F015",
+      "id": "jobs.ReadJob",
       "path": "modules/jobs/internal/query.go",
       "state": "planned",
       "implementationCommit": null,
@@ -629,7 +639,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F016",
+      "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
       "state": "planned",
       "implementationCommit": null,
@@ -640,7 +650,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F017",
+      "id": "jobs.StreamProgress",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "planned",
       "implementationCommit": null,
@@ -651,7 +661,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F018",
+      "id": "jobs.ValidateEnvelope",
       "path": "modules/jobs/internal/event_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -662,7 +672,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F019",
+      "id": "jobs.PublishEvent",
       "path": "modules/jobs/internal/event_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -673,7 +683,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F020",
+      "id": "jobs.RequeueExpiredDeliveries",
       "path": "modules/jobs/internal/event_delivery.go",
       "state": "planned",
       "implementationCommit": null,
@@ -684,7 +694,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F021",
+      "id": "jobs.AcknowledgeEvent",
       "path": "modules/jobs/internal/event_delivery.go",
       "state": "planned",
       "implementationCommit": null,
@@ -695,7 +705,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F022",
+      "id": "jobs.ReplayDelivery",
       "path": "modules/jobs/internal/event_delivery.go",
       "state": "planned",
       "implementationCommit": null,
@@ -706,7 +716,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F023",
+      "id": "jobs.DispatchOwnerTask",
       "path": "modules/jobs/internal/owner_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -717,7 +727,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F024",
+      "id": "jobs.ValidateCron",
       "path": "modules/jobs/internal/cron.go",
       "state": "planned",
       "implementationCommit": null,
@@ -728,7 +738,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F025",
+      "id": "jobs.NextFireAt",
       "path": "modules/jobs/internal/cron.go",
       "state": "planned",
       "implementationCommit": null,
@@ -739,7 +749,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F026",
+      "id": "jobs.CreateSchedule",
       "path": "modules/jobs/internal/schedule_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -750,7 +760,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F027",
+      "id": "jobs.UpdateSchedule",
       "path": "modules/jobs/internal/schedule_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -761,7 +771,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F029",
+      "id": "jobs.CoordinateBarrier",
       "path": "modules/jobs/internal/barrier_coordinator.go",
       "state": "planned",
       "implementationCommit": null,
@@ -772,7 +782,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F030",
+      "id": "jobs.EnterBarrier",
       "path": "modules/jobs/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -783,7 +793,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F031",
+      "id": "jobs.ReleaseBarrier",
       "path": "modules/jobs/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -794,7 +804,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F032",
+      "id": "jobs.PurgeExpiredHistory",
       "path": "modules/jobs/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -805,7 +815,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F033",
+      "id": "jobs.CreateSnapshot",
       "path": "modules/jobs/internal/snapshot.go",
       "state": "planned",
       "implementationCommit": null,
@@ -816,7 +826,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F034",
+      "id": "jobs.ValidateImport",
       "path": "modules/jobs/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -827,7 +837,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F035",
+      "id": "jobs.PrepareImport",
       "path": "modules/jobs/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -838,7 +848,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F036",
+      "id": "jobs.ActivateImport",
       "path": "modules/jobs/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -849,7 +859,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F037",
+      "id": "jobs.AbortImport",
       "path": "modules/jobs/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -860,7 +870,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F038",
+      "id": "jobs.ValidateRecoveryAuthorization",
       "path": "modules/jobs/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
@@ -871,7 +881,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F039",
+      "id": "jobs.RequestJobCancellation",
       "path": "modules/jobs/web/src/QueuePanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -882,7 +892,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F040",
+      "id": "jobs.SaveSchedule",
       "path": "modules/jobs/web/src/ScheduleEditor.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -893,7 +903,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F041",
+      "id": "jobs.ReconnectProgress",
       "path": "modules/jobs/web/src/progress.ts",
       "state": "planned",
       "implementationCommit": null,
@@ -904,7 +914,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F042",
+      "id": "jobs.SubscribeEvents",
       "path": "modules/jobs/internal/http_event_subscription.go",
       "state": "planned",
       "implementationCommit": null,
@@ -915,7 +925,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F901",
+      "id": "jobs.main",
       "path": "modules/jobs/cmd/jobs/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -926,7 +936,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F902",
+      "id": "jobs.BuildApplication",
       "path": "modules/jobs/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -937,7 +947,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F903",
+      "id": "jobs.Serve",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -948,7 +958,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F904",
+      "id": "jobs.Shutdown",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -959,7 +969,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F905",
+      "id": "jobs.Health",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -970,7 +980,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F906",
+      "id": "jobs.Ready",
       "path": "modules/jobs/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -981,7 +991,7 @@
       "blocker": null
     },
     {
-      "id": "M13-F907",
+      "id": "jobs.mountModuleUI",
       "path": "modules/jobs/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

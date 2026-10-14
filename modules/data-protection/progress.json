@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "design",
-  "contractSha256": "77b5cf3678e7d8c66c00247990a390a0783b35b0c6405df9923a96cb1d312ae8",
+  "contractSha256": "865500833b9ec2e70ba3a3c18b3e36ddb526518e068f00bd4287b8ab8a7197dd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -583,7 +583,7 @@
   ],
   "functions": [
     {
-      "id": "M15-F001",
+      "id": "data-protection.ValidateBackupRequest",
       "path": "modules/data-protection/internal/backup_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -594,7 +594,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F002",
+      "id": "data-protection.CreateBackup",
       "path": "modules/data-protection/internal/backup.go",
       "state": "planned",
       "implementationCommit": null,
@@ -605,7 +605,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F006",
+      "id": "data-protection.CollectSnapshots",
       "path": "modules/data-protection/internal/backup.go",
       "state": "planned",
       "implementationCommit": null,
@@ -616,7 +616,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F011",
+      "id": "data-protection.FinalizeBackup",
       "path": "modules/data-protection/internal/backup.go",
       "state": "planned",
       "implementationCommit": null,
@@ -627,7 +627,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F003",
+      "id": "data-protection.AcquireMaintenance",
       "path": "modules/data-protection/internal/maintenance.go",
       "state": "planned",
       "implementationCommit": null,
@@ -638,7 +638,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F004",
+      "id": "data-protection.WaitAllSafe",
       "path": "modules/data-protection/internal/maintenance.go",
       "state": "planned",
       "implementationCommit": null,
@@ -649,7 +649,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F012",
+      "id": "data-protection.ReleaseMaintenance",
       "path": "modules/data-protection/internal/maintenance.go",
       "state": "planned",
       "implementationCommit": null,
@@ -660,7 +660,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F005",
+      "id": "data-protection.ExportDomainSnapshot",
       "path": "modules/data-protection/internal/snapshot_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -671,7 +671,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F007",
+      "id": "data-protection.BuildManifest",
       "path": "modules/data-protection/internal/manifest.go",
       "state": "planned",
       "implementationCommit": null,
@@ -682,7 +682,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F008",
+      "id": "data-protection.VerifyObjectHash",
       "path": "modules/data-protection/internal/integrity.go",
       "state": "planned",
       "implementationCommit": null,
@@ -693,7 +693,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F009",
+      "id": "data-protection.ValidateCrossDomainRefs",
       "path": "modules/data-protection/internal/integrity.go",
       "state": "planned",
       "implementationCommit": null,
@@ -704,7 +704,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F010",
+      "id": "data-protection.EncryptBackupObject",
       "path": "modules/data-protection/internal/crypto.go",
       "state": "planned",
       "implementationCommit": null,
@@ -715,7 +715,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F016",
+      "id": "data-protection.DecryptForValidation",
       "path": "modules/data-protection/internal/crypto.go",
       "state": "planned",
       "implementationCommit": null,
@@ -726,7 +726,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F013",
+      "id": "data-protection.ListBackups",
       "path": "modules/data-protection/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -737,7 +737,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F014",
+      "id": "data-protection.ReadBackup",
       "path": "modules/data-protection/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -748,7 +748,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F037",
+      "id": "data-protection.ReadMirrorStatus",
       "path": "modules/data-protection/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -759,7 +759,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F015",
+      "id": "data-protection.AuthorizeBackupDownload",
       "path": "modules/data-protection/internal/download.go",
       "state": "planned",
       "implementationCommit": null,
@@ -770,7 +770,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F017",
+      "id": "data-protection.ValidateRestore",
       "path": "modules/data-protection/internal/restore_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -781,7 +781,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F018",
+      "id": "data-protection.CreateRestore",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -792,7 +792,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F020",
+      "id": "data-protection.PrepareAllDomains",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -803,7 +803,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F024",
+      "id": "data-protection.ActivateAllDomains",
       "path": "modules/data-protection/internal/restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -814,7 +814,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F019",
+      "id": "data-protection.PrepareDomain",
       "path": "modules/data-protection/internal/import_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -825,7 +825,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F023",
+      "id": "data-protection.ActivateDomain",
       "path": "modules/data-protection/internal/import_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -836,7 +836,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F027",
+      "id": "data-protection.RollbackDomain",
       "path": "modules/data-protection/internal/import_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -847,7 +847,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F021",
+      "id": "data-protection.WriteRestoreDecision",
       "path": "modules/data-protection/internal/decision_log.go",
       "state": "planned",
       "implementationCommit": null,
@@ -858,7 +858,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F025",
+      "id": "data-protection.GetRestoreDecision",
       "path": "modules/data-protection/internal/decision_log.go",
       "state": "planned",
       "implementationCommit": null,
@@ -869,7 +869,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F022",
+      "id": "data-protection.TransitionRuntimeEpoch",
       "path": "modules/data-protection/internal/runtime_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -880,7 +880,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F026",
+      "id": "data-protection.ContinueRestore",
       "path": "modules/data-protection/internal/restore_recovery.go",
       "state": "planned",
       "implementationCommit": null,
@@ -891,7 +891,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F028",
+      "id": "data-protection.AbortRestore",
       "path": "modules/data-protection/internal/restore_recovery.go",
       "state": "planned",
       "implementationCommit": null,
@@ -902,7 +902,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F029",
+      "id": "data-protection.RecoverProtectionJournal",
       "path": "modules/data-protection/internal/journal.go",
       "state": "planned",
       "implementationCommit": null,
@@ -913,7 +913,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F030",
+      "id": "data-protection.ValidateMirrorProjection",
       "path": "modules/data-protection/internal/mirror_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -924,7 +924,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F031",
+      "id": "data-protection.CollectPortableFiles",
       "path": "modules/data-protection/internal/mirror.go",
       "state": "planned",
       "implementationCommit": null,
@@ -935,7 +935,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F032",
+      "id": "data-protection.BuildMirror",
       "path": "modules/data-protection/internal/mirror.go",
       "state": "planned",
       "implementationCommit": null,
@@ -946,7 +946,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F033",
+      "id": "data-protection.CommitMirrorTree",
       "path": "modules/data-protection/internal/git_local.go",
       "state": "planned",
       "implementationCommit": null,
@@ -957,7 +957,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F034",
+      "id": "data-protection.ConfigureRemote",
       "path": "modules/data-protection/internal/git_config.go",
       "state": "planned",
       "implementationCommit": null,
@@ -968,7 +968,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F035",
+      "id": "data-protection.ValidateRemote",
       "path": "modules/data-protection/internal/git_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -979,7 +979,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F036",
+      "id": "data-protection.SyncMirror",
       "path": "modules/data-protection/internal/git_remote.go",
       "state": "planned",
       "implementationCommit": null,
@@ -990,7 +990,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F038",
+      "id": "data-protection.PruneBackups",
       "path": "modules/data-protection/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1001,7 +1001,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F039",
+      "id": "data-protection.PublishProtectionEvents",
       "path": "modules/data-protection/internal/outbox.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1012,7 +1012,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F040",
+      "id": "data-protection.ConsumeBarrierEvent",
       "path": "modules/data-protection/internal/events.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1023,7 +1023,18 @@
       "blocker": null
     },
     {
-      "id": "M15-F041",
+      "id": "data-protection.ConsumeEvents",
+      "path": "modules/data-protection/internal/events.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "data-protection.EnterBarrier",
       "path": "modules/data-protection/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1034,7 +1045,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F042",
+      "id": "data-protection.ReleaseBarrier",
       "path": "modules/data-protection/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1045,7 +1056,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F043",
+      "id": "data-protection.CreateSnapshot",
       "path": "modules/data-protection/internal/snapshot.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1056,7 +1067,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F044",
+      "id": "data-protection.ValidateImport",
       "path": "modules/data-protection/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1067,7 +1078,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F045",
+      "id": "data-protection.PrepareImport",
       "path": "modules/data-protection/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1078,7 +1089,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F046",
+      "id": "data-protection.ActivateImport",
       "path": "modules/data-protection/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1089,7 +1100,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F047",
+      "id": "data-protection.AbortImport",
       "path": "modules/data-protection/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1100,7 +1111,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F048",
+      "id": "data-protection.ValidateRecoveryAuthorization",
       "path": "modules/data-protection/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1111,7 +1122,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F049",
+      "id": "data-protection.IssueRestoreControlPermit",
       "path": "modules/data-protection/internal/recovery_control.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1122,7 +1133,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F050",
+      "id": "data-protection.RequestBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -1133,7 +1144,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F051",
+      "id": "data-protection.ApproveFullRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -1144,7 +1155,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F052",
+      "id": "data-protection.RequestMirrorSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -1155,7 +1166,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F053",
+      "id": "data-protection.ScheduleLocalBackup",
       "path": "modules/data-protection/internal/backup_schedule.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1166,7 +1177,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F054",
+      "id": "data-protection.MirrorSourceRevision",
       "path": "modules/data-protection/internal/publication_mirror.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1177,7 +1188,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F055",
+      "id": "data-protection.RestoreDuringSetup",
       "path": "modules/data-protection/internal/setup_restore.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1188,7 +1199,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F056",
+      "id": "data-protection.StreamPortableBackup",
       "path": "modules/data-protection/internal/portable_download.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1199,7 +1210,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F057",
+      "id": "data-protection.ValidatePortableArchive",
       "path": "modules/data-protection/internal/portable_archive.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1210,7 +1221,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F058",
+      "id": "data-protection.ImportPortableBackup",
       "path": "modules/data-protection/internal/portable_upload.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1221,7 +1232,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F901",
+      "id": "data-protection.main",
       "path": "modules/data-protection/cmd/data-protection/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1232,7 +1243,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F902",
+      "id": "data-protection.BuildApplication",
       "path": "modules/data-protection/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1243,7 +1254,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F903",
+      "id": "data-protection.Serve",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1254,7 +1265,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F904",
+      "id": "data-protection.Shutdown",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1265,7 +1276,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F905",
+      "id": "data-protection.Health",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1276,7 +1287,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F906",
+      "id": "data-protection.Ready",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1287,7 +1298,7 @@
       "blocker": null
     },
     {
-      "id": "M15-F907",
+      "id": "data-protection.mountModuleUI",
       "path": "modules/data-protection/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

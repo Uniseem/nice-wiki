@@ -17,7 +17,7 @@
         "operationId": "createJob",
         "summary": "持久提交任务",
         "description": "提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前",
-        "x-handler": "M13-F002",
+        "x-handler": "jobs.CreateJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -86,7 +86,7 @@
         "operationId": "claimJob",
         "summary": "领取待执行任务",
         "description": "所属owner worker领取租约与fencingToken",
-        "x-handler": "M13-F003",
+        "x-handler": "jobs.ClaimJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -155,7 +155,7 @@
         "operationId": "heartbeatJob",
         "summary": "维持租约",
         "description": "同worker/fence续租30秒",
-        "x-handler": "M13-F005",
+        "x-handler": "jobs.HeartbeatJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -236,7 +236,7 @@
         "operationId": "completeJob",
         "summary": "提交成功结果",
         "description": "同fence写不可变结果引用，不传正文",
-        "x-handler": "M13-F007",
+        "x-handler": "jobs.CompleteJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -327,7 +327,7 @@
         "operationId": "failJob",
         "summary": "失败写回",
         "description": "错误分类决定重试或dead-letter",
-        "x-handler": "M13-F010",
+        "x-handler": "jobs.FailJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -418,7 +418,7 @@
         "operationId": "cancelJob",
         "summary": "请求取消任务",
         "description": "请求取消；正在调用模型由owner/gateway取消并仍结算费用",
-        "x-handler": "M13-F013",
+        "x-handler": "jobs.RequestCancel",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -509,7 +509,7 @@
         "operationId": "readJob",
         "summary": "读取管理任务状态",
         "description": "状态/引用/安全错误码",
-        "x-handler": "M13-F015",
+        "x-handler": "jobs.ReadJob",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -580,7 +580,7 @@
         "operationId": "streamProgress",
         "summary": "任务进度SSE",
         "description": "SSE Last-Event-ID重放，最多7天",
-        "x-handler": "M13-F017",
+        "x-handler": "jobs.StreamProgress",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -672,7 +672,7 @@
         "operationId": "publishEvent",
         "summary": "持久接收事件",
         "description": "接收已签名版本envelope，durable后202",
-        "x-handler": "M13-F019",
+        "x-handler": "jobs.PublishEvent",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -751,7 +751,7 @@
         "operationId": "acknowledgeEvent",
         "summary": "消费者确认投递",
         "description": "指定consumer的去重确认",
-        "x-handler": "M13-F021",
+        "x-handler": "jobs.AcknowledgeEvent",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -842,7 +842,7 @@
         "operationId": "createSchedule",
         "summary": "创建定时任务",
         "description": "5字段cron+IANA时区，允许owner/type白名单",
-        "x-handler": "M13-F026",
+        "x-handler": "jobs.CreateSchedule",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -921,7 +921,7 @@
         "operationId": "updateSchedule",
         "summary": "修改定时CAS",
         "description": "revision CAS",
-        "x-handler": "M13-F027",
+        "x-handler": "jobs.UpdateSchedule",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
         "responses": {
@@ -1012,7 +1012,7 @@
         "operationId": "coordinateBarrier",
         "summary": "等待全域安全点",
         "description": "只允许data-protection+超管委托，协调全部有状态域安全点",
-        "x-handler": "M13-F029",
+        "x-handler": "jobs.CoordinateBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1091,7 +1091,7 @@
         "operationId": "startJob",
         "summary": "确认开始执行",
         "description": "所属owner主动领取后确认running，不由jobs执行领域算法",
-        "x-handler": "M13-F004",
+        "x-handler": "jobs.StartJob",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1172,7 +1172,7 @@
         "operationId": "checkLease",
         "summary": "写回前检验执行权",
         "description": "所属owner在副作用写回前核对fence/epoch/expiry",
-        "x-handler": "M13-F006",
+        "x-handler": "jobs.CheckLease",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1233,7 +1233,7 @@
         "operationId": "subscribeEvents",
         "summary": "已登记消费者订阅事件SSE",
         "description": "带版本事件SSE，已注册consumer按Last-Event-ID重放再ack",
-        "x-handler": "M13-F042",
+        "x-handler": "jobs.SubscribeEvents",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1313,7 +1313,7 @@
         "operationId": "acquireBarrier",
         "summary": "取得jobs本域屏障",
         "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
-        "x-handler": "M13-F030",
+        "x-handler": "jobs.EnterBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1383,7 +1383,7 @@
         "operationId": "releaseBarrier",
         "summary": "解除全域任务暂停",
         "description": "仅全域恢复完成或commit前全部abort确认后释放",
-        "x-handler": "M13-F031",
+        "x-handler": "jobs.ReleaseBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1465,7 +1465,7 @@
         "operationId": "exportSnapshot",
         "summary": "导出队列与事件一致快照",
         "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
-        "x-handler": "M13-F033",
+        "x-handler": "jobs.CreateSnapshot",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1545,7 +1545,7 @@
         "operationId": "validateSnapshot",
         "summary": "验证任务快照",
         "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
-        "x-handler": "M13-F034",
+        "x-handler": "jobs.ValidateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1615,7 +1615,7 @@
         "operationId": "prepareSnapshot",
         "summary": "准备任务恢复",
         "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
-        "x-handler": "M13-F035",
+        "x-handler": "jobs.PrepareImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1695,7 +1695,7 @@
         "operationId": "commitSnapshot",
         "summary": "激活恢复jobs",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
-        "x-handler": "M13-F036",
+        "x-handler": "jobs.ActivateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1765,7 +1765,7 @@
         "operationId": "rollbackSnapshot",
         "summary": "清理未提交恢复stage",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
-        "x-handler": "M13-F037",
+        "x-handler": "jobs.AbortImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1834,7 +1834,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M13-F905",
+        "x-handler": "jobs.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -1865,7 +1865,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M13-F906",
+        "x-handler": "jobs.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

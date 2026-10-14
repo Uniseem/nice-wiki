@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "design",
-  "contractSha256": "07176f9581666125860807e06c268b28c466750d7b1cf791906eb06206bd7b44",
+  "contractSha256": "d43095ef3d43534e3fb81ef49c7f4015e20a7ab1ad07ef7e279ed5de31ba7556",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -1067,6 +1067,17 @@
       "blocker": null
     },
     {
+      "id": "content.RelayOutbox",
+      "path": "modules/content/internal/outbox_repository.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "content.AcquireBarrier",
       "path": "modules/content/internal/barrier_service.go",
       "state": "planned",
@@ -1309,7 +1320,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F901",
+      "id": "content.main",
       "path": "modules/content/cmd/content/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1320,7 +1331,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F902",
+      "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1331,7 +1342,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F903",
+      "id": "content.Serve",
       "path": "modules/content/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1342,7 +1353,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F904",
+      "id": "content.Shutdown",
       "path": "modules/content/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1353,7 +1364,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F905",
+      "id": "content.Health",
       "path": "modules/content/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1364,7 +1375,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F906",
+      "id": "content.Ready",
       "path": "modules/content/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1375,7 +1386,7 @@
       "blocker": null
     },
     {
-      "id": "M04-F907",
+      "id": "content.mountModuleUI",
       "path": "modules/content/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

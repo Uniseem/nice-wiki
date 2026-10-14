@@ -24,7 +24,8 @@
       "purpose": "更新当前/历史refs，不以迟到事件替代最终权威检查",
       "delivery": "at-least-once",
       "ordering": "sourceRevision单调，低版只ack",
-      "idempotency": "eventId+sourceVersion去重"
+      "idempotency": "eventId+sourceVersion去重",
+      "handler": "media.ApplyReferenceEvent"
     }
   ]
 }

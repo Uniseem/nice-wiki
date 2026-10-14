@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "design",
-  "contractSha256": "29d81cf7d758f2ae9909760ff30e13d23d20639a94fbd2781948e4997db18d20",
+  "contractSha256": "9735ebbb14d24bb7a3f40262cb4ef0a0bcf25f3ccd3f6c63170253b4ddab1795",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -513,7 +513,7 @@
   ],
   "functions": [
     {
-      "id": "M12-F001",
+      "id": "traffic-guard.ValidatePolicy",
       "path": "modules/traffic-guard/internal/policy.go",
       "state": "planned",
       "implementationCommit": null,
@@ -524,7 +524,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F002",
+      "id": "traffic-guard.GetPolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -535,7 +535,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F003",
+      "id": "traffic-guard.UpdatePolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -546,7 +546,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F004",
+      "id": "traffic-guard.NormalizePeer",
       "path": "modules/traffic-guard/internal/subject.go",
       "state": "planned",
       "implementationCommit": null,
@@ -557,7 +557,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F005",
+      "id": "traffic-guard.DeriveSubject",
       "path": "modules/traffic-guard/internal/subject.go",
       "state": "planned",
       "implementationCommit": null,
@@ -568,7 +568,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F006",
+      "id": "traffic-guard.ClassifyAction",
       "path": "modules/traffic-guard/internal/classification.go",
       "state": "planned",
       "implementationCommit": null,
@@ -579,7 +579,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F007",
+      "id": "traffic-guard.LoadSignals",
       "path": "modules/traffic-guard/internal/signals.go",
       "state": "planned",
       "implementationCommit": null,
@@ -590,7 +590,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F008",
+      "id": "traffic-guard.ComputeRisk",
       "path": "modules/traffic-guard/internal/risk.go",
       "state": "planned",
       "implementationCommit": null,
@@ -601,7 +601,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F009",
+      "id": "traffic-guard.RefillBucket",
       "path": "modules/traffic-guard/internal/bucket.go",
       "state": "planned",
       "implementationCommit": null,
@@ -612,7 +612,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F010",
+      "id": "traffic-guard.ConsumeBuckets",
       "path": "modules/traffic-guard/internal/bucket_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -623,7 +623,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F011",
+      "id": "traffic-guard.AcquireConcurrency",
       "path": "modules/traffic-guard/internal/permit_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -634,7 +634,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F016",
+      "id": "traffic-guard.RenewPermit",
       "path": "modules/traffic-guard/internal/permit_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -645,7 +645,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F017",
+      "id": "traffic-guard.ReleasePermit",
       "path": "modules/traffic-guard/internal/permit_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -656,7 +656,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F012",
+      "id": "traffic-guard.SignPermit",
       "path": "modules/traffic-guard/internal/permit_sign.go",
       "state": "planned",
       "implementationCommit": null,
@@ -667,7 +667,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F013",
+      "id": "traffic-guard.ValidatePermit",
       "path": "modules/traffic-guard/internal/permit_sign.go",
       "state": "planned",
       "implementationCommit": null,
@@ -678,7 +678,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F014",
+      "id": "traffic-guard.EvaluateAdmission",
       "path": "modules/traffic-guard/internal/admission.go",
       "state": "planned",
       "implementationCommit": null,
@@ -689,7 +689,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F015",
+      "id": "traffic-guard.HandleAdmission",
       "path": "modules/traffic-guard/internal/http_admission.go",
       "state": "planned",
       "implementationCommit": null,
@@ -700,7 +700,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F018",
+      "id": "traffic-guard.ExpireLeases",
       "path": "modules/traffic-guard/internal/sweeper.go",
       "state": "planned",
       "implementationCommit": null,
@@ -711,7 +711,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F027",
+      "id": "traffic-guard.ExpireBans",
       "path": "modules/traffic-guard/internal/sweeper.go",
       "state": "planned",
       "implementationCommit": null,
@@ -722,7 +722,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F019",
+      "id": "traffic-guard.IssueChallenge",
       "path": "modules/traffic-guard/internal/challenge.go",
       "state": "planned",
       "implementationCommit": null,
@@ -733,7 +733,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F022",
+      "id": "traffic-guard.VerifyChallenge",
       "path": "modules/traffic-guard/internal/challenge.go",
       "state": "planned",
       "implementationCommit": null,
@@ -744,7 +744,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F020",
+      "id": "traffic-guard.VerifyPoW",
       "path": "modules/traffic-guard/internal/pow.go",
       "state": "planned",
       "implementationCommit": null,
@@ -755,7 +755,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F021",
+      "id": "traffic-guard.VerifyExternalChallenge",
       "path": "modules/traffic-guard/internal/captcha.go",
       "state": "planned",
       "implementationCommit": null,
@@ -766,7 +766,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F023",
+      "id": "traffic-guard.CheckBan",
       "path": "modules/traffic-guard/internal/ban.go",
       "state": "planned",
       "implementationCommit": null,
@@ -777,7 +777,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F024",
+      "id": "traffic-guard.CreateBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -788,7 +788,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F025",
+      "id": "traffic-guard.RevokeBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -799,7 +799,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F026",
+      "id": "traffic-guard.ListBans",
       "path": "modules/traffic-guard/internal/ban_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -810,7 +810,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F028",
+      "id": "traffic-guard.ConsumeIdentityEvent",
       "path": "modules/traffic-guard/internal/events.go",
       "state": "planned",
       "implementationCommit": null,
@@ -821,7 +821,18 @@
       "blocker": null
     },
     {
-      "id": "M12-F029",
+      "id": "traffic-guard.ConsumeEvents",
+      "path": "modules/traffic-guard/internal/events.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "traffic-guard.PublishGuardEvents",
       "path": "modules/traffic-guard/internal/outbox.go",
       "state": "planned",
       "implementationCommit": null,
@@ -832,7 +843,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F030",
+      "id": "traffic-guard.PurgeAnonymousSignals",
       "path": "modules/traffic-guard/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -843,7 +854,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F031",
+      "id": "traffic-guard.EnterBarrier",
       "path": "modules/traffic-guard/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -854,7 +865,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F032",
+      "id": "traffic-guard.ReleaseBarrier",
       "path": "modules/traffic-guard/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -865,7 +876,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F033",
+      "id": "traffic-guard.CreateSnapshot",
       "path": "modules/traffic-guard/internal/snapshot.go",
       "state": "planned",
       "implementationCommit": null,
@@ -876,7 +887,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F034",
+      "id": "traffic-guard.ValidateImport",
       "path": "modules/traffic-guard/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -887,7 +898,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F035",
+      "id": "traffic-guard.PrepareImport",
       "path": "modules/traffic-guard/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -898,7 +909,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F036",
+      "id": "traffic-guard.ActivateImport",
       "path": "modules/traffic-guard/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -909,7 +920,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F037",
+      "id": "traffic-guard.AbortImport",
       "path": "modules/traffic-guard/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -920,7 +931,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F038",
+      "id": "traffic-guard.ValidateRecoveryAuthorization",
       "path": "modules/traffic-guard/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
@@ -931,7 +942,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F039",
+      "id": "traffic-guard.SaveGuardPolicy",
       "path": "modules/traffic-guard/web/src/PolicyEditor.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -942,7 +953,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F040",
+      "id": "traffic-guard.SubmitBan",
       "path": "modules/traffic-guard/web/src/BanList.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -953,7 +964,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F041",
+      "id": "traffic-guard.RunPoWChallenge",
       "path": "modules/traffic-guard/web/src/client.ts",
       "state": "planned",
       "implementationCommit": null,
@@ -964,7 +975,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F042",
+      "id": "traffic-guard.ReportQuestionSignals",
       "path": "modules/traffic-guard/internal/question_signals.go",
       "state": "planned",
       "implementationCommit": null,
@@ -975,7 +986,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F043",
+      "id": "traffic-guard.QueueSessionAdmission",
       "path": "modules/traffic-guard/internal/session_queue.go",
       "state": "planned",
       "implementationCommit": null,
@@ -986,7 +997,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F044",
+      "id": "traffic-guard.ConsumeAdmission",
       "path": "modules/traffic-guard/internal/admission_consumption.go",
       "state": "planned",
       "implementationCommit": null,
@@ -997,7 +1008,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F045",
+      "id": "traffic-guard.VerifyAdmissionHTTP",
       "path": "modules/traffic-guard/internal/http_verify.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1008,7 +1019,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F901",
+      "id": "traffic-guard.main",
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1019,7 +1030,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F902",
+      "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1030,7 +1041,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F903",
+      "id": "traffic-guard.Serve",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1041,7 +1052,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F904",
+      "id": "traffic-guard.Shutdown",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1052,7 +1063,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F905",
+      "id": "traffic-guard.Health",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1063,7 +1074,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F906",
+      "id": "traffic-guard.Ready",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1074,7 +1085,7 @@
       "blocker": null
     },
     {
-      "id": "M12-F907",
+      "id": "traffic-guard.mountModuleUI",
       "path": "modules/traffic-guard/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

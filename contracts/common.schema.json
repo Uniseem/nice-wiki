@@ -165,9 +165,6 @@
       ],
       "description": "服务间可信操作元数据；与身份、根操作、截止、取消和当前数据代次绑定"
     },
-    "RequestContext": {
-      "$ref": "#/$defs/OperationContext"
-    },
     "ErrorCode": {
       "type": "string",
       "enum": [
@@ -1089,6 +1086,107 @@
         "audience",
         "expiresAt",
         "token"
+      ]
+    },
+    "RelayOutboxInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域outbox转发循环的单批参数；未标可选字段均必填",
+      "properties": {
+        "batchLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 100,
+          "description": "单批最多领取的已提交outbox行数"
+        }
+      },
+      "required": [
+        "batchLimit"
+      ]
+    },
+    "RelayOutboxResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "单批转发结果；计数只描述本批，不代表全域已送达",
+      "properties": {
+        "relayed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "本批经jobs持久确认并标记relayed的行数"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "本批结束后仍待转发的行数"
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "同eventId异hash或信封非法而隔离的行数"
+        }
+      },
+      "required": [
+        "relayed",
+        "pending",
+        "quarantined"
+      ]
+    },
+    "ConsumeEventsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域事件订阅循环参数；未标可选字段均必填",
+      "properties": {
+        "consumerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "本域模块slug，须与服务身份一致"
+        },
+        "maxInFlight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 4,
+          "description": "不同subject同时处理上限；同subject始终串行"
+        }
+      },
+      "required": [
+        "consumerId",
+        "maxInFlight"
+      ]
+    },
+    "ConsumeEventsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "订阅循环退出时的累计计数；正常运行期间不返回",
+      "properties": {
+        "acknowledged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "处理函数提交后已确认的事件数"
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "旧dataEpoch或重复事件仅确认未处理的数量"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "处理失败未确认、等待重投的数量"
+        }
+      },
+      "required": [
+        "acknowledged",
+        "skipped",
+        "failed"
       ]
     }
   }

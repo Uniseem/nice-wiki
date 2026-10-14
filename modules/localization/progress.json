@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "design",
-  "contractSha256": "dcfa8dce91576cc17498cbfdeba0c5620e0c0fd75d317dc4d430d1ddb8cb8436",
+  "contractSha256": "8503b8be8368e5dd00d7b9cc651e0deca0d72ba0fab321f7069a620dfa8221c2",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -629,6 +629,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/events/subscription.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -1216,7 +1226,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F901",
+      "id": "localization.main",
       "path": "modules/localization/cmd/localization/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1227,7 +1237,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F902",
+      "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1238,7 +1248,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F903",
+      "id": "localization.Serve",
       "path": "modules/localization/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1249,7 +1259,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F904",
+      "id": "localization.Shutdown",
       "path": "modules/localization/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1260,7 +1270,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F905",
+      "id": "localization.Health",
       "path": "modules/localization/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1271,7 +1281,7 @@
       "blocker": null
     },
     {
-      "id": "M10-F906",
+      "id": "localization.Ready",
       "path": "modules/localization/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1282,8 +1292,19 @@
       "blocker": null
     },
     {
-      "id": "M10-F907",
+      "id": "localization.mountModuleUI",
       "path": "modules/localization/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "localization.ConsumeEvents",
+      "path": "modules/localization/internal/events/subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

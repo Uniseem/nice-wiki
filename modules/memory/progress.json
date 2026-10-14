@@ -2,7 +2,7 @@
   "version": 1,
   "module": "memory",
   "phase": "design",
-  "contractSha256": "9db94d1891bc48bd995553713f9bf4dce7736f0be8c66132c268dbb8c2aa3f47",
+  "contractSha256": "8554db636280ed255e1aa7350c63e921f28194ac8f72b97745504fea51d2d042",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -522,6 +522,16 @@
     },
     {
       "path": "modules/memory/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/events/subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1094,7 +1104,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F901",
+      "id": "memory.main",
       "path": "modules/memory/cmd/memory/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1105,7 +1115,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F902",
+      "id": "memory.BuildApplication",
       "path": "modules/memory/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1116,7 +1126,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F903",
+      "id": "memory.Serve",
       "path": "modules/memory/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1127,7 +1137,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F904",
+      "id": "memory.Shutdown",
       "path": "modules/memory/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1138,7 +1148,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F905",
+      "id": "memory.Health",
       "path": "modules/memory/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1149,7 +1159,7 @@
       "blocker": null
     },
     {
-      "id": "M11-F906",
+      "id": "memory.Ready",
       "path": "modules/memory/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1160,8 +1170,19 @@
       "blocker": null
     },
     {
-      "id": "M11-F907",
+      "id": "memory.mountModuleUI",
       "path": "modules/memory/ui/src/main.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "memory.ConsumeEvents",
+      "path": "modules/memory/internal/events/subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "design",
-  "contractSha256": "6d50401841ec2d9d6844d6e214419d57a01b0d6acd791e1ddca65754f93a8057",
+  "contractSha256": "31cc9c7da92061424492af0a0192c9d5d485d1f5e55da0d6488a8955a8ec85eb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -513,7 +513,7 @@
   ],
   "functions": [
     {
-      "id": "M14-F001",
+      "id": "analytics.ValidateBeacon",
       "path": "modules/analytics/internal/beacon_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -524,7 +524,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F002",
+      "id": "analytics.BucketLatency",
       "path": "modules/analytics/internal/buckets.go",
       "state": "planned",
       "implementationCommit": null,
@@ -535,7 +535,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F003",
+      "id": "analytics.HashDayToken",
       "path": "modules/analytics/internal/privacy.go",
       "state": "planned",
       "implementationCommit": null,
@@ -546,7 +546,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F011",
+      "id": "analytics.RedactAuditMetadata",
       "path": "modules/analytics/internal/privacy.go",
       "state": "planned",
       "implementationCommit": null,
@@ -557,7 +557,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F029",
+      "id": "analytics.CheckPrivacyFields",
       "path": "modules/analytics/internal/privacy.go",
       "state": "planned",
       "implementationCommit": null,
@@ -568,7 +568,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F004",
+      "id": "analytics.IngestBeacon",
       "path": "modules/analytics/internal/http_beacons.go",
       "state": "planned",
       "implementationCommit": null,
@@ -579,7 +579,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F005",
+      "id": "analytics.FlushBeacons",
       "path": "modules/analytics/internal/beacon_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -590,7 +590,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F006",
+      "id": "analytics.AggregateHourly",
       "path": "modules/analytics/internal/aggregation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -601,7 +601,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F007",
+      "id": "analytics.AggregateDaily",
       "path": "modules/analytics/internal/aggregation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -612,7 +612,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F008",
+      "id": "analytics.ValidateDateRange",
       "path": "modules/analytics/internal/query_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -623,7 +623,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F009",
+      "id": "analytics.QueryPageStatistics",
       "path": "modules/analytics/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -634,7 +634,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F014",
+      "id": "analytics.QueryAudits",
       "path": "modules/analytics/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -645,7 +645,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F015",
+      "id": "analytics.ReadAudit",
       "path": "modules/analytics/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -656,7 +656,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F019",
+      "id": "analytics.QueryUsageStatistics",
       "path": "modules/analytics/internal/queries.go",
       "state": "planned",
       "implementationCommit": null,
@@ -667,7 +667,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F010",
+      "id": "analytics.ValidateAudit",
       "path": "modules/analytics/internal/audit_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -678,7 +678,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F012",
+      "id": "analytics.ComputeAuditHash",
       "path": "modules/analytics/internal/audit_chain.go",
       "state": "planned",
       "implementationCommit": null,
@@ -689,7 +689,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F013",
+      "id": "analytics.AppendAudit",
       "path": "modules/analytics/internal/audit_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -700,7 +700,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F016",
+      "id": "analytics.ValidateUsageEvent",
       "path": "modules/analytics/internal/usage_validation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -711,7 +711,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F017",
+      "id": "analytics.ProjectUsage",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -722,7 +722,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F018",
+      "id": "analytics.AggregateUsage",
       "path": "modules/analytics/internal/usage_aggregation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -733,7 +733,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F020",
+      "id": "analytics.FetchUsagePage",
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "planned",
       "implementationCommit": null,
@@ -744,7 +744,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F021",
+      "id": "analytics.ReconcileUsage",
       "path": "modules/analytics/internal/reconciliation.go",
       "state": "planned",
       "implementationCommit": null,
@@ -755,7 +755,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F022",
+      "id": "analytics.ConsumeAnalyticsEvent",
       "path": "modules/analytics/internal/event_handler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -766,7 +766,18 @@
       "blocker": null
     },
     {
-      "id": "M14-F023",
+      "id": "analytics.ConsumeEvents",
+      "path": "modules/analytics/internal/event_handler.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "analytics.CreateExport",
       "path": "modules/analytics/internal/export.go",
       "state": "planned",
       "implementationCommit": null,
@@ -777,7 +788,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F024",
+      "id": "analytics.ValidateCSVCell",
       "path": "modules/analytics/internal/csv.go",
       "state": "planned",
       "implementationCommit": null,
@@ -788,7 +799,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F025",
+      "id": "analytics.PurgeBeacons",
       "path": "modules/analytics/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -799,7 +810,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F026",
+      "id": "analytics.PurgeAuditHistory",
       "path": "modules/analytics/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -810,7 +821,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F027",
+      "id": "analytics.PurgeExports",
       "path": "modules/analytics/internal/retention.go",
       "state": "planned",
       "implementationCommit": null,
@@ -821,7 +832,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F028",
+      "id": "analytics.PublishAggregateEvents",
       "path": "modules/analytics/internal/outbox.go",
       "state": "planned",
       "implementationCommit": null,
@@ -832,7 +843,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F030",
+      "id": "analytics.EnterBarrier",
       "path": "modules/analytics/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -843,7 +854,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F031",
+      "id": "analytics.ReleaseBarrier",
       "path": "modules/analytics/internal/barrier.go",
       "state": "planned",
       "implementationCommit": null,
@@ -854,7 +865,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F032",
+      "id": "analytics.CreateSnapshot",
       "path": "modules/analytics/internal/snapshot.go",
       "state": "planned",
       "implementationCommit": null,
@@ -865,7 +876,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F033",
+      "id": "analytics.ValidateImport",
       "path": "modules/analytics/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -876,7 +887,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F034",
+      "id": "analytics.PrepareImport",
       "path": "modules/analytics/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -887,7 +898,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F035",
+      "id": "analytics.ActivateImport",
       "path": "modules/analytics/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -898,7 +909,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F036",
+      "id": "analytics.AbortImport",
       "path": "modules/analytics/internal/import.go",
       "state": "planned",
       "implementationCommit": null,
@@ -909,7 +920,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F037",
+      "id": "analytics.ValidateRecoveryAuthorization",
       "path": "modules/analytics/internal/recovery_authorization.go",
       "state": "planned",
       "implementationCommit": null,
@@ -920,7 +931,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F038",
+      "id": "analytics.LoadStatistics",
       "path": "modules/analytics/web/src/OverviewPanel.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -931,7 +942,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F039",
+      "id": "analytics.LoadAuditPage",
       "path": "modules/analytics/web/src/AuditExplorer.vue",
       "state": "planned",
       "implementationCommit": null,
@@ -942,7 +953,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F040",
+      "id": "analytics.DownloadAuthorizedExport",
       "path": "modules/analytics/web/src/client.ts",
       "state": "planned",
       "implementationCommit": null,
@@ -953,7 +964,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F041",
+      "id": "analytics.ClassifyCrawler",
       "path": "modules/analytics/internal/crawler.go",
       "state": "planned",
       "implementationCommit": null,
@@ -964,7 +975,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F042",
+      "id": "analytics.LookupCountry",
       "path": "modules/analytics/internal/geoip.go",
       "state": "planned",
       "implementationCommit": null,
@@ -975,7 +986,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F043",
+      "id": "analytics.RecordCrawlerAccess",
       "path": "modules/analytics/internal/crawler_store.go",
       "state": "planned",
       "implementationCommit": null,
@@ -986,7 +997,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F044",
+      "id": "analytics.QueryContentGaps",
       "path": "modules/analytics/internal/content_gaps.go",
       "state": "planned",
       "implementationCommit": null,
@@ -997,7 +1008,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F901",
+      "id": "analytics.main",
       "path": "modules/analytics/cmd/analytics/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1008,7 +1019,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F902",
+      "id": "analytics.BuildApplication",
       "path": "modules/analytics/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1019,7 +1030,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F903",
+      "id": "analytics.Serve",
       "path": "modules/analytics/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1030,7 +1041,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F904",
+      "id": "analytics.Shutdown",
       "path": "modules/analytics/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1041,7 +1052,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F905",
+      "id": "analytics.Health",
       "path": "modules/analytics/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1052,7 +1063,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F906",
+      "id": "analytics.Ready",
       "path": "modules/analytics/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1063,7 +1074,7 @@
       "blocker": null
     },
     {
-      "id": "M14-F907",
+      "id": "analytics.mountModuleUI",
       "path": "modules/analytics/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

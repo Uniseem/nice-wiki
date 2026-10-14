@@ -7,6 +7,7 @@ import ipaddress
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -70,7 +71,7 @@ def check_ref(base, target):
 def scan_privacy(label, text):
     for address in re.findall(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', text):
         domain = address.split('@')[1].lower()
-        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and address != 'noreply@openai.com':
+        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and address not in ('noreply@openai.com', 'noreply@anthropic.com'):
             fail(label, '不允许的邮箱，具体值不输出')
     if re.search(r'(?:[A-Za-z]:[\\/]Users[\\/][A-Za-z0-9_.-]+|(?:^|[\s\"\x27])/(?:Users|home)/[A-Za-z0-9_.-]+)', text):
         fail(label, '本机用户路径')
@@ -116,8 +117,6 @@ def check_modules(modules, permissions, codes):
         if impl.get('module') != slug or impl.get('phase') != 'design':
             fail(slug, '模块标识或设计阶段不匹配')
         local = {}
-        docs_path = folder / 'docs/functions.md'
-        doc = docs_path.read_text(encoding='utf-8') if docs_path.exists() else ''
         for file in impl.get('files', []):
             path = file.get('path', '')
             if not path.startswith('modules/' + slug + '/') or '..' in Path(path).parts:
@@ -135,14 +134,25 @@ def check_modules(modules, permissions, codes):
                 functions[fid] = (slug, fn)
                 local[fid] = fn
                 count['functions'] += 1
-                fields = ('id', 'name', 'signature', 'inputs', 'outputs', 'purpose', 'steps', 'errors', 'sideEffects', 'authorization', 'concurrency', 'idempotency', 'dependencies')
+                fields = ('id', 'name', 'signature', 'inputs', 'outputs', 'purpose', 'steps', 'errors', 'sideEffects', 'authorization', 'concurrency', 'idempotency', 'dependencies', 'contract')
                 for key in fields:
                     if key not in fn:
                         fail(fid, '缺函数字段 ' + key)
                 if not fn.get('steps') or not fn.get('purpose') or not fn.get('signature'):
                     fail(fid, '缺精确作用/签名/步骤')
-                if fid not in doc or fn.get('signature', '') not in doc:
-                    fail(fid, '人类函数文档缺对应ID或签名')
+                if fid != slug + '.' + fn.get('name', ''):
+                    fail(fid, '函数ID必须为 模块slug.函数名')
+                if fn.get('contract') not in ('binding', 'reference'):
+                    fail(fid, '合同级别只能是binding或reference')
+                if not all(isinstance(r, str) and r for r in fn.get('resources', [])):
+                    fail(fid, 'resources只能是非空说明文字')
+                signature = fn.get('signature', '')
+                if 'RequestContext' in signature:
+                    fail(fid, '签名不得使用RequestContext')
+                if signature.startswith('func ') and 'OperationContext' in signature and '(ctx context.Context, op OperationContext' not in signature:
+                    fail(fid, 'Go操作函数签名必须以(ctx context.Context, op OperationContext开头')
+                if not signature.startswith('func ') and 'OperationContext' in signature:
+                    fail(fid, '浏览器函数不得接收服务端OperationContext')
                 for group in ('inputs', 'outputs'):
                     for param in fn.get(group, []):
                         if not all(key in param for key in ('name', 'type', 'description', 'constraints')):
@@ -170,6 +180,8 @@ def check_modules(modules, permissions, codes):
                 count['operations'] += 1
                 if op.get('x-handler') not in local:
                     fail(key, '未登记处理函数 ' + str(op.get('x-handler')))
+                elif local[op.get('x-handler')].get('contract') != 'binding':
+                    fail(key, 'HTTP处理函数必须是binding级别')
                 if op.get('x-permission') not in permissions:
                     fail(key, '未登记权限 ' + str(op.get('x-permission')))
                 declared = {p.get('name') for p in op.get('parameters', []) if p.get('in') == 'path'}
@@ -188,6 +200,8 @@ def check_modules(modules, permissions, codes):
                     fail(fid, '跨域operation不存在 ' + dep)
             elif dep in functions and functions[dep][0] != slug:
                 fail(fid, '直接依赖另域内部函数 ' + dep)
+            elif dep not in functions:
+                fail(fid, '依赖无法解析，须为本域函数ID或 模块:operationId ' + dep)
     return count
 
 
@@ -209,7 +223,23 @@ def check_events(modules):
     for module in modules:
         path = ROOT / module['root'] / 'contracts/events.json'
         data = load_json(path)
+        impl = load_json(ROOT / module['root'] / 'contracts/implementation.json')
+        local = {fn.get('id'): fn for f in impl.get('files', []) for fn in f.get('functions', [])}
+        deps = {d for fn in local.values() for d in fn.get('dependencies', [])}
+        directions = {event.get('direction') for event in data.get('events', [])}
+        if 'consume' in directions and not any({'jobs:subscribeEvents', 'jobs:acknowledgeEvent'} <= set(fn.get('dependencies', [])) for fn in local.values()):
+            fail(module['slug'], '消费事件但没有调用jobs订阅与确认的订阅循环')
+        if module['slug'] != 'jobs' and 'publish' in directions and 'jobs:publishEvent' not in deps:
+            fail(module['slug'], '生产事件但没有把outbox转交jobs的转发函数')
+        if 'jobs:publishEvent' in deps and 'publish' not in directions:
+            fail(module['slug'], '调用jobs:publishEvent但未在events.json登记生产事件')
         for event in data.get('events', []):
+            if event.get('direction') == 'consume':
+                handler = local.get(event.get('handler'))
+                if not handler:
+                    fail(module['slug'] + ':' + str(event.get('name')), '消费事件缺本域处理函数handler')
+                elif handler.get('contract') != 'binding':
+                    fail(module['slug'] + ':' + str(event.get('name')), '事件处理函数必须是binding级别')
             key = (event.get('name'), event.get('version'))
             label = module['slug'] + ':' + str(key[0])
             for field in ('name', 'version', 'direction', 'payloadSchema', 'purpose', 'delivery', 'ordering', 'idempotency'):
@@ -233,6 +263,14 @@ def check_events(modules):
             fail(label, '消费事件没有生产方')
         elif producers[key][1] != target:
             fail(label, '消费载荷未引用唯一生产方schema')
+
+
+def check_rendered():
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    import render_docs
+    for path, content in render_docs.expected_docs().items():
+        if not path.is_file() or path.read_text(encoding='utf-8') != content:
+            fail(relative(path), '与implementation.json生成结果不一致，运行make docs')
 
 
 def check_framework():
@@ -332,11 +370,13 @@ def main():
         codes = load_json(ROOT / 'contracts/errors.json').get('codes', [])
         count = check_modules(modules, permissions, codes)
         check_events(modules)
+        check_rendered()
         check_framework()
         check_progress(modules)
         if len(modules) != 15:
             fail('模块清单', '服务数必须为已登记15域')
-        ast.parse((ROOT / 'scripts/check_docs.py').read_text(encoding='utf-8'))
+        for name in ('check_docs.py', 'render_docs.py'):
+            ast.parse((ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     if ISSUES:
         for issue in ISSUES:
             print(issue)

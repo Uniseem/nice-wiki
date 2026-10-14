@@ -24,10 +24,6 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
       "description": "AuthContext"
     },
-    "RequestContext": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/RequestContext",
-      "description": "RequestContext"
-    },
     "Error": {
       "$ref": "../../../contracts/common.schema.json#/$defs/Error",
       "description": "Error"

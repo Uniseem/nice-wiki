@@ -4,29 +4,29 @@
 
 | 方法与路径 | operationId | handler ID | 权限 | 响应/行为 |
 |---|---|---|---|---|
-| POST `/v1/backups` | `createBackup` | `M15-F002` | `backup.manage` | 202 backup引用；自动维护屏障到ready或failed |
-| GET `/v1/backups` | `listBackups` | `M15-F013` | `backup.manage` | 状态/大小/manifest hash；不泄漏封装密钥 |
-| GET `/v1/backups/{backupId}` | `readBackup` | `M15-F014` | `backup.manage` | 完整域列表、schema、水位、校验报告 |
-| POST `/v1/backups/{backupId}:download` | `authorizeBackupDownload` | `M15-F015` | `superadmin` | 短期单用途下载授权，解密密钥另管 |
-| POST `/v1/restores:validate` | `validateRestore` | `M15-F017` | `superadmin` | 全manifest+跨域引用校验报告；不切代 |
-| POST `/v1/restores` | `createRestore` | `M15-F018` | `superadmin` | 202恢复；完整备份指定targetEpoch，不允许部分域恢复 |
-| POST `/v1/restores/{restoreId}:continue` | `continueRestore` | `M15-F026` | `superadmin` | 已commit仅继续激活；未commit按持久记录继续prepare |
-| POST `/v1/restores/{restoreId}:abort` | `abortRestore` | `M15-F028` | `superadmin` | 仅commit前可abort，需全部stage rollback确认 |
-| GET `/v1/restores/{restoreId}/decision` | `getRestoreDecision` | `M15-F025` | `service` | 签名持久决策供各域激活验证 |
-| POST `/v1/mirrors` | `buildMirror` | `M15-F032` | `backup.manage` | 从ready backup的允许字段投影建立data git commit |
-| POST `/v1/mirrors/{mirrorId}:sync` | `syncMirror` | `M15-F036` | `backup.manage` | 仅显式已配置远程，fast-forward push；冲突409无force |
-| PUT `/v1/git-remote` | `configureRemote` | `M15-F034` | `backup.manage` | 只存无credential URL与外部credentialRef，CAS |
-| PUT `/v1/local-backup-schedule` | `scheduleLocalBackup` | `M15-F053` | `backup.manage` | 每日本地备份配置，默认02:00站点时区/N=20 |
-| POST `/v1/setup:restore` | `restoreDuringSetup` | `M15-F055` | `superadmin` | 初始化受控setup授权入口，完整恢复且不要求AI |
-| POST `/v1/backups:import` | `importPortableBackup` | `M15-F058` | `superadmin` | 既有恢复入口上传便携备份，源服务与源运行key不必在线 |
-| GET `/v1/backups/{backupId}/download` | `streamPortableBackup` | `M15-F056` | `backup.manage` | 透明可移植ZIP流，原权限和内部单用途token，无额外人工步骤 |
-| POST `/v1/barriers` | `acquireBarrier` | `M15-F041` | `service` | 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点 |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `M15-F042` | `service` | 仅全域恢复完成或commit前全部abort确认后释放 |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `M15-F043` | `service` | 公共SnapshotExportRequest→SnapshotExportResult；必须safe |
-| POST `/v1/snapshots:validate` | `validateSnapshot` | `M15-F044` | `service` | 公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告 |
-| POST `/v1/snapshots:prepare` | `prepareSnapshot` | `M15-F045` | `service` | 公共SnapshotPrepareRequest→SnapshotStageResult；不切指针 |
-| POST `/v1/snapshots:commit` | `commitSnapshot` | `M15-F046` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定 |
-| POST `/v1/snapshots:rollback` | `rollbackSnapshot` | `M15-F047` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止 |
+| POST `/v1/backups` | `createBackup` | `data-protection.CreateBackup` | `backup.manage` | 202 backup引用；自动维护屏障到ready或failed |
+| GET `/v1/backups` | `listBackups` | `data-protection.ListBackups` | `backup.manage` | 状态/大小/manifest hash；不泄漏封装密钥 |
+| GET `/v1/backups/{backupId}` | `readBackup` | `data-protection.ReadBackup` | `backup.manage` | 完整域列表、schema、水位、校验报告 |
+| POST `/v1/backups/{backupId}:download` | `authorizeBackupDownload` | `data-protection.AuthorizeBackupDownload` | `superadmin` | 短期单用途下载授权，解密密钥另管 |
+| POST `/v1/restores:validate` | `validateRestore` | `data-protection.ValidateRestore` | `superadmin` | 全manifest+跨域引用校验报告；不切代 |
+| POST `/v1/restores` | `createRestore` | `data-protection.CreateRestore` | `superadmin` | 202恢复；完整备份指定targetEpoch，不允许部分域恢复 |
+| POST `/v1/restores/{restoreId}:continue` | `continueRestore` | `data-protection.ContinueRestore` | `superadmin` | 已commit仅继续激活；未commit按持久记录继续prepare |
+| POST `/v1/restores/{restoreId}:abort` | `abortRestore` | `data-protection.AbortRestore` | `superadmin` | 仅commit前可abort，需全部stage rollback确认 |
+| GET `/v1/restores/{restoreId}/decision` | `getRestoreDecision` | `data-protection.GetRestoreDecision` | `service` | 签名持久决策供各域激活验证 |
+| POST `/v1/mirrors` | `buildMirror` | `data-protection.BuildMirror` | `backup.manage` | 从ready backup的允许字段投影建立data git commit |
+| POST `/v1/mirrors/{mirrorId}:sync` | `syncMirror` | `data-protection.SyncMirror` | `backup.manage` | 仅显式已配置远程，fast-forward push；冲突409无force |
+| PUT `/v1/git-remote` | `configureRemote` | `data-protection.ConfigureRemote` | `backup.manage` | 只存无credential URL与外部credentialRef，CAS |
+| PUT `/v1/local-backup-schedule` | `scheduleLocalBackup` | `data-protection.ScheduleLocalBackup` | `backup.manage` | 每日本地备份配置，默认02:00站点时区/N=20 |
+| POST `/v1/setup:restore` | `restoreDuringSetup` | `data-protection.RestoreDuringSetup` | `superadmin` | 初始化受控setup授权入口，完整恢复且不要求AI |
+| POST `/v1/backups:import` | `importPortableBackup` | `data-protection.ImportPortableBackup` | `superadmin` | 既有恢复入口上传便携备份，源服务与源运行key不必在线 |
+| GET `/v1/backups/{backupId}/download` | `streamPortableBackup` | `data-protection.StreamPortableBackup` | `backup.manage` | 透明可移植ZIP流，原权限和内部单用途token，无额外人工步骤 |
+| POST `/v1/barriers` | `acquireBarrier` | `data-protection.EnterBarrier` | `service` | 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点 |
+| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `data-protection.ReleaseBarrier` | `service` | 仅全域恢复完成或commit前全部abort确认后释放 |
+| POST `/v1/snapshots:export` | `exportSnapshot` | `data-protection.CreateSnapshot` | `service` | 公共SnapshotExportRequest→SnapshotExportResult；必须safe |
+| POST `/v1/snapshots:validate` | `validateSnapshot` | `data-protection.ValidateImport` | `service` | 公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告 |
+| POST `/v1/snapshots:prepare` | `prepareSnapshot` | `data-protection.PrepareImport` | `service` | 公共SnapshotPrepareRequest→SnapshotStageResult；不切指针 |
+| POST `/v1/snapshots:commit` | `commitSnapshot` | `data-protection.ActivateImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定 |
+| POST `/v1/snapshots:rollback` | `rollbackSnapshot` | `data-protection.AbortImport` | `service` | 公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止 |
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 

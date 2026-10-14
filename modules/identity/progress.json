@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "design",
-  "contractSha256": "efca59191a54dc45b96b074790b77477ddd98384554963cee60c44859370bec4",
+  "contractSha256": "7ace48aab2340ae41914f4068d6656647330898a2e4d22710f94d460f37edd95",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -689,6 +689,17 @@
       "blocker": null
     },
     {
+      "id": "identity.RelayOutbox",
+      "path": "modules/identity/internal/outbox_repository.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
       "state": "planned",
@@ -777,7 +788,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F901",
+      "id": "identity.main",
       "path": "modules/identity/cmd/identity/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -788,7 +799,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F902",
+      "id": "identity.BuildApplication",
       "path": "modules/identity/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -799,7 +810,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F903",
+      "id": "identity.Serve",
       "path": "modules/identity/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -810,7 +821,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F904",
+      "id": "identity.Shutdown",
       "path": "modules/identity/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -821,7 +832,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F905",
+      "id": "identity.Health",
       "path": "modules/identity/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -832,7 +843,7 @@
       "blocker": null
     },
     {
-      "id": "M02-F906",
+      "id": "identity.Ready",
       "path": "modules/identity/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,

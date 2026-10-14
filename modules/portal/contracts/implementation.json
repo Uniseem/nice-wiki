@@ -112,7 +112,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "启动单线程构造后只读共享",
           "idempotency": "同一配置产生同一索引",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.ResolveRoute",
@@ -165,7 +167,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "不可变索引并发读取",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -177,11 +181,19 @@
         {
           "id": "portal.ValidateEnvelope",
           "name": "ValidateEnvelope",
-          "signature": "func ValidateEnvelope(ctx RequestContext, input ValidateEnvelopeInput) (ValidateEnvelopeResult, error)",
+          "signature": "func ValidateEnvelope(ctx context.Context, op OperationContext, input ValidateEnvelopeInput) (ValidateEnvelopeResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -243,7 +255,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "每请求独立缓冲；不得完整缓存超限流",
           "idempotency": "纯验证",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.NormalizeForwardHeaders",
@@ -296,7 +310,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "请求局部副本",
           "idempotency": "相同输入输出相同",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -356,16 +372,26 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.VerifyCSRF",
           "name": "VerifyCSRF",
-          "signature": "func VerifyCSRF(ctx RequestContext, input VerifyCSRFInput) (VerifyCSRFResult, error)",
+          "signature": "func VerifyCSRF(ctx context.Context, op OperationContext, input VerifyCSRFInput) (VerifyCSRFResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -435,7 +461,9 @@
           "idempotency": "重复检查无状态变化",
           "dependencies": [
             "identity:verifySessionCSRF"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -447,11 +475,19 @@
         {
           "id": "portal.ResolveAuthContext",
           "name": "ResolveAuthContext",
-          "signature": "func ResolveAuthContext(ctx RequestContext, input ResolveAuthContextInput) (ResolveAuthContextResult, error)",
+          "signature": "func ResolveAuthContext(ctx context.Context, op OperationContext, input ResolveAuthContextInput) (ResolveAuthContextResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -521,16 +557,26 @@
           "idempotency": "读操作",
           "dependencies": [
             "identity:checkAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.BuildInternalProof",
           "name": "BuildInternalProof",
-          "signature": "func BuildInternalProof(ctx RequestContext, input BuildInternalProofInput) (BuildInternalProofResult, error)",
+          "signature": "func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInternalProofInput) (BuildInternalProofResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -588,7 +634,9 @@
           "idempotency": "不同请求 nonce 不同",
           "dependencies": [
             "portal.AuthorizeRoute"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.AuthorizeRoute",
@@ -647,7 +695,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "不可变 auth",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -659,11 +709,19 @@
         {
           "id": "portal.ForwardRequest",
           "name": "ForwardRequest",
-          "signature": "func ForwardRequest(ctx RequestContext, input ForwardRequestInput) (ForwardRequestResult, error)",
+          "signature": "func ForwardRequest(ctx context.Context, op OperationContext, input ForwardRequestInput) (ForwardRequestResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -733,16 +791,26 @@
           "idempotency": "仅拥有服务决定业务幂等",
           "dependencies": [
             "portal.NormalizeForwardHeaders"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.StreamResponse",
           "name": "StreamResponse",
-          "signature": "func StreamResponse(ctx RequestContext, input StreamResponseInput) (StreamResponseResult, error)",
+          "signature": "func StreamResponse(ctx context.Context, op OperationContext, input StreamResponseInput) (StreamResponseResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -806,7 +874,9 @@
           "idempotency": "流不可重放",
           "dependencies": [
             "portal.MapUpstreamFailure"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.MapUpstreamFailure",
@@ -859,7 +929,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -871,11 +943,19 @@
         {
           "id": "portal.LoadBootstrap",
           "name": "LoadBootstrap",
-          "signature": "func LoadBootstrap(ctx RequestContext, input LoadBootstrapInput) (LoadBootstrapResult, error)",
+          "signature": "func LoadBootstrap(ctx context.Context, op OperationContext, input LoadBootstrapInput) (LoadBootstrapResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -948,7 +1028,9 @@
             "site-config:readSiteConfig",
             "portal.BuildCapabilities",
             "portal.BuildNavigation"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "portal.BuildCapabilities",
@@ -1001,7 +1083,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.BuildNavigation",
@@ -1054,7 +1138,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1066,11 +1152,19 @@
         {
           "id": "portal.ReadPreferences",
           "name": "ReadPreferences",
-          "signature": "func ReadPreferences(ctx RequestContext, input ReadPreferencesInput) (ReadPreferencesResult, error)",
+          "signature": "func ReadPreferences(ctx context.Context, op OperationContext, input ReadPreferencesInput) (ReadPreferencesResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1134,16 +1228,26 @@
           "idempotency": "读操作",
           "dependencies": [
             "identity:readPreferences"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "portal.UpdatePreferences",
           "name": "UpdatePreferences",
-          "signature": "func UpdatePreferences(ctx RequestContext, input UpdatePreferencesInput) (UpdatePreferencesResult, error)",
+          "signature": "func UpdatePreferences(ctx context.Context, op OperationContext, input UpdatePreferencesInput) (UpdatePreferencesResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1213,7 +1317,9 @@
           "idempotency": "同 operationId 同 digest 返回原结果",
           "dependencies": [
             "identity:updatePreferences"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "portal.ValidatePreferenceRoute",
@@ -1274,7 +1380,9 @@
           "idempotency": "纯函数",
           "dependencies": [
             "portal.BuildNavigation"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1286,11 +1394,19 @@
         {
           "id": "portal.OpenEventStream",
           "name": "OpenEventStream",
-          "signature": "func OpenEventStream(ctx RequestContext, input OpenEventStreamInput) (OpenEventStreamResult, error)",
+          "signature": "func OpenEventStream(ctx context.Context, op OperationContext, input OpenEventStreamInput) (OpenEventStreamResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1332,7 +1448,7 @@
           "purpose": "提供后台权限过滤 SSE",
           "steps": [
             "验证 cursor 的用户与站点绑定",
-            "订阅 jobs 用户事件流",
+            "以ephemeral模式调用jobs:subscribeEvents订阅用户事件流：从当前水位开始，不建投递、不确认",
             "发送有限 snapshot 后开始序列流"
           ],
           "errors": [
@@ -1360,7 +1476,9 @@
           "idempotency": "相同 cursor 可重新读取",
           "dependencies": [
             "jobs:subscribeEvents"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "portal.FilterPortalEvent",
@@ -1415,7 +1533,9 @@
           "idempotency": "纯过滤",
           "dependencies": [
             "identity:checkAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.EncodeSSEFrame",
@@ -1468,7 +1588,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.ResumeEventCursor",
@@ -1527,7 +1649,9 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "同 cursor 同结果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1539,11 +1663,19 @@
         {
           "id": "portal.CollectReadiness",
           "name": "CollectReadiness",
-          "signature": "func CollectReadiness(ctx RequestContext, input CollectReadinessInput) (CollectReadinessResult, error)",
+          "signature": "func CollectReadiness(ctx context.Context, op OperationContext, input CollectReadinessInput) (CollectReadinessResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1601,7 +1733,9 @@
           "idempotency": "读操作",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1661,16 +1795,26 @@
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.EmitAccessAudit",
           "name": "EmitAccessAudit",
-          "signature": "func EmitAccessAudit(ctx RequestContext, input EmitAccessAuditInput) (EmitAccessAuditResult, error)",
+          "signature": "func EmitAccessAudit(ctx context.Context, op OperationContext, input EmitAccessAuditInput) (EmitAccessAuditResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1710,7 +1854,7 @@
           "purpose": "可靠投递入口访问结果",
           "steps": [
             "生成不含凭据与正文的字段",
-            "向 jobs 发布访问元数据并写本机结构化运行日志",
+            "调用analytics:appendAudit登记访问元数据，并写本机结构化运行日志",
             "投递失败标记 degraded；业务审计仍由 owning service 的提交 outbox 保证"
           ],
           "errors": [
@@ -1721,14 +1865,17 @@
             }
           ],
           "sideEffects": [
-            "运行日志和 jobs 元数据投递"
+            "运行日志",
+            "HTTP调用analytics:appendAudit"
           ],
           "authorization": "portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放",
           "concurrency": "requestId 唯一键；审计失败时管理写请求返回受控不可用",
           "idempotency": "requestId 去重",
           "dependencies": [
-            "jobs:publishEvent"
-          ]
+            "analytics:appendAudit"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1740,18 +1887,8 @@
         {
           "id": "portal.sendApi",
           "name": "sendApi",
-          "signature": "sendApi(ctx: RequestContext, input: sendApiInput): Promise<sendApiResult>",
+          "signature": "sendApi(input: sendApiInput, signal: AbortSignal): Promise<sendApiResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "sendApiInput",
@@ -1759,6 +1896,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -1803,23 +1948,15 @@
           "dependencies": [
             "portal.refreshSingleFlight",
             "portal.classifyApiError"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.refreshSingleFlight",
           "name": "refreshSingleFlight",
-          "signature": "refreshSingleFlight(ctx: RequestContext, input: refreshSingleFlightInput): Promise<refreshSingleFlightResult>",
+          "signature": "refreshSingleFlight(input: refreshSingleFlightInput, signal: AbortSignal): Promise<refreshSingleFlightResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "refreshSingleFlightInput",
@@ -1827,6 +1964,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -1876,23 +2021,15 @@
           "idempotency": "同一 refresh 只发送一次",
           "dependencies": [
             "identity:refreshSession"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.classifyApiError",
           "name": "classifyApiError",
-          "signature": "classifyApiError(ctx: RequestContext, input: classifyApiErrorInput): Promise<classifyApiErrorResult>",
+          "signature": "classifyApiError(input: classifyApiErrorInput, signal: AbortSignal): Promise<classifyApiErrorResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "classifyApiErrorInput",
@@ -1900,6 +2037,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -1939,7 +2084,9 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1951,18 +2098,8 @@
         {
           "id": "portal.hydrateSession",
           "name": "hydrateSession",
-          "signature": "hydrateSession(ctx: RequestContext, input: hydrateSessionInput): Promise<hydrateSessionResult>",
+          "signature": "hydrateSession(input: hydrateSessionInput, signal: AbortSignal): Promise<hydrateSessionResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "hydrateSessionInput",
@@ -1970,6 +2107,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2011,23 +2156,15 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "单 store mutation；旧 fetch 响应不可覆盖高 revision",
           "idempotency": "相同 bootstrap revision 不重复发布",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.applyPermissionEvent",
           "name": "applyPermissionEvent",
-          "signature": "applyPermissionEvent(ctx: RequestContext, input: applyPermissionEventInput): Promise<applyPermissionEventResult>",
+          "signature": "applyPermissionEvent(input: applyPermissionEventInput, signal: AbortSignal): Promise<applyPermissionEventResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "applyPermissionEventInput",
@@ -2035,6 +2172,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2079,23 +2224,15 @@
           "dependencies": [
             "portal.LoadBootstrap",
             "portal.clearSession"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.clearSession",
           "name": "clearSession",
-          "signature": "clearSession(ctx: RequestContext, input: clearSessionInput): Promise<clearSessionResult>",
+          "signature": "clearSession(input: clearSessionInput, signal: AbortSignal): Promise<clearSessionResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "clearSessionInput",
@@ -2103,6 +2240,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2144,7 +2289,9 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "一次原子 store mutation",
           "idempotency": "重复清空无效果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2156,18 +2303,8 @@
         {
           "id": "portal.resolveAdminRoute",
           "name": "resolveAdminRoute",
-          "signature": "resolveAdminRoute(ctx: RequestContext, input: resolveAdminRouteInput): Promise<resolveAdminRouteResult>",
+          "signature": "resolveAdminRoute(input: resolveAdminRouteInput, signal: AbortSignal): Promise<resolveAdminRouteResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "resolveAdminRouteInput",
@@ -2175,6 +2312,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2214,23 +2359,15 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.guardUnsavedNavigation",
           "name": "guardUnsavedNavigation",
-          "signature": "guardUnsavedNavigation(ctx: RequestContext, input: guardUnsavedNavigationInput): Promise<guardUnsavedNavigationResult>",
+          "signature": "guardUnsavedNavigation(input: guardUnsavedNavigationInput, signal: AbortSignal): Promise<guardUnsavedNavigationResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "guardUnsavedNavigationInput",
@@ -2238,6 +2375,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2287,23 +2432,15 @@
           "idempotency": "同 intent 不重复弹窗",
           "dependencies": [
             "content:saveDraft"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.restoreReturnLocation",
           "name": "restoreReturnLocation",
-          "signature": "restoreReturnLocation(ctx: RequestContext, input: restoreReturnLocationInput): Promise<restoreReturnLocationResult>",
+          "signature": "restoreReturnLocation(input: restoreReturnLocationInput, signal: AbortSignal): Promise<restoreReturnLocationResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "restoreReturnLocationInput",
@@ -2311,6 +2448,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2350,7 +2495,9 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2362,18 +2509,8 @@
         {
           "id": "portal.connectEventStream",
           "name": "connectEventStream",
-          "signature": "connectEventStream(ctx: RequestContext, input: connectEventStreamInput): Promise<connectEventStreamResult>",
+          "signature": "connectEventStream(input: connectEventStreamInput, signal: AbortSignal): Promise<connectEventStreamResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "connectEventStreamInput",
@@ -2381,6 +2518,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2430,23 +2575,15 @@
           "idempotency": "eventId 去重",
           "dependencies": [
             "portal.dispatchPortalEvent"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.dispatchPortalEvent",
           "name": "dispatchPortalEvent",
-          "signature": "dispatchPortalEvent(ctx: RequestContext, input: dispatchPortalEventInput): Promise<dispatchPortalEventResult>",
+          "signature": "dispatchPortalEvent(input: dispatchPortalEventInput, signal: AbortSignal): Promise<dispatchPortalEventResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "dispatchPortalEventInput",
@@ -2454,6 +2591,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2495,7 +2640,9 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "按 sequence 串行；权限事件优先取消请求",
           "idempotency": "eventId 1280 条有界去重缓存",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2507,18 +2654,8 @@
         {
           "id": "portal.loadPreferences",
           "name": "loadPreferences",
-          "signature": "loadPreferences(ctx: RequestContext, input: loadPreferencesInput): Promise<loadPreferencesResult>",
+          "signature": "loadPreferences(input: loadPreferencesInput, signal: AbortSignal): Promise<loadPreferencesResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "loadPreferencesInput",
@@ -2526,6 +2663,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2569,23 +2714,15 @@
           "idempotency": "同 revision 无重复 UI 更新",
           "dependencies": [
             "portal.ReadPreferences"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.savePreferences",
           "name": "savePreferences",
-          "signature": "savePreferences(ctx: RequestContext, input: savePreferencesInput): Promise<savePreferencesResult>",
+          "signature": "savePreferences(input: savePreferencesInput, signal: AbortSignal): Promise<savePreferencesResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "savePreferencesInput",
@@ -2593,6 +2730,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2642,7 +2787,9 @@
           "idempotency": "operationId 服务去重",
           "dependencies": [
             "portal.UpdatePreferences"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2654,18 +2801,8 @@
         {
           "id": "portal.deriveShellState",
           "name": "deriveShellState",
-          "signature": "deriveShellState(ctx: RequestContext, input: deriveShellStateInput): Promise<deriveShellStateResult>",
+          "signature": "deriveShellState(input: deriveShellStateInput, signal: AbortSignal): Promise<deriveShellStateResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "deriveShellStateInput",
@@ -2673,6 +2810,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2712,23 +2857,15 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "纯函数",
           "idempotency": "纯函数",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.updateDocumentMetadata",
           "name": "updateDocumentMetadata",
-          "signature": "updateDocumentMetadata(ctx: RequestContext, input: updateDocumentMetadataInput): Promise<updateDocumentMetadataResult>",
+          "signature": "updateDocumentMetadata(input: updateDocumentMetadataInput, signal: AbortSignal): Promise<updateDocumentMetadataResult>",
           "inputs": [
-            {
-              "name": "ctx",
-              "type": "RequestContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
             {
               "name": "input",
               "type": "updateDocumentMetadataInput",
@@ -2736,6 +2873,14 @@
               "constraints": [
                 "必须通过 types.json 对应 schema",
                 "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
               ]
             }
           ],
@@ -2777,7 +2922,9 @@
           "authorization": "浏览器当前主体；入口和 owning service 必须重新授权，不信任前端隐藏状态",
           "concurrency": "单应用实例串行",
           "idempotency": "相同 state 不重复 DOM 写",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2789,11 +2936,19 @@
         {
           "id": "portal.ReadRuntimeState",
           "name": "ReadRuntimeState",
-          "signature": "func ReadRuntimeState(ctx RequestContext, input ReadRuntimeStateInput) (ReadRuntimeStateResult, error)",
+          "signature": "func ReadRuntimeState(ctx context.Context, op OperationContext, input ReadRuntimeStateInput) (ReadRuntimeStateResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2855,7 +3010,9 @@
           "idempotency": "只读",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2867,11 +3024,19 @@
         {
           "id": "portal.CheckEntranceGate",
           "name": "CheckEntranceGate",
-          "signature": "func CheckEntranceGate(ctx RequestContext, input CheckEntranceGateInput) (CheckEntranceGateResult, error)",
+          "signature": "func CheckEntranceGate(ctx context.Context, op OperationContext, input CheckEntranceGateInput) (CheckEntranceGateResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2939,16 +3104,26 @@
           "idempotency": "读取判定",
           "dependencies": [
             "portal.ReadRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "portal.AcquireBarrier",
           "name": "AcquireBarrier",
-          "signature": "func AcquireBarrier(ctx RequestContext, input BarrierRequest) (BarrierStatus, error)",
+          "signature": "func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierRequest) (BarrierStatus, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3018,16 +3193,26 @@
           "idempotency": "barrierId 相同返回当前 gate 状态；不生成数据快照",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "portal.ReleaseBarrier",
           "name": "ReleaseBarrier",
-          "signature": "func ReleaseBarrier(ctx RequestContext, input ReleaseBarrierInput) (ReleaseBarrierResult, error)",
+          "signature": "func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarrierInput) (ReleaseBarrierResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3097,7 +3282,9 @@
           "idempotency": "同 barrierId 重复释放无副作用",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3107,7 +3294,7 @@
       "purpose": "本域唯一Go可执行入口；不放产品算法",
       "functions": [
         {
-          "id": "M01-F901",
+          "id": "portal.main",
           "name": "main",
           "signature": "func main()",
           "inputs": [],
@@ -3142,10 +3329,12 @@
           "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
           "idempotency": "进程重启先journal恢复；不重放已付费任务",
           "dependencies": [
-            "BuildApplication",
-            "Serve",
-            "Shutdown"
-          ]
+            "portal.BuildApplication",
+            "portal.Serve",
+            "portal.Shutdown"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3155,7 +3344,7 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
       "functions": [
         {
-          "id": "M01-F902",
+          "id": "portal.BuildApplication",
           "name": "BuildApplication",
           "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
           "inputs": [
@@ -3191,7 +3380,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
           ],
           "errors": [
@@ -3223,11 +3412,13 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
             "site-config.readRuntimeState（本域site-config读取自身权威）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3237,7 +3428,7 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
       "functions": [
         {
-          "id": "M01-F903",
+          "id": "portal.Serve",
           "name": "Serve",
           "signature": "func Serve(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3292,13 +3483,16 @@
           "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
-            "BuildApplication",
-            "Shutdown",
+            "portal.BuildApplication",
+            "portal.Shutdown"
+          ],
+          "resources": [
             "本域OpenAPI路由"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M01-F904",
+          "id": "portal.Shutdown",
           "name": "Shutdown",
           "signature": "func Shutdown(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3353,13 +3547,15 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M01-F905",
+          "id": "portal.Health",
           "name": "Health",
           "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
           "inputs": [
@@ -3410,10 +3606,12 @@
           },
           "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
           "idempotency": "GET只读重复安全",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M01-F906",
+          "id": "portal.Ready",
           "name": "Ready",
           "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
           "inputs": [
@@ -3466,9 +3664,11 @@
           },
           "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
           "idempotency": "GET只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config.readRuntimeState（site-config本域自身读取）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3544,7 +3744,7 @@
       "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
       "functions": [
         {
-          "id": "M01-F907",
+          "id": "portal.mountModuleUI",
           "name": "mountModuleUI",
           "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
           "inputs": [
@@ -3585,9 +3785,11 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域已登记UI页面函数"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     }

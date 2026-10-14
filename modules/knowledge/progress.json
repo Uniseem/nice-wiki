@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "design",
-  "contractSha256": "c57e6dad9eb01faff9617c47209e304f2789f5c3c726c156681c73576460243c",
+  "contractSha256": "6e8b4620b4a009bb21cc4d890ee6ea503245b5d045c34b649cfac8b792f60529",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -955,6 +955,17 @@
       "blocker": null
     },
     {
+      "id": "knowledge.ConsumeEvents",
+      "path": "modules/knowledge/internal/events/inbox.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "knowledge.PublishOutbox",
       "path": "modules/knowledge/internal/events/outbox.go",
       "state": "planned",
@@ -1164,7 +1175,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F901",
+      "id": "knowledge.main",
       "path": "modules/knowledge/cmd/knowledge/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1175,7 +1186,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F902",
+      "id": "knowledge.BuildApplication",
       "path": "modules/knowledge/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1186,7 +1197,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F903",
+      "id": "knowledge.Serve",
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1197,7 +1208,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F904",
+      "id": "knowledge.Shutdown",
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1208,7 +1219,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F905",
+      "id": "knowledge.Health",
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1219,7 +1230,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F906",
+      "id": "knowledge.Ready",
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -1230,7 +1241,7 @@
       "blocker": null
     },
     {
-      "id": "M08-F907",
+      "id": "knowledge.mountModuleUI",
       "path": "modules/knowledge/ui/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

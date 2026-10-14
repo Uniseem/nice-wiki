@@ -3082,7 +3082,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M09-F905",
+        "x-handler": "qa.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -3113,7 +3113,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M09-F906",
+        "x-handler": "qa.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

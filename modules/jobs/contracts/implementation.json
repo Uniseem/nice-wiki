@@ -182,7 +182,7 @@
       "purpose": "验证任务入口；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F001",
+          "id": "jobs.ValidateJobSpec",
           "name": "ValidateJobSpec",
           "signature": "func ValidateJobSpec(ctx context.Context, op OperationContext, in ValidateJobSpecInput) (ValidateJobSpecResult, error)",
           "inputs": [
@@ -250,8 +250,10 @@
           "concurrency": "纯校验+runtime只读",
           "idempotency": "同jobSpec同结果",
           "dependencies": [
-            "site-config.readRuntimeState"
-          ]
+            "site-config:readRuntimeState"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -261,7 +263,7 @@
       "purpose": "持久提交任务；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F002",
+          "id": "jobs.CreateJob",
           "name": "CreateJob",
           "signature": "func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (CreateJobResult, error)",
           "inputs": [
@@ -332,11 +334,13 @@
           "concurrency": "SQLite单事务；barrier draining拒绝新任务",
           "idempotency": "dedupeKey/inputHash幂等",
           "dependencies": [
-            "ValidateJobSpec"
-          ]
+            "jobs.ValidateJobSpec"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F010",
+          "id": "jobs.FailJob",
           "name": "FailJob",
           "signature": "func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJobResult, error)",
           "inputs": [
@@ -407,9 +411,11 @@
           "concurrency": "fence CAS",
           "idempotency": "jobId/fence/failureOperationId幂等",
           "dependencies": [
-            "ClassifyFailure",
-            "ComputeRetryAt"
-          ]
+            "jobs.ClassifyFailure",
+            "jobs.ComputeRetryAt"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -419,7 +425,7 @@
       "purpose": "领取待执行任务；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F003",
+          "id": "jobs.ClaimJob",
           "name": "ClaimJob",
           "signature": "func ClaimJob(ctx context.Context, op OperationContext, in ClaimJobInput) (ClaimJobResult, error)",
           "inputs": [
@@ -488,12 +494,14 @@
           },
           "concurrency": "只允许owner领取自己的任务；CAS防双领",
           "idempotency": "同claim operationId返回原batch",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F004",
+          "id": "jobs.StartJob",
           "name": "StartJob",
           "signature": "func StartJob(ctx context.Context, op OperationContext, in StartJobInput) (StartJobResult, error)",
           "inputs": [
@@ -562,12 +570,14 @@
           },
           "concurrency": "fence严格相等",
           "idempotency": "同fence重复start成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F005",
+          "id": "jobs.HeartbeatJob",
           "name": "HeartbeatJob",
           "signature": "func HeartbeatJob(ctx context.Context, op OperationContext, in HeartbeatJobInput) (HeartbeatJobResult, error)",
           "inputs": [
@@ -638,12 +648,14 @@
           },
           "concurrency": "过期后不允许复活",
           "idempotency": "operationId去重同expiry",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F006",
+          "id": "jobs.CheckLease",
           "name": "CheckLease",
           "signature": "func CheckLease(ctx context.Context, op OperationContext, in CheckLeaseInput) (CheckLeaseResult, error)",
           "inputs": [
@@ -709,9 +721,11 @@
           },
           "concurrency": "读后结果写必须在owner自己的CAS中再次fence校验",
           "idempotency": "只读幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -721,7 +735,7 @@
       "purpose": "提交成功结果；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F007",
+          "id": "jobs.CompleteJob",
           "name": "CompleteJob",
           "signature": "func CompleteJob(ctx context.Context, op OperationContext, in CompleteJobInput) (CompleteJobResult, error)",
           "inputs": [
@@ -791,8 +805,10 @@
           "concurrency": "结果提交CAS；cancel与完成竞争以事务提交先后为准",
           "idempotency": "jobId/fence/resultHash幂等，重复不同hash409",
           "dependencies": [
-            "CheckLease"
-          ]
+            "jobs.CheckLease"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -802,7 +818,7 @@
       "purpose": "固定错误重试分类；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F008",
+          "id": "jobs.ClassifyFailure",
           "name": "ClassifyFailure",
           "signature": "func ClassifyFailure(ctx context.Context, op OperationContext, in ClassifyFailureInput) (ClassifyFailureResult, error)",
           "inputs": [
@@ -862,12 +878,14 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同code/attempt同结果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "公共errors.json"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M13-F009",
+          "id": "jobs.ComputeRetryAt",
           "name": "ComputeRetryAt",
           "signature": "func ComputeRetryAt(ctx context.Context, op OperationContext, in ComputeRetryAtInput) (ComputeRetryAtResult, error)",
           "inputs": [
@@ -927,7 +945,9 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同jobId/attempt/now同结果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -937,7 +957,7 @@
       "purpose": "到期重排；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F011",
+          "id": "jobs.RequeueDue",
           "name": "RequeueDue",
           "signature": "func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (RequeueDueResult, error)",
           "inputs": [
@@ -999,12 +1019,14 @@
           },
           "concurrency": "批次事务",
           "idempotency": "重复tick幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M13-F012",
+          "id": "jobs.ReapExpiredLeases",
           "name": "ReapExpiredLeases",
           "signature": "func ReapExpiredLeases(ctx context.Context, op OperationContext, in ReapExpiredLeasesInput) (ReapExpiredLeasesResult, error)",
           "inputs": [
@@ -1068,12 +1090,14 @@
           "concurrency": "owner不可达只标orphan待确认，不能自动重做付费步骤",
           "idempotency": "jobId/oldFence去重",
           "dependencies": [
-            "ClassifyFailure",
-            "ComputeRetryAt"
-          ]
+            "jobs.ClassifyFailure",
+            "jobs.ComputeRetryAt"
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
-          "id": "M13-F028",
+          "id": "jobs.TickSchedules",
           "name": "TickSchedules",
           "signature": "func TickSchedules(ctx context.Context, op OperationContext, in TickSchedulesInput) (TickSchedulesResult, error)",
           "inputs": [
@@ -1144,9 +1168,11 @@
           "concurrency": "schedule revision CAS，多scheduler不双造任务",
           "idempotency": "tick dedupeKey幂等",
           "dependencies": [
-            "CreateJob",
-            "NextFireAt"
-          ]
+            "jobs.CreateJob",
+            "jobs.NextFireAt"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1156,7 +1182,7 @@
       "purpose": "请求取消任务；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F013",
+          "id": "jobs.RequestCancel",
           "name": "RequestCancel",
           "signature": "func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInput) (RequestCancelResult, error)",
           "inputs": [
@@ -1227,12 +1253,14 @@
           "concurrency": "CAS与完成竞争，完成先提交则返回succeeded",
           "idempotency": "operationId幂等",
           "dependencies": [
-            "identity.checkAuthorization",
-            "PublishEvent"
-          ]
+            "identity:checkAuthorization",
+            "jobs.PublishEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F014",
+          "id": "jobs.ConfirmCancelled",
           "name": "ConfirmCancelled",
           "signature": "func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancelledInput) (ConfirmCancelledResult, error)",
           "inputs": [
@@ -1301,9 +1329,11 @@
           },
           "concurrency": "不能以超时假设供应方未收费",
           "idempotency": "jobId/fence幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "model-gateway.cancelInference 经owner调用"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1313,7 +1343,7 @@
       "purpose": "读取管理任务状态；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F015",
+          "id": "jobs.ReadJob",
           "name": "ReadJob",
           "signature": "func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJobResult, error)",
           "inputs": [
@@ -1381,8 +1411,10 @@
           "concurrency": "SQLite快照读",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity.checkAuthorization"
-          ]
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1392,7 +1424,7 @@
       "purpose": "持久进度安全点；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F016",
+          "id": "jobs.AppendProgress",
           "name": "AppendProgress",
           "signature": "func AppendProgress(ctx context.Context, op OperationContext, in AppendProgressInput) (AppendProgressResult, error)",
           "inputs": [
@@ -1462,8 +1494,10 @@
           "concurrency": "同phase completed不能倒退；新phase可重置单位但seq单增",
           "idempotency": "checkpointKey幂等不重复seq",
           "dependencies": [
-            "CheckLease"
-          ]
+            "jobs.CheckLease"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1473,7 +1507,7 @@
       "purpose": "任务进度SSE；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F017",
+          "id": "jobs.StreamProgress",
           "name": "StreamProgress",
           "signature": "func StreamProgress(ctx context.Context, op OperationContext, in StreamProgressInput) (StreamProgressResult, error)",
           "inputs": [
@@ -1549,9 +1583,12 @@
           "concurrency": "每actor最多10流；慢客户端缓冲64条关闭可重放",
           "idempotency": "Last-Event-ID精确续接",
           "dependencies": [
-            "ReadJob",
+            "jobs.ReadJob"
+          ],
+          "resources": [
             "私有progress表"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -1561,7 +1598,7 @@
       "purpose": "验证跨域事件；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F018",
+          "id": "jobs.ValidateEnvelope",
           "name": "ValidateEnvelope",
           "signature": "func ValidateEnvelope(ctx context.Context, op OperationContext, in ValidateEnvelopeInput) (ValidateEnvelopeResult, error)",
           "inputs": [
@@ -1629,9 +1666,11 @@
           },
           "concurrency": "纯校验+runtime读取",
           "idempotency": "同event同结果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "各域contracts/events.json"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1641,7 +1680,7 @@
       "purpose": "持久接收事件；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F019",
+          "id": "jobs.PublishEvent",
           "name": "PublishEvent",
           "signature": "func PublishEvent(ctx context.Context, op OperationContext, in PublishEventInput) (PublishEventResult, error)",
           "inputs": [
@@ -1682,7 +1721,7 @@
           "steps": [
             "校验envelope",
             "eventId重复比较payloadHash",
-            "事务event及各订阅者delivery queued，durable后确认"
+            "事务写event，并按事件订阅目录为每个登记consumer建立queued delivery；durable后确认，无订阅者的事件只存档"
           ],
           "errors": [
             {
@@ -1711,8 +1750,10 @@
           "concurrency": "单事务，不复制源数据库",
           "idempotency": "eventId+payloadHash幂等",
           "dependencies": [
-            "ValidateEnvelope"
-          ]
+            "jobs.ValidateEnvelope"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1722,9 +1763,9 @@
       "purpose": "至少一次投递；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F020",
-          "name": "DeliverEvents",
-          "signature": "func DeliverEvents(ctx context.Context, op OperationContext, in DeliverEventsInput) (DeliverEventsResult, error)",
+          "id": "jobs.RequeueExpiredDeliveries",
+          "name": "RequeueExpiredDeliveries",
+          "signature": "func RequeueExpiredDeliveries(ctx context.Context, op OperationContext, in RequeueExpiredDeliveriesInput) (RequeueExpiredDeliveriesResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1740,16 +1781,16 @@
             },
             {
               "name": "in",
-              "type": "DeliverEventsInput",
-              "description": "至少一次投递；字段见本域types.json对应$defs",
+              "type": "RequeueExpiredDeliveriesInput",
+              "description": "到期确认租约扫描参数",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
             }
           ],
           "outputs": [
             {
               "name": "result",
-              "type": "DeliverEventsResult",
-              "description": "至少一次投递成功结果；字段见types.json",
+              "type": "RequeueExpiredDeliveriesResult",
+              "description": "本轮重排与死信计数",
               "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
             },
             {
@@ -1759,21 +1800,14 @@
               "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
             }
           ],
-          "purpose": "至少一次投递",
+          "purpose": "把已经推送给订阅者但确认租约到期的投递重新排队或转死信",
           "steps": [
-            "领取≤100delivery 30s租约",
-            "按producer/subject修订发送HTTP",
-            "成功ack",
-            "失败有限退避后保持dead-letter供管理重放"
+            "每5秒领取≤limit条delivering且30秒确认租约已到期的delivery",
+            "attempt+1；未超过10次则改回queued，按1/2/4秒指数退避（上限300秒）设置下次可见时间",
+            "超过上限转dead-letter并记录最后错误，只能经ReplayDelivery由管理员重放",
+            "已acknowledged的delivery不受影响；同subject在前一条未确认时不推送后一条"
           ],
           "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "CONSUMER_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
             {
               "code": "VERSION_MISMATCH",
               "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
@@ -1783,21 +1817,21 @@
             }
           ],
           "sideEffects": [
-            "HTTP通知/写delivery"
+            "写delivery状态与退避时间"
           ],
           "authorization": {
             "permission": "service",
             "rule": "service事件worker",
             "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
           },
-          "concurrency": "不同subject可并发4，同subject序列；消费者仍需处理乱序",
-          "idempotency": "eventId固定；消费者inbox权威去重",
-          "dependencies": [
-            "consumer registered event endpoint"
-          ]
+          "concurrency": "单jobs进程一个扫描循环；行级CAS防重复改写",
+          "idempotency": "按deliveryId与attempt CAS；重复扫描不重复计数",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
-          "id": "M13-F021",
+          "id": "jobs.AcknowledgeEvent",
           "name": "AcknowledgeEvent",
           "signature": "func AcknowledgeEvent(ctx context.Context, op OperationContext, in AcknowledgeEventInput) (AcknowledgeEventResult, error)",
           "inputs": [
@@ -1866,12 +1900,14 @@
           },
           "concurrency": "event/consumer复合主键",
           "idempotency": "重复ack成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F022",
+          "id": "jobs.ReplayDelivery",
           "name": "ReplayDelivery",
           "signature": "func ReplayDelivery(ctx context.Context, op OperationContext, in ReplayDeliveryInput) (ReplayDeliveryResult, error)",
           "inputs": [
@@ -1941,8 +1977,10 @@
           "concurrency": "CAS避免覆盖已ack delivery；force仅显式管理参数",
           "idempotency": "operationId幂等",
           "dependencies": [
-            "identity.checkAuthorization"
-          ]
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1952,7 +1990,7 @@
       "purpose": "构建owner主动领取响应，不发影子执行HTTP；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F023",
+          "id": "jobs.DispatchOwnerTask",
           "name": "DispatchOwnerTask",
           "signature": "func DispatchOwnerTask(ctx context.Context, op OperationContext, in DispatchOwnerTaskInput) (DispatchOwnerTaskResult, error)",
           "inputs": [
@@ -2023,9 +2061,11 @@
           "concurrency": "失败由租约协议重试，owner须jobId/fence去重",
           "idempotency": "jobId/fence稳定请求key",
           "dependencies": [
-            "ClaimJob",
-            "CheckLease"
-          ]
+            "jobs.ClaimJob",
+            "jobs.CheckLease"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2035,7 +2075,7 @@
       "purpose": "严格解析定时表达式；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F024",
+          "id": "jobs.ValidateCron",
           "name": "ValidateCron",
           "signature": "func ValidateCron(ctx context.Context, op OperationContext, in ValidateCronInput) (ValidateCronResult, error)",
           "inputs": [
@@ -2103,12 +2143,14 @@
           },
           "concurrency": "纯函数，禁止任意脚本",
           "idempotency": "同表达式同结果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "Go time zone database"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M13-F025",
+          "id": "jobs.NextFireAt",
           "name": "NextFireAt",
           "signature": "func NextFireAt(ctx context.Context, op OperationContext, in NextFireAtInput) (NextFireAtResult, error)",
           "inputs": [
@@ -2169,8 +2211,10 @@
           "concurrency": "纯函数，迭代上限527040",
           "idempotency": "same表达式/after同结果",
           "dependencies": [
-            "ValidateCron"
-          ]
+            "jobs.ValidateCron"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2180,7 +2224,7 @@
       "purpose": "创建定时任务；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F026",
+          "id": "jobs.CreateSchedule",
           "name": "CreateSchedule",
           "signature": "func CreateSchedule(ctx context.Context, op OperationContext, in CreateScheduleInput) (CreateScheduleResult, error)",
           "inputs": [
@@ -2250,12 +2294,14 @@
           "concurrency": "每站点最多1000 schedules",
           "idempotency": "operationId+inputHash幂等",
           "dependencies": [
-            "ValidateCron",
-            "NextFireAt"
-          ]
+            "jobs.ValidateCron",
+            "jobs.NextFireAt"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F027",
+          "id": "jobs.UpdateSchedule",
           "name": "UpdateSchedule",
           "signature": "func UpdateSchedule(ctx context.Context, op OperationContext, in UpdateScheduleInput) (UpdateScheduleResult, error)",
           "inputs": [
@@ -2325,9 +2371,11 @@
           "concurrency": "CAS revision",
           "idempotency": "operationId幂等",
           "dependencies": [
-            "NextFireAt",
-            "identity.checkAuthorization"
-          ]
+            "jobs.NextFireAt",
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2337,7 +2385,7 @@
       "purpose": "等待全域安全点；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F029",
+          "id": "jobs.CoordinateBarrier",
           "name": "CoordinateBarrier",
           "signature": "func CoordinateBarrier(ctx context.Context, op OperationContext, in CoordinateBarrierInput) (CoordinateBarrierResult, error)",
           "inputs": [
@@ -2408,9 +2456,12 @@
           "concurrency": "不能只等jobs lease；每域实际在途写入/文件恢复日志都到安全点",
           "idempotency": "barrierId重复查询并继续原协调",
           "dependencies": [
-            "各域acquireBarrier",
-            "site-config.readRuntimeState"
-          ]
+            "site-config:readRuntimeState"
+          ],
+          "resources": [
+            "各域acquireBarrier"
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -2420,7 +2471,7 @@
       "purpose": "取得jobs本域屏障；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F030",
+          "id": "jobs.EnterBarrier",
           "name": "EnterBarrier",
           "signature": "func EnterBarrier(ctx context.Context, op OperationContext, request BarrierRequest) (BarrierStatus, error)",
           "inputs": [
@@ -2483,11 +2534,13 @@
           "concurrency": "事件接收暂拒503让producer outbox保留；ack安全落点后冻结",
           "idempotency": "barrierId幂等",
           "dependencies": [
-            "CoordinateBarrier"
-          ]
+            "jobs.CoordinateBarrier"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F031",
+          "id": "jobs.ReleaseBarrier",
           "name": "ReleaseBarrier",
           "signature": "func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierInput) (ReleaseBarrierResult, error)",
           "inputs": [
@@ -2557,9 +2610,11 @@
           "concurrency": "旧任务不能改epoch后自动继续",
           "idempotency": "barrierId幂等",
           "dependencies": [
-            "site-config.readRuntimeState",
-            "data-protection.getRestoreDecision"
-          ]
+            "site-config:readRuntimeState",
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2569,7 +2624,7 @@
       "purpose": "清理已完成记录；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F032",
+          "id": "jobs.PurgeExpiredHistory",
           "name": "PurgeExpiredHistory",
           "signature": "func PurgeExpiredHistory(ctx context.Context, op OperationContext, in PurgeExpiredHistoryInput) (PurgeExpiredHistoryResult, error)",
           "inputs": [
@@ -2631,9 +2686,11 @@
           },
           "concurrency": "≤500批事务，active job禁止删除",
           "idempotency": "重复purge幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -2643,7 +2700,7 @@
       "purpose": "导出队列与事件一致快照；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F033",
+          "id": "jobs.CreateSnapshot",
           "name": "CreateSnapshot",
           "signature": "func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotExportRequest) (SnapshotExportResult, error)",
           "inputs": [
@@ -2713,9 +2770,11 @@
           },
           "concurrency": "barrier水位之后无事件提交",
           "idempotency": "backupId/barrierId幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "各域安全点确认"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -2725,7 +2784,7 @@
       "purpose": "验证任务快照；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F034",
+          "id": "jobs.ValidateImport",
           "name": "ValidateImport",
           "signature": "func ValidateImport(ctx context.Context, op OperationContext, request SnapshotValidateRequest) (SnapshotValidation, error)",
           "inputs": [
@@ -2787,12 +2846,14 @@
           },
           "concurrency": "只读隔离",
           "idempotency": "snapshotHash/targetEpoch幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "owner结果引用验证API"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F035",
+          "id": "jobs.PrepareImport",
           "name": "PrepareImport",
           "signature": "func PrepareImport(ctx context.Context, op OperationContext, request SnapshotPrepareRequest) (SnapshotStageResult, error)",
           "inputs": [
@@ -2863,11 +2924,13 @@
           "concurrency": "不重发旧事件、不自动重算paid结果",
           "idempotency": "restoreId/hash幂等",
           "dependencies": [
-            "ValidateImport"
-          ]
+            "jobs.ValidateImport"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F036",
+          "id": "jobs.ActivateImport",
           "name": "ActivateImport",
           "signature": "func ActivateImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
@@ -2930,11 +2993,13 @@
           "concurrency": "所有claims仍被maintenance阻止",
           "idempotency": "stageId/epoch幂等",
           "dependencies": [
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F037",
+          "id": "jobs.AbortImport",
           "name": "AbortImport",
           "signature": "func AbortImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
@@ -2997,8 +3062,10 @@
           "concurrency": "restoreId锁",
           "idempotency": "重复rolled-back成功",
           "dependencies": [
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3008,7 +3075,7 @@
       "purpose": "本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F038",
+          "id": "jobs.ValidateRecoveryAuthorization",
           "name": "ValidateRecoveryAuthorization",
           "signature": "func ValidateRecoveryAuthorization(ctx context.Context, op OperationContext, in ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)",
           "inputs": [
@@ -3092,9 +3159,12 @@
           "concurrency": "校验期间不查询已换代identity业务库；控制记录与信任锚独立目录不被快照覆盖",
           "idempotency": "同许可同控制阶段结果；提交决策变化会使rollback失效",
           "dependencies": [
-            "不可变控制信任锚",
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [
+            "不可变控制信任锚"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3104,21 +3174,23 @@
       "purpose": "Vue3模块交互：RequestJobCancellation；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F039",
+          "id": "jobs.RequestJobCancellation",
           "name": "RequestJobCancellation",
-          "signature": "function RequestJobCancellation(op: OperationContext, input: RequestJobCancellationInput): Promise<RequestJobCancellationResult>",
+          "signature": "function RequestJobCancellation(input: RequestJobCancellationInput, signal: AbortSignal): Promise<RequestJobCancellationResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "RequestJobCancellationInput",
               "description": "Vue3模块交互：RequestJobCancellation；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3174,9 +3246,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3186,21 +3260,23 @@
       "purpose": "Vue3模块交互：SaveSchedule；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F040",
+          "id": "jobs.SaveSchedule",
           "name": "SaveSchedule",
-          "signature": "function SaveSchedule(op: OperationContext, input: SaveScheduleInput): Promise<SaveScheduleResult>",
+          "signature": "function SaveSchedule(input: SaveScheduleInput, signal: AbortSignal): Promise<SaveScheduleResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "SaveScheduleInput",
               "description": "Vue3模块交互：SaveSchedule；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3256,9 +3332,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3268,21 +3346,23 @@
       "purpose": "Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F041",
+          "id": "jobs.ReconnectProgress",
           "name": "ReconnectProgress",
-          "signature": "function ReconnectProgress(op: OperationContext, input: ReconnectProgressInput): Promise<ReconnectProgressResult>",
+          "signature": "function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): Promise<ReconnectProgressResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "ReconnectProgressInput",
               "description": "Vue3模块交互：ReconnectProgress；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3339,9 +3419,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3351,7 +3433,7 @@
       "purpose": "已登记消费者订阅事件SSE；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M13-F042",
+          "id": "jobs.SubscribeEvents",
           "name": "SubscribeEvents",
           "signature": "func SubscribeEvents(ctx context.Context, op OperationContext, in SubscribeEventsInput) (SubscribeEventsResult, error)",
           "inputs": [
@@ -3390,11 +3472,11 @@
           ],
           "purpose": "已登记消费者订阅事件SSE",
           "steps": [
-            "服务consumer身份与订阅类型allowlist匹配",
-            "按durable eventSeq重放未ack事件",
-            "15s heartbeat和Last-Event-ID断点",
-            "限64条慢连接关闭可重连",
-            "仅消费公共payloadSchema，不暴露别域正文"
+            "服务consumer身份必须与consumerId一致，且只能订阅事件订阅目录中登记给该consumer的事件名/版本",
+            "durable模式：按durable eventSeq推送该consumer queued delivery并置delivering（30秒确认租约）；同subject前一条未确认时不推送后一条",
+            "ephemeral模式（仅portal浏览器转发）：从当前水位开始推送，不建delivery、不需要确认",
+            "15s heartbeat和Last-Event-ID断点续传；慢连接积压超过64条关闭，客户端重连",
+            "仅推送公共payloadSchema载荷，不暴露别域正文"
           ],
           "errors": [
             {
@@ -3430,9 +3512,11 @@
           "concurrency": "每consumer最多2流；epoch变化立即关闭旧流",
           "idempotency": "eventSeq重放至少一次，consumer inbox/eventId去重后ack",
           "dependencies": [
-            "ValidateEnvelope",
-            "AcknowledgeEvent"
-          ]
+            "jobs.ValidateEnvelope",
+            "jobs.AcknowledgeEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3466,7 +3550,7 @@
       "purpose": "本域唯一Go可执行入口；不放产品算法",
       "functions": [
         {
-          "id": "M13-F901",
+          "id": "jobs.main",
           "name": "main",
           "signature": "func main()",
           "inputs": [],
@@ -3501,10 +3585,12 @@
           "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
           "idempotency": "进程重启先journal恢复；不重放已付费任务",
           "dependencies": [
-            "BuildApplication",
-            "Serve",
-            "Shutdown"
-          ]
+            "jobs.BuildApplication",
+            "jobs.Serve",
+            "jobs.Shutdown"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3514,7 +3600,7 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
       "functions": [
         {
-          "id": "M13-F902",
+          "id": "jobs.BuildApplication",
           "name": "BuildApplication",
           "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
           "inputs": [
@@ -3550,7 +3636,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
           ],
           "errors": [
@@ -3582,11 +3668,13 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
             "site-config.readRuntimeState（本域site-config读取自身权威）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3596,7 +3684,7 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
       "functions": [
         {
-          "id": "M13-F903",
+          "id": "jobs.Serve",
           "name": "Serve",
           "signature": "func Serve(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3651,13 +3739,16 @@
           "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
-            "BuildApplication",
-            "Shutdown",
+            "jobs.BuildApplication",
+            "jobs.Shutdown"
+          ],
+          "resources": [
             "本域OpenAPI路由"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F904",
+          "id": "jobs.Shutdown",
           "name": "Shutdown",
           "signature": "func Shutdown(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3712,13 +3803,15 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M13-F905",
+          "id": "jobs.Health",
           "name": "Health",
           "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
           "inputs": [
@@ -3769,10 +3862,12 @@
           },
           "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
           "idempotency": "GET只读重复安全",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M13-F906",
+          "id": "jobs.Ready",
           "name": "Ready",
           "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
           "inputs": [
@@ -3825,9 +3920,11 @@
           },
           "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
           "idempotency": "GET只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config.readRuntimeState（site-config本域自身读取）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3897,7 +3994,7 @@
       "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
       "functions": [
         {
-          "id": "M13-F907",
+          "id": "jobs.mountModuleUI",
           "name": "mountModuleUI",
           "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
           "inputs": [
@@ -3938,11 +4035,19 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域已登记UI页面函数"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/jobs/config/event-subscriptions.json",
+      "kind": "generated",
+      "purpose": "事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝",
+      "functions": []
     }
   ]
 }

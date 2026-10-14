@@ -84,6 +84,11 @@
       "purpose": "全局0001-rebuild设计/手册/状态记录"
     },
     {
+      "path": "docs/adr/0002-event-delivery-and-contract-levels.md",
+      "kind": "documentation",
+      "purpose": "全局0002事件投递与两级函数合同决策记录"
+    },
+    {
       "path": "docs/adr/README.md",
       "kind": "documentation",
       "purpose": "全局README设计/手册/状态记录"
@@ -1872,6 +1877,11 @@
       "path": "scripts/check_docs.py",
       "kind": "tool",
       "purpose": "标准库设计结构、引用、台账、权限、依赖、暂存与隐私检查"
+    },
+    {
+      "path": "scripts/render_docs.py",
+      "kind": "tool",
+      "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
     },
     {
       "path": "STATUS.md",

@@ -203,7 +203,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -316,7 +318,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:readProfiles"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -417,7 +421,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "traffic-guard:verifyAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -520,7 +526,9 @@
           "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -640,7 +648,9 @@
           "dependencies": [
             "traffic-guard:consumeAdmission",
             "jobs:createJob"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -747,7 +757,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "traffic-guard:consumeAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -850,7 +862,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -964,7 +978,9 @@
           "dependencies": [
             "memory:resolveContext",
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1070,7 +1086,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1187,7 +1205,9 @@
           "dependencies": [
             "model-gateway:createInference",
             "memory:resolveContext"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1300,7 +1320,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1414,7 +1436,9 @@
           "dependencies": [
             "knowledge:searchKnowledge",
             "knowledge:readSections"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1519,7 +1543,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1626,7 +1652,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:createInference"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1745,7 +1773,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1862,7 +1892,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1967,7 +1999,9 @@
           "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2075,7 +2109,9 @@
           "dependencies": [
             "content:validatePublications",
             "traffic-guard:releaseAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2184,7 +2220,9 @@
             "model-gateway:cancelInference",
             "jobs:cancelJob",
             "traffic-guard:releaseAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2295,7 +2333,9 @@
           "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2402,7 +2442,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.ApproveCacheEntry",
@@ -2509,7 +2551,9 @@
           "dependencies": [
             "content:validatePublications",
             "memory:resolveContext"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.DisableCacheEntry",
@@ -2613,7 +2657,9 @@
           "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2726,7 +2772,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:createInference"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2831,7 +2879,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2934,7 +2984,9 @@
           "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3047,7 +3099,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "localization:translateCachedAnswer"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3160,7 +3214,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:createJob"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "qa.RunCompaction",
@@ -3260,7 +3316,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:createInference"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3365,7 +3423,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3473,7 +3533,9 @@
           "dependencies": [
             "identity:checkAuthorization",
             "model-gateway:createInference"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3576,7 +3638,9 @@
           "authorization": "权限 qa.debug；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3683,7 +3747,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:cancelInference"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3791,7 +3857,9 @@
           "dependencies": [
             "model-gateway:readInference",
             "traffic-guard:releaseAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3898,7 +3966,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:publishEvent"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -4003,7 +4073,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4124,7 +4196,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.ReleaseBarrier",
@@ -4236,7 +4310,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.ExportSnapshot",
@@ -4350,7 +4426,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.ValidateSnapshot",
@@ -4462,7 +4540,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.PrepareSnapshot",
@@ -4574,7 +4654,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.CommitSnapshot",
@@ -4686,7 +4768,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "qa.RollbackSnapshot",
@@ -4798,7 +4882,9 @@
           "idempotency": "相同barrierId/stageId/restoreId+payload hash返回原控制回执；不同hash返回CONFLICT；commit/rollback均可安全重放。",
           "dependencies": [
             "site-config:readRuntimeState"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -4891,7 +4977,9 @@
           "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4990,7 +5078,9 @@
           "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5102,7 +5192,9 @@
           "dependencies": [
             "content:validatePublications",
             "content:readPublishedRevision"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5217,7 +5309,9 @@
             "memory:resolveContext",
             "model-gateway:createInference",
             "traffic-guard:reportModelRisk"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5320,7 +5414,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5433,7 +5529,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "knowledge:createQueryEmbedding"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5541,7 +5639,9 @@
           "dependencies": [
             "knowledge:inspectEvidence",
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5655,7 +5755,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5770,7 +5872,9 @@
           "dependencies": [
             "localization:readCacheAnswerTranslation",
             "content:validatePublications"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -5875,7 +5979,9 @@
           "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -5991,7 +6097,9 @@
             "jobs:heartbeatJob",
             "jobs:completeJob",
             "jobs:failJob"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -6019,7 +6127,7 @@
       "purpose": "本域唯一Go可执行入口；不放产品算法",
       "functions": [
         {
-          "id": "M09-F901",
+          "id": "qa.main",
           "name": "main",
           "signature": "func main()",
           "inputs": [],
@@ -6054,10 +6162,12 @@
           "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
           "idempotency": "进程重启先journal恢复；不重放已付费任务",
           "dependencies": [
-            "BuildApplication",
-            "Serve",
-            "Shutdown"
-          ]
+            "qa.BuildApplication",
+            "qa.Serve",
+            "qa.Shutdown"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -6067,7 +6177,7 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
       "functions": [
         {
-          "id": "M09-F902",
+          "id": "qa.BuildApplication",
           "name": "BuildApplication",
           "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
           "inputs": [
@@ -6103,7 +6213,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
           ],
           "errors": [
@@ -6135,11 +6245,13 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
             "site-config.readRuntimeState（本域site-config读取自身权威）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -6149,7 +6261,7 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
       "functions": [
         {
-          "id": "M09-F903",
+          "id": "qa.Serve",
           "name": "Serve",
           "signature": "func Serve(ctx context.Context, app *Application) error",
           "inputs": [
@@ -6204,13 +6316,16 @@
           "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
-            "BuildApplication",
-            "Shutdown",
+            "qa.BuildApplication",
+            "qa.Shutdown"
+          ],
+          "resources": [
             "本域OpenAPI路由"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M09-F904",
+          "id": "qa.Shutdown",
           "name": "Shutdown",
           "signature": "func Shutdown(ctx context.Context, app *Application) error",
           "inputs": [
@@ -6265,13 +6380,15 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M09-F905",
+          "id": "qa.Health",
           "name": "Health",
           "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
           "inputs": [
@@ -6322,10 +6439,12 @@
           },
           "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
           "idempotency": "GET只读重复安全",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M09-F906",
+          "id": "qa.Ready",
           "name": "Ready",
           "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
           "inputs": [
@@ -6378,9 +6497,11 @@
           },
           "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
           "idempotency": "GET只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config.readRuntimeState（site-config本域自身读取）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -6450,7 +6571,7 @@
       "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
       "functions": [
         {
-          "id": "M09-F907",
+          "id": "qa.mountModuleUI",
           "name": "mountModuleUI",
           "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
           "inputs": [
@@ -6491,9 +6612,115 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域已登记UI页面函数"
-          ]
+          ],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/qa/internal/events/subscription.go",
+      "kind": "handwritten",
+      "purpose": "订阅并分派本域登记的跨域事件",
+      "functions": [
+        {
+          "id": "qa.ConsumeEvents",
+          "name": "ConsumeEvents",
+          "signature": "func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域后台worker以服务身份构建的操作上下文，含当前dataEpoch",
+              "constraints": [
+                "callerService为本域",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ConsumeEventsInput",
+              "description": "订阅循环参数",
+              "constraints": [
+                "必须通过公共schema",
+                "consumerId等于本域slug"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeEventsResult",
+              "description": "循环退出时的累计计数",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认",
+          "steps": [
+            "进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连",
+            "每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未激活该epoch则不确认等待重投，否则视为旧代事件记skipped并确认",
+            "按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入",
+            "处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放",
+            "屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs订阅或确认不可用；重连后续传",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "事件信封或载荷不符合登记schema；隔离并确认",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash；隔离报警",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP长连接jobs:subscribeEvents",
+            "调用本域登记的事件处理函数",
+            "HTTP调用jobs:acknowledgeEvent"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责",
+          "idempotency": "jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认",
+          "dependencies": [
+            "jobs:subscribeEvents",
+            "jobs:acknowledgeEvent",
+            "qa.InvalidateCache",
+            "qa.StoreLocalizedCacheAnswer"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     }

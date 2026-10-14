@@ -1855,7 +1855,7 @@
     "InvalidatePublicationInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "处理发布和撤回事件输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "处理发布、撤回与译文就绪事件输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "eventId": {
           "type": "string",
@@ -1876,6 +1876,12 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "可选；仅translation.ready携带的BCP47目标语言，缺省表示全部语言"
         }
       },
       "required": [
@@ -3584,61 +3590,6 @@
         "xml"
       ]
     },
-    "EventPublicSiteCacheInvalidatedPayload": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "私有缓存失效通知；禁止包含正文；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
-      "properties": {
-        "documentId": {
-          "type": "string",
-          "description": "documentId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "publicationRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "publicationRevision 非负 int64；不用浮点数"
-        },
-        "reason": {
-          "type": "string",
-          "description": "reason；UTF-8；不得为 null",
-          "maxLength": 8192
-        }
-      },
-      "required": [
-        "documentId",
-        "publicationRevision",
-        "reason"
-      ]
-    },
-    "EventPublicSiteRenderFailedPayload": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "运维聚合事件；不重算已付费结果；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
-      "properties": {
-        "documentId": {
-          "type": "string",
-          "description": "documentId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "publicationRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "publicationRevision 非负 int64；不用浮点数"
-        },
-        "errorCode": {
-          "type": "string",
-          "description": "errorCode；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        }
-      },
-      "required": [
-        "documentId",
-        "publicationRevision",
-        "errorCode"
-      ]
-    },
     "IssuePreviewTokenRequestBody": {
       "type": "object",
       "additionalProperties": false,
@@ -3993,52 +3944,6 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
-    },
-    "PublicEventSubscriptionInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "subscriptionId",
-        "limit"
-      ],
-      "properties": {
-        "subscriptionId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "本域持久订阅ID，不能使用浏览器ID"
-        },
-        "cursor": {
-          "type": "string",
-          "maxLength": 2048,
-          "description": "本域提交过的jobs事件游标；首次可省略"
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 50,
-          "description": "单次有界事件批次上限"
-        }
-      }
-    },
-    "PublicEventSubscriptionResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "processed"
-      ],
-      "properties": {
-        "processed": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "已经本域提交inbox和失效状态的事件数"
-        },
-        "nextCursor": {
-          "type": "string",
-          "maxLength": 2048,
-          "description": "提交后的继续游标；不存在时省略"
-        }
-      }
     }
   }
 }

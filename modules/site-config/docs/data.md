@@ -13,7 +13,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | Hash | Hash |
 | Timestamp | Timestamp |
 | AuthContext | AuthContext |
-| RequestContext | RequestContext |
 | Error | Error |
 | Problem | Problem |
 | PageRequest | PageRequest |

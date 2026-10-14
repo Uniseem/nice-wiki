@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "design",
-  "contractSha256": "be5699947b64c0790c5e3ad10003deb0b4682142c26e0fc42ba06c153e899dbf",
+  "contractSha256": "5fb6649d3deaddd018e1f15df828747bd85508c62e162168b36db82d007ce6a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -638,6 +638,17 @@
       "blocker": null
     },
     {
+      "id": "site-config.RelayOutbox",
+      "path": "modules/site-config/internal/outbox_repository.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "site-config.ReadConfigObject",
       "path": "modules/site-config/internal/object_reader.go",
       "state": "planned",
@@ -814,7 +825,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F901",
+      "id": "site-config.main",
       "path": "modules/site-config/cmd/site-config/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -825,7 +836,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F902",
+      "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -836,7 +847,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F903",
+      "id": "site-config.Serve",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -847,7 +858,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F904",
+      "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -858,7 +869,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F905",
+      "id": "site-config.Health",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -869,7 +880,7 @@
       "blocker": null
     },
     {
-      "id": "M03-F906",
+      "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,

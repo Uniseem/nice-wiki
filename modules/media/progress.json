@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "design",
-  "contractSha256": "e28ebd982d6a7782e5e18cfa63d85dae714d325544faafb4251f32550f87d7f5",
+  "contractSha256": "9a8d2605196f0e2813d0a1da5c48a56a93e0d98cf81b4a4ce05b987f7672e469",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -422,6 +422,16 @@
     },
     {
       "path": "modules/media/deploy/manifest.json",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/internal/event_subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -862,6 +872,17 @@
       "blocker": null
     },
     {
+      "id": "media.RelayOutbox",
+      "path": "modules/media/internal/outbox_repository.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "media.AcquireBarrier",
       "path": "modules/media/internal/barrier_service.go",
       "state": "planned",
@@ -939,7 +960,7 @@
       "blocker": null
     },
     {
-      "id": "M05-F901",
+      "id": "media.main",
       "path": "modules/media/cmd/media/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -950,7 +971,7 @@
       "blocker": null
     },
     {
-      "id": "M05-F902",
+      "id": "media.BuildApplication",
       "path": "modules/media/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -961,7 +982,7 @@
       "blocker": null
     },
     {
-      "id": "M05-F903",
+      "id": "media.Serve",
       "path": "modules/media/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -972,7 +993,7 @@
       "blocker": null
     },
     {
-      "id": "M05-F904",
+      "id": "media.Shutdown",
       "path": "modules/media/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -983,7 +1004,7 @@
       "blocker": null
     },
     {
-      "id": "M05-F905",
+      "id": "media.Health",
       "path": "modules/media/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -994,8 +1015,19 @@
       "blocker": null
     },
     {
-      "id": "M05-F906",
+      "id": "media.Ready",
       "path": "modules/media/internal/transport/server.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.ConsumeEvents",
+      "path": "modules/media/internal/event_subscription.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

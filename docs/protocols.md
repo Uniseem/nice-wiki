@@ -24,6 +24,8 @@
 
 ## 事件与公共管理
 
+事件只经jobs中转（ADR0002）：生产方在业务事务内写outbox，本域转发循环在提交后调用jobs:publishEvent，确认后才标relayed；jobs按各域events.json consume条目生成的订阅目录建立投递；消费方订阅循环以durable模式调用jobs:subscribeEvents，按handler字段调用本域处理函数，本地事务提交后才jobs:acknowledgeEvent；未确认投递在确认租约到期后重投，超限转死信。portal浏览器转发使用ephemeral订阅，不建投递。
+
 EventEnvelope必须符合生产方events.json；至少一次持久投递，按对象revision拒绝旧事件，按eventId去重，dataEpoch不匹配拒写。事件传必要元数据与不可变ObjectRef，不任意抓客户端提供URL。
 
 有状态域的管理API为barriers和snapshots export/validate/prepare/commit/rollback；request/response使用公共schema。入口无业务存储只参加维护，不虚构快照。所有管理路径受服务调用方、超管委托、屏障以及dataEpoch共同限制。

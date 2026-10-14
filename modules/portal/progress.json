@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "design",
-  "contractSha256": "e01a5e50e1e46fe9d030ab74f3de119181961c0d5f7eadb20e99ecfe1986d47f",
+  "contractSha256": "79c559d2c01933dca7766bd84553cbe66660f225b38b227ff42c2be4d766af2f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -827,7 +827,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F901",
+      "id": "portal.main",
       "path": "modules/portal/cmd/portal/main.go",
       "state": "planned",
       "implementationCommit": null,
@@ -838,7 +838,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F902",
+      "id": "portal.BuildApplication",
       "path": "modules/portal/internal/app/wire.go",
       "state": "planned",
       "implementationCommit": null,
@@ -849,7 +849,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F903",
+      "id": "portal.Serve",
       "path": "modules/portal/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -860,7 +860,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F904",
+      "id": "portal.Shutdown",
       "path": "modules/portal/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -871,7 +871,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F905",
+      "id": "portal.Health",
       "path": "modules/portal/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -882,7 +882,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F906",
+      "id": "portal.Ready",
       "path": "modules/portal/internal/transport/server.go",
       "state": "planned",
       "implementationCommit": null,
@@ -893,7 +893,7 @@
       "blocker": null
     },
     {
-      "id": "M01-F907",
+      "id": "portal.mountModuleUI",
       "path": "modules/portal/web/src/main.ts",
       "state": "planned",
       "implementationCommit": null,

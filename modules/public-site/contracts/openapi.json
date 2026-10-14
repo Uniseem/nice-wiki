@@ -17,7 +17,7 @@
         "operationId": "handleRobots",
         "summary": "机器人规则",
         "description": "站点级索引策略，不输出私有地址",
-        "x-handler": "M06-F025",
+        "x-handler": "public-site.HandleRobots",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -62,7 +62,7 @@
         "operationId": "handleLLMsRoot",
         "summary": "根llms语言索引",
         "description": "仅可公开引用的已发布文档摘要索引",
-        "x-handler": "M06-F058",
+        "x-handler": "public-site.HandleLLMsRoot",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -107,7 +107,7 @@
         "operationId": "handleSitemapIndex",
         "summary": "sitemap 索引 HTTP",
         "description": "站点 sitemap 分片索引",
-        "x-handler": "M06-F030",
+        "x-handler": "public-site.HandleSitemapIndex",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -152,7 +152,7 @@
         "operationId": "handleSitemapShard",
         "summary": "单分片 sitemap",
         "description": "公开、规范、已发布地址和更新时间",
-        "x-handler": "M06-F031",
+        "x-handler": "public-site.HandleSitemapShard",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -232,7 +232,7 @@
         "operationId": "issuePreviewToken",
         "summary": "签发草稿预览授权",
         "description": "为明确 documentId/revision 签发 120 秒单用途预览 token",
-        "x-handler": "M06-F032",
+        "x-handler": "public-site.IssuePreviewToken",
         "x-permission": "content.preview",
         "x-data-epoch-required": true,
         "responses": {
@@ -311,7 +311,7 @@
         "operationId": "handlePreview",
         "summary": "预览 HTTP 入口",
         "description": "不缓存 HTML；禁用 robots 索引；引用资源用 media 短期预览授权",
-        "x-handler": "M06-F035",
+        "x-handler": "public-site.HandlePreview",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -391,7 +391,7 @@
         "operationId": "handleRootRedirect",
         "summary": "根语言选择HTTP",
         "description": "仅根路径302，cookie/Accept-Language/基准语言优先，Vary正确",
-        "x-handler": "M06-F048",
+        "x-handler": "public-site.HandleRootRedirect",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -419,7 +419,7 @@
         "operationId": "handleHome",
         "summary": "站点首页",
         "description": "仅全屏首页hero",
-        "x-handler": "M06-F022",
+        "x-handler": "public-site.HandleHome",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -487,7 +487,7 @@
         "operationId": "handlePage",
         "summary": "页面 HTTP 入口",
         "description": "完整Go三栏HTML、no-cache+etag、旧slug301、删除410",
-        "x-handler": "M06-F021",
+        "x-handler": "public-site.HandlePage",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -586,7 +586,7 @@
         "operationId": "handleMarkdown",
         "summary": "导出公开 Markdown",
         "description": "Tiptap→Markdown，alternate链接，权威撤回检查",
-        "x-handler": "M06-F024",
+        "x-handler": "public-site.HandleMarkdown",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -666,7 +666,7 @@
         "operationId": "handleNavigation",
         "summary": "公开导航 HTTP",
         "description": "公开语言文档树",
-        "x-handler": "M06-F023",
+        "x-handler": "public-site.HandleNavigation",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -734,7 +734,7 @@
         "operationId": "handleLLMsIndex",
         "summary": "llms.txt HTTP",
         "description": "该语言文档树索引",
-        "x-handler": "M06-F027",
+        "x-handler": "public-site.HandleLLMsIndex",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -802,7 +802,7 @@
         "operationId": "handleLLMsFull",
         "summary": "输出合并正文或分片索引",
         "description": "该语言全正文或明确分片链接",
-        "x-handler": "M06-F028",
+        "x-handler": "public-site.HandleLLMsFull",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -870,7 +870,7 @@
         "operationId": "handleAskShell",
         "summary": "独立问答页面外壳",
         "description": "独立问答页，与文档右下浮窗共用qa会话",
-        "x-handler": "M06-F056",
+        "x-handler": "public-site.HandleAskShell",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -928,7 +928,7 @@
         "operationId": "handleLanguageSitemap",
         "summary": "每语言sitemap",
         "description": "每语言sitemap，root sitemap.xml总索引",
-        "x-handler": "M06-F059",
+        "x-handler": "public-site.HandleLanguageSitemap",
         "x-permission": "anonymous",
         "x-data-epoch-required": true,
         "responses": {
@@ -986,7 +986,7 @@
         "operationId": "acquireBarrier",
         "summary": "公开渲染域进入安全屏障",
         "description": "公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点",
-        "x-handler": "M06-F042",
+        "x-handler": "public-site.EnterBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1056,7 +1056,7 @@
         "operationId": "releaseBarrier",
         "summary": "释放公开渲染维护",
         "description": "仅全域恢复完成或commit前全部abort确认后释放",
-        "x-handler": "M06-F043",
+        "x-handler": "public-site.ReleaseBarrier",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1138,7 +1138,7 @@
         "operationId": "exportSnapshot",
         "summary": "创建本域一致快照",
         "description": "公共SnapshotExportRequest→SnapshotExportResult；必须safe",
-        "x-handler": "M06-F037",
+        "x-handler": "public-site.CreateSnapshot",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1218,7 +1218,7 @@
         "operationId": "validateSnapshot",
         "summary": "验证待恢复快照",
         "description": "公共SnapshotValidateRequest→SnapshotValidation；只写隔离报告",
-        "x-handler": "M06-F038",
+        "x-handler": "public-site.ValidateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1298,7 +1298,7 @@
         "operationId": "prepareSnapshot",
         "summary": "准备隔离数据库",
         "description": "公共SnapshotPrepareRequest→SnapshotStageResult；不切指针",
-        "x-handler": "M06-F039",
+        "x-handler": "public-site.PrepareImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1378,7 +1378,7 @@
         "operationId": "commitSnapshot",
         "summary": "激活已全局提交恢复代次",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；需持久commit决定",
-        "x-handler": "M06-F040",
+        "x-handler": "public-site.ActivateImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1458,7 +1458,7 @@
         "operationId": "rollbackSnapshot",
         "summary": "清理未提交导入",
         "description": "公共SnapshotCommitRequest→SnapshotApplyResult；commit后禁止",
-        "x-handler": "M06-F041",
+        "x-handler": "public-site.AbortImport",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
@@ -1527,7 +1527,7 @@
       "get": {
         "operationId": "health",
         "summary": "本域进程存活",
-        "x-handler": "M06-F905",
+        "x-handler": "public-site.Health",
         "x-permission": "anonymous",
         "security": [],
         "responses": {
@@ -1558,7 +1558,7 @@
       "get": {
         "operationId": "ready",
         "summary": "本域启动/恢复就绪",
-        "x-handler": "M06-F906",
+        "x-handler": "public-site.Ready",
         "x-permission": "anonymous",
         "security": [],
         "responses": {

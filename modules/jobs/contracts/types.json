@@ -1789,51 +1789,6 @@
         "eventId"
       ]
     },
-    "DeliverEventsInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "至少一次投递输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "consumerId": {
-          "type": "string",
-          "description": "consumerId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 500,
-          "description": "limit 非负 int64；不用浮点数",
-          "default": 20
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        }
-      },
-      "required": [
-        "consumerId",
-        "limit",
-        "dataEpoch"
-      ]
-    },
-    "DeliverEventsResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "至少一次投递成功结果；失败不返回半成功结果",
-      "properties": {
-        "deliveredCount": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "deliveredCount 非负 int64；不用浮点数"
-        }
-      },
-      "required": [
-        "deliveredCount"
-      ]
-    },
     "AcknowledgeEventInput": {
       "type": "object",
       "additionalProperties": false,
@@ -2513,18 +2468,26 @@
         },
         "lastEventId": {
           "type": "string",
-          "description": "lastEventId；UTF-8；不得为 null",
+          "description": "可选；断线续传的最后已收eventSeq，首次订阅省略",
           "maxLength": 128,
           "minLength": 1
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "durable",
+            "ephemeral"
+          ],
+          "description": "durable为服务消费者（需确认、可重投）；ephemeral仅portal浏览器转发（从当前水位开始、不建delivery）"
         }
       },
       "required": [
         "consumerId",
-        "lastEventId",
+        "mode",
         "dataEpoch"
       ]
     },
@@ -3267,6 +3230,51 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
+    },
+    "RequeueExpiredDeliveriesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "到期确认租约扫描输入；未标可选字段均必填，空集合用[]，不传null",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100,
+          "description": "单轮最多处理的到期delivery数"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        }
+      },
+      "required": [
+        "limit",
+        "dataEpoch"
+      ]
+    },
+    "RequeueExpiredDeliveriesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "到期确认租约扫描结果；失败不返回半成功结果",
+      "properties": {
+        "requeued": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "重新排队的delivery数"
+        },
+        "deadLettered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "转入dead-letter的delivery数"
+        }
+      },
+      "required": [
+        "requeued",
+        "deadLettered"
+      ]
     }
   }
 }

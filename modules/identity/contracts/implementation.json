@@ -69,11 +69,19 @@
         {
           "id": "identity.ReadRegistrationState",
           "name": "ReadRegistrationState",
-          "signature": "func ReadRegistrationState(ctx RequestContext, input ReadRegistrationStateInput) (ReadRegistrationStateResult, error)",
+          "signature": "func ReadRegistrationState(ctx context.Context, op OperationContext, input ReadRegistrationStateInput) (ReadRegistrationStateResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -129,16 +137,26 @@
           "idempotency": "只读",
           "dependencies": [
             "site-config:readInitializationStatus"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.RegisterFirstSuperadmin",
           "name": "RegisterFirstSuperadmin",
-          "signature": "func RegisterFirstSuperadmin(ctx RequestContext, input RegisterFirstSuperadminInput) (RegisterFirstSuperadminResult, error)",
+          "signature": "func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input RegisterFirstSuperadminInput) (RegisterFirstSuperadminResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -216,7 +234,9 @@
             "identity.HashPassword",
             "identity.IssueSessionTokens",
             "traffic-guard:createAdmission"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -228,11 +248,19 @@
         {
           "id": "identity.CreateAccount",
           "name": "CreateAccount",
-          "signature": "func CreateAccount(ctx RequestContext, input CreateAccountInput) (CreateAccountResult, error)",
+          "signature": "func CreateAccount(ctx context.Context, op OperationContext, input CreateAccountInput) (CreateAccountResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -323,16 +351,26 @@
             "identity.HashPassword",
             "identity.MapFunctionGrants",
             "identity.WriteAccountIndex"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ReadSelf",
           "name": "ReadSelf",
-          "signature": "func ReadSelf(ctx RequestContext, input ReadSelfInput) (ReadSelfResult, error)",
+          "signature": "func ReadSelf(ctx context.Context, op OperationContext, input ReadSelfInput) (ReadSelfResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -392,16 +430,26 @@
           "authorization": "account.self；强改会话仅允许必要资料",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ListAccounts",
           "name": "ListAccounts",
-          "signature": "func ListAccounts(ctx RequestContext, input ListAccountsInput) (ListAccountsResult, error)",
+          "signature": "func ListAccounts(ctx context.Context, op OperationContext, input ListAccountsInput) (ListAccountsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -461,16 +509,26 @@
           "authorization": "superadmin",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "签名cursor一致水位",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.SetAccountStatus",
           "name": "SetAccountStatus",
-          "signature": "func SetAccountStatus(ctx RequestContext, input SetAccountStatusInput) (SetAccountStatusResult, error)",
+          "signature": "func SetAccountStatus(ctx context.Context, op OperationContext, input SetAccountStatusInput) (SetAccountStatusResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -560,16 +618,26 @@
             "identity.AssertSuperadminImmutable",
             "identity.RevokeAllSessions",
             "identity.WriteAccountIndex"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.SetAccountPermissions",
           "name": "SetAccountPermissions",
-          "signature": "func SetAccountPermissions(ctx RequestContext, input SetAccountPermissionsInput) (SetAccountPermissionsResult, error)",
+          "signature": "func SetAccountPermissions(ctx context.Context, op OperationContext, input SetAccountPermissionsInput) (SetAccountPermissionsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -658,16 +726,26 @@
           "dependencies": [
             "identity.MapFunctionGrants",
             "identity.PublishIdentityEvent"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ResetAccountPassword",
           "name": "ResetAccountPassword",
-          "signature": "func ResetAccountPassword(ctx RequestContext, input ResetAccountPasswordInput) (ResetAccountPasswordResult, error)",
+          "signature": "func ResetAccountPassword(ctx context.Context, op OperationContext, input ResetAccountPasswordInput) (ResetAccountPasswordResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -756,7 +834,9 @@
           "dependencies": [
             "identity.HashPassword",
             "identity.RevokeAllSessions"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -816,7 +896,9 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.AssertSuperadminImmutable",
@@ -869,7 +951,9 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -929,7 +1013,9 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -941,11 +1027,19 @@
         {
           "id": "identity.HashPassword",
           "name": "HashPassword",
-          "signature": "func HashPassword(ctx RequestContext, input HashPasswordInput) (HashPasswordResult, error)",
+          "signature": "func HashPassword(ctx context.Context, op OperationContext, input HashPasswordInput) (HashPasswordResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1013,7 +1107,9 @@
           "authorization": "私有credential流程",
           "concurrency": "密码计算信号量限并发",
           "idempotency": "每次新salt；外层operation receipt禁止重复业务哈希",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.VerifyPassword",
@@ -1066,7 +1162,9 @@
           "authorization": "私有登录流程",
           "concurrency": "密码信号量",
           "idempotency": "确定性",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.ValidatePasswordChange",
@@ -1119,16 +1217,26 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.ChangePassword",
           "name": "ChangePassword",
-          "signature": "func ChangePassword(ctx RequestContext, input ChangePasswordInput) (ChangePasswordResult, error)",
+          "signature": "func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswordInput) (ChangePasswordResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1220,7 +1328,9 @@
             "identity.HashPassword",
             "identity.RevokeOtherSessions",
             "identity.IssueSessionTokens"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1232,11 +1342,19 @@
         {
           "id": "identity.CreateSession",
           "name": "CreateSession",
-          "signature": "func CreateSession(ctx RequestContext, input CreateSessionInput) (CreateSessionResult, error)",
+          "signature": "func CreateSession(ctx context.Context, op OperationContext, input CreateSessionInput) (CreateSessionResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1309,16 +1427,26 @@
             "identity.IssueSessionTokens",
             "traffic-guard:createAdmission",
             "site-config:readInitializationStatus"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.IssueSessionTokens",
           "name": "IssueSessionTokens",
-          "signature": "func IssueSessionTokens(ctx RequestContext, input IssueSessionTokensInput) (IssueSessionTokensResult, error)",
+          "signature": "func IssueSessionTokens(ctx context.Context, op OperationContext, input IssueSessionTokensInput) (IssueSessionTokensResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1374,16 +1502,26 @@
           "authorization": "identity私有sessiontxn",
           "concurrency": "固定key版本",
           "idempotency": "私有单次生成；业务外层复用session回执但不重复泄露旧refresh",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.RefreshSession",
           "name": "RefreshSession",
-          "signature": "func RefreshSession(ctx RequestContext, input RefreshSessionInput) (RefreshSessionResult, error)",
+          "signature": "func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessionInput) (RefreshSessionResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1448,16 +1586,26 @@
           "dependencies": [
             "identity.IssueSessionTokens",
             "identity.RevokeSessionFamily"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ReadSessions",
           "name": "ReadSessions",
-          "signature": "func ReadSessions(ctx RequestContext, input ReadSessionsInput) (ReadSessionsResult, error)",
+          "signature": "func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsInput) (ReadSessionsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1517,7 +1665,9 @@
           "authorization": "account.self",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1529,11 +1679,19 @@
         {
           "id": "identity.RevokeSession",
           "name": "RevokeSession",
-          "signature": "func RevokeSession(ctx RequestContext, input RevokeSessionInput) (RevokeSessionResult, error)",
+          "signature": "func RevokeSession(ctx context.Context, op OperationContext, input RevokeSessionInput) (RevokeSessionResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1601,16 +1759,26 @@
           "authorization": "account.self",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.RevokeSessionFamily",
           "name": "RevokeSessionFamily",
-          "signature": "func RevokeSessionFamily(ctx RequestContext, input RevokeSessionFamilyInput) (RevokeSessionFamilyResult, error)",
+          "signature": "func RevokeSessionFamily(ctx context.Context, op OperationContext, input RevokeSessionFamilyInput) (RevokeSessionFamilyResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1666,16 +1834,26 @@
           "authorization": "私有身份流程",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "已撤销返回既有count",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.RevokeAllSessions",
           "name": "RevokeAllSessions",
-          "signature": "func RevokeAllSessions(ctx RequestContext, input RevokeAllSessionsInput) (RevokeAllSessionsResult, error)",
+          "signature": "func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAllSessionsInput) (RevokeAllSessionsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1737,16 +1915,26 @@
           "authorization": "superadmin或身份私有状态迁移",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.RevokeOtherSessions",
           "name": "RevokeOtherSessions",
-          "signature": "func RevokeOtherSessions(ctx RequestContext, input RevokeOtherSessionsInput) (RevokeOtherSessionsResult, error)",
+          "signature": "func RevokeOtherSessions(ctx context.Context, op OperationContext, input RevokeOtherSessionsInput) (RevokeOtherSessionsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1808,7 +1996,9 @@
           "authorization": "私有改密txn",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1820,11 +2010,19 @@
         {
           "id": "identity.VerifySessionCSRF",
           "name": "VerifySessionCSRF",
-          "signature": "func VerifySessionCSRF(ctx RequestContext, input VerifySessionCSRFInput) (VerifySessionCSRFResult, error)",
+          "signature": "func VerifySessionCSRF(ctx context.Context, op OperationContext, input VerifySessionCSRFInput) (VerifySessionCSRFResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1890,7 +2088,9 @@
           "authorization": "service:portal",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1902,11 +2102,19 @@
         {
           "id": "identity.CheckAuthorization",
           "name": "CheckAuthorization",
-          "signature": "func CheckAuthorization(ctx RequestContext, input AuthorizationRequest) (AuthorizationDecision, error)",
+          "signature": "func CheckAuthorization(ctx context.Context, op OperationContext, input AuthorizationRequest) (AuthorizationDecision, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -1975,7 +2183,9 @@
           "dependencies": [
             "identity.MapFunctionGrants",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1987,11 +2197,19 @@
         {
           "id": "identity.ReadPreferences",
           "name": "ReadPreferences",
-          "signature": "func ReadPreferences(ctx RequestContext, input ReadPreferencesInput) (ReadPreferencesResult, error)",
+          "signature": "func ReadPreferences(ctx context.Context, op OperationContext, input ReadPreferencesInput) (ReadPreferencesResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2051,16 +2269,26 @@
           "authorization": "portal.use",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.UpdatePreferences",
           "name": "UpdatePreferences",
-          "signature": "func UpdatePreferences(ctx RequestContext, input UpdatePreferencesInput) (UpdatePreferencesResult, error)",
+          "signature": "func UpdatePreferences(ctx context.Context, op OperationContext, input UpdatePreferencesInput) (UpdatePreferencesResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2148,7 +2376,9 @@
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
             "identity.CheckAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2160,11 +2390,19 @@
         {
           "id": "identity.ReadServerAccountIndex",
           "name": "ReadServerAccountIndex",
-          "signature": "func ReadServerAccountIndex(ctx RequestContext, input ReadServerAccountIndexInput) (ReadServerAccountIndexResult, error)",
+          "signature": "func ReadServerAccountIndex(ctx context.Context, op OperationContext, input ReadServerAccountIndexInput) (ReadServerAccountIndexResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2226,16 +2464,26 @@
           "idempotency": "只读",
           "dependencies": [
             "identity.WriteAccountIndex"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.WriteAccountIndex",
           "name": "WriteAccountIndex",
-          "signature": "func WriteAccountIndex(ctx RequestContext, input WriteAccountIndexInput) (WriteAccountIndexResult, error)",
+          "signature": "func WriteAccountIndex(ctx context.Context, op OperationContext, input WriteAccountIndexInput) (WriteAccountIndexResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2291,16 +2539,26 @@
           "authorization": "私有账号提交/恢复",
           "concurrency": "索引revision单调，低版本不覆盖",
           "idempotency": "同revision同hash不重复写",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.ObserveSuperadminResetFile",
           "name": "ObserveSuperadminResetFile",
-          "signature": "func ObserveSuperadminResetFile(ctx RequestContext, input ObserveSuperadminResetFileInput) (ObserveSuperadminResetFileResult, error)",
+          "signature": "func ObserveSuperadminResetFile(ctx context.Context, op OperationContext, input ObserveSuperadminResetFileInput) (ObserveSuperadminResetFileResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2368,16 +2626,26 @@
           "authorization": "本机OS控制身份",
           "concurrency": "单watcher，不并发消费同文件",
           "idempotency": "同fileHash同candidate",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.ApplySuperadminReset",
           "name": "ApplySuperadminReset",
-          "signature": "func ApplySuperadminReset(ctx RequestContext, input ApplySuperadminResetInput) (ApplySuperadminResetResult, error)",
+          "signature": "func ApplySuperadminReset(ctx context.Context, op OperationContext, input ApplySuperadminResetInput) (ApplySuperadminResetResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2442,7 +2710,9 @@
           "dependencies": [
             "identity.HashPassword",
             "identity.RevokeAllSessions"
-          ]
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2454,11 +2724,19 @@
         {
           "id": "identity.IssueRecoveryAuthorization",
           "name": "IssueRecoveryAuthorization",
-          "signature": "func IssueRecoveryAuthorization(ctx RequestContext, input IssueRecoveryAuthorizationInput) (IssueRecoveryAuthorizationResult, error)",
+          "signature": "func IssueRecoveryAuthorization(ctx context.Context, op OperationContext, input IssueRecoveryAuthorizationInput) (IssueRecoveryAuthorizationResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2534,16 +2812,26 @@
           "idempotency": "同restoreId同摘要返回同许可，异摘要CONFLICT",
           "dependencies": [
             "identity.VerifyPassword"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ValidateRecoveryAuthorization",
           "name": "ValidateRecoveryAuthorization",
-          "signature": "func ValidateRecoveryAuthorization(ctx RequestContext, input ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)",
+          "signature": "func ValidateRecoveryAuthorization(ctx context.Context, op OperationContext, input ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2609,16 +2897,26 @@
           "authorization": "注册service对应audience；本地控制记录不被恢复覆盖",
           "concurrency": "本地只读控制库/信任锚",
           "idempotency": "验证无状态",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         },
         {
           "id": "identity.RevokeRecoveryAuthorization",
           "name": "RevokeRecoveryAuthorization",
-          "signature": "func RevokeRecoveryAuthorization(ctx RequestContext, input RevokeRecoveryAuthorizationInput) (RevokeRecoveryAuthorizationResult, error)",
+          "signature": "func RevokeRecoveryAuthorization(ctx context.Context, op OperationContext, input RevokeRecoveryAuthorizationInput) (RevokeRecoveryAuthorizationResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2686,7 +2984,9 @@
           "authorization": "superadmin或带外OS控制身份",
           "concurrency": "approval行CAS",
           "idempotency": "重复撤销无效果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2698,11 +2998,19 @@
         {
           "id": "identity.ResolveIdentityOperation",
           "name": "ResolveIdentityOperation",
-          "signature": "func ResolveIdentityOperation(ctx RequestContext, input ResolveIdentityOperationInput) (ResolveIdentityOperationResult, error)",
+          "signature": "func ResolveIdentityOperation(ctx context.Context, op OperationContext, input ResolveIdentityOperationInput) (ResolveIdentityOperationResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2762,7 +3070,9 @@
           "authorization": "私有事务",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2774,11 +3084,19 @@
         {
           "id": "identity.PublishIdentityEvent",
           "name": "PublishIdentityEvent",
-          "signature": "func PublishIdentityEvent(ctx RequestContext, input PublishIdentityEventInput) (PublishIdentityEventResult, error)",
+          "signature": "func PublishIdentityEvent(ctx context.Context, op OperationContext, input PublishIdentityEventInput) (PublishIdentityEventResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2820,7 +3138,7 @@
           "steps": [
             "核对无账号口令/IP正文",
             "同业务txn写eventId唯一outbox",
-            "dispatcher经jobs可靠投递，ack后标完成"
+            "只在业务事务内写outbox；提交后由identity.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs"
           ],
           "errors": [
             {
@@ -2840,9 +3158,101 @@
           "authorization": "私有身份txn",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "eventId去重",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.RelayOutbox",
+          "name": "RelayOutbox",
+          "signature": "func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域后台worker以服务身份构建的操作上下文，含当前dataEpoch",
+              "constraints": [
+                "callerService为本域",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RelayOutboxInput",
+              "description": "单批转发参数",
+              "constraints": [
+                "必须通过公共schema",
+                "batchLimit 1..100"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RelayOutboxResult",
+              "description": "本批转发计数",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环",
+          "steps": [
+            "进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务",
+            "逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq",
+            "网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除",
+            "屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复激活新epoch后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用或超时；行保留待下一轮",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash或信封不合法；行隔离",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch与当前active epoch不一致；旧代行按恢复规则丢弃",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读写本域outbox行状态与租约",
+            "HTTP调用jobs:publishEvent"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送",
+          "idempotency": "eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认",
           "dependencies": [
             "jobs:publishEvent"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2854,11 +3264,19 @@
         {
           "id": "identity.InvalidateRestoredSessions",
           "name": "InvalidateRestoredSessions",
-          "signature": "func InvalidateRestoredSessions(ctx RequestContext, input InvalidateRestoredSessionsInput) (InvalidateRestoredSessionsResult, error)",
+          "signature": "func InvalidateRestoredSessions(ctx context.Context, op OperationContext, input InvalidateRestoredSessionsInput) (InvalidateRestoredSessionsResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -2920,7 +3338,9 @@
           "authorization": "service + 专用RecoveryAuthorization限定commit阶段",
           "concurrency": "commit屏障独占",
           "idempotency": "targetEpoch唯一receipt",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2932,11 +3352,19 @@
         {
           "id": "identity.AcquireBarrier",
           "name": "AcquireBarrier",
-          "signature": "func AcquireBarrier(ctx RequestContext, input BarrierRequest) (BarrierStatus, error)",
+          "signature": "func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierRequest) (BarrierStatus, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3025,16 +3453,26 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.ReleaseBarrier",
           "name": "ReleaseBarrier",
-          "signature": "func ReleaseBarrier(ctx RequestContext, input ReleaseBarrierInput) (ReleaseBarrierResult, error)",
+          "signature": "func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarrierInput) (ReleaseBarrierResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3105,7 +3543,9 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3117,11 +3557,19 @@
         {
           "id": "identity.ExportSnapshot",
           "name": "ExportSnapshot",
-          "signature": "func ExportSnapshot(ctx RequestContext, input SnapshotExportRequest) (SnapshotExportResult, error)",
+          "signature": "func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExportRequest) (SnapshotExportResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3210,16 +3658,26 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.PrepareSnapshot",
           "name": "PrepareSnapshot",
-          "signature": "func PrepareSnapshot(ctx RequestContext, input SnapshotPrepareRequest) (SnapshotStageResult, error)",
+          "signature": "func PrepareSnapshot(ctx context.Context, op OperationContext, input SnapshotPrepareRequest) (SnapshotStageResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3308,7 +3766,9 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3320,11 +3780,19 @@
         {
           "id": "identity.ValidateSnapshot",
           "name": "ValidateSnapshot",
-          "signature": "func ValidateSnapshot(ctx RequestContext, input SnapshotValidateRequest) (SnapshotValidation, error)",
+          "signature": "func ValidateSnapshot(ctx context.Context, op OperationContext, input SnapshotValidateRequest) (SnapshotValidation, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3411,7 +3879,9 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3423,11 +3893,19 @@
         {
           "id": "identity.CommitSnapshot",
           "name": "CommitSnapshot",
-          "signature": "func CommitSnapshot(ctx RequestContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "signature": "func CommitSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3518,16 +3996,26 @@
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization",
             "identity.InvalidateRestoredSessions"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
           "id": "identity.RollbackSnapshot",
           "name": "RollbackSnapshot",
-          "signature": "func RollbackSnapshot(ctx RequestContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
+          "signature": "func RollbackSnapshot(ctx context.Context, op OperationContext, input SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
             {
               "name": "ctx",
-              "type": "RequestContext",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
               "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
               "constraints": [
                 "deadline 未过期",
@@ -3616,7 +4104,9 @@
           "dependencies": [
             "site-config:readRuntimeState",
             "identity.ValidateRecoveryAuthorization"
-          ]
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3626,7 +4116,7 @@
       "purpose": "本域唯一Go可执行入口；不放产品算法",
       "functions": [
         {
-          "id": "M02-F901",
+          "id": "identity.main",
           "name": "main",
           "signature": "func main()",
           "inputs": [],
@@ -3661,10 +4151,12 @@
           "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
           "idempotency": "进程重启先journal恢复；不重放已付费任务",
           "dependencies": [
-            "BuildApplication",
-            "Serve",
-            "Shutdown"
-          ]
+            "identity.BuildApplication",
+            "identity.Serve",
+            "identity.Shutdown"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3674,7 +4166,7 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
       "functions": [
         {
-          "id": "M02-F902",
+          "id": "identity.BuildApplication",
           "name": "BuildApplication",
           "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
           "inputs": [
@@ -3710,7 +4202,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
           ],
           "errors": [
@@ -3742,11 +4234,13 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
             "site-config.readRuntimeState（本域site-config读取自身权威）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3756,7 +4250,7 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
       "functions": [
         {
-          "id": "M02-F903",
+          "id": "identity.Serve",
           "name": "Serve",
           "signature": "func Serve(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3811,13 +4305,16 @@
           "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
-            "BuildApplication",
-            "Shutdown",
+            "identity.BuildApplication",
+            "identity.Shutdown"
+          ],
+          "resources": [
             "本域OpenAPI路由"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M02-F904",
+          "id": "identity.Shutdown",
           "name": "Shutdown",
           "signature": "func Shutdown(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3872,13 +4369,15 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M02-F905",
+          "id": "identity.Health",
           "name": "Health",
           "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
           "inputs": [
@@ -3929,10 +4428,12 @@
           },
           "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
           "idempotency": "GET只读重复安全",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M02-F906",
+          "id": "identity.Ready",
           "name": "Ready",
           "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
           "inputs": [
@@ -3985,9 +4486,11 @@
           },
           "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
           "idempotency": "GET只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config.readRuntimeState（site-config本域自身读取）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },

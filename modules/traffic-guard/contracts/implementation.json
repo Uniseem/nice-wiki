@@ -128,7 +128,7 @@
       "purpose": "校验风控参数；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F001",
+          "id": "traffic-guard.ValidatePolicy",
           "name": "ValidatePolicy",
           "signature": "func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyInput) (ValidatePolicyResult, error)",
           "inputs": [
@@ -188,7 +188,9 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同 JSON 规范化结果一致",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -198,7 +200,7 @@
       "purpose": "读取生效策略；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F002",
+          "id": "traffic-guard.GetPolicy",
           "name": "GetPolicy",
           "signature": "func GetPolicy(ctx context.Context, op OperationContext, in GetPolicyInput) (GetPolicyResult, error)",
           "inputs": [
@@ -259,11 +261,13 @@
           "concurrency": "SQLite 快照读",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "site-config.readRuntimeState"
-          ]
+            "site-config:readRuntimeState"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F003",
+          "id": "traffic-guard.UpdatePolicy",
           "name": "UpdatePolicy",
           "signature": "func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput) (UpdatePolicyResult, error)",
           "inputs": [
@@ -334,9 +338,11 @@
           "concurrency": "事务 CAS；旧 permit renew 用最新策略重检",
           "idempotency": "operationId 去重且相同 key 不同 body 409",
           "dependencies": [
-            "identity.checkAuthorization",
-            "ValidatePolicy"
-          ]
+            "identity:checkAuthorization",
+            "traffic-guard.ValidatePolicy"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -346,7 +352,7 @@
       "purpose": "只在内存选择可信来源；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F004",
+          "id": "traffic-guard.NormalizePeer",
           "name": "NormalizePeer",
           "signature": "func NormalizePeer(ctx context.Context, op OperationContext, in NormalizePeerInput) (NormalizePeerResult, error)",
           "inputs": [
@@ -409,12 +415,14 @@
           },
           "concurrency": "每请求内存，返回值禁止进入 tracing attributes",
           "idempotency": "纯解析同输入同输出",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config 服务安全配置"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M12-F005",
+          "id": "traffic-guard.DeriveSubject",
           "name": "DeriveSubject",
           "signature": "func DeriveSubject(ctx context.Context, op OperationContext, in DeriveSubjectInput) (DeriveSubjectResult, error)",
           "inputs": [
@@ -476,9 +484,11 @@
           },
           "concurrency": "pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban",
           "idempotency": "同 keyEpoch 同输入同主体",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "identity visitor token verifier"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -488,7 +498,7 @@
       "purpose": "选择可信风控动作；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F006",
+          "id": "traffic-guard.ClassifyAction",
           "name": "ClassifyAction",
           "signature": "func ClassifyAction(ctx context.Context, op OperationContext, in ClassifyActionInput) (ClassifyActionResult, error)",
           "inputs": [
@@ -555,9 +565,11 @@
           },
           "concurrency": "只读注册表",
           "idempotency": "同路由匹配同结果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "服务注册配置"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -567,7 +579,7 @@
       "purpose": "读取有限匿名信号；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F007",
+          "id": "traffic-guard.LoadSignals",
           "name": "LoadSignals",
           "signature": "func LoadSignals(ctx context.Context, op OperationContext, in LoadSignalsInput) (LoadSignalsResult, error)",
           "inputs": [
@@ -627,9 +639,11 @@
           },
           "concurrency": "统一事务读取一致 policy revision",
           "idempotency": "只读",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -639,7 +653,7 @@
       "purpose": "确定挑战规则；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F008",
+          "id": "traffic-guard.ComputeRisk",
           "name": "ComputeRisk",
           "signature": "func ComputeRisk(ctx context.Context, op OperationContext, in ComputeRiskInput) (ComputeRiskResult, error)",
           "inputs": [
@@ -702,9 +716,11 @@
           },
           "concurrency": "纯函数，不依据 UA 国别作身份判断",
           "idempotency": "确定性同信号同结果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "qa前置模型风险结果（已有一次调用），memory项目概述由qa取用"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -714,7 +730,7 @@
       "purpose": "整数补充令牌；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F009",
+          "id": "traffic-guard.RefillBucket",
           "name": "RefillBucket",
           "signature": "func RefillBucket(ctx context.Context, op OperationContext, in RefillBucketInput) (RefillBucketResult, error)",
           "inputs": [
@@ -774,7 +790,9 @@
           },
           "concurrency": "纯函数；使用单调时钟差映射持久 wall-time，时钟倒退补0",
           "idempotency": "同状态同结果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -784,7 +802,7 @@
       "purpose": "原子扣频率令牌；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F010",
+          "id": "traffic-guard.ConsumeBuckets",
           "name": "ConsumeBuckets",
           "signature": "func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsInput) (ConsumeBucketsResult, error)",
           "inputs": [
@@ -854,9 +872,11 @@
           "concurrency": "SQLite 单事务；不能分别扣一层失败另一层",
           "idempotency": "requestId 去重不重复扣",
           "dependencies": [
-            "RefillBucket",
-            "GetPolicy"
-          ]
+            "traffic-guard.RefillBucket",
+            "traffic-guard.GetPolicy"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -866,7 +886,7 @@
       "purpose": "创建持久并发租约；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F011",
+          "id": "traffic-guard.AcquireConcurrency",
           "name": "AcquireConcurrency",
           "signature": "func AcquireConcurrency(ctx context.Context, op OperationContext, in AcquireConcurrencyInput) (AcquireConcurrencyResult, error)",
           "inputs": [
@@ -935,12 +955,14 @@
           },
           "concurrency": "与 bucket 消耗同最终 admission 事务；失败回滚扣令牌",
           "idempotency": "requestId 唯一返回原 permit",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M12-F016",
+          "id": "traffic-guard.RenewPermit",
           "name": "RenewPermit",
           "signature": "func RenewPermit(ctx context.Context, op OperationContext, in RenewPermitInput) (RenewPermitResult, error)",
           "inputs": [
@@ -1017,12 +1039,14 @@
           "concurrency": "admission revision CAS，与 release 互斥",
           "idempotency": "同续租 operationId 返回同 expiry",
           "dependencies": [
-            "CheckBan",
-            "SignPermit"
-          ]
+            "traffic-guard.CheckBan",
+            "traffic-guard.SignPermit"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F017",
+          "id": "traffic-guard.ReleasePermit",
           "name": "ReleasePermit",
           "signature": "func ReleasePermit(ctx context.Context, op OperationContext, in ReleasePermitInput) (ReleasePermitResult, error)",
           "inputs": [
@@ -1091,9 +1115,11 @@
           },
           "concurrency": "release/renew 相同事务序列",
           "idempotency": "重复 released 返回 true",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -1103,7 +1129,7 @@
       "purpose": "签名准入凭证；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F012",
+          "id": "traffic-guard.SignPermit",
           "name": "SignPermit",
           "signature": "func SignPermit(ctx context.Context, op OperationContext, in SignPermitInput) (SignPermitResult, error)",
           "inputs": [
@@ -1163,12 +1189,14 @@
           },
           "concurrency": "只读密钥容器与 admission 快照",
           "idempotency": "同 admission 可重复生成等价 token",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "外部签名密钥"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M12-F013",
+          "id": "traffic-guard.ValidatePermit",
           "name": "ValidatePermit",
           "signature": "func ValidatePermit(ctx context.Context, op OperationContext, in ValidatePermitInput) (ValidatePermitResult, error)",
           "inputs": [
@@ -1243,9 +1271,11 @@
           "concurrency": "服务在线查询不能只信过期的本地签名状态",
           "idempotency": "只读重复验证",
           "dependencies": [
-            "GetPolicy",
-            "CheckBan"
-          ]
+            "traffic-guard.GetPolicy",
+            "traffic-guard.CheckBan"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1255,7 +1285,7 @@
       "purpose": "编排频率/挑战/并发；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F014",
+          "id": "traffic-guard.EvaluateAdmission",
           "name": "EvaluateAdmission",
           "signature": "func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmissionInput) (EvaluateAdmissionResult, error)",
           "inputs": [
@@ -1344,12 +1374,14 @@
           "concurrency": "每站点事务；没有费用预占",
           "idempotency": "requestId+inputHash 幂等，不同 body 冲突",
           "dependencies": [
-            "site-config.readRuntimeState",
-            "ComputeRisk",
-            "ConsumeBuckets",
-            "AcquireConcurrency",
-            "SignPermit"
-          ]
+            "site-config:readRuntimeState",
+            "traffic-guard.ComputeRisk",
+            "traffic-guard.ConsumeBuckets",
+            "traffic-guard.AcquireConcurrency",
+            "traffic-guard.SignPermit"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1359,7 +1391,7 @@
       "purpose": "准入 HTTP；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F015",
+          "id": "traffic-guard.HandleAdmission",
           "name": "HandleAdmission",
           "signature": "func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissionInput) (HandleAdmissionResult, error)",
           "inputs": [
@@ -1437,9 +1469,11 @@
           "concurrency": "请求deadline 1500ms，失败不颁 permit",
           "idempotency": "requestId 幂等",
           "dependencies": [
-            "EvaluateAdmission",
-            "DeriveSubject"
-          ]
+            "traffic-guard.EvaluateAdmission",
+            "traffic-guard.DeriveSubject"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1449,7 +1483,7 @@
       "purpose": "回收过期并发；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F018",
+          "id": "traffic-guard.ExpireLeases",
           "name": "ExpireLeases",
           "signature": "func ExpireLeases(ctx context.Context, op OperationContext, in ExpireLeasesInput) (ExpireLeasesResult, error)",
           "inputs": [
@@ -1511,12 +1545,14 @@
           },
           "concurrency": "批次事务；分布多实例通过 SQLite 单写协调",
           "idempotency": "重复 sweep 无新增效果",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         },
         {
-          "id": "M12-F027",
+          "id": "traffic-guard.ExpireBans",
           "name": "ExpireBans",
           "signature": "func ExpireBans(ctx context.Context, op OperationContext, in ExpireBansInput) (ExpireBansResult, error)",
           "inputs": [
@@ -1578,9 +1614,11 @@
           },
           "concurrency": "小事务，无同时策略修订",
           "idempotency": "相同时间重扫幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1590,7 +1628,7 @@
       "purpose": "签发挑战；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F019",
+          "id": "traffic-guard.IssueChallenge",
           "name": "IssueChallenge",
           "signature": "func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeInput) (IssueChallengeResult, error)",
           "inputs": [
@@ -1661,12 +1699,15 @@
           "concurrency": "同主体挑战最多2个 active",
           "idempotency": "requestId 幂等，同 key method不同409",
           "dependencies": [
-            "Cloudflare Turnstile配置密钥ref",
-            "ComputeRisk"
-          ]
+            "traffic-guard.ComputeRisk"
+          ],
+          "resources": [
+            "Cloudflare Turnstile配置密钥ref"
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M12-F022",
+          "id": "traffic-guard.VerifyChallenge",
           "name": "VerifyChallenge",
           "signature": "func VerifyChallenge(ctx context.Context, op OperationContext, in VerifyChallengeInput) (VerifyChallengeResult, error)",
           "inputs": [
@@ -1743,9 +1784,11 @@
           "concurrency": "每 challenge最多5失败尝试；CAS阻止并发重放",
           "idempotency": "重复成功不再次授予，返回 CONFLICT",
           "dependencies": [
-            "VerifyPoW",
-            "VerifyExternalChallenge"
-          ]
+            "traffic-guard.VerifyPoW",
+            "traffic-guard.VerifyExternalChallenge"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1755,7 +1798,7 @@
       "purpose": "验证工作量证明；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F020",
+          "id": "traffic-guard.VerifyPoW",
           "name": "VerifyPoW",
           "signature": "func VerifyPoW(ctx context.Context, op OperationContext, in VerifyPoWInput) (VerifyPoWResult, error)",
           "inputs": [
@@ -1815,7 +1858,9 @@
           },
           "concurrency": "纯函数、常数次数 hash；禁止无界搜索",
           "idempotency": "同 proof 同结果",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1825,7 +1870,7 @@
       "purpose": "适配外部验证；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F021",
+          "id": "traffic-guard.VerifyExternalChallenge",
           "name": "VerifyExternalChallenge",
           "signature": "func VerifyExternalChallenge(ctx context.Context, op OperationContext, in VerifyExternalChallengeInput) (VerifyExternalChallengeResult, error)",
           "inputs": [
@@ -1895,9 +1940,11 @@
           },
           "concurrency": "凭证仅内存；无真实调用在文档阶段",
           "idempotency": "供应方 token单用途，失败需新挑战",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "Cloudflare Turnstile服务端verification适配"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1907,7 +1954,7 @@
       "purpose": "读取作用域禁令；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F023",
+          "id": "traffic-guard.CheckBan",
           "name": "CheckBan",
           "signature": "func CheckBan(ctx context.Context, op OperationContext, in CheckBanInput) (CheckBanResult, error)",
           "inputs": [
@@ -1967,9 +2014,11 @@
           },
           "concurrency": "准入/续租每次查询，无跨请求安全 TTL",
           "idempotency": "只读幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1979,7 +2028,7 @@
       "purpose": "管理员建立临时禁令；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F024",
+          "id": "traffic-guard.CreateBan",
           "name": "CreateBan",
           "signature": "func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (CreateBanResult, error)",
           "inputs": [
@@ -2051,11 +2100,13 @@
           "concurrency": "主体范围事务原子封禁与撤租约",
           "idempotency": "operationId 去重",
           "dependencies": [
-            "identity.checkAuthorization"
-          ]
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F025",
+          "id": "traffic-guard.RevokeBan",
           "name": "RevokeBan",
           "signature": "func RevokeBan(ctx context.Context, op OperationContext, in RevokeBanInput) (RevokeBanResult, error)",
           "inputs": [
@@ -2125,11 +2176,13 @@
           "concurrency": "revision CAS",
           "idempotency": "相同 operationId复用结果",
           "dependencies": [
-            "identity.checkAuthorization"
-          ]
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F026",
+          "id": "traffic-guard.ListBans",
           "name": "ListBans",
           "signature": "func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListBansResult, error)",
           "inputs": [
@@ -2197,8 +2250,10 @@
           "concurrency": "稳定banId排序，不含IP",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity.checkAuthorization"
-          ]
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2208,7 +2263,7 @@
       "purpose": "处理权限撤销通知；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F028",
+          "id": "traffic-guard.ConsumeIdentityEvent",
           "name": "ConsumeIdentityEvent",
           "signature": "func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeIdentityEventInput) (ConsumeIdentityEventResult, error)",
           "inputs": [
@@ -2277,9 +2332,105 @@
           },
           "concurrency": "按 subject权限修订取max",
           "idempotency": "eventId/revision幂等",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.ConsumeEvents",
+          "name": "ConsumeEvents",
+          "signature": "func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域后台worker以服务身份构建的操作上下文，含当前dataEpoch",
+              "constraints": [
+                "callerService为本域",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ConsumeEventsInput",
+              "description": "订阅循环参数",
+              "constraints": [
+                "必须通过公共schema",
+                "consumerId等于本域slug"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeEventsResult",
+              "description": "循环退出时的累计计数",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认",
+          "steps": [
+            "进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连",
+            "每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未激活该epoch则不确认等待重投，否则视为旧代事件记skipped并确认",
+            "按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入",
+            "处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放",
+            "屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs订阅或确认不可用；重连后续传",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "事件信封或载荷不符合登记schema；隔离并确认",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash；隔离报警",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP长连接jobs:subscribeEvents",
+            "调用本域登记的事件处理函数",
+            "HTTP调用jobs:acknowledgeEvent"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发",
+            "recoveryAuthorization": "不适用；本函数不得扩大已鉴权调用上下文"
+          },
+          "concurrency": "每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责",
+          "idempotency": "jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认",
           "dependencies": [
-            "identity.authorization.changed"
-          ]
+            "jobs:subscribeEvents",
+            "jobs:acknowledgeEvent",
+            "traffic-guard.ConsumeIdentityEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2289,7 +2440,7 @@
       "purpose": "可靠派发风控引用事件；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F029",
+          "id": "traffic-guard.PublishGuardEvents",
           "name": "PublishGuardEvents",
           "signature": "func PublishGuardEvents(ctx context.Context, op OperationContext, in PublishGuardEventsInput) (PublishGuardEventsResult, error)",
           "inputs": [
@@ -2352,8 +2503,10 @@
           "concurrency": "outbox租约30s；至少一次",
           "idempotency": "eventId固定不因重试变",
           "dependencies": [
-            "jobs.publishEvent"
-          ]
+            "jobs:publishEvent"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2363,7 +2516,7 @@
       "purpose": "清理匿名风控状态；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F030",
+          "id": "traffic-guard.PurgeAnonymousSignals",
           "name": "PurgeAnonymousSignals",
           "signature": "func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAnonymousSignalsInput) (PurgeAnonymousSignalsResult, error)",
           "inputs": [
@@ -2425,9 +2578,11 @@
           },
           "concurrency": "500项批事务；active bans/leases禁止删除",
           "idempotency": "重复清理幂等",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "私有 SQLite"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -2437,7 +2592,7 @@
       "purpose": "停止准入并等安全点；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F031",
+          "id": "traffic-guard.EnterBarrier",
           "name": "EnterBarrier",
           "signature": "func EnterBarrier(ctx context.Context, op OperationContext, request BarrierRequest) (BarrierStatus, error)",
           "inputs": [
@@ -2508,12 +2663,14 @@
           "concurrency": "barrier独占；renew只能至barrier deadline",
           "idempotency": "barrierId重复返回同状态",
           "dependencies": [
-            "site-config.readRuntimeState",
-            "jobs.coordinateBarrier"
-          ]
+            "site-config:readRuntimeState",
+            "jobs:coordinateBarrier"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F032",
+          "id": "traffic-guard.ReleaseBarrier",
           "name": "ReleaseBarrier",
           "signature": "func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierInput) (ReleaseBarrierResult, error)",
           "inputs": [
@@ -2582,8 +2739,10 @@
           "concurrency": "不提前恢复准入",
           "idempotency": "重复release幂等",
           "dependencies": [
-            "site-config.readRuntimeState"
-          ]
+            "site-config:readRuntimeState"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2593,7 +2752,7 @@
       "purpose": "导出风控一致快照；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F033",
+          "id": "traffic-guard.CreateSnapshot",
           "name": "CreateSnapshot",
           "signature": "func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotExportRequest) (SnapshotExportResult, error)",
           "inputs": [
@@ -2664,8 +2823,10 @@
           "concurrency": "维护屏障下固定水位",
           "idempotency": "backupId/barrierId幂等",
           "dependencies": [
-            "jobs.coordinateBarrier"
-          ]
+            "jobs:coordinateBarrier"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2675,7 +2836,7 @@
       "purpose": "校验恢复输入；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F034",
+          "id": "traffic-guard.ValidateImport",
           "name": "ValidateImport",
           "signature": "func ValidateImport(ctx context.Context, op OperationContext, request SnapshotValidateRequest) (SnapshotValidation, error)",
           "inputs": [
@@ -2738,11 +2899,13 @@
           "concurrency": "隔离目录，禁止改现有准入",
           "idempotency": "snapshot hash/targetEpoch同结果",
           "dependencies": [
-            "ValidatePolicy"
-          ]
+            "traffic-guard.ValidatePolicy"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F035",
+          "id": "traffic-guard.PrepareImport",
           "name": "PrepareImport",
           "signature": "func PrepareImport(ctx context.Context, op OperationContext, request SnapshotPrepareRequest) (SnapshotStageResult, error)",
           "inputs": [
@@ -2813,11 +2976,13 @@
           "concurrency": "本域safe且restoreId独占",
           "idempotency": "restoreId/snapshotHash去重",
           "dependencies": [
-            "ValidateImport"
-          ]
+            "traffic-guard.ValidateImport"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F036",
+          "id": "traffic-guard.ActivateImport",
           "name": "ActivateImport",
           "signature": "func ActivateImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
@@ -2887,11 +3052,13 @@
           "concurrency": "全站继续维护到全部域完成",
           "idempotency": "stageId/targetEpoch幂等",
           "dependencies": [
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F037",
+          "id": "traffic-guard.AbortImport",
           "name": "AbortImport",
           "signature": "func AbortImport(ctx context.Context, op OperationContext, request SnapshotCommitRequest) (SnapshotApplyResult, error)",
           "inputs": [
@@ -2954,8 +3121,10 @@
           "concurrency": "stage锁",
           "idempotency": "重复rolled-back幂等",
           "dependencies": [
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2965,7 +3134,7 @@
       "purpose": "本地验证本次恢复专用控制许可；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F038",
+          "id": "traffic-guard.ValidateRecoveryAuthorization",
           "name": "ValidateRecoveryAuthorization",
           "signature": "func ValidateRecoveryAuthorization(ctx context.Context, op OperationContext, in ValidateRecoveryAuthorizationInput) (ValidateRecoveryAuthorizationResult, error)",
           "inputs": [
@@ -3049,9 +3218,12 @@
           "concurrency": "校验期间不查询已换代identity业务库；控制记录与信任锚独立目录不被快照覆盖",
           "idempotency": "同许可同控制阶段结果；提交决策变化会使rollback失效",
           "dependencies": [
-            "不可变控制信任锚",
-            "data-protection.getRestoreDecision"
-          ]
+            "data-protection:getRestoreDecision"
+          ],
+          "resources": [
+            "不可变控制信任锚"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3061,21 +3233,23 @@
       "purpose": "Vue3模块交互：SaveGuardPolicy；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F039",
+          "id": "traffic-guard.SaveGuardPolicy",
           "name": "SaveGuardPolicy",
-          "signature": "function SaveGuardPolicy(op: OperationContext, input: SaveGuardPolicyInput): Promise<SaveGuardPolicyResult>",
+          "signature": "function SaveGuardPolicy(input: SaveGuardPolicyInput, signal: AbortSignal): Promise<SaveGuardPolicyResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "SaveGuardPolicyInput",
               "description": "Vue3模块交互：SaveGuardPolicy；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3132,9 +3306,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "traffic-guard OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3144,21 +3320,23 @@
       "purpose": "Vue3模块交互：SubmitBan；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F040",
+          "id": "traffic-guard.SubmitBan",
           "name": "SubmitBan",
-          "signature": "function SubmitBan(op: OperationContext, input: SubmitBanInput): Promise<SubmitBanResult>",
+          "signature": "function SubmitBan(input: SubmitBanInput, signal: AbortSignal): Promise<SubmitBanResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "SubmitBanInput",
               "description": "Vue3模块交互：SubmitBan；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3215,9 +3393,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "traffic-guard OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3227,21 +3407,23 @@
       "purpose": "Vue3模块交互：RunPoWChallenge；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F041",
+          "id": "traffic-guard.RunPoWChallenge",
           "name": "RunPoWChallenge",
-          "signature": "function RunPoWChallenge(op: OperationContext, input: RunPoWChallengeInput): Promise<RunPoWChallengeResult>",
+          "signature": "function RunPoWChallenge(input: RunPoWChallengeInput, signal: AbortSignal): Promise<RunPoWChallengeResult>",
           "inputs": [
             {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
+              "name": "input",
               "type": "RunPoWChallengeInput",
               "description": "Vue3模块交互：RunPoWChallenge；字段见本域types.json对应$defs",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
             }
           ],
           "outputs": [
@@ -3299,9 +3481,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "traffic-guard OpenAPI HTTP/JSON/SSE"
-          ]
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -3311,7 +3495,7 @@
       "purpose": "接收qa已有检测信号；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F042",
+          "id": "traffic-guard.ReportQuestionSignals",
           "name": "ReportQuestionSignals",
           "signature": "func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQuestionSignalsInput) (ReportQuestionSignalsResult, error)",
           "inputs": [
@@ -3384,9 +3568,11 @@
           "concurrency": "same questionOperationId去重，不能凭客户端自报风险",
           "idempotency": "questionOperationId/hash幂等",
           "dependencies": [
-            "ComputeRisk",
-            "CreateBan"
-          ]
+            "traffic-guard.ComputeRisk",
+            "traffic-guard.CreateBan"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3396,7 +3582,7 @@
       "purpose": "每会话1并发其余排队；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F043",
+          "id": "traffic-guard.QueueSessionAdmission",
           "name": "QueueSessionAdmission",
           "signature": "func QueueSessionAdmission(ctx context.Context, op OperationContext, in QueueSessionAdmissionInput) (QueueSessionAdmissionResult, error)",
           "inputs": [
@@ -3467,9 +3653,12 @@
           "concurrency": "每session最多10等待，超出429；无问题正文",
           "idempotency": "requestId幂等",
           "dependencies": [
-            "qa排队权威",
-            "ReleasePermit"
-          ]
+            "traffic-guard.ReleasePermit"
+          ],
+          "resources": [
+            "qa排队权威"
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3479,7 +3668,7 @@
       "purpose": "QA绑定准入使用权；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F044",
+          "id": "traffic-guard.ConsumeAdmission",
           "name": "ConsumeAdmission",
           "signature": "func ConsumeAdmission(ctx context.Context, op OperationContext, in ConsumeAdmissionInput) (ConsumeAdmissionResult, error)",
           "inputs": [
@@ -3557,9 +3746,12 @@
           "concurrency": "admissionId唯一request绑定，release后禁止再consume",
           "idempotency": "admissionId/requestId幂等",
           "dependencies": [
-            "SignPermit",
+            "traffic-guard.SignPermit"
+          ],
+          "resources": [
             "私有lease状态"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3569,7 +3761,7 @@
       "purpose": "QA在线确认准入租约；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "M12-F045",
+          "id": "traffic-guard.VerifyAdmissionHTTP",
           "name": "VerifyAdmissionHTTP",
           "signature": "func VerifyAdmissionHTTP(ctx context.Context, op OperationContext, in VerifyAdmissionHTTPInput) (VerifyAdmissionHTTPResult, error)",
           "inputs": [
@@ -3638,9 +3830,12 @@
           "concurrency": "只读当前lease；不能把检查缓存为永久授权",
           "idempotency": "GET语义重复安全",
           "dependencies": [
-            "CheckBan",
+            "traffic-guard.CheckBan"
+          ],
+          "resources": [
             "私有SQLite"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3674,7 +3869,7 @@
       "purpose": "本域唯一Go可执行入口；不放产品算法",
       "functions": [
         {
-          "id": "M12-F901",
+          "id": "traffic-guard.main",
           "name": "main",
           "signature": "func main()",
           "inputs": [],
@@ -3709,10 +3904,12 @@
           "concurrency": "一个进程一个Application；OS信号处理只触发一次drain",
           "idempotency": "进程重启先journal恢复；不重放已付费任务",
           "dependencies": [
-            "BuildApplication",
-            "Serve",
-            "Shutdown"
-          ]
+            "traffic-guard.BuildApplication",
+            "traffic-guard.Serve",
+            "traffic-guard.Shutdown"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3722,7 +3919,7 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
       "functions": [
         {
-          "id": "M12-F902",
+          "id": "traffic-guard.BuildApplication",
           "name": "BuildApplication",
           "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
           "inputs": [
@@ -3758,7 +3955,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+            "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
           ],
           "errors": [
@@ -3790,11 +3987,13 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
             "site-config.readRuntimeState（本域site-config读取自身权威）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -3804,7 +4003,7 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
       "functions": [
         {
-          "id": "M12-F903",
+          "id": "traffic-guard.Serve",
           "name": "Serve",
           "signature": "func Serve(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3859,13 +4058,16 @@
           "concurrency": "只有一Serve调用；每请求取消独立，worker只本域",
           "idempotency": "重复Serve返回CONFLICT语义，不开第二监听",
           "dependencies": [
-            "BuildApplication",
-            "Shutdown",
+            "traffic-guard.BuildApplication",
+            "traffic-guard.Shutdown"
+          ],
+          "resources": [
             "本域OpenAPI路由"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M12-F904",
+          "id": "traffic-guard.Shutdown",
           "name": "Shutdown",
           "signature": "func Shutdown(ctx context.Context, app *Application) error",
           "inputs": [
@@ -3920,13 +4122,15 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
-          ]
+          ],
+          "contract": "binding"
         },
         {
-          "id": "M12-F905",
+          "id": "traffic-guard.Health",
           "name": "Health",
           "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
           "inputs": [
@@ -3977,10 +4181,12 @@
           },
           "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
           "idempotency": "GET只读重复安全",
-          "dependencies": []
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         },
         {
-          "id": "M12-F906",
+          "id": "traffic-guard.Ready",
           "name": "Ready",
           "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
           "inputs": [
@@ -4033,9 +4239,11 @@
           },
           "concurrency": "有界只读快照；依赖请求总deadline1500ms，禁止模型探测",
           "idempotency": "GET只读重复安全",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "site-config.readRuntimeState（site-config本域自身读取）"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -4105,7 +4313,7 @@
       "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
       "functions": [
         {
-          "id": "M12-F907",
+          "id": "traffic-guard.mountModuleUI",
           "name": "mountModuleUI",
           "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
           "inputs": [
@@ -4146,9 +4354,11 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [
+          "dependencies": [],
+          "resources": [
             "本域已登记UI页面函数"
-          ]
+          ],
+          "contract": "binding"
         }
       ]
     }

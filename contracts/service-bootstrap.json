@@ -19,7 +19,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M01-F901",
+              "id": "portal.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -67,7 +67,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M01-F902",
+              "id": "portal.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -103,7 +103,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -149,7 +149,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M01-F903",
+              "id": "portal.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -210,7 +210,7 @@
               ]
             },
             {
-              "id": "M01-F904",
+              "id": "portal.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -271,7 +271,7 @@
               ]
             },
             {
-              "id": "M01-F905",
+              "id": "portal.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -325,7 +325,7 @@
               "dependencies": []
             },
             {
-              "id": "M01-F906",
+              "id": "portal.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -456,7 +456,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M01-F907",
+              "id": "portal.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -511,7 +511,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M01-F905",
+            "x-handler": "portal.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -544,7 +544,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M01-F906",
+            "x-handler": "portal.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -592,7 +592,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M02-F901",
+              "id": "identity.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -640,7 +640,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M02-F902",
+              "id": "identity.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -676,7 +676,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -722,7 +722,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M02-F903",
+              "id": "identity.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -783,7 +783,7 @@
               ]
             },
             {
-              "id": "M02-F904",
+              "id": "identity.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -844,7 +844,7 @@
               ]
             },
             {
-              "id": "M02-F905",
+              "id": "identity.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -898,7 +898,7 @@
               "dependencies": []
             },
             {
-              "id": "M02-F906",
+              "id": "identity.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -1001,7 +1001,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M02-F905",
+            "x-handler": "identity.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -1034,7 +1034,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M02-F906",
+            "x-handler": "identity.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -1082,7 +1082,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M03-F901",
+              "id": "site-config.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -1130,7 +1130,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M03-F902",
+              "id": "site-config.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -1166,7 +1166,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -1212,7 +1212,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M03-F903",
+              "id": "site-config.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -1273,7 +1273,7 @@
               ]
             },
             {
-              "id": "M03-F904",
+              "id": "site-config.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -1334,7 +1334,7 @@
               ]
             },
             {
-              "id": "M03-F905",
+              "id": "site-config.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -1388,7 +1388,7 @@
               "dependencies": []
             },
             {
-              "id": "M03-F906",
+              "id": "site-config.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -1491,7 +1491,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M03-F905",
+            "x-handler": "site-config.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -1524,7 +1524,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M03-F906",
+            "x-handler": "site-config.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -1575,7 +1575,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M04-F901",
+              "id": "content.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -1623,7 +1623,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M04-F902",
+              "id": "content.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -1659,7 +1659,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -1705,7 +1705,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M04-F903",
+              "id": "content.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -1766,7 +1766,7 @@
               ]
             },
             {
-              "id": "M04-F904",
+              "id": "content.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -1827,7 +1827,7 @@
               ]
             },
             {
-              "id": "M04-F905",
+              "id": "content.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -1881,7 +1881,7 @@
               "dependencies": []
             },
             {
-              "id": "M04-F906",
+              "id": "content.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -2012,7 +2012,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M04-F907",
+              "id": "content.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -2067,7 +2067,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M04-F905",
+            "x-handler": "content.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -2100,7 +2100,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M04-F906",
+            "x-handler": "content.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -2150,7 +2150,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M05-F901",
+              "id": "media.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -2198,7 +2198,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M05-F902",
+              "id": "media.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -2234,7 +2234,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -2280,7 +2280,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M05-F903",
+              "id": "media.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -2341,7 +2341,7 @@
               ]
             },
             {
-              "id": "M05-F904",
+              "id": "media.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -2402,7 +2402,7 @@
               ]
             },
             {
-              "id": "M05-F905",
+              "id": "media.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -2456,7 +2456,7 @@
               "dependencies": []
             },
             {
-              "id": "M05-F906",
+              "id": "media.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -2559,7 +2559,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M05-F905",
+            "x-handler": "media.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -2592,7 +2592,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M05-F906",
+            "x-handler": "media.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -2645,7 +2645,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M06-F901",
+              "id": "public-site.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -2693,7 +2693,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M06-F902",
+              "id": "public-site.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -2729,7 +2729,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -2775,7 +2775,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M06-F903",
+              "id": "public-site.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -2836,7 +2836,7 @@
               ]
             },
             {
-              "id": "M06-F904",
+              "id": "public-site.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -2897,7 +2897,7 @@
               ]
             },
             {
-              "id": "M06-F905",
+              "id": "public-site.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -2951,7 +2951,7 @@
               "dependencies": []
             },
             {
-              "id": "M06-F906",
+              "id": "public-site.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -3082,7 +3082,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M06-F907",
+              "id": "public-site.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -3137,7 +3137,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M06-F905",
+            "x-handler": "public-site.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -3170,7 +3170,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M06-F906",
+            "x-handler": "public-site.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -3224,7 +3224,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M07-F901",
+              "id": "model-gateway.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -3272,7 +3272,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M07-F902",
+              "id": "model-gateway.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -3308,7 +3308,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -3354,7 +3354,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M07-F903",
+              "id": "model-gateway.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -3415,7 +3415,7 @@
               ]
             },
             {
-              "id": "M07-F904",
+              "id": "model-gateway.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -3476,7 +3476,7 @@
               ]
             },
             {
-              "id": "M07-F905",
+              "id": "model-gateway.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -3530,7 +3530,7 @@
               "dependencies": []
             },
             {
-              "id": "M07-F906",
+              "id": "model-gateway.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -3661,7 +3661,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M07-F907",
+              "id": "model-gateway.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -3716,7 +3716,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M07-F905",
+            "x-handler": "model-gateway.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -3749,7 +3749,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M07-F906",
+            "x-handler": "model-gateway.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -3801,7 +3801,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M08-F901",
+              "id": "knowledge.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -3849,7 +3849,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M08-F902",
+              "id": "knowledge.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -3885,7 +3885,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -3931,7 +3931,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M08-F903",
+              "id": "knowledge.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -3992,7 +3992,7 @@
               ]
             },
             {
-              "id": "M08-F904",
+              "id": "knowledge.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -4053,7 +4053,7 @@
               ]
             },
             {
-              "id": "M08-F905",
+              "id": "knowledge.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -4107,7 +4107,7 @@
               "dependencies": []
             },
             {
-              "id": "M08-F906",
+              "id": "knowledge.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -4238,7 +4238,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M08-F907",
+              "id": "knowledge.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -4293,7 +4293,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M08-F905",
+            "x-handler": "knowledge.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -4326,7 +4326,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M08-F906",
+            "x-handler": "knowledge.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -4379,7 +4379,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M09-F901",
+              "id": "qa.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -4427,7 +4427,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M09-F902",
+              "id": "qa.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -4463,7 +4463,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -4509,7 +4509,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M09-F903",
+              "id": "qa.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -4570,7 +4570,7 @@
               ]
             },
             {
-              "id": "M09-F904",
+              "id": "qa.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -4631,7 +4631,7 @@
               ]
             },
             {
-              "id": "M09-F905",
+              "id": "qa.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -4685,7 +4685,7 @@
               "dependencies": []
             },
             {
-              "id": "M09-F906",
+              "id": "qa.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -4816,7 +4816,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M09-F907",
+              "id": "qa.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -4871,7 +4871,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M09-F905",
+            "x-handler": "qa.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -4904,7 +4904,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M09-F906",
+            "x-handler": "qa.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -4959,7 +4959,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M10-F901",
+              "id": "localization.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -5007,7 +5007,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M10-F902",
+              "id": "localization.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -5043,7 +5043,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -5089,7 +5089,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M10-F903",
+              "id": "localization.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -5150,7 +5150,7 @@
               ]
             },
             {
-              "id": "M10-F904",
+              "id": "localization.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -5211,7 +5211,7 @@
               ]
             },
             {
-              "id": "M10-F905",
+              "id": "localization.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -5265,7 +5265,7 @@
               "dependencies": []
             },
             {
-              "id": "M10-F906",
+              "id": "localization.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -5396,7 +5396,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M10-F907",
+              "id": "localization.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -5451,7 +5451,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M10-F905",
+            "x-handler": "localization.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -5484,7 +5484,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M10-F906",
+            "x-handler": "localization.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -5537,7 +5537,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M11-F901",
+              "id": "memory.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -5585,7 +5585,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M11-F902",
+              "id": "memory.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -5621,7 +5621,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -5667,7 +5667,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M11-F903",
+              "id": "memory.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -5728,7 +5728,7 @@
               ]
             },
             {
-              "id": "M11-F904",
+              "id": "memory.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -5789,7 +5789,7 @@
               ]
             },
             {
-              "id": "M11-F905",
+              "id": "memory.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -5843,7 +5843,7 @@
               "dependencies": []
             },
             {
-              "id": "M11-F906",
+              "id": "memory.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -5974,7 +5974,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M11-F907",
+              "id": "memory.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -6029,7 +6029,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M11-F905",
+            "x-handler": "memory.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -6062,7 +6062,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M11-F906",
+            "x-handler": "memory.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -6114,7 +6114,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M12-F901",
+              "id": "traffic-guard.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -6162,7 +6162,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M12-F902",
+              "id": "traffic-guard.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -6198,7 +6198,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -6244,7 +6244,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M12-F903",
+              "id": "traffic-guard.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -6305,7 +6305,7 @@
               ]
             },
             {
-              "id": "M12-F904",
+              "id": "traffic-guard.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -6366,7 +6366,7 @@
               ]
             },
             {
-              "id": "M12-F905",
+              "id": "traffic-guard.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -6420,7 +6420,7 @@
               "dependencies": []
             },
             {
-              "id": "M12-F906",
+              "id": "traffic-guard.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -6551,7 +6551,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M12-F907",
+              "id": "traffic-guard.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -6606,7 +6606,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M12-F905",
+            "x-handler": "traffic-guard.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -6639,7 +6639,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M12-F906",
+            "x-handler": "traffic-guard.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -6690,7 +6690,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M13-F901",
+              "id": "jobs.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -6738,7 +6738,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M13-F902",
+              "id": "jobs.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -6774,7 +6774,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -6820,7 +6820,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M13-F903",
+              "id": "jobs.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -6881,7 +6881,7 @@
               ]
             },
             {
-              "id": "M13-F904",
+              "id": "jobs.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -6942,7 +6942,7 @@
               ]
             },
             {
-              "id": "M13-F905",
+              "id": "jobs.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -6996,7 +6996,7 @@
               "dependencies": []
             },
             {
-              "id": "M13-F906",
+              "id": "jobs.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -7127,7 +7127,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M13-F907",
+              "id": "jobs.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -7182,7 +7182,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M13-F905",
+            "x-handler": "jobs.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -7215,7 +7215,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M13-F906",
+            "x-handler": "jobs.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -7275,7 +7275,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M14-F901",
+              "id": "analytics.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -7323,7 +7323,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M14-F902",
+              "id": "analytics.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -7359,7 +7359,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -7405,7 +7405,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M14-F903",
+              "id": "analytics.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -7466,7 +7466,7 @@
               ]
             },
             {
-              "id": "M14-F904",
+              "id": "analytics.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -7527,7 +7527,7 @@
               ]
             },
             {
-              "id": "M14-F905",
+              "id": "analytics.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -7581,7 +7581,7 @@
               "dependencies": []
             },
             {
-              "id": "M14-F906",
+              "id": "analytics.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -7712,7 +7712,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M14-F907",
+              "id": "analytics.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -7767,7 +7767,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M14-F905",
+            "x-handler": "analytics.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -7800,7 +7800,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M14-F906",
+            "x-handler": "analytics.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -7852,7 +7852,7 @@
           "purpose": "本域唯一Go可执行入口；不放产品算法",
           "functions": [
             {
-              "id": "M15-F901",
+              "id": "data-protection.main",
               "name": "main",
               "signature": "func main()",
               "inputs": [],
@@ -7900,7 +7900,7 @@
           "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储",
           "functions": [
             {
-              "id": "M15-F902",
+              "id": "data-protection.BuildApplication",
               "name": "BuildApplication",
               "signature": "func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)",
               "inputs": [
@@ -7936,7 +7936,7 @@
                 "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
                 "打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor",
                 "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制",
+                "读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
                 "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源"
               ],
               "errors": [
@@ -7982,7 +7982,7 @@
           "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
           "functions": [
             {
-              "id": "M15-F903",
+              "id": "data-protection.Serve",
               "name": "Serve",
               "signature": "func Serve(ctx context.Context, app *Application) error",
               "inputs": [
@@ -8043,7 +8043,7 @@
               ]
             },
             {
-              "id": "M15-F904",
+              "id": "data-protection.Shutdown",
               "name": "Shutdown",
               "signature": "func Shutdown(ctx context.Context, app *Application) error",
               "inputs": [
@@ -8104,7 +8104,7 @@
               ]
             },
             {
-              "id": "M15-F905",
+              "id": "data-protection.Health",
               "name": "Health",
               "signature": "func Health(ctx context.Context, app *Application) (HealthStatus, error)",
               "inputs": [
@@ -8158,7 +8158,7 @@
               "dependencies": []
             },
             {
-              "id": "M15-F906",
+              "id": "data-protection.Ready",
               "name": "Ready",
               "signature": "func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)",
               "inputs": [
@@ -8289,7 +8289,7 @@
           "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
           "functions": [
             {
-              "id": "M15-F907",
+              "id": "data-protection.mountModuleUI",
               "name": "mountModuleUI",
               "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
               "inputs": [
@@ -8344,7 +8344,7 @@
           "operation": {
             "operationId": "health",
             "summary": "本域进程存活",
-            "x-handler": "M15-F905",
+            "x-handler": "data-protection.Health",
             "x-permission": "anonymous",
             "security": [],
             "responses": {
@@ -8377,7 +8377,7 @@
           "operation": {
             "operationId": "ready",
             "summary": "本域启动/恢复就绪",
-            "x-handler": "M15-F906",
+            "x-handler": "data-protection.Ready",
             "x-permission": "anonymous",
             "security": [],
             "responses": {

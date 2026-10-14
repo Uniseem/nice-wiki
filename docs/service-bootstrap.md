@@ -28,7 +28,7 @@
 
 ## 六个Go启动函数与UI入口
 
-以下精确签名按每域实例分配Mxx-F901至F906；独立UI根另Mxx-F907。输入/输出schema和完整错误、副作用、授权、并发、幂等字段都在机器合同，合并后进入各域functions/files文档。
+以下精确签名在每域实例化为“模块slug.函数名”（如content.BuildApplication），均为约束级；独立UI根另有界面挂载入口。输入/输出schema和完整错误、副作用、授权、并发、幂等字段都在机器合同，合并后进入各域functions/files文档。
 
 ### main
 
@@ -56,7 +56,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 打开本域DB并运行已有schema迁移/文件journal恢复；保留restore控制记录/barrier/trust-anchor
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker并配置停止新副作用/安全点机制
+4. 读取runtime epoch/maintenance；已commit恢复未全完成时仅开放控制管理；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 
 错误：VALIDATION, INTEGRITY_ERROR, DEPENDENCY_UNAVAILABLE。副作用：打开本域DB/文件资源、注册router和本域worker；失败资源回滚。
