@@ -14,6 +14,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
+	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
@@ -36,6 +37,7 @@ type Application struct {
 	config       platform.ServiceConfig
 	anchors      platform.TrustAnchors
 	runtime      platform.SiteConfigClient
+	active       *siteconfig.ActiveStore
 	openedEpoch  platform.Identifier
 	state        atomic.Int32
 	serveStarted atomic.Bool
@@ -45,8 +47,8 @@ type Application struct {
 }
 
 // NewApplication 组装 HTTP 容器并直接注册匿名健康/就绪路由。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier) *Application {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, openedEpoch: openedEpoch}
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, openedEpoch platform.Identifier) *Application {
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, openedEpoch: openedEpoch}
 	mux := http.NewServeMux()
 	application.registerHealthRoutes(mux)
 	application.httpServer = &http.Server{
@@ -105,6 +107,12 @@ func Shutdown(ctx context.Context, app *Application) error {
 		app.state.CompareAndSwap(stateReady, stateDraining)
 		err := app.httpServer.Shutdown(ctx)
 		if err == nil {
+			if app.active != nil {
+				if closeErr := app.active.Close(); closeErr != nil {
+					app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭active业务库失败")
+					return
+				}
+			}
 			if closer, ok := app.runtime.(interface{ Close() error }); ok {
 				if closeErr := closer.Close(); closeErr != nil {
 					app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭运行控制库失败")
@@ -138,9 +146,8 @@ func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
 
 // Ready 确认本域配置与信任锚完整、自身运行权威可读；就绪不代表维护已
 // 解除。本域即运行权威，经本地控制库读取（site-config本域读取自身权威），
-// 控制库不可用时如实返回 DEPENDENCY_UNAVAILABLE（503）；当前工作包
-// 已把活动epoch、maintenance和runtime revision接入，业务存储/journal
-// 校验仍由后续工作包补充。
+// 控制库、active schema 或公告 journal 不可用时如实返回
+// DEPENDENCY_UNAVAILABLE/INTEGRITY_ERROR（503/422），不以未知状态放行。
 func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) {
 	if app.state.Load() == stateClosed {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
@@ -160,15 +167,24 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if activeEpoch == "" {
 		activeEpoch = string(view.DataEpoch)
 	}
+	if app.active == nil {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库未装配")
+	}
+	initialized, err := app.active.ValidateActiveReady(ctx, platform.Identifier(activeEpoch))
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
 	readiness := gen.ServiceReadiness{
 		Health:                health,
-		Initialized:           false,
+		Initialized:           initialized,
 		JournalRecovered:      true,
-		ActiveDataEpoch:       &activeEpoch,
 		Maintenance:           view.Maintenance,
 		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
 		RuntimeRevision:       0,
 		SafePoint:             true,
+	}
+	if initialized {
+		readiness.ActiveDataEpoch = &activeEpoch
 	}
 	if detailed, ok := app.runtime.(interface {
 		ReadRuntimeStateDetails(context.Context) (gen.RuntimeState, error)

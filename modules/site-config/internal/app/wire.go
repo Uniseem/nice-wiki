@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -28,8 +29,8 @@ const ModuleSlug = "site-config"
 // 不经 HTTP 自调用。控制库不可用时 localRuntime 如实返回
 // DEPENDENCY_UNAVAILABLE，装配失败交进程守护重试，不用占位数据冒充权威。
 //
-// 业务存储打开、OpenAPI x-handler 绑定、初始化/公告 journal 恢复、
-// 换目录回执登记与后台任务循环随对应业务工作包逐项接入。
+// 本工作包打开 active 业务库并恢复公告 journal；HTTP x-handler、换目录
+// 回执登记与后台任务循环仍由后续工作包接入。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -64,7 +65,25 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖暂存/屏障函数，尚未实现")
 	}
-	return transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch), nil
+	activeStore, err := siteconfig.OpenActiveStore(ctx, config.DataRoot, view.DataEpoch)
+	if err != nil {
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
+	}
+	startupOperation := platform.OperationContext{
+		RequestID:       "site-config-startup",
+		OperationID:     "site-config-startup-journal",
+		RootOperationID: "site-config-startup-journal",
+		CallerService:   ModuleSlug,
+		Deadline:        platform.Timestamp(time.Now().Add(30 * time.Second).UTC().Format(time.RFC3339Nano)),
+		DataEpoch:       view.DataEpoch,
+	}
+	if _, err := siteconfig.RecoverAnnouncementJournal(ctx, startupOperation, gen.RecoverAnnouncementJournalInput{}); err != nil {
+		_ = activeStore.Close()
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
+	}
+	return transport.NewApplication(config, anchors, runtimeAuthority, activeStore, view.DataEpoch), nil
 }
 
 // NewRuntimeClient 构造本域运行权威读取器（platform.SiteConfigClient），

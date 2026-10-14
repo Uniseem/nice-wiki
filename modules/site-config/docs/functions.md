@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 48 个函数：约束 30 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 50 个函数：约束 30 个，参考 20 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## site-config.ReadSiteConfig
 
@@ -423,6 +423,89 @@ func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, erro
 - 并发：一个进程单控制库句柄；SQLite事务串行写入
 - 幂等：重复启动读取已有RuntimeState，不重新生成epoch
 - 依赖：`site-config.All`
+
+## site-config.OpenActiveStore
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：按ADR0005打开active私有业务库并校验活动epoch
+
+```go
+func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch Identifier) (*ActiveStore, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 取消或截止立即停止新数据库副作用 |
+| `dataRoot` | `string` | 本域独占数据根 | 必须为非空受控路径；不写入日志 |
+| `dataEpoch` | `Identifier` | control.db当前活动代次 | 必须为合法Identifier；必须与active状态一致 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `ActiveStore` | active业务库与正文目录句柄 | active数据库与control.db分离；失败不返回可用句柄 |
+| `error` | `Error` | 打开、迁移或active状态完整性失败 | 不得把未知schema或epoch当成功 |
+
+**步骤**
+
+1. 设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接
+2. 执行active目录连续只追加迁移，未知版本拒绝启动
+3. 首次建库只建立未初始化状态，不生成伪配置
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：active数据库或目录不可用（可重试）
+- `INTEGRITY_ERROR`：迁移、schema或活动epoch不一致（不可重试）
+
+- 副作用：创建或更新active/site-config.db及journal/quarantine目录
+- 授权：service启动控制面
+- 并发：一个进程单active句柄；SQLite事务串行写入
+- 幂等：重复启动读取已有active状态，不生成伪站点配置
+- 依赖：无
+
+## site-config.ValidateActiveReady
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：Ready前校验active schema、epoch和公告journal恢复指纹
+
+```go
+func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch Identifier) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 就绪检查截止传播 | 取消或截止立即停止读取 |
+| `dataEpoch` | `Identifier` | control.db当前活动代次 | 必须与active状态一致 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `initialized` | `boolean` | active是否已完成初始化 | 仅在schema、epoch、journal均一致时有效 |
+| `error` | `Error` | schema、epoch、journal或索引失败 | 失败必须阻止Ready |
+
+**步骤**
+
+1. 校验迁移记录完整且与内嵌迁移一致
+2. 校验active状态与control活动epoch一致
+3. 校验journal已恢复且文件指纹未改变
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：active数据库或journal不可读（可重试）
+- `INTEGRITY_ERROR`：schema、epoch、journal或索引矛盾（不可重试）
+
+- 副作用：无
+- 授权：service启动控制面；由匿名Ready调用
+- 并发：只读快照，可并发检查
+- 幂等：只读
+- 依赖：无
 
 ## site-config.TransitionRuntimeState
 
@@ -1871,7 +1954,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## site-config.Serve
@@ -2036,5 +2119,5 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 授权：permission：anonymous；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：有界只读快照；依赖请求总deadline1500ms，禁止模型探测
 - 幂等：GET只读重复安全
-- 依赖：无
+- 依赖：`site-config.ValidateActiveReady`
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）

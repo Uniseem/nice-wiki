@@ -555,6 +555,11 @@
       "description": "仅内部使用的独立control.db句柄，不作为HTTP DTO",
       "x-internal": true
     },
+    "ActiveStore": {
+      "type": "object",
+      "description": "仅内部使用的active业务库与正文目录句柄，不作为HTTP DTO",
+      "x-internal": true
+    },
     "RuntimeTransition": {
       "type": "object",
       "description": "严格控制迁移；不能任意设置phase/maintenance/dataEpoch",

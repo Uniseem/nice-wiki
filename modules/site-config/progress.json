@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "67697b16859993b2d5bbb4c017d1e89c519b669f3b24b5d7c54d4261d4530b1d",
+  "contractSha256": "839a8190d4794b5bdd3f7d4f51121cbb8070bb83eeabaa0f2c7142bcb174a6ba",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-02（运行状态控制库）",
-  "branch": "codex/site-config-r1-02-runtime-state",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+  "assignedSession": "R1-02（active业务存储与公告journal）",
+  "branch": "codex/site-config-r1-02-active-storage",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -92,13 +92,13 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本次新增active迁移、epoch/索引校验与Ready校验；本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
     },
     {
       "path": "modules/site-config/internal/migrations/migrations.go",
@@ -119,6 +119,16 @@
         "evidence": null
       },
       "blocker": "本机未安装Go，控制库迁移执行待具备Go工具链后验证"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0001_active.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，active迁移执行待具备Go工具链后验证"
     },
     {
       "path": "modules/site-config/internal/initialization_service.go",
@@ -162,13 +172,13 @@
     },
     {
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "RecoverAnnouncementJournal已实现；本机无Go，待格式化、编译和运行恢复校验"
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
@@ -292,23 +302,23 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本次已接入control.db与真实localRuntime读取；仍缺active区业务DB/schema迁移、全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RecoverAnnouncementJournal/RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
+      "blocker": "已接入active迁移与公告journal恢复；仍缺全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，Ready/Shutdown的控制库接线尚未执行构建验证"
+      "blocker": "Ready现含active schema/epoch/journal校验；本机未安装Go，待构建验证"
     },
     {
       "path": "modules/site-config/go.mod",
@@ -557,6 +567,28 @@
       "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
+      "id": "site-config.OpenActiveStore",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "active迁移与epoch校验已实现；本机未安装Go，尚未执行gofmt、build、vet"
+    },
+    {
+      "id": "site-config.ValidateActiveReady",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "Ready schema/journal指纹校验已实现；本机未安装Go，尚未执行gofmt、build、vet"
+    },
+    {
       "id": "site-config.All",
       "path": "modules/site-config/internal/migrations/migrations.go",
       "state": "implemented",
@@ -669,13 +701,13 @@
     {
       "id": "site-config.RecoverAnnouncementJournal",
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "已实现COMMITTED核对、PREPARED隔离和journal指纹；本机无Go，待格式化、编译和运行恢复校验"
     },
     {
       "id": "site-config.ResolveConfigOperation",
@@ -879,12 +911,12 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本次已完成control.db与自身权威读取；仍缺active区业务DB/schema迁移、公告journal恢复、全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RecoverAnnouncementJournal与RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
+      "blocker": "active区业务DB/schema迁移与公告journal恢复已接入；仍缺全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
     },
     {
       "id": "site-config.Serve",
@@ -931,5 +963,5 @@
       "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     }
   ],
-  "rule": "R1-02运行状态控制库工作包已实现：control.db/只追加迁移、RuntimeState权威读写、RuntimePhase CAS迁移矩阵、14域activationReceipts、localRuntime与Ready接线已落地；Go构建验证和业务验收待具备工具链/后续授权，active业务库、公告journal、outbox、HTTP业务路由和后台循环仍按下一工作包处理。"
+  "rule": "R1-02运行状态与active存储工作包已实现：control.db、active/site-config.db只追加迁移、RuntimeState权威读写、RuntimePhase CAS迁移矩阵、14域activationReceipts、公告journal恢复、localRuntime与Ready schema/epoch/journal校验已落地；Go构建验证和业务验收待具备工具链/后续授权，HTTP业务路由、outbox、后台循环和换目录回执仍阻塞。"
 }

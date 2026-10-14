@@ -1,17 +1,21 @@
 // Package siteconfig 实现 site-config 的私有运行状态控制库。
 //
 // control.db 是本域恢复协议的权威存储，位于 control/ 而非 active/，
-// 因此不会被业务快照换目录覆盖。本文件只承载数据库句柄、迁移与
-// RuntimeState 的持久读写，不实现站点设置或其他业务库。
+// 因此不会被业务快照换目录覆盖。本文件同时承载 active 业务索引的
+// 数据库句柄与只追加迁移；正文和公告决定仍由文件/journal恢复函数负责。
 package siteconfig
 
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -55,6 +59,40 @@ var activeStore struct {
 	store *RuntimeStore
 }
 
+// activeBusinessStore 是 active 区的独占句柄。它与 control.db 分离，
+// 恢复换目录只替换 active，不会覆盖运行状态权威。
+var activeBusinessStore struct {
+	sync.RWMutex
+	store *ActiveStore
+}
+
+// ActiveStore 是 site-config active 区私有数据库与不可变正文目录的句柄。
+// 数据库只保存派生索引和恢复后水位，正文文件仍是权威数据。
+type ActiveStore struct {
+	db         *sql.DB
+	activeRoot string
+
+	stateMu          sync.RWMutex
+	journalRecovered bool
+	journalHash      platform.Hash
+	closeOnce        sync.Once
+	closeErr         error
+}
+
+type activeMigration struct {
+	Version int64
+	Name    string
+	SQL     string
+}
+
+var activeMigrationNamePattern = regexp.MustCompile(`^([0-9]{4})_[a-z0-9_]+\.sql$`)
+
+// activeMigrationFiles 只嵌入 active 迁移；control.db 的 migrations 包不读取
+// 此目录，避免把业务表错误地建进不可替换的控制库。
+//
+//go:embed migrations/active/*.sql
+var activeMigrationFiles embed.FS
+
 // OpenRuntimeStore 打开 control/control.db，设置 ADR0005 要求的 SQLite
 // 参数，执行只追加迁移，并在首次建库时写入 running 初始状态。
 func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, error) {
@@ -93,6 +131,309 @@ func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, erro
 	activeStore.store = store
 	activeStore.Unlock()
 	return store, nil
+}
+
+// OpenActiveStore 打开 active/site-config.db，执行只追加迁移并校验活动
+// dataEpoch。新库只建立未初始化状态；不会生成虚假的站点配置或公告。
+func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch platform.Identifier) (*ActiveStore, error) {
+	if dataRoot == "" || !platform.ValidIdentifier(dataEpoch) {
+		return nil, platform.NewError(platform.CodeValidation, false, "active存储参数不合法")
+	}
+	activeRoot := filepath.Join(dataRoot, "active")
+	if err := os.MkdirAll(filepath.Join(activeRoot, "journal"), 0o700); err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "active存储目录不可用")
+	}
+	if err := os.MkdirAll(filepath.Join(activeRoot, "quarantine", "announcement"), 0o700); err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "active隔离目录不可用")
+	}
+	path := filepath.Join(activeRoot, "site-config.db")
+	dsn := "file:" + path +
+		"?_pragma=journal_mode(WAL)" +
+		"&_pragma=foreign_keys(ON)" +
+		"&_pragma=busy_timeout(3000)"
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeInternal, false, "打开active业务库失败")
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	store := &ActiveStore{db: db, activeRoot: activeRoot}
+	closeOnError := func(openErr error) (*ActiveStore, error) {
+		_ = db.Close()
+		return nil, openErr
+	}
+	if err := db.PingContext(ctx); err != nil {
+		return closeOnError(platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用"))
+	}
+	if err := store.runActiveMigrations(ctx); err != nil {
+		return closeOnError(err)
+	}
+	if err := store.ensureActiveState(ctx, dataEpoch); err != nil {
+		return closeOnError(err)
+	}
+	activeBusinessStore.Lock()
+	if activeBusinessStore.store != nil {
+		activeBusinessStore.Unlock()
+		return closeOnError(platform.NewError(platform.CodeConflict, false, "active业务库已被本进程打开"))
+	}
+	activeBusinessStore.store = store
+	activeBusinessStore.Unlock()
+	return store, nil
+}
+
+// Close 关闭 active 数据库；重复关闭安全，并撤销本进程的活动句柄。
+func (s *ActiveStore) Close() error {
+	if s == nil {
+		return nil
+	}
+	s.closeOnce.Do(func() {
+		activeBusinessStore.Lock()
+		if activeBusinessStore.store == s {
+			activeBusinessStore.store = nil
+		}
+		activeBusinessStore.Unlock()
+		s.closeErr = s.db.Close()
+	})
+	if s.closeErr != nil {
+		return platform.NewError(platform.CodeInternal, false, "关闭active业务库失败")
+	}
+	return nil
+}
+
+func activeStore() *ActiveStore {
+	activeBusinessStore.RLock()
+	defer activeBusinessStore.RUnlock()
+	return activeBusinessStore.store
+}
+
+func (s *ActiveStore) runActiveMigrations(ctx context.Context) error {
+	all, err := loadActiveMigrations()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "active迁移集不合法")
+	}
+	applied := map[int64]string{}
+	rows, err := s.db.QueryContext(ctx, `SELECT version, name FROM schema_migrations`)
+	if err != nil && !isMissingTable(err) {
+		return platform.NewError(platform.CodeIntegrityError, false, "读取active迁移记录失败")
+	}
+	if err == nil {
+		for rows.Next() {
+			var version int64
+			var name string
+			if err := rows.Scan(&version, &name); err != nil {
+				rows.Close()
+				return platform.NewError(platform.CodeIntegrityError, false, "active迁移记录损坏")
+			}
+			applied[version] = name
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "读取active迁移记录失败")
+		}
+		rows.Close()
+	}
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
+			return platform.NewError(platform.CodeIntegrityError, false, "active迁移版本或名称不匹配")
+		}
+	}
+	for _, item := range all {
+		if _, ok := applied[item.Version]; ok {
+			continue
+		}
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "开始active迁移事务失败")
+		}
+		if _, err := tx.ExecContext(ctx, item.SQL); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeIntegrityError, false, "active迁移执行失败")
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`,
+			item.Version, item.Name, string(platform.Now())); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeIntegrityError, false, "登记active迁移失败")
+		}
+		if err := tx.Commit(); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "提交active迁移失败")
+		}
+	}
+	return nil
+}
+
+func loadActiveMigrations() ([]activeMigration, error) {
+	entries, err := activeMigrationFiles.ReadDir("migrations/active")
+	if err != nil {
+		return nil, err
+	}
+	all := make([]activeMigration, 0, len(entries))
+	for _, entry := range entries {
+		match := activeMigrationNamePattern.FindStringSubmatch(entry.Name())
+		if match == nil {
+			return nil, errors.New("invalid active migration name")
+		}
+		version, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := activeMigrationFiles.ReadFile("migrations/active/" + entry.Name())
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, activeMigration{Version: version, Name: entry.Name(), SQL: string(raw)})
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].Version < all[j].Version })
+	for i, item := range all {
+		if item.Version != int64(i+1) {
+			return nil, errors.New("active migration versions are not contiguous")
+		}
+	}
+	return all, nil
+}
+
+func (s *ActiveStore) ensureActiveState(ctx context.Context, dataEpoch platform.Identifier) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "打开active状态事务失败")
+	}
+	defer tx.Rollback()
+	var count int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM site_config_state`).Scan(&count); err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "读取active状态失败")
+	}
+	if count == 0 {
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO site_config_state
+                (singleton, data_epoch, initialized, site_id, config_revision,
+                 config_revision_id, updated_at)
+            VALUES (1, ?, 0, NULL, 0, NULL, ?)`,
+			string(dataEpoch), string(platform.Now())); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "初始化active状态失败")
+		}
+	} else if count != 1 {
+		return platform.NewError(platform.CodeIntegrityError, false, "active状态单例数量不正确")
+	}
+	if err := tx.Commit(); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "提交active状态失败")
+	}
+	return s.validateActiveState(ctx, dataEpoch)
+}
+
+// ValidateActiveReady 校验 active schema、活动 epoch、journal 恢复指纹和初始化
+// 状态。任何未知或矛盾状态都返回错误，调用方不得把它转换成ready成功。
+func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch platform.Identifier) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
+	}
+	if err := s.validateActiveSchema(ctx); err != nil {
+		return false, err
+	}
+	initialized, err := s.validateActiveStateWithResult(ctx, dataEpoch)
+	if err != nil {
+		return false, err
+	}
+	s.stateMu.RLock()
+	recovered := s.journalRecovered
+	expectedHash := s.journalHash
+	s.stateMu.RUnlock()
+	if !recovered {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "公告journal尚未恢复")
+	}
+	currentHash, err := readAnnouncementJournalHash(s.activeRoot)
+	if err != nil {
+		return false, err
+	}
+	if currentHash != expectedHash {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "公告journal在恢复后发生变化")
+	}
+	return initialized, nil
+}
+
+func (s *ActiveStore) markJournalRecovered(hash platform.Hash) {
+	s.stateMu.Lock()
+	s.journalRecovered = true
+	s.journalHash = hash
+	s.stateMu.Unlock()
+}
+
+func (s *ActiveStore) validateActiveSchema(ctx context.Context) error {
+	all, err := loadActiveMigrations()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "active迁移集不合法")
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT version, name FROM schema_migrations ORDER BY version`)
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "active schema_migrations不可读")
+	}
+	defer rows.Close()
+	index := 0
+	for rows.Next() {
+		var version int64
+		var name string
+		if err := rows.Scan(&version, &name); err != nil || index >= len(all) || version != all[index].Version || name != all[index].Name {
+			return platform.NewError(platform.CodeIntegrityError, false, "active迁移记录与代码不一致")
+		}
+		index++
+	}
+	if err := rows.Err(); err != nil || index != len(all) {
+		return platform.NewError(platform.CodeIntegrityError, false, "active schema版本不完整")
+	}
+	return nil
+}
+
+func (s *ActiveStore) validateActiveState(ctx context.Context, dataEpoch platform.Identifier) error {
+	_, err := s.validateActiveStateWithResult(ctx, dataEpoch)
+	return err
+}
+
+func (s *ActiveStore) validateActiveStateWithResult(ctx context.Context, dataEpoch platform.Identifier) (bool, error) {
+	if !platform.ValidIdentifier(dataEpoch) {
+		return false, platform.NewError(platform.CodeValidation, false, "active dataEpoch不合法")
+	}
+	var storedEpoch, updatedAt string
+	var initialized, revision int64
+	var nullableSiteID, nullableRevisionID sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+        SELECT data_epoch, initialized, site_id, config_revision,
+               config_revision_id, updated_at
+          FROM site_config_state WHERE singleton = 1`).Scan(
+		&storedEpoch, &initialized, &nullableSiteID, &revision,
+		&nullableRevisionID, &updatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "active状态缺失")
+	}
+	if err != nil {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "读取active状态失败")
+	}
+	if storedEpoch != string(dataEpoch) || (initialized != 0 && initialized != 1) || revision < 0 {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "active状态epoch或枚举不合法")
+	}
+	if _, err := time.Parse(time.RFC3339Nano, updatedAt); err != nil {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "active状态时间不合法")
+	}
+	if initialized == 0 {
+		if nullableSiteID.Valid || nullableRevisionID.Valid || revision != 0 {
+			return false, platform.NewError(platform.CodeIntegrityError, false, "未初始化active状态包含配置引用")
+		}
+		return false, nil
+	}
+	if !nullableSiteID.Valid || !platform.ValidIdentifier(nullableSiteID.String) ||
+		!nullableRevisionID.Valid || !platform.ValidIdentifier(nullableRevisionID.String) || revision < 1 {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "已初始化active状态缺少配置引用")
+	}
+	// 避免数据库仅有状态水位而没有对应权威文件索引。
+	var indexed int
+	if err := s.db.QueryRowContext(ctx, `
+        SELECT COUNT(*) FROM config_revision_index
+         WHERE site_id = ? AND revision_id = ? AND revision = ?`,
+		nullableSiteID.String, nullableRevisionID.String, revision).Scan(&indexed); err != nil {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "读取active配置索引失败")
+	}
+	if indexed != 1 {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "active配置状态没有对应索引")
+	}
+	return true, nil
 }
 
 // Close 关闭控制库；重复关闭安全，并在成功关闭时撤销本进程的活动句柄。
