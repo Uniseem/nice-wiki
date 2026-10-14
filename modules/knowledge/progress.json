@@ -1,12 +1,12 @@
 {
   "version": 1,
   "module": "knowledge",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "5d6a734905083880f2f347e9d0f264d00d7710204a2ed424fd6c54d7e8fa9bce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
+  "assignedSession": "R1-知识域文本规范化",
+  "branch": "codex/knowledge-normalize",
+  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
@@ -112,13 +112,13 @@
     },
     {
       "path": "modules/knowledge/internal/chunk/normalize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现 NFKC、CRLF/CR→LF 与规范化 UTF-8 到原文偏移映射；git diff --check 通过；本机无 Go/gofmt，未编译或行为验收"
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt；业务行为验收尚未运行"
     },
     {
       "path": "modules/knowledge/internal/chunk/split.go",
@@ -482,13 +482,13 @@
     },
     {
       "path": "modules/knowledge/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "声明本域独立 module、platform replace 与已登记 x/text v0.20.0；未执行 go mod tidy/build"
       },
-      "blocker": null
+      "blocker": "本机无 Go 工具链；go.sum 尚未生成"
     },
     {
       "path": "modules/knowledge/go.sum",
@@ -797,13 +797,13 @@
     {
       "id": "knowledge.NormalizeSource",
       "path": "modules/knowledge/internal/chunk/normalize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "纯规则实现已提交；JSON 与 git diff --check 通过；本机无 Go/gofmt，未编译或行为验收"
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt；未在 VPS 编译"
     },
     {
       "id": "knowledge.SplitChunks",
@@ -1356,5 +1356,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本轮仅 knowledge.NormalizeSource 与 go.mod 已实现但未验证；其余文件/函数仍按设计状态，不能批量宣称已完成。"
 }

@@ -2,22 +2,30 @@
 
 ## 本次事实
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+2026-10-15 认领本域文本规范化切片。按本域合同实现了无副作用的 `knowledge.NormalizeSource`：校验封闭输入，统一 CRLF/CR 为 LF，使用已登记的 `golang.org/x/text v0.20.0` 执行 NFKC，并为每个规范化 UTF-8 字节保留原文起点偏移。未读取其他服务私有数据，未调用真实接口、模型、媒体或数据库，未新增测试/样例。
 
-## 基线与文件
+## 基线与交付
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+- 独占范围：`modules/knowledge/`
+- 分支：`codex/knowledge-normalize`
+- 基线：`8ae6fcfc6302e2fd41a998faef18be52e2a9714c`
+- 实现提交：`77fe57291ab9bcc0f53df2d35018e055e61ca12f`
+- 本次修改：`go.mod`、`internal/chunk/normalize.go`
+- 状态记录待本交接提交补齐；未提交文件应为空。
 
-独占范围是 modules/knowledge/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
+`NormalizeSource` 已标记 `implemented`，尚未标记 `verified` 或 `accepted`。本机无 Go/gofmt，不能完成编译/格式化/行为验证；`go.sum` 尚未生成。公共 `docs/structure/framework.json` 未在本域修改范围内登记新文件。
 
-## 下一步（一项）
+## 检查与结果
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
+- `git diff --check`：通过。
+- Python JSON 解析 `modules/knowledge/progress.json` 及既有本域实现合同：通过。
+- Go 编译、gofmt、VPS `make check`：未运行，本机无 Go/gofmt 且本次不读取私有连接配置。
+- 普通测试、E2E、真实接口、真实模型：未运行/未调用，未新增测试授权。
 
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
+## 阻塞与决策
 
-## 下一次结束填写
+`knowledge.SplitChunks` 的 `SplitChunksInput` 只有 `buildId/document/normalized/chunkTokens/overlapTokens`，但 `Chunk` 必须带 `BlockRef`（含 `blockId/blockHash`），且步骤要求记录全部 blockIds 与原 UTF-8 偏移。当前契约没有提供块列表、块边界或这些标识的可信来源；本次不生成伪造 block，也不修改公共合同，留待集成会话先修正设计。
 
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
+## 下一项（一项）
 
-详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+公共契约补齐 `SplitChunks` 的源块边界与稳定 `BlockRef` 输入后，再在 `modules/knowledge/internal/chunk/split.go` 实现 `knowledge.SplitChunks`；开始前复读该函数的 implementation/types/data 条款，完成确定性分块、偏移、hash 和预算校验，并保持不调用模型。
