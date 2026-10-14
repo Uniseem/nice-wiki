@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "c67c4d463c5da5003beadc1f1a9fb2a9313b44ba7fd82eb830706c576e568630",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-04 ValidateJobSpec（Codex）",
-  "branch": "codex/jobs-r1-04-validation",
-  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "03ac7eff1ed562be4fdc18794080ae50ecfd900c",
+  "assignedSession": "R1-05 CreateJob（Codex）",
+  "branch": "codex/analytics-r1-storage-contract-audit",
+  "baseCommit": "32afbc58bd24b8d03230c920a3b105374c783acb",
+  "deliveryCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已通过暂存内容diff检查、隐私检查及Python sqlite3内存迁移语法检查；本机无go/gofmt/make，未编译、格式化或执行行为验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，尚未完成编译、gofmt与行为验收"
     },
     {
       "path": "modules/jobs/internal/leases.go",
@@ -272,13 +272,13 @@
     },
     {
       "path": "modules/jobs/migrations/0001_domain.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已用Python sqlite3内存数据库执行迁移并插入queued任务；本机无Go工具链，未执行Go迁移运行验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，尚未完成编译与行为验收"
     },
     {
       "path": "modules/jobs/cmd/jobs/main.go",
@@ -313,22 +313,22 @@
     {
       "path": "modules/jobs/go.mod",
       "state": "implemented",
-      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "Go工具链和隔离VPS不可用，依赖锁定未做编译复核"
+      "blocker": "本次新增modernc.org/sqlite依赖；Go工具链和隔离VPS不可用，尚未完成依赖编译复核"
     },
     {
       "path": "modules/jobs/go.sum",
       "state": "implemented",
-      "implementationCommit": "dba434eb1e03b1a183d2f8b66adf0eff8f3e2bbd",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "Go工具链不可用，未能运行go mod tidy；锁内容与同依赖图的site-config模块一致，待VPS重新生成核对"
+      "blocker": "锁内容参考同版本site-config依赖图；Go工具链不可用，未能运行go mod tidy核对"
     },
     {
       "path": "modules/jobs/Dockerfile",
@@ -506,13 +506,13 @@
     {
       "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已通过暂存内容diff检查、隐私检查及Python sqlite3内存迁移语法检查；本机无go/gofmt/make，未编译、格式化或执行行为验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，尚未完成编译、gofmt与行为验收"
     },
     {
       "id": "jobs.FailJob",
@@ -952,7 +952,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "目录/身份材料/runtime/恢复前置已实现；缺存储、全部OpenAPI x-handler、后台函数、激活回执与worker装配"
+      "blocker": "任务数据库迁移与CreateJob存储入口已实现但尚未接入完整装配；仍缺租约、事件/死信、定时、屏障、全部OpenAPI x-handler、后台函数、激活回执与worker装配"
     },
     {
       "id": "jobs.Serve",
