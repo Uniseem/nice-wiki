@@ -1,0 +1,13 @@
+{
+  "module": "traffic-guard",
+  "listen": "127.0.0.1:8110",
+  "dataRoot": "/data/traffic-guard",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/traffic-guard-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "site-config": "http://127.0.0.1:8102",
+    "jobs": "http://127.0.0.1:8111",
+    "data-protection": "http://127.0.0.1:8113"
+  }
+}

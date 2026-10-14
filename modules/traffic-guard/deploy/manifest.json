@@ -1,0 +1,43 @@
+{
+  "slug": "traffic-guard",
+  "image": "nice-wiki-traffic-guard",
+  "command": ["/traffic-guard", "--config", "/config/defaults.json"],
+  "httpPort": 8110,
+  "dataVolume": "/data/traffic-guard",
+  "secrets": [
+    {
+      "name": "trust-anchors",
+      "path": "/run/secrets/trust-anchors.json"
+    },
+    {
+      "name": "traffic-guard-signing-key",
+      "path": "/run/secrets/traffic-guard-signing-key.json"
+    }
+  ],
+  "dependencies": [
+    {
+      "module": "identity",
+      "endpoint": "http://identity:8101",
+      "env": "NW_DEP_IDENTITY"
+    },
+    {
+      "module": "site-config",
+      "endpoint": "http://site-config:8102",
+      "env": "NW_DEP_SITE_CONFIG"
+    },
+    {
+      "module": "jobs",
+      "endpoint": "http://jobs:8111",
+      "env": "NW_DEP_JOBS"
+    },
+    {
+      "module": "data-protection",
+      "endpoint": "http://data-protection:8113",
+      "env": "NW_DEP_DATA_PROTECTION"
+    }
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}
