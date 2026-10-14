@@ -4,21 +4,21 @@
   "phase": "implementation",
   "contractSha256": "02c1a90a759bb421b0d59c1585167e2e5c352f242a3926a4f76a0b5a1082a313",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-15（Codex，启动与契约生成准备）",
-  "branch": "codex/localization-r1-startup",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+  "assignedSession": "R1-15（Codex，本域私有持久化与启动恢复）",
+  "branch": "main",
+  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
+  "deliveryCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/localization/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt，未编译或格式化验证。"
     },
     {
       "path": "modules/localization/internal/language/tag.go",
@@ -472,13 +472,13 @@
     },
     {
       "path": "modules/localization/migrations/001_initial.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt，未执行迁移编译验证。"
     },
     {
       "path": "modules/localization/cmd/localization/main.go",
@@ -695,13 +695,13 @@
     {
       "id": "localization.LoadRuntime",
       "path": "modules/localization/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt；运行时行为尚未验收。"
     },
     {
       "id": "localization.NormalizeLanguageTag",
@@ -1323,12 +1323,12 @@
       "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "业务 handler、持久化、journal、outbox、事件订阅与任务循环未实现，按合同返回 DEPENDENCY_UNAVAILABLE；未编译。"
+      "blocker": "已接入本域SQLite/journal启动校验；OpenAPI业务handler、事件订阅、outbox与任务循环仍未实现，按合同返回 DEPENDENCY_UNAVAILABLE；本机未编译。"
     },
     {
       "id": "localization.Serve",
