@@ -4,7 +4,7 @@
 
 - 基线：`ac593c57861d2242f27d07562a2acae535d18c38`；分支：`codex/site-config-r1-02-runtime-state`。
 - 独占范围：`modules/site-config/`。未修改根 AGENTS/STATUS/README、根 docs、scripts、contracts、libs、deploy 或其他模块；未读取 `vps.txt`、old 分支或旧业务源码。
-- 未新增测试、样例、快照、E2E、真实接口或模型调用；未 push、未部署。实现提交和交接台账提交待本次最终提交后填入。
+- 实现提交：`34c48128e499ec8a76f182b38771c1d97609c3a5`；台账同步提交：`497f6da`。未新增测试、样例、快照、E2E、真实接口或模型调用；未 push、未部署。
 
 ## 本次完成
 
@@ -19,7 +19,7 @@
 
 ## 验证与限制
 
-- 已通过：JSON 解析、生成文档比对、链接/契约/权限/事件/隐私静态检查，以及 `python scripts/check_docs.py --privacy-only`、`git diff --check`。
+- 已通过：JSON 解析、生成文档比对、链接/契约/权限/事件/隐私静态检查，以及 `python scripts/check_docs.py --privacy-only`、`git diff --check`。`make check` 未能启动，当前环境没有 make；等价的 Python 检查已执行。
 - 未执行：Go 格式化、依赖 tidy、build、vet、现有普通测试和业务运行；原因是当前执行环境没有 `go`/`gofmt`，也未读取 VPS 私有连接信息或自行改用其他主机。
 - 根 `python scripts/check_docs.py` 仍因公共 `docs/structure/framework.json` 未登记本次 6 个 site-config 文件而失败；集成会话必须在合并时补登记并重新运行根 `make check`。本模块不越权修改该公共文件。
 - `go.sum` 按 identity 已验证的 modernc.org/sqlite v1.59.0 锁定依赖图补齐，但因本机无 Go 尚未由 `go mod tidy` 重算；集成/具备 Go 工具链的会话需核对。

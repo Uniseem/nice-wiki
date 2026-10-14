@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "67697b16859993b2d5bbb4c017d1e89c519b669f3b24b5d7c54d4261d4530b1d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-02（GLM/ZCode，启动装配组）",
-  "branch": "codex/site-config-r1-02",
-  "baseCommit": "ffe1ae4ccbb7ce33f8fbcec19bc888865fdedf24",
-  "deliveryCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+  "assignedSession": "R1-02（运行状态控制库）",
+  "branch": "codex/site-config-r1-02-runtime-state",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
   "deployment": "not_started",
   "files": [
     {
@@ -62,8 +62,8 @@
     },
     {
       "path": "modules/site-config/internal/runtime_state_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -72,8 +72,8 @@
     },
     {
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -82,8 +82,8 @@
     },
     {
       "path": "modules/site-config/internal/write_epoch.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -92,8 +92,8 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -102,8 +102,8 @@
     },
     {
       "path": "modules/site-config/internal/migrations/migrations.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -112,8 +112,8 @@
     },
     {
       "path": "modules/site-config/internal/migrations/0001_control.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -292,28 +292,28 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本次已接入control.db与真实localRuntime读取；仍缺active区业务DB/schema迁移、全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RecoverAnnouncementJournal/RelayOutbox后台循环，且本机未安装Go无法完成构建验证"
+      "blocker": "本次已接入control.db与真实localRuntime读取；仍缺active区业务DB/schema迁移、全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RecoverAnnouncementJournal/RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，控制库接线待具备Go工具链后执行构建验证"
+      "blocker": "本机未安装Go，Ready/Shutdown的控制库接线尚未执行构建验证"
     },
     {
       "path": "modules/site-config/go.mod",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -322,8 +322,8 @@
     },
     {
       "path": "modules/site-config/go.sum",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -493,79 +493,79 @@
     {
       "id": "site-config.ReadRuntimeState",
       "path": "modules/site-config/internal/runtime_state_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.TransitionRuntimeState",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.ValidateRuntimeTransition",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.RegisterActivation",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.CheckWriteEpoch",
       "path": "modules/site-config/internal/write_epoch.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.OpenRuntimeStore",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.All",
       "path": "modules/site-config/internal/migrations/migrations.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.InitializeSite",
@@ -879,7 +879,7 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -889,47 +889,47 @@
     {
       "id": "site-config.Serve",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；运行状态每5秒轮询与退出码75由RunService+WatchRuntime承担，读取目标为本域控制库"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；outbox/journal flush与DB close随业务存储工作包接入"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.Health",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     },
     {
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "implemented",
+      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；本域读取自身权威：控制库落地前readyz如实返回503 DEPENDENCY_UNAVAILABLE，schema/journal/epoch深度校验随业务存储落地（见handoff）"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
     }
   ],
-  "rule": "R1-02首个工作包已交付启动装配组：9个文件创建，main/Serve/Shutdown/Health/Ready按合同实现并过已有检查；BuildApplication的部分合同步骤依赖业务函数与运行控制库，保持blocked如实登记。其余业务文件/函数仍planned，逐项认领。"
+  "rule": "R1-02运行状态控制库工作包已实现：control.db/只追加迁移、RuntimeState权威读写、RuntimePhase CAS迁移矩阵、14域activationReceipts、localRuntime与Ready接线已落地；Go构建验证和业务验收待具备工具链/后续授权，active业务库、公告journal、outbox、HTTP业务路由和后台循环仍按下一工作包处理。"
 }
