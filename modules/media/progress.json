@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "7c1f14a72fd3255c4cd014fae3e6cd8128da57be619a406617874410072c421d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-08启动与契约生成准备",
-  "branch": "codex/media-r1-bootstrap",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "88078f96c51971b3f51604751f92ef69e4c53c0b",
+  "assignedSession": "R1-09上传校验与不可变blob边界",
+  "branch": "codex/media-r1-09-blob",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": "5f0175b2d53d27914fdf397b391dda80f69f2ad3",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/media/internal/upload_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "2517ccb1225eda5c2ce0157e18364f25fa84084f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机没有Go/gofmt；HashUpload依赖后续私有blobStore装配"
     },
     {
       "path": "modules/media/internal/chunk_writer.go",
@@ -82,13 +82,13 @@
     },
     {
       "path": "modules/media/internal/blob_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "2517ccb1225eda5c2ce0157e18364f25fa84084f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机没有Go/gofmt；真实私有存储与blob journal尚未装配"
     },
     {
       "path": "modules/media/internal/asset_service.go",
@@ -498,8 +498,8 @@
     {
       "id": "media.NormalizeOriginalName",
       "path": "modules/media/internal/upload_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "2517ccb1225eda5c2ce0157e18364f25fa84084f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -509,8 +509,8 @@
     {
       "id": "media.HashUpload",
       "path": "modules/media/internal/upload_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "2517ccb1225eda5c2ce0157e18364f25fa84084f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -575,8 +575,8 @@
     {
       "id": "media.CommitAssetBlob",
       "path": "modules/media/internal/blob_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "2517ccb1225eda5c2ce0157e18364f25fa84084f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1046,5 +1046,5 @@
       "blocker": null
     }
   ],
-  "rule": "本次仅实现启动与契约生成准备；业务上传、变体、引用、平台视频、清理、事件与任务函数保持planned，启动装配在依赖未实现时按合同返回DEPENDENCY_UNAVAILABLE。"
+  "rule": "本次实现NormalizeOriginalName、HashUpload和CommitAssetBlob的校验/不可变blob边界；真实私有存储、journal、HTTP、后台、事件、任务及其余业务函数保持planned，未装配存储时按合同返回DEPENDENCY_UNAVAILABLE。"
 }

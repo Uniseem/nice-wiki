@@ -1,5 +1,23 @@
 # 资源媒体会话交接
 
+## 本次事实（R1-09 上传校验与不可变 blob 边界，2026-10-15）
+
+- 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；分支：`codex/media-r1-09-blob`；源码提交：`2517ccb1225eda5c2ce0157e18364f25fa84084f`；台账交接提交：`5f0175b2d53d27914fdf397b391dda80f69f2ad3`。工作始终在指定 Codex worktree，未切换或修改主目录。
+- 独占范围仍为 `modules/media/`；本次仅新增 `internal/upload_validator.go` 与 `internal/blob_repository.go`，没有修改根文件、公共 contracts/docs/scripts、libs、deploy 或其他模块。
+- 已实现：`media.NormalizeOriginalName` 去路径组件、控制字符、CRLF 和双向控制符并拒绝非法/空/超长结果；`media.HashUpload` 使用固定 64 KiB 缓冲读取私有临时对象，校验上下文、标识、大小和读取进展后返回 SHA-256 与字节数；`media.CommitAssetBlob` 重新核对临时对象摘要，再把同站点同 SHA 的不可变提交交给最小 `blobStore` 边界并校验 ready 资源回执。
+- 未接入：HTTP、后台循环、真实对象存储、本域数据库、blob journal 恢复、配额/receipt/outbox 和 `BuildApplication` 装配。未装配 `blobStore` 时按合同返回 `DEPENDENCY_UNAVAILABLE`，不声明提交成功。
+
+## 实现、验证与验收边界
+
+- 状态区分：上述三个合同函数和两个源码文件为 `implemented`；尚未取得 Go 编译、vet 或 gofmt 证据，progress 的 `verification.state` 保持 `not_run`；业务验收与部署保持未执行，不能标记 `accepted`。
+- 已执行：模块 contracts JSON、progress JSON 解析；暂存区 `git diff --cached --check`；暂存内容路径/隐私扫描。根 `scripts/check_docs.py` 失败于公共 `docs/structure/framework.json` 未登记本次两个新增文件，该公共缺口留给集成会话。
+- 未执行：本机没有 Go/gofmt；未读取 `vps.txt`，因此未执行 `go build`、`go vet`、gofmt、`go mod download`、根 `make check`、真实接口、真实对象存储、测试样例或部署。
+- 最终工作树在上述台账提交后保持干净；新增与修改路径均位于 `modules/media/`。
+
+## 下一步（一项）
+
+由后续 media 存储工作包在同一私有包内装配 `blobStore` 的本地权威存储与 journal，并接入 `BuildApplication`；集成会话补登记公共 `framework.json` 后，再在具备 Go/VPS 工具链的环境复核编译和静态检查。
+
 ## 本次事实（R1-08 启动与契约生成准备，2026-10-15）
 
 - 基线：`ac593c57861d2242f27d07562a2acae535d18c38`；分支：`codex/media-r1-bootstrap`；在 Codex 管理的独立 worktree 中完成。
