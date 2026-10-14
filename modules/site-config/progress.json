@@ -7,7 +7,7 @@
   "assignedSession": "R1-02（active业务存储与公告journal）",
   "branch": "codex/site-config-r1-02-active-storage",
   "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": null,
+  "deliveryCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
   "deployment": "not_started",
   "files": [
     {
@@ -92,8 +92,8 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -122,8 +122,8 @@
     },
     {
       "path": "modules/site-config/internal/migrations/active/0001_active.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -172,8 +172,8 @@
     },
     {
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -302,8 +302,8 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -312,8 +312,8 @@
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -569,8 +569,8 @@
     {
       "id": "site-config.OpenActiveStore",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -580,8 +580,8 @@
     {
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -701,8 +701,8 @@
     {
       "id": "site-config.RecoverAnnouncementJournal",
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -911,7 +911,7 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -933,7 +933,7 @@
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -955,7 +955,7 @@
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
       "verification": {
         "state": "not_run",
         "evidence": null

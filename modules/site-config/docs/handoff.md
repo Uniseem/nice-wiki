@@ -5,7 +5,7 @@
 - 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；分支：`codex/site-config-r1-02-active-storage`。
 - 独占范围：`modules/site-config/`。未修改根 AGENTS/STATUS/README、根 docs、scripts、根 contracts、libs、deploy 或其他模块；未读取 `vps.txt`、old 分支或旧业务源码。
 - 本次只实现 active DB 迁移、公告决定 journal 恢复和 Ready schema/journal 校验；未实现 HTTP 业务路由、outbox 循环、后台任务循环或真实恢复联调。
-- 实现提交与台账提交待本次提交后回填；未 push、未部署。
+- 实现提交：`d2a7f9100a3de824cecba9d66eeb645fdf0196e5`；台账同步提交待本次回填后产生；未 push、未部署。
 
 ## 本次完成
 
