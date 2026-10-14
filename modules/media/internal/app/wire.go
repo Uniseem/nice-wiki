@@ -12,6 +12,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	mediaDomain "nice-wiki/modules/media"
 	"nice-wiki/modules/media/internal/gen"
 	"nice-wiki/modules/media/internal/transport"
 )
@@ -46,11 +47,18 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := validateDependencyEndpoints(config); err != nil {
 		return nil, err
 	}
-	runtimeAuthority, err := newRuntimeClient(config, key)
+	runtimeClient, err := newRuntimeClient(config, key)
 	if err != nil {
 		return nil, err
 	}
-	view, err := lifecycle.ReadRuntime(ctx, runtimeAuthority)
+	authority, ok := runtimeClient.(*runtimeAuthority)
+	if !ok {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "site-config客户端类型不受支持")
+	}
+	if err := mediaDomain.InstallSiteConfigReader(authority.client); err != nil {
+		return nil, err
+	}
+	view, err := lifecycle.ReadRuntime(ctx, runtimeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +70,25 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障工作包")
 	}
 
-	// 业务存储、所有 x-handler、blob journal 恢复、outbox/事件循环和
-	// jobs worker 尚未实现；启动必须明确失败，不能让健康路由掩盖缺口。
+	if err := mediaDomain.InstallLocalBlobStore(config.DataRoot); err != nil {
+		return nil, err
+	}
+	if _, err := mediaDomain.RecoverBlobJournal(ctx, platform.OperationContext{
+		RequestID:   platform.NewIdentifier(),
+		OperationID: platform.NewIdentifier(),
+		CallerService: ModuleSlug,
+		Actor: platform.AuthContext{
+			SubjectID: "system",
+			SiteID:    "system",
+		},
+		DataEpoch: view.DataEpoch,
+	}, mediaDomain.RecoverBlobJournalInput{}); err != nil {
+		return nil, err
+	}
+
+	// 其余 x-handler、outbox/事件循环和 jobs worker 尚未实现；启动必须
+	// 明确失败，不能让健康路由掩盖缺口。私有存储和 blob journal 已在
+	// 上面的恢复边界内完成检查，后续工作包继续接入业务路由。
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "media业务装配依赖尚未实现")
 }
 

@@ -98,7 +98,7 @@ func HashUpload(ctx context.Context, op OperationContext, input HashUploadInput)
 	if !validIdentifier(input.UploadID) {
 		return HashUploadResult{}, platform.NewError(platform.CodeValidation, false, "上传标识不合法")
 	}
-	store := activeBlobStore
+	store := currentBlobStore()
 	if store == nil {
 		return HashUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体私有存储尚未装配")
 	}
