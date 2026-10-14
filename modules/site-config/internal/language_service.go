@@ -22,9 +22,6 @@ type ValidateLanguageTagResult struct {
 // 区域及扩展子标签的大小写。它不访问模型或翻译供应方，也不把未知
 // 子标签静默丢弃。
 func ValidateLanguageTag(input ValidateLanguageTagInput) (ValidateLanguageTagResult, error) {
-	if canonical, ok := grandfatheredLanguageTag(input.Language); ok {
-		return ValidateLanguageTagResult{Canonical: canonical}, nil
-	}
 	parts := strings.Split(input.Language, "-")
 	if len(input.Language) < 2 || len(input.Language) > 35 || len(parts) == 0 {
 		return ValidateLanguageTagResult{}, platform.NewError(platform.CodeValidation, false, "语言标签格式不合法")
@@ -47,36 +44,6 @@ func ValidateLanguageTag(input ValidateLanguageTagInput) (ValidateLanguageTagRes
 		return ValidateLanguageTagResult{}, platform.NewError(platform.CodeValidation, false, "语言标签格式不合法")
 	}
 	return ValidateLanguageTagResult{Canonical: strings.Join(canonical, "-")}, nil
-}
-
-func grandfatheredLanguageTag(value string) (string, bool) {
-	known := map[string]string{
-		"art-lojban":   "art-lojban",
-		"cel-gaulish":  "cel-gaulish",
-		"en-gb-oed":    "en-GB-oed",
-		"i-ami":        "i-ami",
-		"i-bnn":        "i-bnn",
-		"i-default":    "i-default",
-		"i-enochian":   "i-enochian",
-		"i-hak":        "i-hak",
-		"i-klingon":    "i-klingon",
-		"i-lux":        "i-lux",
-		"i-mingo":      "i-mingo",
-		"i-navajo":     "i-navajo",
-		"i-pwn":        "i-pwn",
-		"i-tao":        "i-tao",
-		"i-tay":        "i-tay",
-		"i-tsu":        "i-tsu",
-		"no-bok":       "no-bok",
-		"no-nyn":       "no-nyn",
-		"zh-guoyu":     "zh-guoyu",
-		"zh-hakka":     "zh-hakka",
-		"zh-min":       "zh-min",
-		"zh-min-nan":   "zh-min-nan",
-		"zh-xiang":     "zh-xiang",
-	}
-	canonical, ok := known[strings.ToLower(value)]
-	return canonical, ok
 }
 
 func canonicalLanguageParts(parts []string) ([]string, bool) {
