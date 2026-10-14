@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+	"unicode"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/site-config/internal/gen"
@@ -264,15 +267,52 @@ func validateAnnouncementBody(raw []byte) error {
 		if _, ok := targetFields["kind"]; !ok {
 			return platform.NewError(platform.CodeIntegrityError, false, "公告链接缺少kind")
 		}
+		var kind string
+		if err := json.Unmarshal(targetFields["kind"], &kind); err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "公告链接kind不合法")
+		}
+		switch kind {
+		case "document":
+			if len(targetFields) != 3 {
+				return platform.NewError(platform.CodeIntegrityError, false, "站内公告链接字段不完整")
+			}
+			var documentID string
+			if err := json.Unmarshal(targetFields["documentId"], &documentID); err != nil || !platform.ValidIdentifier(documentID) {
+				return platform.NewError(platform.CodeIntegrityError, false, "站内公告链接documentId不合法")
+			}
+			if blockID, ok := targetFields["blockId"]; !ok {
+				return platform.NewError(platform.CodeIntegrityError, false, "站内公告链接缺少blockId")
+			} else if string(bytes.TrimSpace(blockID)) != "null" {
+				var value string
+				if err := json.Unmarshal(blockID, &value); err != nil || !platform.ValidIdentifier(value) {
+					return platform.NewError(platform.CodeIntegrityError, false, "站内公告链接blockId不合法")
+				}
+			}
+		case "qa":
+			if len(targetFields) != 1 {
+				return platform.NewError(platform.CodeIntegrityError, false, "问答公告链接字段不完整")
+			}
+		case "external":
+			if len(targetFields) != 2 {
+				return platform.NewError(platform.CodeIntegrityError, false, "外链公告链接字段不完整")
+			}
+			var value string
+			if err := json.Unmarshal(targetFields["url"], &value); err != nil || len(value) < 1 || len(value) > 2048 || strings.IndexFunc(value, unicode.IsControl) >= 0 {
+				return platform.NewError(platform.CodeIntegrityError, false, "外链公告链接url不合法")
+			}
+			parsed, err := url.Parse(value)
+			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https" && parsed.Scheme != "mailto") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || ((parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host == "") {
+				return platform.NewError(platform.CodeIntegrityError, false, "外链公告链接安全校验失败")
+			}
+		default:
+			return platform.NewError(platform.CodeIntegrityError, false, "公告链接kind不支持")
+		}
 	}
 	return nil
 }
 
 func sameAnnouncementEntry(left, right announcementJournalEntry) bool {
 	left.State = right.State
-	right.State = left.State
-	left.SchemaVersion = right.SchemaVersion
-	right.SchemaVersion = left.SchemaVersion
 	return string(mustMarshalJournalEntry(left)) == string(mustMarshalJournalEntry(right))
 }
 
