@@ -7,11 +7,13 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/localization/internal/gen"
+	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"nice-wiki/modules/localization/internal/transport"
 )
 
@@ -54,9 +56,29 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if swap.Action != platform.SwapNone {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域屏障与持久化函数，尚未实现")
 	}
+	store, err := localizationruntime.OpenStore(config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	loadInput := localizationruntime.NewLoadRuntimeInput(ModuleSlug, config.DataRoot, store)
+	startupOperation := platform.OperationContext{
+		RequestID:       platform.NewIdentifier(),
+		OperationID:     platform.NewIdentifier(),
+		RootOperationID: platform.NewIdentifier(),
+		CallerService:   ModuleSlug,
+		Deadline:        time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano),
+		DataEpoch:       view.DataEpoch,
+		CostClass:       platform.CostClassBackground,
+	}
+	if _, err := localizationruntime.LoadRuntime(ctx, startupOperation, loadInput); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	_ = store.Close()
 
 	// OpenAPI handler、业务存储、journal、outbox、订阅和任务循环尚未
-	// 实现。保持启动失败，避免健康路由掩盖不完整的服务装配。
+	// 完整装配。持久化启动校验已完成，但缺少这些合同依赖时仍必须
+	// 保持启动失败，避免健康路由掩盖不完整的服务装配。
 	_ = transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域业务处理器与持久化依赖尚未实现")
 }
