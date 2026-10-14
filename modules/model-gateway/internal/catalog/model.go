@@ -297,4 +297,3 @@ func readModelReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, key 
 	}
 	return result, true, nil
 }
-

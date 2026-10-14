@@ -2,22 +2,29 @@
 
 ## 本次事实
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+2026-10-15 完成本域最小实施切片，提交 `4eec945320f8cf20bfc6673a8c3c8490385aca2f`。新增 `internal/runtime/bootstrap.go`、`internal/catalog/provider.go`、`internal/catalog/model.go`、`migrations/001_initial.sql`，并为本域 `go.mod` 登记 `modernc.org/sqlite v1.59.0`。
+
+- `LoadRuntime`：校验绝对目录和恰好32字节主密钥引用，建立本域SQLite/WAL、严格schema迁移和运行代次水位；不调用模型。
+- `ValidateProvider`：校验HTTPS根URL、协议白名单、超时上限、附加头与Authorization覆盖，拒绝userinfo/fragment/query；不做网络探测。
+- `ValidateModel`：校验能力集合、嵌入维度和chat/translation输出上限，计算稳定embedding space hash；不收费。
+- `PutProvider`/`PutModel`：完成superadmin前置、dataEpoch水位、屏障、CAS、幂等回执、配置表和provider/model.changed outbox的同事务写入。
+
+真实供应方调用、连接探测、密钥AES-GCM存储、档位/路由、预留/派发/结算/未知收费对账、完整HTTP handler与后台循环仍未实现。未新增测试/样例/部署，未调用真实接口或模型，未push。
 
 ## 基线与文件
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)。设计基线为 `cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148`；本次交付提交为 `4eec945320f8cf20bfc6673a8c3c8490385aca2f`，分支为 `main`。先用git status核对并行会话留下的未提交工作，不能把它们纳入本域提交。
 
 独占范围是 modules/model-gateway/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
 
 ## 下一步（一项）
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
+在VPS补跑Go/gofmt/迁移验证后，把本次Store接入 `BuildApplication`：由启动装配把site-config读取到的active dataEpoch写入本域水位，注册全量OpenAPI handler和activation回执；缺任一项继续返回 `DEPENDENCY_UNAVAILABLE`，不开放半成品业务入口。
 
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
+完成条件：VPS格式/编译通过、Store迁移与代次门禁验证、全量handler绑定与启动失败语义符合合同；新测试、真实接口或模型仍需单独授权。不能将其他业务函数一起标记完成。
 
 ## 下一次结束填写
 
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
+交付提交：`4eec945320f8cf20bfc6673a8c3c8490385aca2f`。实际完成函数：5个（LoadRuntime、ValidateProvider、PutProvider、ValidateModel、PutModel）；实际修改仅限 `modules/model-gateway/`。检查：`git diff --check`通过；因本机无Go/gofmt/make，未编译或运行迁移/行为验收。阻塞：BuildApplication全量接线、归一化规则合同缺口及工具链缺失。
 
 详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。

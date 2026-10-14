@@ -1,34 +1,34 @@
 {
   "version": 1,
   "module": "model-gateway",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "a1af42cc8f5668e70dd64ec664bb15771daa93c41e8b08c6069059f63679aa32",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-12（模型网关目录与私有存储最小切片）",
+  "branch": "main",
+  "baseCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+  "deliveryCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未接入BuildApplication完整装配；本机无Go工具链，尚未编译验证"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "完整HTTP handler、identity授权客户端和site-config运行代次接线留待后续；本机无Go工具链"
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
@@ -42,13 +42,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实模型目录刷新、连接探测和调用流程未实现；本机无Go工具链"
     },
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
@@ -362,13 +362,13 @@
     },
     {
       "path": "modules/model-gateway/migrations/001_initial.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无Go/SQLite工具链，尚未执行迁移运行验证"
     },
     {
       "path": "modules/model-gateway/cmd/model-gateway/main.go",
@@ -402,13 +402,13 @@
     },
     {
       "path": "modules/model-gateway/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "modernc.org/sqlite依赖尚未由Go工具链生成go.sum"
     },
     {
       "path": "modules/model-gateway/go.sum",
@@ -555,35 +555,35 @@
     {
       "id": "model-gateway.LoadRuntime",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未接入完整启动编排；本机无Go工具链"
     },
     {
       "id": "model-gateway.ValidateProvider",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "HTTP边界和行为验收尚未运行"
     },
     {
       "id": "model-gateway.PutProvider",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "identity/site-config接线、HTTP路由和Go编译验证尚未完成"
     },
     {
       "id": "model-gateway.SetProviderEnabled",
@@ -621,24 +621,24 @@
     {
       "id": "model-gateway.PutModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "完整handler、模型目录刷新和Go编译验证尚未完成"
     },
     {
       "id": "model-gateway.ValidateModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "EmbeddingSpace规范缺少独立归一化规则字段，当前仅按现有合同字段计算；行为验收未运行"
     },
     {
       "id": "model-gateway.PutProfile",
@@ -1268,5 +1268,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本次仅实现LoadRuntime、ValidateProvider、PutProvider、ValidateModel、PutModel及其私有SQLite迁移；未实现真实模型调用、连接探测、密钥加密/轮换、费用预留/结算、完整HTTP handler和后台循环。Go/gofmt/make不可用，未编译或运行行为验收。"
 }
