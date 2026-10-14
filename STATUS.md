@@ -1,4 +1,4 @@
-# 当前状态（2026-10-14）
+# 当前状态（2026-10-14，R1-00合并）
 
 阶段：微服务设计文档已完成本轮编写和机械检查，业务实现尚未开始。
 
@@ -13,4 +13,7 @@
 - Git作者使用用户已授权的既有GitHub代用身份，只修改本仓库配置。私有vps.txt被忽略且未同步；旧线上实例与数据未改变。
 - 用户已明确授权规格收口后push old与main。两分支已普通原子推送并核对远端：old=272bddc，main规格基准=333b219；实际结果见docs/push-log/2026-10-14-0001.md，本条结果记录随后随main同步。
 
-下一步：R0-05已由用户授权Claude代为确认（含Docmost借用例外）；实施从R1-00平台公共库与生成器开始，按docs/plan.md工作包顺序认领。业务代码、测试、部署仍按AGENTS另行确认。
+- R1-00已实现并合并（分支codex/platform-r1-00，基线d7cf792431d8，实现提交fa70c657322c）：libs/platform全部17个约束函数与共享类型包（platform.go，仅标准库）、nw-keys密钥工具、scripts/gen_code.py落地make gen。15域internal/gen（oapi-codegen v2.5.1服务端+自动断言客户端）、12个web|ui的api.gen.ts（openapi-typescript 7.10.1）、jobs任务/订阅目录、portal路由表全部生成且可重现；15域生成物经临时模块编译通过（本地与隔离VPS各15/15）。实现中的合同修订：platform新增platform.go、BuildOperationContext加self参数、循环配置加runtime钩子与owner、InvokeModelRequest加onEvent；jobs的ClaimedJob补attempt与dataEpoch；详见libs/platform/STATUS与handoff。THIRD_PARTY_NOTICES登记两个生成工具。各域生成文件在其模块台账仍为planned（design阶段规则），由make gen随时重建。
+- platform台账18文件/17函数全部verified（实现+已有检查通过），行为验收待R2；GLM（ZCode）实现署名以提交trailer标注。
+
+下一步：从R1-01（identity）开始按docs/plan.md工作包顺序认领；deploy会话需按libs/platform/docs/handoff.md口径创建deploy/config/services.json。业务代码、测试、部署仍按AGENTS另行确认；push需当次授权。
