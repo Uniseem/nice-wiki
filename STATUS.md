@@ -18,4 +18,6 @@
 
 - R1-01首个工作包（identity启动装配组）已实现并合并（分支codex/identity-r1-01，基线9c667f3580ee，实现提交533a1239fa8c）：cmd入口、app装配（目录三区/信任锚/签名密钥/运行权威/ApplyRestoreSwap）、transport HTTP生命周期与匿名healthz/readyz、go.mod/go.sum（kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2）、defaults/manifest/Dockerfile/Makefile共9文件；进程模板复用lifecycle.RunService。Serve/Shutdown/Health/Ready台账verified；main与BuildApplication保持blocked（accounts子命令、业务存储、x-handler绑定、换向回执、后台循环依赖后续业务函数，缺口逐条见模块progress.json）。本地与隔离VPS go build/vet/gofmt及make check通过；framework.json登记9文件，THIRD_PARTY_NOTICES补登kin-openapi。site-config（R1-02）就绪前进程按合同以DEPENDENCY_UNAVAILABLE退出，联调等待依赖。
 
-下一步：继续R1-01 identity私有持久化（打开active区SQLite、迁移与journal恢复，见modules/identity/docs/handoff.md“下一步”），其后按纯规则→存储仓储→HTTP绑定顺序推进；deploy会话需按libs/platform/docs/handoff.md口径创建deploy/config/services.json。业务代码、测试、部署仍按AGENTS另行确认；push需当次授权。
+- R1-02首个工作包（site-config启动装配组）已实现并合并（分支codex/site-config-r1-02，基线ffe1ae4，实现提交5ea6affabea0）：与本域R1-01同模式的9文件；关键差异是site-config为运行状态权威，RuntimeClient用本地localRuntime读自身权威（control.db落地前如实返回DEPENDENCY_UNAVAILABLE，不以占位数据冒充）。main/Serve/Shutdown/Health/Ready台账verified；BuildApplication保持blocked（控制库读取、active区DB与迁移、公告journal恢复、x-handler绑定、换向回执、后台循环）。本地与隔离VPS检查通过。R1-01（identity私有持久化）的并行子代理因用量上限未产出，由集成会话接手。
+
+下一步：R1-01 identity私有持久化（打开active区SQLite、迁移与journal恢复，见modules/identity/docs/handoff.md“下一步”）与R1-02 site-config私有持久化（control.db/RuntimeState权威，见modules/site-config/docs/handoff.md“下一步”）可并行认领；deploy会话需按libs/platform/docs/handoff.md口径创建deploy/config/services.json。业务代码、测试、部署仍按AGENTS另行确认；push需当次授权。
