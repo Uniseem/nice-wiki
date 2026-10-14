@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "5edab272347ecfb4e0bf2bd9b4f5a57be39fae69c5c2c9ac8fdbcddc1da2eaf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（GLM/ZCode，私有持久化）",
-  "branch": "codex/identity-r1-01-storage",
-  "baseCommit": "bbb1e535c2f1efa93b11af80e3fe853f3fefbecf",
-  "deliveryCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+  "assignedSession": "R1-01（identity纯规则函数组）",
+  "branch": "codex/identity-r1-04-pure-rules",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
   "deployment": "not_started",
   "files": [
     {
@@ -32,13 +32,13 @@
     },
     {
       "path": "modules/identity/internal/account_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "NormalizeAccountName已实现；同文件AssertSuperadminImmutable仍待后续工作包"
     },
     {
       "path": "modules/identity/internal/permission_mapping.go",
@@ -52,13 +52,13 @@
     },
     {
       "path": "modules/identity/internal/credential_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "HashPassword、VerifyPassword、ValidatePasswordChange已实现；同文件ChangePassword仍待会话/事务工作包"
     },
     {
       "path": "modules/identity/internal/session_service.go",
@@ -232,21 +232,21 @@
     },
     {
       "path": "modules/identity/go.mod",
-      "state": "verified",
-      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     },
     {
       "path": "modules/identity/go.sum",
-      "state": "verified",
-      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     },
@@ -413,8 +413,8 @@
     {
       "id": "identity.NormalizeAccountName",
       "path": "modules/identity/internal/account_validator.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -446,8 +446,8 @@
     {
       "id": "identity.HashPassword",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -457,8 +457,8 @@
     {
       "id": "identity.VerifyPassword",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -468,8 +468,8 @@
     {
       "id": "identity.ValidatePasswordChange",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -873,5 +873,5 @@
       "blocker": null
     }
   ],
-  "rule": "R1-01第二工作包交付：私有持久化（打开active区SQLite、只追加迁移、决定日志恢复）已实现；BuildApplication存储步骤与Ready深度校验生效。业务函数（x-handler绑定、注册/会话/权限等）仍planned，逐项认领。"
+  "rule": "R1-01纯规则工作包：NormalizeAccountName与Argon2id口令三函数已实现；Go编译/格式检查待具备Go工具链的VPS，根THIRD_PARTY_NOTICES与framework登记由集成会话处理；会话、账号CRUD、HTTP与后台循环仍未实现。"
 }

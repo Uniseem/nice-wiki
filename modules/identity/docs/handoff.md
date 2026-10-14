@@ -1,5 +1,32 @@
 # 身份权限会话交接
 
+## 本次事实（R1-01 纯规则函数组，2026-10-15）
+
+- 分支：`codex/identity-r1-04-pure-rules`（managed worktree）；基线 `ac593c57861d2242f27d07562a2acae535d18c38`；源码与依赖提交 `bdcb9128d3ec5983d54c57f0fddc7abb793e93f4`。无未提交文件、未 push、未部署。
+- 独占范围：仅 `modules/identity/`；新增/修改 `internal/account_validator.go`、`internal/credential_service.go`、`go.mod`、`go.sum`。未改 contracts、生成目录、根文件、其他模块或公共库。
+- 未新增测试、样例、快照、E2E、真实接口或真实模型调用；业务验收仍未执行。
+
+## 本次完成
+
+- `identity.NormalizeAccountName`：先验证 UTF-8，再做 NFC；拒绝空值、控制字符、首尾 Unicode 空白和超过 64 个 Unicode 字符；不 trim、不大小写折叠、不回显原值。
+- `identity.HashPassword`：使用 `x/crypto/argon2` 的 Argon2id v19，固定 `memory=65536 KiB`、`time=3`、`parallelism=4`、`hash=32`、CSPRNG 16 字节盐；输出 PHC 编码，受限并发，检查 context/operation deadline，清理敏感缓冲。
+- `identity.VerifyPassword`：解析并限制 PHC Argon2id 成本不超过当前上限，派生后常量时间比对；仅对有效口令返回 `needsRehash`，损坏或越界编码返回 `INTEGRITY_ERROR`。
+- `identity.ValidatePasswordChange`：按 schema 验证旧/新口令长度与 UTF-8，要求两次新口令完全相同且与旧口令不同；语义不满足返回 `valid=false`，不记录或回显口令。
+- `go.mod` 新增固定版本 `golang.org/x/crypto v0.28.0`、`golang.org/x/text v0.20.0`；两者许可证核对为 BSD-3-Clause。根 `THIRD_PARTY_NOTICES.md` 尚未登记，交集成会话补登记。
+
+## 检查证据
+
+- 基线与提交前 `git status --short --branch`、`git diff --cached --check`、作者/邮箱和暂存隐私扫描通过；提交内容仅在 identity 模块内。
+- `git diff --check` 通过。当前环境没有 Go 工具链、gofmt 或 make，未执行 `go build ./...`、`go vet ./...`、`gofmt -l`；不可把源码实现标为 verified。
+- `python scripts/check_docs.py` 已运行但因根 `docs/structure/framework.json` 尚未登记两个新增源码文件而失败；`make check` 因 make 不可用未执行。根 framework 与第三方声明是公共文件，按并行规则交集成会话处理。
+- 无行为测试或业务验收证据；M02-R01～R06 仍未执行。
+
+## 依赖与边界
+
+- 本次只落地纯规则函数；会话、账号 CRUD、HTTP 路由、后台循环、`AssertSuperadminImmutable`、`ChangePassword` 均未实现。
+- 公共登记缺口：根 `THIRD_PARTY_NOTICES.md` 需登记 x/crypto 与 x/text；根 `docs/structure/framework.json` 需登记两个新源码文件。未在本会话修改公共文件。
+- 依赖版本已固定在 identity module；Go 构建需在具备 Go 1.25 工具链的 VPS 或集成环境复核。
+
 ## 本次事实（R1-01 私有持久化，2026-10-14）
 
 - 分支：codex/identity-r1-01-storage（worktree `../nice-wiki-identity`）；基线 bbb1e535c2f1（main）；实现提交 28af316bf6a42a2378f30f17a2fe036380af4ff9；台账提交紧随其后。
@@ -26,4 +53,4 @@
 
 ## 下一步（一项）
 
-实现纯规则函数组（参考级优先）：NormalizeAccountName（NFC、无控制字符/首尾空白、≤64）与 credential_service.go 的 HashPassword/VerifyPassword/ValidatePasswordChange（Argon2id，x/crypto/argon2，Apache-2.0-BSD风格许可需核对登记）。先读 docs/functions.md 对应条目与产品保持矩阵；完成后登记合同/台账并在本地与 VPS 过检查。会话函数（CreateSession 等）依赖 Argon2id 与账号权威表，随后再领。
+实现 `modules/identity/internal/account_validator.go` 的 `identity.AssertSuperadminImmutable`：先读 `docs/functions.md`、`types.json` 和 M02-R01 条款，保持纯函数边界，完成后仅更新本域台账/STATUS/交接并在具备 Go 工具链的环境执行既有检查；不得顺手实现账号状态接口或会话逻辑。
