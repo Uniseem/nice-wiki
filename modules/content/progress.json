@@ -142,13 +142,13 @@
     },
     {
       "path": "modules/content/internal/revision_repository.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现CommitDraftJournal事务边界与PREPARED正文核验；git diff --check通过，Go编译/gofmt/行为检查未运行"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用；真实私有事务存储尚未装配"
     },
     {
       "path": "modules/content/internal/revision_reader.go",
@@ -890,13 +890,13 @@
     {
       "id": "content.CommitDraftJournal",
       "path": "modules/content/internal/revision_repository.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现输入/journal/head/版本/对象一致性、operationId+摘要幂等、fence事务钩子、PREPARED文件SHA/大小/fsync/目录同步和原子提交委托；未运行Go编译与行为验收"
       },
-      "blocker": null
+      "blocker": "真实私有DB、稳定ID台账、refs、receipt、outbox事务实现与BuildApplication接线尚未完成；Go工具链不可用"
     },
     {
       "id": "content.ReadRevisionBody",
