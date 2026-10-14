@@ -639,6 +639,16 @@
         "expiresAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "公共 Timestamp 合同，遵守其字段和空值规则"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "第几次领取；写回与重投节奏依据"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "任务所属数据代次；旧代任务领取后立即失败"
         }
       },
       "required": [
@@ -647,6 +657,8 @@
         "type",
         "inputRef",
         "fencingToken",
+        "attempt",
+        "dataEpoch",
         "expiresAt"
       ]
     },

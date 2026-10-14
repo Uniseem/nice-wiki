@@ -1977,6 +1977,411 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
+    },
+    {
+      "path": "libs/platform/platform.go",
+      "kind": "handwritten",
+      "purpose": "跨包共享的契约类型与客户端接口"
+    },
+    {
+      "path": "libs/platform/serviceauth/assertion.go",
+      "kind": "handwritten",
+      "purpose": "服务断言签发与验证实现"
+    },
+    {
+      "path": "libs/platform/serviceauth/delegation.go",
+      "kind": "handwritten",
+      "purpose": "portal委托证明验证实现"
+    },
+    {
+      "path": "libs/platform/opctx/context.go",
+      "kind": "handwritten",
+      "purpose": "可信OperationContext构建实现"
+    },
+    {
+      "path": "libs/platform/problem/problem.go",
+      "kind": "handwritten",
+      "purpose": "RFC9457公共Problem输出实现"
+    },
+    {
+      "path": "libs/platform/outbox/outbox.go",
+      "kind": "handwritten",
+      "purpose": "事务内outbox登记实现"
+    },
+    {
+      "path": "libs/platform/outbox/relay.go",
+      "kind": "handwritten",
+      "purpose": "outbox转发循环实现"
+    },
+    {
+      "path": "libs/platform/inbox/inbox.go",
+      "kind": "handwritten",
+      "purpose": "事件inbox去重实现"
+    },
+    {
+      "path": "libs/platform/inbox/consumer.go",
+      "kind": "handwritten",
+      "purpose": "事件订阅循环实现"
+    },
+    {
+      "path": "libs/platform/worker/loop.go",
+      "kind": "handwritten",
+      "purpose": "任务领取循环实现"
+    },
+    {
+      "path": "libs/platform/modelclient/invoke.go",
+      "kind": "handwritten",
+      "purpose": "模型调用助手实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/config.go",
+      "kind": "handwritten",
+      "purpose": "服务配置加载实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/runtime.go",
+      "kind": "handwritten",
+      "purpose": "运行状态读取与监视实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/restore_swap.go",
+      "kind": "handwritten",
+      "purpose": "恢复换目录实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/service.go",
+      "kind": "handwritten",
+      "purpose": "进程模板实现"
+    },
+    {
+      "path": "libs/platform/cmd/nw-keys/main.go",
+      "kind": "handwritten",
+      "purpose": "服务密钥生成工具实现"
+    },
+    {
+      "path": "libs/platform/go.mod",
+      "kind": "config",
+      "purpose": "Go module nice-wiki/libs/platform；仅依赖标准库"
+    },
+    {
+      "path": "libs/platform/go.sum",
+      "kind": "generated",
+      "purpose": "依赖校验锁；当前无第三方依赖，保持为空"
+    },
+    {
+      "path": "libs/platform/STATUS.md",
+      "kind": "documentation",
+      "purpose": "platform状态简表"
+    },
+    {
+      "path": "libs/platform/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "platform交接记录"
+    },
+    {
+      "path": "scripts/gen_code.py",
+      "kind": "handwritten",
+      "purpose": "make gen实现：oapi-codegen服务端、生产方客户端、openapi-typescript、jobs目录与portal路由表"
+    },
+    {
+      "path": "modules/portal/config/routes.json",
+      "kind": "generated",
+      "purpose": "由全部模块openapi.json生成的入口路由表：非service接口的方法/路径→owner、operationId、x-permission、x-admission、超时与流式标志；CompileRouteRegistry启动时加载，未登记路径一律404"
+    },
+    {
+      "path": "modules/portal/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/portal/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/portal/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/portal/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/identity/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/identity/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/identity/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/site-config/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/site-config/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/content/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/content/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/content/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/content/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/media/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/media/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/media/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/public-site/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/public-site/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/public-site/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/public-site/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/knowledge/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/qa/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/qa/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/qa/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/qa/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/localization/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/localization/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/localization/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/localization/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/memory/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/memory/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/memory/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/memory/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/traffic-guard/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/jobs/config/event-subscriptions.json",
+      "kind": "generated",
+      "purpose": "事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝"
+    },
+    {
+      "path": "modules/jobs/config/job-types.json",
+      "kind": "generated",
+      "purpose": "任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建"
+    },
+    {
+      "path": "modules/jobs/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/jobs/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/jobs/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/analytics/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/data-protection/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/data-protection/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/data-protection/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/data-protection/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     }
   ]
 }

@@ -355,7 +355,7 @@ def check_framework():
     path = ROOT / 'docs/structure/framework.json'
     data = load_json(path)
     declared = {item.get('path', '') for item in data.get('files', [])}
-    actual = {relative(p) for top in ('docs', 'contracts', 'modules', 'scripts', 'libs', 'deploy') if (ROOT / top).is_dir() for p in (ROOT / top).rglob('*') if p.is_file()}
+    actual = {relative(p) for top in ('docs', 'contracts', 'modules', 'scripts', 'libs', 'deploy') if (ROOT / top).is_dir() for p in (ROOT / top).rglob('*') if p.is_file() and p.suffix != '.pyc'}
     actual.update(n for n in ('AGENTS.md', 'CLAUDE.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'Makefile', '.gitignore', '.gitattributes', '.editorconfig') if (ROOT / n).is_file())
     for extra in sorted(actual - declared):
         fail('实际结构', '未登记文件 ' + extra)

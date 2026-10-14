@@ -1,0 +1,2465 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "owner": "public-site",
+      "operationId": "handleRootRedirect",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "portal",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "identity",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "site-config",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "content",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "media",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "public-site",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "model-gateway",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "knowledge",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "qa",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "localization",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "memory",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "traffic-guard",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "jobs",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "analytics",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "owner": "data-protection",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/llms.txt",
+      "owner": "public-site",
+      "operationId": "handleLLMsRoot",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "portal",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "identity",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "site-config",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "content",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "media",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "public-site",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "model-gateway",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "knowledge",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "qa",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "localization",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "memory",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "traffic-guard",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "jobs",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "analytics",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "data-protection",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/robots.txt",
+      "owner": "public-site",
+      "operationId": "handleRobots",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/sitemap.xml",
+      "owner": "public-site",
+      "operationId": "handleSitemapIndex",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/sitemap/{locale}/{shard}.xml",
+      "owner": "public-site",
+      "operationId": "handleSitemapShard",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/accounts",
+      "owner": "identity",
+      "operationId": "listAccounts",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/accounts",
+      "owner": "identity",
+      "operationId": "createAccount",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/accounts/{accountId}/password:reset",
+      "owner": "identity",
+      "operationId": "resetAccountPassword",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/accounts/{accountId}/permissions",
+      "owner": "identity",
+      "operationId": "setAccountPermissions",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/accounts/{accountId}/status",
+      "owner": "identity",
+      "operationId": "setAccountStatus",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/cache",
+      "owner": "qa",
+      "operationId": "listCacheEntries",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/cache",
+      "owner": "qa",
+      "operationId": "proposeCacheEntry",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/cache-calibration",
+      "owner": "qa",
+      "operationId": "readCacheCalibration",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/cache/{cacheId}/approve",
+      "owner": "qa",
+      "operationId": "approveCacheEntry",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/cache/{cacheId}/disable",
+      "owner": "qa",
+      "operationId": "disableCacheEntry",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/catalog",
+      "owner": "model-gateway",
+      "operationId": "readAdminCatalog",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/debug-turns",
+      "owner": "qa",
+      "operationId": "createDebugTurn",
+      "permission": "qa.debug",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/debug-turns/{debugId}",
+      "owner": "qa",
+      "operationId": "readDebugTurn",
+      "permission": "qa.debug",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/invocations/{invocationId}/reconcile",
+      "owner": "model-gateway",
+      "operationId": "reconcileCharge",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/ledger",
+      "owner": "model-gateway",
+      "operationId": "getLedger",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/models/{modelId}",
+      "owner": "model-gateway",
+      "operationId": "putModel",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/policy",
+      "owner": "qa",
+      "operationId": "readQaPolicy",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/policy",
+      "owner": "qa",
+      "operationId": "putQaPolicy",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/prices/{modelId}",
+      "owner": "model-gateway",
+      "operationId": "getPriceBook",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/profiles/{profileId}",
+      "owner": "model-gateway",
+      "operationId": "putProfile",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/providers/{providerId}",
+      "owner": "model-gateway",
+      "operationId": "putProvider",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/providers/{providerId}/credentials",
+      "owner": "model-gateway",
+      "operationId": "putCredential",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/providers/{providerId}/credentials/rotate",
+      "owner": "model-gateway",
+      "operationId": "rotateCredential",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/turns",
+      "owner": "qa",
+      "operationId": "listTurnRecords",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/turns/{turnId}",
+      "owner": "qa",
+      "operationId": "readTurnRecord",
+      "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assets",
+      "owner": "media",
+      "operationId": "listAssets",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assets/unused",
+      "owner": "media",
+      "operationId": "listUnusedAssets",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assets/{assetId}",
+      "owner": "media",
+      "operationId": "readAsset",
+      "permission": "media.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assets/{assetId}/bytes",
+      "owner": "media",
+      "operationId": "readAssetBytes",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "HEAD",
+      "path": "/v1/assets/{assetId}/bytes",
+      "owner": "media",
+      "operationId": "headAssetBytes",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assets/{assetId}/references",
+      "owner": "media",
+      "operationId": "readAssetReferences",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/assets/{assetId}/variants",
+      "owner": "media",
+      "operationId": "attachImageVariants",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/assistant-conversations/{conversationId}",
+      "owner": "memory",
+      "operationId": "deleteAssistantConversation",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assistant-conversations/{conversationId}",
+      "owner": "memory",
+      "operationId": "readAssistantConversation",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/assistant-messages",
+      "owner": "memory",
+      "operationId": "appendAssistantMessage",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/assistant-runs",
+      "owner": "memory",
+      "operationId": "createAssistantRun",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/assistant-runs/{runId}",
+      "owner": "memory",
+      "operationId": "readAssistantRun",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/assistant-runs/{runId}/cancel",
+      "owner": "memory",
+      "operationId": "cancelAssistantRun",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/audits",
+      "owner": "analytics",
+      "operationId": "queryAudits",
+      "permission": "audit.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/audits/{auditId}",
+      "owner": "analytics",
+      "operationId": "readAudit",
+      "permission": "audit.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/backups",
+      "owner": "data-protection",
+      "operationId": "listBackups",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/backups",
+      "owner": "data-protection",
+      "operationId": "createBackup",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/backups/{backupId}",
+      "owner": "data-protection",
+      "operationId": "readBackup",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/backups/{backupId}/download",
+      "owner": "data-protection",
+      "operationId": "streamPortableBackup",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/backups/{backupId}:download",
+      "owner": "data-protection",
+      "operationId": "authorizeBackupDownload",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/backups:import",
+      "owner": "data-protection",
+      "operationId": "importPortableBackup",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/banner",
+      "owner": "site-config",
+      "operationId": "updateBanner",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/bans",
+      "owner": "traffic-guard",
+      "operationId": "listBans",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/bans",
+      "owner": "traffic-guard",
+      "operationId": "createBan",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/bans/{banId}",
+      "owner": "traffic-guard",
+      "operationId": "revokeBan",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/beacons",
+      "owner": "analytics",
+      "operationId": "ingestBeacon",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/bootstrap",
+      "owner": "portal",
+      "operationId": "loadBootstrap",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/branding",
+      "owner": "site-config",
+      "operationId": "updateBranding",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/budget-policy",
+      "owner": "model-gateway",
+      "operationId": "readFeeBudgetPolicy",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/budget-policy",
+      "owner": "model-gateway",
+      "operationId": "putFeeBudgetPolicy",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/builds",
+      "owner": "knowledge",
+      "operationId": "listBuilds",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/builds",
+      "owner": "knowledge",
+      "operationId": "createBuild",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/builds/{buildId}",
+      "owner": "knowledge",
+      "operationId": "getBuild",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/builds/{buildId}/cancel",
+      "owner": "knowledge",
+      "operationId": "cancelBuild",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/builds/{buildId}/diagnostics",
+      "owner": "knowledge",
+      "operationId": "redactDiagnostics",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/catalog:refresh",
+      "owner": "model-gateway",
+      "operationId": "refreshModelCatalog",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 30000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/challenges",
+      "owner": "traffic-guard",
+      "operationId": "issueChallenge",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/challenges/{challengeId}:verify",
+      "owner": "traffic-guard",
+      "operationId": "verifyChallenge",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cleanup-plans",
+      "owner": "media",
+      "operationId": "proposeManualCleanup",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/cleanup-plans/{planId}",
+      "owner": "media",
+      "operationId": "cancelManualCleanup",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cleanup-plans/{planId}:confirm",
+      "owner": "media",
+      "operationId": "confirmManualCleanup",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/config",
+      "owner": "site-config",
+      "operationId": "readSiteConfig",
+      "permission": "site.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/config",
+      "owner": "site-config",
+      "operationId": "updateSiteConfig",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/config/history",
+      "owner": "site-config",
+      "operationId": "readConfigHistory",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/config/history/{revisionId}:restore",
+      "owner": "site-config",
+      "operationId": "restoreConfigRevision",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/context-manifests/{versionHash}",
+      "owner": "memory",
+      "operationId": "readContextManifest",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/conversations",
+      "owner": "qa",
+      "operationId": "createConversation",
+      "permission": "anonymous",
+      "admission": "qa.conversation",
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/conversations/{conversationId}",
+      "owner": "qa",
+      "operationId": "deleteConversation",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/conversations/{conversationId}",
+      "owner": "qa",
+      "operationId": "getConversation",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/deliveries",
+      "owner": "jobs",
+      "operationId": "listDeliveries",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deliveries/{deliveryId}:replay",
+      "owner": "jobs",
+      "operationId": "replayDelivery",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents",
+      "owner": "content",
+      "operationId": "listDocuments",
+      "permission": "content.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents",
+      "owner": "content",
+      "operationId": "createDocument",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents/{documentId}/draft",
+      "owner": "content",
+      "operationId": "readDraft",
+      "permission": "content.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/documents/{documentId}/draft",
+      "owner": "content",
+      "operationId": "saveDraft",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents/{documentId}/history",
+      "owner": "content",
+      "operationId": "readRevisionHistory",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}/history:diff",
+      "owner": "content",
+      "operationId": "diffRevisions",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}/history:rollback",
+      "owner": "content",
+      "operationId": "rollbackPublishedRevision",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/documents/{documentId}/lock",
+      "owner": "content",
+      "operationId": "releaseEditLock",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}/lock",
+      "owner": "content",
+      "operationId": "acquireEditLock",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/documents/{documentId}/lock",
+      "owner": "content",
+      "operationId": "renewEditLock",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}/lock:force-release",
+      "owner": "content",
+      "operationId": "forceReleaseEditLock",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/documents/{documentId}/metadata",
+      "owner": "content",
+      "operationId": "updateDocumentMetadata",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents/{documentId}/published",
+      "owner": "content",
+      "operationId": "readPublishedRevision",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}:publish",
+      "owner": "content",
+      "operationId": "publishDocument",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}:restore",
+      "owner": "content",
+      "operationId": "restoreDocument",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}:trash",
+      "owner": "content",
+      "operationId": "trashDocument",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/documents/{documentId}:withdraw",
+      "owner": "content",
+      "operationId": "withdrawDocument",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/entries",
+      "owner": "memory",
+      "operationId": "listEntries",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/entries",
+      "owner": "memory",
+      "operationId": "createEntry",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/entries/{entryId}",
+      "owner": "memory",
+      "operationId": "readEntry",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/entries/{entryId}",
+      "owner": "memory",
+      "operationId": "updateEntry",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/entries/{entryId}/archive",
+      "owner": "memory",
+      "operationId": "archiveEntry",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/entries/{entryId}/restore",
+      "owner": "memory",
+      "operationId": "restoreEntry",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/entries/{entryId}/revisions",
+      "owner": "memory",
+      "operationId": "listEntryRevisions",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/events",
+      "owner": "portal",
+      "operationId": "openEventStream",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": true
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/footer",
+      "owner": "site-config",
+      "operationId": "updateFooter",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/git-remote",
+      "owner": "data-protection",
+      "operationId": "configureRemote",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/glossary",
+      "owner": "localization",
+      "operationId": "listGlossary",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/glossary-batches/{batchId}:rollback",
+      "owner": "localization",
+      "operationId": "rollbackAutomaticGlossaryBatch",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/glossary/{termId}",
+      "owner": "localization",
+      "operationId": "deleteGlossaryTerm",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/glossary/{termId}",
+      "owner": "localization",
+      "operationId": "putGlossaryTerm",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/home",
+      "owner": "site-config",
+      "operationId": "updateHome",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/home/public",
+      "owner": "site-config",
+      "operationId": "readPublicHome",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/index-config",
+      "owner": "knowledge",
+      "operationId": "readIndexConfig",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/index-config",
+      "owner": "knowledge",
+      "operationId": "putIndexConfig",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/initialization",
+      "owner": "site-config",
+      "operationId": "readInitializationStatus",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/initialization",
+      "owner": "site-config",
+      "operationId": "initializeSite",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/initialization:abort",
+      "owner": "site-config",
+      "operationId": "abortInitialization",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/initialization:resume",
+      "owner": "site-config",
+      "operationId": "resumeInitialization",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/interface-strings/{language}",
+      "owner": "localization",
+      "operationId": "readInterfaceCatalog",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/interface-strings/{language}/{key}",
+      "owner": "localization",
+      "operationId": "putInterfaceString",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/interface-strings/{language}:translate",
+      "owner": "localization",
+      "operationId": "requestInterfaceTranslation",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/jobs",
+      "owner": "jobs",
+      "operationId": "listJobs",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/jobs/{jobId}",
+      "owner": "jobs",
+      "operationId": "readJob",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/jobs/{jobId}/progress",
+      "owner": "jobs",
+      "operationId": "streamProgress",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/jobs/{jobId}:cancel",
+      "owner": "jobs",
+      "operationId": "cancelJob",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/jobs/{jobId}:retry",
+      "owner": "jobs",
+      "operationId": "retryJob",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/language-preferences",
+      "owner": "localization",
+      "operationId": "saveLanguagePreference",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/language-suggestions",
+      "owner": "localization",
+      "operationId": "suggestLanguage",
+      "permission": "anonymous",
+      "admission": "localization.suggest",
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/languages",
+      "owner": "localization",
+      "operationId": "listLanguages",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/languages/{tag}",
+      "owner": "localization",
+      "operationId": "putLanguage",
+      "permission": "localization.languages",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/languages/{tag}/enabled",
+      "owner": "localization",
+      "operationId": "setLanguageEnabled",
+      "permission": "localization.languages",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/languages/{tag}:approve-plan",
+      "owner": "localization",
+      "operationId": "approveLanguagePlan",
+      "permission": "localization.languages",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/languages/{tag}:estimate",
+      "owner": "localization",
+      "operationId": "estimateLanguagePlan",
+      "permission": "localization.languages",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/local-backup-schedule",
+      "owner": "data-protection",
+      "operationId": "scheduleLocalBackup",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/mappings",
+      "owner": "memory",
+      "operationId": "listMappings",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/mappings/{mappingId}",
+      "owner": "memory",
+      "operationId": "removeMapping",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/mappings/{mappingId}",
+      "owner": "memory",
+      "operationId": "putMapping",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/mappings:reorder",
+      "owner": "memory",
+      "operationId": "reorderMappings",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/mirrors",
+      "owner": "data-protection",
+      "operationId": "buildMirror",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/mirrors/status",
+      "owner": "data-protection",
+      "operationId": "readMirrorStatus",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/mirrors/{mirrorId}:sync",
+      "owner": "data-protection",
+      "operationId": "syncMirror",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/policies",
+      "owner": "traffic-guard",
+      "operationId": "getPolicy",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/policies",
+      "owner": "traffic-guard",
+      "operationId": "updatePolicy",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/preferences",
+      "owner": "portal",
+      "operationId": "readPreferences",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/preferences",
+      "owner": "identity",
+      "operationId": "readPreferences",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/preferences",
+      "owner": "portal",
+      "operationId": "updatePreferences",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/preferences",
+      "owner": "identity",
+      "operationId": "updatePreferences",
+      "permission": "portal.use",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/preview/tokens",
+      "owner": "public-site",
+      "operationId": "issuePreviewToken",
+      "permission": "content.preview",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/preview/{token}",
+      "owner": "public-site",
+      "operationId": "handlePreview",
+      "permission": "content.preview",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/previews",
+      "owner": "content",
+      "operationId": "createPreviewGrant",
+      "permission": "content.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/proposals/{proposalId}/approve",
+      "owner": "memory",
+      "operationId": "approveProposal",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/proposals/{proposalId}/reject",
+      "owner": "memory",
+      "operationId": "rejectProposal",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/providers/{providerId}:probe",
+      "owner": "model-gateway",
+      "operationId": "createConnectionProbe",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/public-path:resolve",
+      "owner": "content",
+      "operationId": "resolvePublicPath",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/public-tree",
+      "owner": "content",
+      "operationId": "readPublicTree",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/readiness",
+      "owner": "portal",
+      "operationId": "collectReadiness",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/rebuild-plans",
+      "owner": "knowledge",
+      "operationId": "estimateRebuildPlan",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/rebuild-plans/{planId}:approve",
+      "owner": "knowledge",
+      "operationId": "approveRebuildPlan",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/registration",
+      "owner": "identity",
+      "operationId": "readRegistrationState",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/registration",
+      "owner": "identity",
+      "operationId": "registerFirstSuperadmin",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/restores",
+      "owner": "data-protection",
+      "operationId": "createRestore",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/restores/{restoreId}/progress",
+      "owner": "data-protection",
+      "operationId": "readRestoreProgress",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/restores/{restoreId}:abort",
+      "owner": "data-protection",
+      "operationId": "abortRestore",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/restores/{restoreId}:cleanup",
+      "owner": "data-protection",
+      "operationId": "cleanupRestore",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/restores/{restoreId}:continue",
+      "owner": "data-protection",
+      "operationId": "continueRestore",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/restores:validate",
+      "owner": "data-protection",
+      "operationId": "validateRestore",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/risk-events",
+      "owner": "traffic-guard",
+      "operationId": "listRiskEvents",
+      "permission": "guard.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/schedules",
+      "owner": "jobs",
+      "operationId": "listSchedules",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/schedules",
+      "owner": "jobs",
+      "operationId": "createSchedule",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/schedules/{scheduleId}",
+      "owner": "jobs",
+      "operationId": "updateSchedule",
+      "permission": "job.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/self",
+      "owner": "identity",
+      "operationId": "readSelf",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/self/password:change",
+      "owner": "identity",
+      "operationId": "changePassword",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions",
+      "owner": "identity",
+      "operationId": "readSessions",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions",
+      "owner": "identity",
+      "operationId": "createSession",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sessions/{sessionId}",
+      "owner": "identity",
+      "operationId": "revokeSession",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions:refresh",
+      "owner": "identity",
+      "operationId": "refreshSession",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/settings",
+      "owner": "data-protection",
+      "operationId": "readProtectionSettings",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/setup:restore",
+      "owner": "data-protection",
+      "operationId": "restoreDuringSetup",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/statistics/content-gaps",
+      "owner": "analytics",
+      "operationId": "queryContentGaps",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/statistics/pages",
+      "owner": "analytics",
+      "operationId": "queryPageStatistics",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/statistics/usage",
+      "owner": "analytics",
+      "operationId": "queryUsageStatistics",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/statistics:export",
+      "owner": "analytics",
+      "operationId": "createExport",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/task-assignments/{taskId}",
+      "owner": "model-gateway",
+      "operationId": "putTaskAssignment",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/task-budgets",
+      "owner": "memory",
+      "operationId": "listTaskBudgets",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/task-budgets/{taskId}",
+      "owner": "memory",
+      "operationId": "putTaskBudget",
+      "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/translations",
+      "owner": "localization",
+      "operationId": "createTranslation",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/translations/progress",
+      "owner": "localization",
+      "operationId": "listTranslationProgress",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/translations/{translationId}/cancel",
+      "owner": "localization",
+      "operationId": "cancelTranslation",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/translations/{translationId}/units",
+      "owner": "localization",
+      "operationId": "readTranslationUnits",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/translations/{translationId}/units/{unitId}",
+      "owner": "localization",
+      "operationId": "editTranslationUnit",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/translations/{translationId}/units/{unitId}/protection",
+      "owner": "localization",
+      "operationId": "setUnitProtection",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/trash:purge",
+      "owner": "content",
+      "operationId": "purgeDocuments",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tree",
+      "owner": "content",
+      "operationId": "readDocumentTree",
+      "permission": "content.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tree:move",
+      "owner": "content",
+      "operationId": "moveDocument",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tree:reorder",
+      "owner": "content",
+      "operationId": "reorderChildren",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/turns",
+      "owner": "qa",
+      "operationId": "startTurn",
+      "permission": "anonymous",
+      "admission": "qa.ask",
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/turns/{turnId}/cancel",
+      "owner": "qa",
+      "operationId": "cancelTurn",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/turns/{turnId}/events",
+      "owner": "qa",
+      "operationId": "resumeAnswerStream",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": true
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/turns/{turnId}/feedback",
+      "owner": "qa",
+      "operationId": "recordFeedback",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/uploads",
+      "owner": "media",
+      "operationId": "beginUpload",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/uploads/{uploadId}",
+      "owner": "media",
+      "operationId": "abortUpload",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/uploads/{uploadId}",
+      "owner": "media",
+      "operationId": "readUpload",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/uploads/{uploadId}/chunks",
+      "owner": "media",
+      "operationId": "putUploadChunk",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/uploads/{uploadId}:complete",
+      "owner": "media",
+      "operationId": "completeUpload",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/usage:reconcile",
+      "owner": "analytics",
+      "operationId": "reconcileUsage",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/videos/metadata",
+      "owner": "media",
+      "operationId": "readVideoMetadata",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/",
+      "owner": "public-site",
+      "operationId": "handleHome",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/ask",
+      "owner": "public-site",
+      "operationId": "handleAskShell",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/llms-full.txt",
+      "owner": "public-site",
+      "operationId": "handleLLMsFull",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/llms.txt",
+      "owner": "public-site",
+      "operationId": "handleLLMsIndex",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/navigation",
+      "owner": "public-site",
+      "operationId": "handleNavigation",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/sitemap.xml",
+      "owner": "public-site",
+      "operationId": "handleLanguageSitemap",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/{slug}",
+      "owner": "public-site",
+      "operationId": "handlePage",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/{locale}/{slug}.md",
+      "owner": "public-site",
+      "operationId": "handleMarkdown",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    }
+  ]
+}

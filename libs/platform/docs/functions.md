@@ -135,15 +135,16 @@ func VerifyDelegation(anchors TrustAnchors, proof string, expect DelegationExpec
 - 作用：从入站请求构建可信OperationContext
 
 ```go
-func BuildOperationContext(r *http.Request, anchors TrustAnchors, runtime RuntimeView) (OperationContext, error)
+func BuildOperationContext(r *http.Request, anchors TrustAnchors, self string, runtime RuntimeView) (OperationContext, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `r` | `*http.Request` | 入站请求 | 只读头部 |
+| `r` | `*http.Request` | 入站请求 | 读取头部；正文以副本流读取SHA-256后原样回填，不缓存全文 |
 | `anchors` | `TrustAnchors` | 公钥表 | 必填 |
+| `self` | `string` | 本服务slug，作为断言audience期望 | 必填 |
 | `runtime` | `RuntimeView` | 当前运行状态 | 1秒内读取 |
 
 **输出**

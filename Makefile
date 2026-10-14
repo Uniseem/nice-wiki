@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: check privacy summary docs build gen test
+.PHONY: check privacy summary docs gen build test
 
 check:
 	$(PYTHON) scripts/check_docs.py
@@ -14,6 +14,9 @@ summary:
 docs:
 	$(PYTHON) scripts/render_docs.py
 
-build gen test:
-	@echo '当前为设计阶段；业务实现与对应入口尚未建立，不报告构建或测试通过'
+gen:
+	$(PYTHON) scripts/gen_code.py
+
+build test:
+	@echo '业务实现未完成：构建与测试入口随对应工作包启用，不报告通过'
 	@exit 1

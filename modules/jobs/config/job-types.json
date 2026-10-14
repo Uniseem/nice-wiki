@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "jobTypes": [
+    {
+      "type": "analytics.aggregate-daily",
+      "owner": "analytics",
+      "executor": "analytics.AggregateDaily",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "type": "analytics.aggregate-hourly",
+      "owner": "analytics",
+      "executor": "analytics.AggregateHourly",
+      "schedule": "5 * * * *"
+    },
+    {
+      "type": "analytics.aggregate-usage",
+      "owner": "analytics",
+      "executor": "analytics.AggregateUsage",
+      "schedule": "20 * * * *"
+    },
+    {
+      "type": "analytics.reconcile-usage",
+      "owner": "analytics",
+      "executor": "analytics.ReconcileUsage",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "type": "data-protection.backup",
+      "owner": "data-protection",
+      "executor": "data-protection.ExecuteBackup",
+      "schedule": null
+    },
+    {
+      "type": "data-protection.restore",
+      "owner": "data-protection",
+      "executor": "data-protection.ExecuteRestore",
+      "schedule": null
+    },
+    {
+      "type": "knowledge.build",
+      "owner": "knowledge",
+      "executor": "knowledge.ExecuteBuild",
+      "schedule": null
+    },
+    {
+      "type": "knowledge.extract",
+      "owner": "knowledge",
+      "executor": "knowledge.ExecuteExtraction",
+      "schedule": null
+    },
+    {
+      "type": "localization.cache-answer",
+      "owner": "localization",
+      "executor": "localization.ExecuteCacheAnswerTranslation",
+      "schedule": null
+    },
+    {
+      "type": "localization.document",
+      "owner": "localization",
+      "executor": "localization.ExecuteTranslation",
+      "schedule": null
+    },
+    {
+      "type": "localization.ui",
+      "owner": "localization",
+      "executor": "localization.TranslateInterfaceCatalog",
+      "schedule": null
+    },
+    {
+      "type": "media.cleanup",
+      "owner": "media",
+      "executor": "media.ExecuteManualCleanup",
+      "schedule": null
+    },
+    {
+      "type": "memory.assistant",
+      "owner": "memory",
+      "executor": "memory.RunAssistant",
+      "schedule": null
+    },
+    {
+      "type": "memory.overview",
+      "owner": "memory",
+      "executor": "memory.UpdateProjectOverview",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "type": "public-site.render-publication",
+      "owner": "public-site",
+      "executor": "public-site.PrewarmPublication",
+      "schedule": null
+    },
+    {
+      "type": "qa.cache-embedding",
+      "owner": "qa",
+      "executor": "qa.BuildCacheEmbedding",
+      "schedule": null
+    },
+    {
+      "type": "qa.compact",
+      "owner": "qa",
+      "executor": "qa.RunCompaction",
+      "schedule": null
+    },
+    {
+      "type": "qa.turn",
+      "owner": "qa",
+      "executor": "qa.ExecuteTurn",
+      "schedule": null
+    }
+  ]
+}

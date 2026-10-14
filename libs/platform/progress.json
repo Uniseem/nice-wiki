@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "design",
-  "contractSha256": "c7911225051ff4d666bbcf82b1e43a1d27397467e2ea990ea402bba26c078490",
+  "contractSha256": "a818ba4a53dd91c41038fa0b8d2d93c650af414751e851fe2708e855f93400a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,
@@ -10,6 +10,16 @@
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
+    {
+      "path": "libs/platform/platform.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
     {
       "path": "libs/platform/serviceauth/assertion.go",
       "state": "planned",

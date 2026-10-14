@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 17 个：手写 15、生成 1、配置 1。函数 17 个：约束 17，参考 0。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 18 个：手写 16、生成 1、配置 1。函数 17 个：约束 17，参考 0。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -21,5 +21,6 @@
 | `libs/platform/lifecycle/restore_swap.go` | 手写 | 恢复换目录 | `platform.ApplyRestoreSwap` |
 | `libs/platform/lifecycle/service.go` | 手写 | 进程模板 | `platform.RunService` |
 | `libs/platform/cmd/nw-keys/main.go` | 手写 | 服务密钥生成工具 | `platform.main` |
+| `libs/platform/platform.go` | 手写 | 跨包共享的契约类型与客户端接口：types.json全部类型、公共schema映射及Tx/OutboxStore/JobsClient/GatewayClient/SiteConfigClient/EventHandlerRegistry/JobExecutorRegistry/ServiceSpec，不含行为 | 无 |
 | `libs/platform/go.mod` | 配置 | Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用 | 无 |
 | `libs/platform/go.sum` | 生成 | 依赖校验锁；由go mod download生成 | 无 |

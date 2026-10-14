@@ -1,0 +1,112 @@
+// Package inbox 实现事件处理函数的去重与事件订阅循环。
+//
+// 处理函数在本地事务内调用ClaimInbox完成eventId去重与低修订拒绝，
+// 提交后由订阅循环确认；未确认投递到期由jobs重投。
+package inbox
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"strings"
+
+	"nice-wiki/libs/platform"
+)
+
+// SchemaSQL inbox表结构；各服务启动时以platform为准建表。
+const SchemaSQL = `CREATE TABLE IF NOT EXISTS nw_inbox (
+	event_id      TEXT PRIMARY KEY,
+	event_type    TEXT NOT NULL,
+	event_version INTEGER NOT NULL,
+	producer      TEXT NOT NULL,
+	subject_id    TEXT NOT NULL,
+	revision      INTEGER NOT NULL,
+	payload_hash  TEXT NOT NULL,
+	state         TEXT NOT NULL DEFAULT 'applied',
+	processed_at  TEXT NOT NULL
+)`
+const schemaIndexSQL = `CREATE INDEX IF NOT EXISTS idx_nw_inbox_subject ON nw_inbox (subject_id, revision)`
+
+// EnsureSchema 创建inbox表与索引；幂等。
+func EnsureSchema(ctx context.Context, db *sql.DB) error {
+	if _, err := db.ExecContext(ctx, SchemaSQL); err != nil {
+		return platform.NewError(platform.CodeInternal, true, "创建inbox表失败")
+	}
+	if _, err := db.ExecContext(ctx, schemaIndexSQL); err != nil {
+		return platform.NewError(platform.CodeInternal, true, "创建inbox索引失败")
+	}
+	return nil
+}
+
+const lookupSQL = `SELECT payload_hash, state FROM nw_inbox WHERE event_id = ?`
+const maxRevisionSQL = `SELECT MAX(revision) FROM nw_inbox WHERE subject_id = ?`
+const insertSQL = `INSERT INTO nw_inbox
+	(event_id, event_type, event_version, producer, subject_id, revision, payload_hash, state, processed_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', ?)`
+const quarantineSQL = `UPDATE nw_inbox SET state = 'quarantined' WHERE event_id = ?`
+
+// ClaimInbox 事件处理函数的inbox去重，与业务写入同一事务提交：
+// 同eventId同hash返回false；同eventId异hash返回INTEGRITY_ERROR并隔离；
+// 同subject低于已处理revision返回false；首次插入并返回true。
+func ClaimInbox(tx platform.Tx, envelope platform.EventEnvelope) (bool, error) {
+	if err := validateEnvelope(envelope); err != nil {
+		return false, err
+	}
+	payloadHash := platform.HashBytes(envelope.Payload)
+	ctx := context.Background()
+	var existingHash, state string
+	err := tx.QueryRowContext(ctx, lookupSQL, envelope.EventID).Scan(&existingHash, &state)
+	switch {
+	case err == nil:
+		if existingHash != payloadHash {
+			if state != "quarantined" {
+				if _, qerr := tx.ExecContext(ctx, quarantineSQL, envelope.EventID); qerr != nil {
+					return false, platform.NewError(platform.CodeInternal, true, "隔离inbox行失败")
+				}
+			}
+			return false, platform.NewError(platform.CodeIntegrityError, false, "同eventId的事件载荷不一致")
+		}
+		return false, nil
+	case !errors.Is(err, sql.ErrNoRows):
+		return false, platform.NewError(platform.CodeInternal, true, "读取inbox失败")
+	}
+	var maxRevision sql.NullInt64
+	if err := tx.QueryRowContext(ctx, maxRevisionSQL, envelope.SubjectID).Scan(&maxRevision); err != nil {
+		return false, platform.NewError(platform.CodeInternal, true, "读取inbox修订失败")
+	}
+	if maxRevision.Valid && envelope.Revision < maxRevision.Int64 {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx, insertSQL,
+		envelope.EventID, envelope.EventType, envelope.EventVersion, envelope.Producer,
+		envelope.SubjectID, envelope.Revision, payloadHash, platform.Now()); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			// 并发首次投递同eventId：视为重复。
+			return false, nil
+		}
+		return false, platform.NewError(platform.CodeInternal, true, "写入inbox失败")
+	}
+	return true, nil
+}
+
+// validateEnvelope 校验信封字段与载荷；载荷schema由消费方配置校验。
+func validateEnvelope(envelope platform.EventEnvelope) error {
+	switch {
+	case !platform.ValidIdentifier(envelope.EventID),
+		envelope.EventType == "",
+		envelope.EventVersion < 1,
+		envelope.Producer == "",
+		!platform.ValidIdentifier(envelope.SubjectID),
+		envelope.Revision < 0,
+		envelope.DataEpoch == "":
+		return platform.NewError(platform.CodeValidation, false, "事件信封不完整")
+	}
+	if _, err := platform.ParseTimestamp(envelope.OccurredAt); err != nil {
+		return platform.NewError(platform.CodeValidation, false, "事件发生时间不合法")
+	}
+	if !json.Valid(envelope.Payload) {
+		return platform.NewError(platform.CodeValidation, false, "事件载荷不是合法JSON")
+	}
+	return nil
+}

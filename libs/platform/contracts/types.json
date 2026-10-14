@@ -237,7 +237,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 2048,
-          "description": "路由ID"
+          "description": "portal入口填期望路由ID；下游链路原样转发时留空表示不核对路由"
         },
         "bodyHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -339,6 +339,10 @@
           "minimum": 100,
           "maximum": 10000,
           "description": "空闲轮询间隔"
+        },
+        "runtime": {
+          "x-internal": true,
+          "description": "Go函数，不序列化；读取当前RuntimeView，用于屏障与换代判断"
         }
       },
       "required": [
@@ -373,6 +377,14 @@
           "minimum": 1,
           "maximum": 16,
           "description": "并发上限"
+        },
+        "runtime": {
+          "x-internal": true,
+          "description": "Go函数，不序列化；读取当前RuntimeView，用于旧代跳过与屏障暂停"
+        },
+        "validatePayload": {
+          "x-internal": true,
+          "description": "Go函数，不序列化；按生产方payloadSchema校验载荷，返回错误即不确认"
         }
       },
       "required": [
@@ -402,9 +414,20 @@
           "minimum": 1,
           "maximum": 8,
           "description": "并发上限"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本域slug，作为jobs领取owner"
+        },
+        "runtime": {
+          "x-internal": true,
+          "description": "Go函数，不序列化；读取当前RuntimeView，维护期间暂停领取"
         }
       },
       "required": [
+        "owner",
         "jobTypes",
         "maxConcurrency"
       ]
@@ -425,6 +448,10 @@
         "stream": {
           "type": "boolean",
           "description": "是否逐条回调"
+        },
+        "onEvent": {
+          "x-internal": true,
+          "description": "Go流式回调，不序列化；非nil时每收到一条StreamEvent调用一次，返回错误即中止"
         }
       },
       "required": [

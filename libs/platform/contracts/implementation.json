@@ -279,20 +279,28 @@
         {
           "id": "platform.BuildOperationContext",
           "name": "BuildOperationContext",
-          "signature": "func BuildOperationContext(r *http.Request, anchors TrustAnchors, runtime RuntimeView) (OperationContext, error)",
+          "signature": "func BuildOperationContext(r *http.Request, anchors TrustAnchors, self string, runtime RuntimeView) (OperationContext, error)",
           "inputs": [
             {
               "name": "r",
               "type": "*http.Request",
               "description": "入站请求",
               "constraints": [
-                "只读头部"
+                "读取头部；正文以副本流读取SHA-256后原样回填，不缓存全文"
               ]
             },
             {
               "name": "anchors",
               "type": "TrustAnchors",
               "description": "公钥表",
+              "constraints": [
+                "必填"
+              ]
+            },
+            {
+              "name": "self",
+              "type": "string",
+              "description": "本服务slug，作为断言audience期望",
               "constraints": [
                 "必填"
               ]
@@ -1308,6 +1316,12 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "libs/platform/platform.go",
+      "kind": "handwritten",
+      "purpose": "跨包共享的契约类型与客户端接口：types.json全部类型、公共schema映射及Tx/OutboxStore/JobsClient/GatewayClient/SiteConfigClient/EventHandlerRegistry/JobExecutorRegistry/ServiceSpec，不含行为",
+      "functions": []
     },
     {
       "path": "libs/platform/go.mod",

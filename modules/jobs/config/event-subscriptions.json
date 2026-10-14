@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "subscriptions": [
+    {
+      "event": "cache-answer.translated",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "qa.StoreLocalizedCacheAnswer"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "data-protection",
+      "handler": "data-protection.MirrorSourceRevision"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "knowledge.HandlePublication"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "localization",
+      "handler": "localization.HandlePublication"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "memory",
+      "handler": "memory.CountPublication"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "public-site",
+      "handler": "public-site.InvalidatePublication"
+    },
+    {
+      "event": "content.publication.changed",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "qa.InvalidateCache"
+    },
+    {
+      "event": "content.publication.withdrawn",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "knowledge.RetireDocumentIndex"
+    },
+    {
+      "event": "content.publication.withdrawn",
+      "version": 1,
+      "consumer": "localization",
+      "handler": "localization.InvalidateDocumentTranslations"
+    },
+    {
+      "event": "content.publication.withdrawn",
+      "version": 1,
+      "consumer": "public-site",
+      "handler": "public-site.InvalidatePublication"
+    },
+    {
+      "event": "content.publication.withdrawn",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "qa.InvalidateCache"
+    },
+    {
+      "event": "content.resources.changed",
+      "version": 1,
+      "consumer": "media",
+      "handler": "media.ApplyReferenceEvent"
+    },
+    {
+      "event": "glossary.proposal.applied",
+      "version": 1,
+      "consumer": "memory",
+      "handler": "memory.HandleGlossaryProposalResult"
+    },
+    {
+      "event": "glossary.proposal.rejected",
+      "version": 1,
+      "consumer": "memory",
+      "handler": "memory.HandleGlossaryProposalResult"
+    },
+    {
+      "event": "identity.authorization.changed",
+      "version": 1,
+      "consumer": "traffic-guard",
+      "handler": "traffic-guard.ConsumeIdentityEvent"
+    },
+    {
+      "event": "index.retired",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "qa.InvalidateCache"
+    },
+    {
+      "event": "invocation.settled",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "analytics.ConsumeAnalyticsEvent"
+    },
+    {
+      "event": "jobs.barrier-state-changed.v1",
+      "version": 1,
+      "consumer": "data-protection",
+      "handler": "data-protection.ConsumeBarrierEvent"
+    },
+    {
+      "event": "memory.context.changed",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "qa.InvalidateCache"
+    },
+    {
+      "event": "qa.turn.completed",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "analytics.ProjectQaTurn"
+    },
+    {
+      "event": "qa.turn.failed",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "analytics.ProjectQaTurn"
+    },
+    {
+      "event": "translation.ready",
+      "version": 1,
+      "consumer": "public-site",
+      "handler": "public-site.InvalidatePublication"
+    }
+  ]
+}
