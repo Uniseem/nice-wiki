@@ -1,0 +1,14 @@
+{
+  "module": "memory",
+  "listen": "127.0.0.1:8109",
+  "dataRoot": "/data/memory",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/memory-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "model-gateway": "http://127.0.0.1:8105",
+    "localization": "http://127.0.0.1:8108",
+    "jobs": "http://127.0.0.1:8111",
+    "site-config": "http://127.0.0.1:8102"
+  }
+}
