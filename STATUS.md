@@ -3,7 +3,7 @@
 阶段：R1实施中；本轮启动装配、运行状态控制库与身份纯规则已实现并合并，业务编译、行为验收和部署尚未完成。
 
 - old归档提交272bddc保存全部旧代码、旧文档及会话记录；旧server/web/api/deploy相对原main的blob未改变。main当前树只保留新框架、许可和产品需求快照，不复用旧业务实现。
-- 站点功能及细节按old产品基线保留；分成15个独立服务加2个共享组件（libs/platform、deploy），当前实际结构检查统计832个文件、896个函数、372个HTTP操作、2160个类型定义（含公共类型引用和内部类型）；约束/参考数量见各域files.md。已实现条目仍须以模块progress.json和检查证据为准，不能视为业务验收通过。
+- 站点功能及细节按old产品基线保留；分成15个独立服务加2个共享组件（libs/platform、deploy），当前实际结构检查统计833个文件、898个函数、372个HTTP操作、2161个类型定义（含公共类型引用和内部类型）；约束/参考数量见各域files.md。已实现条目仍须以模块progress.json和检查证据为准，不能视为业务验收通过。
 - 每域有总索引、架构/数据/API/流程/文件/函数/运维/验收文档、四份机器契约，以及STATUS/progress/handoff。独立启动、健康/就绪、构建部署和UI装配条目已登记。
 - 多会话按独立worktree和模块所有权开发；公共契约由集成会话统一修改。2026-10-15按用户授权并行启动10个模块工作包，分别记录了基线、独占目录、提交和阻塞；根公共结构登记由本集成会话统一完成。
 - 隔离VPS执行 `make check` 已通过：JSON/引用、文档文件链接、15模块资料、函数/类型/HTTP/权限/依赖、唯一事件生产方与载荷、结构清单、交接台账和隐私。未运行新业务编译、业务测试、E2E、真实模型或部署；检查不证明业务行为正确。
@@ -23,6 +23,7 @@
 - R1-01第二个工作包（identity私有持久化）已实现并合并（分支codex/identity-r1-01-storage，基线bbb1e535c2f1，实现提交28af316bf6a）：internal/storage.go打开active/identity.db（modernc.org/sqlite v1.59.0，WAL/foreign_keys/busy_timeout=3000ms，单连接串行）、migrations/只追加SQL迁移（编号连续校验、事务执行、集外版本拒绝启动）、control区identity-journal.jsonl决定日志（append+fsync、open条目INTEGRITY_ERROR隔离）；0001_domain.sql建accounts/credentials/account_permissions/sessions/preferences/operation_receipts权威表。BuildApplication存储步骤与Ready深度校验（initialized/journalRecovered/activeDataEpoch代次比对）生效。合同同步：implementation.json增3文件4函数并重算台账摘要，framework.json+3，THIRD_PARTY_NOTICES补modernc.org/sqlite。本地与隔离VPS检查通过。
 
 - 2026-10-15并行交付已合并：identity纯规则（NormalizeAccountName、HashPassword、VerifyPassword、ValidatePasswordChange）、site-config运行状态控制库（control.db、RuntimeState/CAS、14域activationReceipts、localRuntime与Ready真实判定），以及jobs、content、media、traffic-guard、analytics、model-gateway、memory、localization的启动/健康/就绪/退出装配和非敏感配置。各模块业务存储、handler、journal、事件/任务循环或模型调用按依赖保持blocked/planned，未写伪联调成功；具体提交、函数状态和缺口见各域STATUS/progress/handoff。
-- 集成会话补齐了docs/structure/framework.json的81个实际文件登记，并登记golang.org/x/crypto v0.28.0与golang.org/x/text v0.20.0；`python scripts/check_docs.py`在本地返回0（832文件/896函数/372操作/2160类型）。本机没有make、Go、gofmt、Docker，未执行make check、编译、vet、生成、镜像或业务测试；未push、未部署、未改旧运行数据。
+- 集成会话补齐了docs/structure/framework.json的81个实际文件登记，并登记golang.org/x/crypto v0.28.0与golang.org/x/text v0.20.0；`python scripts/check_docs.py`在本地返回0（833文件/898函数/372操作/2161类型）。本机没有make、Go、gofmt、Docker，未执行make check、编译、vet、生成、镜像或业务测试；未push、未部署、未改旧运行数据。
+- 2026-10-15第二轮并行工作包已合并：identity.AssertSuperadminImmutable、jobs.ValidateJobSpec、content.RecoverPreparedCommits、media的blob/上传校验前置、traffic-guard.ValidatePolicy，以及site-config active DB与公告journal恢复。模块台账均如实标记实现与未验证状态；本轮新增7个实际文件已登记framework.json，结构/隐私检查通过，Go编译和业务验收仍未执行。
 
-下一步：在具备Go/VPS工具链后，按各模块handoff逐项复核本轮新增启动与持久化代码，先完成允许的格式/编译/静态检查；随后按依赖顺序继续实现各域下一项纯规则或持久化函数。不得把本轮结构检查当作业务验收，也不push或部署。
+下一步：在具备Go/VPS工具链后，按各模块handoff逐项复核两轮新增代码，先完成允许的格式/编译/静态检查；随后按依赖顺序继续实现各域下一项纯规则或持久化函数。不得把结构检查当作业务验收，也不push或部署。

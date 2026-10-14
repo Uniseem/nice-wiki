@@ -2907,6 +2907,41 @@
       "path": "modules/traffic-guard/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/content/internal/revision_files.go",
+      "kind": "handwritten",
+      "purpose": "持久写权威正文文件"
+    },
+    {
+      "path": "modules/jobs/internal/validation.go",
+      "kind": "handwritten",
+      "purpose": "验证任务入口；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/media/internal/blob_repository.go",
+      "kind": "handwritten",
+      "purpose": "将已验证文件提交不可变内容寻址存储"
+    },
+    {
+      "path": "modules/media/internal/upload_validator.go",
+      "kind": "handwritten",
+      "purpose": "清理展示文件名而不用于路径"
+    },
+    {
+      "path": "modules/site-config/internal/announcement_files.go",
+      "kind": "handwritten",
+      "purpose": "持久写不可变公告正文文件"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0001_active.sql",
+      "kind": "migration",
+      "purpose": "初始active业务索引表：schema_migrations、site_config_state、config_revision_index与announcement_heads"
+    },
+    {
+      "path": "modules/traffic-guard/internal/policy.go",
+      "kind": "handwritten",
+      "purpose": "校验风控参数；同文件职责限本域以下登记函数"
     }
   ]
 }
