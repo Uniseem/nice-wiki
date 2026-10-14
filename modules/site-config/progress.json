@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "site-config",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "4cd202692e443d73cbd4c215d241e14e55fe6407be18a2f45ad3ebfd614a96ce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-02（GLM/ZCode，启动装配组）",
+  "branch": "codex/site-config-r1-02",
+  "baseCommit": "ffe1ae4ccbb7ce33f8fbcec19bc888865fdedf24",
+  "deliveryCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
   "deployment": "not_started",
   "files": [
     {
@@ -252,58 +252,58 @@
     },
     {
       "path": "modules/site-config/cmd/site-config/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过；入口三步（配置解析/信号/RunService模板/30秒Shutdown退出语义）全部由平台进程模板承担，无本域额外子命令"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "步骤2-6的运行控制库读取、业务存储打开与schema迁移、全部OpenAPI x-handler绑定、换向后registerActivation回执、RecoverAnnouncementJournal/RelayOutbox后台循环依赖业务函数；目录布局、信任锚、签名密钥、本地运行权威读取接入与ApplyRestoreSwap已随交付提交实现"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/go.sum",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -312,8 +312,8 @@
     },
     {
       "path": "modules/site-config/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -322,8 +322,8 @@
     },
     {
       "path": "modules/site-config/config/service.defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -332,8 +332,8 @@
     },
     {
       "path": "modules/site-config/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -815,69 +815,69 @@
     {
       "id": "site-config.main",
       "path": "modules/site-config/cmd/site-config/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过；合同三步全部经lifecycle.RunService实现（严格配置解析exit2、SIGINT/SIGTERM、30秒Shutdown、退出0/1/2/75）"
       },
       "blocker": null
     },
     {
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "合同步骤2-6未完：本域运行控制库（control.db）读取未实现（localRuntime如实返回DEPENDENCY_UNAVAILABLE，不用占位数据冒充权威，随runtime_state_service工作包落地）、active区DB打开与schema迁移、公告journal恢复、全部OpenAPI x-handler绑定、换向后site-config.RegisterActivation回执（需stageId/manifestHash/域签名）、RecoverAnnouncementJournal与RelayOutbox后台循环；已实现：module/data目录/secretRef验证、active-control-restore布局、信任锚与签名密钥加载、自身权威读取接入、ApplyRestoreSwap接入（换向后因回执依赖未实现而拒绝开放入口）"
     },
     {
       "id": "site-config.Serve",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；运行状态每5秒轮询与退出码75由RunService+WatchRuntime承担，读取目标为本域控制库"
       },
       "blocker": null
     },
     {
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；outbox/journal flush与DB close随业务存储工作包接入"
       },
       "blocker": null
     },
     {
       "id": "site-config.Health",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
       },
       "blocker": null
     },
     {
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）；本域读取自身权威：控制库落地前readyz如实返回503 DEPENDENCY_UNAVAILABLE，schema/journal/epoch深度校验随业务存储落地（见handoff）"
       },
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "R1-02首个工作包已交付启动装配组：9个文件创建，main/Serve/Shutdown/Health/Ready按合同实现并过已有检查；BuildApplication的部分合同步骤依赖业务函数与运行控制库，保持blocked如实登记。其余业务文件/函数仍planned，逐项认领。"
 }
