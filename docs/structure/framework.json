@@ -2432,6 +2432,11 @@
       "path": "docs/push-log/2026-10-14-0005.md",
       "kind": "documentation",
       "purpose": "R1-00推送记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0006.md",
+      "kind": "documentation",
+      "purpose": "推送记录0006：R1-01 identity启动装配组"
     }
   ]
 }
