@@ -434,6 +434,11 @@
       "purpose": "全局2026-10-14-0001设计/手册/状态记录"
     },
     {
+      "path": "docs/push-log/2026-10-14-0002.md",
+      "kind": "documentation",
+      "purpose": "全局2026-10-14-0002设计/手册/状态记录"
+    },
+    {
       "path": "docs/push-log/_pending.md",
       "kind": "documentation",
       "purpose": "全局_pending设计/手册/状态记录"
