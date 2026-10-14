@@ -1,0 +1,224 @@
+// Package app 装配 portal 的入口路由、运行状态客户端和 HTTP 容器。
+package app
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/serviceauth"
+	portal "nice-wiki/modules/portal/internal"
+	"nice-wiki/modules/portal/internal/gen"
+	"nice-wiki/modules/portal/internal/transport"
+)
+
+const ModuleSlug = "portal"
+
+// BuildApplication 完成 portal 无状态入口的装配。入口没有业务DB，
+// active/control/restore 目录仅为部署布局与后续恢复屏障保留。
+func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
+	if config.Module != ModuleSlug {
+		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
+	}
+	if err := ensureDataLayout(config.DataRoot); err != nil {
+		return nil, err
+	}
+	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
+	if err != nil {
+		return nil, err
+	}
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	runtimeClient, err := NewRuntimeClient(config)
+	if err != nil {
+		return nil, err
+	}
+	view, err := lifecycle.ReadRuntime(ctx, runtimeClient)
+	if err != nil {
+		return nil, err
+	}
+	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
+	if err != nil {
+		return nil, err
+	}
+	if swap.Action != platform.SwapNone {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执尚未装配")
+	}
+	routes, err := loadRouteRegistry()
+	if err != nil {
+		return nil, err
+	}
+	var csrfVerifier portal.IdentityVerifier
+	if base := config.Dependencies["identity"]; base != "" {
+		csrfVerifier = portal.CSRFVerifier{Client: gen.NewIdentityClient(base, ModuleSlug, key)}
+	}
+	return transport.NewApplication(config, anchors, key, runtimeClient, csrfVerifier, routes, view.DataEpoch), nil
+}
+
+// NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存
+// 业务数据；所有运行状态请求由已登记的服务断言客户端发出。
+func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error) {
+	if config.Module != ModuleSlug {
+		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
+	}
+	base := config.Dependencies["site-config"]
+	if base == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "缺少site-config依赖地址")
+	}
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimeAuthority{client: gen.NewSiteConfigClient(base, ModuleSlug, key)}, nil
+}
+
+type runtimeAuthority struct {
+	client *gen.SiteConfigClient
+}
+
+func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
+	raw, err := r.client.ReadRuntimeState(ctx)
+	if err != nil {
+		return platform.RuntimeView{}, err
+	}
+	var result struct {
+		State struct {
+			DataEpoch       string  `json:"dataEpoch"`
+			TargetDataEpoch *string `json:"targetDataEpoch"`
+			Phase           string  `json:"phase"`
+			Maintenance     bool    `json:"maintenance"`
+			RestoreID       *string `json:"restoreId"`
+		} `json:"state"`
+	}
+	if err := json.Unmarshal(raw, &result); err != nil || result.State.DataEpoch == "" || result.State.Phase == "" {
+		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
+	}
+	view := platform.RuntimeView{DataEpoch: result.State.DataEpoch, Phase: result.State.Phase, Maintenance: result.State.Maintenance}
+	if result.State.TargetDataEpoch != nil {
+		view.TargetDataEpoch = *result.State.TargetDataEpoch
+	}
+	if result.State.RestoreID != nil {
+		view.RestoreID = *result.State.RestoreID
+	}
+	return view, nil
+}
+
+type catalogRoute struct {
+	Method      string  `json:"method"`
+	Path        string  `json:"path"`
+	Owner       string  `json:"owner"`
+	OperationID string  `json:"operationId"`
+	Permission  string  `json:"permission"`
+	Admission   *string `json:"admission"`
+	TimeoutMS   *int    `json:"timeoutMs"`
+	Streaming   bool    `json:"streaming"`
+}
+
+type catalogFile struct {
+	Version int             `json:"version"`
+	Routes  []catalogRoute  `json:"routes"`
+}
+
+func loadRouteRegistry() (portal.RouteRegistry, error) {
+	paths := []string{"config/routes.json"}
+	if executable, err := os.Executable(); err == nil {
+		base := filepath.Dir(executable)
+		paths = append(paths, filepath.Join(base, "config", "routes.json"), filepath.Join(base, "..", "config", "routes.json"))
+	}
+	var raw []byte
+	var readErr error
+	for _, path := range paths {
+		raw, readErr = os.ReadFile(path)
+		if readErr == nil {
+			break
+		}
+	}
+	if readErr != nil {
+		return portal.RouteRegistry{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口路由表不可读")
+	}
+	var file catalogFile
+	decoder := json.NewDecoder(strings.NewReader(string(raw)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&file); err != nil || file.Version != 1 || len(file.Routes) == 0 {
+		return portal.RouteRegistry{}, platform.NewError(platform.CodeValidation, false, "入口路由表格式不合法")
+	}
+	local := map[string]bool{
+		"GET\x00/healthz": true, "GET\x00/readyz": true,
+		"POST\x00/v1/barriers": true, "DELETE\x00/v1/barriers/{barrierId}": true,
+		"GET\x00/v1/bootstrap": true, "GET\x00/v1/events": true,
+		"GET\x00/v1/preferences": true, "PUT\x00/v1/preferences": true,
+		"GET\x00/v1/readiness": true,
+	}
+	definitions := make([]portal.RouteDefinition, 0, len(file.Routes))
+	for _, route := range file.Routes {
+		method := strings.ToUpper(route.Method)
+		if local[method+"\x00"+route.Path] || route.Owner == "portal" {
+			continue
+		}
+		timeout := 5000
+		if route.TimeoutMS != nil {
+			timeout = *route.TimeoutMS
+		}
+		maxBody := int64(0)
+		if method != "GET" && method != "HEAD" {
+			maxBody = 16 << 20
+		}
+		admission := ""
+		if route.Admission != nil {
+			admission = *route.Admission
+		}
+		definitions = append(definitions, portal.RouteDefinition{
+			RouteID: route.Owner + ":" + route.OperationID, Method: method, PathTemplate: route.Path,
+			Owner: route.Owner, UpstreamOperationID: route.OperationID,
+			Permission: portal.PermissionRequirement{Permission: route.Permission}, TimeoutMS: timeout,
+			MaxBodyBytes: maxBody, Streaming: route.Streaming, AllowedHeaders: []string{}, Admission: admission,
+		})
+	}
+	compiled, err := portal.CompileRouteRegistry(portal.CompileRouteRegistryInput{Definitions: definitions})
+	if err != nil {
+		return portal.RouteRegistry{}, err
+	}
+	return compiled.Registry, nil
+}
+
+func ensureDataLayout(dataRoot string) error {
+	for _, name := range []string{"active", "control", "restore"} {
+		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
+			return platform.NewError(platform.CodeInternal, false, "建立portal数据布局失败")
+		}
+	}
+	return nil
+}
+
+func loadTrustAnchors(ref string) (platform.TrustAnchors, error) {
+	raw, err := os.ReadFile(ref)
+	if err != nil {
+		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不可读")
+	}
+	var anchors platform.TrustAnchors
+	if err := json.Unmarshal(raw, &anchors); err != nil || len(anchors.Services) == 0 {
+		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不合法")
+	}
+	return anchors, nil
+}
+
+func loadSigningKey(ref string) (platform.SigningKey, error) {
+	raw, err := os.ReadFile(ref)
+	if err != nil {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不可读")
+	}
+	var key platform.SigningKey
+	if err := json.Unmarshal(raw, &key); err != nil || key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不合法")
+	}
+	if _, err := serviceauth.LoadSigningKey(key); err != nil {
+		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名私钥不可用")
+	}
+	return key, nil
+}

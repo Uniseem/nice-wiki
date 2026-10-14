@@ -1,0 +1,23 @@
+{
+  "module": "portal",
+  "listen": "127.0.0.1:8100",
+  "dataRoot": "/data/portal",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/portal-signing-key.json",
+  "dependencies": {
+    "identity": "http://127.0.0.1:8101",
+    "site-config": "http://127.0.0.1:8102",
+    "content": "http://127.0.0.1:8103",
+    "media": "http://127.0.0.1:8104",
+    "public-site": "http://127.0.0.1:8105",
+    "model-gateway": "http://127.0.0.1:8106",
+    "knowledge": "http://127.0.0.1:8107",
+    "qa": "http://127.0.0.1:8108",
+    "localization": "http://127.0.0.1:8109",
+    "memory": "http://127.0.0.1:8110",
+    "jobs": "http://127.0.0.1:8111",
+    "traffic-guard": "http://127.0.0.1:8112",
+    "analytics": "http://127.0.0.1:8113",
+    "data-protection": "http://127.0.0.1:8114"
+  }
+}

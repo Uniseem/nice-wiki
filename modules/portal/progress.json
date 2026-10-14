@@ -1,18 +1,18 @@
 {
   "version": 1,
   "module": "portal",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "6fd33e21e72752ead12a18a268293713f7f39db678ea070e689732016608f6e6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
+  "assignedSession": "portal-route-gate",
+  "branch": "codex/portal-route-gate",
+  "baseCommit": "dc803f1d92f3b9d528ec92e11e929f544bd6a9a1",
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/portal/internal/route_registry.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -22,7 +22,7 @@
     },
     {
       "path": "modules/portal/internal/request_validation.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -32,7 +32,7 @@
     },
     {
       "path": "modules/portal/internal/origin_guard.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -42,7 +42,7 @@
     },
     {
       "path": "modules/portal/internal/auth_proof.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -52,7 +52,7 @@
     },
     {
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -62,7 +62,7 @@
     },
     {
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -172,7 +172,7 @@
     },
     {
       "path": "modules/portal/internal/runtime_state_client.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -182,7 +182,7 @@
     },
     {
       "path": "modules/portal/internal/maintenance_gate.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -192,7 +192,7 @@
     },
     {
       "path": "modules/portal/cmd/portal/main.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -202,7 +202,7 @@
     },
     {
       "path": "modules/portal/internal/app/wire.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -212,7 +212,7 @@
     },
     {
       "path": "modules/portal/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -222,7 +222,7 @@
     },
     {
       "path": "modules/portal/go.mod",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -232,7 +232,7 @@
     },
     {
       "path": "modules/portal/go.sum",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -262,7 +262,7 @@
     },
     {
       "path": "modules/portal/config/service.defaults.json",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -272,7 +272,7 @@
     },
     {
       "path": "modules/portal/deploy/manifest.json",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -395,7 +395,7 @@
     {
       "id": "portal.CompileRouteRegistry",
       "path": "modules/portal/internal/route_registry.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -406,7 +406,7 @@
     {
       "id": "portal.ResolveRoute",
       "path": "modules/portal/internal/route_registry.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -417,7 +417,7 @@
     {
       "id": "portal.ValidateEnvelope",
       "path": "modules/portal/internal/request_validation.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -428,7 +428,7 @@
     {
       "id": "portal.NormalizeForwardHeaders",
       "path": "modules/portal/internal/request_validation.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -439,7 +439,7 @@
     {
       "id": "portal.AssertSameOrigin",
       "path": "modules/portal/internal/origin_guard.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -450,7 +450,7 @@
     {
       "id": "portal.VerifyCSRF",
       "path": "modules/portal/internal/origin_guard.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -461,7 +461,7 @@
     {
       "id": "portal.ResolveAuthContext",
       "path": "modules/portal/internal/auth_proof.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -472,7 +472,7 @@
     {
       "id": "portal.BuildInternalProof",
       "path": "modules/portal/internal/auth_proof.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -483,7 +483,7 @@
     {
       "id": "portal.AuthorizeRoute",
       "path": "modules/portal/internal/auth_proof.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -494,7 +494,7 @@
     {
       "id": "portal.ForwardRequest",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -505,7 +505,7 @@
     {
       "id": "portal.StreamResponse",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -516,7 +516,7 @@
     {
       "id": "portal.MapUpstreamFailure",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -527,7 +527,7 @@
     {
       "id": "portal.ProxyRequest",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -549,7 +549,7 @@
     {
       "id": "portal.BuildCapabilities",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -560,7 +560,7 @@
     {
       "id": "portal.BuildNavigation",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -846,7 +846,7 @@
     {
       "id": "portal.ReadRuntimeState",
       "path": "modules/portal/internal/runtime_state_client.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -857,7 +857,7 @@
     {
       "id": "portal.CheckEntranceGate",
       "path": "modules/portal/internal/maintenance_gate.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -868,7 +868,7 @@
     {
       "id": "portal.AcquireBarrier",
       "path": "modules/portal/internal/maintenance_gate.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -879,7 +879,7 @@
     {
       "id": "portal.ReleaseBarrier",
       "path": "modules/portal/internal/maintenance_gate.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -890,7 +890,7 @@
     {
       "id": "portal.main",
       "path": "modules/portal/cmd/portal/main.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -901,7 +901,7 @@
     {
       "id": "portal.BuildApplication",
       "path": "modules/portal/internal/app/wire.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -912,7 +912,7 @@
     {
       "id": "portal.Serve",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -923,7 +923,7 @@
     {
       "id": "portal.Shutdown",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -934,7 +934,7 @@
     {
       "id": "portal.Health",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -945,7 +945,7 @@
     {
       "id": "portal.Ready",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "planned",
+      "state": "implemented",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -965,5 +965,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本次仅交付路由/入口安全/维护门禁与HTTP外壳首片；跨域授权上下文、bootstrap/偏好/SSE、审计、UI及容器镜像仍planned或blocked，不以fail-closed响应冒充业务完成。"
 }

@@ -2,22 +2,29 @@
 
 ## 本次事实
 
-2026-10-14 建立分布式服务设计，业务行为按 old 产品基线保留。已完成文档编写，尚无新业务代码、业务运行或部署；未来文件/函数全部 planned。功能验收未执行，未调用真实接口或模型，未增加业务测试/样例。规格检查见根 STATUS 的最终结果。
+2026-10-15 在分支 `codex/portal-route-gate`、基线 `dc803f1d92f3b9d528ec92e11e929f544bd6a9a1` 完成本域首片。独占范围始终为 `modules/portal/`，未改根文件、公共契约、生成物、其他模块，未新增测试或真实接口调用。
 
-## 基线与文件
+已实现文件：
 
-本域合同摘要及每文件/函数状态在 [progress.json](../progress.json)，设计提交以包含本文件的 main 提交为准；首次认领业务时把实际 HEAD 全SHA写入baseCommit，并登记独立worktree/分支/会话范围，不能以本模板代替实际交付SHA。当前无业务交付提交；先用git status核对是否后来已有未提交工作。
+- `internal/route_registry.go`：静态路由编译、路径穿越/双重编码拒绝、精确/最长匹配。
+- `internal/request_validation.go`：请求体/头/媒体类型/operationId 预算与可信头清洗。
+- `internal/origin_guard.go`：同源、常量时间 CSRF 比对和登记的 identity CSRF 客户端适配。
+- `internal/auth_proof.go`、`internal/proxy_stream.go`：预授权、短期委托 proof、有界上游转发、背压流回传和失败映射。
+- `internal/runtime_state_client.go`、`internal/maintenance_gate.go`：site-config runtime 读取、维护入口门禁和 data-protection 屏障状态。
+- `internal/bootstrap_service.go`：权限能力与固定导航纯规则。
+- `internal/app/wire.go`、`internal/transport/server.go`、`cmd/portal/main.go`：独立服务装配、健康/就绪、HTTP 生命周期和代理外壳。
+- `go.mod`、`go.sum`、`config/service.defaults.json`、`deploy/manifest.json`：本域工程装配资料。
 
-独占范围是 modules/portal/。根contracts/docs/scripts和其他模块由集成会话维护；禁止跨目录顺手修接口。现有功能、默认及用户操作以 [功能保持矩阵](../../../docs/product-preservation.md) 和本域requirements为准。
+## 检查证据
 
-## 下一步（一项）
+- JSON 解析：portal contracts、routes、service defaults、manifest、progress 均通过。
+- `git diff --check`：通过。
+- 隐私/路径扫描：本次新增源码未写入密钥、正文、原始 IP 或私有地址凭据；配置仅使用示例/部署端点和外部 secret 引用。
+- `python scripts/check_docs.py`：未通过，原因是并行会话新增文件及本次 portal 新文件尚未由集成会话登记根 `docs/structure/framework.json`；本域未越权修改根登记。
+- Go/gofmt/make：本机未安装，未编译、格式化或运行测试。
 
-在用户明确开始业务实施后，完成本域“启动与契约生成准备”：先读根 [启动蓝图](../../../docs/service-bootstrap.md)、本域files/functions/operations；找到本域cmd入口、BuildApplication/Serve/Shutdown、go.mod、生成文件与部署配置的精确登记。确认依赖许可/固定版本与生成器已接受，再按该清单创建这一组文件。依赖模块未实现就如实标等待，不用占位成功结果冒充联调。
+## 未完成与下一项
 
-完成条件：登记入口与配置契约一致、启动/健康/退出不越权、已有允许检查按VPS规则执行并记录提交/证据；新测试、真实接口或模型需单独授权。不能将其他业务函数一起标记完成。
+`LoadBootstrap`、偏好、SSE、审计、完整 identity 授权上下文、traffic-guard admission、UI 和容器构建仍为 `planned`/依赖阻塞；当前 generic 本域业务入口只返回 `DEPENDENCY_UNAVAILABLE`，不伪造成功结果。
 
-## 下一次结束填写
-
-交付提交：未开始。实际修改文件：无业务代码。实际完成函数：0。检查：当前只设计检查，业务未跑。阻塞：业务实施未开始；工程依赖确认与所需运行条件须先落实。下一次请替换这些字段为实际事实，并补未提交文件、失败条件及下一项具体函数；禁止照搬“已完成”。
-
-详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+下一项：先由集成会话登记本次实际文件到根结构清单并在具备 Go/VPS 工具链后复核本地编译；之后再单独认领 `LoadBootstrap` 与 identity 授权客户端，完成条件是按 identity/site-config 合同接入并通过对应编译/静态检查。

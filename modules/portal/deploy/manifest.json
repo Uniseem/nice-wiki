@@ -1,0 +1,15 @@
+{
+  "slug": "portal",
+  "image": "nice-wiki-portal",
+  "command": ["/portal", "--config", "/config/service.defaults.json"],
+  "httpPort": 8100,
+  "dataVolume": "/data/portal",
+  "secrets": [
+    {"name": "trust-anchors", "path": "/run/secrets/trust-anchors.json"},
+    {"name": "portal-signing-key", "path": "/run/secrets/portal-signing-key.json"}
+  ],
+  "probes": {
+    "healthz": "/healthz",
+    "readyz": "/readyz"
+  }
+}
