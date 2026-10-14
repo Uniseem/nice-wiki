@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "qa",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "7c7c63d80c6f98793fc4bf890ebfc15209d08088307eae930f23e6aaf5880192",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-16（NormalizeQuestion纯规则切片）",
+  "branch": "main",
+  "baseCommit": "8ae6fcf6302e2fd41a998faef18be52e2a9714c",
+  "deliveryCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
   "deployment": "not_started",
   "files": [
     {
@@ -72,13 +72,13 @@
     },
     {
       "path": "modules/qa/internal/turn/normalize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "当前环境无Go/gofmt，未能执行格式化与编译；根结构清单登记由集成会话负责"
     },
     {
       "path": "modules/qa/internal/turn/context.go",
@@ -512,13 +512,13 @@
     },
     {
       "path": "modules/qa/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "当前环境无Go工具链，go.sum与完整模块依赖校验待具备工具链后生成"
     },
     {
       "path": "modules/qa/go.sum",
@@ -781,13 +781,13 @@
     {
       "id": "qa.NormalizeQuestion",
       "path": "modules/qa/internal/turn/normalize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "当前环境无Go/gofmt，未能编译或格式化；业务验收未执行"
     },
     {
       "id": "qa.ResolveTurnContext",

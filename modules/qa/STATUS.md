@@ -1,10 +1,11 @@
 # 问答与缓存当前进度
 
-更新：2026-10-14。阶段：设计；本域业务尚未实现、尚未验收、尚未部署。
+更新：2026-10-15。阶段：R1-16 实施中；本域业务验收与部署未开始。
 
-- 架构、数据、HTTP/事件、状态流程和逐文件/函数规格已经写入；全局检查结果以根 STATUS 为准。
-- 未来文件 62 个，函数 61 个；实现/验证/行为验收均为0。逐项事实见 [progress.json](progress.json)。
-- 当前没有认领业务实施会话、没有业务提交或脏业务代码；新会话先核对 Git 状态，不相信旧数量。
-- 下一步：按 [交接](docs/handoff.md) 认领本域启动与契约生成的工程准备，先核对库/生成器选型与已登记文件；本次文档 push 不等于授权立刻实现。
+- 本次基线为 `8ae6fcf6302e2fd41a998faef18be52e2a9714c`，实际工作分支为 `main`；独占范围仅为 `modules/qa/`。
+- 已实现 `qa.NormalizeQuestion`（提交 `4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d`）：NFKC、CRLF/Unicode空白折叠、自然语言大小写规范化、代码/产品标识与否定词保留、500 Unicode 字符/8192 字节限制、确定性问题哈希和最多256个稳定锚点；不读写存储、不接检索、不调用真实模型。
+- 新增 `modules/qa/go.mod` 声明本域独立模块及 `x/text`/`libs/platform` 依赖；未手写生成的 `go.sum`。
+- 本机没有 Go、gofmt、make，源码格式化、编译、vet、模块依赖生成及业务验收均未运行，因此函数和文件保持 `implemented`/`not_run`，不能标为 `verified` 或 `accepted`。
+- 已通过 JSON 解析与 `git diff --check`；根 `docs/structure/framework.json` 的新增文件登记由集成会话处理。未新增测试/样例、真实接口、真实模型、部署或 push。
 
-并行工作只改本域，公共资料交集成会话；开始与结束均同步本状态、台账与交接。
+本域其余 60 个函数仍按 `progress.json` 的逐项状态为 planned。公共契约、根文件、生成物和其他模块均未修改；工作树中已有的 `modules/model-gateway/` 并行改动未触碰、未提交。
