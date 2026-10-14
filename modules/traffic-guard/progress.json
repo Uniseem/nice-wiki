@@ -4,16 +4,16 @@
   "phase": "implementation",
   "contractSha256": "5e01965ea0c39b4708208afaeb2673f8259fab6dcd40c1456d0e8ee25158c1a3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-11（Codex，启动与契约生成准备）",
-  "branch": "codex/traffic-guard-r1-11",
-  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
-  "deliveryCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+  "assignedSession": "R1-12（traffic-guard.ValidatePolicy）",
+  "branch": "codex/traffic-guard-r1-12-policy",
+  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
+  "deliveryCommit": "d597401755cabc77cf31dadf5b9c12260b60b43b",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/traffic-guard/internal/policy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d597401755cabc77cf31dadf5b9c12260b60b43b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -535,8 +535,8 @@
     {
       "id": "traffic-guard.ValidatePolicy",
       "path": "modules/traffic-guard/internal/policy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d597401755cabc77cf31dadf5b9c12260b60b43b",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1094,5 +1094,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "R1-12单项交付：traffic-guard.ValidatePolicy纯规则已实现；源码提交d597401755cabc77cf31dadf5b9c12260b60b43b。仅git diff --check通过，Go/gofmt/make缺失导致编译、格式与make check未运行；业务验收未执行。其余文件/函数保持原状态。"
 }

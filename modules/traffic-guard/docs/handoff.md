@@ -1,5 +1,29 @@
 # 流量风控会话交接
 
+## 本次事实（R1-12 ValidatePolicy 纯规则，2026-10-15）
+
+- 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`。
+- 分支：`codex/traffic-guard-r1-12-policy`；在指定独立 worktree 中完成。
+- 实现提交：`d597401755cabc77cf31dadf5b9c12260b60b43b`；台账提交在本次交付结束前同步完成；未 push、未部署。
+- 独占范围：仅 `modules/traffic-guard/`；根文件、公共 contracts/docs/scripts/libs/deploy、生成目录和其他模块均未修改。
+
+## 本次完成
+
+- 新增 `internal/policy.go`，实现 `traffic-guard.ValidatePolicy` 及其输入/结果类型和本域 `OperationContext`/`GuardPolicy` 别名。
+- 纯规则校验整数主体速率 `1..1000`、突发量 `1..100`、站点速率 `1..100000`、主体/站点并发 `1..128`，并要求 `qaBurst≤qaPerSubjectPerMinute`；成功返回相同策略值，失败返回零值与 `VALIDATION`。
+- `GuardPolicy` 当前类型合同没有挑战难度或 ban TTL 字段，本次没有增加未登记字段或修改生成物；费用/余额字段不进入策略类型，未知字段由 schema 边界拒绝。
+- 不新增测试、样例、快照、E2E、真实接口/模型调用或部署，不产生数据库、日志或其他副作用。
+
+## 检查证据与状态
+
+- `git diff --check` 通过；提交前暂存内容仅含 `modules/traffic-guard/internal/policy.go`，作者为仓库既有 GitHub 代用身份。
+- 本机缺少 Go、gofmt、make，未执行 `go build`、`go vet`、格式化或 `make check`；没有将源码标记为 verified。
+- 业务验收未执行；`M12-R002`/`M12-R003` 仍未进行行为验收。`progress.json` 将本文件与函数标为 implemented、verification 标为 not_run。
+
+## 下一步（一项）
+
+继续实现本域私有策略持久化前，先由集成会话登记 `docs/structure/framework.json` 中的新文件；随后按依赖顺序处理 `GetPolicy`/`UpdatePolicy` 与 SQLite/journal。不得把本次纯函数实现视为业务准入或恢复验收通过。
+
 ## 本次事实（R1-11 启动与契约生成准备，2026-10-15）
 
 - 基线：`ac593c57861d2242f27d07562a2acae535d18c38`。
