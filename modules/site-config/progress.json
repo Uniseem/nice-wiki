@@ -7,7 +7,7 @@
   "assignedSession": "R1-02（active业务存储与公告journal）",
   "branch": "codex/site-config-r1-02-active-storage",
   "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+  "deliveryCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
   "deployment": "not_started",
   "files": [
     {
@@ -173,7 +173,7 @@
     {
       "path": "modules/site-config/internal/announcement_files.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -702,7 +702,7 @@
       "id": "site-config.RecoverAnnouncementJournal",
       "path": "modules/site-config/internal/announcement_files.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
       "verification": {
         "state": "not_run",
         "evidence": null
