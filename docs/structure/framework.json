@@ -504,6 +504,11 @@
       "purpose": "全局2026-10-14-0002设计/手册/状态记录"
     },
     {
+      "path": "docs/push-log/2026-10-14-0003.md",
+      "kind": "documentation",
+      "purpose": "全局2026-10-14-0003设计/手册/状态记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
