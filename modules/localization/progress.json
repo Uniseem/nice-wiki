@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "localization",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "02c1a90a759bb421b0d59c1585167e2e5c352f242a3926a4f76a0b5a1082a313",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "R1-15（Codex，启动与契约生成准备）",
+  "branch": "codex/localization-r1-startup",
+  "baseCommit": "ac593c57861d2242f27d07562a2acae535d18c38",
+  "deliveryCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
   "deployment": "not_started",
   "files": [
     {
@@ -462,11 +462,11 @@
     },
     {
       "path": "modules/localization/deploy/service.config.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "Python JSON 解析通过；仅含非敏感默认值和外部 secret 引用。"
       },
       "blocker": null
     },
@@ -482,108 +482,108 @@
     },
     {
       "path": "modules/localization/cmd/localization/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt，未编译；进程装配仍等待本域业务 handler、持久化、journal 与后台循环。"
     },
     {
       "path": "modules/localization/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "按合同对未实现的业务 handler、存储、journal、outbox、订阅和任务依赖返回 DEPENDENCY_UNAVAILABLE；未编译。"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "HTTP 生命周期代码已登记，Go 编译/gofmt 未运行；业务路由与 worker 尚未接入。"
     },
     {
       "path": "modules/localization/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go，未执行 go mod tidy、build 或 vet。"
     },
     {
       "path": "modules/localization/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未创建；需在允许的 Go/VPS 环境执行 go mod tidy 生成锁文件。"
     },
     {
       "path": "modules/localization/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Docker，未构建镜像。"
     },
     {
       "path": "modules/localization/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 make、Go；未执行 make gen/build/verify。"
     },
     {
       "path": "modules/localization/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Python JSON 解析通过；Docker/部署验证未执行。"
     },
     {
       "path": "modules/localization/ui/package.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "仅完成构建基础配置，未实现本域业务页面。"
     },
     {
       "path": "modules/localization/ui/pnpm-lock.yaml",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "仅锁定构建依赖，未进行发布部署验证。"
     },
     {
       "path": "modules/localization/ui/vite.config.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -592,8 +592,8 @@
     },
     {
       "path": "modules/localization/ui/tsconfig.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -602,8 +602,8 @@
     },
     {
       "path": "modules/localization/ui/index.html",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -612,11 +612,11 @@
     },
     {
       "path": "modules/localization/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "pnpm run typecheck 与 pnpm run build 通过；仅为 UI 挂载基础，不含业务页面。"
       },
       "blocker": null
     },
@@ -1311,79 +1311,79 @@
     {
       "id": "localization.main",
       "path": "modules/localization/cmd/localization/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本机无 Go/gofmt，未编译；入口依赖本域后续业务装配。"
     },
     {
       "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "业务 handler、持久化、journal、outbox、事件订阅与任务循环未实现，按合同返回 DEPENDENCY_UNAVAILABLE；未编译。"
     },
     {
       "id": "localization.Serve",
       "path": "modules/localization/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "Go 编译/gofmt 未运行；worker、普通路由与恢复监视接线尚未完成。"
     },
     {
       "id": "localization.Shutdown",
       "path": "modules/localization/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "当前仅关闭 HTTP 资源；数据库、journal、outbox 与 worker 安全点待后续接入，未编译。"
     },
     {
       "id": "localization.Health",
       "path": "modules/localization/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码已实现但未进行 Go 编译与 HTTP 行为验证。"
     },
     {
       "id": "localization.Ready",
       "path": "modules/localization/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码已实现但本域 journal/存储尚未接入，且未进行 Go 编译与 HTTP 行为验证。"
     },
     {
       "id": "localization.mountModuleUI",
       "path": "modules/localization/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "pnpm run typecheck 与 pnpm run build 通过；未进行浏览器行为验收。"
       },
-      "blocker": null
+      "blocker": "本域业务页面与 API/SSE 客户端尚未实现。"
     },
     {
       "id": "localization.ConsumeEvents",
@@ -1430,5 +1430,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本次仅完成启动与契约生成准备；除登记的启动/UI基础文件外，所有业务文件与函数保持planned。实现状态不等于编译验证或行为验收。"
 }
