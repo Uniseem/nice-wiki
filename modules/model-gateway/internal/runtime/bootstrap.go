@@ -1,0 +1,314 @@
+// Package runtime 负责 model-gateway 本域私有数据库的启动装配。
+// 这里不调用供应方，也不把主密钥或其内容写入数据库、日志或结果。
+package runtime
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"os"
+	"path/filepath"
+	"sync"
+
+	_ "modernc.org/sqlite" // 纯Go SQLite驱动，不依赖CGO。
+
+	"nice-wiki/libs/platform"
+)
+
+const (
+	databaseName       = "model-gateway.db"
+	migrationVersion   = int64(1)
+	migrationName     = "001_initial.sql"
+	maxMasterKeyBytes  = 32
+	minMasterKeyBytes  = 32
+)
+
+// OperationContext 是服务间可信操作上下文的本域别名。
+type OperationContext = platform.OperationContext
+
+// LoadRuntimeInput 是启动时由部署装配注入的私有目录和主密钥引用。
+type LoadRuntimeInput struct {
+	ServiceID     string `json:"serviceId"`
+	MasterKeyRef  string `json:"masterKeyRef"`
+	DataDirectory string `json:"dataDirectory"`
+}
+
+// LoadRuntimeResult 是启动持久化检查的脱敏结果。
+type LoadRuntimeResult struct {
+	Ready         bool  `json:"ready"`
+	CatalogVersion int64 `json:"catalogVersion"`
+}
+
+// Store 是本域 active 数据库句柄。所有业务域写入都应在这个数据库内
+// 完成，不能把它作为HTTP DTO或跨域共享。
+type Store struct {
+	db              *sql.DB
+	dataDirectory   string
+	catalogVersion  int64
+	mu              sync.RWMutex
+	closed          bool
+}
+
+var activeStore struct {
+	sync.RWMutex
+	store *Store
+}
+
+// LoadRuntime 只建立本域私有持久化和迁移；不探测模型、不发起供应方请求。
+// 主密钥引用必须指向恰好32字节的部署secret，读取后只保留在临时缓冲中。
+func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInput) (LoadRuntimeResult, error) {
+	if err := contextError(ctx); err != nil {
+		return LoadRuntimeResult{}, err
+	}
+	if input.ServiceID != "model-gateway" || input.MasterKeyRef == "" || input.DataDirectory == "" {
+		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "model-gateway运行参数不完整")
+	}
+	if !filepath.IsAbs(input.MasterKeyRef) || !filepath.IsAbs(input.DataDirectory) {
+		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "model-gateway路径必须为绝对路径")
+	}
+	if !platform.ValidIdentifier(op.DataEpoch) && op.DataEpoch != "" {
+		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "运行代次不合法")
+	}
+	if err := readMasterKey(input.MasterKeyRef); err != nil {
+		return LoadRuntimeResult{}, err
+	}
+	store, err := OpenDatabase(input.DataDirectory)
+	if err != nil {
+		return LoadRuntimeResult{}, err
+	}
+	installStore(store)
+	return LoadRuntimeResult{Ready: true, CatalogVersion: store.catalogVersion}, nil
+}
+
+// OpenDatabase 打开本域 active/model-gateway.db，启用WAL、外键和短忙等候，
+// 并在同一连接上执行严格的初始迁移。control目录不随业务快照替换。
+func OpenDatabase(dataDirectory string) (*Store, error) {
+	if dataDirectory == "" || !filepath.IsAbs(dataDirectory) {
+		return nil, platform.NewError(platform.CodeValidation, false, "模型网关数据目录必须为绝对路径")
+	}
+	cleanRoot, err := filepath.Abs(filepath.Clean(dataDirectory))
+	if err != nil {
+		return nil, platform.NewError(platform.CodeValidation, false, "模型网关数据目录不合法")
+	}
+	for _, child := range []string{"active", "control", "restore"} {
+		if err := os.MkdirAll(filepath.Join(cleanRoot, child), 0o700); err != nil {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据目录不可用")
+		}
+	}
+
+	dsn := "file:" + filepath.Join(cleanRoot, "active", databaseName) +
+		"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=busy_timeout(3000)"
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeInternal, false, "打开模型网关数据库失败")
+	}
+	db.SetMaxOpenConns(1)
+	store := &Store{db: db, dataDirectory: cleanRoot}
+	if err := db.Ping(); err != nil {
+		_ = db.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "模型网关数据库不可用")
+	}
+	if err := store.runMigrations(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return store, nil
+}
+
+// CurrentStore 返回当前进程安装的本域数据库；调用方不得持有其内部句柄
+// 越过本域事务边界。
+func CurrentStore() *Store {
+	activeStore.RLock()
+	defer activeStore.RUnlock()
+	return activeStore.store
+}
+
+func installStore(store *Store) {
+	activeStore.Lock()
+	activeStore.store = store
+	activeStore.Unlock()
+}
+
+// BeginTx 在数据库关闭或上下文取消时拒绝启动新的本域事务。
+func (s *Store) BeginTx(ctx context.Context) (*sql.Tx, error) {
+	if s == nil || ctx == nil {
+		return nil, platform.NewError(platform.CodeValidation, false, "模型网关事务参数不完整")
+	}
+	s.mu.RLock()
+	closed := s.closed
+	s.mu.RUnlock()
+	if closed {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据库已关闭")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, mapDatabaseError(err)
+	}
+	return tx, nil
+}
+
+// DB 只供本域子包执行只读查询或事务装配，不得传给其他服务。
+func (s *Store) DB() *sql.DB {
+	if s == nil {
+		return nil
+	}
+	return s.db
+}
+
+// SetDataEpoch 在应用装配读取site-config权威后写入本域水位；写业务前由
+// 子包比较该水位，避免旧代次继续修改模型目录。
+func (s *Store) SetDataEpoch(ctx context.Context, dataEpoch platform.Identifier) error {
+	if s == nil || !platform.ValidIdentifier(dataEpoch) {
+		return platform.NewError(platform.CodeValidation, false, "模型网关数据代次不合法")
+	}
+	tx, err := s.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `UPDATE runtime_meta SET data_epoch = ?, updated_at = ? WHERE singleton = 1`, string(dataEpoch), string(platform.Now())); err != nil {
+		return mapDatabaseError(err)
+	}
+	if err := tx.Commit(); err != nil {
+		return mapDatabaseError(err)
+	}
+	return nil
+}
+
+// CheckDataEpoch 拒绝已知旧代次；初次启动尚未从site-config写入水位时，
+// 由应用装配在首次业务写入前完成SetDataEpoch。
+func (s *Store) CheckDataEpoch(ctx context.Context, dataEpoch platform.Identifier) error {
+	if s == nil || !platform.ValidIdentifier(dataEpoch) {
+		return platform.NewError(platform.CodeVersionMismatch, false, "模型网关数据代次不合法")
+	}
+	var current string
+	if err := s.db.QueryRowContext(ctx, `SELECT data_epoch FROM runtime_meta WHERE singleton = 1`).Scan(&current); err != nil {
+		return mapDatabaseError(err)
+	}
+	if current != "" && current != string(dataEpoch) {
+		return platform.NewError(platform.CodeVersionMismatch, false, "模型网关数据代次已变化")
+	}
+	return nil
+}
+
+// Close 关闭数据库并撤销进程内安装；重复关闭安全。
+func (s *Store) Close() error {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return nil
+	}
+	s.closed = true
+	s.mu.Unlock()
+	activeStore.Lock()
+	if activeStore.store == s {
+		activeStore.store = nil
+	}
+	activeStore.Unlock()
+	if err := s.db.Close(); err != nil {
+		return platform.NewError(platform.CodeInternal, false, "关闭模型网关数据库失败")
+	}
+	return nil
+}
+
+func (s *Store) runMigrations() error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return platform.NewError(platform.CodeInternal, true, "开始模型网关迁移失败")
+	}
+	rollback := func(cause error) error {
+		_ = tx.Rollback()
+		return cause
+	}
+	if _, err := tx.Exec(initialSchemaSQL); err != nil {
+		return rollback(platform.NewError(platform.CodeIntegrityError, false, "执行模型网关初始迁移失败"))
+	}
+	var version int64
+	var name string
+	err = tx.QueryRow(`SELECT version, name FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version, &name)
+	if errors.Is(err, sql.ErrNoRows) {
+		version = 0
+	} else if err != nil {
+		return rollback(platform.NewError(platform.CodeIntegrityError, false, "读取模型网关迁移记录失败"))
+	}
+	if version > migrationVersion || (version == migrationVersion && name != migrationName) {
+		return rollback(platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移版本未知"))
+	}
+	if version == 0 {
+		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`, migrationVersion, migrationName, string(platform.Now())); err != nil {
+			return rollback(platform.NewError(platform.CodeInternal, false, "登记模型网关迁移失败"))
+		}
+	}
+	if _, err := tx.Exec(`INSERT OR IGNORE INTO runtime_meta (singleton, data_epoch, updated_at) VALUES (1, '', ?)`, string(platform.Now())); err != nil {
+		return rollback(platform.NewError(platform.CodeInternal, false, "初始化模型网关运行水位失败"))
+	}
+	if err := tx.Commit(); err != nil {
+		return platform.NewError(platform.CodeInternal, false, "提交模型网关迁移失败")
+	}
+	s.catalogVersion = migrationVersion
+	return nil
+}
+
+func readMasterKey(path string) error {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关主密钥不可用")
+	}
+	valid := len(raw) >= minMasterKeyBytes && len(raw) <= maxMasterKeyBytes && len(raw) == minMasterKeyBytes
+	for i := range raw {
+		raw[i] = 0
+	}
+	if !valid {
+		return platform.NewError(platform.CodeValidation, false, "模型网关主密钥长度不合法")
+	}
+	return nil
+}
+
+func contextError(ctx context.Context) error {
+	if ctx == nil {
+		return platform.NewError(platform.CodeValidation, false, "模型网关上下文为空")
+	}
+	select {
+	case <-ctx.Done():
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return platform.NewError(platform.CodeDeadlineExceeded, true, "模型网关启动已超过期限")
+		}
+		return platform.NewError(platform.CodeCancelled, true, "模型网关启动已取消")
+	default:
+		return nil
+	}
+}
+
+func mapDatabaseError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, context.Canceled) {
+		return platform.NewError(platform.CodeCancelled, true, "模型网关数据库操作已取消")
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return platform.NewError(platform.CodeDeadlineExceeded, true, "模型网关数据库操作已超过期限")
+	}
+	return platform.NewError(platform.CodeInternal, true, "模型网关数据库操作失败")
+}
+
+// initialSchemaSQL 与 migrations/001_initial.sql 保持一致；运行时不依赖
+// 安装包中的源码目录。
+const initialSchemaSQL = `
+CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS runtime_meta (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), data_epoch TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS providers (provider_id TEXT PRIMARY KEY, version INTEGER NOT NULL CHECK (version >= 1), adapter TEXT NOT NULL, base_url TEXT NOT NULL, enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)), credential_version INTEGER NOT NULL CHECK (credential_version >= 0), connect_timeout_ms INTEGER NOT NULL CHECK (connect_timeout_ms >= 0), request_timeout_ms INTEGER NOT NULL CHECK (request_timeout_ms >= 0), display_name TEXT NOT NULL, extra_header_names_json BLOB NOT NULL, extra_header_secret_refs_json BLOB NOT NULL, concurrency_limit INTEGER NOT NULL CHECK (concurrency_limit >= 0), stream_idle_timeout_ms INTEGER NOT NULL CHECK (stream_idle_timeout_ms >= 0), data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS models (model_id TEXT PRIMARY KEY, version INTEGER NOT NULL CHECK (version >= 1), provider_id TEXT NOT NULL REFERENCES providers(provider_id), provider_model_version TEXT NOT NULL, capabilities_json BLOB NOT NULL, dimension INTEGER NOT NULL CHECK (dimension >= 0), preprocessor_version TEXT NOT NULL, max_input_tokens INTEGER NOT NULL CHECK (max_input_tokens >= 0), max_output_tokens INTEGER NOT NULL CHECK (max_output_tokens >= 0), catalog_origin TEXT NOT NULL, manual_override INTEGER NOT NULL CHECK (manual_override IN (0, 1)), enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)), data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS operation_receipts (site_id TEXT NOT NULL, actor_id TEXT NOT NULL, function_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, result_json BLOB NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (site_id, actor_id, function_id, idempotency_key));
+CREATE TABLE IF NOT EXISTS invocations (invocation_id TEXT PRIMARY KEY, request_hash TEXT NOT NULL, root_operation_id TEXT NOT NULL, cost_class TEXT NOT NULL, state TEXT NOT NULL, deadline TEXT NOT NULL, price_snapshot_json BLOB NOT NULL, data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS reservations (reservation_id TEXT PRIMARY KEY, invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), maximum_micro_usd INTEGER, held_micro_usd INTEGER, state TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0), pricing_known INTEGER NOT NULL CHECK (pricing_known IN (0, 1)), unknown_usage_count INTEGER NOT NULL CHECK (unknown_usage_count >= 0));
+CREATE TABLE IF NOT EXISTS ledger_entries (entry_id TEXT PRIMARY KEY, invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), provider_request_id TEXT NOT NULL, actual_micro_usd INTEGER, input_tokens INTEGER NOT NULL CHECK (input_tokens >= 0), output_tokens INTEGER NOT NULL CHECK (output_tokens >= 0), status TEXT NOT NULL, created_at TEXT NOT NULL, attempt_id TEXT NOT NULL, pricing_known INTEGER NOT NULL CHECK (pricing_known IN (0, 1)), usage_hash TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS stream_events (invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), sequence INTEGER NOT NULL CHECK (sequence >= 0), event TEXT NOT NULL, payload_json BLOB NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (invocation_id, sequence));
+CREATE TABLE IF NOT EXISTS barriers (barrier_id TEXT PRIMARY KEY, state TEXT NOT NULL, data_epoch TEXT NOT NULL, deadline TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS outbox (event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL, event_version INTEGER NOT NULL, producer TEXT NOT NULL, subject_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), occurred_at TEXT NOT NULL, data_epoch TEXT NOT NULL, payload_json BLOB NOT NULL, payload_hash TEXT NOT NULL, state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0), next_attempt_at TEXT NOT NULL, lease_until TEXT);
+CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (state, next_attempt_at, occurred_at, event_id);
+`
+
