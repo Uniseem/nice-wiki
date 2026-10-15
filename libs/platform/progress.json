@@ -7,16 +7,16 @@
   "assignedSession": "第三轮公共入口边界",
   "branch": "codex/r1-round3-integration",
   "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+  "deliveryCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
   "deployment": "not_started",
   "files": [
     {
       "path": "libs/platform/serviceauth/assertion.go",
       "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
       },
       "blocker": null
     },
@@ -113,10 +113,10 @@
     {
       "path": "libs/platform/lifecycle/config.go",
       "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
       },
       "blocker": null
     },
@@ -173,10 +173,10 @@
     {
       "path": "libs/platform/platform.go",
       "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
       },
       "blocker": null
     },
@@ -327,10 +327,10 @@
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
       "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
       },
       "blocker": null
     },
@@ -633,11 +633,11 @@
     },
     {
       "id": "platform.PrivateNetworkScopes",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
       "verification": {
-        "state": "not_run",
-        "evidence": "新增公共来源边界，等待隔离VPS编译与检查。"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
       },
       "blocker": null
     }

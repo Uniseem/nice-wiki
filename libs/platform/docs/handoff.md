@@ -2,7 +2,7 @@
 
 ## 第三轮恢复实施（2026-10-15）
 
-用户已在第二轮停止后重新授权继续。独占公共源码与合同，补ServiceConfig可信代理网段、PrivateNetworkScopes；登录业务规则仍由identity/guard负责。新增源码尚待VPS，未新增测试或真实调用，不push。
+用户已在第二轮停止后重新授权继续。独占公共源码与合同，补ServiceConfig可信代理网段、PrivateNetworkScopes；登录业务规则仍由identity/guard负责。公共源码提交918dd6369ea7a33bf9296949c8b5441a08d1e88f；合成快照VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过（856文件/1047函数/374操作/2222类型）。portal调用方完成闭环；scripts/gen_code.py依据portal OpenAPI元数据只为已有浏览器TS副本合成四个安全认证操作，内部Go和真实路由保持其各自来源。未新增测试或真实调用，不push。
 
 
 ## 第二轮收尾复核（2026-10-15）

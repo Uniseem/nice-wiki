@@ -6,6 +6,7 @@
 - 每服务 internal/gen/clients.gen.go：按本域函数依赖中的生产方operation
   生成调用客户端，自动附服务断言与操作上下文头，SSE操作返回平台流接口；
 - 有界面的服务 web|ui/src/gen/api.gen.ts：openapi-typescript 浏览器类型；
+  portal认证代理按本域OpenAPI的x-browser-auth-adapters合成安全会话类型；
 - jobs config/job-types.json 与 config/event-subscriptions.json：
   全部模块 implementation.json 的 jobTypes 与 events.json 的 consume条目；
 - jobs internal/gen/job_types.gen.go 与 identity internal/gen/permission_groups.gen.go：
@@ -308,6 +309,53 @@ def bundle_spec(spec_path, initial=None):
     return spec
 
 
+def browser_spec(module, modules, internal_spec):
+    """按portal明确登记的cookie适配生成浏览器协议副本，不改变内部API。"""
+    portal = next(m for m in modules if m["slug"] == "portal")
+    portal_path = ROOT / portal["root"] / "contracts/openapi.json"
+    adapters = load(portal_path).get("x-browser-auth-adapters")
+    if not adapters or module["slug"] not in ("portal", adapters["owner"]):
+        return internal_spec
+    owner = next(m for m in modules if m["slug"] == adapters["owner"])
+    owner_path = ROOT / owner["root"] / "contracts/openapi.json"
+    source = load(owner_path)
+    spec_path = ROOT / module["root"] / "contracts/openapi.json"
+    browser = load(spec_path)
+    method = adapters["method"].lower()
+
+    def rebase(node, base):
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and not ref.startswith(("#", "http://", "https://")):
+                file_part, _, pointer = ref.partition("#")
+                node["$ref"] = str((base.parent / file_part).resolve()) + "#" + pointer
+            for value in node.values():
+                rebase(value, base)
+        elif isinstance(node, list):
+            for value in node:
+                rebase(value, base)
+
+    for oid, adapter in adapters["operations"].items():
+        path = adapter["path"]
+        op = json.loads(json.dumps(source["paths"][path][method], ensure_ascii=False))
+        if op["operationId"] != oid:
+            raise SystemExit("浏览器适配与拥有方operationId不一致: " + oid)
+        rebase(op, owner_path)
+        for kind, field in (("requestSchema", "requestBody"), ("responseSchema", "responses")):
+            ref = adapter[kind]
+            file_part, _, pointer = ref.partition("#")
+            schema = {"$ref": str((portal_path.parent / file_part).resolve()) + "#" + pointer}
+            if field == "requestBody":
+                op[field]["content"]["application/json"]["schema"] = schema
+            else:
+                op[field][str(adapters["successStatus"])]["content"]["application/json"]["schema"] = schema
+        if module["slug"] == "portal" and method in browser.get("paths", {}).get(path, {}):
+            raise SystemExit("浏览器代理路径与portal本域操作冲突: " + path)
+        op["description"] = "浏览器认证协议：敏感凭据由portal适配为cookie，结果仅含安全session。"
+        browser.setdefault("paths", {}).setdefault(path, {})[method] = op
+    return bundle_spec(spec_path, browser)
+
+
 def downgrade_to_30(spec):
     """把打包后的3.1规格确定性降级为oapi-codegen可读的3.0形态。
 
@@ -557,7 +605,7 @@ def main():
                 out = ROOT / ts_registered[0]
                 out.parent.mkdir(parents=True, exist_ok=True)
                 spec_file = tmp / f"{slug}-browser.json"
-                spec_file.write_text(dump(spec), encoding="utf-8")
+                spec_file.write_text(dump(browser_spec(module, modules, spec)), encoding="utf-8")
                 subprocess.run(["pnpm", "dlx", OPENAPI_TYPESCRIPT, str(spec_file), "-o", str(out)], check=True)
                 generated.append(str(out))
     generated += gen_jobs_catalog(modules)
