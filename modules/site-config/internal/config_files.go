@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+ "syscall"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -20,6 +21,9 @@ import (
 )
 
 const configSchemaVersion = 1
+
+// 配置入口总界同样适用于本域持久JSON，损坏文件不能无限读入内存。
+const maxConfigFileBytes = 16 << 20
 
 type configDocument struct {
 	SchemaVersion int            `json:"schemaVersion"`
@@ -138,7 +142,7 @@ func CommitConfigHead(ctx context.Context, op platform.OperationContext, input C
 	if _, err := tx.ExecContext(ctx, `UPDATE site_config_state SET singleton=singleton WHERE singleton=1`); err != nil {
 		return CommitConfigHeadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "取得配置提交写锁失败")
 	}
-	paths, err := filepath.Glob(filepath.Join(store.activeRoot, "journal", "config", "*.committed.json"))
+	paths, err := configJournalPaths(store.activeRoot, "COMMITTED")
 	if err != nil {
 		return CommitConfigHeadResult{}, platform.NewError(platform.CodeIntegrityError, false, "配置决定目录不可读")
 	}
@@ -184,7 +188,7 @@ func RecoverConfigJournal(ctx context.Context, op platform.OperationContext, inp
 	}
 	store.configMu.Lock()
 	defer store.configMu.Unlock()
-	paths, err := filepath.Glob(filepath.Join(store.activeRoot, "journal", "config", "*.committed.json"))
+	paths, err := configJournalPaths(store.activeRoot, "COMMITTED")
 	if err != nil {
 		return RecoverConfigJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "配置journal路径不合法")
 	}
@@ -233,7 +237,7 @@ func RecoverConfigJournal(ctx context.Context, op platform.OperationContext, inp
 			return result, err
 		}
 	}
-	paths, err = filepath.Glob(filepath.Join(store.activeRoot, "journal", "config", "*.prepared.json"))
+	paths, err = configJournalPaths(store.activeRoot, "PREPARED")
 	if err != nil {
 		return result, platform.NewError(platform.CodeIntegrityError, false, "配置PREPARED路径不合法")
 	}
@@ -431,7 +435,7 @@ func readConfigDocument(root string, record configJournalRecord) (gen.SiteConfig
 	if !configPathID(record.SiteID) || !configPathID(record.RevisionID) {
 		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "配置对象路径标识不合法")
 	}
-	raw, err := os.ReadFile(configObjectPath(root, record.SiteID, record.RevisionID))
+	raw, err := readConfigFile(configObjectPath(root, record.SiteID, record.RevisionID))
 	if err != nil {
 		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "配置权威对象缺失")
 	}
@@ -483,7 +487,7 @@ func decodeConfigDocument(raw []byte, object gen.ObjectRef) (gen.SiteConfig, err
 
 func readConfigRecord(path string) (configJournalRecord, error) {
 	var record configJournalRecord
-	raw, err := os.ReadFile(path)
+	raw, err := readConfigFile(path)
 	if err != nil {
 		return record, platform.NewError(platform.CodeIntegrityError, false, "配置journal记录缺失")
 	}
@@ -574,69 +578,139 @@ func writeConfigHead(root string, record configJournalRecord) error {
 	return writeConfigFile(filepath.Join(root, "settings", record.SiteID, "head.json"), raw, false)
 }
 
-// writeConfigFile 同FS临时写、fsync后发布，再fsync父目录。
-// 不可变对象以Link排他发布；head以Rename原子替换。
+// writeConfigFile 所有路径组件都通过目录句柄逐段Lstat；对象不跟随
+// 符号链接。不可变对象以Link排他发布，head以Rename原子替换。
 func writeConfigFile(path string, raw []byte, immutable bool) error {
-	dir := filepath.Dir(path)
-	if err := ensureConfigDirectory(dir); err != nil {
-		return err
-	}
-	file, err := os.CreateTemp(dir, ".config-*")
-	if err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置临时文件不可写")
-	}
-	name := file.Name()
-	defer os.Remove(name)
-	if _, err := file.Write(raw); err != nil {
-		file.Close()
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "写入配置文件失败")
-	}
-	if err := file.Sync(); err != nil {
-		file.Close()
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置文件fsync失败")
-	}
-	if err := file.Close(); err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "关闭配置文件失败")
-	}
-	if immutable {
-		err = os.Link(name, path)
-		if errors.Is(err, os.ErrExist) {
-			existing, readErr := os.ReadFile(path)
-			if readErr != nil || !bytes.Equal(existing, raw) {
-				return platform.NewError(platform.CodeIntegrityError, false, "不可变配置文件被异内容复用")
-			}
-		} else if err != nil {
-			return platform.NewError(platform.CodeDependencyUnavailable, true, "发布不可变配置文件失败")
-		}
-	} else if err := os.Rename(name, path); err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "原子发布配置head失败")
-	}
-	return syncConfigDirectory(dir)
+    if len(raw) > maxConfigFileBytes {
+        return platform.NewError(platform.CodeIntegrityError, false, "配置持久JSON超过16MiB上限")
+    }
+    root, err := openConfigDirectory(filepath.Dir(path), true)
+    if err != nil { return configIOError(err, "配置目录不可写") }
+    defer root.Close()
+    target := filepath.Base(path)
+    if info, err := root.Lstat(target); err == nil {
+        if !info.Mode().IsRegular() { return platform.NewError(platform.CodeIntegrityError,false,"配置目标不是正规文件") }
+    } else if !errors.Is(err,os.ErrNotExist) { return configIOError(err,"配置目标状态不可读") }
+    name := ".config-"+platform.NewIdentifier()
+    file, err := root.OpenFile(name,os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW,0o600)
+    if err != nil { return configIOError(err,"配置临时文件不可写") }
+    defer root.Remove(name)
+    if _,err := file.Write(raw); err != nil { file.Close(); return configIOError(err,"写入配置文件失败") }
+    if err := file.Sync(); err != nil { file.Close(); return configIOError(err,"配置文件fsync失败") }
+    if err := file.Close(); err != nil { return configIOError(err,"关闭配置文件失败") }
+    if immutable {
+        err = root.Link(name,target)
+        if errors.Is(err,os.ErrExist) {
+            existing,err := readConfigRootFile(root,target)
+            if err != nil { return err }
+            if !bytes.Equal(existing,raw) { return platform.NewError(platform.CodeIntegrityError,false,"不可变配置文件被异内容复用") }
+        } else if err != nil { return configIOError(err,"发布不可变配置文件失败") }
+    } else if err := root.Rename(name,target); err != nil { return configIOError(err,"原子发布配置head失败") }
+    return syncConfigRoot(root)
 }
 
-func syncConfigDirectory(path string) error {
-	dir, err := os.Open(path)
-	if err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置目录不可读")
-	}
-	defer dir.Close()
-	if err := dir.Sync(); err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置目录fsync失败")
-	}
-	return nil
+// openConfigDirectory 从文件系统根目录取得能力句柄，逐段拒绝symlink、
+// 特殊文件及非目录。持有已核对的目录句柄，后续IO不再解析绝对父路径。
+func openConfigDirectory(path string,create bool) (*os.Root,error) {
+    absolute,err := filepath.Abs(path)
+    if err != nil { return nil,platform.NewError(platform.CodeIntegrityError,false,"配置目录路径不合法") }
+    volume := filepath.VolumeName(absolute)
+    root,err := os.OpenRoot(volume+string(filepath.Separator))
+    if err != nil { return nil,err }
+    relative := strings.TrimPrefix(absolute,volume+string(filepath.Separator))
+    if relative == "" { return root,nil }
+    for _,part := range strings.Split(relative,string(filepath.Separator)) {
+        info,err := root.Lstat(part)
+        if errors.Is(err,os.ErrNotExist) && create {
+            if err := root.Mkdir(part,0o700); err != nil && !errors.Is(err,os.ErrExist) { root.Close(); return nil,err }
+            if err := syncConfigRoot(root); err != nil { root.Close(); return nil,err }
+            info,err = root.Lstat(part)
+        }
+        if err != nil { root.Close(); return nil,err }
+        if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 { root.Close(); return nil,platform.NewError(platform.CodeIntegrityError,false,"配置目录链包含符号链接或非目录") }
+        next,err := root.OpenRoot(part)
+        if err != nil { root.Close(); return nil,err }
+        opened,statErr := next.Stat(".")
+        after,lstatErr := root.Lstat(part)
+        if statErr != nil || lstatErr != nil || !after.IsDir() || after.Mode()&os.ModeSymlink != 0 || !os.SameFile(info,opened) || !os.SameFile(info,after) {
+            next.Close(); root.Close(); return nil,platform.NewError(platform.CodeIntegrityError,false,"配置目录在打开时改变")
+        }
+        root.Close()
+        root = next
+    }
+    return root,nil
 }
 
-func ensureConfigDirectory(path string) error {
-	if _, err := os.Stat(path); err == nil {
-		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置目录不可读")
-	}
-	if err := ensureConfigDirectory(filepath.Dir(path)); err != nil {
-		return err
-	}
-	if err := os.Mkdir(path, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "配置目录不可写")
-	}
-	return syncConfigDirectory(filepath.Dir(path))
+func readConfigFile(path string) ([]byte,error) {
+    root,err := openConfigDirectory(filepath.Dir(path),false)
+    if err != nil { return nil,configIOError(err,"配置权威目录不可读") }
+    defer root.Close()
+    return readConfigRootFile(root,filepath.Base(path))
+}
+
+// O_NOFOLLOW拒绝末级链接，O_NONBLOCK防止正规文件在打开前被替成FIFO
+// 后阻塞。打开前后核对同一正规文件，并以LimitReader限制并发增长。
+func readConfigRootFile(root *os.Root,name string) ([]byte,error) {
+    before,err := root.Lstat(name)
+    if err != nil { return nil,configIOError(err,"配置权威文件不可读") }
+    if !before.Mode().IsRegular() || before.Size() > maxConfigFileBytes {
+        return nil,platform.NewError(platform.CodeIntegrityError,false,"配置权威文件类型或大小不合法")
+    }
+    file,err := root.OpenFile(name,os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK,0)
+    if err != nil { return nil,configIOError(err,"配置权威文件不可打开") }
+    defer file.Close()
+    opened,err := file.Stat()
+    if err != nil || !opened.Mode().IsRegular() || !os.SameFile(before,opened) {
+        return nil,platform.NewError(platform.CodeIntegrityError,false,"配置权威文件在打开时改变")
+    }
+    raw,err := io.ReadAll(io.LimitReader(file,maxConfigFileBytes+1))
+    if err != nil { return nil,configIOError(err,"读取配置权威文件失败") }
+    after,err := root.Lstat(name)
+    if err != nil || !after.Mode().IsRegular() || !os.SameFile(before,after) || len(raw) > maxConfigFileBytes {
+        return nil,platform.NewError(platform.CodeIntegrityError,false,"配置权威文件读取边界发生变化")
+    }
+    return raw,nil
+}
+
+func configJournalPaths(activeRoot,state string) ([]string,error) {
+    // journal由OpenActiveStore建立；仅config子目录允许首次尚不存在。
+    parent,err := openConfigDirectory(filepath.Join(activeRoot,"journal"),false)
+    if err != nil { return nil,configIOError(err,"配置journal父目录不可读") }
+    defer parent.Close()
+    info,err := parent.Lstat("config")
+    if errors.Is(err,os.ErrNotExist) { return nil,nil }
+    if err != nil { return nil,configIOError(err,"配置journal目录不可读") }
+    if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 { return nil,platform.NewError(platform.CodeIntegrityError,false,"配置journal目录类型不合法") }
+    root,err := parent.OpenRoot("config")
+    if err != nil { return nil,configIOError(err,"配置journal目录不可打开") }
+    defer root.Close()
+    opened,err := root.Stat(".")
+    if err != nil || !os.SameFile(info,opened) { return nil,platform.NewError(platform.CodeIntegrityError,false,"配置journal目录在打开时改变") }
+    dir,err := root.Open(".")
+    if err != nil { return nil,configIOError(err,"配置journal目录不可读取") }
+    defer dir.Close()
+    entries,err := dir.ReadDir(-1)
+    if err != nil { return nil,configIOError(err,"配置journal目录枚举失败") }
+    paths := []string{}
+    suffix := "."+strings.ToLower(state)+".json"
+    for _,entry := range entries {
+        if !strings.HasSuffix(entry.Name(),suffix) { continue }
+        if !entry.Type().IsRegular() { return nil,platform.NewError(platform.CodeIntegrityError,false,"配置journal包含链接或特殊文件") }
+        paths = append(paths,filepath.Join(activeRoot,"journal","config",entry.Name()))
+    }
+    sort.Strings(paths)
+    return paths,nil
+}
+
+func syncConfigRoot(root *os.Root) error {
+    dir,err := root.Open(".")
+    if err != nil { return configIOError(err,"配置目录不可读") }
+    defer dir.Close()
+    if err := dir.Sync(); err != nil { return configIOError(err,"配置目录fsync失败") }
+    return nil
+}
+
+func configIOError(err error,detail string) error {
+    if stored,ok := err.(*platform.Error); ok { return stored }
+    return platform.NewError(platform.CodeDependencyUnavailable,true,detail)
 }

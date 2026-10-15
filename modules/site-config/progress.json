@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "864dd6df0e50f72a283f6e13679658d6629bc05ea733ca394a60c816827cb5a5",
+  "contractSha256": "8f9ed24e4e85ba8029ccd82208ed8d33614e3bf5ddf558549e0a4c646bb8a60c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-02（初始化完成与settings权威文件恢复）",
   "branch": "codex/site-config-initialization-complete-r1",
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/site-config/internal/config_files.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 隔离VPS：全仓 make build（14个Go模块 -mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make docs/gen成功，格式与生成物由集成会话回传。本轮make check仅余公共函数可达性与14个新增实际文件登记（本域4个），由集成会话统一处理；完整verified等待最终逐函数复核。未新增或运行业务测试、真实接口、模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "集成复核追加配置IO边界修复：目录能力逐段Lstat、正规文件/链接拒绝与16MiB有界读写；待隔离VPS重新docs/gen/build/check。上一源码5b6bc4e已通过VPS全仓make build，不作为此追加修复证据。"
       },
       "blocker": null
     },
@@ -864,22 +864,22 @@
     {
       "id": "site-config.WriteConfigRevision",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 隔离VPS：全仓 make build（14个Go模块 -mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make docs/gen成功，格式与生成物由集成会话回传。本轮make check仅余公共函数可达性与14个新增实际文件登记（本域4个），由集成会话统一处理；完整verified等待最终逐函数复核。未新增或运行业务测试、真实接口、模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
       },
       "blocker": null
     },
     {
       "id": "site-config.CommitConfigHead",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 隔离VPS：全仓 make build（14个Go模块 -mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make docs/gen成功，格式与生成物由集成会话回传。本轮make check仅余公共函数可达性与14个新增实际文件登记（本域4个），由集成会话统一处理；完整verified等待最终逐函数复核。未新增或运行业务测试、真实接口、模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
       },
       "blocker": null
     },
@@ -1007,11 +1007,11 @@
     {
       "id": "site-config.RecoverConfigJournal",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 隔离VPS：全仓 make build（14个Go模块 -mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make docs/gen成功，格式与生成物由集成会话回传。本轮make check仅余公共函数可达性与14个新增实际文件登记（本域4个），由集成会话统一处理；完整verified等待最终逐函数复核。未新增或运行业务测试、真实接口、模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
       },
       "blocker": null
     }

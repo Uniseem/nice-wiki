@@ -142,3 +142,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 启动 `RecoverConfigJournal` 只回放明确 COMMITTED 的文件决定，逐条核对连续修订、epoch、PREPARED、权威对象 schema/hash 与原始回执，补全 SQL 索引、水位、回执和 outbox，再发布最新 head。没有 COMMITTED 的对象不公开；有初始化 commit 决定的 PREPARED 留给 Resume，其他 PREPARED 写入 `active/quarantine/config` 隔离标记。已提交对象缺失或损坏会阻止启动。Ready 须核对已恢复状态、COMMITTED、head、SQL 水位和权威对象。
 
 配置提交与初始化完成分开持久：config_committed 或 blocked 时允许存在配置水位 1、initialized=false 的恢复中间态；只有最后完成事务才置 initialized=true。初始化 completed 结果保留首次配置水位，不随后续设置修订改写；读取协调状态允许已完成初始化水位小于当前配置水位。abort 不生成配置 stage，不删除超管；同取消 operation 始终返回原始取消结果。
+
+
+配置持久 IO 自身承担文件权威边界：从文件系统根目录使用 `os.Root` 能力句柄逐段 `Lstat` 并打开下一目录，拒绝父路径中的符号链接、特殊文件和非目录。后续文件创建、Link、Rename 和读取都相对已核对的目录句柄进行，不重新跟随绝对父路径。读取前后核对同一正规文件，末级 `O_NOFOLLOW` 拒绝链接、`O_NONBLOCK` 避免文件被替成 FIFO 后阻塞；既有不可变文件复用也经过该边界。正文、head、PREPARED、COMMITTED 和隔离标记的规范 JSON 均以入口既有总界 16 MiB 为上限，读取使用有界 reader 防止损坏或并发增长无限占用内存；类型、目录身份或大小异常失败关闭。

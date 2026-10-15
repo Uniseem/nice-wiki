@@ -2,7 +2,7 @@
 
 ## 本轮 R1-02 初始化完成与 settings 权威提交（2026-10-15）
 
-- 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。本轮源码提交 `5b6bc4e39fd72457d302031e0f369cece55ae1c5`，本次格式/生成/台账另作补交付提交；旧分支保留。
+- 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。本轮源码提交 `5b6bc4e39fd72457d302031e0f369cece55ae1c5`，格式/生成/台账提交 `6396715d91a56bb6a12cb4ddd151b4117ff27520`；旧分支保留。本次配置 IO 边界追加修复另作提交，待 VPS 复跑。
 - 实际链路：InitializeSite → PersistInitializationDecision → ResumeInitialization → WriteConfigRevision → CommitConfigHead → PublishConfigEvent；AbortInitialization 在 commit 前持久取消与原始结果。准备材料哈希和原始业务请求哈希明确分开，重试不重造 preparedAt。
 - 权威文件使用 ConfigDocument v1（schemaVersion/config），不可变对象临时写/fsync/Link/fsyncparent；PREPARED/COMMITTED 独立原子记录，head 临时写/fsync/Rename/fsyncparent。COMMITTED 落盘后只能补完，不能以 SQLite 准备材料冒充权威文件。
 - CAS：不可反悔文件决定前取得 SQLite 写锁，检查目标水位没有另一 COMMITTED；SQL 同事务写索引/配置水位/原始回执/平台 outbox 与 config_committed，另事务才置 completed/initialized=true。允许重启恢复中间水位，后续配置修订不改首次初始化结果。
@@ -10,6 +10,7 @@
 - 集成裁决：公共 ServiceConfig 新增可选 publicBaseURL/allowLocalHTTP，边界校验 https 或显式 loopback http；本域 ConfigureInitialization 接收受信结果，缺失仅在初始化使用时失败。PublishConfigEvent 加本域 WriteTransaction 参数复用平台 outbox。
 - 新增实际文件：internal/config_files.go、operation_repository.go、outbox_repository.go（均已有未来结构），以及 internal/migrations/active/0003_config_commit.sql（新增迁移合同）。上述 4 个新增实际文件均需集成会话登记根 framework。新增合同入口 RecoverConfigJournal、参考 ConfigureInitialization，Resume 依赖改为真实配置链路。
 - 检查：集成会话隔离 VPS `make build` 通过全部 14 个 Go 模块 readonly build/vet/gofmt（BUILD_STATUS=0），`make docs/gen` 成功并回传本域产物；`make check` 仅余公共函数可达性与新增实际文件登记，本域 4 个由集成会话登记。源码记 implemented，完整 verified 等最终逐函数复核；本轮不在本机编译、格式、lint、类型检查、测试或生成校验。未新增测试/样例/fixture/临时验证程序，未运行真实接口/模型/服务/联调/镜像/部署/push。
+- 集成逐函数复核追加修复：settings 文件 IO 集中使用 os.Root 能力逐段 Lstat，父目录链拒绝链接/非目录，正规文件 NOFOLLOW/NONBLOCK 有界读取并核打开前后身份；正文、head、journal、不可变复用和隔离标记均限 16 MiB。该追加修复暂 in_progress，等待隔离 VPS 重新 docs/gen/build/check，不新增测试。
 - 剩余装配：全量 x-handler、RelayOutbox、恢复换目录回执、快照与屏障仍未完成，不能把本组源文件或结构检查当作完整站点行为验收。
 
 ### 下一步（一项）

@@ -3011,7 +3011,7 @@
       "type": "object",
       "additionalProperties": false,
       "x-internal": true,
-      "description": "settings权威文件格式v1；历史空白实现无既有settings格式迁移；未知版本拒绝并禁止发布",
+      "description": "settings权威文件格式v1；历史空白实现无既有settings格式迁移；未知版本拒绝并禁止发布；完整规范JSON最大16MiB，只有正规文件可读；目录链/对象/journal/head拒绝符号链接及特殊文件",
       "properties": {
         "schemaVersion": {
           "const": 1,
