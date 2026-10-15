@@ -217,6 +217,11 @@ func (c *ContentClient) ListResourceReferences(ctx context.Context, queries ...u
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadReferenceDecision GET /v1/reference-decisions/{sourceOperationId}（content:readReferenceDecision）。
+func (c *ContentClient) ReadReferenceDecision(ctx context.Context, sourceOperationId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/reference-decisions/"+url.PathEscape(sourceOperationId)+"", nil, "")
+}
+
 // ValidatePreviewGrant POST /v1/previews:validate（content:validatePreviewGrant）。
 func (c *ContentClient) ValidatePreviewGrant(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/previews:validate", body, "")
@@ -367,6 +372,11 @@ func (c *SiteConfigClient) ListResourceReferences(ctx context.Context, queries .
 		requestPath += "?" + encoded
 	}
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// ReadHomeReferenceDecision GET /v1/reference-decisions/{sourceOperationId}（site-config:readHomeReferenceDecision）。
+func (c *SiteConfigClient) ReadHomeReferenceDecision(ctx context.Context, sourceOperationId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/reference-decisions/"+url.PathEscape(sourceOperationId)+"", nil, "")
 }
 
 // ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。

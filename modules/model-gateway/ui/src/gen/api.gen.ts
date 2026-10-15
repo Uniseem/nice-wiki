@@ -582,6 +582,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/task-availability:read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 免费读取QA任务配置能力
+         * @description 只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。
+         */
+        post: operations["readTaskAvailability"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1395,6 +1415,25 @@ export interface components {
             profiles: components["schemas"]["Profile"][];
             /** @description 任务分配 */
             taskAssignments: components["schemas"]["TaskAssignment"][];
+        };
+        /** @description 只读配置就绪投影，不代表供应方在线、费用额度或执行授权 */
+        TaskAvailability: {
+            /**
+             * @description 首页QA可配置能力检查的固定调用范围，含QA链knowledge检索核查任务
+             * @enum {string}
+             */
+            taskId: "qa.preflight" | "qa.inspect" | "qa.answer";
+            available: boolean;
+            /** @enum {string} */
+            reason: "available" | "not_configured" | "unavailable";
+        };
+        /** @description 按请求顺序逐项，禁止遗漏/多返回 */
+        ReadTaskAvailabilityResult: {
+            tasks: components["schemas"]["TaskAvailability"][];
+        };
+        /** @description 仅QA服务可读的固定任务集合 */
+        ReadTaskAvailabilityInput: {
+            taskIds: ("qa.preflight" | "qa.inspect" | "qa.answer")[];
         };
     };
     responses: never;
@@ -3971,6 +4010,85 @@ export interface operations {
             };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readTaskAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadTaskAvailabilityInput"];
+            };
+        };
+        responses: {
+            /** @description 只读安全结果；未知状态不伪装可用 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadTaskAvailabilityResult"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

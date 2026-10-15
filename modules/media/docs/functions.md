@@ -506,9 +506,10 @@ func ReadAsset(ctx context.Context, op OperationContext, input ReadAssetInput) (
 
 **步骤**
 
-1. media.read/upload/manage或注册content/site/public/localization/knowledge服务
+1. media.read/upload/manage当前用户或既定注册content/site-config/public-site/localization/knowledge纯服务，精确服务白名单不能从浏览器头传入
 2. 精确version/hash/state读取，不返回path
 3. deleted/notready明确状态或NOT_FOUND，不能将未知视ready
+4. version query省略为当前null，提供时为严格非负Revision；注册纯服务读精确元数据后调用域核结果siteId与自己的持久来源，不把服务身份当发布授权
 
 **错误**
 
@@ -678,9 +679,11 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 
 **步骤**
 
-1. 只注册source服务，核site/assetversion/SHA ready；deleted拒绝
-2. 对象mutex下取消delete_pending计划或增加deletionFence，创建≥24h pendingpin
-3. 返回pin，持久commit后confirm；未知操作pin保留到expiry不能立即当未引用
+1. 固定注册content/site-config已认证服务；siteId与每个asset权威站点匹配，顶层sourceObjectId/sourceRevisionId/sourceVersion逐一匹配完整references元素，sourceService取caller不取冒名字段
+2. 完整引用数组按referenceId、assetId、asset.version、asset.sha256排序，空集合固定[]；用platform.CanonicalJSON编码后SHA256等于referenceDigest；输入pending_pin/confirmed=false/expiresAt=null，媒体自己确定pin到期
+3. 按caller/dataEpoch/sourceOperationId唯一持久幂等并绑定所有顶层源字段及digest；重复同输入返回原pinId/原expiresAt，不续期，异输入冲突
+4. 按assetId稳定顺序取得对象mutex和同事务deletionFence，核asset版本/hash/ready，取消delete_pending计划或增fence，创建至少24小时pending pin
+5. 即使references为空也生成绑定源身份的pin，以后confirm推进该对象完整集合并保留旧history；不以空数组跳过提交协议
 
 **错误**
 
@@ -688,12 +691,13 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `CONFLICT`：同源操作不同输入摘要或源身份（不可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service:content/site-config
 - 并发：与最终delete同assetmutex/fence
 - 幂等：sourceOperationId+refdigest复用pin
-- 依赖：无
+- 依赖：`platform.CanonicalJSON`
 
 ## media.ConfirmResourceReferences
 
@@ -722,21 +726,23 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 
 **步骤**
 
-1. 核caller/sourceOperation/ref归属
-2. sourceVersion必须≥当前水位，低版本STALE_RESULT
-3. 事务pendingpin转confirmedrefs并增referenceGeneration，取消deletepending
+1. 核caller与持久pin的源site/object/operation/revision/version/digest归属；sourceRevisionId/sourceVersion与原acquire声明一致
+2. 读取注册源最小持久决定，必须当前epoch且COMMITTED、材料一致；未知/404/pending保留pin并失败关闭
+3. 同事务将该sourceObjectId的新完整集合确认，旧current保留history；较低sourceVersion的已提交pin只补history，不回退current水位，不以STALE丢历史
+4. 空集合也推进source水位并将旧current转history；同pin重复确认完整原回执，不重复generation；确认取消delete_pending并增referenceGeneration
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `STALE_RESULT`：事件/计算针对已过期源版本，拒绝覆盖新状态（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：源持久决定未知或依赖失败，保留pin等待恢复（可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service对应source
 - 并发：source key CAS+assetfence
 - 幂等：同pin同revision复用，异源CONFLICT
-- 依赖：无
+- 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
 
 ## media.ReleaseResourceReferences
 
@@ -765,9 +771,10 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 
 **步骤**
 
-1. caller/source核对，confirmed ref不能release冒充abort
-2. 查询sourceoperation COMMITTED未知时保留，不依网络失败释放
-3. 明确未提交事务删除pin并增generation
+1. 核caller/source和持久pin归属，confirmed/history引用不能release冒充abort
+2. 按固定源API读取持久决定，只有同epoch/material的明确aborted或rejected可释放；COMMITTED、404、pending、超时、依赖或完整性未知均保留
+3. 确认源拒绝/终止与原因一致后本地事务移除未确认pin并增generation，幂等回执防重复
+4. 到期不跳过源决定核对；旧已提交版本须历史确认，不因current更高或expiry自动删除ready文件
 
 **错误**
 
@@ -779,7 +786,7 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 - 授权：service对应source
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：released重复成功
-- 依赖：无
+- 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
 
 ## media.ApplyReferenceEvent
 

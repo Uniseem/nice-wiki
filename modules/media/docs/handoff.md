@@ -44,3 +44,8 @@
 上一项 R1-09 已实现 `NormalizeOriginalName`、`HashUpload` 和 `CommitAssetBlob` 的校验/不可变 blob 边界，源码提交 `2517ccb1225eda5c2ce0157e18364f25fa84084f`、台账交接提交 `5f0175b2d53d27914fdf397b391dda80f69f2ad3`。其下一步是装配本地权威存储与 journal；本次已完成该项并扩展到首组三个上传函数。
 
 更早的启动与契约生成准备已在 `b253a693b305e35881af46678e0403526e84818b` 完成；生成目录仍由根 `make gen` 管理，本次未手改生成物。
+
+
+## 第四轮首页跨域只读协议
+
+acquire顶层显式site/object/revision/version/operation/digest且refs允许空；统一CanonicalJSON摘要，重放不续期；COMMITTED旧版本只补history，当前水位不倒退；源未知/404/pending/到期均不能release。三个引用生产方函数仍planned，无实际业务实现或数据迁移。

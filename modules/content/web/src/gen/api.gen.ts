@@ -634,6 +634,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reference-decisions/{sourceOperationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取资源引用源持久提交决定
+         * @description 只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。
+         */
+        get: operations["readReferenceDecision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1793,6 +1813,8 @@ export interface components {
             reference: components["schemas"]["PublishedRevisionRef"];
             /** @description 可见水位 */
             visibilityRevision: components["schemas"]["Revision"];
+            /** @description content同一treeRevision快照计算的完整规范URL路径；各段已编码，不含语言/basePath/query/fragment；不可由消费方用缺失祖先拼接；恰好一个起始/，禁止空白/控制符/反斜杠/query/fragment，分段无点跳转，百分号只用于各段规范编码 */
+            canonicalPath: string;
         };
         /** @description 公开导航读取已发布文档树的结果 */
         ReadPublicTreeResult: {
@@ -1898,6 +1920,19 @@ export interface components {
              */
             scope: "staged" | "before";
         };
+        /** @description 资源pin源的最小持久决定；COMMITTED优先，404/pending/未知都不能作为release证据 */
+        ReferenceSourceDecision: {
+            /** @enum {string} */
+            state: "pending" | "committed" | "aborted" | "rejected";
+            siteId: components["schemas"]["Identifier"];
+            sourceOperationId: components["schemas"]["Identifier"];
+            sourceObjectId: components["schemas"]["Identifier"];
+            sourceRevisionId: components["schemas"]["Identifier"];
+            sourceVersion: components["schemas"]["Revision"];
+            referenceDigest: components["schemas"]["Hash"];
+            dataEpoch: components["schemas"]["Identifier"];
+        };
+        ReadReferenceDecisionResult: components["schemas"]["ReferenceSourceDecision"];
     };
     responses: never;
     parameters: never;
@@ -3925,6 +3960,92 @@ export interface operations {
             };
             /** @description LOCKED：当前恢复阶段不允许删除该目录 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readReferenceDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceOperationId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 只读安全结果；未知状态不伪装可用 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadReferenceDecisionResult"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 无源决定；不能当释放证据 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

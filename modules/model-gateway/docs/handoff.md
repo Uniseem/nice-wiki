@@ -40,3 +40,8 @@
 交付提交：`4eec945320f8cf20bfc6673a8c3c8490385aca2f`。实际完成函数：5个（LoadRuntime、ValidateProvider、PutProvider、ValidateModel、PutModel）；实际修改仅限 `modules/model-gateway/`。检查：`git diff --check`通过；因本机无Go/gofmt/make，未编译或运行迁移/行为验收。阻塞：BuildApplication全量接线、归一化规则合同缺口及工具链缺失。
 
 详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+
+
+## 第四轮首页跨域只读协议
+
+新增readTaskAvailability固定QA链三任务的免费配置投影。缺价格按原产品不阻断，不查询余额，不调用供应方或模型；仅合同与生成来源，业务函数仍planned。

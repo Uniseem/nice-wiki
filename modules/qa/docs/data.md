@@ -219,3 +219,8 @@
 | retainedRecentTokens | 是 | `{"type":"integer","minimum":1,"maximum":128000,"default":15000}` | 默认15000 |
 | contextReservePercent | 是 | `{"type":"integer","minimum":1,"maximum":50,"default":10}` | 默认10 |
 | cacheEnabled | 是 | `{"type":"boolean","default":true}` | 独立缓存总开关；关闭仍存问答记录，不查/写exact/semantic/多语言缓存 |
+
+
+## 第四轮首页跨域只读协议
+
+新增readPublicCapability免费只读入口配置能力，未知503由首页禁用QA按钮但保留hero。生产方函数planned，不以readyz或无参数假成功充当AI已配置。

@@ -32,6 +32,7 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `qa.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/admin/turns` | `listTurnRecords` | `qa.ListTurnRecords` | `qa.manage` | `—` → 200 `ListTurnRecordsResult` | 浏览与筛选问答记录 | `FORBIDDEN` |
 | GET `/v1/admin/turns/{turnId}` | `readTurnRecord` | `qa.ReadTurnRecord` | `qa.manage` | `—` → 200 `ReadTurnRecordResult` | 查看问答记录 | `FORBIDDEN`、`NOT_FOUND` |
+| GET `/v1/public-capabilities` | `readPublicCapability` | `qa.ReadPublicCapability` | `service` | `—` → 200 `ReadPublicCapabilityResult` | 免费读取公开问答入口配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

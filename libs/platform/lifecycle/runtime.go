@@ -35,6 +35,83 @@ type cacheEntry struct {
 
 var runtimeCache sync.Map // SiteConfigClient指针 -> cacheEntry
 
+// NewWriteContext 为已校验的后台配置建立一个最多30秒的当前安全写窗口。
+// 每次外部IO后的本域确认仍由调用方重新取窗口，不能复用旧权威快照。
+func NewWriteContext(ctx context.Context, config platform.WriteWindowConfig) (context.Context, platform.RuntimeView, context.CancelFunc, error) {
+	work, cancel := context.WithTimeout(ctx, 30*time.Second)
+	if op, ok := platform.OperationContextFrom(work); ok {
+		deadline, _ := work.Deadline()
+		op.Deadline = deadline.UTC().Format(time.RFC3339Nano)
+		work = platform.WithOperationContext(work, op)
+	}
+	view, err := config.Runtime(work)
+	if err != nil {
+		cancel()
+		return nil, view, nil, err
+	}
+	deadline, err := config.WriteWindow(work)
+	if err != nil {
+		cancel()
+		return nil, view, nil, err
+	}
+	if view.DataEpoch == "" {
+		cancel()
+		return nil, view, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "运行权威数据代次未知")
+	}
+	if view.Phase != platform.PhaseRunning && view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging {
+		cancel()
+		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "当前恢复阶段不接受后台写入")
+	}
+	if (view.Maintenance && deadline.IsZero()) || (!deadline.IsZero() && !deadline.After(time.Now())) {
+		cancel()
+		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "后台维护安全窗口已关闭")
+	}
+	if deadline.IsZero() {
+		return work, view, cancel, nil
+	}
+	bounded, release := context.WithDeadline(work, deadline)
+	if op, ok := platform.OperationContextFrom(bounded); ok {
+		effective, _ := bounded.Deadline()
+		op.Deadline = effective.UTC().Format(time.RFC3339Nano)
+		bounded = platform.WithOperationContext(bounded, op)
+	}
+	return bounded, view, func() { release(); cancel() }, nil
+}
+
+// RunRecoveryLoop 串行执行本域恢复批次；未知权威暂停，永久错误交还进程装配。
+func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) error {
+	if config.PollMillis < 100 || config.PollMillis > 60000 || config.Runtime == nil || config.WriteWindow == nil || config.Recover == nil {
+		return platform.NewError(platform.CodeValidation, false, "恢复循环参数未装配")
+	}
+	window := platform.WriteWindowConfig{Runtime: config.Runtime, WriteWindow: config.WriteWindow}
+	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+		work, _, cancel, err := NewWriteContext(ctx, window)
+		if err == nil {
+			err = config.Recover(work)
+			cancel()
+		}
+		if ctx.Err() != nil {
+			return nil
+		}
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			var failure *platform.Error
+			if !errors.As(err, &failure) || !failure.Retryable {
+				return err
+			}
+		}
+		timer := time.NewTimer(time.Duration(config.PollMillis) * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil
+		case <-timer.C:
+		}
+	}
+}
+
 // ReadRuntime 读取site-config权威运行状态；结果最多缓存1秒，
 // 读取截止≤2秒；site-config不可达返回DEPENDENCY_UNAVAILABLE。
 func ReadRuntime(ctx context.Context, client platform.SiteConfigClient) (platform.RuntimeView, error) {

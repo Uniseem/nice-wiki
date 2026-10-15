@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 73 个函数：约束 41 个，参考 32 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 74 个函数：约束 42 个，参考 32 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1334,6 +1334,53 @@ func CommitPublication(ctx context.Context, op OperationContext, input CommitPub
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`content.PublishContentEvent`
 
+## content.ReadReferenceDecision
+
+- 级别：约束
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：读取资源引用源持久提交决定
+
+```go
+func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadReferenceDecisionInput) (ReadReferenceDecisionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消和截止 | 已在服务入口严格校验；内部不重复schema解析 |
+| `op` | `OperationContext` | 已验证服务身份、当前epoch和期限 | 已在服务入口严格校验；内部不重复schema解析 |
+| `input` | `ReadReferenceDecisionInput` | 严格封闭输入 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadReferenceDecisionResult` | 安全完整响应 | 已在服务入口严格校验；内部不重复schema解析 |
+| `error` | `Error` | 公共错误，不返回私密原值 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**步骤**
+
+1. 仅media已认证纯服务、当前active epoch，输入只为源operationId；不接受浏览器自报actor/site/决定
+2. 从源操作私有pin intent读取site/object/revision/version/referenceDigest；固定材料在acquire前持久化，只有引用提交操作可查询
+3. 源正文COMMITTED决定为权威，SQL待补不当abort；明确aborted/rejected必须持久且防迟到commit；未找到404、跨代409，未知或损坏503/422
+4. 只输出共享ReferenceSourceDecision最小字段，no-store；pending/404/timeout都不代表资源可释放，不输出文档正文或私密账户
+
+**错误**
+
+- `VALIDATION`：请求不符合协议（不可重试）
+- `UNAUTHENTICATED`：服务证明无效（不可重试）
+- `FORBIDDEN`：非固定调用服务或越过只读范围（不可重试）
+- `VERSION_MISMATCH`：当前dataEpoch不匹配（不可重试）
+- `INTEGRITY_ERROR`：私有权威数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖或存储未知（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方media；不授予模型调用或管理写入权限
+- 并发：当前权威快照一致读取；不持锁执行跨服务IO
+- 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
+- 依赖：无
+
 ## content.ValidatePublications
 
 - 级别：约束
@@ -1361,7 +1408,7 @@ func ValidatePublications(ctx context.Context, op OperationContext, input Valida
 
 **步骤**
 
-1. 仅注册public/knowledge/qa/localization调用方或公开不可枚举批次
+1. 仅注册public-site/knowledge/qa/localization/site-config纯服务调用方或公开不可枚举批次；site-config仅核首页/页脚链接当前公开性，不得读草稿
 2. 一次一致txn比dataEpoch/doc状态/currentref/hash/schema与visibilityRevision
 3. unknown/notfound返回visible=false而不暴露draft；依赖不可用不能把旧缓存当有效
 
@@ -2206,6 +2253,7 @@ func ReadPublicTree(ctx context.Context, op OperationContext, input ReadPublicTr
 1. 过滤所有非published/visibility不可见
 2. 按全站树前序输出公开DTO，未公开父不泄漏其标题，仍发布子按公开导航规则接最近公开祖先
 3. 输出统一水位；公开previous/next依据当前语言可用文档映射
+4. 同一公开树权威快照返回每节点完整canonicalPath，包括可读路由所需祖先slug但不附未公开祖先标题/正文；跳过父节点不使消费者丢失路径，treeRevision变化时旧路径失效
 
 **错误**
 

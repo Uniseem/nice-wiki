@@ -28,3 +28,8 @@
 ## 下一步（一项）
 
 实现 `qa.EvaluateCacheEligibility`（`modules/qa/internal/cache/eligibility.go`）：先核对本域 `types.json`、`implementation.json`、`docs/functions.md` 和 `docs/ai-context-and-cache.md`，只实现已补全/非个性化/非敏感动态问题的确定性准入规则，不接 semantic cache、embedding、真实模型或持久化；完成后同步三份本域记录并保留未验证状态。
+
+
+## 第四轮首页跨域只读协议
+
+新增readPublicCapability免费只读入口配置能力，未知503由首页禁用QA按钮但保留hero。生产方函数planned，不以readyz或无参数假成功充当AI已配置。

@@ -44,5 +44,6 @@
 | GET `/readyz` | `ready` | `content.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `content.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `content.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| GET `/v1/reference-decisions/{sourceOperationId}` | `readReferenceDecision` | `content.ReadReferenceDecision` | `service` | `—` → 200 `ReadReferenceDecisionResult` | 读取资源引用源持久提交决定 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 404` |
 <!-- openapi:end -->
 

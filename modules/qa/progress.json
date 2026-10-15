@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "a95276e96aa23e148e01a01845e537eb018baa714428e06a6cd444307a5dda91",
+  "contractSha256": "5d32a52021a7350cbc75e27f34dcefa36ae7bea7bcff3c9b5bac2e3c58c54045",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-16（NormalizeQuestion纯规则切片）",
   "branch": "main",
@@ -1424,6 +1424,16 @@
       "verification": {
         "state": "not_run",
         "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "qa.ReadPublicCapability",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四轮首页所需生产方只读协议；仅契约，业务未实现。"
       },
       "blocker": null
     }

@@ -773,6 +773,78 @@
       "type": "object",
       "x-internal": true,
       "description": "context.CancelFunc，完成或失败后释放IO上下文"
+    },
+    "WriteWindowConfig": {
+      "type": "object",
+      "x-internal": true,
+      "description": "启动时已校验的当前运行权威与本域安全写窗口回调",
+      "properties": {
+        "runtime": {
+          "x-internal": true,
+          "description": "Go func(context.Context)(RuntimeView,error)，不能缺失或用缓存假running"
+        },
+        "writeWindow": {
+          "x-internal": true,
+          "description": "Go func(context.Context)(time.Time,error)，正常无屏障零时间、维护必须明确安全截止"
+        }
+      },
+      "required": [
+        "runtime",
+        "writeWindow"
+      ]
+    },
+    "RecoveryLoopConfig": {
+      "type": "object",
+      "x-internal": true,
+      "description": "一个有界本域持久恢复批次的串行周期装配，不执行业务付费重算",
+      "properties": {
+        "pollMillis": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000
+        },
+        "runtime": {
+          "x-internal": true
+        },
+        "writeWindow": {
+          "x-internal": true
+        },
+        "recover": {
+          "x-internal": true,
+          "description": "Go func(context.Context)error；单批有界，RPC前后重新核本域写入权威；永久错误退出、已声明可重试错误留持久pending下周期继续"
+        }
+      },
+      "required": [
+        "pollMillis",
+        "runtime",
+        "writeWindow",
+        "recover"
+      ]
+    },
+    "BackgroundTask": {
+      "type": "object",
+      "x-internal": true,
+      "description": "受信装配的已登记后台入口，不通过HTTP传输",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run": {
+          "x-internal": true,
+          "description": "Go func(context.Context)error，生命周期只由RunService管理"
+        }
+      },
+      "required": [
+        "name",
+        "run"
+      ]
+    },
+    "BackgroundApplication": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Application可选接口BackgroundTasks() []BackgroundTask和Drain(context.Context)error；Drain只停止HTTP，不关闭业务库"
     }
   }
 }

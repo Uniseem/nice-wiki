@@ -3675,6 +3675,114 @@
           }
         ]
       }
+    },
+    "/v1/task-availability:read": {
+      "post": {
+        "operationId": "readTaskAvailability",
+        "summary": "免费读取QA任务配置能力",
+        "description": "只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。",
+        "x-handler": "model-gateway.ReadTaskAvailability",
+        "x-permission": "service",
+        "x-allowed-callers": [
+          "qa"
+        ],
+        "x-data-epoch-required": true,
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "只读安全结果；未知状态不伪装可用",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadTaskAvailabilityResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ReadTaskAvailabilityInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

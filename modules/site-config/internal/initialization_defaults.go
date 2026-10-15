@@ -48,7 +48,7 @@ func PrepareDefaultConfig(input PrepareDefaultConfigInput) (PrepareDefaultConfig
 			BackgroundText: "Welcome To",
 			Buttons:        []gen.HeroButton{},
 			Background:     background,
-			TextColor:      gen.Light,
+			TextColor:      "light",
 		},
 		Footer: gen.FooterConfig{
 			Links:         []gen.FooterLink{},

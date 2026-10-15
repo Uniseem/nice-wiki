@@ -198,3 +198,8 @@
 | sessionHourlyLimit | 是 | `{"$ref":"../../../contracts/common.schema.json#/$defs/Money"}` | 会话每小时额度，0不限；old未明确具体美元默认，使用已有部署配置不虚构金额 |
 | networkMultiplier | 是 | `{"type":"integer","minimum":1,"maximum":100,"default":5}` | network额度=session额度×倍率，old默认5，可修改 |
 | dailyQaLimit | 是 | `{"$ref":"../../../contracts/common.schema.json#/$defs/Money"}` | 站点每天qa上限，0不限，background独立 |
+
+
+## 第四轮首页跨域只读协议
+
+新增readTaskAvailability固定QA链三任务的免费配置投影。缺价格按原产品不阻断，不查询余额，不调用供应方或模型；仅合同与生成来源，业务函数仍planned。

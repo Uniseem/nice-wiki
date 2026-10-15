@@ -2839,6 +2839,104 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "content.ReadReferenceDecision",
+          "name": "ReadReferenceDecision",
+          "signature": "func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadReferenceDecisionInput) (ReadReferenceDecisionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消和截止",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "已验证服务身份、当前epoch和期限",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadReferenceDecisionInput",
+              "description": "严格封闭输入",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadReferenceDecisionResult",
+              "description": "安全完整响应",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "公共错误，不返回私密原值",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            }
+          ],
+          "purpose": "读取资源引用源持久提交决定",
+          "steps": [
+            "仅media已认证纯服务、当前active epoch，输入只为源operationId；不接受浏览器自报actor/site/决定",
+            "从源操作私有pin intent读取site/object/revision/version/referenceDigest；固定材料在acquire前持久化，只有引用提交操作可查询",
+            "源正文COMMITTED决定为权威，SQL待补不当abort；明确aborted/rejected必须持久且防迟到commit；未找到404、跨代409，未知或损坏503/422",
+            "只输出共享ReferenceSourceDecision最小字段，no-store；pending/404/timeout都不代表资源可释放，不输出文档正文或私密账户"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "请求不符合协议",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "服务证明无效",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "非固定调用服务或越过只读范围",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "当前dataEpoch不匹配",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有权威数据损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖或存储未知",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接受已验证纯服务actor，固定调用方media；不授予模型调用或管理写入权限"
+          },
+          "concurrency": "当前权威快照一致读取；不持锁执行跨服务IO",
+          "idempotency": "无写入或费用副作用；每次读当前权威，no-store，不创建后台任务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -2902,7 +3000,7 @@
           ],
           "purpose": "同步核公开引用是否仍可见且当前",
           "steps": [
-            "仅注册public/knowledge/qa/localization调用方或公开不可枚举批次",
+            "仅注册public-site/knowledge/qa/localization/site-config纯服务调用方或公开不可枚举批次；site-config仅核首页/页脚链接当前公开性，不得读草稿",
             "一次一致txn比dataEpoch/doc状态/currentref/hash/schema与visibilityRevision",
             "unknown/notfound返回visible=false而不暴露draft；依赖不可用不能把旧缓存当有效"
           ],
@@ -4796,7 +4894,8 @@
           "steps": [
             "过滤所有非published/visibility不可见",
             "按全站树前序输出公开DTO，未公开父不泄漏其标题，仍发布子按公开导航规则接最近公开祖先",
-            "输出统一水位；公开previous/next依据当前语言可用文档映射"
+            "输出统一水位；公开previous/next依据当前语言可用文档映射",
+            "同一公开树权威快照返回每节点完整canonicalPath，包括可读路由所需祖先slug但不附未公开祖先标题/正文；跳过父节点不使消费者丢失路径，treeRevision变化时旧路径失效"
           ],
           "errors": [
             {

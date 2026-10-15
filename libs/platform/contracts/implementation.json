@@ -1273,7 +1273,8 @@
             "逐条调用jobs:publishEvent，确认后标relayed",
             "失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined",
             "屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行",
-            "Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名"
+            "Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名",
+            "relayWriteContext薄委托公共NewWriteContext，不另存一份运行权威/维护截止算法"
           ],
           "errors": [
             {
@@ -1304,7 +1305,8 @@
           "idempotency": "eventId固定",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.relayWriteContext"
+            "platform.relayWriteContext",
+            "platform.NewWriteContext"
           ],
           "resources": [],
           "contract": "binding"
@@ -2037,7 +2039,7 @@
           "purpose": "统一公开地址与国际域名规范",
           "steps": [
             "IDNA Lookup规范域名，IPv6和默认端口统一；仅HTTPS或显式loopback HTTP",
-            "拒credential/query/fragment/控制字符和路径穿越，保留basePath"
+            "拒credential/query/fragment/控制字符、连续斜杠和路径穿越，保留basePath；拒绝解码后连续斜杠，避免下游根相对链接成为协议相对URL"
           ],
           "errors": [
             {
@@ -2403,6 +2405,150 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.NewWriteContext",
+          "name": "NewWriteContext",
+          "signature": "func NewWriteContext(ctx context.Context, config WriteWindowConfig) (context.Context, RuntimeView, context.CancelFunc, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "父IO与取消",
+              "constraints": [
+                "保留更早截止"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "WriteWindowConfig",
+              "description": "启动边界已校验回调",
+              "constraints": [
+                "runtime/writeWindow非nil；每IO重新读取"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "work",
+              "type": "context.Context",
+              "description": "本批有效IO窗口",
+              "constraints": [
+                "最多30秒和更早安全截止"
+              ]
+            },
+            {
+              "name": "view",
+              "type": "RuntimeView",
+              "description": "本次权威快照",
+              "constraints": [
+                "不能长期复用到后续确认"
+              ]
+            },
+            {
+              "name": "cancel",
+              "type": "context.CancelFunc",
+              "description": "关闭本次窗口",
+              "constraints": [
+                "无error时必须调用"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "未知或窗口关闭",
+              "constraints": [
+                "失败无可写ctx"
+              ]
+            }
+          ],
+          "purpose": "共用后台IO运行权威、维护安全窗口与截止",
+          "steps": [
+            "运行权威及本域control窗口都未知则失败关闭，dataEpoch非空",
+            "仅running/backup-barrier/restore-staging可进入，维护须明确未过安全截止",
+            "限制父ctx/30秒/屏障更早截止，并更新已有OperationContext.deadline；不替域建立业务主体或猜epoch",
+            "每外部IO后写本域确认前须重新调用，旧窗口不能替代当前权威"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "运行权威未知",
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护或恢复窗口关闭",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.RunRecoveryLoop",
+          "name": "RunRecoveryLoop",
+          "signature": "func RunRecoveryLoop(ctx context.Context, config RecoveryLoopConfig) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程任务ctx",
+              "constraints": [
+                "由RunService创建取消"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "RecoveryLoopConfig",
+              "description": "本域恢复装配",
+              "constraints": [
+                "poll100..60000ms；回调非nil"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "永久错误",
+              "constraints": [
+                "进程取消正常nil，其他永久错误交还生命周期"
+              ]
+            }
+          ],
+          "purpose": "以公共循环周期推进本域持久恢复决定",
+          "steps": [
+            "启动校验周期与回调；立即执行一批，之后每周期一批且不重叠",
+            "NewWriteContext核当前epoch/阶段/维护窗口；单批最多30秒，业务每次RPC前后仍核自己的权威",
+            "仅显式retryable平台错误及批次deadline在下周期继续；未知或永久错误上报退出，持久决定不丢",
+            "取消立即停止新批次，原ctx取消传下游IO；不建立新的模型/付费尝试"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.NewWriteContext"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2889,7 +3035,10 @@
             "LoadServiceConfig；配置错误返回2",
             "注册SIGINT/SIGTERM；调用spec的BuildApplication（其中先ApplyRestoreSwap）",
             "运行Serve与WatchRuntime；收到信号或恢复切换时以30秒上限Shutdown",
-            "返回对应退出码；不能安全关闭返回1并保留journal"
+            "返回对应退出码；不能安全关闭返回1并保留journal",
+            "Application可选实现BackgroundApplication：完整构造成功后核唯一任务名/非空回调，由本进程统一启动后台；无RuntimeClient时不制造nil事件阻塞信号",
+            "退出共用30秒预算：取消主ctx，BackgroundApplication.Drain停新HTTP并等请求、再等全部后台退出，最后Shutdown关闭私有资源；无法停止时保留恢复决定失败退出",
+            "后台永久错误/无故提前返回停止服务，恢复切换保留退出75；不在服务入口自建timer/调度循环"
           ],
           "errors": [
             {
@@ -2912,7 +3061,9 @@
             "platform.LoadServiceConfig",
             "platform.WatchRuntime"
           ],
-          "resources": [],
+          "resources": [
+            "可选BackgroundApplication/BackgroundTask；既有Application服务仍兼容"
+          ],
           "contract": "binding"
         }
       ]
@@ -2960,7 +3111,60 @@
       "path": "libs/platform/platform.go",
       "kind": "handwritten",
       "purpose": "跨包共享的契约类型与客户端接口：types.json全部类型、公共schema映射及Tx/OutboxStore/JobsClient/GatewayClient/SiteConfigClient/EventHandlerRegistry/JobExecutorRegistry/ServiceSpec，不含行为",
-      "functions": []
+      "functions": [
+        {
+          "id": "platform.CanonicalJSON",
+          "name": "CanonicalJSON",
+          "signature": "func CanonicalJSON(value any) ([]byte, error)",
+          "inputs": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "已受入口约束的内部JSON可序列化值",
+              "constraints": [
+                "调用方固定数组排序和空集[]，不得把secret当可公开hash输入"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "bytes",
+              "type": "[]byte",
+              "description": "规范JSON字节",
+              "constraints": [
+                "Go JSON编码；对象键排序；UseNumber保留整数精度，不声称RFC8785"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "不可规范序列化",
+              "constraints": [
+                "不回显原值"
+              ]
+            }
+          ],
+          "purpose": "统一跨服务引用摘要的纯JSON编码",
+          "steps": [
+            "Marshal后UseNumber转换通用值，再Marshal按对象键排序；保留Go JSON转义和数字约定",
+            "空数组/空对象/空值由调用域预先明确；不替调用方排序数组"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "内部值不能按约定编码",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     },
     {
       "path": "libs/platform/go.mod",

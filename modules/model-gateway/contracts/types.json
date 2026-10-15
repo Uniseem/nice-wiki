@@ -4193,6 +4193,81 @@
         "profiles",
         "taskAssignments"
       ]
+    },
+    "TaskAvailability": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "只读配置就绪投影，不代表供应方在线、费用额度或执行授权",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "enum": [
+            "qa.preflight",
+            "qa.inspect",
+            "qa.answer"
+          ],
+          "description": "首页QA可配置能力检查的固定调用范围，含QA链knowledge检索核查任务"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "available",
+            "not_configured",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "taskId",
+        "available",
+        "reason"
+      ]
+    },
+    "ReadTaskAvailabilityInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅QA服务可读的固定任务集合",
+      "properties": {
+        "taskIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "qa.preflight",
+              "qa.inspect",
+              "qa.answer"
+            ],
+            "description": "首页QA可配置能力检查的固定调用范围，含QA链knowledge检索核查任务"
+          },
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "taskIds"
+      ]
+    },
+    "ReadTaskAvailabilityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "按请求顺序逐项，禁止遗漏/多返回",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskAvailability"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "tasks"
+      ]
     }
   }
 }

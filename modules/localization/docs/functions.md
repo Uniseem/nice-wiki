@@ -239,6 +239,7 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 3. 默认语言先其余tag排序
 4. 禁止返回模型密钥
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. HTTP includeDisabled query默认false；public-site已验证纯服务仅允许false只读，管理员仍需原语言管理权限，未知状态503，不把缺译当语言未启用
 
 **错误**
 

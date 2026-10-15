@@ -6,6 +6,7 @@
 package platform
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -284,6 +285,20 @@ type RelayConfig struct {
 	// Runtime 与 WriteWindow均必需；未知权威或关闭安全窗口时停止active写入。
 	Runtime     func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	WriteWindow func(context.Context) (time.Time, error)       `json:"-"`
+}
+
+// WriteWindowConfig 由受信装配提供当前运行权威及本域control安全截止。
+type WriteWindowConfig struct {
+	Runtime     func(context.Context) (RuntimeView, error)
+	WriteWindow func(context.Context) (time.Time, error)
+}
+
+// RecoveryLoopConfig 的Recover只执行本域一个有界恢复批次，不执行付费重算。
+type RecoveryLoopConfig struct {
+	PollMillis  int
+	Runtime     func(context.Context) (RuntimeView, error)
+	WriteWindow func(context.Context) (time.Time, error)
+	Recover     func(context.Context) error
 }
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
@@ -665,6 +680,20 @@ type Application interface {
 	Shutdown(ctx context.Context) error
 }
 
+// BackgroundTask 是本域已登记的后台入口；由RunService统一启动和等待退出。
+type BackgroundTask struct {
+	Name string
+	Run  func(context.Context) error
+}
+
+// BackgroundApplication 的Drain只停止新HTTP并等待请求，不关闭私有库。
+// RunService先取消任务、Drain、等待任务退出，最后才Shutdown关闭资源。
+type BackgroundApplication interface {
+	Application
+	BackgroundTasks() []BackgroundTask
+	Drain(context.Context) error
+}
+
 // ServiceSpec 各服务main传入的装配说明。
 type ServiceSpec struct {
 	Module string
@@ -736,6 +765,21 @@ func ValidHash(v Hash) bool { return hashPattern.MatchString(v) }
 func HashBytes(b []byte) Hash {
 	sum := sha256.Sum256(b)
 	return Hash(hex.EncodeToString(sum[:]))
+}
+
+// CanonicalJSON 统一内部JSON表示：保留整数精度并按对象键排序。
+// 使用Go JSON编码约定，不声称实现RFC8785；调用方先固定数组顺序与空集合。
+func CanonicalJSON(value any) ([]byte, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, NewError(CodeIntegrityError, false, "值无法规范序列化")
+	}
+	var parsed any
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	// raw由Marshal产生；此处仅转换对象表示，不重复做结构校验。
+	_ = decoder.Decode(&parsed)
+	return json.Marshal(parsed)
 }
 
 // Now 返回当前UTC时刻的RFC3339字符串。

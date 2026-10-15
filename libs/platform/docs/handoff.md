@@ -1,5 +1,12 @@
 # platform 交接（R1-00）
 
+## 第四轮持久恢复公共机制（合成快照通过）
+
+新增CanonicalJSON、NewWriteContext、RunRecoveryLoop；outbox安全写窗口复用公共实现，清理与领取分别重取窗口。进程模板支持可选BackgroundApplication及统一取消/Drain/后台等待/关闭资源，恢复哨兵统一返回75。输入域保留每次RPC后的epoch/屏障核对，不由循环发起付费重算；公开地址边界拒绝解码后连续斜杠，避免生成协议相对链接。
+
+2026-10-15冻结合成快照已在隔离VPS通过make docs/gen、14个现有Go模块readonly build/vet/gofmt与完整make check（858文件/1105函数/379操作/2253类型）。快照含jobs实际管理代码、首页和公开链接合同，不含尚未完成的Home Go；待实际逐项集成后回填源码SHA及最终证据。不称行为验收，不push。
+
+
 ## 第三轮恢复实施（2026-10-15）
 
 用户已在第二轮停止后重新授权继续。独占公共源码与合同，补ServiceConfig可信代理网段、PrivateNetworkScopes；登录业务规则仍由identity/guard负责。公共源码提交918dd6369ea7a33bf9296949c8b5441a08d1e88f；合成快照VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过（856文件/1047函数/374操作/2222类型）。portal调用方完成闭环；scripts/gen_code.py依据portal OpenAPI元数据只为已有浏览器TS副本合成四个安全认证操作，内部Go和真实路由保持其各自来源。未新增测试或真实调用，不push。

@@ -504,7 +504,7 @@
             "$ref": "#/$defs/AssetVersionRef",
             "description": "AssetVersionRef"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 10000
         },
         "expiresAt": {
@@ -3724,7 +3724,7 @@
     },
     "AcquireResourceReferencesInput": {
       "type": "object",
-      "description": "正文/config提交前保护资源迟到引用的输入",
+      "description": "一个源对象完整引用集合的预提交pin，空集合也必须声明完整源身份/版本/digest",
       "additionalProperties": false,
       "properties": {
         "references": {
@@ -3734,17 +3734,37 @@
             "$ref": "#/$defs/AssetReference",
             "description": "AssetReference"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 10000
         },
         "sourceOperationId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "来源操作"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceObjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "referenceDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
         }
       },
       "required": [
         "references",
-        "sourceOperationId"
+        "sourceOperationId",
+        "siteId",
+        "sourceObjectId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "referenceDigest"
       ]
     },
     "AcquireResourceReferencesResult": {

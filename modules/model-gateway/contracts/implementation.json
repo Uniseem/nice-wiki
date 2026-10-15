@@ -5668,6 +5668,105 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "model-gateway.ReadTaskAvailability",
+          "name": "ReadTaskAvailability",
+          "signature": "func ReadTaskAvailability(ctx context.Context, op OperationContext, input ReadTaskAvailabilityInput) (ReadTaskAvailabilityResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消和截止",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "已验证服务身份、当前epoch和期限",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadTaskAvailabilityInput",
+              "description": "严格封闭输入",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadTaskAvailabilityResult",
+              "description": "安全完整响应",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "公共错误，不返回私密原值",
+              "constraints": [
+                "已在服务入口严格校验；内部不重复schema解析"
+              ]
+            }
+          ],
+          "purpose": "免费读取QA任务配置能力",
+          "steps": [
+            "固定qa纯服务caller，只允许qa.preflight/qa.inspect/qa.answer范围；不要求付费costClass、也不创建执行授权",
+            "当前epoch与本域只读一致快照读取任务分配、qa类别档位、模型启用、供应方启用与credentialVersion及密钥引用是否具备",
+            "任务分配/档位不存在明确not_configured；已配但无启用且chat能力匹配候选、供应方/凭据停用明确unavailable；存在可用配置候选为available",
+            "单任务覆盖与有序档位候选沿既有路由规则；未知表/损坏/存储失败503/422，不能返回空数组或false充当已知未配置",
+            "不读取或返回秘密正文、供应方地址、模型ID、预算/余额，不检查价格是否齐全，不出网、不探测、不调模型、不预留费用"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "请求不符合协议",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "服务证明无效",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "非固定调用服务或越过只读范围",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "当前dataEpoch不匹配",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有权威数据损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖或存储未知",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接受已验证纯服务actor，固定调用方qa；不授予模型调用或管理写入权限"
+          },
+          "concurrency": "当前权威快照一致读取；不持锁执行跨服务IO",
+          "idempotency": "无写入或费用副作用；每次读当前权威，no-store，不创建后台任务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },

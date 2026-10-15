@@ -130,3 +130,8 @@
 引用：`../../model-gateway/contracts/types.json#/$defs/GatewayMessage`。
 
 恢复特殊数据：屏障停止新翻译批次和人工写入，保留human/protected/generation及术语版本；导入必须恢复保护位与源ref，恢复切换完成前译文不能交付，不自动重翻。
+
+
+## 第四轮首页跨域只读协议
+
+listLanguages明确includeDisabled默认false，public-site纯服务仅该只读范围。接口/后台仍按台账未完成，不能据页面进程ready推断语言启用。

@@ -194,34 +194,6 @@ func problemToError(raw []byte) error {
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
 
-// ContentClient 调用content服务（自动附服务断言）。
-type ContentClient struct{ *producerClient }
-
-func NewContentClient(baseURL, issuer string, key platform.SigningKey) *ContentClient {
-	return &ContentClient{newProducerClient("content", baseURL, issuer, key)}
-}
-
-// ReadPublishedRevision GET /v1/documents/{documentId}/published（content:readPublishedRevision）。
-// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
-func (c *ContentClient) ReadPublishedRevision(ctx context.Context, documentId string, queries ...url.Values) (json.RawMessage, error) {
-	requestPath := "/v1/documents/" + url.PathEscape(documentId) + "/published"
-	query := url.Values{}
-	for _, values := range queries {
-		for key, entries := range values {
-			query[key] = append(query[key], entries...)
-		}
-	}
-	if encoded := query.Encode(); encoded != "" {
-		requestPath += "?" + encoded
-	}
-	return c.do(ctx, http.MethodGet, requestPath, nil, "")
-}
-
-// ValidatePublications POST /v1/publications:validate（content:validatePublications）。
-func (c *ContentClient) ValidatePublications(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/publications:validate", body, "")
-}
-
 // DataProtectionClient 调用data-protection服务（自动附服务断言）。
 type DataProtectionClient struct{ *producerClient }
 
@@ -297,4 +269,28 @@ func (c *MediaClient) ReadAsset(ctx context.Context, assetId string, queries ...
 // ReleaseResourceReferences POST /v1/references:release（media:releaseResourceReferences）。
 func (c *MediaClient) ReleaseResourceReferences(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/references:release", body, "")
+}
+
+// PublicSiteClient 调用public-site服务（自动附服务断言）。
+type PublicSiteClient struct{ *producerClient }
+
+func NewPublicSiteClient(baseURL, issuer string, key platform.SigningKey) *PublicSiteClient {
+	return &PublicSiteClient{newProducerClient("public-site", baseURL, issuer, key)}
+}
+
+// ResolvePublishedLink POST /v1/public-links:resolve（public-site:resolvePublishedLink）。
+func (c *PublicSiteClient) ResolvePublishedLink(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/public-links:resolve", body, "")
+}
+
+// QaClient 调用qa服务（自动附服务断言）。
+type QaClient struct{ *producerClient }
+
+func NewQaClient(baseURL, issuer string, key platform.SigningKey) *QaClient {
+	return &QaClient{newProducerClient("qa", baseURL, issuer, key)}
+}
+
+// ReadPublicCapability GET /v1/public-capabilities（qa:readPublicCapability）。
+func (c *QaClient) ReadPublicCapability(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/public-capabilities", nil, "")
 }

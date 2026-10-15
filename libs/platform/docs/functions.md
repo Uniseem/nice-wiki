@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 40 个函数：约束 19 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 43 个函数：约束 19 个，参考 24 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -697,6 +697,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 3. 失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined
 4. 屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行
 5. Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名
+6. relayWriteContext薄委托公共NewWriteContext，不另存一份运行权威/维护截止算法
 
 **错误**
 
@@ -708,7 +709,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：行级租约防多实例重复
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`
+- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`、`platform.NewWriteContext`
 
 ## platform.NewEventPublisher
 
@@ -1112,7 +1113,7 @@ func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error)
 **步骤**
 
 1. IDNA Lookup规范域名，IPv6和默认端口统一；仅HTTPS或显式loopback HTTP
-2. 拒credential/query/fragment/控制字符和路径穿越，保留basePath
+2. 拒credential/query/fragment/控制字符、连续斜杠和路径穿越，保留basePath；拒绝解码后连续斜杠，避免下游根相对链接成为协议相对URL
 
 **错误**
 
@@ -1324,6 +1325,91 @@ func NewSiteConfigClient(cfg ServiceConfig, key SigningKey) (SiteConfigClient, e
 - 并发：客户端可并发使用；缓存由ReadRuntime负责
 - 幂等：只读
 - 依赖：`site-config:readRuntimeState`
+
+## platform.NewWriteContext
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/runtime.go`
+- 作用：共用后台IO运行权威、维护安全窗口与截止
+
+```go
+func NewWriteContext(ctx context.Context, config WriteWindowConfig) (context.Context, RuntimeView, context.CancelFunc, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 父IO与取消 | 保留更早截止 |
+| `config` | `WriteWindowConfig` | 启动边界已校验回调 | runtime/writeWindow非nil；每IO重新读取 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `work` | `context.Context` | 本批有效IO窗口 | 最多30秒和更早安全截止 |
+| `view` | `RuntimeView` | 本次权威快照 | 不能长期复用到后续确认 |
+| `cancel` | `context.CancelFunc` | 关闭本次窗口 | 无error时必须调用 |
+| `error` | `error` | 未知或窗口关闭 | 失败无可写ctx |
+
+**步骤**
+
+1. 运行权威及本域control窗口都未知则失败关闭，dataEpoch非空
+2. 仅running/backup-barrier/restore-staging可进入，维护须明确未过安全截止
+3. 限制父ctx/30秒/屏障更早截止，并更新已有OperationContext.deadline；不替域建立业务主体或猜epoch
+4. 每外部IO后写本域确认前须重新调用，旧窗口不能替代当前权威
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：运行权威未知（可重试）
+- `LOCKED`：维护或恢复窗口关闭（可重试）
+
+- 副作用：无
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.RunRecoveryLoop
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/runtime.go`
+- 作用：以公共循环周期推进本域持久恢复决定
+
+```go
+func RunRecoveryLoop(ctx context.Context, config RecoveryLoopConfig) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 进程任务ctx | 由RunService创建取消 |
+| `config` | `RecoveryLoopConfig` | 本域恢复装配 | poll100..60000ms；回调非nil |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 永久错误 | 进程取消正常nil，其他永久错误交还生命周期 |
+
+**步骤**
+
+1. 启动校验周期与回调；立即执行一批，之后每周期一批且不重叠
+2. NewWriteContext核当前epoch/阶段/维护窗口；单批最多30秒，业务每次RPC前后仍核自己的权威
+3. 仅显式retryable平台错误及批次deadline在下周期继续；未知或永久错误上报退出，持久决定不丢
+4. 取消立即停止新批次，原ctx取消传下游IO；不建立新的模型/付费尝试
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：无
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.NewWriteContext`
 
 ## platform.NewRequestValidator
 
@@ -1605,6 +1691,9 @@ func RunService(spec ServiceSpec) int
 2. 注册SIGINT/SIGTERM；调用spec的BuildApplication（其中先ApplyRestoreSwap）
 3. 运行Serve与WatchRuntime；收到信号或恢复切换时以30秒上限Shutdown
 4. 返回对应退出码；不能安全关闭返回1并保留journal
+5. Application可选实现BackgroundApplication：完整构造成功后核唯一任务名/非空回调，由本进程统一启动后台；无RuntimeClient时不制造nil事件阻塞信号
+6. 退出共用30秒预算：取消主ctx，BackgroundApplication.Drain停新HTTP并等请求、再等全部后台退出，最后Shutdown关闭私有资源；无法停止时保留恢复决定失败退出
+7. 后台永久错误/无故提前返回停止服务，恢复切换保留退出75；不在服务入口自建timer/调度循环
 
 **错误**
 
@@ -1615,6 +1704,7 @@ func RunService(spec ServiceSpec) int
 - 并发：每进程一次
 - 幂等：重启按journal恢复
 - 依赖：`platform.LoadServiceConfig`、`platform.WatchRuntime`
+- 其他依赖说明：可选BackgroundApplication/BackgroundTask；既有Application服务仍兼容
 
 ## platform.main
 
@@ -1648,4 +1738,42 @@ func main()
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：离线运行
 - 幂等：已存在密钥不覆盖
+- 依赖：无
+
+## platform.CanonicalJSON
+
+- 级别：参考
+- 文件：`libs/platform/platform.go`
+- 作用：统一跨服务引用摘要的纯JSON编码
+
+```go
+func CanonicalJSON(value any) ([]byte, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `value` | `any` | 已受入口约束的内部JSON可序列化值 | 调用方固定数组排序和空集[]，不得把secret当可公开hash输入 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `bytes` | `[]byte` | 规范JSON字节 | Go JSON编码；对象键排序；UseNumber保留整数精度，不声称RFC8785 |
+| `error` | `error` | 不可规范序列化 | 不回显原值 |
+
+**步骤**
+
+1. Marshal后UseNumber转换通用值，再Marshal按对象键排序；保留Go JSON转义和数字约定
+2. 空数组/空对象/空值由调用域预先明确；不替调用方排序数组
+
+**错误**
+
+- `INTEGRITY_ERROR`：内部值不能按约定编码（不可重试）
+
+- 副作用：无
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
 - 依赖：无

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "dc9ed8da92c0e9fbaf62410aa03c161a35bfaee1b8a23e2dc184477a73078c92",
+  "contractSha256": "070b1944dbb7dff46908a60fdce5a84ebecb22c3ffd4f9d818a96d32af3f956a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "媒体私有存储与上传处理",
   "branch": "codex/media-upload-storage",

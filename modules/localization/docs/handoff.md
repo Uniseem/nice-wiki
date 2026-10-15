@@ -49,3 +49,8 @@
 先在具备 Go 工具链的 VPS 或集成环境编译、gofmt、vet 本次本域代码，确认 modernc SQLite 依赖和多语句迁移可用；通过后接入完整 handler，并让 `transport.Application` 持有本域 Store，在 Shutdown 中按安全点关闭。不得同时实现真实模型、测试样例或跨域存储。
 
 详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。
+
+
+## 第四轮首页跨域只读协议
+
+listLanguages明确includeDisabled默认false，public-site纯服务仅该只读范围。接口/后台仍按台账未完成，不能据页面进程ready推断语言启用。

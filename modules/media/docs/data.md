@@ -144,3 +144,8 @@
 | cancelManualCleanupRequest | 删除前取消人工清理请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
+
+
+## 第四轮首页跨域只读协议
+
+acquire顶层显式site/object/revision/version/operation/digest且refs允许空；统一CanonicalJSON摘要，重放不续期；COMMITTED旧版本只补history，当前水位不倒退；源未知/404/pending/到期均不能release。三个引用生产方函数仍planned，无实际业务实现或数据迁移。

@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 ISSUES = []
 CACHE = {}
-BUILTINS = {'string', 'bool', 'int', 'int32', 'int64', 'uint64', 'float64', 'byte', 'bytes', 'error', 'void', 'number', 'boolean', 'Context', 'Reader', 'Writer', 'ResponseWriter', 'Request', 'Time', 'Promise', 'Record', 'Map', 'Set', 'Uint8Array', 'AbortSignal', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent', 'File', 'Blob', 'unknown'}
+BUILTINS = {'any', 'CancelFunc', 'string', 'bool', 'int', 'int32', 'int64', 'uint64', 'float64', 'byte', 'bytes', 'error', 'void', 'number', 'boolean', 'Context', 'Reader', 'Writer', 'ResponseWriter', 'Request', 'Time', 'Promise', 'Record', 'Map', 'Set', 'Uint8Array', 'AbortSignal', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent', 'File', 'Blob', 'unknown'}
 
 
 def fail(label, message):
@@ -155,9 +155,10 @@ def check_modules(modules, permissions, codes, shared=()):
                 if not all(isinstance(r, str) and r for r in fn.get('resources', [])):
                     fail(fid, 'resources只能是非空说明文字')
                 signature = fn.get('signature', '')
+                operation_input = any('OperationContext' in param.get('type', '') for param in fn.get('inputs', []))
                 if 'RequestContext' in signature:
                     fail(fid, '签名不得使用RequestContext')
-                if service and signature.startswith('func ') and 'OperationContext' in signature and '(ctx context.Context, op OperationContext' not in signature:
+                if service and signature.startswith('func ') and operation_input and '(ctx context.Context, op OperationContext' not in signature:
                     fail(fid, 'Go操作函数签名必须以(ctx context.Context, op OperationContext开头')
                 if service and not signature.startswith('func ') and 'OperationContext' in signature:
                     fail(fid, '浏览器函数不得接收服务端OperationContext')

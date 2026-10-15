@@ -288,18 +288,8 @@
         "x-handler": "localization.ListLanguages",
         "x-permission": "anonymous",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 public-site可信纯服务只读includeDisabled=false，不授予语言管理写权限。",
         "parameters": [
-          {
-            "name": "includeDisabled",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "boolean",
-              "description": "管理视图开关"
-            },
-            "description": "管理视图开关"
-          },
           {
             "name": "X-Request-Id",
             "in": "header",
@@ -308,6 +298,16 @@
               "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             },
             "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          },
+          {
+            "name": "includeDisabled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "缺省只启用；public-site纯服务仅false"
           }
         ],
         "responses": {
@@ -382,7 +382,10 @@
             }
           }
         },
-        "security": []
+        "security": [],
+        "x-service-actor-callers": [
+          "public-site"
+        ]
       }
     },
     "/v1/translations": {

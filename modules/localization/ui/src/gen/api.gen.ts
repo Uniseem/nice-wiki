@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * 读取语言列表
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 public-site可信纯服务只读includeDisabled=false，不授予语言管理写权限。
          */
         get: operations["listLanguages"];
         put?: never;
@@ -1628,9 +1628,9 @@ export interface operations {
     };
     listLanguages: {
         parameters: {
-            query: {
-                /** @description 管理视图开关 */
-                includeDisabled: boolean;
+            query?: {
+                /** @description 缺省只启用；public-site纯服务仅false */
+                includeDisabled?: boolean;
             };
             header: {
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */

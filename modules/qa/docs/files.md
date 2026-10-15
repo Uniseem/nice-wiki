@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 65 个：约束 38，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 66 个：约束 39，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -75,4 +75,4 @@
 | `modules/qa/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/qa/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/qa/internal/admin/records.go` | 手写 | 浏览与筛选问答记录 | `qa.ListTurnRecords`、`qa.ReadTurnRecord` |
-| `modules/qa/internal/admin/policy.go` | 手写 | 读取问答策略 | `qa.ReadQaPolicy` |
+| `modules/qa/internal/admin/policy.go` | 手写 | 读取问答策略 | `qa.ReadQaPolicy`、`qa.ReadPublicCapability` |

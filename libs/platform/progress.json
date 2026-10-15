@@ -2,11 +2,11 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "5196ff8774d9f8c2551946d3c00a9a75894572ec9a69edd63a90c85b37200ffe",
+  "contractSha256": "b8cecdffdfad6b3d8f7f2fbe2bfd09f8bb2af2293696e52796451d1bd478a829",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第三轮公共入口边界",
-  "branch": "codex/r1-round3-integration",
-  "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
+  "assignedSession": "第四轮持久恢复公共机制",
+  "branch": "codex/r1-round4-integration",
+  "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
   "deliveryCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
   "deployment": "not_started",
   "files": [
@@ -112,11 +112,11 @@
     },
     {
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮公开链接边界修订，连续斜杠拒绝待VPS编译与检查。"
       },
       "blocker": null
     },
@@ -271,11 +271,11 @@
     {
       "id": "platform.RunRelay",
       "path": "libs/platform/outbox/relay.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮复用安全写窗口与统一后台生命周期，待VPS。"
       },
       "blocker": null
     },
@@ -326,11 +326,11 @@
     {
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮公开链接边界修订，连续斜杠拒绝待VPS编译与检查。"
       },
       "blocker": null
     },
@@ -392,11 +392,11 @@
     {
       "id": "platform.RunService",
       "path": "libs/platform/lifecycle/service.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": "第四轮复用安全写窗口与统一后台生命周期，待VPS。"
       },
       "blocker": null
     },
@@ -535,11 +535,11 @@
     {
       "id": "platform.NormalizePublicURL",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮公开链接边界修订，连续斜杠拒绝待VPS编译与检查。"
       },
       "blocker": null
     },
@@ -590,11 +590,11 @@
     {
       "id": "platform.CanonicalPublicOrigin",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮公开链接边界修订，连续斜杠拒绝待VPS编译与检查。"
       },
       "blocker": null
     },
@@ -623,11 +623,11 @@
     {
       "id": "platform.ValidatePrivatePath",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第四轮公开链接边界修订，连续斜杠拒绝待VPS编译与检查。"
       },
       "blocker": null
     },
@@ -638,6 +638,36 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.CanonicalJSON",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四轮公共恢复机制，待统一VPS编译与检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.NewWriteContext",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四轮公共恢复机制，待统一VPS编译与检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.RunRecoveryLoop",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四轮公共恢复机制，待统一VPS编译与检查。"
       },
       "blocker": null
     }

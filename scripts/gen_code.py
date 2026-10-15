@@ -395,6 +395,12 @@ def downgrade_to_30(spec):
                     else:
                         node[key] = non_null
             kind = node.get("type")
+            if kind == "null" or (isinstance(kind, list) and set(kind) == {"null"}):
+                # 3.0字段用any承载nil，enum保留运行时必须null的约束。
+                node.pop("type")
+                node["nullable"] = True
+                node["enum"] = [None]
+                node["x-go-type"] = "any"
             if isinstance(kind, list):
                 if "null" in kind:
                     node["nullable"] = True
@@ -512,7 +518,7 @@ def render_operation(struct, producer, oid, method, path, op):
         for p in queries:
             default = p.get("schema", {}).get("default")
             if default is not None:
-                lines.append(f'\tif query.Get({go_string(p["name"])}) == "" {{ query.Set({go_string(p["name"])}, {go_string(str(default))}) }}')
+                lines.append(f'\tif query.Get({go_string(p["name"])}) == "" {{ query.Set({go_string(p["name"])}, {go_string(json.dumps(default) if isinstance(default, bool) else str(default))}) }}')
         lines.append('\tif encoded := query.Encode(); encoded != "" { requestPath += "?" + encoded }')
         expr = "requestPath"
     if sse:

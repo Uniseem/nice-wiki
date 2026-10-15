@@ -2808,6 +2808,124 @@
           }
         }
       }
+    },
+    "/v1/reference-decisions/{sourceOperationId}": {
+      "get": {
+        "operationId": "readReferenceDecision",
+        "summary": "读取资源引用源持久提交决定",
+        "description": "只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。",
+        "x-handler": "content.ReadReferenceDecision",
+        "x-permission": "service",
+        "x-allowed-callers": [
+          "media"
+        ],
+        "x-data-epoch-required": true,
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "只读安全结果；未知状态不伪装可用",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadReferenceDecisionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "无源决定；不能当释放证据",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sourceOperationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {

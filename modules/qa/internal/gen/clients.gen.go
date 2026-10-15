@@ -466,6 +466,11 @@ func (c *ModelGatewayClient) ReadProfiles(ctx context.Context, queries ...url.Va
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadTaskAvailability POST /v1/task-availability:read（model-gateway:readTaskAvailability）。
+func (c *ModelGatewayClient) ReadTaskAvailability(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/task-availability:read", body, "")
+}
+
 // ResumeInference GET /v1/inferences/{invocationId}/events（model-gateway:resumeInference）。
 // queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
 func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId string, lastEventId string, queries ...url.Values) (platform.ModelEventStream, error) {

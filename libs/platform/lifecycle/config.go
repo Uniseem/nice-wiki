@@ -65,7 +65,7 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 }
 
 // NormalizePublicURL 规范受信部署地址：IDNA Lookup、HTTPS与显式本地HTTP。
-// 保留部署basePath，拒绝带凭据、查询、片段、控制字符或路径穿越的地址。
+// 保留部署basePath，拒绝带凭据、查询、片段、控制字符、连续斜杠或路径穿越的地址。
 func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error) {
 	invalid := func() (string, error) {
 		return "", platform.NewError(platform.CodeValidation, false, "公开地址不合法")
@@ -75,6 +75,9 @@ func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error) {
 	}
 	u, err := url.Parse(raw)
 	if err != nil || !u.IsAbs() || u.Opaque != "" || u.Hostname() == "" || u.User != nil || u.ForceQuery || u.RawQuery != "" || u.Fragment != "" || strings.Contains(raw, "#") {
+		return invalid()
+	}
+	if strings.Contains(u.Path, "//") || strings.Contains(u.RawPath, "//") {
 		return invalid()
 	}
 	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")

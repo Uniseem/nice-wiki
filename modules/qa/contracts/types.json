@@ -4091,6 +4091,35 @@
         "policy",
         "version"
       ]
+    },
+    "ReadPublicCapabilityInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "无浏览器身份或费用输入",
+      "properties": {},
+      "required": []
+    },
+    "ReadPublicCapabilityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "首页是否具备QA配置；不代表调用额度或服务健康",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "available",
+            "not_configured",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "available",
+        "reason"
+      ]
     }
   }
 }

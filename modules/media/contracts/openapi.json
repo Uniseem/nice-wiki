@@ -781,7 +781,7 @@
       "get": {
         "operationId": "readAsset",
         "summary": "读取资源/variants安全元数据",
-        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 既定注册引用/检索服务可用纯服务身份读取精确安全元数据；不返回路径/秘密，调用域核返回siteId与自己的来源站点。",
         "x-handler": "media.ReadAsset",
         "x-permission": "media.read",
         "security": [
@@ -806,10 +806,7 @@
             "name": "version",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "version",
-              "minLength": 0,
-              "maxLength": 2048
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
             }
           }
         ],
@@ -854,7 +851,14 @@
               }
             }
           }
-        }
+        },
+        "x-service-actor-callers": [
+          "content",
+          "site-config",
+          "public-site",
+          "localization",
+          "knowledge"
+        ]
       }
     },
     "/v1/assets/{assetId}/variants": {
@@ -991,7 +995,7 @@
             }
           },
           "409": {
-            "description": "LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+            "description": "LOCKED或CONFLICT：删除锁定或同源操作输入冲突",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1076,6 +1080,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：源决定未知或依赖失败，保留pin",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -1135,7 +1149,7 @@
             }
           },
           "503": {
-            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "description": "DEPENDENCY_UNAVAILABLE：源决定未知或依赖失败，保留pin",
             "content": {
               "application/problem+json": {
                 "schema": {

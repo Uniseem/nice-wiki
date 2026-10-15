@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
 )
 
 // 转发循环参数边界与退避上限。
@@ -45,6 +46,12 @@ func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.E
 			if _, err = store.DiscardOtherEpochs(work, view.DataEpoch); err == nil {
 				lastEpoch = view.DataEpoch
 			}
+			cancel()
+			if err != nil && !sleepContext(ctx, poll) {
+				return nil
+			}
+			// 清理与领取是两次active写；下一次先重取当前运行/安全窗口。
+			continue
 		}
 		var rows []platform.OutboxRow
 		if err == nil {
@@ -68,44 +75,7 @@ func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.E
 // relayWriteContext 每次IO前读取最新运行权威和control窗口；未知不得改active。
 // 后台控制请求设置本次IO截止，保留父ctx的更早取消及原费用根。
 func relayWriteContext(ctx context.Context, config platform.RelayConfig) (context.Context, platform.RuntimeView, context.CancelFunc, error) {
-	work, cancel := context.WithTimeout(ctx, 30*time.Second)
-	if op, ok := platform.OperationContextFrom(work); ok {
-		deadline, _ := work.Deadline()
-		op.Deadline = platform.Timestamp(deadline.UTC().Format(time.RFC3339Nano))
-		work = platform.WithOperationContext(work, op)
-	}
-	view, err := config.Runtime(work)
-	if err != nil {
-		cancel()
-		return nil, view, nil, err
-	}
-	deadline, err := config.WriteWindow(work)
-	if err != nil {
-		cancel()
-		return nil, view, nil, err
-	}
-	if view.DataEpoch == "" {
-		cancel()
-		return nil, view, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "outbox运行权威数据代次未知")
-	}
-	if view.Phase != platform.PhaseRunning && view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging {
-		cancel()
-		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "当前恢复阶段不接受outbox写入")
-	}
-	if (view.Maintenance && deadline.IsZero()) || (!deadline.IsZero() && !deadline.After(time.Now())) {
-		cancel()
-		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "outbox维护安全窗口已关闭")
-	}
-	if !deadline.IsZero() {
-		bounded, release := context.WithDeadline(work, deadline)
-		if op, ok := platform.OperationContextFrom(bounded); ok {
-			effective, _ := bounded.Deadline()
-			op.Deadline = platform.Timestamp(effective.UTC().Format(time.RFC3339Nano))
-			bounded = platform.WithOperationContext(bounded, op)
-		}
-		return bounded, view, func() { release(); cancel() }, nil
-	}
-	return work, view, cancel, nil
+	return lifecycle.NewWriteContext(ctx, platform.WriteWindowConfig{Runtime: config.Runtime, WriteWindow: config.WriteWindow})
 }
 
 // PublishClient 与生成的原始Jobs客户端同形，不要求虚假的租约方法。

@@ -48,3 +48,10 @@
 ## 下一步（一项）
 
 实现 `content.WriteRevisionFile`（`modules/content/internal/revision_files.go`）：先读本域 `docs/functions.md`、`docs/data.md`、`docs/workflows.md` 与 `implementation.json` 对应条款，生成不可变 PREPARED 正文文件、fsync后原子rename并写prepared journal；不得在同一项接入HTTP、发布/回滚用例或新增测试。
+
+
+## 第四轮首页跨域只读协议
+
+PublicTreeNode.canonicalPath为新增required完整路径，只是公开树响应契约，ReadPublicTree尚未实现，不宣称路由可用。ValidatePublications登记site-config只读链接调用方；不能由消费者读取私有树或猜路径。
+
+readReferenceDecision仅media纯服务读取引用源最小决定，COMMITTED优先，缺失/未知不得释放pin。该新约束函数仍planned，不是已实现服务。

@@ -1327,6 +1327,53 @@
         "defaultRoute",
         "revision"
       ]
+    },
+    "ReferenceSourceDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "资源pin源的最小持久决定；COMMITTED优先，404/pending/未知都不能作为release证据",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "committed",
+            "aborted",
+            "rejected"
+          ]
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sourceOperationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sourceObjectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sourceRevisionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sourceVersion": {
+          "$ref": "#/$defs/Revision"
+        },
+        "referenceDigest": {
+          "$ref": "#/$defs/Hash"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "state",
+        "siteId",
+        "sourceOperationId",
+        "sourceObjectId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "referenceDigest",
+        "dataEpoch"
+      ]
     }
   }
 }

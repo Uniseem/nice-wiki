@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 66 个函数：约束 36 个，参考 30 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 67 个函数：约束 37 个，参考 30 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2569,6 +2569,54 @@ func ReadTaskAssignments(ctx context.Context, op OperationContext, input ReadTas
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：无
+
+## model-gateway.ReadTaskAvailability
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：免费读取QA任务配置能力
+
+```go
+func ReadTaskAvailability(ctx context.Context, op OperationContext, input ReadTaskAvailabilityInput) (ReadTaskAvailabilityResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消和截止 | 已在服务入口严格校验；内部不重复schema解析 |
+| `op` | `OperationContext` | 已验证服务身份、当前epoch和期限 | 已在服务入口严格校验；内部不重复schema解析 |
+| `input` | `ReadTaskAvailabilityInput` | 严格封闭输入 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadTaskAvailabilityResult` | 安全完整响应 | 已在服务入口严格校验；内部不重复schema解析 |
+| `error` | `Error` | 公共错误，不返回私密原值 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**步骤**
+
+1. 固定qa纯服务caller，只允许qa.preflight/qa.inspect/qa.answer范围；不要求付费costClass、也不创建执行授权
+2. 当前epoch与本域只读一致快照读取任务分配、qa类别档位、模型启用、供应方启用与credentialVersion及密钥引用是否具备
+3. 任务分配/档位不存在明确not_configured；已配但无启用且chat能力匹配候选、供应方/凭据停用明确unavailable；存在可用配置候选为available
+4. 单任务覆盖与有序档位候选沿既有路由规则；未知表/损坏/存储失败503/422，不能返回空数组或false充当已知未配置
+5. 不读取或返回秘密正文、供应方地址、模型ID、预算/余额，不检查价格是否齐全，不出网、不探测、不调模型、不预留费用
+
+**错误**
+
+- `VALIDATION`：请求不符合协议（不可重试）
+- `UNAUTHENTICATED`：服务证明无效（不可重试）
+- `FORBIDDEN`：非固定调用服务或越过只读范围（不可重试）
+- `VERSION_MISMATCH`：当前dataEpoch不匹配（不可重试）
+- `INTEGRITY_ERROR`：私有权威数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖或存储未知（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方qa；不授予模型调用或管理写入权限
+- 并发：当前权威快照一致读取；不持锁执行跨服务IO
+- 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
 - 依赖：无
 
 ## model-gateway.RefreshModelCatalog

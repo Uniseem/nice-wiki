@@ -206,3 +206,13 @@
 | rollbackPublishedRevisionRequest | 回滚历史形成新发布/git提交请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
+
+
+## 第四轮首页跨域只读协议
+
+PublicTreeNode.canonicalPath为新增required完整路径，只是公开树响应契约，ReadPublicTree尚未实现，不宣称路由可用。ValidatePublications登记site-config只读链接调用方；不能由消费者读取私有树或猜路径。
+
+
+## 第四轮首页跨域只读协议
+
+readReferenceDecision仅media纯服务读取引用源最小决定，COMMITTED优先，缺失/未知不得释放pin。该新约束函数仍planned，不是已实现服务。

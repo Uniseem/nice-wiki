@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 65 个函数：约束 38 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 66 个函数：约束 39 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3122,3 +3122,50 @@ func ReadQaPolicy(ctx context.Context, op OperationContext, input ReadQaPolicyIn
 - 并发：只读快照
 - 幂等：只读
 - 依赖：无
+
+## qa.ReadPublicCapability
+
+- 级别：约束
+- 文件：`modules/qa/internal/admin/policy.go`
+- 作用：免费读取公开问答入口配置能力
+
+```go
+func ReadPublicCapability(ctx context.Context, op OperationContext, input ReadPublicCapabilityInput) (ReadPublicCapabilityResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消和截止 | 已在服务入口严格校验；内部不重复schema解析 |
+| `op` | `OperationContext` | 已验证服务身份、当前epoch和期限 | 已在服务入口严格校验；内部不重复schema解析 |
+| `input` | `ReadPublicCapabilityInput` | 严格封闭输入 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadPublicCapabilityResult` | 安全完整响应 | 已在服务入口严格校验；内部不重复schema解析 |
+| `error` | `Error` | 公共错误，不返回私密原值 | 已在服务入口严格校验；内部不重复schema解析 |
+
+**步骤**
+
+1. 只接受site-config/public-site固定纯服务caller，当前epoch一致；不接受用户自造费用/主体字段
+2. 调用model-gateway.readTaskAvailability精确固定qa.preflight/qa.inspect/qa.answer；严格检查无遗漏/重复/额外任务
+3. 三项均available才true；已知任一未配置false/not_configured，其他已配不可用false/unavailable；网关未知/超时/错误503，不把未知说成已知未配
+4. 只返回available/reason且no-store，不返回模型配置、费用信息或原始输入，不调用模型、检索、guard准入或创建任务
+
+**错误**
+
+- `VALIDATION`：请求不符合协议（不可重试）
+- `UNAUTHENTICATED`：服务证明无效（不可重试）
+- `FORBIDDEN`：非固定调用服务或越过只读范围（不可重试）
+- `VERSION_MISMATCH`：当前dataEpoch不匹配（不可重试）
+- `INTEGRITY_ERROR`：私有权威数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖或存储未知（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方site-config,public-site；不授予模型调用或管理写入权限
+- 并发：当前权威快照一致读取；不持锁执行跨服务IO
+- 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
+- 依赖：`model-gateway:readTaskAvailability`

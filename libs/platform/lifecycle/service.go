@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -43,58 +44,103 @@ func RunService(spec platform.ServiceSpec) int {
 		fmt.Fprintf(os.Stderr, "装配失败，errorCode=%s\n", errorCodeOf(err))
 		return ExitFailure
 	}
-	serveDone := make(chan error, 1)
-	go func() { serveDone <- application.Serve(ctx) }()
-	restart := make(chan error, 1)
-	go func() {
-		if spec.RuntimeClient == nil {
-			restart <- nil
-			return
-		}
-		client, err := spec.RuntimeClient(config)
-		if err != nil {
-			restart <- err
-			return
-		}
-		restart <- WatchRuntime(ctx, client, config.DataRoot)
-	}()
-	select {
-	case err := <-serveDone:
-		stopSignals()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "运行失败，errorCode=%s\n", errorCodeOf(err))
+	hosted, hasBackground := application.(platform.BackgroundApplication)
+	var tasks []platform.BackgroundTask
+	if hasBackground {
+		tasks = hosted.BackgroundTasks()
+	}
+	names := make(map[string]bool, len(tasks))
+	for _, task := range tasks {
+		if !platform.ValidIdentifier(task.Name) || names[task.Name] || task.Run == nil {
+			fmt.Fprint(os.Stderr, "后台入口配置不合法\n")
 			_ = shutdown(application)
 			return ExitFailure
 		}
-		// Serve提前返回视为异常退出，保留journal供排查。
-		return ExitFailure
-	case err := <-restart:
-		if errors.Is(err, ErrRestartForRestore) {
-			fmt.Fprint(os.Stderr, "恢复切换，安全退出并由进程守护拉起\n")
-			if shutdownErr := shutdown(application); shutdownErr != nil {
-				fmt.Fprintf(os.Stderr, "关闭失败，errorCode=%s\n", errorCodeOf(shutdownErr))
+		names[task.Name] = true
+	}
+	var background sync.WaitGroup
+	backgroundDone := make(chan error, len(tasks))
+	for _, task := range tasks {
+		background.Add(1)
+		go func(task platform.BackgroundTask) {
+			defer background.Done()
+			result := task.Run(ctx)
+			if ctx.Err() == nil {
+				backgroundDone <- result
+			}
+		}(task)
+	}
+	// 共享一个30秒关闭预算；后台仍可能写库时不先关闭业务句柄。
+	finish := func(code int) int {
+		stopSignals()
+		closeCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
+		defer cancel()
+		if hasBackground {
+			if err := hosted.Drain(closeCtx); err != nil {
+				fmt.Fprintf(os.Stderr, "停止入口失败，errorCode=%s\n", errorCodeOf(err))
 				return ExitFailure
 			}
-			return ExitForRestore
 		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "运行状态监视失败，errorCode=%s\n", errorCodeOf(err))
-			_ = shutdown(application)
+		stopped := make(chan struct{})
+		go func() { background.Wait(); close(stopped) }()
+		select {
+		case <-stopped:
+		case <-closeCtx.Done():
+			fmt.Fprint(os.Stderr, "后台任务未在关闭期限内停止，保留恢复决定\n")
 			return ExitFailure
 		}
-		// 无RuntimeClient时阻塞等待信号或Serve结束。
-		if serveErr := <-serveDone; serveErr != nil {
-			_ = shutdown(application)
-			return ExitFailure
-		}
-		return ExitOK
-	case <-ctx.Done():
-		fmt.Fprint(os.Stderr, "收到停止信号，开始安全关闭\n")
-		if err := shutdown(application); err != nil {
+		if err := application.Shutdown(closeCtx); err != nil {
 			fmt.Fprintf(os.Stderr, "关闭失败，errorCode=%s\n", errorCodeOf(err))
 			return ExitFailure
 		}
-		return ExitOK
+		return code
+	}
+	serveDone := make(chan error, 1)
+	go func() { serveDone <- application.Serve(ctx) }()
+	restart := make(chan error, 1)
+	if spec.RuntimeClient != nil {
+		go func() {
+			client, err := spec.RuntimeClient(config)
+			if err != nil {
+				restart <- err
+				return
+			}
+			restart <- WatchRuntime(ctx, client, config.DataRoot)
+		}()
+	}
+	select {
+	case err := <-serveDone:
+		if ctx.Err() != nil {
+			return finish(ExitOK)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "运行失败，errorCode=%s\n", errorCodeOf(err))
+		}
+		return finish(ExitFailure)
+	case err := <-restart:
+		if ctx.Err() != nil {
+			return finish(ExitOK)
+		}
+		if errors.Is(err, ErrRestartForRestore) {
+			fmt.Fprint(os.Stderr, "恢复切换，安全退出并由进程守护拉起\n")
+			return finish(ExitForRestore)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "运行状态监视失败，errorCode=%s\n", errorCodeOf(err))
+		}
+		return finish(ExitFailure)
+	case err := <-backgroundDone:
+		if ctx.Err() != nil {
+			return finish(ExitOK)
+		}
+		if errors.Is(err, ErrRestartForRestore) {
+			return finish(ExitForRestore)
+		}
+		fmt.Fprintf(os.Stderr, "后台入口提前结束，errorCode=%s\n", errorCodeOf(err))
+		return finish(ExitFailure)
+	case <-ctx.Done():
+		fmt.Fprint(os.Stderr, "收到停止信号，开始安全关闭\n")
+		return finish(ExitOK)
 	}
 }
 
