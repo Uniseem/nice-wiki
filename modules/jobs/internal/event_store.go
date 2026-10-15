@@ -211,12 +211,18 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 		},
 		WriteWindow: func(ctx context.Context) (time.Time, error) {
 			view, err := provider(ctx)
-			if err != nil { return time.Time{}, err }
+			if err != nil {
+				return time.Time{}, err
+			}
 			if view.SafePointRequested {
-				if view.BarrierDeadline.IsZero() { return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "事件转发缺少control屏障截止") }
+				if view.BarrierDeadline.IsZero() {
+					return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "事件转发缺少control屏障截止")
+				}
 				return view.BarrierDeadline, nil
 			}
-			if view.Runtime.Maintenance { return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间未开放事件转发写窗口") }
+			if view.Runtime.Maintenance {
+				return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间未开放事件转发写窗口")
+			}
 			return time.Time{}, nil
 		},
 	})

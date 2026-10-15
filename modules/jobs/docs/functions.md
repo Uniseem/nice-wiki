@@ -1663,7 +1663,7 @@ func findEventDefinition(name string, version int) (EventDefinition, error)
 - 作用：按事件名/版本缓存平台编译器，仅调用platform.NewPayloadValidator，无外部联网引用
 
 ```go
-func validateEventPayload(definition EventDefinition, payload json.RawMessage) error
+func validateEventPayload(definition EventDefinition, payload []byte) error
 ```
 
 **输入**
@@ -1671,7 +1671,7 @@ func validateEventPayload(definition EventDefinition, payload json.RawMessage) e
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `definition` | `EventDefinition` | 生成规格 | 仅本域内部，信任边界已验证字段 |
-| `payload` | `json.RawMessage` | 载荷 | 仅本域内部，信任边界已验证字段 |
+| `payload` | `[]byte` | 载荷 | 仅本域内部，信任边界已验证字段 |
 
 **输出**
 
@@ -1846,6 +1846,7 @@ func (work *leaseOperation) readEventRecord(ctx context.Context, eventID string)
 **步骤**
 
 1. 读取事件固定信封及seq，核持久JSON/哈希并按当前epoch隔离
+2. 旧envelope_hash为空时还须核生成目录唯一producer、信封Identifier/非负revision/时间基本完整性，才验证payload并计算hash；未知或损坏失败关闭，不把旧producer复制到可信目录
 
 **错误**
 
@@ -2003,6 +2004,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 1. 核jobs后台来源、本域Store/runtime与窄发布客户端已装配
 2. 复用outbox.NewStore(db)，以WithOperationContext(ctx,op)和运行权威调用platform.RunRelay；batch=100、poll=1000ms
 3. 原事件ID与payload保持，平台NewEventPublisher按每event建立稳定操作键并签名self jobs:publishEvent，确认durable后平台标relayed；不复制循环、租约、重试或隔离机制
+4. Runtime与必需WriteWindow均直接重读本域LeaseRuntimeView；provider错误透传，SafePointRequested必须有BarrierDeadline并原样返回；维护无safe请求明确LOCKED，正常running返回零time.Time。领取、发布前后及回执/重试/隔离/旧代丢弃的窗口重查和受限IO ctx全部由platform.RunRelay负责，不丢弃本域截止或把未知权威当running
 
 **错误**
 
@@ -3606,7 +3608,7 @@ func NewEventHandlers() map[string]http.Handler
 - 作用：统一本组JSON响应，失败复用平台Problem，不自行泄露原始输入
 
 ```go
-func writeEventResponse(w http.ResponseWriter, op OperationContext, result any, err error, status int)
+func writeEventResponse(w http.ResponseWriter, requestID Identifier, result any, err error, status int)
 ```
 
 **输入**
@@ -3614,7 +3616,7 @@ func writeEventResponse(w http.ResponseWriter, op OperationContext, result any, 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `w` | `ResponseWriter` | HTTP响应句柄 | SSE开始后不调用 |
-| `op` | `OperationContext` | 可信requestId | 入口注入 |
+| `requestID` | `Identifier` | 可信入口产生的requestId标量，不传完整操作上下文 | 入口注入 |
 | `result` | `LeaseReceiptResult` | 已验证业务结果 | 失败时忽略 |
 | `err` | `error` | 领域错误 | 公共安全错误码 |
 | `status` | `int` | 成功HTTP码 | OpenAPI登记码 |
