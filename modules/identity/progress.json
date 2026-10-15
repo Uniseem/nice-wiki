@@ -7,18 +7,18 @@
   "assignedSession": "R1-01（会话签发刷新、CSRF与即时授权）",
   "branch": "codex/identity-session-complete-r1",
   "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
-  "deliveryCommit": null,
+  "deliveryCommit": "59070a0645a744e67426f511fcddd2040e46816f",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/account_service.go",
@@ -63,42 +63,42 @@
     {
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/preference_service.go",
@@ -133,22 +133,22 @@
     {
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/restore_security.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "path": "modules/identity/internal/barrier_service.go",
@@ -343,12 +343,12 @@
     {
       "path": "modules/identity/migrations/0003_session_tokens.sql",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     }
   ],
   "functions": [
@@ -532,100 +532,100 @@
       "id": "identity.IssueSessionTokens",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RefreshSession",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RevokeSession",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RevokeSessionFamily",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RevokeOtherSessions",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.VerifySessionCSRF",
       "path": "modules/identity/internal/csrf_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.CheckAuthorization",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.ReadPreferences",
@@ -708,12 +708,12 @@
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.RelayOutbox",
@@ -730,12 +730,12 @@
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.AcquireBarrier",
@@ -917,67 +917,67 @@
       "id": "identity.WithSessionRuntime",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.sessionRuntimeFromContext",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.readSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.validateSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.sessionAuthContext",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     },
     {
       "id": "identity.verifySessionAccess",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
         "state": "not_run",
-        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
       },
-      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
     }
   ],
   "rule": "本轮源码未编译，修改条目保持in_progress；平台协议和VPS已有检查通过后由集成会话审查并升级，不把编译视为业务验收。"
