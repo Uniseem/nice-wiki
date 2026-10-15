@@ -1,5 +1,27 @@
 # 任务与事件会话交接
 
+## 持续实施第二轮：事件存储与durable投递（2026-10-15，源码冻结待VPS）
+
+- 分支`codex/jobs-event-delivery-r1`，基线`468986fc34e1c90b6b5ca575539fdd2b9748cd06`；开始工作树干净，独占`modules/jobs/`，保留旧终局分支。交付提交待VPS证据后登记，未push。
+- 新增实际路径：`internal/event_validation.go`、`event_store.go`、`event_delivery.go`、`http_event_subscription.go`、`migrations/0005_event_deliveries.sql`、`internal/http_events.go`。已有query.go抽出authorizePermission供任务与死信共用；queue.go只增加consumer连接槽计数。未改根、平台、其他域或私有运行数据。
+- 根提供生成EventTypes（唯一producer/name/version、managementPermission、consumer列表、内嵌payload规格）与platform.NewPayloadValidator；本域不复制schema验证器、不联网取规格、不手改生成物。信封完整hash覆盖元数据，JSON Number保留大整数精度；稳定eventSeq不因历史清理复用，事件、全部投递和请求回执原子durable后才accepted。
+- durable增量流只接受已登记caller=consumer，每consumer最多2流；Next每次在当前epoch/control短事务领取一条queued为delivering并设30秒确认租约，单事件背压。同producer/subject前序未确认或死信会阻塞后序。Last-Event-ID只作传输续接与合法范围核对，不能跳过持久未确认行；重投可重复旧seq，consumer按inbox提交再ack。平台SSE pump负责15秒注释心跳、id帧和关闭。
+- Ack只确认本consumer且实际发出的delivery，late ack可确认已回queued的同一事件；从未发出及dead-letter拒绝，重复已ack不改业务。consumer_offsets保存连续确认水位，不跨更早未ack/dead-letter。到期扫描按revision/attempt/expiry CAS，次数加一不超过10则1/2/4秒指数退避上限300秒，超过10转dead-letter，只记录安全错误码。
+- Replay输入改为path deliveryId，正文不接受actor/epoch/event/consumer伪造；从持久事件唯一producer/type目录取得具体管理权限后实时请求identity，网络调用不持Store锁或事务。重放事务再核同一事件/consumer/epoch及dead-letter revision，保留原eventId，重置原投递，不覆盖已ack/活动投递。
+- 发布及ack在维护draining有效control截止前允许收敛，safe水位后拒写；新投递、到期调度、管理员重放在维护/屏障暂停。真实runtime/control提供者与完整HTTP装配仍由后续装配提供。
+- 补jobs.RelayOutbox binding与后台登记：只接platform.EventPublisher、outbox.NewStore和platform.RunRelay，ctx绑定可信op，自指HTTP地址须配置Dependencies[jobs]，不从请求Host推断。平台适配器以eventId稳定幂等键调用生成self JobsClient；不写其余JobsClient假方法。
+- 0005只追加事件索引/完整hash、独立全局seq、deliveryId、租约/revision/最后错误、consumer连续水位和event_operations。既有event/delivery不删除；旧信封hash空时按已登记版本校验并只读计算，未知/损坏失败关闭；旧delivering若无可证明expiry明确完整性错误，不猜租约。
+- portal ephemeral本轮返回UNSUPPORTED_CAPABILITY，安全投影和逐资源权限尚待根收口，不给portal静态consume条目、不广播原payload。ListDeliveries、完整HTTP/后台/control屏障、定时和实际owner恢复适配仍分别未完成，不能把此包当整站ready。
+- 已按公共最终签名补NewEventHandlers四个真实绑定，交NewServiceHandler；Subscribe成功后由apivalidate.ServeEventStream输出，此后不写Problem。其余operation未实现，未伪造全表或启动ready。
+- 合成VPS首轮14模块make build通过；make check发现本域载荷参数类型登记和响应helper签名两项，已调整为[]byte与requestId标量。旧hash空分支补生成目录唯一producer及信封ID/修订/时间基本核对，防旧数据错配生产者后投递；等待本轮VPS重跑，未沿用旧证据标verified。
+- 检查：本轮源码冻结后交集成会话在VPS统一docs/gen/gofmt/build/check；本地只读写源文件与Git元数据，未编译/格式/生成/运行SQL或临时业务程序。未新增测试、样例、fixture或mock，未运行真实接口、服务、模型、部署或push。
+
+### 本包下一步（一项）
+
+待根统一VPS检查与复核后，将NewEventHandlers真实映射和RelayOutbox接入完整生命周期；先核其余HTTP operation、control屏障与定时缺口，不能补假handler冒充全表ready。完成条件是完整已登记依赖可用并通过VPS build/check，行为验收另行授权。
+
+以下为第一轮历史记录：
+
 ## 持续实施第一轮最终集成事实（2026-10-15）
 
 - 终局、取消、有限重试、持久任务权限与orphan框架通过；owner恢复适配、事件/定时/屏障和HTTP仍未完成。

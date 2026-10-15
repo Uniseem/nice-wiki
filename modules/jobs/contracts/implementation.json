@@ -2691,6 +2691,68 @@
           "concurrency": "Store锁仅覆盖本域短读及客户端取值，外部identity调用不持有Store锁或SQLite事务",
           "idempotency": "由调用方事务及回执保证",
           "dependencies": [
+            "jobs.authorizePermission"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.authorizePermission",
+          "name": "authorizePermission",
+          "signature": "func authorizePermission(ctx context.Context, op OperationContext, client *gen.IdentityClient, permission string, resourceID string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信actor",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "client",
+              "type": "*IdentityClient",
+              "description": "已读取生成客户端",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "permission",
+              "type": "string",
+              "description": "持久目录得出的具体业务权限",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "resourceID",
+              "type": "string",
+              "description": "审计资源",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "权限/依赖失败",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "用本域版本化identity客户端作最新具体功能授权；调用方必须已释放存储锁",
+          "steps": [
+            "用本域版本化identity客户端作最新具体功能授权；调用方必须已释放存储锁"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [
             "identity:checkAuthorization"
           ],
           "resources": [],
@@ -2927,10 +2989,9 @@
           ],
           "purpose": "验证跨域事件",
           "steps": [
-            "生产者服务身份匹配",
-            "eventType/version登记",
-            "严格payloadSchema",
-            "epoch当前且revision非负"
+            "生成EventTypes按eventType/version匹配唯一producer，既要等于event.producer也要等于可信op.callerService；拒未知类型/版本",
+            "只调用platform.NewPayloadValidator编译内嵌无联网引用规格，按严格payloadSchema校验，不复制schema机制",
+            "event.dataEpoch须等于入口可信op.dataEpoch；其余通用信封字段由严格入口校验，PublishEvent再在同一事务核当前runtime/control"
           ],
           "errors": [
             {
@@ -2946,6 +3007,24 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "生产者身份、生成规格或续传游标不满足登记约束",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "生产者身份、生成规格或续传游标不满足登记约束",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "生产者身份、生成规格或续传游标不满足登记约束",
+              "httpStatus": 422,
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -2956,11 +3035,152 @@
           "concurrency": "纯校验+runtime读取",
           "idempotency": "同event同结果",
           "dependencies": [
-            "platform.NewPayloadValidator"
+            "jobs.findEventDefinition",
+            "jobs.validateEventPayload"
           ],
           "resources": [
             "各域contracts/events.json"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.findEventDefinition",
+          "name": "findEventDefinition",
+          "signature": "func findEventDefinition(name string, version int) (EventDefinition, error)",
+          "inputs": [
+            {
+              "name": "name",
+              "type": "string",
+              "description": "事件类型",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "version",
+              "type": "int",
+              "description": "事件版本",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "definition",
+              "type": "EventDefinition",
+              "description": "唯一生成目录项",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "未知类型/版本",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "仅从生成EventTypes精确匹配唯一生产方、版本、权限与订阅",
+          "steps": [
+            "仅从生成EventTypes精确匹配唯一生产方、版本、权限与订阅"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.validateEventPayload",
+          "name": "validateEventPayload",
+          "signature": "func validateEventPayload(definition EventDefinition, payload []byte) error",
+          "inputs": [
+            {
+              "name": "definition",
+              "type": "EventDefinition",
+              "description": "生成规格",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "payload",
+              "type": "[]byte",
+              "description": "载荷",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "严格schema错误",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "按事件名/版本缓存平台编译器，仅调用platform.NewPayloadValidator，无外部联网引用",
+          "steps": [
+            "按事件名/版本缓存平台编译器，仅调用platform.NewPayloadValidator，无外部联网引用"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [
+            "platform.NewPayloadValidator"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.consumerHasEvent",
+          "name": "consumerHasEvent",
+          "signature": "func consumerHasEvent(consumer string, name string, version int) bool",
+          "inputs": [
+            {
+              "name": "consumer",
+              "type": "string",
+              "description": "服务消费者",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "description": "事件类型",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "version",
+              "type": "int",
+              "description": "版本",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "registered",
+              "type": "bool",
+              "description": "是否静态登记",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "按生成目录精确检查consumer对该事件/版本的订阅范围",
+          "steps": [
+            "按生成目录精确检查consumer对该事件/版本的订阅范围"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -3010,9 +3230,11 @@
           ],
           "purpose": "持久接收事件",
           "steps": [
-            "校验envelope",
-            "eventId重复比较payloadHash",
-            "事务写event，并按事件订阅目录为每个登记consumer建立queued delivery；durable后确认，无订阅者的事件只存档"
+            "ValidateEnvelope校验唯一生产者/版本/严格载荷/可信epoch",
+            "标准JSON数值不经浮点转换，规范化payload并对完整不可变信封求hash，eventId同hash重放；不同producer/subject/revision等元数据同样CONFLICT",
+            "同事务读/写event操作回执；新键不同信封CONFLICT，事件重复不重建delivery",
+            "用持久全局event_sequence原子分配eventSeq，不因历史清理归零；写event并按生成目录为每个consumer建唯一queued delivery，无消费者也durable存档",
+            "发布可在维护draining有效control截止前完成，safe水位后拒写；事件/全部delivery/回执一起提交后才accepted"
           ],
           "errors": [
             {
@@ -3028,6 +3250,48 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 404,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 422,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3038,11 +3302,344 @@
             "rule": "service生产方"
           },
           "concurrency": "单事务，不复制源数据库",
-          "idempotency": "eventId+payloadHash幂等",
+          "idempotency": "eventId+规范完整envelope hash及caller/epoch/operationId绑定；相同事件不重复创建投递",
           "dependencies": [
-            "jobs.ValidateEnvelope"
+            "jobs.ValidateEnvelope",
+            "jobs.encodeEvent",
+            "jobs.beginLeaseOperation",
+            "jobs.readEventRecord",
+            "jobs.eventReceipt",
+            "jobs.saveEventReceipt",
+            "jobs.requireEventWrite"
           ],
           "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "jobs.encodeEvent",
+          "name": "encodeEvent",
+          "signature": "func encodeEvent(event EventEnvelope) ([]byte, Hash)",
+          "inputs": [
+            {
+              "name": "event",
+              "type": "EventEnvelope",
+              "description": "已验信封",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "encoded",
+              "type": "[]byte",
+              "description": "规范不可变信封JSON",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "hash",
+              "type": "Hash",
+              "description": "完整信封哈希",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "使用JSON Number保留整数精度，标准JSON键排序规范化payload后编码完整信封并哈希",
+          "steps": [
+            "使用JSON Number保留整数精度，标准JSON键排序规范化payload后编码完整信封并哈希"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.readEventRecord",
+          "name": "readEventRecord",
+          "signature": "func (work *leaseOperation) readEventRecord(ctx context.Context, eventID string) (eventRecord, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "eventID",
+              "type": "string",
+              "description": "不可变事件ID",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "event",
+              "type": "eventRecord",
+              "description": "持久事件及seq/hash",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "不存在/损坏",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "读取事件固定信封及seq，核持久JSON/哈希并按当前epoch隔离",
+          "steps": [
+            "读取事件固定信封及seq，核持久JSON/哈希并按当前epoch隔离",
+            "旧envelope_hash为空时还须核生成目录唯一producer、信封Identifier/非负revision/时间基本完整性，才验证payload并计算hash；未知或损坏失败关闭，不把旧producer复制到可信目录"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.requireEventWrite",
+          "name": "requireEventWrite",
+          "signature": "func (work *leaseOperation) requireEventWrite(draining bool) error",
+          "inputs": [
+            {
+              "name": "draining",
+              "type": "bool",
+              "description": "是否只收敛既有发布/确认",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "屏障/维护拒绝",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "发布/确认只可在有效control截止前收敛；其余调度/重放在maintenance或safePoint拒绝",
+          "steps": [
+            "发布/确认只可在有效control截止前收敛；其余调度/重放在maintenance或safePoint拒绝"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.eventReceipt",
+          "name": "eventReceipt",
+          "signature": "func (work *leaseOperation) eventReceipt(ctx context.Context, op OperationContext, kind string, request []byte, result any) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作键",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "publish/ack/replay",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "request",
+              "type": "[]byte",
+              "description": "规范输入",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "result",
+              "type": "LeaseReceiptResult",
+              "description": "输出结果指针",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "命中完整回执",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "冲突或损坏",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "按caller/epoch/种类/operationId核输入hash并读取安全成功回执",
+          "steps": [
+            "按caller/epoch/种类/operationId核输入hash并读取安全成功回执"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.saveEventReceipt",
+          "name": "saveEventReceipt",
+          "signature": "func (work *leaseOperation) saveEventReceipt(ctx context.Context, op OperationContext, kind string, request []byte, result any) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作键",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "publish/ack/replay",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "request",
+              "type": "[]byte",
+              "description": "规范输入",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "result",
+              "type": "LeaseReceiptResult",
+              "description": "成功结果",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "写失败",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "在当前事件事务写输入hash及安全成功响应，不存正文/secret",
+          "steps": [
+            "在当前事件事务写输入hash及安全成功响应，不存正文/secret"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "写event_operations"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.RelayOutbox",
+          "name": "RelayOutbox",
+          "signature": "func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域生命周期取消",
+              "constraints": "停止时由平台循环退出并保留持久outbox"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "jobs可信后台上下文",
+              "constraints": "callerService=jobs，不使用浏览器actor"
+            },
+            {
+              "name": "client",
+              "type": "EventPublisher",
+              "description": "生成self JobsClient经platform.NewEventPublisher适配",
+              "constraints": "受信config.Dependencies[jobs]地址；不从Host推断，未装配失败关闭"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "装配失败或循环终止原因",
+              "constraints": "ctx取消正常退出，其他使用公共安全错误码"
+            }
+          ],
+          "purpose": "本域outbox转发薄入口，完整复用平台SQL store与转发循环",
+          "steps": [
+            "核jobs后台来源、本域Store/runtime与窄发布客户端已装配",
+            "复用outbox.NewStore(db)，以WithOperationContext(ctx,op)和运行权威调用platform.RunRelay；batch=100、poll=1000ms",
+            "原事件ID与payload保持，平台NewEventPublisher按每event建立稳定操作键并签名self jobs:publishEvent，确认durable后平台标relayed；不复制循环、租约、重试或隔离机制"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "非jobs生命周期来源",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "存储、运行权威或自指客户端未装配",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "由platform循环更新本域outbox投递状态，经版本化self HTTP进入事件存储"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅jobs可信后台，self服务断言生产者仍为jobs"
+          },
+          "concurrency": "复用平台有界串行转发，不持Store锁调用HTTP",
+          "idempotency": "原eventId/完整信封哈希；平台每event稳定控制键",
+          "dependencies": [
+            "platform.RunRelay",
+            "platform.NewEventPublisher",
+            "jobs:publishEvent"
+          ],
+          "resources": [
+            "platform.outbox.NewStore",
+            "config.Dependencies[jobs]"
+          ],
           "contract": "binding"
         }
       ]
@@ -3092,10 +3689,10 @@
           ],
           "purpose": "把已经推送给订阅者但确认租约到期的投递重新排队或转死信",
           "steps": [
-            "每5秒领取≤limit条delivering且30秒确认租约已到期的delivery",
-            "attempt+1；未超过10次则改回queued，按1/2/4秒指数退避（上限300秒）设置下次可见时间",
-            "超过上限转dead-letter并记录最后错误，只能经ReplayDelivery由管理员重放",
-            "已acknowledged的delivery不受影响；同subject在前一条未确认时不推送后一条"
+            "仅jobs可信后台上下文；维护/control屏障时暂停active投递调度变更",
+            "每轮最多limit个当前epoch delivering且精确30秒租约到期的行，按revision/attempt/state CAS",
+            "过期次数加一；新次数不超过10则queued并按1/2/4秒指数退避（上限300秒），超过10转dead-letter，仅保存安全DEADLINE_EXCEEDED码",
+            "已ack不受影响；不跳过同producer/subject前序未ack投递，不自动重放死信"
           ],
           "errors": [
             {
@@ -3104,6 +3701,48 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 404,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 422,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3115,7 +3754,9 @@
           },
           "concurrency": "单jobs进程一个扫描循环；行级CAS防重复改写",
           "idempotency": "按deliveryId与attempt CAS；重复扫描不重复计数",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.beginLeaseOperation"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -3159,9 +3800,11 @@
           ],
           "purpose": "消费者确认投递",
           "steps": [
-            "服务consumer身份绑定",
-            "CAS queued/delivering→acknowledged",
-            "不影响其他consumer"
+            "consumerId须等于可信caller，且事件类型/版本已登记给该consumer；epoch与当前runtime一致",
+            "读取对应持久delivery，只允许已实际投递的delivering或到期queued确认；从未投递与dead-letter拒绝，已ack只读重复成功",
+            "CAS对应consumer的投递acknowledged，不影响其他consumer；本域handler是否已提交由consumer持久inbox保证",
+            "在同事务推进该consumer/epoch连续确认水位，不能越过更早未ack或dead-letter投递；保存操作回执",
+            "已发投递确认可在draining且有效control截止前收敛，safe水位后不新增ack/回执"
           ],
           "errors": [
             {
@@ -3177,6 +3820,42 @@
               "httpStatus": 404,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 422,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3188,7 +3867,15 @@
           },
           "concurrency": "event/consumer复合主键",
           "idempotency": "重复ack成功",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readDeliveryRecord",
+            "jobs.consumerHasEvent",
+            "jobs.requireEventWrite",
+            "jobs.advanceConsumerOffset",
+            "jobs.eventReceipt",
+            "jobs.saveEventReceipt"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -3234,9 +3921,10 @@
           ],
           "purpose": "重放死信通知",
           "steps": [
-            "验证job.manage",
-            "仅当前epoch/registered consumer",
-            "重设delivery queued，不新造eventId"
+            "由路径deliveryId读取持久event/consumer/epoch，按生成目录producer/type管理权限请求identity最新授权；job.manage只作入口粗能力",
+            "身份/epoch不从正文提供；网络请求前释放Store锁，进入事务再核同一投递及当前epoch/control",
+            "只允许dead-letter，已ack或其他活动状态不能覆盖；保留原eventId，重置过期次数并排队原consumer，清租约与最后错误",
+            "操作键绑定可信caller/actor/epoch及deliveryId；重复键重放原结果，不重复复活；回执和状态同事务"
           ],
           "errors": [
             {
@@ -3252,6 +3940,42 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "LOCKED",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 404,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 422,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3259,15 +3983,187 @@
           ],
           "authorization": {
             "permission": "job.manage",
-            "rule": "job.manage"
+            "rule": "job.manage入口粗能力；终点按持久事件唯一producer/type目录的managementPermission实时核权"
           },
-          "concurrency": "CAS避免覆盖已ack delivery；force仅显式管理参数",
+          "concurrency": "revision CAS只恢复dead-letter，网络授权不持Store锁或数据库事务",
           "idempotency": "operationId幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "jobs.authorizeDeliveryManagement",
+            "jobs.beginLeaseOperation",
+            "jobs.readDeliveryRecord",
+            "jobs.requireEventWrite",
+            "jobs.eventReceipt",
+            "jobs.saveEventReceipt"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.readDeliveryRecord",
+          "name": "readDeliveryRecord",
+          "signature": "func (work *leaseOperation) readDeliveryRecord(ctx context.Context, deliveryID string, eventID string, consumer string) (deliveryRecord, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "deliveryID",
+              "type": "string",
+              "description": "重放路径ID，或空串",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "eventID",
+              "type": "string",
+              "description": "确认事件ID，或空串",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "consumer",
+              "type": "string",
+              "description": "确认消费者，或空串",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "delivery",
+              "type": "deliveryRecord",
+              "description": "当前投递及不可变事件作用域",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "不存在/旧epoch/损坏",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "按持久投递ID或event/consumer复合键读取同一行与事件权限字段，不采用客户端producer",
+          "steps": [
+            "按持久投递ID或event/consumer复合键读取同一行与事件权限字段，不采用客户端producer"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.advanceConsumerOffset",
+          "name": "advanceConsumerOffset",
+          "signature": "func (work *leaseOperation) advanceConsumerOffset(ctx context.Context, consumer string, epoch Identifier) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "consumer",
+              "type": "string",
+              "description": "已验consumer",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "epoch",
+              "type": "Identifier",
+              "description": "当前代次",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "水位写失败",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "计算最早未ack之前的连续全局seq水位，永不跨过死信/未确认，按consumer/epoch单调保存",
+          "steps": [
+            "计算最早未ack之前的连续全局seq水位，永不跨过死信/未确认，按consumer/epoch单调保存"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "写consumer_offsets"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.authorizeDeliveryManagement",
+          "name": "authorizeDeliveryManagement",
+          "signature": "func authorizeDeliveryManagement(ctx context.Context, op OperationContext, deliveryID string) (deliveryRecord, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信actor/epoch",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            },
+            {
+              "name": "deliveryID",
+              "type": "string",
+              "description": "投递引用",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "delivery",
+              "type": "deliveryRecord",
+              "description": "已授权持久事件/consumer作用域",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "拒绝/损坏/不可达",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "锁内短读持久投递及生成producer/type管理权限，释放锁后请求identity，再由重放事务复核",
+          "steps": [
+            "锁内短读持久投递及生成producer/type管理权限，释放锁后请求identity，再由重放事务复核"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [
+            "jobs.findEventDefinition",
+            "jobs.authorizePermission"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4543,11 +5439,11 @@
           ],
           "purpose": "已登记消费者订阅事件SSE",
           "steps": [
-            "服务consumer身份必须与consumerId一致，且只能订阅事件订阅目录中登记给该consumer的事件名/版本",
-            "durable模式：按durable eventSeq推送该consumer queued delivery并置delivering（30秒确认租约）；同subject前一条未确认时不推送后一条",
-            "ephemeral模式（仅portal浏览器转发）：从当前水位开始推送，不建delivery、不需要确认",
-            "15s heartbeat和Last-Event-ID断点续传；慢连接积压超过64条关闭，客户端重连",
-            "仅推送公共payloadSchema载荷，不暴露别域正文"
+            "durable consumerId必须与可信caller一致且在生成目录有订阅；拒绝客户端actor/epoch声明；ephemeral等待专门安全投影，本轮UNSUPPORTED_CAPABILITY，不广播原payload",
+            "取得每consumer最多2个连接槽，返回真正增量platform.EventStream；关闭/取消归还连接槽，无预装空events数组",
+            "每次Next读取当前runtime/control及epoch，用短事务领取最早可见queued delivery为delivering并登记30秒确认租约；同producer/subject前序未ack或dead-letter阻塞后序",
+            "Last-Event-ID只校验合法eventSeq范围并供SSE传输续接，不跳过持久未ack；回收后旧seq可以重投，由consumer inbox去重",
+            "单事件拉取背压、不建大于64的应用积压；公共ServeEventStream负责15秒注释心跳/帧ID/取消关闭；epoch变更立即结束，维护/屏障停止新投递"
           ],
           "errors": [
             {
@@ -4570,10 +5466,58 @@
               "httpStatus": 404,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "LOCKED",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足",
+              "httpStatus": 422,
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "condition": "ephemeral安全投影尚未收口，不广播原payload",
+              "httpStatus": 422,
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "消费者连接槽达到2条",
+              "httpStatus": 429,
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "生产者身份、生成规格或续传游标不满足登记约束",
+              "httpStatus": 400,
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "无业务写，仅传输已durable事件"
+            "占用有界连接槽；将本consumer queued delivery CAS为带30秒确认租约的delivering"
           ],
           "authorization": {
             "permission": "service",
@@ -4582,12 +5526,178 @@
           "concurrency": "每consumer最多2流；epoch变化立即关闭旧流",
           "idempotency": "eventSeq重放至少一次，consumer inbox/eventId去重后ack",
           "dependencies": [
-            "jobs.ValidateEnvelope",
-            "jobs.AcknowledgeEvent",
-            "platform.ServeEventStream"
+            "jobs.beginLeaseOperation",
+            "jobs.consumerHasEvent",
+            "jobs.Next",
+            "jobs.Close",
+            "jobs.LastID"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.Next",
+          "name": "Next",
+          "signature": "func (stream *eventSubscription) Next(ctx context.Context) (EventEnvelope, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消与流生命周期",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "event",
+              "type": "EventEnvelope",
+              "description": "下一条持久投递",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "EOF/代次变更/依赖故障",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "反复短事务领取单事件，无可见行时可取消等待；维护暂停，epoch变更关闭流；不持锁等待网络",
+          "steps": [
+            "反复短事务领取单事件，无可见行时可取消等待；维护暂停，epoch变更关闭流；不持锁等待网络"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "写当前consumer投递租约"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [
+            "jobs.nextDelivery",
+            "jobs.Close"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.LastID",
+          "name": "LastID",
+          "signature": "func (stream *eventSubscription) LastID() string",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "id",
+              "type": "string",
+              "description": "上次实际返回的eventSeq",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "只读当前流最后实际返回seq，用于SSE id帧",
+          "steps": [
+            "只读当前流最后实际返回seq，用于SSE id帧"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.Close",
+          "name": "Close",
+          "signature": "func (stream *eventSubscription) Close() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "关闭结果",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "幂等停止Next等待并归还本consumer连接槽，不提前确认/释放已发投递",
+          "steps": [
+            "幂等停止Next等待并归还本consumer连接槽，不提前确认/释放已发投递"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.nextDelivery",
+          "name": "nextDelivery",
+          "signature": "func (stream *eventSubscription) nextDelivery(ctx context.Context) (EventEnvelope, int64, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部，信任边界已验证字段"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "event",
+              "type": "EventEnvelope",
+              "description": "下一事件",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "seq",
+              "type": "int64",
+              "description": "持久接收序号",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否本轮可投递",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "当前epoch/control下选最早queued可见投递，前序同producer/subject未ack则阻塞，CAS delivering和30秒租约后提交再返回",
+          "steps": [
+            "当前epoch/control下选最早queued可见投递，前序同producer/subject未ack则阻塞，CAS delivering和30秒租约后提交再返回"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "更新delivery租约与revision"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "落实登记的生产者/consumer/任务作用域，通用身份来自可信op"
+          },
+          "concurrency": "复用调用方短事务；网络不持有Store锁或SQLite事务",
+          "idempotency": "按登记持久主键、CAS和操作回执",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readEventRecord"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4786,8 +5896,8 @@
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
             "jobs.InstallStore",
-            "platform.NewServiceHandler",
-            "platform.NewEventPublisher"
+            "jobs.RelayOutbox",
+            "jobs.NewEventHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -5194,7 +6304,7 @@
     {
       "path": "modules/jobs/internal/gen/job_types.gen.go",
       "kind": "generated",
-      "purpose": "make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改",
+      "purpose": "make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改；追加全部events.json的唯一生产者/版本/管理权限/消费者与内嵌payload规格EventTypes，生成目录不手改",
       "functions": []
     },
     {
@@ -5461,6 +6571,119 @@
       "kind": "migration",
       "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用",
       "functions": []
+    },
+    {
+      "path": "modules/jobs/migrations/0005_event_deliveries.sql",
+      "kind": "migration",
+      "purpose": "只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/internal/http_events.go",
+      "kind": "handwritten",
+      "purpose": "已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application",
+      "functions": [
+        {
+          "id": "jobs.NewEventHandlers",
+          "name": "NewEventHandlers",
+          "signature": "func NewEventHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "四个实际事件operationId处理器",
+              "constraints": "只用于统一HTTP边界；其他操作不能用占位填充"
+            }
+          ],
+          "purpose": "装配已实现事件发布、确认、重放和durable SSE的真实HTTP适配",
+          "steps": [
+            "信任公共NewServiceHandler已建立op/caller/epoch/schema/PathValue，只做生成输入形状到领域输入绑定，不重复身份或schema校验",
+            "publish/ack/replay转领域函数并用公共Problem写失败，成功状态与OpenAPI一致；actor/epoch只取可信op",
+            "subscribe成功后调用platform.ServeEventStream输出真实增量流；pump开始后不再写JSON Problem",
+            "只返回本组四个operation，不补其余handler假成功；BuildApplication全表/控制存储/后台未完整时保持blocked"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "由已登记领域函数写事件/投递与回执；SSE由平台输出"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "公共NewServiceHandler先固定caller/委托/epoch/维护与静态权限，本组不能独立裸挂"
+          },
+          "concurrency": "每请求独立绑定，流单事件背压由平台pump执行",
+          "idempotency": "沿用领域函数与可信Idempotency-Key建立的操作键",
+          "dependencies": [
+            "jobs.PublishEvent",
+            "jobs.AcknowledgeEvent",
+            "jobs.ReplayDelivery",
+            "jobs.SubscribeEvents",
+            "jobs.writeEventResponse",
+            "platform.ServeEventStream"
+          ],
+          "resources": [
+            "platform.apivalidate.NewServiceHandler已验证请求上下文"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.writeEventResponse",
+          "name": "writeEventResponse",
+          "signature": "func writeEventResponse(w http.ResponseWriter, requestID Identifier, result any, err error, status int)",
+          "inputs": [
+            {
+              "name": "w",
+              "type": "ResponseWriter",
+              "description": "HTTP响应句柄",
+              "constraints": "SSE开始后不调用"
+            },
+            {
+              "name": "requestID",
+              "type": "Identifier",
+              "description": "可信入口产生的requestId标量，不传完整操作上下文",
+              "constraints": "入口注入"
+            },
+            {
+              "name": "result",
+              "type": "LeaseReceiptResult",
+              "description": "已验证业务结果",
+              "constraints": "失败时忽略"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "领域错误",
+              "constraints": "公共安全错误码"
+            },
+            {
+              "name": "status",
+              "type": "int",
+              "description": "成功HTTP码",
+              "constraints": "OpenAPI登记码"
+            }
+          ],
+          "outputs": [],
+          "purpose": "统一本组JSON响应，失败复用平台Problem，不自行泄露原始输入",
+          "steps": [
+            "失败交platform.problem.FromError/WriteProblem，成功按登记码输出JSON；网络写失败结束当前请求，不追加第二个Problem"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "写HTTP响应"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只由本组已通过统一边界的handler调用"
+          },
+          "concurrency": "单响应单次输出",
+          "idempotency": "只序列化已有结果，不增加业务副作用",
+          "dependencies": [],
+          "resources": [
+            "platform.problem"
+          ],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [],
@@ -5484,6 +6707,10 @@
     {
       "function": "jobs.PurgeExpiredHistory",
       "schedule": "每日"
+    },
+    {
+      "function": "jobs.RelayOutbox",
+      "schedule": "进程生命周期持续转发"
     }
   ]
 }

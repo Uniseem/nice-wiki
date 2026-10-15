@@ -1916,34 +1916,15 @@
     "ReplayDeliveryInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "重放死信通知输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "持久deliveryId由路径绑定；actor/epoch从可信op读取，不接受正文自报",
       "properties": {
-        "eventId": {
-          "type": "string",
-          "description": "eventId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "consumerId": {
-          "type": "string",
-          "description": "consumerId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "actor": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
-          "description": "公共 AuthContext 合同，遵守其字段和空值规则"
-        },
-        "dataEpoch": {
+        "deliveryId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+          "description": "持久投递ID"
         }
       },
       "required": [
-        "eventId",
-        "consumerId",
-        "actor",
-        "dataEpoch"
+        "deliveryId"
       ]
     },
     "ReplayDeliveryResult": {
@@ -2434,9 +2415,10 @@
         },
         "lastEventId": {
           "type": "string",
-          "description": "可选；断线续传的最后已收eventSeq，首次订阅省略",
-          "maxLength": 128,
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 19,
+          "pattern": "^[0-9]+$",
+          "description": "可选eventSeq传输游标；durable不使用此游标跳过未ack投递"
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -2448,7 +2430,7 @@
             "durable",
             "ephemeral"
           ],
-          "description": "durable为服务消费者（需确认、可重投）；ephemeral仅portal浏览器转发（从当前水位开始、不建delivery）"
+          "description": "durable为目录登记服务消费者；ephemeral安全投影尚未收口，本轮明确UNSUPPORTED_CAPABILITY，不广播原始payload"
         }
       },
       "required": [
@@ -2458,23 +2440,10 @@
       ]
     },
     "SubscribeEventsResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "已登记消费者订阅事件SSE成功结果；失败不返回半成功结果",
-      "properties": {
-        "events": {
-          "type": "array",
-          "items": {
-            "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
-            "description": "公共 EventEnvelope 合同，遵守其字段和空值规则"
-          },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
-        }
-      },
-      "required": [
-        "events"
-      ]
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "SubscribeEventsResult",
+      "description": "持有platform.EventStream增量句柄；由公共SSE pump输出，不序列化JSON events数组"
     },
     "EventJobsJobStateChangedPayload": {
       "type": "object",
@@ -3648,6 +3617,67 @@
       "x-internal": true,
       "x-go-type": "orphanCandidate",
       "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+    },
+    "ReplayDeliveryRequestBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "重放只使用路径deliveryId及可信操作上下文，无正文身份/代次字段",
+      "properties": {},
+      "required": []
+    },
+    "EventStream": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.EventStream",
+      "description": "共享增量事件流接口"
+    },
+    "eventSubscription": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "eventSubscription",
+      "description": "本域durable订阅及连接槽句柄"
+    },
+    "eventRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "eventRecord",
+      "description": "已持久不可变事件与接收序号"
+    },
+    "deliveryRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "deliveryRecord",
+      "description": "投递状态、租约和事件权限作用域"
+    },
+    "EventDefinition": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "gen.EventTypeEntry",
+      "description": "唯一生产方/版本/载荷规格/订阅/管理权限的生成目录项"
+    },
+    "PayloadValidator": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "func(json.RawMessage) error",
+      "description": "平台严格载荷校验函数"
+    },
+    "EventPublisher": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.EventPublisher",
+      "description": "共享窄事件发布客户端，仅由启动装配注入"
+    },
+    "EventHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "仅已完成事件operationId到真实HTTP handler的映射；必须由统一边界装配，不代表全表就绪"
+    },
+    "ResponseWriter": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "http.ResponseWriter",
+      "description": "HTTP标准库输出句柄"
     }
   }
 }

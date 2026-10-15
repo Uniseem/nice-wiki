@@ -218,6 +218,21 @@ func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
 }
 
+// JobsClient 调用jobs服务（自动附服务断言）。
+type JobsClient struct{ *producerClient }
+
+func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient {
+	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
+}
+
+// PublishEvent POST /v1/events（jobs:publishEvent）。
+func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
+}
+
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
 type SiteConfigClient struct{ *producerClient }
 

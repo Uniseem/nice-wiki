@@ -39,3 +39,8 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 
 取消意图实施补充：`cancel_requested`是持久权威，不能因临时失败改为retry-wait而丢失。取消后未报告安全CANCELLED的失败进入orphan并交还lease，既有付费引用保留；只有owner确认completed或安全结束才收敛。后台不得重新领取、开始或重排带取消标志的任务。
+
+
+事件投递实施补充（第二轮）：events追加producer/type/version/subject与规范完整envelope_hash，event_sequence单行保持不可复用的接收seq。deliveries追加稳定delivery_id、lease_expires_at、revision和last_error_code；queued首次发出后才有确认租约，超时可退避重排或死信，绝不自动覆盖ack。consumer_offsets按consumer/epoch保存连续确认水位，event_operations按caller/epoch/种类/operation保存安全成功回执及输入hash，不保存输入正文。
+
+订阅目录和payload规格均由所有域events.json生成的EventTypes提供，不从请求动态注册。唯一生产者、消费者范围和具体重放权限均取该目录；正文actor/epoch不构成授权真相。旧delivering缺租约无法证明安全时返回完整性错误，不造时间；旧事件原文及元数据、全部投递均保留。

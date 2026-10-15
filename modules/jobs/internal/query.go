@@ -92,6 +92,13 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 	if permission == "" {
 		return jobRecord{}, platform.NewError(platform.CodeIntegrityError, false, "任务类型缺少具体管理权限")
 	}
+	if err := authorizePermission(ctx, op, client, permission, jobID); err != nil {
+		return jobRecord{}, err
+	}
+	return job, nil
+}
+
+func authorizePermission(ctx context.Context, op OperationContext, client *gen.IdentityClient, permission string, resourceID string) error {
 	var sessionID *string
 	if op.Actor.SessionID != "" {
 		sessionID = &op.Actor.SessionID
@@ -103,19 +110,19 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 		Permission                 string  `json:"permission"`
 		ResourceID                 string  `json:"resourceId"`
 		ExpectedPermissionRevision *int64  `json:"expectedPermissionRevision"`
-	}{op.Actor.SubjectID, sessionID, op.Actor.SiteID, permission, jobID, nil}
+	}{op.Actor.SubjectID, sessionID, op.Actor.SiteID, permission, resourceID, nil}
 	raw, err := client.CheckAuthorization(platform.WithOperationContext(ctx, op), body)
 	if err != nil {
-		return jobRecord{}, err
+		return err
 	}
 	var decision struct {
 		Authorized *bool `json:"authorized"`
 	}
 	if err := json.Unmarshal(raw, &decision); err != nil || decision.Authorized == nil {
-		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权响应不可用")
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权响应不可用")
 	}
 	if !*decision.Authorized {
-		return jobRecord{}, platform.NewError(platform.CodeForbidden, false, "没有该任务所属功能的管理权限")
+		return platform.NewError(platform.CodeForbidden, false, "没有该任务所属功能的管理权限")
 	}
-	return job, nil
+	return nil
 }

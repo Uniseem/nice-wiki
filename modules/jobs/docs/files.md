@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 52 个：手写 26、UI 4、生成 8、配置 10、迁移 4。函数 68 个：约束 33，参考 35。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 54 个：手写 27、UI 4、生成 8、配置 10、迁移 5。函数 87 个：约束 34，参考 53。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -13,12 +13,12 @@
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
 | `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
 | `modules/jobs/internal/cancellation.go` | 手写 | 请求取消任务；同文件职责限本域以下登记函数 | `jobs.RequestCancel`、`jobs.ConfirmCancelled`（参考） |
-| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考） |
+| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考） |
 | `modules/jobs/internal/progress.go` | 手写 | 持久进度安全点；同文件职责限本域以下登记函数 | `jobs.AppendProgress`（参考） |
 | `modules/jobs/internal/http_progress.go` | 手写 | 任务进度SSE；同文件职责限本域以下登记函数 | `jobs.StreamProgress` |
-| `modules/jobs/internal/event_validation.go` | 手写 | 验证跨域事件；同文件职责限本域以下登记函数 | `jobs.ValidateEnvelope`（参考） |
-| `modules/jobs/internal/event_store.go` | 手写 | 持久接收事件；同文件职责限本域以下登记函数 | `jobs.PublishEvent` |
-| `modules/jobs/internal/event_delivery.go` | 手写 | 至少一次投递；同文件职责限本域以下登记函数 | `jobs.RequeueExpiredDeliveries`（参考）、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery` |
+| `modules/jobs/internal/event_validation.go` | 手写 | 验证跨域事件；同文件职责限本域以下登记函数 | `jobs.ValidateEnvelope`（参考）、`jobs.findEventDefinition`（参考）、`jobs.validateEventPayload`（参考）、`jobs.consumerHasEvent`（参考） |
+| `modules/jobs/internal/event_store.go` | 手写 | 持久接收事件；同文件职责限本域以下登记函数 | `jobs.PublishEvent`、`jobs.encodeEvent`（参考）、`jobs.readEventRecord`（参考）、`jobs.requireEventWrite`（参考）、`jobs.eventReceipt`（参考）、`jobs.saveEventReceipt`（参考）、`jobs.RelayOutbox` |
+| `modules/jobs/internal/event_delivery.go` | 手写 | 至少一次投递；同文件职责限本域以下登记函数 | `jobs.RequeueExpiredDeliveries`（参考）、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery`、`jobs.readDeliveryRecord`（参考）、`jobs.advanceConsumerOffset`（参考）、`jobs.authorizeDeliveryManagement`（参考） |
 | `modules/jobs/internal/cron.go` | 手写 | 严格解析定时表达式；同文件职责限本域以下登记函数 | `jobs.ValidateCron`（参考）、`jobs.NextFireAt`（参考） |
 | `modules/jobs/internal/schedule_store.go` | 手写 | 创建定时任务；同文件职责限本域以下登记函数 | `jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules` |
 | `modules/jobs/internal/barrier_coordinator.go` | 手写 | 等待全域安全点；同文件职责限本域以下登记函数 | `jobs.CoordinateBarrier` |
@@ -29,7 +29,7 @@
 | `modules/jobs/web/src/QueuePanel.vue` | UI | Vue3模块交互：RequestJobCancellation；同文件职责限本域以下登记函数 | `jobs.RequestJobCancellation`（参考） |
 | `modules/jobs/web/src/ScheduleEditor.vue` | UI | Vue3模块交互：SaveSchedule；同文件职责限本域以下登记函数 | `jobs.SaveSchedule`（参考） |
 | `modules/jobs/web/src/progress.ts` | UI | Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数 | `jobs.ReconnectProgress`（参考） |
-| `modules/jobs/internal/http_event_subscription.go` | 手写 | 已登记消费者订阅事件SSE；同文件职责限本域以下登记函数 | `jobs.SubscribeEvents` |
+| `modules/jobs/internal/http_event_subscription.go` | 手写 | 已登记消费者订阅事件SSE；同文件职责限本域以下登记函数 | `jobs.SubscribeEvents`、`jobs.Next`（参考）、`jobs.LastID`（参考）、`jobs.Close`（参考）、`jobs.nextDelivery`（参考） |
 | `modules/jobs/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/jobs/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/jobs/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `jobs.All`（参考） |
@@ -51,10 +51,12 @@
 | `modules/jobs/config/job-types.json` | 生成 | 任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建 | 无 |
 | `modules/jobs/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/jobs/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
-| `modules/jobs/internal/gen/job_types.gen.go` | 生成 | make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改 | 无 |
+| `modules/jobs/internal/gen/job_types.gen.go` | 生成 | make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改；追加全部events.json的唯一生产者/版本/管理权限/消费者与内嵌payload规格EventTypes，生成目录不手改 | 无 |
 | `modules/jobs/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/jobs/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/jobs/internal/queries.go` | 手写 | 查看任务队列 | `jobs.ListJobs`、`jobs.RetryJob`、`jobs.ListDeliveries` |
 | `modules/jobs/migrations/0002_leases.sql` | 迁移 | 只追加租约持久fence计数、领取/心跳幂等回执与进度checkpoint唯一键 | 无 |
 | `modules/jobs/migrations/0003_terminal_jobs.sql` | 迁移 | 只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造 | 无 |
 | `modules/jobs/migrations/0004_orphan_jobs.sql` | 迁移 | 只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用 | 无 |
+| `modules/jobs/migrations/0005_event_deliveries.sql` | 迁移 | 只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递 | 无 |
+| `modules/jobs/internal/http_events.go` | 手写 | 已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application | `jobs.NewEventHandlers`（参考）、`jobs.writeEventResponse`（参考） |

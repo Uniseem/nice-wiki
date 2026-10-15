@@ -834,7 +834,7 @@
             }
           },
           "409": {
-            "description": "公共错误；CONFLICT",
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH、LOCKED",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -845,6 +845,36 @@
           },
           "400": {
             "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -924,6 +954,46 @@
           },
           "404": {
             "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH、LOCKED、STALE_RESULT",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1481,19 +1551,87 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：该consumer最多2条流",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
           {
             "in": "query",
-            "name": "lastEventId",
+            "name": "consumerId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "consumerId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "description": "必须与已验证服务调用方及订阅目录一致"
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "durable",
+                "ephemeral"
+              ],
+              "description": "durable为目录登记服务消费者；ephemeral安全投影尚未收口，本轮明确UNSUPPORTED_CAPABILITY，不广播原始payload"
+            },
+            "description": "本轮仅durable可用"
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
             "required": false,
             "schema": {
               "type": "string",
-              "description": "lastEventId；UTF-8；不得为 null",
-              "maxLength": 128,
-              "minLength": 1
-            }
+              "minLength": 1,
+              "maxLength": 19,
+              "pattern": "^[0-9]+$",
+              "description": "可选eventSeq传输游标；durable不使用此游标跳过未ack投递"
+            },
+            "description": "eventSeq断线续传游标，不越过持久未确认投递"
           },
           {
             "in": "header",
@@ -2021,7 +2159,37 @@
             }
           },
           "409": {
-            "description": "VERSION_MISMATCH：非当前epoch",
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH、LOCKED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2042,6 +2210,15 @@
               "maxLength": 128
             },
             "description": "投递ID"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "幂等写键；同键不同投递或可信主体返回CONFLICT"
           }
         ],
         "security": [
@@ -2055,11 +2232,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "./types.json#/$defs/ReplayDeliveryInput"
+                "$ref": "./types.json#/$defs/ReplayDeliveryRequestBody"
               }
             }
           }
-        }
+        },
+        "x-data-epoch-required": true
       }
     },
     "/v1/jobs/{jobId}:retry": {

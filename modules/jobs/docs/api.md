@@ -18,15 +18,15 @@
 | POST `/v1/jobs/{jobId}:cancel` | `cancelJob` | `jobs.RequestCancel` | `job.manage` | `RequestCancelRequestBody` → 200 `RequestCancelResult` | 请求取消任务 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/jobs/{jobId}` | `readJob` | `jobs.ReadJob` | `job.manage` | `—` → 200 `ReadJobResult` | 读取管理任务状态 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/jobs/{jobId}/progress` | `streamProgress` | `jobs.StreamProgress` | `job.manage` | `—` → 200 `string` | 任务进度SSE | `FORBIDDEN`、`VALIDATION`、`VERSION_MISMATCH` |
-| POST `/v1/events` | `publishEvent` | `jobs.PublishEvent` | `service` | `PublishEventRequestBody` → 202 `PublishEventResult` | 持久接收事件 | `CONFLICT`、`VALIDATION` |
-| POST `/v1/events/{eventId}:ack` | `acknowledgeEvent` | `jobs.AcknowledgeEvent` | `service` | `AcknowledgeEventRequestBody` → 200 `AcknowledgeEventResult` | 消费者确认投递 | `FORBIDDEN`、`NOT_FOUND` |
+| POST `/v1/events` | `publishEvent` | `jobs.PublishEvent` | `service` | `PublishEventRequestBody` → 202 `PublishEventResult` | 持久接收事件 | `CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`VALIDATION`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
+| POST `/v1/events/{eventId}:ack` | `acknowledgeEvent` | `jobs.AcknowledgeEvent` | `service` | `AcknowledgeEventRequestBody` → 200 `AcknowledgeEventResult` | 消费者确认投递 | `FORBIDDEN`、`NOT_FOUND`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`STALE_RESULT`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
 | GET `/v1/schedules` | `listSchedules` | `jobs.ListSchedules` | `job.manage` | `—` → 200 `ListSchedulesResult` | 查看定时任务 | `FORBIDDEN` |
 | POST `/v1/schedules` | `createSchedule` | `jobs.CreateSchedule` | `job.manage` | `CreateScheduleRequestBody` → 200 `CreateScheduleResult` | 创建定时任务 | `FORBIDDEN`、`VALIDATION` |
 | PUT `/v1/schedules/{scheduleId}` | `updateSchedule` | `jobs.UpdateSchedule` | `job.manage` | `UpdateScheduleRequestBody` → 200 `UpdateScheduleResult` | 修改定时CAS | `CONFLICT`、`FORBIDDEN` |
 | POST `/v1/barriers:coordinate` | `coordinateBarrier` | `jobs.CoordinateBarrier` | `service` | `CoordinateBarrierRequestBody` → 200 `CoordinateBarrierResult` | 等待全域安全点 | `DEADLINE_EXCEEDED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/jobs/{jobId}:start` | `startJob` | `jobs.StartJob` | `service` | `StartJobRequestBody` → 200 `StartJobResult` | 确认开始执行 | `STALE_RESULT` |
 | GET `/v1/jobs/{jobId}/lease` | `checkLease` | `jobs.CheckLease` | `service` | `—` → 200 `CheckLeaseResult` | 写回前检验执行权 | `STALE_RESULT` |
-| GET `/v1/events:subscribe` | `subscribeEvents` | `jobs.SubscribeEvents` | `service` | `—` → 200 `string` | 已登记消费者订阅事件SSE | `FORBIDDEN`、`VERSION_MISMATCH`、`NOT_FOUND` |
+| GET `/v1/events:subscribe` | `subscribeEvents` | `jobs.SubscribeEvents` | `service` | `—` → 200 `string` | 已登记消费者订阅事件SSE | `FORBIDDEN`、`VERSION_MISMATCH`、`NOT_FOUND`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR`、`RATE_LIMITED` |
 | POST `/v1/barriers` | `acquireBarrier` | `jobs.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得jobs本域屏障 | `DEADLINE_EXCEEDED` |
 | POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `jobs.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 解除全域任务暂停 | `LOCKED` |
 | POST `/v1/snapshots:export` | `exportSnapshot` | `jobs.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出队列与事件一致快照 | `LOCKED`、`INTERNAL` |
@@ -34,7 +34,7 @@
 | GET `/readyz` | `ready` | `jobs.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `jobs.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `jobs.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| POST `/v1/deliveries/{deliveryId}:replay` | `replayDelivery` | `jobs.ReplayDelivery` | `job.manage` | `ReplayDeliveryInput` → 200 `ReplayDeliveryResult` | 重放死信投递 | `FORBIDDEN`、`NOT_FOUND`、`VERSION_MISMATCH` |
+| POST `/v1/deliveries/{deliveryId}:replay` | `replayDelivery` | `jobs.ReplayDelivery` | `job.manage` | `ReplayDeliveryRequestBody` → 200 `ReplayDeliveryResult` | 重放死信投递 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
 | POST `/v1/jobs/{jobId}:retry` | `retryJob` | `jobs.RetryJob` | `job.manage` | `RetryJobInput` → 200 `RetryJobResult` | 重试失败任务 | `FORBIDDEN` |
 | GET `/v1/deliveries` | `listDeliveries` | `jobs.ListDeliveries` | `job.manage` | `—` → 200 `ListDeliveriesResult` | 查看死信投递 | `FORBIDDEN` |
 <!-- openapi:end -->

@@ -1052,39 +1052,8 @@ export interface components {
             /** @description queued 的明确真假结果，不可 null */
             queued: boolean;
         };
-        /** @description 经identity验证的单站授权上下文；浏览器不能直接构造可信grants */
-        AuthContext: {
-            /** @description 经验证的主体ID */
-            subjectId: components["schemas"]["Identifier"];
-            /**
-             * @description 主体类别或状态类别，按枚举处理
-             * @enum {unknown}
-             */
-            kind: "admin" | "visitor" | "service";
-            /** @description 单站身份，与授权上下文一致 */
-            siteId: components["schemas"]["Identifier"];
-            /** @description 经验证会话ID，已撤销会话拒绝 */
-            sessionId?: components["schemas"]["Identifier"];
-            /** @description 权威权限版本；撤销变化必须同步验证 */
-            permissionRevision: components["schemas"]["Revision"];
-            /** @description 明确技术权限集合，映射旧10项功能 */
-            grants: string[];
-            /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
-            expiresAt: components["schemas"]["Timestamp"];
-            /** @description identity当前会话单调版本；admin会话委托必须携带且大于0，撤销/轮换后旧版本拒绝 */
-            sessionRevision?: components["schemas"]["Revision"];
-        };
-        /** @description 重放死信通知输入；未标可选字段均必填，空集合用[]，不传null */
-        ReplayDeliveryInput: {
-            /** @description eventId；UTF-8；不得为 null */
-            eventId: string;
-            /** @description consumerId；UTF-8；不得为 null */
-            consumerId: string;
-            /** @description 公共 AuthContext 合同，遵守其字段和空值规则 */
-            actor: components["schemas"]["AuthContext"];
-            /** @description 不可复用的站点代次/密钥代次标识；不使用整数比较新旧 */
-            dataEpoch: components["schemas"]["Identifier"];
-        };
+        /** @description 重放只使用路径deliveryId及可信操作上下文，无正文身份/代次字段 */
+        ReplayDeliveryRequestBody: Record<string, never>;
         /** @description 重试结果 */
         RetryJobResult: {
             /** @description 重新排队的任务 */
@@ -1616,8 +1585,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 公共错误；CONFLICT */
+            /** @description 公共错误；FORBIDDEN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH、LOCKED */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1657,6 +1653,15 @@ export interface operations {
                     "application/json": components["schemas"]["AcknowledgeEventResult"];
                 };
             };
+            /** @description 公共错误；VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；FORBIDDEN */
             403: {
                 headers: {
@@ -1668,6 +1673,33 @@ export interface operations {
             };
             /** @description 公共错误；NOT_FOUND */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH、LOCKED、STALE_RESULT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1933,10 +1965,15 @@ export interface operations {
     };
     subscribeEvents: {
         parameters: {
-            query?: {
-                lastEventId?: string;
+            query: {
+                /** @description 必须与已验证服务调用方及订阅目录一致 */
+                consumerId: string;
+                /** @description 本轮仅durable可用 */
+                mode: "durable" | "ephemeral";
             };
             header?: {
+                /** @description eventSeq断线续传游标，不越过持久未确认投递 */
+                "Last-Event-ID"?: string;
                 /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
                 "X-Request-Id"?: components["schemas"]["Identifier"];
             };
@@ -1952,6 +1989,15 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
+                };
+            };
+            /** @description 公共错误；VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description 公共错误；FORBIDDEN */
@@ -1974,6 +2020,33 @@ export interface operations {
             };
             /** @description 公共错误；VERSION_MISMATCH */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：该consumer最多2条流 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2282,7 +2355,10 @@ export interface operations {
     replayDelivery: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description 幂等写键；同键不同投递或可信主体返回CONFLICT */
+                "Idempotency-Key": components["schemas"]["Identifier"];
+            };
             path: {
                 /** @description 投递ID */
                 deliveryId: string;
@@ -2291,7 +2367,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReplayDeliveryInput"];
+                "application/json": components["schemas"]["ReplayDeliveryRequestBody"];
             };
         };
         responses: {
@@ -2302,6 +2378,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReplayDeliveryResult"];
+                };
+            };
+            /** @description 公共错误；VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description FORBIDDEN：无job.manage */
@@ -2322,8 +2407,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description VERSION_MISMATCH：非当前epoch */
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH、LOCKED */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；INTEGRITY_ERROR、UNSUPPORTED_CAPABILITY */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

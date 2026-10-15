@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 68 个函数：约束 33 个，参考 35 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 87 个函数：约束 34 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1440,6 +1440,46 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 - 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
 - 并发：Store锁仅覆盖本域短读及客户端取值，外部identity调用不持有Store锁或SQLite事务
 - 幂等：由调用方事务及回执保证
+- 依赖：`jobs.authorizePermission`
+
+## jobs.authorizePermission
+
+- 级别：参考
+- 文件：`modules/jobs/internal/query.go`
+- 作用：用本域版本化identity客户端作最新具体功能授权；调用方必须已释放存储锁
+
+```go
+func authorizePermission(ctx context.Context, op OperationContext, client *gen.IdentityClient, permission string, resourceID string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `op` | `OperationContext` | 可信actor | 仅本域内部，信任边界已验证字段 |
+| `client` | `*IdentityClient` | 已读取生成客户端 | 仅本域内部，信任边界已验证字段 |
+| `permission` | `string` | 持久目录得出的具体业务权限 | 仅本域内部，信任边界已验证字段 |
+| `resourceID` | `string` | 审计资源 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 权限/依赖失败 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 用本域版本化identity客户端作最新具体功能授权；调用方必须已释放存储锁
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
 - 依赖：`identity:checkAuthorization`
 
 ## jobs.AppendProgress
@@ -1559,22 +1599,137 @@ func ValidateEnvelope(ctx context.Context, op OperationContext, in ValidateEnvel
 
 **步骤**
 
-1. 生产者服务身份匹配
-2. eventType/version登记
-3. 严格payloadSchema
-4. epoch当前且revision非负
+1. 生成EventTypes按eventType/version匹配唯一producer，既要等于event.producer也要等于可信op.callerService；拒未知类型/版本
+2. 只调用platform.NewPayloadValidator编译内嵌无联网引用规格，按严格payloadSchema校验，不复制schema机制
+3. event.dataEpoch须等于入口可信op.dataEpoch；其余通用信封字段由严格入口校验，PublishEvent再在同一事务核当前runtime/control
 
 **错误**
 
 - `VALIDATION` / HTTP 400：INVALID_EVENT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：生产者身份、生成规格或续传游标不满足登记约束（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：生产者身份、生成规格或续传游标不满足登记约束（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：生产者身份、生成规格或续传游标不满足登记约束（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：service生产方
 - 并发：纯校验+runtime读取
 - 幂等：同event同结果
-- 依赖：`platform.NewPayloadValidator`
+- 依赖：`jobs.findEventDefinition`、`jobs.validateEventPayload`
 - 其他依赖说明：各域contracts/events.json
+
+## jobs.findEventDefinition
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_validation.go`
+- 作用：仅从生成EventTypes精确匹配唯一生产方、版本、权限与订阅
+
+```go
+func findEventDefinition(name string, version int) (EventDefinition, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `name` | `string` | 事件类型 | 仅本域内部，信任边界已验证字段 |
+| `version` | `int` | 事件版本 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `definition` | `EventDefinition` | 唯一生成目录项 | 成功有效，失败不返回半结果 |
+| `err` | `error` | 未知类型/版本 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 仅从生成EventTypes精确匹配唯一生产方、版本、权限与订阅
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.validateEventPayload
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_validation.go`
+- 作用：按事件名/版本缓存平台编译器，仅调用platform.NewPayloadValidator，无外部联网引用
+
+```go
+func validateEventPayload(definition EventDefinition, payload json.RawMessage) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `definition` | `EventDefinition` | 生成规格 | 仅本域内部，信任边界已验证字段 |
+| `payload` | `json.RawMessage` | 载荷 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 严格schema错误 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 按事件名/版本缓存平台编译器，仅调用platform.NewPayloadValidator，无外部联网引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：`platform.NewPayloadValidator`
+
+## jobs.consumerHasEvent
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_validation.go`
+- 作用：按生成目录精确检查consumer对该事件/版本的订阅范围
+
+```go
+func consumerHasEvent(consumer string, name string, version int) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `consumer` | `string` | 服务消费者 | 仅本域内部，信任边界已验证字段 |
+| `name` | `string` | 事件类型 | 仅本域内部，信任边界已验证字段 |
+| `version` | `int` | 版本 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `registered` | `bool` | 是否静态登记 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 按生成目录精确检查consumer对该事件/版本的订阅范围
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
 
 ## jobs.PublishEvent
 
@@ -1603,20 +1758,263 @@ func PublishEvent(ctx context.Context, op OperationContext, in PublishEventInput
 
 **步骤**
 
-1. 校验envelope
-2. eventId重复比较payloadHash
-3. 事务写event，并按事件订阅目录为每个登记consumer建立queued delivery；durable后确认，无订阅者的事件只存档
+1. ValidateEnvelope校验唯一生产者/版本/严格载荷/可信epoch
+2. 标准JSON数值不经浮点转换，规范化payload并对完整不可变信封求hash，eventId同hash重放；不同producer/subject/revision等元数据同样CONFLICT
+3. 同事务读/写event操作回执；新键不同信封CONFLICT，事件重复不重建delivery
+4. 用持久全局event_sequence原子分配eventSeq，不因历史清理归零；写event并按生成目录为每个consumer建唯一queued delivery，无消费者也durable存档
+5. 发布可在维护draining有效control截止前完成，safe水位后拒写；事件/全部delivery/回执一起提交后才accepted
 
 **错误**
 
 - `CONFLICT` / HTTP 409：EVENT_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_EVENT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `LOCKED` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `STALE_RESULT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `NOT_FOUND` / HTTP 404：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
 
 - 副作用：写event/deliveries
 - 授权：permission：service；rule：service生产方
 - 并发：单事务，不复制源数据库
-- 幂等：eventId+payloadHash幂等
-- 依赖：`jobs.ValidateEnvelope`
+- 幂等：eventId+规范完整envelope hash及caller/epoch/operationId绑定；相同事件不重复创建投递
+- 依赖：`jobs.ValidateEnvelope`、`jobs.encodeEvent`、`jobs.beginLeaseOperation`、`jobs.readEventRecord`、`jobs.eventReceipt`、`jobs.saveEventReceipt`、`jobs.requireEventWrite`
+
+## jobs.encodeEvent
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：使用JSON Number保留整数精度，标准JSON键排序规范化payload后编码完整信封并哈希
+
+```go
+func encodeEvent(event EventEnvelope) ([]byte, Hash)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `event` | `EventEnvelope` | 已验信封 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `encoded` | `[]byte` | 规范不可变信封JSON | 成功有效，失败不返回半结果 |
+| `hash` | `Hash` | 完整信封哈希 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 使用JSON Number保留整数精度，标准JSON键排序规范化payload后编码完整信封并哈希
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.readEventRecord
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：读取事件固定信封及seq，核持久JSON/哈希并按当前epoch隔离
+
+```go
+func (work *leaseOperation) readEventRecord(ctx context.Context, eventID string) (eventRecord, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `eventID` | `string` | 不可变事件ID | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `event` | `eventRecord` | 持久事件及seq/hash | 成功有效，失败不返回半结果 |
+| `err` | `error` | 不存在/损坏 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 读取事件固定信封及seq，核持久JSON/哈希并按当前epoch隔离
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.requireEventWrite
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：发布/确认只可在有效control截止前收敛；其余调度/重放在maintenance或safePoint拒绝
+
+```go
+func (work *leaseOperation) requireEventWrite(draining bool) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `draining` | `bool` | 是否只收敛既有发布/确认 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 屏障/维护拒绝 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 发布/确认只可在有效control截止前收敛；其余调度/重放在maintenance或safePoint拒绝
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.eventReceipt
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：按caller/epoch/种类/operationId核输入hash并读取安全成功回执
+
+```go
+func (work *leaseOperation) eventReceipt(ctx context.Context, op OperationContext, kind string, request []byte, result any) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `op` | `OperationContext` | 可信操作键 | 仅本域内部，信任边界已验证字段 |
+| `kind` | `string` | publish/ack/replay | 仅本域内部，信任边界已验证字段 |
+| `request` | `[]byte` | 规范输入 | 仅本域内部，信任边界已验证字段 |
+| `result` | `LeaseReceiptResult` | 输出结果指针 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `found` | `bool` | 命中完整回执 | 成功有效，失败不返回半结果 |
+| `err` | `error` | 冲突或损坏 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 按caller/epoch/种类/operationId核输入hash并读取安全成功回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.saveEventReceipt
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：在当前事件事务写输入hash及安全成功响应，不存正文/secret
+
+```go
+func (work *leaseOperation) saveEventReceipt(ctx context.Context, op OperationContext, kind string, request []byte, result any) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `op` | `OperationContext` | 可信操作键 | 仅本域内部，信任边界已验证字段 |
+| `kind` | `string` | publish/ack/replay | 仅本域内部，信任边界已验证字段 |
+| `request` | `[]byte` | 规范输入 | 仅本域内部，信任边界已验证字段 |
+| `result` | `LeaseReceiptResult` | 成功结果 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 写失败 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 在当前事件事务写输入hash及安全成功响应，不存正文/secret
+
+**错误**
+
+- 无
+
+- 副作用：写event_operations
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.RelayOutbox
+
+- 级别：约束
+- 文件：`modules/jobs/internal/event_store.go`
+- 作用：本域outbox转发薄入口，完整复用平台SQL store与转发循环
+
+```go
+func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域生命周期取消 | 停止时由平台循环退出并保留持久outbox |
+| `op` | `OperationContext` | jobs可信后台上下文 | callerService=jobs，不使用浏览器actor |
+| `client` | `EventPublisher` | 生成self JobsClient经platform.NewEventPublisher适配 | 受信config.Dependencies[jobs]地址；不从Host推断，未装配失败关闭 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 装配失败或循环终止原因 | ctx取消正常退出，其他使用公共安全错误码 |
+
+**步骤**
+
+1. 核jobs后台来源、本域Store/runtime与窄发布客户端已装配
+2. 复用outbox.NewStore(db)，以WithOperationContext(ctx,op)和运行权威调用platform.RunRelay；batch=100、poll=1000ms
+3. 原事件ID与payload保持，平台NewEventPublisher按每event建立稳定操作键并签名self jobs:publishEvent，确认durable后平台标relayed；不复制循环、租约、重试或隔离机制
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：非jobs生命周期来源（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：存储、运行权威或自指客户端未装配（可重试）
+
+- 副作用：由platform循环更新本域outbox投递状态，经版本化self HTTP进入事件存储
+- 授权：permission：service；rule：仅jobs可信后台，self服务断言生产者仍为jobs
+- 并发：复用平台有界串行转发，不持Store锁调用HTTP
+- 幂等：原eventId/完整信封哈希；平台每event稳定控制键
+- 依赖：`platform.RunRelay`、`platform.NewEventPublisher`、`jobs:publishEvent`
+- 其他依赖说明：platform.outbox.NewStore；config.Dependencies[jobs]
 
 ## jobs.RequeueExpiredDeliveries
 
@@ -1645,20 +2043,27 @@ func RequeueExpiredDeliveries(ctx context.Context, op OperationContext, in Reque
 
 **步骤**
 
-1. 每5秒领取≤limit条delivering且30秒确认租约已到期的delivery
-2. attempt+1；未超过10次则改回queued，按1/2/4秒指数退避（上限300秒）设置下次可见时间
-3. 超过上限转dead-letter并记录最后错误，只能经ReplayDelivery由管理员重放
-4. 已acknowledged的delivery不受影响；同subject在前一条未确认时不推送后一条
+1. 仅jobs可信后台上下文；维护/control屏障时暂停active投递调度变更
+2. 每轮最多limit个当前epoch delivering且精确30秒租约到期的行，按revision/attempt/state CAS
+3. 过期次数加一；新次数不超过10则queued并按1/2/4秒指数退避（上限300秒），超过10转dead-letter，仅保存安全DEADLINE_EXCEEDED码
+4. 已ack不受影响；不跳过同producer/subject前序未ack投递，不自动重放死信
 
 **错误**
 
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `LOCKED` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `CONFLICT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `STALE_RESULT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `NOT_FOUND` / HTTP 404：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
 
 - 副作用：写delivery状态与退避时间
 - 授权：permission：service；rule：service事件worker
 - 并发：单jobs进程一个扫描循环；行级CAS防重复改写
 - 幂等：按deliveryId与attempt CAS；重复扫描不重复计数
-- 依赖：无
+- 依赖：`jobs.beginLeaseOperation`
 
 ## jobs.AcknowledgeEvent
 
@@ -1687,20 +2092,28 @@ func AcknowledgeEvent(ctx context.Context, op OperationContext, in AcknowledgeEv
 
 **步骤**
 
-1. 服务consumer身份绑定
-2. CAS queued/delivering→acknowledged
-3. 不影响其他consumer
+1. consumerId须等于可信caller，且事件类型/版本已登记给该consumer；epoch与当前runtime一致
+2. 读取对应持久delivery，只允许已实际投递的delivering或到期queued确认；从未投递与dead-letter拒绝，已ack只读重复成功
+3. CAS对应consumer的投递acknowledged，不影响其他consumer；本域handler是否已提交由consumer持久inbox保证
+4. 在同事务推进该consumer/epoch连续确认水位，不能越过更早未ack或dead-letter投递；保存操作回执
+5. 已发投递确认可在draining且有效control截止前收敛，safe水位后不新增ack/回执
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `NOT_FOUND` / HTTP 404：EVENT_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `LOCKED` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `CONFLICT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `STALE_RESULT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
 
 - 副作用：写delivery
 - 授权：permission：service；rule：service指定consumer
 - 并发：event/consumer复合主键
 - 幂等：重复ack成功
-- 依赖：无
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readDeliveryRecord`、`jobs.consumerHasEvent`、`jobs.requireEventWrite`、`jobs.advanceConsumerOffset`、`jobs.eventReceipt`、`jobs.saveEventReceipt`
 - 其他依赖说明：私有SQLite
 
 ## jobs.ReplayDelivery
@@ -1730,20 +2143,144 @@ func ReplayDelivery(ctx context.Context, op OperationContext, in ReplayDeliveryI
 
 **步骤**
 
-1. 验证job.manage
-2. 仅当前epoch/registered consumer
-3. 重设delivery queued，不新造eventId
+1. 由路径deliveryId读取持久event/consumer/epoch，按生成目录producer/type管理权限请求identity最新授权；job.manage只作入口粗能力
+2. 身份/epoch不从正文提供；网络请求前释放Store锁，进入事务再核同一投递及当前epoch/control
+3. 只允许dead-letter，已ack或其他活动状态不能覆盖；保留原eventId，重置过期次数并排队原consumer，清租约与最后错误
+4. 操作键绑定可信caller/actor/epoch及deliveryId；重复键重放原结果，不重复复活；回执和状态同事务
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `LOCKED` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `CONFLICT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `STALE_RESULT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `NOT_FOUND` / HTTP 404：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
 
 - 副作用：写delivery/outbox audit
-- 授权：permission：job.manage；rule：job.manage
-- 并发：CAS避免覆盖已ack delivery；force仅显式管理参数
+- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久事件唯一producer/type目录的managementPermission实时核权
+- 并发：revision CAS只恢复dead-letter，网络授权不持Store锁或数据库事务
 - 幂等：operationId幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`jobs.authorizeDeliveryManagement`、`jobs.beginLeaseOperation`、`jobs.readDeliveryRecord`、`jobs.requireEventWrite`、`jobs.eventReceipt`、`jobs.saveEventReceipt`
+
+## jobs.readDeliveryRecord
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_delivery.go`
+- 作用：按持久投递ID或event/consumer复合键读取同一行与事件权限字段，不采用客户端producer
+
+```go
+func (work *leaseOperation) readDeliveryRecord(ctx context.Context, deliveryID string, eventID string, consumer string) (deliveryRecord, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `deliveryID` | `string` | 重放路径ID，或空串 | 仅本域内部，信任边界已验证字段 |
+| `eventID` | `string` | 确认事件ID，或空串 | 仅本域内部，信任边界已验证字段 |
+| `consumer` | `string` | 确认消费者，或空串 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `delivery` | `deliveryRecord` | 当前投递及不可变事件作用域 | 成功有效，失败不返回半结果 |
+| `err` | `error` | 不存在/旧epoch/损坏 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 按持久投递ID或event/consumer复合键读取同一行与事件权限字段，不采用客户端producer
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.advanceConsumerOffset
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_delivery.go`
+- 作用：计算最早未ack之前的连续全局seq水位，永不跨过死信/未确认，按consumer/epoch单调保存
+
+```go
+func (work *leaseOperation) advanceConsumerOffset(ctx context.Context, consumer string, epoch Identifier) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `consumer` | `string` | 已验consumer | 仅本域内部，信任边界已验证字段 |
+| `epoch` | `Identifier` | 当前代次 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 水位写失败 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 计算最早未ack之前的连续全局seq水位，永不跨过死信/未确认，按consumer/epoch单调保存
+
+**错误**
+
+- 无
+
+- 副作用：写consumer_offsets
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.authorizeDeliveryManagement
+
+- 级别：参考
+- 文件：`modules/jobs/internal/event_delivery.go`
+- 作用：锁内短读持久投递及生成producer/type管理权限，释放锁后请求identity，再由重放事务复核
+
+```go
+func authorizeDeliveryManagement(ctx context.Context, op OperationContext, deliveryID string) (deliveryRecord, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+| `op` | `OperationContext` | 可信actor/epoch | 仅本域内部，信任边界已验证字段 |
+| `deliveryID` | `string` | 投递引用 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `delivery` | `deliveryRecord` | 已授权持久事件/consumer作用域 | 成功有效，失败不返回半结果 |
+| `err` | `error` | 拒绝/损坏/不可达 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 锁内短读持久投递及生成producer/type管理权限，释放锁后请求identity，再由重放事务复核
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：`jobs.findEventDefinition`、`jobs.authorizePermission`
 
 ## jobs.ValidateCron
 
@@ -2414,23 +2951,175 @@ func SubscribeEvents(ctx context.Context, op OperationContext, in SubscribeEvent
 
 **步骤**
 
-1. 服务consumer身份必须与consumerId一致，且只能订阅事件订阅目录中登记给该consumer的事件名/版本
-2. durable模式：按durable eventSeq推送该consumer queued delivery并置delivering（30秒确认租约）；同subject前一条未确认时不推送后一条
-3. ephemeral模式（仅portal浏览器转发）：从当前水位开始推送，不建delivery、不需要确认
-4. 15s heartbeat和Last-Event-ID断点续传；慢连接积压超过64条关闭，客户端重连
-5. 仅推送公共payloadSchema载荷，不暴露别域正文
+1. durable consumerId必须与可信caller一致且在生成目录有订阅；拒绝客户端actor/epoch声明；ephemeral等待专门安全投影，本轮UNSUPPORTED_CAPABILITY，不广播原payload
+2. 取得每consumer最多2个连接槽，返回真正增量platform.EventStream；关闭/取消归还连接槽，无预装空events数组
+3. 每次Next读取当前runtime/control及epoch，用短事务领取最早可见queued delivery为delivering并登记30秒确认租约；同producer/subject前序未ack或dead-letter阻塞后序
+4. Last-Event-ID只校验合法eventSeq范围并供SSE传输续接，不跳过持久未ack；回收后旧seq可以重投，由consumer inbox去重
+5. 单事件拉取背压、不建大于64的应用积压；公共ServeEventStream负责15秒注释心跳/帧ID/取消关闭；epoch变更立即结束，维护/屏障停止新投递
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：VERSION_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `NOT_FOUND` / HTTP 404：NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `LOCKED` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `CONFLICT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `STALE_RESULT` / HTTP 409：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：登记生产方/consumer/当前epoch/屏障/CAS/回执或存储权威不满足（不可重试）
+- `UNSUPPORTED_CAPABILITY` / HTTP 422：ephemeral安全投影尚未收口，不广播原payload（不可重试）
+- `RATE_LIMITED` / HTTP 429：消费者连接槽达到2条（可重试）
+- `VALIDATION` / HTTP 400：生产者身份、生成规格或续传游标不满足登记约束（不可重试）
 
-- 副作用：无业务写，仅传输已durable事件
+- 副作用：占用有界连接槽；将本consumer queued delivery CAS为带30秒确认租约的delivering
 - 授权：permission：service；rule：service注册consumer
 - 并发：每consumer最多2流；epoch变化立即关闭旧流
 - 幂等：eventSeq重放至少一次，consumer inbox/eventId去重后ack
-- 依赖：`jobs.ValidateEnvelope`、`jobs.AcknowledgeEvent`、`platform.ServeEventStream`
+- 依赖：`jobs.beginLeaseOperation`、`jobs.consumerHasEvent`、`jobs.Next`、`jobs.Close`、`jobs.LastID`
+
+## jobs.Next
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_event_subscription.go`
+- 作用：反复短事务领取单事件，无可见行时可取消等待；维护暂停，epoch变更关闭流；不持锁等待网络
+
+```go
+func (stream *eventSubscription) Next(ctx context.Context) (EventEnvelope, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消与流生命周期 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `event` | `EventEnvelope` | 下一条持久投递 | 成功有效，失败不返回半结果 |
+| `err` | `error` | EOF/代次变更/依赖故障 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 反复短事务领取单事件，无可见行时可取消等待；维护暂停，epoch变更关闭流；不持锁等待网络
+
+**错误**
+
+- 无
+
+- 副作用：写当前consumer投递租约
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：`jobs.nextDelivery`、`jobs.Close`
+
+## jobs.LastID
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_event_subscription.go`
+- 作用：只读当前流最后实际返回seq，用于SSE id帧
+
+```go
+func (stream *eventSubscription) LastID() string
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `id` | `string` | 上次实际返回的eventSeq | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 只读当前流最后实际返回seq，用于SSE id帧
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.Close
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_event_subscription.go`
+- 作用：幂等停止Next等待并归还本consumer连接槽，不提前确认/释放已发投递
+
+```go
+func (stream *eventSubscription) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 关闭结果 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 幂等停止Next等待并归还本consumer连接槽，不提前确认/释放已发投递
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：无
+
+## jobs.nextDelivery
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_event_subscription.go`
+- 作用：当前epoch/control下选最早queued可见投递，前序同producer/subject未ack则阻塞，CAS delivering和30秒租约后提交再返回
+
+```go
+func (stream *eventSubscription) nextDelivery(ctx context.Context) (EventEnvelope, int64, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部，信任边界已验证字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `event` | `EventEnvelope` | 下一事件 | 成功有效，失败不返回半结果 |
+| `seq` | `int64` | 持久接收序号 | 成功有效，失败不返回半结果 |
+| `found` | `bool` | 是否本轮可投递 | 成功有效，失败不返回半结果 |
+| `err` | `error` | 失败原因 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. 当前epoch/control下选最早queued可见投递，前序同producer/subject未ack则阻塞，CAS delivering和30秒租约后提交再返回
+
+**错误**
+
+- 无
+
+- 副作用：更新delivery租约与revision
+- 授权：permission：service；rule：落实登记的生产者/consumer/任务作用域，通用身份来自可信op
+- 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
+- 幂等：按登记持久主键、CAS和操作回执
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readEventRecord`
 
 ## jobs.All
 
@@ -2543,7 +3232,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`platform.NewServiceHandler`、`platform.NewEventPublisher`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve
@@ -2871,3 +3560,80 @@ func ListDeliveries(ctx context.Context, op OperationContext, input ListDeliveri
 - 并发：只读快照或CAS
 - 幂等：读取幂等；写入按operationId
 - 依赖：无
+
+## jobs.NewEventHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_events.go`
+- 作用：装配已实现事件发布、确认、重放和durable SSE的真实HTTP适配
+
+```go
+func NewEventHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | 四个实际事件operationId处理器 | 只用于统一HTTP边界；其他操作不能用占位填充 |
+
+**步骤**
+
+1. 信任公共NewServiceHandler已建立op/caller/epoch/schema/PathValue，只做生成输入形状到领域输入绑定，不重复身份或schema校验
+2. publish/ack/replay转领域函数并用公共Problem写失败，成功状态与OpenAPI一致；actor/epoch只取可信op
+3. subscribe成功后调用platform.ServeEventStream输出真实增量流；pump开始后不再写JSON Problem
+4. 只返回本组四个operation，不补其余handler假成功；BuildApplication全表/控制存储/后台未完整时保持blocked
+
+**错误**
+
+- 无
+
+- 副作用：由已登记领域函数写事件/投递与回执；SSE由平台输出
+- 授权：permission：service；rule：公共NewServiceHandler先固定caller/委托/epoch/维护与静态权限，本组不能独立裸挂
+- 并发：每请求独立绑定，流单事件背压由平台pump执行
+- 幂等：沿用领域函数与可信Idempotency-Key建立的操作键
+- 依赖：`jobs.PublishEvent`、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery`、`jobs.SubscribeEvents`、`jobs.writeEventResponse`、`platform.ServeEventStream`
+- 其他依赖说明：platform.apivalidate.NewServiceHandler已验证请求上下文
+
+## jobs.writeEventResponse
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_events.go`
+- 作用：统一本组JSON响应，失败复用平台Problem，不自行泄露原始输入
+
+```go
+func writeEventResponse(w http.ResponseWriter, op OperationContext, result any, err error, status int)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `w` | `ResponseWriter` | HTTP响应句柄 | SSE开始后不调用 |
+| `op` | `OperationContext` | 可信requestId | 入口注入 |
+| `result` | `LeaseReceiptResult` | 已验证业务结果 | 失败时忽略 |
+| `err` | `error` | 领域错误 | 公共安全错误码 |
+| `status` | `int` | 成功HTTP码 | OpenAPI登记码 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 失败交platform.problem.FromError/WriteProblem，成功按登记码输出JSON；网络写失败结束当前请求，不追加第二个Problem
+
+**错误**
+
+- 无
+
+- 副作用：写HTTP响应
+- 授权：permission：service；rule：只由本组已通过统一边界的handler调用
+- 并发：单响应单次输出
+- 幂等：只序列化已有结果，不增加业务副作用
+- 依赖：无
+- 其他依赖说明：platform.problem

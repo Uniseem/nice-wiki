@@ -62,6 +62,7 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 | `jobs.TickSchedules` | 每1秒 | 定时生成任务 |
 | `jobs.RequeueExpiredDeliveries` | 每5秒 | 把已经推送给订阅者但确认租约到期的投递重新排队或转死信 |
 | `jobs.PurgeExpiredHistory` | 每日 | 清理已完成记录 |
+| `jobs.RelayOutbox` | 进程生命周期持续转发 | 本域outbox转发薄入口，完整复用平台SQL store与转发循环 |
 <!-- flows:end -->
 
 
@@ -71,3 +72,8 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 
 
 任务管理最终授权按持久owner/type匹配jobTypes的managementPermission，入口job.manage只表示可进入队列界面，不能代替领域功能授权。授权HTTP请求不持有进程Store锁或SQLite事务，随后读/取消仍在当前epoch事务内核对同一任务作用域。取消已持久但owner尚未看到心跳时，临时失败也不能重排；先orphan等待可信安全确认。
+
+
+第二轮事件核心：producer outbox以固定eventId提交，jobs同事务保存完整信封/hash、全局eventSeq、所有登记consumer的queued投递与回执后确认。consumer只领取自己的订阅，30秒内完成本域inbox/业务事务后ack；ack推进连续水位，传输Last-Event-ID不能替代它。到期重排只改对应consumer，死信保留并阻塞相同producer/subject后序，需按具体生产方管理权限重放原投递。
+
+jobs自身outbox同样经RelayOutbox→平台RunRelay→版本化self publishEvent，不能直接跳过持久接收。durable流逐次拉取、单事件背压并可取消；浏览器ephemeral等待独立安全投影，当前明确不可用，不以空列表或全量payload广播冒充。

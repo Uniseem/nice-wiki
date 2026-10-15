@@ -1,5 +1,15 @@
 # 任务与事件当前进度
 
+持续实施第二轮事件包（2026-10-15）：分支`codex/jobs-event-delivery-r1`，基线`468986fc34e1c90b6b5ca575539fdd2b9748cd06`，独占`modules/jobs/`。事件发布、durable增量订阅、确认/连续水位、到期退避死信与具体功能授权重放源码已准备，待统一VPS生成/编译/结构检查，全部本轮条目in_progress。合成VPS首轮14模块make build已通过并回写生成/格式/依赖产物；载荷参数登记、响应helper签名和旧事件producer完整性三项最小修复等待VPS复跑，未提前升级状态。
+
+- ValidateEnvelope按根生成EventTypes核唯一producer/version/严格payloadSchema，校验器只用platform。PublishEvent规范完整信封hash，事件/consumer投递/稳定seq/操作回执同事务；相同eventId不重建delivery。
+- SubscribeEvents返回真实platform.EventStream，每consumer最多2流，逐事件短事务领取30秒确认租约，同producer/subject前序未ack含死信阻塞后序；Last-Event-ID不越过未ack，关闭归还连接槽。
+- Ack绑定已认证consumer与当前epoch，只有实际发出的投递可确认，连续确认水位不能跨未ack。到期按1/2/4秒退避上限300秒，过期次数超过10进死信。ReplayDelivery按持久deliveryId和生产方具体业务权限恢复原event/consumer，不能覆盖已ack或活动投递。
+- 发布和ack可在有效control截止前draining收敛；维护/屏障停止新投递、重排和重放。jobs自有outbox补RelayOutbox薄入口，完全复用platform.RunRelay/SQL Store。
+- portal ephemeral安全投影未收口，本轮明确UNSUPPORTED_CAPABILITY，不广播原payload；公共HTTP/SSE装配、实际owner恢复适配、完整屏障与定时仍未完成。未新增测试/样例/临时业务程序，未本机编译/格式/生成/测试，未运行真实接口/服务/模型、未部署或push。
+
+以下为第一轮已合并历史事实：
+
 最新统一集成事实（2026-10-15）：终局、取消、有限重试、持久任务权限与orphan框架通过；owner恢复适配、事件/定时/屏障和HTTP仍未完成。
 VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：7566a0c、167aec4，逐项以progress.json为准。未执行业务验收或部署。
 以下旧说明作为历史记录，当前状态以前述事实和台账为准。

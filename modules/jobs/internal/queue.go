@@ -52,6 +52,8 @@ type Store struct {
 	leaseRuntime LeaseRuntimeProvider
 	identity     *gen.IdentityClient
 	recovery     OwnerRecoveryChecker
+	eventMu      sync.Mutex
+	eventStreams map[string]int
 }
 
 var activeQueue struct {
