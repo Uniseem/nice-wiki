@@ -2,7 +2,7 @@
 
 在请求进入高成本或高并发路径前执行频率、并发、挑战及封禁策略，只发准入凭证；model-gateway 仍是唯一实时额度和钱账权威。
 
-状态：按old已确认产品行为重建微服务设计；未实现业务代码，未创建测试样例，未执行真实接口或模型，未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+状态：R1持续实施第三轮登录保护源码与合同已准备，等待VPS统一编译/生成检查；完整启动仍blocked。未创建测试样例，未执行真实接口或模型，本轮未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)

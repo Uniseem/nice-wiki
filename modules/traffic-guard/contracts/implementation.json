@@ -196,7 +196,7 @@
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
       "kind": "handwritten",
-      "purpose": "读取生效策略；同文件职责限本域以下登记函数",
+      "purpose": "私有策略与登录保护库的打开代次、迁移、control journal和可信上下文注入；策略读写仍待后续",
       "functions": [
         {
           "id": "traffic-guard.GetPolicy",
@@ -340,6 +340,330 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.OpenPolicyStore",
+          "name": "OpenPolicyStore",
+          "signature": "func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore, error)",
+          "inputs": [
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "配置注入的本域绝对数据根",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "openedDataEpoch",
+              "type": "Identifier",
+              "description": "startup runtime的active代次",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "store",
+              "type": "*PolicyStore",
+              "description": "固定打开代次的私有库",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "打开私有SQLite及control journal并固定可信active代次",
+          "steps": [
+            "打开私有SQLite及control journal并固定可信active代次"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [
+            "platform.outbox.EnsureSchema；单一嵌入SQL迁移集"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.WithPolicyStore",
+          "name": "WithPolicyStore",
+          "signature": "func WithPolicyStore(ctx context.Context, store *PolicyStore) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止透传IO",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "store",
+              "type": "*PolicyStore",
+              "description": "打开代次不可变的私有库",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "带本域私有库的上下文",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "可信装配将已打开代次的私有库注入调用上下文",
+          "steps": [
+            "可信装配将已打开代次的私有库注入调用上下文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "仅派生context，不改变库或全局变量",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.RunMigrations",
+          "name": "RunMigrations",
+          "signature": "func (s *PolicyStore) RunMigrations() error",
+          "inputs": [
+            {
+              "name": "s",
+              "type": "*PolicyStore",
+              "description": "启动或关闭阶段的私有库接收者",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "逐个事务执行单一embed来源的只追加迁移",
+          "steps": [
+            "逐个事务执行单一embed来源的只追加迁移"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "句柄缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "迁移集、已登记版本或数据库结构损坏",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "事务打开/版本登记/提交失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "每个追加迁移与schema_migrations版本同事务提交"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.All"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.RecoverJournal",
+          "name": "RecoverJournal",
+          "signature": "func (s *PolicyStore) RecoverJournal() error",
+          "inputs": [
+            {
+              "name": "s",
+              "type": "*PolicyStore",
+              "description": "启动或关闭阶段的私有库接收者",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "校验control journal并拒绝损坏或未决决定",
+          "steps": [
+            "校验control journal并拒绝损坏或未决决定"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "journal句柄缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "损坏行或未完成决定",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "日志IO失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "无未决/损坏条目才设置JournalRecovered"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.readPolicyJournal"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.Close",
+          "name": "Close",
+          "signature": "func (s *PolicyStore) Close() error",
+          "inputs": [
+            {
+              "name": "s",
+              "type": "*PolicyStore",
+              "description": "启动或关闭阶段的私有库接收者",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "等待在途登录事务后关闭journal与数据库",
+          "steps": [
+            "等待在途登录事务后关闭journal与数据库"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "when": "同步或关闭资源失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "等待在途事务释放生命周期锁，关闭journal和DB"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "重复关闭安全，不回退已提交记录",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.readPolicyJournal",
+          "name": "readPolicyJournal",
+          "signature": "func readPolicyJournal(name string) ([]policyJournalEntry, error)",
+          "inputs": [
+            {
+              "name": "name",
+              "type": "string",
+              "description": "control日志文件名",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "entries",
+              "type": "[]policyJournalEntry",
+              "description": "每个决定的最终状态",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "按条目ID聚合决定日志并拒绝损坏行",
+          "steps": [
+            "按条目ID聚合决定日志并拒绝损坏行"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "when": "日志读取失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "损坏行",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1417,36 +1741,37 @@
           ],
           "purpose": "账号及网络登录失败保护BeginLoginAttempt",
           "steps": [
-            "只允许identity服务和当前dataEpoch，networkKeys必须来自identity已验portal声明的适配，不接受原IP/账号名",
-            "按requestId+caller+epoch+规范HMAC输入摘要幂等；重放返回原attempt及原expiresAt，不额外占用或延长",
-            "同一SQLite事务按accountKey与两个networkKeys检查15分钟失败窗口/临时锁，账号5次或网络20次失败锁15分钟；成功核验只清账号计数，不清共享网络失败",
-            "每账号最多1个在途核验、每网络最多8个；持久保留attempt 30秒，过期只释放保留不当失败，未知权威失败关闭"
+            "要求identity纯服务，事务绑定PolicyStore打开代次；通用服务断言、当前runtime/维护与schema只由公共HTTP入口核验一次",
+            "requestId必须等于op.OperationID；networkKeys排序去重后与accountKey/action作规范摘要；按caller+epoch+requestId查原回执，同摘要返回原attempt、expiresAt和创建revision，包括已到期/终局，不增加预留也不延长",
+            "login/bootstrap共享账号和每个网络键：检查当前固定锁及滚动15分钟失败，账号5次、网络20次即拒；既有锁及重放不重算锁起点或续期",
+            "同事务检查未终局且expiresAt晚于当前服务时间的预留：账号最多1、每个网络键最多8；持久新attempt和全部网络关联，30秒到期；过期pending自然不占并发、不自动当失败",
+            "提交成功才返回预留；未知存储失败关闭，不记录原账号/IP/口令或HMAC原料"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "非identity调用",
+              "when": "非identity纯服务调用",
               "retryable": false
             },
             {
-              "code": "RATE_LIMITED",
-              "when": "当前失败/并发临时锁定",
+              "code": "VERSION_MISMATCH",
+              "when": "op代次与打开的active库或持久attempt不一致",
               "retryable": false
             },
             {
               "code": "CONFLICT",
-              "when": "同请求异输入或不允许的终局",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "when": "尝试不存在",
+              "when": "同operation/request异输入、异终局或过期authenticated",
               "retryable": false
             },
             {
               "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "私有存储或运行权威未知",
+              "when": "私有库未注入、已关闭或事务失败",
               "retryable": true
+            },
+            {
+              "code": "RATE_LIMITED",
+              "when": "当前账号或任一网络失败阈值/锁/并发已满",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1454,12 +1779,16 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "只允许已认证identity服务，严格epoch"
+            "rule": "只允许已认证CallerService=identity且Actor.Kind=service；可信入口核当前runtime，事务严格匹配PolicyStore打开代次，正文不声明身份或epoch"
           },
-          "concurrency": "SQLite写事务串行计数/CAS，不持锁执行密码核对",
+          "concurrency": "单连接SQLite短事务串行；锁和失败窗按账号/每个网络键共享login/bootstrap，不持锁核验口令",
           "idempotency": "原request/attempt和输入摘要绑定，终局不得改写",
           "dependencies": [
-            "site-config:readRuntimeState"
+            "traffic-guard.beginLoginTransaction",
+            "traffic-guard.loginInputHash",
+            "traffic-guard.checkLoginScope",
+            "traffic-guard.loginDBError",
+            "traffic-guard.loginTransaction.close"
           ],
           "resources": [
             "本域私有登录尝试/失败/回执持久表"
@@ -1524,36 +1853,38 @@
           ],
           "purpose": "账号及网络登录失败保护FinishLoginAttempt",
           "steps": [
-            "只允许identity，读取同epoch本域持久attempt；同终局outcome重放返回原回执，异outcome冲突，不重复累计或清除",
-            "authenticated表示口令核验且账户active，只清账号失败计数并释放保留；后续session提交失败不改写结果",
-            "rejected对账号/网络同事务增加失败计数并按阈值设置锁定；aborted只释放保留、不清失败",
-            "过期未决attempt拒authenticated，终局回执与计数/释放同事务；不记录秘密或原始身份网络信息"
+            "要求identity纯服务和打开代次；按持久attempt读取caller/epoch/账号及全部网络键，不从请求正文推导；旧代次禁止触碰当前active",
+            "Finish自身按caller+epoch+operationId绑定attempt/outcome，与Begin的operation命名空间分开；同attempt同终局即使换key也只补回执并返回原接受结果，异终局始终CONFLICT",
+            "pending超过30秒只禁止首次authenticated；首次late rejected仍接受并按本次Finish受信服务时间计入滚动15分钟窗；aborted无论是否到期只释放预留",
+            "authenticated只说明口令核验且账户active：清此账号失败及账号锁，不清任一网络失败/锁；后续session提交失败不可改写此终局",
+            "rejected对账号及每个持久网络键追加一次匿名失败；账号5次/网络20次阈值首次达到时锁15分钟；正在锁定时只追加失败不续锁，锁结束后按滚动窗正常判定；不因重放续锁",
+            "终局、失败/锁或账号清除、预留释放及operation回执同事务提交；原终局不可改写，失败不返回半结果"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "非identity调用",
+              "when": "非identity纯服务调用",
               "retryable": false
             },
             {
-              "code": "RATE_LIMITED",
-              "when": "当前失败/并发临时锁定",
+              "code": "VERSION_MISMATCH",
+              "when": "op代次与打开的active库或持久attempt不一致",
               "retryable": false
             },
             {
               "code": "CONFLICT",
-              "when": "同请求异输入或不允许的终局",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "when": "尝试不存在",
+              "when": "同operation/request异输入、异终局或过期authenticated",
               "retryable": false
             },
             {
               "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "私有存储或运行权威未知",
+              "when": "私有库未注入、已关闭或事务失败",
               "retryable": true
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "持久attempt不存在",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1561,17 +1892,423 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "只允许已认证identity服务，严格epoch"
+            "rule": "只允许已认证CallerService=identity且Actor.Kind=service；可信入口核当前runtime，事务严格匹配PolicyStore打开代次，正文不声明身份或epoch"
           },
-          "concurrency": "SQLite写事务串行计数/CAS，不持锁执行密码核对",
+          "concurrency": "单连接SQLite短事务串行；锁和失败窗按账号/每个网络键共享login/bootstrap，不持锁核验口令",
           "idempotency": "原request/attempt和输入摘要绑定，终局不得改写",
           "dependencies": [
-            "site-config:readRuntimeState"
+            "traffic-guard.beginLoginTransaction",
+            "traffic-guard.loadLoginAttempt",
+            "traffic-guard.recordLoginFailure",
+            "traffic-guard.loginDBError",
+            "traffic-guard.loginTransaction.close"
           ],
           "resources": [
             "本域私有登录尝试/失败/回执持久表"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.beginLoginTransaction",
+          "name": "beginLoginTransaction",
+          "signature": "func beginLoginTransaction(ctx context.Context, op OperationContext) (*loginTransaction, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止透传IO",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经统一入口建立的可信操作上下文",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "transaction",
+              "type": "*loginTransaction",
+              "description": "已持有生命周期读锁的私有短事务",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "取得可信注入库并匹配identity纯服务与打开代次后开始短事务",
+          "steps": [
+            "取得可信注入库并匹配identity纯服务与打开代次后开始短事务"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "非identity纯服务",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "op不等于打开代次",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "库缺失、关闭或事务打开失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "持有库生命周期读锁与SQLite事务，调用方必须defer close"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.loginDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.loginTransaction.close",
+          "name": "loginTransaction.close",
+          "signature": "func (t *loginTransaction) close()",
+          "inputs": [
+            {
+              "name": "t",
+              "type": "*loginTransaction",
+              "description": "当前事务接收者",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [],
+          "purpose": "事务回滚（已提交为无副作用）并释放库生命周期读锁",
+          "steps": [
+            "事务回滚（已提交为无副作用）并释放库生命周期读锁"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "未提交事务回滚并释放生命周期读锁；已提交事务不撤销"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.loginInputHash",
+          "name": "loginInputHash",
+          "signature": "func loginInputHash(in BeginLoginAttemptInput) (string, []string)",
+          "inputs": [
+            {
+              "name": "in",
+              "type": "BeginLoginAttemptInput",
+              "description": "已严格校验的HMAC输入",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "hash",
+              "type": "string",
+              "description": "规范输入SHA-256摘要",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "networkKeys",
+              "type": "[]string",
+              "description": "排序去重的网络键集合",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "对账号、action及排序去重网络键作稳定SHA-256摘要",
+          "steps": [
+            "对账号、action及排序去重网络键作稳定SHA-256摘要"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "纯函数，不修改输入切片",
+          "idempotency": "相同集合与字段产生相同摘要",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.checkLoginScope",
+          "name": "checkLoginScope",
+          "signature": "func checkLoginScope(ctx context.Context, t *loginTransaction, kind string, key string, failureLimit int, concurrencyLimit int) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止透传IO",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "t",
+              "type": "*loginTransaction",
+              "description": "当前短事务",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "本域固定account/network",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "单个HMAC作用域键",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "failureLimit",
+              "type": "int",
+              "description": "固定账号5/网络20",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "concurrencyLimit",
+              "type": "int",
+              "description": "固定账号1/网络8",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "读取滚动失败、固定锁和未过期预留，任一满额拒绝",
+          "steps": [
+            "读取滚动失败、固定锁和未过期预留，任一满额拒绝"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储或IO不可用",
+              "retryable": true
+            },
+            {
+              "code": "RATE_LIMITED",
+              "when": "有效固定锁、滚动窗失败或未过期预留满额",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.loginDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.loadLoginAttempt",
+          "name": "loadLoginAttempt",
+          "signature": "func loadLoginAttempt(ctx context.Context, t *loginTransaction, attemptID Identifier) (loginAttemptRecord, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止透传IO",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "t",
+              "type": "*loginTransaction",
+              "description": "当前短事务",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "attemptID",
+              "type": "Identifier",
+              "description": "持久尝试引用",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "attempt",
+              "type": "loginAttemptRecord",
+              "description": "原尝试账号/网络/终局/到期",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "仅从同代次持久attempt及网络关联读取终局原料",
+          "steps": [
+            "仅从同代次持久attempt及网络关联读取终局原料"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储或IO不可用",
+              "retryable": true
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "不存在",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "原尝试不属于打开代次",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "原尝试非identity来源",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.loginDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.recordLoginFailure",
+          "name": "recordLoginFailure",
+          "signature": "func recordLoginFailure(ctx context.Context, t *loginTransaction, attemptID Identifier, kind string, key string, threshold int) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止透传IO",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "t",
+              "type": "*loginTransaction",
+              "description": "当前短事务",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "attemptID",
+              "type": "Identifier",
+              "description": "原尝试",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "本域固定account/network",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "持久原HMAC作用域键",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "threshold",
+              "type": "int",
+              "description": "固定账号5/网络20",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "写匿名失败并只在无有效锁时按阈值固定首次15分钟锁",
+          "steps": [
+            "写匿名失败并只在无有效锁时按阈值固定首次15分钟锁"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储或IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "追加匿名失败；阈值已到且无有效锁时写固定15分钟锁，不延长有效锁"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.loginDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.loginDBError",
+          "name": "loginDBError",
+          "signature": "func loginDBError() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时返回安全公共错误，结果无效",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "把私有SQL错误转换为不含敏感详情的公共依赖错误",
+          "steps": [
+            "把私有SQL错误转换为不含敏感详情的公共依赖错误"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1666,6 +2403,100 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.NewLoginHandlers",
+          "name": "NewLoginHandlers",
+          "signature": "func NewLoginHandlers(store *PolicyStore) map[string]http.Handler",
+          "inputs": [
+            {
+              "name": "store",
+              "type": "*PolicyStore",
+              "description": "可信装配固定打开代次的库",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "LoginHandlers",
+              "description": "两个真实operationId处理器",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "purpose": "提供两个真实登录业务handler映射；只供公共严格ServiceHandler装配，不能作为完整服务",
+          "steps": [
+            "只供公共apivalidate.NewServiceHandler装配；固定caller白名单identity，入口统一核服务断言、runtime/维护、schema和PathValue；本组不能裸挂",
+            "绑定Begin/Finish输入，注入可信本域库并调用领域函数；只输出持久成功结果或公共Problem",
+            "仅返回两个完成handler；完整其他handler/后台/控制恢复仍缺时不声明完整Application或ready"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "每请求领域事务及HTTP输出"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "公共统一边界限定identity；领域函数再执行特有的identity纯服务要求"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.WithPolicyStore",
+            "traffic-guard.BeginLoginAttempt",
+            "traffic-guard.FinishLoginAttempt",
+            "traffic-guard.writeLoginResponse"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.writeLoginResponse",
+          "name": "writeLoginResponse",
+          "signature": "func writeLoginResponse(w http.ResponseWriter, requestID Identifier, result any, err error)",
+          "inputs": [
+            {
+              "name": "w",
+              "type": "ResponseWriter",
+              "description": "HTTP输出句柄",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "requestID",
+              "type": "Identifier",
+              "description": "可信请求标量引用",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "result",
+              "type": "LoginResponse",
+              "description": "持久业务结果，失败时忽略",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "安全领域错误",
+              "constraints": "仅可信装配或已通过边界的调用链使用"
+            }
+          ],
+          "outputs": [],
+          "purpose": "输出完整JSON结果或公共安全Problem",
+          "steps": [
+            "输出完整JSON结果或公共安全Problem"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "一次HTTP响应，不记录原输入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "单请求响应",
+          "idempotency": "只序列化已有结果，不增加持久副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3965,7 +4796,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application"
           ],
           "errors": [
             {
@@ -4007,7 +4839,13 @@
             "platform.ReadRuntime",
             "traffic-guard.All",
             "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "traffic-guard.OpenPolicyStore",
+            "traffic-guard.RunMigrations",
+            "traffic-guard.RecoverJournal",
+            "traffic-guard.Close",
+            "traffic-guard.NewLoginHandlers",
+            "platform.NewServiceHandler"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4491,6 +5329,12 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
+      "kind": "migration",
+      "purpose": "只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变",
+      "functions": []
     }
   ],
   "jobTypes": [],

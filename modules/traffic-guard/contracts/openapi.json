@@ -1719,7 +1719,7 @@
       "post": {
         "operationId": "beginLoginAttempt",
         "summary": "登录失败保护受信准入",
-        "description": "仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭",
+        "description": "只允许已认证identity纯服务（actor.kind=service）；dataEpoch须匹配本库打开代次，身份/代次不取正文；不接收密码、账号原名或原IP；未知风控状态失败关闭。requestId等于Idempotency-Key；网络键顺序不影响幂等；login/bootstrap共享15分钟失败窗、固定锁与并发。",
         "x-handler": "traffic-guard.BeginLoginAttempt",
         "x-permission": "service",
         "x-data-epoch-required": true,
@@ -1775,7 +1775,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT",
+            "description": "CONFLICT / VERSION_MISMATCH",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1836,7 +1836,7 @@
       "post": {
         "operationId": "finishLoginAttempt",
         "summary": "登录失败保护受信核验结果",
-        "description": "仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭",
+        "description": "只允许已认证identity纯服务（actor.kind=service）；dataEpoch须匹配本库打开代次，身份/代次不取正文；不接收密码、账号原名或原IP；未知风控状态失败关闭。同attempt同outcome换幂等键仍回原终局；过期只拒首次authenticated，late rejected按本次受信服务时间计失败，aborted只释放；终局不可改写。",
         "x-handler": "traffic-guard.FinishLoginAttempt",
         "x-permission": "service",
         "x-data-epoch-required": true,
@@ -1892,7 +1892,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT",
+            "description": "CONFLICT / VERSION_MISMATCH",
             "content": {
               "application/problem+json": {
                 "schema": {

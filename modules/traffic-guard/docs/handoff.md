@@ -1,5 +1,18 @@
 # 流量风控会话交接
 
+## 持续实施第三轮登录保护（待VPS）
+
+更新：2026-10-15。本轮：持续实施第三轮登录失败保护；源码/合同已准备，状态in_progress（待VPS make build及docs/gen/check），业务验收未执行。
+
+- 基线：`9acad1ab56532521222f592af0d4b3a849792db5`；分支：`codex/traffic-login-protection-r1`。独占本域，未更改根/平台/其他模块。
+- 已写BeginLoginAttempt/FinishLoginAttempt、可信PolicyStore注入/打开代次绑定、两个真实HTTP映射和只追加0002迁移。规则见[data](data.md)；并发和终局均短事务，不持锁核验口令。
+- login/bootstrap共享滚动15分钟失败窗（账号5/网络20）、固定15分钟锁及并发（账号1/网络8）；30秒预留，过期仅禁首次authenticated，late rejected按Finish受信时间计失败；同终局重放不重复计数或续锁。
+- 完整BuildApplication、GetPolicy/UpdatePolicy、控制屏障/恢复/后台与匿名保留清理仍blocked或planned；本组HTTP映射必须由统一ServiceHandler装配，不能裸挂或伪装完整服务。
+- 全部生成/格式/编译/vet/检查由根会话统一在VPS执行；本机仅阅读和差异检查。未新增测试、样例、fixture、mock或临时验证程序，未运行真实接口、模型、服务、部署或push。
+
+具体新增实际路径：`internal/admission.go`、`internal/http_admission.go`、`migrations/0002_login_protection.sql`。生成目录未手改，docs/functions.md与files.md等待根统一VPS生成。新迁移已获本轮授权，根framework登记由集成会话处理。源码与台账尚未提交，最终SHA在VPS产物回传后回填。
+
+
 ## 持续实施第二轮公共登录合同（尚未实现）
 
 - 新增beginLoginAttempt/finishLoginAttempt两个identity专用服务API，统一账号/网络失败保护、持久并发保留与幂等终局；阈值/隐私边界见data.md和机器合同。

@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	trafficguard "nice-wiki/modules/traffic-guard/internal"
+	"nice-wiki/modules/traffic-guard/internal/gen"
 	"nice-wiki/modules/traffic-guard/internal/transport"
 )
 
@@ -54,7 +56,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if swap.Action != platform.SwapNone {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障与暂存函数")
 	}
-	store, err := trafficguard.OpenPolicyStore(config.DataRoot)
+	store, err := trafficguard.OpenPolicyStore(config.DataRoot, view.DataEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -66,11 +68,28 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 		return nil, err
 	}
-	// 完整 x-handler、后台循环和恢复回执仍未登记齐全；不能返回只装配
-	// 健康路由的半成品 Application。先关闭本次校验打开的资源。
-	_ = store.Close()
-
-	_ = anchors
+	defer store.Close()
+	// 已实现登录操作交公共完整入口工厂核验；其余handler缺失时由工厂
+	// 真实拒绝启动，不能把这两项映射裸挂成半成品服务。
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
+	}
+	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self:    ModuleSlug,
+		Anchors: anchors,
+		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
+		},
+		OpenedDataEpoch: view.DataEpoch,
+		AllowedCallers: map[string][]string{
+			"beginLoginAttempt":  {"identity"},
+			"finishLoginAttempt": {"identity"},
+		},
+	}, trafficguard.NewLoginHandlers(store))
+	if err != nil {
+		return nil, err
+	}
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、授权客户端与后台循环尚未实现")
 }
 

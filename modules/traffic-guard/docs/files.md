@@ -2,12 +2,12 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 54 个：约束 32，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 54 个：手写 33、UI 4、生成 5、配置 10、迁移 2。函数 69 个：约束 32，参考 37。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/traffic-guard/internal/policy.go` | 手写 | 校验风控参数；同文件职责限本域以下登记函数 | `traffic-guard.ValidatePolicy`（参考） |
-| `modules/traffic-guard/internal/policy_store.go` | 手写 | 读取生效策略；同文件职责限本域以下登记函数 | `traffic-guard.GetPolicy`、`traffic-guard.UpdatePolicy` |
+| `modules/traffic-guard/internal/policy_store.go` | 手写 | 私有策略与登录保护库的打开代次、迁移、control journal和可信上下文注入；策略读写仍待后续 | `traffic-guard.GetPolicy`、`traffic-guard.UpdatePolicy`、`traffic-guard.OpenPolicyStore`（参考）、`traffic-guard.WithPolicyStore`（参考）、`traffic-guard.RunMigrations`（参考）、`traffic-guard.RecoverJournal`（参考）、`traffic-guard.Close`（参考）、`traffic-guard.readPolicyJournal`（参考） |
 | `modules/traffic-guard/internal/subject.go` | 手写 | 只在内存选择可信来源；同文件职责限本域以下登记函数 | `traffic-guard.NormalizePeer`（参考）、`traffic-guard.DeriveSubject`（参考） |
 | `modules/traffic-guard/internal/classification.go` | 手写 | 选择可信风控动作；同文件职责限本域以下登记函数 | `traffic-guard.ClassifyAction`（参考） |
 | `modules/traffic-guard/internal/signals.go` | 手写 | 读取有限匿名信号；同文件职责限本域以下登记函数 | `traffic-guard.LoadSignals`（参考） |
@@ -16,8 +16,8 @@
 | `modules/traffic-guard/internal/bucket_store.go` | 手写 | 原子扣频率令牌；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeBuckets`（参考） |
 | `modules/traffic-guard/internal/permit_store.go` | 手写 | 创建持久并发租约；同文件职责限本域以下登记函数 | `traffic-guard.AcquireConcurrency`（参考）、`traffic-guard.RenewPermit`、`traffic-guard.ReleasePermit` |
 | `modules/traffic-guard/internal/permit_sign.go` | 手写 | 签名准入凭证；同文件职责限本域以下登记函数 | `traffic-guard.SignPermit`（参考）、`traffic-guard.ValidatePermit`（参考） |
-| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考）、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt` |
-| `modules/traffic-guard/internal/http_admission.go` | 手写 | 准入 HTTP；同文件职责限本域以下登记函数 | `traffic-guard.HandleAdmission` |
+| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考）、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt`、`traffic-guard.beginLoginTransaction`（参考）、`traffic-guard.loginTransaction.close`（参考）、`traffic-guard.loginInputHash`（参考）、`traffic-guard.checkLoginScope`（参考）、`traffic-guard.loadLoginAttempt`（参考）、`traffic-guard.recordLoginFailure`（参考）、`traffic-guard.loginDBError`（参考） |
+| `modules/traffic-guard/internal/http_admission.go` | 手写 | 准入 HTTP；同文件职责限本域以下登记函数 | `traffic-guard.HandleAdmission`、`traffic-guard.NewLoginHandlers`（参考）、`traffic-guard.writeLoginResponse`（参考） |
 | `modules/traffic-guard/internal/sweeper.go` | 手写 | 回收过期并发；同文件职责限本域以下登记函数 | `traffic-guard.ExpireLeases`（参考）、`traffic-guard.ExpireBans`（参考） |
 | `modules/traffic-guard/internal/challenge.go` | 手写 | 签发挑战；同文件职责限本域以下登记函数 | `traffic-guard.IssueChallenge`、`traffic-guard.VerifyChallenge` |
 | `modules/traffic-guard/internal/pow.go` | 手写 | 验证工作量证明；同文件职责限本域以下登记函数 | `traffic-guard.VerifyPoW`（参考） |
@@ -59,3 +59,4 @@
 | `modules/traffic-guard/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/traffic-guard/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/traffic-guard/internal/queries.go` | 手写 | 查看最近可疑事件 | `traffic-guard.ListRiskEvents` |
+| `modules/traffic-guard/migrations/0002_login_protection.sql` | 迁移 | 只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变 | 无 |

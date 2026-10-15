@@ -2,12 +2,12 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "1a5f073bdba9419188b094b99a273a64b643eed4e183e15441b37b3b24c9ffcd",
+  "contractSha256": "df10b1f98b208e1cd5a28b4bfa925b27133ba96a6c4f9c1ddafafe0f30ce0fcc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-13（traffic-guard私有策略库启动恢复审计）",
-  "branch": "codex/analytics-r1-storage-contract-audit",
-  "baseCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
-  "deliveryCommit": "13396bce38dcad1ce39d8206abd235d4d936a072",
+  "assignedSession": "持续实施第三轮traffic-guard登录保护",
+  "branch": "codex/traffic-login-protection-r1",
+  "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "blocked",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "SQLite/迁移/journal基础已实现；GetPolicy与UpdatePolicy仍受GET siteId来源、identity授权客户端注入和operationId幂等回执契约缺口阻塞"
+      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
     },
     {
       "path": "modules/traffic-guard/internal/subject.go",
@@ -112,23 +112,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
     },
     {
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
     },
     {
       "path": "modules/traffic-guard/internal/sweeper.go",
@@ -539,6 +539,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
     }
   ],
   "functions": [
@@ -1117,25 +1127,190 @@
     {
       "id": "traffic-guard.BeginLoginAttempt",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
     },
     {
       "id": "traffic-guard.FinishLoginAttempt",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.OpenPolicyStore",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.WithPolicyStore",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.RunMigrations",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.RecoverJournal",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.Close",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.readPolicyJournal",
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.beginLoginTransaction",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.loginTransaction.close",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.loginInputHash",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.checkLoginScope",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.loadLoginAttempt",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.recordLoginFailure",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.loginDBError",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.NewLoginHandlers",
+      "path": "modules/traffic-guard/internal/http_admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+    },
+    {
+      "id": "traffic-guard.writeLoginResponse",
+      "path": "modules/traffic-guard/internal/http_admission.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
     }
   ],
-  "rule": "R1-12单项交付：traffic-guard.ValidatePolicy纯规则已实现；源码提交d597401755cabc77cf31dadf5b9c12260b60b43b。仅git diff --check通过，Go/gofmt/make缺失导致编译、格式与make check未运行；业务验收未执行。其余文件/函数保持原状态。"
+  "rule": "持续实施第三轮只实现登录失败保护核心、可信私有存储与真实两项HTTP映射；本轮全部in_progress待VPS。完整服务/策略管理/屏障/恢复/保留清理等原缺口不抹去，业务验收未执行；不新增测试、不调用真实服务/模型、不部署或push。"
 }

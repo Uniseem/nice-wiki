@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 54 个函数：约束 32 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 69 个函数：约束 32 个，参考 37 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -130,6 +130,235 @@ func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput
 - 并发：事务 CAS；旧 permit renew 用最新策略重检
 - 幂等：operationId 去重且相同 key 不同 body 409
 - 依赖：`identity:checkAuthorization`、`traffic-guard.ValidatePolicy`
+
+## traffic-guard.OpenPolicyStore
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：打开私有SQLite及control journal并固定可信active代次
+
+```go
+func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `dataRoot` | `string` | 配置注入的本域绝对数据根 | 仅可信装配或已通过边界的调用链使用 |
+| `openedDataEpoch` | `Identifier` | startup runtime的active代次 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `*PolicyStore` | 固定打开代次的私有库 | 仅可信装配或已通过边界的调用链使用 |
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 打开私有SQLite及control journal并固定可信active代次
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+- 其他依赖说明：platform.outbox.EnsureSchema；单一嵌入SQL迁移集
+
+## traffic-guard.WithPolicyStore
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：可信装配将已打开代次的私有库注入调用上下文
+
+```go
+func WithPolicyStore(ctx context.Context, store *PolicyStore) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止透传IO | 仅可信装配或已通过边界的调用链使用 |
+| `store` | `*PolicyStore` | 打开代次不可变的私有库 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 带本域私有库的上下文 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 可信装配将已打开代次的私有库注入调用上下文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：仅派生context，不改变库或全局变量
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.RunMigrations
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：逐个事务执行单一embed来源的只追加迁移
+
+```go
+func (s *PolicyStore) RunMigrations() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*PolicyStore` | 启动或关闭阶段的私有库接收者 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 逐个事务执行单一embed来源的只追加迁移
+
+**错误**
+
+- `VALIDATION`：句柄缺失（不可重试）
+- `INTEGRITY_ERROR`：迁移集、已登记版本或数据库结构损坏（不可重试）
+- `INTERNAL`：事务打开/版本登记/提交失败（不可重试）
+
+- 副作用：每个追加迁移与schema_migrations版本同事务提交
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.All`
+
+## traffic-guard.RecoverJournal
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：校验control journal并拒绝损坏或未决决定
+
+```go
+func (s *PolicyStore) RecoverJournal() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*PolicyStore` | 启动或关闭阶段的私有库接收者 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 校验control journal并拒绝损坏或未决决定
+
+**错误**
+
+- `VALIDATION`：journal句柄缺失（不可重试）
+- `INTEGRITY_ERROR`：损坏行或未完成决定（不可重试）
+- `INTERNAL`：日志IO失败（不可重试）
+
+- 副作用：无未决/损坏条目才设置JournalRecovered
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.readPolicyJournal`
+
+## traffic-guard.Close
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：等待在途登录事务后关闭journal与数据库
+
+```go
+func (s *PolicyStore) Close() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*PolicyStore` | 启动或关闭阶段的私有库接收者 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 等待在途登录事务后关闭journal与数据库
+
+**错误**
+
+- `INTERNAL`：同步或关闭资源失败（不可重试）
+
+- 副作用：等待在途事务释放生命周期锁，关闭journal和DB
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：重复关闭安全，不回退已提交记录
+- 依赖：无
+
+## traffic-guard.readPolicyJournal
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/policy_store.go`
+- 作用：按条目ID聚合决定日志并拒绝损坏行
+
+```go
+func readPolicyJournal(name string) ([]policyJournalEntry, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `name` | `string` | control日志文件名 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `entries` | `[]policyJournalEntry` | 每个决定的最终状态 | 仅可信装配或已通过边界的调用链使用 |
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 按条目ID聚合决定日志并拒绝损坏行
+
+**错误**
+
+- `INTERNAL`：日志读取失败（不可重试）
+- `INTEGRITY_ERROR`：损坏行（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
 
 ## traffic-guard.NormalizePeer
 
@@ -721,24 +950,25 @@ func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAt
 
 **步骤**
 
-1. 只允许identity服务和当前dataEpoch，networkKeys必须来自identity已验portal声明的适配，不接受原IP/账号名
-2. 按requestId+caller+epoch+规范HMAC输入摘要幂等；重放返回原attempt及原expiresAt，不额外占用或延长
-3. 同一SQLite事务按accountKey与两个networkKeys检查15分钟失败窗口/临时锁，账号5次或网络20次失败锁15分钟；成功核验只清账号计数，不清共享网络失败
-4. 每账号最多1个在途核验、每网络最多8个；持久保留attempt 30秒，过期只释放保留不当失败，未知权威失败关闭
+1. 要求identity纯服务，事务绑定PolicyStore打开代次；通用服务断言、当前runtime/维护与schema只由公共HTTP入口核验一次
+2. requestId必须等于op.OperationID；networkKeys排序去重后与accountKey/action作规范摘要；按caller+epoch+requestId查原回执，同摘要返回原attempt、expiresAt和创建revision，包括已到期/终局，不增加预留也不延长
+3. login/bootstrap共享账号和每个网络键：检查当前固定锁及滚动15分钟失败，账号5次、网络20次即拒；既有锁及重放不重算锁起点或续期
+4. 同事务检查未终局且expiresAt晚于当前服务时间的预留：账号最多1、每个网络键最多8；持久新attempt和全部网络关联，30秒到期；过期pending自然不占并发、不自动当失败
+5. 提交成功才返回预留；未知存储失败关闭，不记录原账号/IP/口令或HMAC原料
 
 **错误**
 
-- `FORBIDDEN`：非identity调用（不可重试）
-- `RATE_LIMITED`：当前失败/并发临时锁定（不可重试）
-- `CONFLICT`：同请求异输入或不允许的终局（不可重试）
-- `NOT_FOUND`：尝试不存在（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：私有存储或运行权威未知（可重试）
+- `FORBIDDEN`：非identity纯服务调用（不可重试）
+- `VERSION_MISMATCH`：op代次与打开的active库或持久attempt不一致（不可重试）
+- `CONFLICT`：同operation/request异输入、异终局或过期authenticated（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有库未注入、已关闭或事务失败（可重试）
+- `RATE_LIMITED`：当前账号或任一网络失败阈值/锁/并发已满（不可重试）
 
 - 副作用：本域SQLite保留、计数及回执事务
-- 授权：permission：service；rule：只允许已认证identity服务，严格epoch
-- 并发：SQLite写事务串行计数/CAS，不持锁执行密码核对
+- 授权：permission：service；rule：只允许已认证CallerService=identity且Actor.Kind=service；可信入口核当前runtime，事务严格匹配PolicyStore打开代次，正文不声明身份或epoch
+- 并发：单连接SQLite短事务串行；锁和失败窗按账号/每个网络键共享login/bootstrap，不持锁核验口令
 - 幂等：原request/attempt和输入摘要绑定，终局不得改写
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`traffic-guard.beginLoginTransaction`、`traffic-guard.loginInputHash`、`traffic-guard.checkLoginScope`、`traffic-guard.loginDBError`、`traffic-guard.loginTransaction.close`
 - 其他依赖说明：本域私有登录尝试/失败/回执持久表
 
 ## traffic-guard.FinishLoginAttempt
@@ -769,25 +999,297 @@ func FinishLoginAttempt(ctx context.Context, op OperationContext, attemptId Iden
 
 **步骤**
 
-1. 只允许identity，读取同epoch本域持久attempt；同终局outcome重放返回原回执，异outcome冲突，不重复累计或清除
-2. authenticated表示口令核验且账户active，只清账号失败计数并释放保留；后续session提交失败不改写结果
-3. rejected对账号/网络同事务增加失败计数并按阈值设置锁定；aborted只释放保留、不清失败
-4. 过期未决attempt拒authenticated，终局回执与计数/释放同事务；不记录秘密或原始身份网络信息
+1. 要求identity纯服务和打开代次；按持久attempt读取caller/epoch/账号及全部网络键，不从请求正文推导；旧代次禁止触碰当前active
+2. Finish自身按caller+epoch+operationId绑定attempt/outcome，与Begin的operation命名空间分开；同attempt同终局即使换key也只补回执并返回原接受结果，异终局始终CONFLICT
+3. pending超过30秒只禁止首次authenticated；首次late rejected仍接受并按本次Finish受信服务时间计入滚动15分钟窗；aborted无论是否到期只释放预留
+4. authenticated只说明口令核验且账户active：清此账号失败及账号锁，不清任一网络失败/锁；后续session提交失败不可改写此终局
+5. rejected对账号及每个持久网络键追加一次匿名失败；账号5次/网络20次阈值首次达到时锁15分钟；正在锁定时只追加失败不续锁，锁结束后按滚动窗正常判定；不因重放续锁
+6. 终局、失败/锁或账号清除、预留释放及operation回执同事务提交；原终局不可改写，失败不返回半结果
 
 **错误**
 
-- `FORBIDDEN`：非identity调用（不可重试）
-- `RATE_LIMITED`：当前失败/并发临时锁定（不可重试）
-- `CONFLICT`：同请求异输入或不允许的终局（不可重试）
-- `NOT_FOUND`：尝试不存在（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：私有存储或运行权威未知（可重试）
+- `FORBIDDEN`：非identity纯服务调用（不可重试）
+- `VERSION_MISMATCH`：op代次与打开的active库或持久attempt不一致（不可重试）
+- `CONFLICT`：同operation/request异输入、异终局或过期authenticated（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有库未注入、已关闭或事务失败（可重试）
+- `NOT_FOUND`：持久attempt不存在（不可重试）
 
 - 副作用：本域SQLite保留、计数及回执事务
-- 授权：permission：service；rule：只允许已认证identity服务，严格epoch
-- 并发：SQLite写事务串行计数/CAS，不持锁执行密码核对
+- 授权：permission：service；rule：只允许已认证CallerService=identity且Actor.Kind=service；可信入口核当前runtime，事务严格匹配PolicyStore打开代次，正文不声明身份或epoch
+- 并发：单连接SQLite短事务串行；锁和失败窗按账号/每个网络键共享login/bootstrap，不持锁核验口令
 - 幂等：原request/attempt和输入摘要绑定，终局不得改写
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`traffic-guard.beginLoginTransaction`、`traffic-guard.loadLoginAttempt`、`traffic-guard.recordLoginFailure`、`traffic-guard.loginDBError`、`traffic-guard.loginTransaction.close`
 - 其他依赖说明：本域私有登录尝试/失败/回执持久表
+
+## traffic-guard.beginLoginTransaction
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：取得可信注入库并匹配identity纯服务与打开代次后开始短事务
+
+```go
+func beginLoginTransaction(ctx context.Context, op OperationContext) (*loginTransaction, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止透传IO | 仅可信装配或已通过边界的调用链使用 |
+| `op` | `OperationContext` | 经统一入口建立的可信操作上下文 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `transaction` | `*loginTransaction` | 已持有生命周期读锁的私有短事务 | 仅可信装配或已通过边界的调用链使用 |
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 取得可信注入库并匹配identity纯服务与打开代次后开始短事务
+
+**错误**
+
+- `FORBIDDEN`：非identity纯服务（不可重试）
+- `VERSION_MISMATCH`：op不等于打开代次（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：库缺失、关闭或事务打开失败（可重试）
+
+- 副作用：持有库生命周期读锁与SQLite事务，调用方必须defer close
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.loginDBError`
+
+## traffic-guard.loginTransaction.close
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：事务回滚（已提交为无副作用）并释放库生命周期读锁
+
+```go
+func (t *loginTransaction) close()
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `t` | `*loginTransaction` | 当前事务接收者 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 事务回滚（已提交为无副作用）并释放库生命周期读锁
+
+**错误**
+
+- 无
+
+- 副作用：未提交事务回滚并释放生命周期读锁；已提交事务不撤销
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.loginInputHash
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：对账号、action及排序去重网络键作稳定SHA-256摘要
+
+```go
+func loginInputHash(in BeginLoginAttemptInput) (string, []string)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `in` | `BeginLoginAttemptInput` | 已严格校验的HMAC输入 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `hash` | `string` | 规范输入SHA-256摘要 | 仅可信装配或已通过边界的调用链使用 |
+| `networkKeys` | `[]string` | 排序去重的网络键集合 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 对账号、action及排序去重网络键作稳定SHA-256摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：纯函数，不修改输入切片
+- 幂等：相同集合与字段产生相同摘要
+- 依赖：无
+
+## traffic-guard.checkLoginScope
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：读取滚动失败、固定锁和未过期预留，任一满额拒绝
+
+```go
+func checkLoginScope(ctx context.Context, t *loginTransaction, kind string, key string, failureLimit int, concurrencyLimit int) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止透传IO | 仅可信装配或已通过边界的调用链使用 |
+| `t` | `*loginTransaction` | 当前短事务 | 仅可信装配或已通过边界的调用链使用 |
+| `kind` | `string` | 本域固定account/network | 仅可信装配或已通过边界的调用链使用 |
+| `key` | `string` | 单个HMAC作用域键 | 仅可信装配或已通过边界的调用链使用 |
+| `failureLimit` | `int` | 固定账号5/网络20 | 仅可信装配或已通过边界的调用链使用 |
+| `concurrencyLimit` | `int` | 固定账号1/网络8 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 读取滚动失败、固定锁和未过期预留，任一满额拒绝
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：私有存储或IO不可用（可重试）
+- `RATE_LIMITED`：有效固定锁、滚动窗失败或未过期预留满额（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.loginDBError`
+
+## traffic-guard.loadLoginAttempt
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：仅从同代次持久attempt及网络关联读取终局原料
+
+```go
+func loadLoginAttempt(ctx context.Context, t *loginTransaction, attemptID Identifier) (loginAttemptRecord, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止透传IO | 仅可信装配或已通过边界的调用链使用 |
+| `t` | `*loginTransaction` | 当前短事务 | 仅可信装配或已通过边界的调用链使用 |
+| `attemptID` | `Identifier` | 持久尝试引用 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `attempt` | `loginAttemptRecord` | 原尝试账号/网络/终局/到期 | 仅可信装配或已通过边界的调用链使用 |
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 仅从同代次持久attempt及网络关联读取终局原料
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：私有存储或IO不可用（可重试）
+- `NOT_FOUND`：不存在（不可重试）
+- `VERSION_MISMATCH`：原尝试不属于打开代次（不可重试）
+- `FORBIDDEN`：原尝试非identity来源（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.loginDBError`
+
+## traffic-guard.recordLoginFailure
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：写匿名失败并只在无有效锁时按阈值固定首次15分钟锁
+
+```go
+func recordLoginFailure(ctx context.Context, t *loginTransaction, attemptID Identifier, kind string, key string, threshold int) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止透传IO | 仅可信装配或已通过边界的调用链使用 |
+| `t` | `*loginTransaction` | 当前短事务 | 仅可信装配或已通过边界的调用链使用 |
+| `attemptID` | `Identifier` | 原尝试 | 仅可信装配或已通过边界的调用链使用 |
+| `kind` | `string` | 本域固定account/network | 仅可信装配或已通过边界的调用链使用 |
+| `key` | `string` | 持久原HMAC作用域键 | 仅可信装配或已通过边界的调用链使用 |
+| `threshold` | `int` | 固定账号5/网络20 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 写匿名失败并只在无有效锁时按阈值固定首次15分钟锁
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：私有存储或IO不可用（可重试）
+
+- 副作用：追加匿名失败；阈值已到且无有效锁时写固定15分钟锁，不延长有效锁
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.loginDBError`
+
+## traffic-guard.loginDBError
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：把私有SQL错误转换为不含敏感详情的公共依赖错误
+
+```go
+func loginDBError() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时返回安全公共错误，结果无效 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 把私有SQL错误转换为不含敏感详情的公共依赖错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
 
 ## traffic-guard.HandleAdmission
 
@@ -832,6 +1334,81 @@ func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissio
 - 并发：请求deadline 1500ms，失败不颁 permit
 - 幂等：requestId 幂等
 - 依赖：`traffic-guard.EvaluateAdmission`、`traffic-guard.DeriveSubject`、`traffic-guard.NormalizePeer`、`traffic-guard.ClassifyAction`、`traffic-guard.LoadSignals`
+
+## traffic-guard.NewLoginHandlers
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/http_admission.go`
+- 作用：提供两个真实登录业务handler映射；只供公共严格ServiceHandler装配，不能作为完整服务
+
+```go
+func NewLoginHandlers(store *PolicyStore) map[string]http.Handler
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `*PolicyStore` | 可信装配固定打开代次的库 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `LoginHandlers` | 两个真实operationId处理器 | 仅可信装配或已通过边界的调用链使用 |
+
+**步骤**
+
+1. 只供公共apivalidate.NewServiceHandler装配；固定caller白名单identity，入口统一核服务断言、runtime/维护、schema和PathValue；本组不能裸挂
+2. 绑定Begin/Finish输入，注入可信本域库并调用领域函数；只输出持久成功结果或公共Problem
+3. 仅返回两个完成handler；完整其他handler/后台/控制恢复仍缺时不声明完整Application或ready
+
+**错误**
+
+- 无
+
+- 副作用：每请求领域事务及HTTP输出
+- 授权：permission：service；rule：公共统一边界限定identity；领域函数再执行特有的identity纯服务要求
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.WithPolicyStore`、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt`、`traffic-guard.writeLoginResponse`
+
+## traffic-guard.writeLoginResponse
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/http_admission.go`
+- 作用：输出完整JSON结果或公共安全Problem
+
+```go
+func writeLoginResponse(w http.ResponseWriter, requestID Identifier, result any, err error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `w` | `ResponseWriter` | HTTP输出句柄 | 仅可信装配或已通过边界的调用链使用 |
+| `requestID` | `Identifier` | 可信请求标量引用 | 仅可信装配或已通过边界的调用链使用 |
+| `result` | `LoginResponse` | 持久业务结果，失败时忽略 | 仅可信装配或已通过边界的调用链使用 |
+| `err` | `error` | 安全领域错误 | 仅可信装配或已通过边界的调用链使用 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输出完整JSON结果或公共安全Problem
+
+**错误**
+
+- 无
+
+- 副作用：一次HTTP响应，不记录原输入
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：单请求响应
+- 幂等：只序列化已有结果，不增加持久副作用
+- 依赖：无
 
 ## traffic-guard.ExpireLeases
 
@@ -2057,6 +2634,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application
 
 **错误**
 
@@ -2068,7 +2646,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve

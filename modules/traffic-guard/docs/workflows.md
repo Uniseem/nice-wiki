@@ -20,6 +20,10 @@ old D22/D23/D50 产品保留：Turnstile首选，加载失败PoW；可疑交互�
 
 并发和幂等：每个修改函数明确CAS、fencing/租约或事务边界，见functions；公共事件至少一次，不能依赖全局顺序。接收eventId相同但hash不同拒CONFLICT；较低sourceRevision记已见但不应用；旧dataEpoch拒绝并不能重绑新epoch。
 
+登录保护：identity纯服务→统一入口runtime/epoch/维护/schema→本域打开代次匹配→Begin同事务检查账号和每个网络键滚动窗、固定锁、并发→持久30秒pending；口令核验在identity完成，guard不持锁等待。
+
+attempt状态为pending→authenticated/rejected/aborted。到期仍保留pending事实，只自然退出并发：首次authenticated拒绝，首次late rejected接受并按Finish服务时间计失败，aborted只释放。终局不可改写，同终局新key仅补回执，不重复计数。login/bootstrap共享作用域；当前/前一日网络键排序去重求摘要，每个不同键各自计数。账号5/网络20次失败为滚动15分钟，固定锁15分钟；锁内在途rejected可追加失败但不续锁，成功只清账号，不清网络。
+
 <!-- flows:start -->
 ## 入口与后台流程
 

@@ -24,4 +24,16 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
 
-登录失败保护新增版本化合同目前仅设计：由identity提交账号私有HMAC与portal签名来源的当前/前一日网络HMAC，私有表保留attempt、保留到期、计数窗口/锁定和终局回执；不持久原账号名、原IP或口令。账号5次/网络20次失败在15分钟窗口锁15分钟，账号在途1、网络8、attempt30秒；成功只清账号计数，不清共享网络失败。实现与追加迁移尚待后续，不能以API存在当可用。
+登录失败保护由identity提交账号私有HMAC与portal已签名来源的当前/前一日网络HMAC。仅接受`CallerService=identity`且`Actor.Kind=service`；本域库在启动时固定active代次，每个事务匹配`op.DataEpoch`。统一HTTP入口一次核验当前runtime、维护、严格schema；本域不重新查询身份或解析deadline。
+
+追加迁移`0002_login_protection.sql`是以下私有表的唯一运行时schema来源，保留0001及原策略/回执：
+
+- `login_attempts(attempt_id PK, data_epoch, caller, request_id, input_hash, account_key, action, created_at_ns, expires_at_ns, creation_revision, outcome, finished_at_ns)`；`epoch+caller+requestId`唯一；保存原30秒预留与创建revision=1，重放不延长。
+- `login_attempt_networks(data_epoch, attempt_id, network_key)`；每个当前/前一日键独立关联、计数与并发，规范排序去重只消除顺序差异，不合并不同网络键。
+- `login_failures(data_epoch, scope_kind, scope_key, attempt_id, failed_at_ns)`；按`epoch+account/network+HMAC+attempt`唯一；使用Finish受信服务时间查询滚动15分钟，非固定时间桶。
+- `login_locks(data_epoch, scope_kind, scope_key, locked_until_ns)`；阈值首次达到时固定15分钟锁，锁内追加在途失败不续锁，重放及新Begin也不重算锁期；锁结束后按滚动窗正常判定。
+- `login_finish_receipts(data_epoch, caller, operation_id, attempt_id, outcome, created_at_ns)`；Finish命名空间与Begin分开，同attempt同outcome换key仍返回原终局，不重复失败或清除；异终局始终冲突。
+
+login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5次/每网络20次失败触发锁15分钟；账号未过期pending最多1个、每网络最多8个，30秒后自然释放并发，不自动计失败。过期pending只禁首次authenticated；首次late rejected仍按Finish当前服务时间计失败；aborted只释放不清计数。authenticated只清此账号失败与账号锁，不清任何共享网络失败/锁。终局、失败/清除、锁和回执在同一SQLite事务提交；后续session写入失败不改写口令核验事实。
+
+表中只保存不可逆HMAC、安全操作引用和服务时间，不保存原账号、IP、口令、凭证或HMAC原料。当前只实现登录保护事务与HTTP映射；匿名保留清理、全域barrier/恢复和完整服务装配仍未完成，不能由本包宣称已可上线或已验收。

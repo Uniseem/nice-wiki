@@ -1,5 +1,15 @@
 # 流量风控当前进度
 
+更新：2026-10-15。本轮：持续实施第三轮登录失败保护；源码/合同已准备，状态in_progress（待VPS make build及docs/gen/check），业务验收未执行。
+
+- 基线：`9acad1ab56532521222f592af0d4b3a849792db5`；分支：`codex/traffic-login-protection-r1`。独占本域，未更改根/平台/其他模块。
+- 已写BeginLoginAttempt/FinishLoginAttempt、可信PolicyStore注入/打开代次绑定、两个真实HTTP映射和只追加0002迁移。规则见[data](docs/data.md)；并发和终局均短事务，不持锁核验口令。
+- login/bootstrap共享滚动15分钟失败窗（账号5/网络20）、固定15分钟锁及并发（账号1/网络8）；30秒预留，过期仅禁首次authenticated，late rejected按Finish受信时间计失败；同终局重放不重复计数或续锁。
+- 完整BuildApplication、GetPolicy/UpdatePolicy、控制屏障/恢复/后台与匿名保留清理仍blocked或planned；本组HTTP映射必须由统一ServiceHandler装配，不能裸挂或伪装完整服务。
+- 全部生成/格式/编译/vet/检查由根会话统一在VPS执行；本机仅阅读和差异检查。未新增测试、样例、fixture、mock或临时验证程序，未运行真实接口、模型、服务、部署或push。
+
+## 前序交付历史
+
 更新：2026-10-15。阶段：R1-13 私有策略库启动恢复切片已实现；`GetPolicy`/`UpdatePolicy` 因契约缺口阻塞，业务准入、挑战、频率、并发、封禁尚未实现、验收或部署。
 
 - 2026-10-15 集成复核修复：迁移改为 go:embed 读取 `0001_domain.sql`，删除内联副本；决定日志读取按条目 ID 聚合，open 后跟 done 不再误判未决。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。

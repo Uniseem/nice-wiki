@@ -417,7 +417,7 @@ export interface paths {
         put?: never;
         /**
          * 登录失败保护受信准入
-         * @description 仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭
+         * @description 只允许已认证identity纯服务（actor.kind=service）；dataEpoch须匹配本库打开代次，身份/代次不取正文；不接收密码、账号原名或原IP；未知风控状态失败关闭。requestId等于Idempotency-Key；网络键顺序不影响幂等；login/bootstrap共享15分钟失败窗、固定锁与并发。
          */
         post: operations["beginLoginAttempt"];
         delete?: never;
@@ -437,7 +437,7 @@ export interface paths {
         put?: never;
         /**
          * 登录失败保护受信核验结果
-         * @description 仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭
+         * @description 只允许已认证identity纯服务（actor.kind=service）；dataEpoch须匹配本库打开代次，身份/代次不取正文；不接收密码、账号原名或原IP；未知风控状态失败关闭。同attempt同outcome换幂等键仍回原终局；过期只拒首次authenticated，late rejected按本次受信服务时间计失败，aborted只释放；终局不可改写。
          */
         post: operations["finishLoginAttempt"];
         delete?: never;
@@ -939,8 +939,12 @@ export interface components {
             requestId: components["schemas"]["Identifier"];
             /** @description identity私钥域分离账号HMAC */
             accountKey: components["schemas"]["Hash"];
+            /** @description 当前/前一日已认证网络HMAC集合；入口要求unique，内部排序去重后求摘要，每个键独立检查和计数，顺序不影响幂等 */
             networkKeys: components["schemas"]["Hash"][];
-            /** @enum {string} */
+            /**
+             * @description 仅区分原请求语义；login/bootstrap共享账号与网络失败窗、锁及并发
+             * @enum {string}
+             */
             action: "login" | "bootstrap";
         };
         FinishLoginAttemptResult: {
@@ -951,7 +955,7 @@ export interface components {
         };
         FinishLoginAttemptInput: {
             /**
-             * @description authenticated只说明口令核对且账户允许，不承诺session事务已提交；后续存储失败不得改写此事实
+             * @description 终局不可更改；过期仅禁首次authenticated；首次late rejected以Finish服务时间计失败，aborted仅释放。authenticated只表示口令且账户active，后续session失败不改事实
              * @enum {string}
              */
             outcome: "authenticated" | "rejected" | "aborted";
@@ -2033,7 +2037,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description CONFLICT */
+            /** @description CONFLICT / VERSION_MISMATCH */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2124,7 +2128,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description CONFLICT */
+            /** @description CONFLICT / VERSION_MISMATCH */
             409: {
                 headers: {
                     [name: string]: unknown;

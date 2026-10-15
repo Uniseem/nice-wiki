@@ -3512,14 +3512,16 @@
           "items": {
             "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
             "description": "portal签名传来的当前/前一日网络HMAC"
-          }
+          },
+          "description": "当前/前一日已认证网络HMAC集合；入口要求unique，内部排序去重后求摘要，每个键独立检查和计数，顺序不影响幂等"
         },
         "action": {
           "type": "string",
           "enum": [
             "login",
             "bootstrap"
-          ]
+          ],
+          "description": "仅区分原请求语义；login/bootstrap共享账号与网络失败窗、锁及并发"
         }
       },
       "required": [
@@ -3563,7 +3565,7 @@
             "rejected",
             "aborted"
           ],
-          "description": "authenticated只说明口令核对且账户允许，不承诺session事务已提交；后续存储失败不得改写此事实"
+          "description": "终局不可更改；过期仅禁首次authenticated；首次late rejected以Finish服务时间计失败，aborted仅释放。authenticated只表示口令且账户active，后续session失败不改事实"
         }
       },
       "required": [
@@ -3586,6 +3588,48 @@
         "accepted",
         "attemptId"
       ]
+    },
+    "PolicyStore": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "PolicyStore",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "loginTransaction": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "loginTransaction",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "loginAttemptRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "loginAttemptRecord",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "policyJournalEntry": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "policyJournalEntry",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "LoginHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "ResponseWriter": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "http.ResponseWriter",
+      "description": "仅本域可信装配或事务内部使用，不作为HTTP数据"
+    },
+    "LoginResponse": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "any",
+      "description": "已经完成的登录预留或终局结果，仅HTTP输出绑定使用"
     }
   }
 }

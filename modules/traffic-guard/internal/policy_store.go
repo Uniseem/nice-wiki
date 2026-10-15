@@ -1,8 +1,7 @@
 // Package trafficguard 内聚本域私有策略库的启动恢复边界。
 //
-// GetPolicy/UpdatePolicy 的对外绑定仍需等契约补齐存储注入、GET站点来源、
-// identity授权客户端和幂等回执语义后实现；本文件先实现其无歧义的SQLite、
-// 迁移和control journal基础。
+// 登录保护通过可信上下文注入本库；GetPolicy/UpdatePolicy 仍待站点来源、
+// identity授权客户端及幂等回执契约收口。
 package trafficguard
 
 import (
@@ -30,9 +29,11 @@ const (
 // PolicyStore 是本域active区数据库和control区决定日志的句柄。
 // control区日志不随恢复换入的业务目录替换。
 type PolicyStore struct {
-	db      *sql.DB
-	journal *os.File
-	jmu     sync.Mutex
+	mu              sync.RWMutex
+	openedDataEpoch Identifier
+	db              *sql.DB
+	journal         *os.File
+	jmu             sync.Mutex
 
 	JournalRecovered  bool
 	AppliedMigrations int64
@@ -48,7 +49,10 @@ type policyJournalEntry struct {
 
 // OpenPolicyStore 打开active区SQLite和control区journal，启用WAL、外键及
 // 3000ms busy timeout；任一资源失败都会关闭已打开句柄。
-func OpenPolicyStore(dataRoot string) (*PolicyStore, error) {
+func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore, error) {
+	if openedDataEpoch == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域数据代次尚未建立")
+	}
 	if !filepath.IsAbs(dataRoot) {
 		return nil, platform.NewError(platform.CodeValidation, false, "数据根必须为绝对路径")
 	}
@@ -84,7 +88,14 @@ func OpenPolicyStore(dataRoot string) (*PolicyStore, error) {
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeInternal, false, "打开本域决定日志失败")
 	}
-	return &PolicyStore{db: db, journal: journal}, nil
+	return &PolicyStore{db: db, journal: journal, openedDataEpoch: openedDataEpoch}, nil
+}
+
+type policyStoreContextKey struct{}
+
+// WithPolicyStore 只供可信装配注入已绑定active代次的本域库。
+func WithPolicyStore(ctx context.Context, store *PolicyStore) context.Context {
+	return context.WithValue(ctx, policyStoreContextKey{}, store)
 }
 
 // RunMigrations 按编号升序执行只追加迁移；数据库中出现迁移集之外的
@@ -176,6 +187,8 @@ func (s *PolicyStore) Close() error {
 	if s == nil {
 		return nil
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.jmu.Lock()
 	defer s.jmu.Unlock()
 	if s.journal != nil {
