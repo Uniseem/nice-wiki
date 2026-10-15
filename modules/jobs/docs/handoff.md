@@ -1,16 +1,23 @@
 # 任务与事件会话交接
 
-## 第四轮任务管理组（待VPS）
+## 第四轮任务管理组（已交付）
 
-更新：2026-10-15。持续实施第四轮任务管理组，基线`de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1`，分支`codex/jobs-management-r1`；独占本域，旧停止要求已被本轮持续授权撤销。源码/合同已准备，全部新条目in_progress，等待集成会话统一VPS docs/gen/build/check，业务验收未执行。
+更新：2026-10-15。持续实施第四轮任务管理组，基线`de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1`，分支`codex/jobs-management-r1`；独占本域，旧停止要求已被本轮持续授权撤销。源码与合同已交付，本轮完整18项（新17函数及既有授权目录复用）verified；完整服务仍blocked，业务验收未执行。
 
 - 已实现ListJobs/ListDeliveries安全摘要、当前具体业务权限过滤、稳定ID分页及平台签名游标；游标4096上限与平台一致，绑定actor/site/session及修订、caller/epoch和完整筛选。owner/producer只缩窄，hasMore和游标只看有权条目，不读任务输入正文或原事件payload。
 - 新增本域JobSummary替代错误的AcceptedJob恒queued；状态为真实持久值，rootOperationId未知为null。当前最终失败持久态为dead-letter；兼容failed筛选返回空，不增加无生产分支的状态。
 - RetryJob先回原操作回执，不因后来已执行而再次owner确认/排队；首次操作仅dead-letter，锁外owner completed复用结果收敛succeeded，safeToRetry才保留已知原根和已有阶段重排。unknown/pending/nil、orphan、取消意图失败关闭。完整ObjectRef矛盾拒绝，paid ID合并保留，fence提升、revision CAS、结果/outbox/回执同事务。
 - 新实际路径：`internal/queries.go`（既有登记）、`migrations/0006_job_management.sql`（本轮批准只追加retry回执）；复用query.go权限和http_events.go映射，BuildApplication实际调用公共完整工厂，其他handler/store/control/owner适配未齐仍blocked。
+- 源码提交：`ab4a738b7ff69ed55d7feed39d9ba081d13b519d`。2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。
 - 完整启动、真实owner恢复API适配、control屏障/后台/定时、ephemeral安全投影仍未完成；本轮不伪装可用服务。未本机运行Go/gofmt/gen/测试或临时验证，未新增测试/样例/fixture/mock，未运行真实接口、模型、服务、部署或push。
 
-当前源码冻结前已完成本域合同与台账同步；生成目录及functions/files/api生成段交集成会话VPS刷新。源码SHA与证据待回传后提交回填。历史第二轮停止条款已被用户本轮重新授权覆盖，不作为当前阻塞。
+本域合同与台账已同步，VPS回传functions/files/api生成段、Go与TS生成产物及gofmt；源码SHA精确引用上列提交，台账随后独立提交。旧第二轮停止条款已被本轮持续授权覆盖。
+
+本轮完整函数：ListJobs、ListDeliveries、RetryJob、WithManagementKey、managementPage、finishManagementPage、listJobBatch、listDeliveryBatch、filterManagementBatch、inspectManualRetry、applyManualRetry、readRetryReceipt、retryRequestHash、preserveRetryResults、readJobSummary、jobManagementPermission、NewManagementHandlers；既有authorizeJobManagement复用新目录函数。整体BuildApplication及其他原未完成项没有转为完成。
+
+只读交叉复核另发现公共后台恢复sentinel未保留退出75，以及outbox cleanup与Claim复用旧窗口；均由集成会话在公共域修复并核对闭环。本分支未修改平台文件，也不将其算作本域实现。
+
+下一项建议工作包：实现StreamProgress安全进度SSE与真实HTTP映射，按持久任务owner/type请求当前具体权限，只投影安全阶段和计数并复用平台流机制，不广播原事件payload。真实owner恢复适配、control布局/完整后台及其余启动依赖继续如实保留；当前交付保持冻结，不在本轮开始该后包。
 
 
 ## 第二轮最终集成与停止范围

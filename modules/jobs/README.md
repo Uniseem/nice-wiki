@@ -2,7 +2,7 @@
 
 提供持久任务、带版本事件、租约、重试、进度与定时触发，协调安全点屏障；领域算法由所属服务通过 HTTP 执行。
 
-状态：R1持续实施第四轮任务管理查询/安全人工重试源码与合同已准备，待VPS统一检查。前两轮任务与durable事件核心已通过对应检查；完整启动、真实owner适配、control屏障/后台/定时及ephemeral投影仍未完成，业务验收和部署未开始。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+状态：R1持续实施第四轮任务管理查询/安全人工重试已通过VPS统一生成、编译、vet、格式和结构检查，本轮完整函数已交付。前两轮任务与durable事件核心已通过对应检查；完整启动、真实owner适配、control屏障/后台/定时及ephemeral投影仍未完成，业务验收和部署未开始。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
