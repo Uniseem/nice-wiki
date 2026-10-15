@@ -3487,6 +3487,21 @@
       "path": "modules/jobs/migrations/0006_job_management.sql",
       "kind": "migration",
       "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态"
+    },
+    {
+      "path": "modules/site-config/internal/home_service.go",
+      "kind": "source",
+      "purpose": "保存一屏hero权威配置、公开安全投影和媒体引用持久恢复"
+    },
+    {
+      "path": "modules/site-config/internal/home_validator.go",
+      "kind": "source",
+      "purpose": "验证首页目标与引用"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
+      "kind": "migration",
+      "purpose": "追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威"
     }
   ]
 }
