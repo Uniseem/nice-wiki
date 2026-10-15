@@ -7,18 +7,18 @@
   "assignedSession": "第六轮QA免费任务配置可用性读取",
   "branch": "codex/model-task-availability-r1",
   "baseCommit": "cbe93952464bc9bd4a159e4d870c1b191855bc3a",
-  "deliveryCommit": null,
+  "deliveryCommit": "23db600ead941c088344af2c3a33bf4204277229",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮只实现只读切片；同文件其余合同职责与全量启动仍未齐，待VPS检查"
+      "blocker": "本轮所需六项Store参考函数已verified；LoadRuntime的完整恢复调度/关键依赖就绪、权威epoch初始化与整体启动未齐，整文件保持partial"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
@@ -283,12 +283,12 @@
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮只实现只读切片；同文件其余合同职责与全量启动仍未齐，待VPS检查"
+      "blocker": "本轮只读六函数已verified；同文件PutTaskAssignment与ReadTaskAssignments尚未实现，整文件保持partial，不将配置写路径或全量读取算作完成"
     },
     {
       "path": "modules/model-gateway/internal/catalog/refresh.go",
@@ -393,12 +393,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "只读映射与Store注入已实际接线；完整handler、epoch初始化/恢复回执及后台未齐，本轮待VPS"
+      "blocker": "真实只读映射与Store注入已检查；其余handler、权威epoch初始化/恢复回执及后台未齐，完整服务仍拒绝启动"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -522,11 +522,11 @@
     },
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
       "blocker": null
     },
@@ -552,23 +552,23 @@
     },
     {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
       "blocker": null
     },
     {
       "path": "modules/model-gateway/migrations/002_task_availability.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "追加迁移待VPS统一检查；无SQL业务验证"
+      "blocker": null
     }
   ],
   "functions": [
@@ -1236,12 +1236,12 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "真实私有库与免费只读映射已接公共完整工厂；其余handler、epoch初始化/恢复回执、模型费用与后台未齐，完整服务仍拒绝启动，本轮待VPS"
+      "blocker": "真实OpenDatabase/InstallStore和免费只读映射已交公共完整工厂；其余handler、权威epoch初始化/恢复回执、模型费用与后台未齐，完整服务仍拒绝启动"
     },
     {
       "id": "model-gateway.Serve",
@@ -1300,136 +1300,136 @@
     },
     {
       "id": "model-gateway.ReadTaskAvailability",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check",
+      "blocker": null,
       "path": "modules/model-gateway/internal/catalog/task.go"
     },
     {
       "id": "model-gateway.beginAvailabilitySnapshot",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.readAvailabilityTask",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.readAvailabilityCandidate",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.availabilityReadError",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewTaskAvailabilityHandlers",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.OpenDatabase",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.CurrentStore",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.InstallStore",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.Store.BeginTx",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.Store.Close",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "model-gateway.runMigrations",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "23db600ead941c088344af2c3a33bf4204277229",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话最终合成快照：VPS linux/amd64 go1.25.5，GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（861文件/1182函数/379操作/2269类型）；包含256项持久配置、先eligible过滤后16项路由参考裁决、最终只读代码和002 schema，生成/格式回传无冲突。仅本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+      "blocker": null
     }
   ],
-  "rule": "本轮仅实现ReadTaskAvailability及紧密只读快照/候选/HTTP映射、必要只追加schema和Store注入；真实模型/探测/费用变更、配置写路径、主密钥处理与完整启动不列完成。所有格式/生成/编译/check由集成会话VPS执行，未检in_progress；本包后按用户要求停止，不开启后包或自行push。"
+  "rule": "第六轮ReadTaskAvailability及五项紧密只读/HTTP参考函数、六项实际Store参考函数已verified，源码SHA见deliveryCommit；002迁移和已回传生成物已通过VPS现阶段检查。task.go及runtime/bootstrap.go各自未完成职责仍partial，BuildApplication及全量handler、真实模型/探测/配置写路径、密钥加密/轮换和费用机制不列完成。未新增或运行业务测试/SQL验证/真实接口/模型/服务/部署；本包后按用户要求停止，不开启后包或自行push。"
 }
