@@ -3512,6 +3512,31 @@
       "path": "modules/jobs/migrations/0007_progress_retention.sql",
       "kind": "migration",
       "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间"
+    },
+    {
+      "path": "modules/content/internal/block_validator.go",
+      "kind": "source",
+      "purpose": "验证全部Tiptap块及稳定ID"
+    },
+    {
+      "path": "modules/content/internal/table_validator.go",
+      "kind": "source",
+      "purpose": "验证表格合并单元格覆盖"
+    },
+    {
+      "path": "modules/content/internal/columns_validator.go",
+      "kind": "source",
+      "purpose": "校验2–4栏比例和禁止嵌套"
+    },
+    {
+      "path": "modules/content/internal/body_canonicalizer.go",
+      "kind": "source",
+      "purpose": "规范序列化正文并计算hash"
+    },
+    {
+      "path": "modules/content/internal/revision_reader.go",
+      "kind": "source",
+      "purpose": "读取COMMITTED正文并核真相"
     }
   ]
 }
