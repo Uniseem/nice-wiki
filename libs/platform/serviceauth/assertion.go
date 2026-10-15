@@ -14,6 +14,7 @@ import (
 	"encoding/pem"
 	"io"
 	"net/http"
+	"net/netip"
 	"os"
 	"strings"
 	"sync"
@@ -38,6 +39,58 @@ type cacheEntry struct {
 }
 
 var keyCache sync.Map // privateKeyRef -> cacheEntry
+
+// PrivateNetworkScopes 只从真实连接及部署信任链派生当前和前一UTC日网络HMAC。
+// 原始地址仅在本次调用内使用，错误不含地址；未受信连接的转发头完全忽略。
+func PrivateNetworkScopes(key platform.SigningKey, remoteAddr, forwardedFor string, trustedProxyCIDRs []string, now time.Time) ([]platform.Hash, error) {
+	invalid := func() ([]platform.Hash, error) {
+		return nil, platform.NewError(platform.CodeValidation, false, "网络来源或代理链不合法")
+	}
+	remote, err := netip.ParseAddrPort(remoteAddr)
+	if err != nil || remote.Addr().Zone() != "" {
+		return invalid()
+	}
+	peer := remote.Addr().Unmap()
+	// 配置已由LoadServiceConfig在启动边界校验，内部只转成只读前缀。
+	prefixes := make([]netip.Prefix, len(trustedProxyCIDRs))
+	for i, cidr := range trustedProxyCIDRs {
+		prefixes[i] = netip.MustParsePrefix(cidr)
+	}
+	trusted := func(addr netip.Addr) bool {
+		for _, prefix := range prefixes {
+			if prefix.Contains(addr) {
+				return true
+			}
+		}
+		return false
+	}
+	if trusted(peer) {
+		if forwardedFor == "" || len(forwardedFor) > 4096 {
+			return invalid()
+		}
+		hops := strings.Split(forwardedFor, ",")
+		if len(hops) > 16 {
+			return invalid()
+		}
+		for i := len(hops) - 1; i >= 0 && trusted(peer); i-- {
+			addr, err := netip.ParseAddr(strings.TrimSpace(hops[i]))
+			if err != nil || addr.Zone() != "" {
+				return invalid()
+			}
+			peer = addr.Unmap()
+		}
+	}
+	day := now.UTC()
+	scopes := make([]platform.Hash, 0, 2)
+	for _, date := range []time.Time{day, day.AddDate(0, 0, -1)} {
+		digest, err := PrivateOperationDigest(key, "network/day/v1/"+date.Format("2006-01-02"), []byte(peer.String()))
+		if err != nil {
+			return nil, err
+		}
+		scopes = append(scopes, digest)
+	}
+	return scopes, nil
+}
 
 // LoadSigningKey 读取并解析secret文件中的Ed25519私钥（PKCS8 PEM）；
 // 按路径与修改时间缓存，私钥字节只驻留内存、不进日志。

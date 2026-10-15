@@ -576,6 +576,16 @@
         "delegationKeyRef": {
           "type": "string",
           "description": "portal专用用户委托SigningKey JSON引用，必须来自portalDelegationKeys；非portal服务可省略，不能回退服务断言密钥"
+        },
+        "trustedProxyCIDRs": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "default": [],
+          "description": "部署明确声明的规范代理IP网段；空列表完全忽略转发地址；从真实连接向左跳过受信代理，不信任浏览器指定的地址"
         }
       },
       "required": [

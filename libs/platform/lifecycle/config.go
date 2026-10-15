@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -271,6 +272,13 @@ func applyEnv(env []string, config *platform.ServiceConfig) error {
 			config.DelegationKeyRef = value
 		case "PUBLIC_BASE_URL":
 			config.PublicBaseURL = value
+		case "TRUSTED_PROXY_CIDRS":
+			config.TrustedProxyCIDRs = nil
+			if value != "" {
+				for _, cidr := range strings.Split(value, ",") {
+					config.TrustedProxyCIDRs = append(config.TrustedProxyCIDRs, strings.TrimSpace(cidr))
+				}
+			}
 		case "ALLOW_LOCAL_HTTP":
 			allowed, err := strconv.ParseBool(value)
 			if err != nil {
@@ -314,6 +322,15 @@ func validateConfig(config platform.ServiceConfig) error {
 	}
 	if len(config.Dependencies) > maxDependencies {
 		return platform.NewError(platform.CodeValidation, false, "依赖地址数量超限")
+	}
+	if len(config.TrustedProxyCIDRs) > 32 {
+		return platform.NewError(platform.CodeValidation, false, "可信代理网段数量超限")
+	}
+	for _, cidr := range config.TrustedProxyCIDRs {
+		prefix, err := netip.ParsePrefix(cidr)
+		if err != nil || prefix != prefix.Masked() || prefix.Addr().Is4In6() {
+			return platform.NewError(platform.CodeValidation, false, "可信代理必须为规范IP网段")
+		}
 	}
 	for slug, raw := range config.Dependencies {
 		if slug == "" {

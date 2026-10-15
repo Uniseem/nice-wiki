@@ -1,5 +1,10 @@
 # platform 交接（R1-00）
 
+## 第三轮恢复实施（2026-10-15）
+
+用户已在第二轮停止后重新授权继续。独占公共源码与合同，补ServiceConfig可信代理网段、PrivateNetworkScopes；登录业务规则仍由identity/guard负责。新增源码尚待VPS，未新增测试或真实调用，不push。
+
+
 ## 第二轮收尾复核（2026-10-15）
 
 - 最终合成快照VPS docs/gen、14模块readonly build/vet/gofmt和完整make check通过，统计855文件/1012函数/374操作/2211类型。

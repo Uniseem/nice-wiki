@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 39 个函数：约束 19 个，参考 20 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 40 个函数：约束 19 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -129,6 +129,50 @@ func validLoginScopes(claims AssertionClaims) bool
 - 并发：只读启动配置，单请求上下文隔离
 - 幂等：以可信Idempotency-Key建立operationId，不改已有费用rootOperationId
 - 依赖：无
+
+## platform.PrivateNetworkScopes
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：统一瞬时网络来源信任链与每日私有作用域派生
+
+```go
+func PrivateNetworkScopes(key SigningKey, remoteAddr, forwardedFor string, trustedProxyCIDRs []string, now time.Time) ([]Hash, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | portal进程私有签名密钥引用 | 受信部署装配 |
+| `remoteAddr` | `string` | 真实HTTP连接RemoteAddr | IP:port；禁止zone，不取浏览器头替代 |
+| `forwardedFor` | `string` | 请求X-Forwarded-For完整值 | 只有真实peer命中受信网段才读取；最多4096字节、16跳 |
+| `trustedProxyCIDRs` | `[]string` | 部署代理信任边界 | 已由LoadServiceConfig校验；最多32条规范CIDR，默认空 |
+| `now` | `time.Time` | 可信服务时钟 | 按UTC日期派生 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `scopes` | `[]Hash` | 当前和前一UTC日伪名网络HMAC | 仅返回Hash，不能反推出原IP |
+| `error` | `error` | 来源或密钥失败 | 不含地址、头或秘密 |
+
+**步骤**
+
+1. 从真实socket解析peer并Unmap IPv4映射；无部署信任时完全忽略转发头
+2. 仅当socket peer受信时要求非空有界XFF；从最右端依次跳过受信代理，取第一个不受信地址，忽略其左侧不可信声明；读取的地址拒zone和非IP
+3. 用PrivateOperationDigest和network/day/v1/UTC日期域分别派生当前日及前一日HMAC；原地址仅驻留调用内存，永不记录或返回
+
+**错误**
+
+- `VALIDATION`：实际连接或所需转发链不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有摘要密钥不可用（可重试）
+
+- 副作用：读取已缓存的私有密钥；不写业务数据
+- 授权：仅受信portal入口调用；原IP不跨服务
+- 并发：无可写业务状态，可并发
+- 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
+- 依赖：`platform.PrivateOperationDigest`
 
 ## platform.VerifyDelegation
 
@@ -1029,6 +1073,7 @@ func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)
 3. secret只保存引用路径，不读入日志
 4. 读取NW_PUBLIC_BASE_URL和NW_ALLOW_LOCAL_HTTP；配置来源不可被请求Host覆盖；非空地址禁userinfo/query/fragment，HTTP仅显式loopback本地开发
 5. portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件
+6. 读取trustedProxyCIDRs及逗号分隔NW_TRUSTED_PROXY_CIDRS；空值清空信任；最多32条规范IP网段，拒绝host位或IPv4映射CIDR；默认不信任任何代理
 
 **错误**
 

@@ -2,11 +2,11 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "0b794243ceabe99733ce0c77f5ca45f216625b0640e868dfb223b5899659b95a",
+  "contractSha256": "5196ff8774d9f8c2551946d3c00a9a75894572ec9a69edd63a90c85b37200ffe",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第二轮公共机制统一复核",
-  "branch": "main",
-  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
+  "assignedSession": "第三轮公共入口边界",
+  "branch": "codex/r1-round3-integration",
+  "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
   "deliveryCommit": "8dad14792733f357a5b5bfeb452c145da22069e7",
   "deployment": "not_started",
   "files": [
@@ -628,6 +628,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.PrivateNetworkScopes",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "新增公共来源边界，等待隔离VPS编译与检查。"
       },
       "blocker": null
     }

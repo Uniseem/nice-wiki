@@ -1,6 +1,6 @@
 # platform 状态
 
-第二轮已实现公共机制通过最终VPS gen/docs、14模块build/vet/gofmt及完整check，函数台账已更新实际提交与证据；调用方未完成的完整启动、guard/peer/cookie和owner机制不因此变成可用。用户要求第二轮后停止，无第三轮。
+第二轮已实现公共机制通过最终VPS gen/docs、14模块build/vet/gofmt及完整check，函数台账已更新实际提交与证据；调用方未完成的完整启动、guard/peer/cookie和owner机制不因此变成可用。第二轮后已按要求停止；用户随后授权继续，第三轮正在补统一可信代理来源及每日网络HMAC，尚待VPS检查。
 
 
 最新统一集成事实（2026-10-15）：会话签名、委托、可信配置和worker控制/结果链已通过统一复核；调用服务完整装配仍未完成。

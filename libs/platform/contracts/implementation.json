@@ -263,6 +263,100 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.PrivateNetworkScopes",
+          "name": "PrivateNetworkScopes",
+          "signature": "func PrivateNetworkScopes(key SigningKey, remoteAddr, forwardedFor string, trustedProxyCIDRs []string, now time.Time) ([]Hash, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "portal进程私有签名密钥引用",
+              "constraints": [
+                "受信部署装配"
+              ]
+            },
+            {
+              "name": "remoteAddr",
+              "type": "string",
+              "description": "真实HTTP连接RemoteAddr",
+              "constraints": [
+                "IP:port；禁止zone，不取浏览器头替代"
+              ]
+            },
+            {
+              "name": "forwardedFor",
+              "type": "string",
+              "description": "请求X-Forwarded-For完整值",
+              "constraints": [
+                "只有真实peer命中受信网段才读取；最多4096字节、16跳"
+              ]
+            },
+            {
+              "name": "trustedProxyCIDRs",
+              "type": "[]string",
+              "description": "部署代理信任边界",
+              "constraints": [
+                "已由LoadServiceConfig校验；最多32条规范CIDR，默认空"
+              ]
+            },
+            {
+              "name": "now",
+              "type": "time.Time",
+              "description": "可信服务时钟",
+              "constraints": [
+                "按UTC日期派生"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "scopes",
+              "type": "[]Hash",
+              "description": "当前和前一UTC日伪名网络HMAC",
+              "constraints": [
+                "仅返回Hash，不能反推出原IP"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "来源或密钥失败",
+              "constraints": [
+                "不含地址、头或秘密"
+              ]
+            }
+          ],
+          "purpose": "统一瞬时网络来源信任链与每日私有作用域派生",
+          "steps": [
+            "从真实socket解析peer并Unmap IPv4映射；无部署信任时完全忽略转发头",
+            "仅当socket peer受信时要求非空有界XFF；从最右端依次跳过受信代理，取第一个不受信地址，忽略其左侧不可信声明；读取的地址拒zone和非IP",
+            "用PrivateOperationDigest和network/day/v1/UTC日期域分别派生当前日及前一日HMAC；原地址仅驻留调用内存，永不记录或返回"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "实际连接或所需转发链不合法",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有摘要密钥不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取已缓存的私有密钥；不写业务数据"
+          ],
+          "authorization": "仅受信portal入口调用；原IP不跨服务",
+          "concurrency": "无可写业务状态，可并发",
+          "idempotency": "同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口",
+          "dependencies": [
+            "platform.PrivateOperationDigest"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1875,7 +1969,8 @@
             "按优先级合并并校验端口、数据根、依赖地址与secret引用",
             "secret只保存引用路径，不读入日志",
             "读取NW_PUBLIC_BASE_URL和NW_ALLOW_LOCAL_HTTP；配置来源不可被请求Host覆盖；非空地址禁userinfo/query/fragment，HTTP仅显式loopback本地开发",
-            "portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件"
+            "portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件",
+            "读取trustedProxyCIDRs及逗号分隔NW_TRUSTED_PROXY_CIDRS；空值清空信任；最多32条规范IP网段，拒绝host位或IPv4映射CIDR；默认不信任任何代理"
           ],
           "errors": [
             {

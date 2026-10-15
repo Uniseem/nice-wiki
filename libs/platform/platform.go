@@ -462,15 +462,16 @@ type InvokeModelOutcome struct {
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
 type ServiceConfig struct {
-	Module           string            `json:"module"`
-	Listen           string            `json:"listen"`
-	DataRoot         string            `json:"dataRoot"`
-	TrustAnchorRef   string            `json:"trustAnchorRef"`
-	SigningKeyRef    string            `json:"signingKeyRef"`
-	DelegationKeyRef string            `json:"delegationKeyRef,omitempty"`
-	Dependencies     map[string]string `json:"dependencies"`
-	PublicBaseURL    string            `json:"publicBaseURL,omitempty"`
-	AllowLocalHTTP   bool              `json:"allowLocalHTTP,omitempty"`
+	Module            string            `json:"module"`
+	Listen            string            `json:"listen"`
+	DataRoot          string            `json:"dataRoot"`
+	TrustAnchorRef    string            `json:"trustAnchorRef"`
+	SigningKeyRef     string            `json:"signingKeyRef"`
+	DelegationKeyRef  string            `json:"delegationKeyRef,omitempty"`
+	Dependencies      map[string]string `json:"dependencies"`
+	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`
+	AllowLocalHTTP    bool              `json:"allowLocalHTTP,omitempty"`
+	TrustedProxyCIDRs []string          `json:"trustedProxyCIDRs,omitempty"`
 }
 
 // SwapResult 启动时换目录结果。
