@@ -1,19 +1,21 @@
 # 资源媒体会话交接
 
-## 第五轮上传分块与资源读取（2026-10-16，源码待VPS）
+## 第五轮上传分块与资源读取（2026-10-16，已交付冻结）
 
-- 独占modules/media/；codex/media-chunks-read-r1从5894bfb368bfb79331709b3e0f0e5e6ed92bf098起，原site-config分支保留。本轮只做PutUploadChunk/ReadAsset及根批准的Begin原结果闭环，不扩Complete/pin。
-- 固定actor/site/epoch/upload/offset/length/sha/revision业务摘要，不含io.Reader或候选时钟。HTTP Content-Length明确1..8MiB；有界length+1核精确字节与SHA，安全私有暂存fsync后记录PREPARED，追加/fsync后offset/revision CAS+COMMITTED原结果/hash同事务。同操作旧成功先于配额/offset/CAS/reader消费，只读原UploadSession快照。
-- Begin hash绑定caller/actor/site/epoch与原严格输入；当前授权/epoch后先查原快照，再做新名称候选和站点配额。新上传session/创建epoch/原结果同事务；旧无快照或NULL epoch回执明确冲突/版本错误，保留原上传不猜、不删、不重建。0002为获准只追加迁移，0001未改。
-- 新上传及分块写复用NewWriteContext的真实Runtime/WriteWindow，当前只允许running且非维护，未知失败关闭，无伪造屏障30秒窗口。启动按已提交SQL水位核前缀SHA或截未确认尾；未提交材料保留不假成功。仅普通文件，根路径Lstat/目录能力/NOFOLLOW及固定生成名，不接收任意路径。
-- ReadAsset按唯一持久Asset schema和索引一致性返回ready安全DTO；固定content/site-config/public-site/localization/knowledge纯服务，用户media.read/upload/manage与同站点。仅当前真实版本，其他指定版本NOT_FOUND，不伪造历史或发布权限。
-- 真实HTTP绑定Begin/Read/Abort/Chunk/ReadAsset和health/ready，使用NewServiceHandler与NewIdentityAuthorizer；identity:checkAuthorization新增consumer由根VPS生成。缺其他OpenAPI handler严格失败并关闭本地库，restore控制未完仍不Ready。无占位成功。
-- 新实际文件3个：internal/chunk_writer.go、internal/asset_service.go、migrations/0002_upload_chunks.sql，根统一framework登记。参考助手已同步实际合同；生成目录未手改。无新库、测试/mock/fixture/样例/临时业务验证程序，无本机Go/gofmt/gen/vet/类型检查/测试，无真实接口/模型、服务、部署或push。
-- 当前所有本轮改变in_progress，等待根统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check后再source+metadata交付，不把旧证据当新编译。自动审批曾拒绝将旧助手删除混入合同更新；后经完整定义/HEAD/全域引用/接口装配只读核对，独立精确删除获准，未扩大范围。
+- 源码 `4fcbde766790d125e44e16bedf2f19e53856392e`；codex/media-chunks-read-r1，基线5894bfb368bfb79331709b3e0f0e5e6ed92bf098，独占modules/media/；主线实际SHA由根统一映射。原site-config分支保留。
+- PutUploadChunk固定actor/site/epoch/upload/offset/length/sha/revision摘要，不含reader或候选时钟。当前授权/epoch后先回原成功，不消费流或重查offset/CAS/配额。新候选：明确1..8MiB Content-Length、length+1精确读/SHA → 私有暂存fsync → PREPARED → 追加/fsync → 再核running窗口/expiry → SQL CAS水位+COMMITTED原结果/hash。公共硬body预算413优先，预算内长度协议错误400。
+- RecoverUploadChunks仅按SQL已提交水位核连续前缀与每段SHA或截未确认尾；短文件/坏回执失败关闭，PREPARED/未知临时材料不自动计数或发布。旧NULL创建epoch上传保留不可续传，不推测归属。0002只追加创建epoch、分块journal与Begin原结果/hash，0001未动。
+- Begin raw业务hash绑定caller/actor/site/epoch与严格输入，原结果先于名称策略/配额；新session、创建epoch和首次安全快照同事务。旧缺原快照不从mutable session重建。Commit尝试前保留候选文件，未知仍报错、同op读原回执确认。quota从bounded op派生固定media纯服务并清PortalProof，不传用户session/grants；deadline/epoch/root/costClass保留，响应siteId必须是原用户站点。
+- 真实写窗口只允许running非维护，WriteWindow第二次runtime必须仍为打开epoch，未知503/不同409。复用公共ValidatePrivatePath于文件/DB打开前后拒硬链接/符号链接/特殊对象，同时保留Root/fd/绝对路径SameFile。未复制公共nlink/身份/期限规则。
+- ReadAsset按唯一schema和索引一致性仅返回ready安全元数据，明确版本只匹配真实当前ref.version；无历史NOT_FOUND。纯服务固定content/site-config/public-site/localization/knowledge，用户当前权限和同站点；不返回私有路径或发布授权。
+- 真实HTTP绑定Begin/Read/Abort/Chunk/ReadAsset及health/ready，统一NewServiceHandler/NewIdentityAuthorizer。缺其他OpenAPI handler严格失败并关库；完整Build/NewApplication/Ready仍blocked，不能称服务已可启动。Complete/pins/ListAssets/控制恢复及后台保持原planned/blocked。
+- 最终完整VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：docs/gen、14现有模块readonly build/vet/gofmt、完整check通过（861文件/1182函数/379操作/2269类型），0回传冲突；含hardlink/二次epoch/quota/Begin未知Commit与原回执/name登记修正。本轮完整函数/文件按范围verified，没有SQL/HTTP行为验收、联调或部署。
+- 新实际3文件：internal/chunk_writer.go、internal/asset_service.go、migrations/0002_upload_chunks.sql，根统一登记；所有gen/docs来自VPS。无新库/测试/mock/fixture/样例/临时业务验证程序，无本机Go/gofmt/gen/vet/类型检查/测试，无真实接口/模型、服务或push。
+- 自动审批曾拒绝批量区间删除旧助手；完整定义/HEAD/全域引用/接口装配只读核对后，独立精确删除两段获准，未影响其他处理器，已闭环。
 
-### 本轮收尾与停止
+### 停止范围
 
-收到根统一产物/证据后只修确证问题，提交本域source+metadata、回填实际SHA并冻结。用户要求这轮结束后停止持续目标，由根统一push和报告百分比；本域不push，不自动开展后包，后续继续需新的用户授权。
+本域交付后保持clean冻结，不push、不再展开Complete/pins或其他后包。按用户最新指令，根完成顺序集成/实际树复核后统一push并报告百分比，然后停止持续目标；后续继续须新的用户请求。
 
 ## 历史记录
 

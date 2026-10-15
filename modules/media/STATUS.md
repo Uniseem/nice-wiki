@@ -1,13 +1,14 @@
 # 资源媒体当前进度
 
-## 第五轮媒体上传基础组（2026-10-16，待统一VPS）
+## 第五轮媒体上传基础组（2026-10-16，已交付冻结）
 
-- 分支codex/media-chunks-read-r1，基线5894bfb368bfb79331709b3e0f0e5e6ed92bf098，独占modules/media/。本轮PutUploadChunk、ReadAsset及获准BeginUpload固定原回执闭环已写源码，全部本轮改变in_progress；不提前称implemented/verified。
-- BinaryChunk仅本进程io.Reader，HTTP要求明确1..8MiB Content-Length；顺序offset/8MiB/精确长度/SHA/expiry/revision，先暂存fsync+PREPARED，再追加fsync，最后SQL CAS水位+COMMITTED原结果同事务。旧成功在当前授权/epoch后只读原快照，不消费流或落新候选。
-- 0002只追加上传创建epoch、分块日志及Begin原结果/hash；旧NULL epoch或旧无快照回执不猜原结果、不重建上传。启动核连续已提交前缀SHA，未提交尾只按SQL水位在真实running窗口截尾，PREPARED不自动计数或发布ready。
-- ReadAsset真实读取唯一schema与索引一致的ready安全DTO，固定注册纯服务caller/用户同站点权限；指定不存在版本NOT_FOUND，不造历史或私有路径。HTTP复用公共严格入口/identity权威授权；缺Complete/其他handler仍构造失败并关库，Ready不伪造控制恢复。
-- 新实际3文件为internal/chunk_writer.go、internal/asset_service.go、migrations/0002_upload_chunks.sql，均在已登记/获批路径。生成物未手改，待根VPS docs/gen/build/check；无新库、测试/mock/fixture/临时业务验证程序，无本机Go工具、真实API/模型、服务、部署或push。
-- 用户最新要求本轮完成后停止持续目标，根统一复核后push；本域只收尾当前组并冻结，不展开CompleteUpload/引用pin或后包。
+- 源码提交 `4fcbde766790d125e44e16bedf2f19e53856392e`；分支codex/media-chunks-read-r1，基线5894bfb368bfb79331709b3e0f0e5e6ed92bf098，独占modules/media/。主线实际cherry-pick SHA由根统一映射。
+- 完成PutUploadChunk、ReadAsset及获准Begin固定原回执闭环。当前授权/epoch后原成功只读首次快照；新chunk明确长度≤8MiB、精确SHA、暂存fsync/PREPARED、追加fsync后SQL offset/revision CAS与COMMITTED原结果同事务。启动按SQL水位核前缀/截尾，不把PREPARED当成功或ready。
+- Begin hash绑定caller/actor/site/epoch及原输入，先回原结果再查新配额；旧NULL epoch/缺快照明确拒绝不猜。quota固定media纯服务并清原用户proof、保留bounded上下文及原用户站点；Commit结果未知保留文件但仍报错，以原回执确认。
+- 复用公共NewWriteContext与ValidatePrivatePath；二次runtime epoch不同409、未知503，维护直接暂停。已有上传/暂存文件与media.db打开前后拒硬链接/链接，保留Root/fd/绝对路径身份核对。ReadAsset仅真实ready安全DTO/精确当前版本，固定纯服务caller或用户同站点权限，不泄路径、不造历史。
+- 最终统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：docs/gen、14现有模块readonly build/vet/gofmt与完整check通过（861文件/1182函数/379操作/2269类型），无回传冲突，明确含最终修正。仅本轮完整函数/文件verified；ListAssets/Complete/pins/全量入口/控制恢复与后台仍planned/blocked。没有行为验收、联调或部署。
+- 新实际3文件：internal/chunk_writer.go、internal/asset_service.go、migrations/0002_upload_chunks.sql，根统一framework登记；0001未改，所有生成来自VPS。无新库/测试/mock/fixture/临时业务验证程序，无本机Go工具、真实API/模型、服务或push。
+- 用户要求本轮做完停止持续目标，由根顺序集成及实际树复核后push、汇报百分比；本域clean冻结，不自行push，不展开后包。
 
 ## 历史记录
 
