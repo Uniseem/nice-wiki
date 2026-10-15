@@ -978,6 +978,8 @@ export interface components {
             grants: string[];
             /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
             expiresAt: components["schemas"]["Timestamp"];
+            /** @description identity当前会话单调版本；admin会话委托必须携带且大于0，撤销/轮换后旧版本拒绝 */
+            sessionRevision?: components["schemas"]["Revision"];
         };
         /** @description 每日本地备份输入；未标可选字段均必填，空集合用[]，不传null */
         ScheduleLocalBackupInput: {

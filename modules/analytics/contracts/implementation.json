@@ -4197,25 +4197,29 @@
       "type": "analytics.aggregate-hourly",
       "executor": "analytics.AggregateHourly",
       "trigger": "系统定时",
-      "schedule": "5 * * * *"
+      "schedule": "5 * * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.aggregate-daily",
       "executor": "analytics.AggregateDaily",
       "trigger": "系统定时（站点时区）",
-      "schedule": "10 0 * * *"
+      "schedule": "10 0 * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.aggregate-usage",
       "executor": "analytics.AggregateUsage",
       "trigger": "系统定时",
-      "schedule": "20 * * * *"
+      "schedule": "20 * * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.reconcile-usage",
       "executor": "analytics.ReconcileUsage",
       "trigger": "系统定时；ReleaseBarrier恢复后创建",
-      "schedule": "30 3 * * *"
+      "schedule": "30 3 * * *",
+      "managementPermission": "system.manage"
     }
   ],
   "backgroundTasks": [

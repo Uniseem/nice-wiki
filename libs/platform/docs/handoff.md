@@ -1,5 +1,14 @@
 # platform 交接（R1-00）
 
+## 持续实施第一轮公共集成（待合main）
+
+- 统一会话访问签名/独立秘密、专用委托签名、会话版本、可信公共地址与任务完整结果写回。worker控制操作使用独立幂等键，费用根与executor原操作不变；取消确认由owner负责，权威未知暂停领取。
+- 跨服务委托先验本跳服务断言，portal首跳核原正文，后续保留原proof并由服务断言绑定衍生正文；仍须即时核权和资源授权。
+- 任务目录新增managementPermission；identity派生job.manage粗能力，jobs按持久owner/type核具体业务权限。
+- 来源分支codex/continuous-r1-cycle01、基线325f56d7b2f6c5567c16d7e21f66d5a88a97e342。最后修订尚待VPS，台账新增函数保持in_progress；不新增测试、不运行业务接口/模型/部署，不push。
+- 下一项：统一VPS复核与逐模块合并后，接入已实现用例的HTTP绑定；先核各域OpenAPI和平台请求校验，不增加影子协议。
+
+
 ## 本轮统一复核结果（2026-10-15）
 
 - 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。

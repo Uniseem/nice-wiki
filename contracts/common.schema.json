@@ -94,6 +94,10 @@
         "expiresAt": {
           "$ref": "#/$defs/Timestamp",
           "description": "凭证/租约到期UTC时刻；到期拒绝，不自动续命"
+        },
+        "sessionRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "identity当前会话单调版本；admin会话委托必须携带且大于0，撤销/轮换后旧版本拒绝"
         }
       },
       "required": [
@@ -1164,12 +1168,27 @@
           "description": "retry表示可重试失败"
         },
         "resultRef": {
-          "$ref": "#/$defs/Identifier",
-          "description": "可选；不可变结果引用"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "可选完整不可变结果引用；无结果时省略或null，不制造空ObjectRef"
         },
         "errorCode": {
           "$ref": "#/$defs/ErrorCode",
           "description": "可选；失败时的登记错误码"
+        },
+        "paidResultRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "maxItems": 10000,
+          "description": "已付费成功的持久结果标识；取消或重试同样保留，不自动重算"
         }
       },
       "required": [

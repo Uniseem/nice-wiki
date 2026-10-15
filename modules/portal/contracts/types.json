@@ -114,6 +114,11 @@
         "siteId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "站点"
+        },
+        "action": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "入口从静态owner/operationId派生的可信动作，不取浏览器body"
         }
       },
       "required": [
@@ -547,12 +552,17 @@
           "description": "有界流句柄",
           "minLength": 1,
           "maxLength": 128
+        },
+        "cancel": {
+          "x-internal": true,
+          "description": "context.CancelFunc；ForwardRequest移交给StreamResponse，读取结束/取消时释放整个上游请求"
         }
       },
       "required": [
         "status",
         "headers",
-        "streamHandle"
+        "streamHandle",
+        "cancel"
       ],
       "x-internal": true
     },
@@ -3634,6 +3644,11 @@
         "status",
         "owner"
       ]
+    },
+    "IdentityAuthResolver": {
+      "type": "object",
+      "x-internal": true,
+      "description": "由本域生成identity客户端装配的accessToken权威授权解析器"
     }
   }
 }

@@ -2,8 +2,6 @@ package internal
 
 import (
 	"context"
-	"crypto/ed25519"
-	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"time"
@@ -11,6 +9,40 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/serviceauth"
 )
+
+// IdentityAuthorizationClient仅访问identity的版本化权威授权接口。
+type IdentityAuthorizationClient interface {
+	CheckAuthorization(context.Context, any) (json.RawMessage, error)
+}
+
+type IdentityAuthResolver struct {
+	Client IdentityAuthorizationClient
+}
+
+// Resolve不解读浏览器自报主体；access token由identity验签并核对当前版本。
+func (r IdentityAuthResolver) Resolve(ctx context.Context, cookies SessionCookies, required PermissionRequirement) (AuthContext, error) {
+	if r.Client == nil {
+		return AuthContext{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份授权客户端未装配")
+	}
+	raw, err := r.Client.CheckAuthorization(ctx, map[string]any{
+		"accessToken": cookies.SessionToken, "permission": required.Permission,
+		"action": required.Action,
+	})
+	if err != nil {
+		return AuthContext{}, err
+	}
+	var decision struct {
+		Authorized bool                 `json:"authorized"`
+		Auth       platform.AuthContext `json:"auth"`
+	}
+	if json.Unmarshal(raw, &decision) != nil {
+		return AuthContext{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份授权响应不合法")
+	}
+	if !decision.Authorized {
+		return AuthContext{}, platform.NewError(platform.CodeForbidden, false, "当前账户无此操作权限")
+	}
+	return decision.Auth, nil
+}
 
 // ResolveAuthContext 只接受显式装配的 identity 授权解析器；缺少权威
 // 解析器时返回不可用，绝不把浏览器 header 当成权限上下文。
@@ -65,12 +97,12 @@ func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInt
 	nonce := platform.NewIdentifier()
 	claims := platform.DelegationClaims{
 		Actor:          input.Auth,
-		SessionVersion: int(input.Auth.PermissionRevision),
+		SessionVersion: int(input.Auth.SessionRevision),
 		Route:          input.Route.Definition.PathTemplate,
 		BodyHash:       input.RequestDigest,
 		ExpiresAt:      input.ExpiresAt,
 	}
-	token, err := signDelegation(key, claims)
+	token, err := serviceauth.SignDelegation(key, claims)
 	if err != nil {
 		return BuildInternalProofResult{}, err
 	}
@@ -107,29 +139,6 @@ func AuthorizeRoute(input AuthorizeRouteInput) (AuthorizeRouteResult, error) {
 		}
 	}
 	return AuthorizeRouteResult{}, platform.NewError(platform.CodeForbidden, false, "缺少路由权限")
-}
-
-func signDelegation(key platform.SigningKey, claims platform.DelegationClaims) (string, error) {
-	privateKey, err := serviceauth.LoadSigningKey(key)
-	if err != nil {
-		return "", err
-	}
-	if len(privateKey) != ed25519.PrivateKeySize || key.KeyID == "" {
-		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "入口签名密钥不可用")
-	}
-	header, err := json.Marshal(map[string]string{"alg": "EdDSA", "kid": key.KeyID, "typ": "JWT"})
-	if err != nil {
-		return "", platform.NewError(platform.CodeInternal, false, "委托头编码失败")
-	}
-	payload, err := json.Marshal(claims)
-	if err != nil {
-		return "", platform.NewError(platform.CodeInternal, false, "委托载荷编码失败")
-	}
-	encodedHeader := base64.RawURLEncoding.EncodeToString(header)
-	encodedPayload := base64.RawURLEncoding.EncodeToString(payload)
-	input := encodedHeader + "." + encodedPayload
-	signature := ed25519.Sign(privateKey, []byte(input))
-	return input + "." + base64.RawURLEncoding.EncodeToString(signature), nil
 }
 
 func proofRoute(route ResolvedRoute) string {

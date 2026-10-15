@@ -554,6 +554,7 @@ def gen_jobs_catalog(modules):
             job_types.append({
                 "type": job["type"], "owner": module["slug"],
                 "executor": job["executor"], "schedule": job.get("schedule"),
+                "managementPermission": job["managementPermission"],
             })
         events = load(ROOT / module["root"] / "contracts/events.json")
         for event in events.get("events", []):
@@ -607,13 +608,14 @@ def gen_go_registries(modules):
         catalog = load(roots["jobs"] / "config/job-types.json")
         lines = [GO_REGISTRY_HEAD.format(purpose="任务类型目录：由全部模块implementation.json的jobTypes生成，与config/job-types.json同源。")]
         lines.append("// JobTypeEntry 是一个已登记任务类型；Schedule为空表示无系统默认定时。\n")
-        lines.append("type JobTypeEntry struct {\n\tType     string\n\tOwner    string\n\tExecutor string\n\tSchedule string\n}\n\n")
+        lines.append("type JobTypeEntry struct {\n\tType     string\n\tOwner    string\n\tExecutor string\n\tSchedule string\n\tManagementPermission string\n}\n\n")
         lines.append("// JobTypes 按类型排序的全部已登记任务类型。\n")
         lines.append("var JobTypes = []JobTypeEntry{\n")
         for job in catalog["jobTypes"]:
             lines.append(
                 f"\t{{Type: {go_string(job['type'])}, Owner: {go_string(job['owner'])}, "
-                f"Executor: {go_string(job['executor'])}, Schedule: {go_string(job.get('schedule') or '')}}},\n")
+                f"Executor: {go_string(job['executor'])}, Schedule: {go_string(job.get('schedule') or '')}, "
+                f"ManagementPermission: {go_string(job['managementPermission'])}}},\n")
         lines.append("}\n")
         out = roots["jobs"] / "internal/gen/job_types.gen.go"
         out.write_text("".join(lines), encoding="utf-8")
@@ -634,7 +636,9 @@ def gen_go_registries(modules):
         lines.append("// AuthenticatedBaseGrants 是所有已登录账户固定拥有的基础权限。\n")
         lines.append("var AuthenticatedBaseGrants = " + go_string_list(groups["authenticatedBaseGrants"], "") + "\n\n")
         lines.append("// SuperadminOnlyGrants 只授予唯一超管，子账号不得获得。\n")
-        lines.append("var SuperadminOnlyGrants = " + go_string_list(groups["superadminOnly"], "") + "\n")
+        lines.append("var SuperadminOnlyGrants = " + go_string_list(groups["superadminOnly"], "") + "\n\n")
+        lines.append("// JobManagementGrants 派生入口粗能力；任务服务仍按持久类型核业务权限。\n")
+        lines.append("var JobManagementGrants = " + go_string_list(groups["jobManagementGrants"], "") + "\n")
         out = roots["identity"] / "internal/gen/permission_groups.gen.go"
         out.write_text("".join(lines), encoding="utf-8")
         subprocess.run(["gofmt", "-w", str(out)], check=True)

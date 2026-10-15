@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "41a726e0ee26ded5231f5212fc6add51565ab31b4a560bef81287500b2bca1c2",
+  "contractSha256": "b5e05b8e8437567bc3b2f7b2901e4ebbe4f7ed82685043d76f796db8a5a4fdb7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "analytics-r1-storage-contract-audit",
   "branch": "codex/analytics-r1-storage-contract-audit",

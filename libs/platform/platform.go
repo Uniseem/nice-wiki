@@ -118,6 +118,7 @@ type AuthContext struct {
 	Kind               string     `json:"kind"`
 	SiteID             Identifier `json:"siteId"`
 	SessionID          Identifier `json:"sessionId,omitempty"`
+	SessionRevision    Revision   `json:"sessionRevision,omitempty"`
 	PermissionRevision Revision   `json:"permissionRevision"`
 	Grants             []string   `json:"grants"`
 	ExpiresAt          Timestamp  `json:"expiresAt"`
@@ -153,6 +154,31 @@ type EventEnvelope struct {
 type SigningKey struct {
 	KeyID         string `json:"keyId"`
 	PrivateKeyRef string `json:"privateKeyRef"`
+}
+
+// SessionAccessClaims 是identity发行、portal使用的访问令牌声明。
+// 验签不替代identity对会话、账户与撤销版本的权威检查。
+type SessionAccessClaims struct {
+	Issuer             string     `json:"iss"`
+	Audience           string     `json:"aud"`
+	SessionID          Identifier `json:"sid"`
+	AccountID          Identifier `json:"sub"`
+	SiteID             Identifier `json:"siteId"`
+	CredentialRevision Revision   `json:"credentialRevision"`
+	PermissionRevision Revision   `json:"permissionRevision"`
+	SessionRevision    Revision   `json:"sessionRevision"`
+	AuthEpoch          Identifier `json:"authEpoch"`
+	DataEpoch          Identifier `json:"dataEpoch"`
+	IssuedAt           int64      `json:"iat"`
+	ExpiresAt          int64      `json:"exp"`
+	TokenID            Identifier `json:"jti"`
+}
+
+// SessionSecrets 仅用于内存中的cookie适配，持久化只保留摘要。
+type SessionSecrets struct {
+	AccessNonce  string `json:"accessNonce"`
+	RefreshToken string `json:"refreshToken"`
+	CSRFToken    string `json:"csrfToken"`
 }
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
@@ -225,6 +251,7 @@ type DelegationClaims struct {
 
 // DelegationExpectation 验证委托时的期望值；下游原样转发时route留空。
 type DelegationExpectation struct {
+	CallerService string `json:"callerService"`
 	Route    string `json:"route"`
 	BodyHash Hash   `json:"bodyHash"`
 }
@@ -274,6 +301,8 @@ type WorkerConfig struct {
 	MaxConcurrency int      `json:"maxConcurrency"`
 	// Runtime 读取当前运行状态；维护期间暂停领取。可为nil。
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
+	// OperationContext从本域持久任务读取获准主体与预算，不凭任务ID猜测授权。
+	OperationContext func(context.Context, ClaimedJob) (OperationContext, error) `json:"-"`
 }
 
 // AssetRef media资源引用；经media受控读取。
@@ -412,12 +441,15 @@ type InvokeModelOutcome struct {
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
 type ServiceConfig struct {
-	Module         string            `json:"module"`
-	Listen         string            `json:"listen"`
-	DataRoot       string            `json:"dataRoot"`
-	TrustAnchorRef string            `json:"trustAnchorRef"`
-	SigningKeyRef  string            `json:"signingKeyRef"`
-	Dependencies   map[string]string `json:"dependencies"`
+	Module           string            `json:"module"`
+	Listen           string            `json:"listen"`
+	DataRoot         string            `json:"dataRoot"`
+	TrustAnchorRef   string            `json:"trustAnchorRef"`
+	SigningKeyRef    string            `json:"signingKeyRef"`
+	DelegationKeyRef string            `json:"delegationKeyRef,omitempty"`
+	Dependencies     map[string]string `json:"dependencies"`
+	PublicBaseURL    string            `json:"publicBaseURL,omitempty"`
+	AllowLocalHTTP   bool              `json:"allowLocalHTTP,omitempty"`
 }
 
 // SwapResult 启动时换目录结果。
@@ -435,14 +467,15 @@ const (
 
 // ClaimedJob jobs领取结果中的单个任务。
 type ClaimedJob struct {
-	JobID        Identifier `json:"jobId"`
-	OperationID  Identifier `json:"operationId"`
-	JobType      string     `json:"type"`
-	InputRef     ObjectRef  `json:"inputRef"`
-	FencingToken int64      `json:"fencingToken"`
-	Attempt      int        `json:"attempt"`
-	DataEpoch    Identifier `json:"dataEpoch"`
-	ExpiresAt    Timestamp  `json:"expiresAt"`
+	JobID           Identifier `json:"jobId"`
+	OperationID     Identifier `json:"operationId"`
+	RootOperationID Identifier `json:"rootOperationId"`
+	JobType         string     `json:"type"`
+	InputRef        ObjectRef  `json:"inputRef"`
+	FencingToken    int64      `json:"fencingToken"`
+	Attempt         int        `json:"attempt"`
+	DataEpoch       Identifier `json:"dataEpoch"`
+	ExpiresAt       Timestamp  `json:"expiresAt"`
 }
 
 // HeartbeatInfo 续租响应；cancelRequested表示jobs要求停止。
@@ -464,9 +497,10 @@ type JobExecutionInput struct {
 
 // JobExecutionResult 任务执行结果；retry表示可重试失败。
 type JobExecutionResult struct {
-	State     string `json:"state"`
-	ResultRef string `json:"resultRef,omitempty"`
-	ErrorCode string `json:"errorCode,omitempty"`
+	State          string       `json:"state"`
+	ResultRef      *ObjectRef   `json:"resultRef,omitempty"`
+	ErrorCode      string       `json:"errorCode,omitempty"`
+	PaidResultRefs []Identifier `json:"paidResultRefs,omitempty"`
 }
 
 // 任务执行结果状态。
@@ -581,8 +615,8 @@ type JobsClient interface {
 	StartJob(ctx context.Context, jobID, workerID string, fencingToken int64) error
 	HeartbeatJob(ctx context.Context, jobID, workerID string, fencingToken int64) (HeartbeatInfo, error)
 	CheckLease(ctx context.Context, jobID, workerID string, fencingToken int64) (bool, error)
-	CompleteJob(ctx context.Context, jobID string, fencingToken int64, result ObjectRef, paidResultRefs []Identifier) error
-	FailJob(ctx context.Context, jobID string, fencingToken int64, errorCode string) error
+	CompleteJob(ctx context.Context, jobID, workerID string, fencingToken int64, result *ObjectRef, paidResultRefs []Identifier) error
+	FailJob(ctx context.Context, jobID, workerID string, fencingToken int64, errorCode string, paidResultRefs []Identifier) error
 }
 
 // GatewayClient model-gateway服务的调用接口；实现自动附服务断言。

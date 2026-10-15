@@ -12,6 +12,11 @@
 
 身份令牌只接受固定发行方、固定签名算法、audience、有效期及可撤销版本；拒绝客户端选择算法。具体密钥产生/轮换见identity函数合同；JWT字段含义参照 [RFC7519](https://www.rfc-editor.org/rfc/rfc7519)，不复制第三方实现。
 
+
+会话访问令牌统一由platform.serviceauth签发和验证：固定EdDSA、typ=NW-SESSION、iss=identity、aud=portal，iat/exp为UNIX秒且最多900秒。声明携带session/account/site、credential/permission/session版本、authEpoch、dataEpoch和jti；签名有效之后，identity仍同步读取账户/会话/族/认证代次权威与秘密摘要。refresh和CSRF各自32随机字节，持久化只保存摘要；refresh旧值复用须先持久撤销族，再返回未认证。AuthContext的sessionRevision是会话单调版本，portal委托SessionVersion必须取此值，不以permissionRevision替代。
+
+portal使用identity:checkAuthorization的accessToken模式，由静态路由提供permission/action；其他域使用匹配可信委托的subject/site/session模式，两个来源不能混用。初始口令会话只允许identity:changePassword、identity:revokeSession和identity:readSelf；缺动作也拒绝。账户权限写请求检查CSRF；匿名凭证登录/刷新仍受部署固定Origin和Strict cookie约束，不要求尚未过期的access。可信公共地址只取进程配置publicBaseURL，不从请求Host反推；HTTP仅在显式allowLocalHTTP且loopback本地开发时允许。
+
 ## 时间、版本、错误与幂等
 
 机器时间统一RFC3339 UTC；界面转换用户时区。钱统一USD整数micros，priceVersion随费用记录，禁止浮点累计。页大小默认20、上限100，游标签名且绑定过滤条件。写入含expectedVersion或expectedRevision；锁带lease与单调fencingToken，过期锁不能覆盖后继锁。
@@ -45,3 +50,9 @@ createInference 只返回 202 受理。调用方一律经本域 InvokeModel（li
 ## 任务与后台登记
 
 每个 implementation.json 登记 `jobTypes`（类型、执行函数、触发、可选系统定时）与 `backgroundTasks`（函数、运行时机）。RunWorker 只领取登记类型并调用对应执行函数；BuildApplication 启动全部后台函数，并以服务身份经 jobs:createSchedule 幂等登记系统定时。jobs 的类型白名单、事件订阅目录与 portal 路由表由全部合同生成。
+
+任务管理的入口能力按permission-groups.jobManagementGrants派生job.manage，不新增用户开关；具体任务由jobs按持久type/owner的managementPermission再次向identity核最新权限，系统聚合任务要求system.manage。用户提交的owner或job.manage不能替代这一判断。任务控制调用使用独立子operationId，同一传输重试复用，费用rootOperationId和executor原业务操作不变。
+
+portal配置delegationKeyRef（NW_DELEGATION_KEY_REF）单独引用已登记portalDelegationKeys的委托私钥；signingKeyRef仅用于服务断言。委托严格十秒内且过期即拒绝。代理不跟随上游重定向，上游请求取消句柄保留到响应Body读完关闭；IPv6和默认端口按规范化Origin比较。
+
+委托链区分来源：先验本跳服务断言（当前方法/path/bodyHash），再验证原portal proof的签名、短期时效与会话版本。已认证issuer为portal时必须核原bodyHash；后续服务调用仍原样保留原proof，衍生请求体由该跳服务断言绑定，各域按原主体再次调用identity并核本域资源。不能从浏览器头选择此模式，也不能把后续服务证明当新用户授权。

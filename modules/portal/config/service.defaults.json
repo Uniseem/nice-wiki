@@ -19,5 +19,6 @@
     "traffic-guard": "http://127.0.0.1:8110",
     "analytics": "http://127.0.0.1:8112",
     "data-protection": "http://127.0.0.1:8113"
-  }
+  },
+  "delegationKeyRef": "/run/secrets/portal-delegation-key.json"
 }

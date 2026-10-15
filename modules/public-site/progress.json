@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "design",
-  "contractSha256": "a7baf50c9700406744d657dc5d44681ea2532f665e193ac71245211ac1983bf4",
+  "contractSha256": "1fe6b8029d8bd69531d0e2b0335b945e28b9ebaf102a8c617375620691d32a66",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,

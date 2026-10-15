@@ -241,11 +241,17 @@
         },
         "bodyHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "请求体SHA-256"
+          "description": "本跳请求体SHA-256；portal首跳必须等于proof原文，其他已认证服务跳的正文由本跳服务断言校验"
+        },
+        "callerService": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "已成功验签的服务断言issuer，禁止使用未经认证请求字段。portal首跳绑定原bodyHash；其他服务后续跳由各自断言绑定当前正文并原样保留原用户proof。"
         }
       },
       "required": [
-        "route",
+        "callerService",
         "bodyHash"
       ]
     },
@@ -296,7 +302,7 @@
     "JobsClient": {
       "type": "object",
       "x-internal": true,
-      "description": "由jobs openapi生成的客户端，自动附服务断言；CheckLease(ctx, jobId, workerId, fencingToken)核对worker与fence。"
+      "description": "jobs版本化客户端，自动服务断言；CheckLease/CompleteJob/FailJob都携带workerId与fence，终局保留paidResultRefs，Complete可不带结果对象。"
     },
     "GatewayClient": {
       "type": "object",
@@ -423,13 +429,19 @@
         },
         "runtime": {
           "x-internal": true,
-          "description": "Go函数，不序列化；读取当前RuntimeView，维护期间暂停领取"
+          "description": "Go可信运行权威回调，不序列化；缺失或读取失败暂停领取，不能将未知状态当允许"
+        },
+        "operationContext": {
+          "x-internal": true,
+          "description": "Go可信回调(context.Context, ClaimedJob) (OperationContext,error)，从本域持久任务读取获准主体、预算与期限，不从任务ID猜测授权"
         }
       },
       "required": [
         "owner",
         "jobTypes",
-        "maxConcurrency"
+        "maxConcurrency",
+        "operationContext",
+        "runtime"
       ]
     },
     "InvokeModelRequest": {
@@ -535,6 +547,20 @@
             "maxLength": 256
           },
           "description": "依赖服务slug→内部URL"
+        },
+        "publicBaseURL": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "部署提供的可信公共地址；不从请求Host推导，需要初始化或来源校验的用例再要求非空"
+        },
+        "allowLocalHTTP": {
+          "type": "boolean",
+          "default": false,
+          "description": "显式允许loopback地址的HTTP本地开发，其余公共地址必须HTTPS"
+        },
+        "delegationKeyRef": {
+          "type": "string",
+          "description": "portal专用用户委托SigningKey JSON引用，必须来自portalDelegationKeys；非portal服务可省略，不能回退服务断言密钥"
         }
       },
       "required": [
@@ -577,6 +603,101 @@
       "type": "object",
       "description": "func(http.Handler) http.Handler 入口中间件，仅进程内使用",
       "x-internal": true
+    },
+    "SessionAccessClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "固定identity发行、portal使用的NW-SESSION会话访问令牌声明；版本与撤销由identity权威核对",
+      "properties": {
+        "sid": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sub": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "authEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "jti": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "credentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "permissionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "sessionRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "iat": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "iat UNIX秒"
+        },
+        "exp": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "exp UNIX秒，iat之后且不超过900秒"
+        },
+        "iss": {
+          "const": "identity"
+        },
+        "aud": {
+          "const": "portal"
+        }
+      },
+      "required": [
+        "sid",
+        "sub",
+        "siteId",
+        "authEpoch",
+        "dataEpoch",
+        "jti",
+        "credentialRevision",
+        "permissionRevision",
+        "sessionRevision",
+        "iat",
+        "exp",
+        "iss",
+        "aud"
+      ]
+    },
+    "SessionSecrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-internal": true,
+      "description": "独立32字节CSPRNG秘密；只返回内存cookie适配器，业务仅存摘要",
+      "properties": {
+        "accessNonce": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "32随机字节hex编码，可用作Identifier jti"
+        },
+        "refreshToken": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43
+        },
+        "csrfToken": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43
+        }
+      },
+      "required": [
+        "accessNonce",
+        "refreshToken",
+        "csrfToken"
+      ]
     }
   }
 }

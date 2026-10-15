@@ -1,5 +1,14 @@
 # 主系统会话交接
 
+## 持续实施第一轮公共集成（待合main）
+
+- 接入identity权威access授权与CSRF，使用真实会话版本和静态action；专用委托密钥独立于服务断言，固定配置Origin，修复流取消时机、重定向与IPv6默认端口。
+- 跨服务委托先验本跳服务断言，portal首跳核原正文，后续保留原proof并由服务断言绑定衍生正文；仍须即时核权和资源授权。
+- 任务目录新增managementPermission；identity派生job.manage粗能力，jobs按持久owner/type核具体业务权限。
+- 来源分支codex/continuous-r1-cycle01、基线325f56d7b2f6c5567c16d7e21f66d5a88a97e342。最后修订尚待VPS，台账新增函数保持in_progress；不新增测试、不运行业务接口/模型/部署，不push。
+- 下一项：统一VPS复核与逐模块合并后，接入已实现用例的HTTP绑定；先核各域OpenAPI和平台请求校验，不增加影子协议。
+
+
 ## 集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：

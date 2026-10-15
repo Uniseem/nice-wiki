@@ -5363,7 +5363,8 @@
     {
       "type": "public-site.render-publication",
       "executor": "public-site.PrewarmPublication",
-      "trigger": "InvalidatePublication在发布与译文就绪后创建"
+      "trigger": "InvalidatePublication在发布与译文就绪后创建",
+      "managementPermission": "content.publish"
     }
   ],
   "backgroundTasks": [

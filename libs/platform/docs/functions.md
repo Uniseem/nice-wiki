@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 21 个函数：约束 19 个，参考 2 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 27 个函数：约束 19 个，参考 8 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -119,6 +119,8 @@ func VerifyDelegation(anchors TrustAnchors, proof string, expect DelegationExpec
 1. 用portal委托公钥验签，拒绝未知key与过期（≤10秒）
 2. 核route与bodyHash；下游链路允许原样转发同一证明
 3. 返回actor、grants与sessionVersion；权限仍须由业务函数经identity:checkAuthorization核实
+4. SessionVersion必须等于actor.sessionRevision；admin委托必须携带非空sessionId与正会话版本，缺失即拒绝
+5. 委托过期按当前时间严格拒绝，不套用服务断言30秒时钟容差；剩余期限不得超过10秒；header typ固定JWT
 
 **错误**
 
@@ -215,6 +217,200 @@ func VerifyCursor(key SigningKey, scope string, token string) ([]byte, error)
 - 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
 - 依赖：无
 - 其他依赖说明：受控Ed25519密钥引用
+
+## platform.SignSessionAccess
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：签发固定用途的会话访问令牌
+
+```go
+func SignSessionAccess(key SigningKey, claims SessionAccessClaims) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | identity受控签名密钥引用 | 不记录私钥 |
+| `claims` | `SessionAccessClaims` | 会话及版本声明 | 期限不超过900秒 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `string` | 成功结果 | 无error时有效 |
+| `error` | `error` | 公共安全错误 | 不含secret/原文 |
+
+**步骤**
+
+1. 固定iss=identity、aud=portal、alg=EdDSA、typ=NW-SESSION；核对标识、单调版本和iat/exp
+2. 复用LoadSigningKey签发，返回compact JWS；不读取会话业务库
+
+**错误**
+
+- `VALIDATION`：输入不满足本函数约束（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：密钥或随机源不可用（可重试）
+
+- 副作用：读取受控密钥引用或CSPRNG；不持有业务状态
+- 授权：permission：service；rule：由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查
+- 并发：无共享业务可变状态；密钥缓存复用LoadSigningKey
+- 幂等：签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文
+- 依赖：`platform.validSessionClaims`
+
+## platform.VerifySessionAccess
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：验证固定用途的会话访问令牌
+
+```go
+func VerifySessionAccess(anchors TrustAnchors, token string) (SessionAccessClaims, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 受控identity公钥表 | 固定发行方identity |
+| `token` | `string` | 浏览器访问令牌 | 最多4096字节 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SessionAccessClaims` | 成功结果 | 无error时有效 |
+| `error` | `error` | 公共安全错误 | 不含secret/原文 |
+
+**步骤**
+
+1. 只接受EdDSA与NW-SESSION，按固定identity/kid取得公钥验签
+2. 核固定issuer/audience、全部标识/版本、iat/exp；到期即拒绝，签发时间只容许30秒未来偏差
+3. 返回已验证声明，调用方仍须同步检查会话、账户、凭据、权限和认证代次权威
+
+**错误**
+
+- `UNAUTHENTICATED`：声明或签名不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：密钥或随机源不可用（可重试）
+
+- 副作用：读取受控密钥引用或CSPRNG；不持有业务状态
+- 授权：permission：service；rule：由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查
+- 并发：无共享业务可变状态；密钥缓存复用LoadSigningKey
+- 幂等：签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文
+- 依赖：`platform.validSessionClaims`
+
+## platform.GenerateSessionSecrets
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：生成会话独立随机秘密
+
+```go
+func GenerateSessionSecrets() (SessionSecrets, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SessionSecrets` | 成功结果 | 无error时有效 |
+| `error` | `error` | 公共安全错误 | 不含secret/原文 |
+
+**步骤**
+
+1. crypto/rand分别产生三个独立32字节随机值；accessNonce使用hex编码，refresh/csrf使用无填充base64url
+2. 秘密只在内存中交给identity，不落日志或通用回执；随机源失败关闭
+
+**错误**
+
+- `VALIDATION`：输入不满足本函数约束（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：密钥或随机源不可用（可重试）
+
+- 副作用：读取受控密钥引用或CSPRNG；不持有业务状态
+- 授权：permission：service；rule：由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查
+- 并发：无共享业务可变状态；密钥缓存复用LoadSigningKey
+- 幂等：签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文
+- 依赖：无
+
+## platform.SignDelegation
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：统一签发portal用户委托证明
+
+```go
+func SignDelegation(key SigningKey, claims DelegationClaims) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | portal受控委托密钥引用 | 不记录私钥 |
+| `claims` | `DelegationClaims` | 已授权主体与路由/正文摘要 | 有效期最多10秒 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `string` | 成功结果 | 无error时有效 |
+| `error` | `error` | 公共安全错误 | 不含secret/原文 |
+
+**步骤**
+
+1. 核委托声明与十秒期限，复用LoadSigningKey签发固定EdDSA JWS
+2. portal只装配参数，不自写签名机制
+
+**错误**
+
+- `VALIDATION`：输入不满足本函数约束（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：密钥或随机源不可用（可重试）
+
+- 副作用：读取受控密钥引用或CSPRNG；不持有业务状态
+- 授权：permission：service；rule：由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查
+- 并发：无共享业务可变状态；密钥缓存复用LoadSigningKey
+- 幂等：签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文
+- 依赖：无
+
+## platform.validSessionClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：共用会话访问声明的标识和期限核对
+
+```go
+func validSessionClaims(claims SessionAccessClaims) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `SessionAccessClaims` | 已解码或准备签名的会话声明 | 固定会话用途 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `valid` | `bool` | 关键声明满足访问令牌约束 | 不替代业务权威授权 |
+
+**步骤**
+
+1. 核固定发行方接收方、标识及非负版本，iat最多未来30秒，exp未过且有效期最多900秒
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：库内纯校验
+- 并发：只读，可并发
+- 幂等：相同声明在相同时间水位下结果一致
+- 依赖：无
 
 ## platform.BuildOperationContext
 
@@ -496,6 +692,10 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 3. 写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob
 4. lease过期立即停止写入，不重放已派发模型调用
 5. 写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约
+6. Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果
+7. WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作
+8. 每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认
+9. runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许
 
 **错误**
 
@@ -505,7 +705,44 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`
+
+## platform.workerControlContext
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：为独立worker控制请求分配幂等键
+
+```go
+func workerControlContext(ctx context.Context, op OperationContext) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 下游IO取消与截止 | 原样传递 |
+| `op` | `OperationContext` | 原任务可信操作 | 费用根不变 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 携带新控制子操作的上下文 | 保留rootOperationId/actor/dataEpoch/预算/期限 |
+
+**步骤**
+
+1. 只更换OperationID，保留原费用根、主体、预算、截止和dataEpoch
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：进程内可信worker调用
+- 并发：每次生成独立ID
+- 幂等：同一次下游请求重试复用返回上下文，不跨心跳或fence复用
+- 依赖：无
 
 ## platform.InvokeModel
 
@@ -580,6 +817,8 @@ func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)
 1. 读取配置文件，拒绝未知字段
 2. 按优先级合并并校验端口、数据根、依赖地址与secret引用
 3. secret只保存引用路径，不读入日志
+4. 读取NW_PUBLIC_BASE_URL和NW_ALLOW_LOCAL_HTTP；配置来源不可被请求Host覆盖；非空地址禁userinfo/query/fragment，HTTP仅显式loopback本地开发
+5. portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件
 
 **错误**
 

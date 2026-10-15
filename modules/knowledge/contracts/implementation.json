@@ -6752,12 +6752,14 @@
     {
       "type": "knowledge.build",
       "executor": "knowledge.ExecuteBuild",
-      "trigger": "HandlePublication、CreateBuild、RecoverBuildLeases创建"
+      "trigger": "HandlePublication、CreateBuild、RecoverBuildLeases创建",
+      "managementPermission": "knowledge.manage"
     },
     {
       "type": "knowledge.extract",
       "executor": "knowledge.ExecuteExtraction",
-      "trigger": "ExecuteBuild经CreateExtraction创建"
+      "trigger": "ExecuteBuild经CreateExtraction创建",
+      "managementPermission": "knowledge.manage"
     }
   ],
   "backgroundTasks": [

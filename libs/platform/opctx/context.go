@@ -72,7 +72,7 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 		return platform.OperationContext{}, platform.NewError(platform.CodeVersionMismatch, false, "数据代次与服务端不一致")
 	}
 	if proof := r.Header.Get(platform.HeaderPortalProof); proof != "" {
-		delegation, err := serviceauth.VerifyDelegation(anchors, proof, platform.DelegationExpectation{BodyHash: bodyHash})
+		delegation, err := serviceauth.VerifyDelegation(anchors, proof, platform.DelegationExpectation{CallerService: claims.Issuer, BodyHash: bodyHash})
 		if err != nil {
 			return platform.OperationContext{}, err
 		}

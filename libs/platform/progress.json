@@ -2,11 +2,11 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "44caf47ae4a0636d3e82a081b16c46cd3258a5696a76aedb0fd88e7bf7e2fdad",
+  "contractSha256": "2f3599634fb05eae2e0876c16baa7afa5501d55fa1c01d91a4593fd878061700",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-00",
-  "branch": "codex/platform-r1-00",
-  "baseCommit": "d7cf792431d8fe1c4669ce05957ff288c3e182aa",
+  "assignedSession": "R1持续实施第一轮统一复核",
+  "branch": "codex/continuous-r1-cycle01",
+  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
   "deliveryCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
   "deployment": "not_started",
   "files": [
@@ -432,7 +432,73 @@
         "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.SignSessionAccess",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第1轮公共机制，待VPS编译与依赖可达性复核"
+    },
+    {
+      "id": "platform.VerifySessionAccess",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第1轮公共机制，待VPS编译与依赖可达性复核"
+    },
+    {
+      "id": "platform.GenerateSessionSecrets",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第1轮公共机制，待VPS编译与依赖可达性复核"
+    },
+    {
+      "id": "platform.SignDelegation",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第1轮公共机制，待VPS编译与依赖可达性复核"
+    },
+    {
+      "id": "platform.validSessionClaims",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施公共会话校验，待VPS编译"
+    },
+    {
+      "id": "platform.workerControlContext",
+      "path": "libs/platform/worker/loop.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮公共复核修复，等待VPS编译与统一检查"
     }
   ],
-  "rule": "R1-00交付：全部条目verified（实现+已有检查通过），行为验收待R2；生成物与合同一致性由make gen可重现与make check保证。"
+  "rule": "本轮公共支持与授权链修复在集成分支，最终VPS与实际提交映射完成后更新状态；行为验收和部署未执行。"
 }

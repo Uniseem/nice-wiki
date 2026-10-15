@@ -2,13 +2,120 @@ package serviceauth
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
 )
+
+// SignDelegation 签名机制由平台统一实现，portal只负责准备已授权声明。
+func SignDelegation(key platform.SigningKey, claims platform.DelegationClaims) (string, error) {
+	if err := checkDelegationClaims(claims); err != nil {
+		return "", platform.NewError(platform.CodeValidation, false, "委托声明不完整")
+	}
+	expires, err := platform.ParseTimestamp(claims.ExpiresAt)
+	if err != nil || !expires.After(time.Now()) || expires.After(time.Now().Add(DelegationTTL)) {
+		return "", platform.NewError(platform.CodeValidation, false, "委托有效期必须在十秒以内")
+	}
+	privateKey, err := LoadSigningKey(key)
+	if err != nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "委托签名密钥不可用")
+	}
+	header, _ := json.Marshal(map[string]string{"alg": algEdDSA, "kid": key.KeyID, "typ": "JWT"})
+	body, _ := json.Marshal(claims)
+	input := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(body)
+	return input + "." + base64.RawURLEncoding.EncodeToString(ed25519.Sign(privateKey, []byte(input))), nil
+}
+
+// GenerateSessionSecrets 不共享秘密；jti使用符合Identifier的十六进制编码。
+func GenerateSessionSecrets() (platform.SessionSecrets, error) {
+	var raw [96]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return platform.SessionSecrets{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话随机源不可用")
+	}
+	return platform.SessionSecrets{
+		AccessNonce:  hex.EncodeToString(raw[:32]),
+		RefreshToken: base64.RawURLEncoding.EncodeToString(raw[32:64]),
+		CSRFToken:    base64.RawURLEncoding.EncodeToString(raw[64:]),
+	}, nil
+}
+
+// SignSessionAccess 固定发行方、接收方和用途，不能用客户端参数选算法。
+func SignSessionAccess(key platform.SigningKey, claims platform.SessionAccessClaims) (string, error) {
+	claims.Issuer, claims.Audience = "identity", "portal"
+	if !validSessionClaims(claims) {
+		return "", platform.NewError(platform.CodeValidation, false, "会话访问声明不完整或期限不合法")
+	}
+	privateKey, err := LoadSigningKey(key)
+	if err != nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "会话签名密钥不可用")
+	}
+	header, _ := json.Marshal(map[string]string{"alg": algEdDSA, "kid": key.KeyID, "typ": "NW-SESSION"})
+	body, _ := json.Marshal(claims)
+	input := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(body)
+	return input + "." + base64.RawURLEncoding.EncodeToString(ed25519.Sign(privateKey, []byte(input))), nil
+}
+
+// VerifySessionAccess 只证明令牌来源；撤销、权限和认证代次仍由identity核权。
+func VerifySessionAccess(anchors platform.TrustAnchors, token string) (platform.SessionAccessClaims, error) {
+	invalid := func() (platform.SessionAccessClaims, error) {
+		return platform.SessionAccessClaims{}, platform.NewError(platform.CodeUnauthenticated, false, "会话访问令牌无效或已过期")
+	}
+	if len(token) == 0 || len(token) > MaxTokenLength {
+		return invalid()
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return invalid()
+	}
+	headerRaw, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return invalid()
+	}
+	var header struct {
+		Alg string `json:"alg"`
+		Kid string `json:"kid"`
+		Typ string `json:"typ"`
+	}
+	if json.Unmarshal(headerRaw, &header) != nil || header.Alg != algEdDSA || header.Typ != "NW-SESSION" || header.Kid == "" {
+		return invalid()
+	}
+	encodedKey := anchors.ServiceKeyID("identity", header.Kid)
+	publicKey, err := base64.RawURLEncoding.DecodeString(encodedKey)
+	if err != nil || len(publicKey) != ed25519.PublicKeySize {
+		return invalid()
+	}
+	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil || !ed25519.Verify(ed25519.PublicKey(publicKey), []byte(parts[0]+"."+parts[1]), signature) {
+		return invalid()
+	}
+	body, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return invalid()
+	}
+	var claims platform.SessionAccessClaims
+	if json.Unmarshal(body, &claims) != nil || !validSessionClaims(claims) {
+		return invalid()
+	}
+	return claims, nil
+}
+
+func validSessionClaims(claims platform.SessionAccessClaims) bool {
+	if claims.Issuer != "identity" || claims.Audience != "portal" ||
+		!platform.ValidIdentifier(claims.SessionID) || !platform.ValidIdentifier(claims.AccountID) ||
+		!platform.ValidIdentifier(claims.SiteID) || !platform.ValidIdentifier(claims.AuthEpoch) ||
+		!platform.ValidIdentifier(claims.DataEpoch) || !platform.ValidIdentifier(claims.TokenID) ||
+		claims.CredentialRevision < 0 || claims.PermissionRevision < 0 || claims.SessionRevision < 0 {
+		return false
+	}
+	now := time.Now().Unix()
+	return claims.IssuedAt >= 0 && claims.IssuedAt <= now+30 && claims.ExpiresAt > now &&
+		claims.ExpiresAt > claims.IssuedAt && claims.ExpiresAt-claims.IssuedAt <= 900
+}
 
 // DelegationTTL 用户委托证明的最长有效期。
 const DelegationTTL = 10 * time.Second
@@ -35,8 +142,9 @@ func VerifyDelegation(anchors platform.TrustAnchors, proof string, expect platfo
 	var header struct {
 		Alg string `json:"alg"`
 		Kid string `json:"kid"`
+		Typ string `json:"typ"`
 	}
-	if err := json.Unmarshal(headerRaw, &header); err != nil || header.Alg != algEdDSA {
+	if err := json.Unmarshal(headerRaw, &header); err != nil || header.Alg != algEdDSA || header.Typ != "JWT" {
 		return platform.DelegationClaims{}, platform.NewError(platform.CodeUnauthenticated, false, "委托证明算法不受支持")
 	}
 	payloadRaw, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -66,13 +174,18 @@ func VerifyDelegation(anchors platform.TrustAnchors, proof string, expect platfo
 	if err != nil {
 		return platform.DelegationClaims{}, platform.NewError(platform.CodeUnauthenticated, false, "委托证明声明不完整")
 	}
-	if time.Now().Add(-ClockSkew).After(expiresAt) {
+	if now := time.Now(); !expiresAt.After(now) || expiresAt.After(now.Add(DelegationTTL)) {
 		return platform.DelegationClaims{}, platform.NewError(platform.CodeUnauthenticated, false, "委托证明已过期")
 	}
 	if err := checkDelegationClaims(claims); err != nil {
 		return platform.DelegationClaims{}, err
 	}
-	if claims.BodyHash != expect.BodyHash {
+	if expect.CallerService == "" {
+		return platform.DelegationClaims{}, platform.NewError(platform.CodeInternal, false, "委托验证缺少已认证服务来源")
+	}
+	// portal首跳绑定浏览器原文；后续请求正文由该跳服务断言绑定，
+	// 原委托只提供原始用户来源，各拥有服务仍即时核验权限和资源。
+	if expect.CallerService == "portal" && claims.BodyHash != expect.BodyHash {
 		return platform.DelegationClaims{}, platform.NewError(platform.CodeUnauthenticated, false, "委托证明与请求正文不符")
 	}
 	if expect.Route != "" && claims.Route != expect.Route {
@@ -87,6 +200,10 @@ func checkDelegationClaims(claims platform.DelegationClaims) error {
 	}
 	if claims.Route == "" || !platform.ValidHash(claims.BodyHash) || claims.SessionVersion < 0 {
 		return platform.NewError(platform.CodeUnauthenticated, false, "委托声明不完整")
+	}
+	if int64(claims.SessionVersion) != claims.Actor.SessionRevision ||
+		(claims.Actor.Kind == "admin" && (claims.Actor.SessionID == "" || claims.SessionVersion < 1)) {
+		return platform.NewError(platform.CodeUnauthenticated, false, "委托会话版本不完整或不一致")
 	}
 	return nil
 }

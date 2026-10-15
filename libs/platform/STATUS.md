@@ -1,5 +1,8 @@
 # platform 状态
 
+本轮持续实施集成分支（未合main）：统一会话访问签名/独立秘密、专用委托签名、会话版本、可信公共地址与任务完整结果写回。worker控制操作使用独立幂等键，费用根与executor原操作不变；取消确认由owner负责，权威未知暂停领取。
+VPS上一快照14模块build/vet/gofmt与make check通过；委托二跳与代理错误映射的最后修订等待最终复跑。业务验收和部署未执行。
+
 最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
 
 - 阶段：R1-00 已实现并检查（分支 codex/platform-r1-00，基线 d7cf792431d8，交付 fa70c657322c；台账全部 verified，行为验收待R2）。

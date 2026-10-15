@@ -28,7 +28,7 @@ const (
 // 每10秒续租、上报进度并读取取消；写回前核对租约，成功completeJob，
 // 失败failJob；租约过期立即停止写入，不重放已派发模型调用。
 func RunWorkerLoop(ctx context.Context, client platform.JobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) error {
-	if config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes {
+	if config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
 	registered := map[string]bool{}
@@ -67,7 +67,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 		if ctx.Err() != nil {
 			return
 		}
-		if view, ok := readRuntime(ctx, l.config.Runtime); ok && view.Maintenance {
+		if view, ok := readRuntime(ctx, l.config.Runtime); !ok || view.Maintenance {
 			if !sleep(ctx, maintenancePause) {
 				return
 			}
@@ -98,19 +98,31 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 
 // execute 执行单个任务：start→带心跳运行→校验租约→写回。
 func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.ClaimedJob) {
-	if err := l.client.StartJob(ctx, job.JobID, workerID, job.FencingToken); err != nil {
+	op, err := l.config.OperationContext(ctx, job)
+	if err != nil || op.OperationID != job.OperationID || op.RootOperationID != job.RootOperationID || op.DataEpoch != job.DataEpoch || op.CallerService != l.config.Owner {
+		return
+	}
+	deadline, err := platform.ParseTimestamp(op.Deadline)
+	if err != nil {
+		return
+	}
+	ctx, cancelTask := context.WithDeadline(ctx, deadline)
+	defer cancelTask()
+	ctx = platform.WithOperationContext(ctx, op)
+	if err := l.client.StartJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken); err != nil {
 		// 租约可能已被回收；等待jobs重投。
 		return
 	}
 	jobCtx, cancelJob := context.WithCancelCause(ctx)
 	defer cancelJob(nil)
-	go l.heartbeat(jobCtx, workerID, job, cancelJob)
+	go l.heartbeat(jobCtx, op, workerID, job, cancelJob)
 	executor := l.executors.Executor(job.JobType)
 	var result platform.JobExecutionResult
 	if executor == nil {
 		result = platform.JobExecutionResult{State: platform.JobFailed, ErrorCode: platform.CodeValidation}
 	} else {
-		result, _ = executor(jobCtx, platform.JobExecutionInput{
+		var executeErr error
+		result, executeErr = executor(jobCtx, platform.JobExecutionInput{
 			JobID:        job.JobID,
 			JobType:      job.JobType,
 			InputRef:     job.InputRef.ObjectID,
@@ -118,6 +130,14 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 			Attempt:      job.Attempt,
 			DataEpoch:    job.DataEpoch,
 		})
+		if executeErr != nil {
+			result.State = platform.JobFailed
+			result.ErrorCode = platform.CodeInternal
+			var failure *platform.Error
+			if errors.As(executeErr, &failure) {
+				result.ErrorCode = failure.Code
+			}
+		}
 	}
 	cancelJob(nil)
 	if ctx.Err() != nil {
@@ -128,27 +148,36 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 		// 租约已过期：立即停止写入，不重放已派发的模型调用。
 		return
 	}
-	valid, err := l.client.CheckLease(ctx, job.JobID, workerID, job.FencingToken)
+	// 取消信号只要求owner停止；只有owner明确返回安全取消才能确认。
+	// 成功落盘与取消竞争时保留成功结果，不覆盖已付费结果引用。
+	if result.State == platform.JobCancelled {
+		result.ErrorCode = platform.CodeCancelled
+	} else if result.ErrorCode == platform.CodeCancelled {
+		result.ErrorCode = platform.CodeInternal
+	}
+	valid, err := l.client.CheckLease(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken)
 	if err != nil || !valid {
 		return
 	}
 	switch result.State {
 	case platform.JobSucceeded:
-		_ = l.client.CompleteJob(ctx, job.JobID, job.FencingToken, platform.ObjectRef{}, nil)
+		_ = l.client.CompleteJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken, result.ResultRef, result.PaidResultRefs)
 	default:
 		errorCode := result.ErrorCode
 		if errorCode == "" {
 			errorCode = platform.CodeInternal
 		}
-		_ = l.client.FailJob(ctx, job.JobID, job.FencingToken, errorCode)
+		_ = l.client.FailJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken, errorCode, result.PaidResultRefs)
 	}
 }
 
-// errLeaseLost 表示续租失败或jobs要求取消，任务不得再写回。
-var errLeaseLost = errors.New("job lease lost or cancel requested")
+// errLeaseLost 表示续租失败，任务不得再写回。
+var errLeaseLost = errors.New("job lease lost")
+
+var errJobCancelled = errors.New("job cancellation requested")
 
 // heartbeat 每10秒续租；jobs要求取消或租约失效时终止任务。
-func (l *workerLoop) heartbeat(jobCtx context.Context, workerID string, job platform.ClaimedJob, cancelJob context.CancelCauseFunc) {
+func (l *workerLoop) heartbeat(jobCtx context.Context, op platform.OperationContext, workerID string, job platform.ClaimedJob, cancelJob context.CancelCauseFunc) {
 	ticker := time.NewTicker(heartbeatEvery)
 	defer ticker.Stop()
 	for {
@@ -156,9 +185,13 @@ func (l *workerLoop) heartbeat(jobCtx context.Context, workerID string, job plat
 		case <-jobCtx.Done():
 			return
 		case <-ticker.C:
-			info, err := l.client.HeartbeatJob(jobCtx, job.JobID, workerID, job.FencingToken)
-			if err != nil || info.CancelRequested {
+			info, err := l.client.HeartbeatJob(workerControlContext(jobCtx, op), job.JobID, workerID, job.FencingToken)
+			if err != nil {
 				cancelJob(errLeaseLost)
+				return
+			}
+			if info.CancelRequested {
+				cancelJob(errJobCancelled)
 				return
 			}
 		}
@@ -199,4 +232,10 @@ func sleep(ctx context.Context, d time.Duration) bool {
 
 func itoa(v int) string {
 	return strconv.Itoa(v)
+}
+
+// workerControlContext 为一次控制操作分配子操作，费用根和授权主体保持原值。
+func workerControlContext(ctx context.Context, op platform.OperationContext) context.Context {
+	op.OperationID = platform.NewIdentifier()
+	return platform.WithOperationContext(ctx, op)
 }

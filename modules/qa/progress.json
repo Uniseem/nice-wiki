@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "d9af6a73f5dac55d34b828794e5e5df1df7e90d66b6045b833e4a17e89f4e581",
+  "contractSha256": "a95276e96aa23e148e01a01845e537eb018baa714428e06a6cd444307a5dda91",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-16（NormalizeQuestion纯规则切片）",
   "branch": "main",

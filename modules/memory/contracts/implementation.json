@@ -6460,13 +6460,15 @@
     {
       "type": "memory.assistant",
       "executor": "memory.RunAssistant",
-      "trigger": "CreateAssistantRun与RecoverAssistantLeases创建"
+      "trigger": "CreateAssistantRun与RecoverAssistantLeases创建",
+      "managementPermission": "memory.manage"
     },
     {
       "type": "memory.overview",
       "executor": "memory.UpdateProjectOverview",
       "trigger": "每日定时；CountPublication累计20篇新发布时创建",
-      "schedule": "0 4 * * *"
+      "schedule": "0 4 * * *",
+      "managementPermission": "memory.manage"
     }
   ],
   "backgroundTasks": [

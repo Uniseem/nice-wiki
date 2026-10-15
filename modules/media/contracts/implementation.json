@@ -4928,7 +4928,8 @@
     {
       "type": "media.cleanup",
       "executor": "media.ExecuteManualCleanup",
-      "trigger": "ConfirmManualCleanup创建，notBefore≥24小时"
+      "trigger": "ConfirmManualCleanup创建，notBefore≥24小时",
+      "managementPermission": "media.manage"
     }
   ],
   "backgroundTasks": [

@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"nice-wiki/libs/platform"
@@ -20,11 +22,11 @@ type CSRFVerifier struct {
 	Client IdentityCSRFClient
 }
 
-func (v CSRFVerifier) VerifySessionCSRF(ctx context.Context, sessionID, csrfToken, origin string) (bool, error) {
+func (v CSRFVerifier) VerifySessionCSRF(ctx context.Context, accessToken, csrfToken, origin string) (bool, error) {
 	if v.Client == nil {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "身份校验客户端未装配")
 	}
-	if sessionID == "" || csrfToken == "" || origin == "" {
+	if accessToken == "" || csrfToken == "" || origin == "" {
 		return false, platform.NewError(platform.CodeValidation, false, "CSRF校验请求不完整")
 	}
 	op, ok := platform.OperationContextFrom(ctx)
@@ -32,9 +34,9 @@ func (v CSRFVerifier) VerifySessionCSRF(ctx context.Context, sessionID, csrfToke
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "CSRF校验缺少可信操作上下文")
 	}
 	raw, err := v.Client.VerifySessionCSRF(platform.WithOperationContext(ctx, op), map[string]string{
-		"sessionId": sessionID,
-		"csrfToken": csrfToken,
-		"origin":    origin,
+		"accessToken": accessToken,
+		"csrfToken":   csrfToken,
+		"origin":      origin,
 	})
 	if err != nil {
 		return false, err
@@ -118,13 +120,17 @@ func normalizeOrigin(raw string) (string, error) {
 		return "", platform.NewError(platform.CodeValidation, false, "Origin主机不合法")
 	}
 	port := parsed.Port()
-	if port == "" || (scheme == "http" && port == "80") || (scheme == "https" && port == "443") {
-		port = ""
-	}
 	if port == "" {
-		return scheme + "://" + host, nil
+		port = "443"
+		if scheme == "http" {
+			port = "80"
+		}
 	}
-	return scheme + "://" + host + ":" + port, nil
+	value, err := strconv.Atoi(port)
+	if err != nil || value < 1 || value > 65535 {
+		return "", platform.NewError(platform.CodeValidation, false, "Origin端口不合法")
+	}
+	return scheme + "://" + net.JoinHostPort(host, strconv.Itoa(value)), nil
 }
 
 func sameHost(origin, host string) bool {
@@ -132,9 +138,6 @@ func sameHost(origin, host string) bool {
 	if err != nil {
 		return false
 	}
-	host = strings.ToLower(strings.TrimSpace(host))
-	if parsed.Port() == "" {
-		return host == parsed.Hostname() || host == parsed.Host
-	}
-	return host == parsed.Host
+	candidate, err := normalizeOrigin(parsed.Scheme + "://" + strings.ToLower(strings.TrimSpace(host)))
+	return err == nil && candidate == origin
 }

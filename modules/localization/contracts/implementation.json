@@ -7183,17 +7183,20 @@
     {
       "type": "localization.document",
       "executor": "localization.ExecuteTranslation",
-      "trigger": "HandlePublication、CreateTranslation、ApproveLanguagePlan、RecoverTranslationLeases创建"
+      "trigger": "HandlePublication、CreateTranslation、ApproveLanguagePlan、RecoverTranslationLeases创建",
+      "managementPermission": "localization.manage"
     },
     {
       "type": "localization.ui",
       "executor": "localization.TranslateInterfaceCatalog",
-      "trigger": "ApproveLanguagePlan与RequestInterfaceTranslation创建"
+      "trigger": "ApproveLanguagePlan与RequestInterfaceTranslation创建",
+      "managementPermission": "localization.manage"
     },
     {
       "type": "localization.cache-answer",
       "executor": "localization.ExecuteCacheAnswerTranslation",
-      "trigger": "TranslateCachedAnswer创建"
+      "trigger": "TranslateCachedAnswer创建",
+      "managementPermission": "localization.manage"
     }
   ],
   "backgroundTasks": [

@@ -62,7 +62,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 			return ProxyRequestResult{}, platform.NewError(platform.CodeForbidden, false, "请求来源不受信任")
 		}
 	}
-	if requestHasSession && isWrite {
+	if requestHasSession && isWrite && route.Definition.Permission.Permission != "anonymous" {
 		// 合同只定义 X-CSRF-Token 请求头，由 identity 核对其与会话绑定；
 		// 没有可供双提交比对的独立 CSRF cookie，不再拿请求头与自身比较。
 		_, err := VerifyCSRF(WithProxyRuntime(withOrigin(ctx, origin), runtime), op, VerifyCSRFInput{
@@ -76,9 +76,11 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 
 	var proof InternalProof
 	if route.Definition.Permission.Permission != "anonymous" {
+		required := route.Definition.Permission
+		required.Action = route.Definition.Owner + ":" + route.Definition.UpstreamOperationID
 		authResult, authErr := ResolveAuthContext(ctx, op, ResolveAuthContextInput{
 			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
-			Required: route.Definition.Permission,
+			Required: required,
 		})
 		if authErr != nil {
 			return ProxyRequestResult{}, authErr
@@ -86,7 +88,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		if _, err := AuthorizeRoute(AuthorizeRouteInput{Auth: authResult.Auth, Route: route}); err != nil {
 			return ProxyRequestResult{}, err
 		}
-		proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.SigningKey), op, BuildInternalProofInput{
+		proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
 			Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
 			ExpiresAt: proofExpiry(op, authResult.Auth),
 		})
@@ -135,14 +137,14 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 		}
 		target += "?" + runtime.Query
 	}
-	requestCtx := ctx
+	requestCtx, cancel := context.WithCancel(ctx)
 	if input.Route.Definition.TimeoutMS > 0 {
-		var cancel context.CancelFunc
+		cancel()
 		requestCtx, cancel = context.WithTimeout(ctx, time.Duration(input.Route.Definition.TimeoutMS)*time.Millisecond)
-		defer cancel()
 	}
 	request, err := http.NewRequestWithContext(requestCtx, input.Route.Definition.Method, target, bytes.NewReader(runtime.Body))
 	if err != nil {
+		cancel()
 		return ForwardRequestResult{}, platform.NewError(platform.CodeValidation, false, "上游请求构造失败")
 	}
 	applyHeaderMap(request.Header, runtime.Headers)
@@ -151,13 +153,21 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 	}
 	request.Header.Set("Accept", runtime.Request.Header.Get("Accept"))
 	if runtime.SigningKey.KeyID == "" {
+		cancel()
 		return ForwardRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口服务密钥未装配")
 	}
-	client := &http.Client{Transport: serviceauth.SigningTransport("portal", input.Route.Definition.Owner, runtime.SigningKey, nil)}
+	client := &http.Client{Transport: serviceauth.SigningTransport("portal", input.Route.Definition.Owner, runtime.SigningKey, nil),
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
 	request = request.WithContext(platform.WithOperationContext(request.Context(), op))
 	response, err := client.Do(request)
 	if err != nil {
-		if requestCtx.Err() != nil {
+		contextErr := requestCtx.Err()
+		cancel()
+		if contextErr == context.Canceled {
+			return ForwardRequestResult{}, platform.NewError(platform.CodeCancelled, false, "上游请求已取消")
+		}
+		if contextErr == context.DeadlineExceeded {
 			return ForwardRequestResult{}, platform.NewError(platform.CodeDeadlineExceeded, true, "上游请求超时")
 		}
 		return ForwardRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "拥有服务不可达")
@@ -167,6 +177,7 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 		Headers:      headerMapFromHTTP(response.Header),
 		StreamHandle: platform.NewIdentifier(),
 		Response:     response,
+		Cancel:       cancel,
 	}}, nil
 }
 
@@ -177,6 +188,7 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 		return StreamResponseResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "响应流运行时未装配")
 	}
 	response := input.Upstream.Response
+	defer input.Upstream.Cancel()
 	defer response.Body.Close()
 	for _, entry := range input.Upstream.Headers.Entries {
 		if !responseHeaderAllowed(entry.Name) {

@@ -249,7 +249,10 @@
           "steps": [
             "用portal委托公钥验签，拒绝未知key与过期（≤10秒）",
             "核route与bodyHash；下游链路允许原样转发同一证明",
-            "返回actor、grants与sessionVersion；权限仍须由业务函数经identity:checkAuthorization核实"
+            "返回actor、grants与sessionVersion；权限仍须由业务函数经identity:checkAuthorization核实",
+            "SessionVersion必须等于actor.sessionRevision；admin委托必须携带非空sessionId与正会话版本，缺失即拒绝",
+            "委托过期按当前时间严格拒绝，不套用服务断言30秒时钟容差；剩余期限不得超过10秒；header typ固定JWT",
+            "CallerService必须取已验签服务断言issuer；portal首跳核proof原bodyHash，后续已认证服务跳原样保留原proof，当前正文只由本跳服务断言绑定，各域再核权限和资源"
           ],
           "errors": [
             {
@@ -430,6 +433,311 @@
             "受控Ed25519密钥引用"
           ],
           "contract": "reference"
+        },
+        {
+          "id": "platform.SignSessionAccess",
+          "name": "SignSessionAccess",
+          "signature": "func SignSessionAccess(key SigningKey, claims SessionAccessClaims) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "identity受控签名密钥引用",
+              "constraints": [
+                "不记录私钥"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "SessionAccessClaims",
+              "description": "会话及版本声明",
+              "constraints": [
+                "期限不超过900秒"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "string",
+              "description": "成功结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不含secret/原文"
+              ]
+            }
+          ],
+          "purpose": "签发固定用途的会话访问令牌",
+          "steps": [
+            "固定iss=identity、aud=portal、alg=EdDSA、typ=NW-SESSION；核对标识、单调版本和iat/exp",
+            "复用LoadSigningKey签发，返回compact JWS；不读取会话业务库"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不满足本函数约束",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "密钥或随机源不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取受控密钥引用或CSPRNG；不持有业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查"
+          },
+          "concurrency": "无共享业务可变状态；密钥缓存复用LoadSigningKey",
+          "idempotency": "签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文",
+          "dependencies": [
+            "platform.validSessionClaims"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.VerifySessionAccess",
+          "name": "VerifySessionAccess",
+          "signature": "func VerifySessionAccess(anchors TrustAnchors, token string) (SessionAccessClaims, error)",
+          "inputs": [
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "受控identity公钥表",
+              "constraints": [
+                "固定发行方identity"
+              ]
+            },
+            {
+              "name": "token",
+              "type": "string",
+              "description": "浏览器访问令牌",
+              "constraints": [
+                "最多4096字节"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SessionAccessClaims",
+              "description": "成功结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不含secret/原文"
+              ]
+            }
+          ],
+          "purpose": "验证固定用途的会话访问令牌",
+          "steps": [
+            "只接受EdDSA与NW-SESSION，按固定identity/kid取得公钥验签",
+            "核固定issuer/audience、全部标识/版本、iat/exp；到期即拒绝，签发时间只容许30秒未来偏差",
+            "返回已验证声明，调用方仍须同步检查会话、账户、凭据、权限和认证代次权威"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "声明或签名不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "密钥或随机源不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取受控密钥引用或CSPRNG；不持有业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查"
+          },
+          "concurrency": "无共享业务可变状态；密钥缓存复用LoadSigningKey",
+          "idempotency": "签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文",
+          "dependencies": [
+            "platform.validSessionClaims"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.GenerateSessionSecrets",
+          "name": "GenerateSessionSecrets",
+          "signature": "func GenerateSessionSecrets() (SessionSecrets, error)",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SessionSecrets",
+              "description": "成功结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不含secret/原文"
+              ]
+            }
+          ],
+          "purpose": "生成会话独立随机秘密",
+          "steps": [
+            "crypto/rand分别产生三个独立32字节随机值；accessNonce使用hex编码，refresh/csrf使用无填充base64url",
+            "秘密只在内存中交给identity，不落日志或通用回执；随机源失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不满足本函数约束",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "密钥或随机源不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取受控密钥引用或CSPRNG；不持有业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查"
+          },
+          "concurrency": "无共享业务可变状态；密钥缓存复用LoadSigningKey",
+          "idempotency": "签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SignDelegation",
+          "name": "SignDelegation",
+          "signature": "func SignDelegation(key SigningKey, claims DelegationClaims) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "portal受控委托密钥引用",
+              "constraints": [
+                "不记录私钥"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "DelegationClaims",
+              "description": "已授权主体与路由/正文摘要",
+              "constraints": [
+                "有效期最多10秒"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "string",
+              "description": "成功结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不含secret/原文"
+              ]
+            }
+          ],
+          "purpose": "统一签发portal用户委托证明",
+          "steps": [
+            "核委托声明与十秒期限，复用LoadSigningKey签发固定EdDSA JWS",
+            "portal只装配参数，不自写签名机制"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不满足本函数约束",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "密钥或随机源不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取受控密钥引用或CSPRNG；不持有业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由服务可信装配调用；会话发行仅identity，委托发行仅portal，业务授权由调用链检查"
+          },
+          "concurrency": "无共享业务可变状态；密钥缓存复用LoadSigningKey",
+          "idempotency": "签名同key/claims确定；随机秘密每次独立，不重放旧refresh明文",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validSessionClaims",
+          "name": "validSessionClaims",
+          "signature": "func validSessionClaims(claims SessionAccessClaims) bool",
+          "inputs": [
+            {
+              "name": "claims",
+              "type": "SessionAccessClaims",
+              "description": "已解码或准备签名的会话声明",
+              "constraints": [
+                "固定会话用途"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "valid",
+              "type": "bool",
+              "description": "关键声明满足访问令牌约束",
+              "constraints": [
+                "不替代业务权威授权"
+              ]
+            }
+          ],
+          "purpose": "共用会话访问声明的标识和期限核对",
+          "steps": [
+            "核固定发行方接收方、标识及非负版本，iat最多未来30秒，exp未过且有效期最多900秒"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "库内纯校验",
+          "concurrency": "只读，可并发",
+          "idempotency": "相同声明在相同时间水位下结果一致",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -499,7 +807,8 @@
             "VerifyAssertion确定callerService；有X-Portal-Proof时VerifyDelegation得到actor",
             "读取X-Operation-Id、X-Root-Operation-Id、X-Cost-Class（只接受可信调用方传递）、截止与取消标识",
             "dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH",
-            "浏览器自报的身份、费用类别、网络作用域一律忽略"
+            "浏览器自报的身份、费用类别、网络作用域一律忽略",
+            "先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文"
           ],
           "errors": [
             {
@@ -961,7 +1270,11 @@
             "jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消",
             "写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob",
             "lease过期立即停止写入，不重放已派发模型调用",
-            "写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约"
+            "写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约",
+            "Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果",
+            "WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作",
+            "每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认",
+            "runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许"
           ],
           "errors": [
             {
@@ -985,10 +1298,56 @@
             "jobs:heartbeatJob",
             "jobs:checkLease",
             "jobs:completeJob",
-            "jobs:failJob"
+            "jobs:failJob",
+            "platform.workerControlContext"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.workerControlContext",
+          "name": "workerControlContext",
+          "signature": "func workerControlContext(ctx context.Context, op OperationContext) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "下游IO取消与截止",
+              "constraints": [
+                "原样传递"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "原任务可信操作",
+              "constraints": [
+                "费用根不变"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "携带新控制子操作的上下文",
+              "constraints": [
+                "保留rootOperationId/actor/dataEpoch/预算/期限"
+              ]
+            }
+          ],
+          "purpose": "为独立worker控制请求分配幂等键",
+          "steps": [
+            "只更换OperationID，保留原费用根、主体、预算、截止和dataEpoch"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "进程内可信worker调用",
+          "concurrency": "每次生成独立ID",
+          "idempotency": "同一次下游请求重试复用返回上下文，不跨心跳或fence复用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1140,7 +1499,9 @@
           "steps": [
             "读取配置文件，拒绝未知字段",
             "按优先级合并并校验端口、数据根、依赖地址与secret引用",
-            "secret只保存引用路径，不读入日志"
+            "secret只保存引用路径，不读入日志",
+            "读取NW_PUBLIC_BASE_URL和NW_ALLOW_LOCAL_HTTP；配置来源不可被请求Host覆盖；非空地址禁userinfo/query/fragment，HTTP仅显式loopback本地开发",
+            "portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件"
           ],
           "errors": [
             {

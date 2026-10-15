@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,25 +32,27 @@ const (
 )
 
 type Application struct {
-	config       platform.ServiceConfig
-	anchors      platform.TrustAnchors
-	signingKey   platform.SigningKey
-	runtime      portal.RuntimeReader
-	identity     portal.IdentityVerifier
-	registry     portal.RouteRegistry
-	openedEpoch  platform.Identifier
-	gate         *portal.Gate
-	state        atomic.Int32
-	serveStarted atomic.Bool
-	shutdownOnce sync.Once
-	shutdownErr  error
-	httpServer   *http.Server
+	config        platform.ServiceConfig
+	anchors       platform.TrustAnchors
+	signingKey    platform.SigningKey
+	delegationKey platform.SigningKey
+	runtime       portal.RuntimeReader
+	identity      portal.IdentityVerifier
+	authResolver  portal.AuthResolver
+	registry      portal.RouteRegistry
+	openedEpoch   platform.Identifier
+	gate          *portal.Gate
+	state         atomic.Int32
+	serveStarted  atomic.Bool
+	shutdownOnce  sync.Once
+	shutdownErr   error
+	httpServer    *http.Server
 }
 
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, registry portal.RouteRegistry, openedEpoch platform.Identifier) *Application {
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) *Application {
 	application := &Application{
-		config: config, anchors: anchors, signingKey: signingKey, runtime: runtime,
-		identity: identity, registry: registry, openedEpoch: openedEpoch, gate: portal.NewGate(),
+		config: config, anchors: anchors, signingKey: signingKey, delegationKey: delegationKey, runtime: runtime,
+		identity: identity, authResolver: authResolver, registry: registry, openedEpoch: openedEpoch, gate: portal.NewGate(),
 	}
 	mux := http.NewServeMux()
 	application.registerLocalRoutes(mux)
@@ -122,17 +125,21 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	op := platform.OperationContext{
 		RequestID: requestID, OperationID: operationID, RootOperationID: operationID,
 		CallerService: moduleName, Deadline: platform.Timestamp(deadline), DataEpoch: a.openedEpoch,
-		Actor: platform.AuthContext{Kind: "anonymous", SiteID: "system", ExpiresAt: platform.Timestamp(deadline)},
+		Actor: platform.AuthContext{Kind: "visitor", SubjectID: "anonymous", SiteID: "system", ExpiresAt: platform.Timestamp(deadline)},
 	}
 	headers := headerMap(r.Header)
-	scheme := requestScheme(r)
+	var origins []string
+	if configured, err := url.Parse(a.config.PublicBaseURL); err == nil && configured.Host != "" {
+		origins = []string{configured.Scheme + "://" + configured.Host}
+	}
 	runtime := &portal.ProxyRuntime{
-		Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey,
+		Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
-		ConfiguredOrigins: []string{scheme + "://" + r.Host},
+		ConfiguredOrigins: origins,
 	}
 	ctx := portal.WithProxyRuntime(r.Context(), runtime)
+	ctx = portal.WithAuthResolver(ctx, a.authResolver)
 	result, err := portal.ProxyRequest(ctx, op, portal.ProxyRequestInput{
 		Method: r.Method, RawPath: r.URL.EscapedPath(), ContentLength: r.ContentLength,
 	})

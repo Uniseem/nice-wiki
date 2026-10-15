@@ -2,14 +2,14 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 38 个：手写 15、UI 7、生成 6、配置 10。函数 52 个：约束 15，参考 37。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 38 个：手写 15、UI 7、生成 6、配置 10。函数 53 个：约束 15，参考 38。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/portal/internal/route_registry.go` | 手写 | 校验并编译公开与管理 API 的静态路由表 | `portal.CompileRouteRegistry`（参考）、`portal.ResolveRoute`（参考） |
 | `modules/portal/internal/request_validation.go` | 手写 | 限制请求体、请求头与 operationId | `portal.ValidateEnvelope`（参考）、`portal.NormalizeForwardHeaders`（参考） |
 | `modules/portal/internal/origin_guard.go` | 手写 | 对写入及凭据请求检查来源 | `portal.AssertSameOrigin`（参考）、`portal.VerifyCSRF`（参考） |
-| `modules/portal/internal/auth_proof.go` | 手写 | 取得经 identity 校验的当前权限上下文 | `portal.ResolveAuthContext`（参考）、`portal.BuildInternalProof`（参考）、`portal.AuthorizeRoute`（参考） |
+| `modules/portal/internal/auth_proof.go` | 手写 | 取得经 identity 校验的当前权限上下文 | `portal.ResolveAuthContext`（参考）、`portal.BuildInternalProof`（参考）、`portal.AuthorizeRoute`（参考）、`portal.Resolve`（参考） |
 | `modules/portal/internal/proxy_stream.go` | 手写 | 发送一次有界请求到拥有服务 | `portal.ForwardRequest`（参考）、`portal.StreamResponse`（参考）、`portal.MapUpstreamFailure`（参考）、`portal.ProxyRequest` |
 | `modules/portal/internal/bootstrap_service.go` | 手写 | 聚合当前站点与用户后台壳信息 | `portal.LoadBootstrap`、`portal.BuildCapabilities`（参考）、`portal.BuildNavigation`（参考） |
 | `modules/portal/internal/preferences_service.go` | 手写 | 读取用户的显示偏好 | `portal.ReadPreferences`、`portal.UpdatePreferences`、`portal.ValidatePreferenceRoute`（参考） |

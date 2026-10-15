@@ -35,6 +35,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	delegationKey, err := loadSigningKey(config.DelegationKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	if anchors.DelegationKeyID(delegationKey.KeyID) == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "入口委托密钥未登记在专用信任锚")
+	}
 	runtimeClient, err := NewRuntimeClient(config)
 	if err != nil {
 		return nil, err
@@ -55,10 +62,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	var csrfVerifier portal.IdentityVerifier
+	var authResolver portal.AuthResolver
 	if base := config.Dependencies["identity"]; base != "" {
-		csrfVerifier = portal.CSRFVerifier{Client: gen.NewIdentityClient(base, ModuleSlug, key)}
+		client := gen.NewIdentityClient(base, ModuleSlug, key)
+		csrfVerifier = portal.CSRFVerifier{Client: client}
+		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
-	return transport.NewApplication(config, anchors, key, runtimeClient, csrfVerifier, routes, view.DataEpoch), nil
+	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch), nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存

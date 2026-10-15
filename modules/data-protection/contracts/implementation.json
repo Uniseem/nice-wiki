@@ -5691,12 +5691,14 @@
     {
       "type": "data-protection.backup",
       "executor": "data-protection.ExecuteBackup",
-      "trigger": "CreateBackup与ScheduleLocalBackup登记的每日定时"
+      "trigger": "CreateBackup与ScheduleLocalBackup登记的每日定时",
+      "managementPermission": "backup.manage"
     },
     {
       "type": "data-protection.restore",
       "executor": "data-protection.ExecuteRestore",
-      "trigger": "CreateRestore与RestoreDuringSetup创建"
+      "trigger": "CreateRestore与RestoreDuringSetup创建",
+      "managementPermission": "backup.manage"
     }
   ],
   "backgroundTasks": [

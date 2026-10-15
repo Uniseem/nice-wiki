@@ -6992,17 +6992,20 @@
     {
       "type": "qa.turn",
       "executor": "qa.ExecuteTurn",
-      "trigger": "StartTurn与排队轮次出队时创建"
+      "trigger": "StartTurn与排队轮次出队时创建",
+      "managementPermission": "qa.manage"
     },
     {
       "type": "qa.compact",
       "executor": "qa.RunCompaction",
-      "trigger": "CreateCompaction创建"
+      "trigger": "CreateCompaction创建",
+      "managementPermission": "qa.manage"
     },
     {
       "type": "qa.cache-embedding",
       "executor": "qa.BuildCacheEmbedding",
-      "trigger": "ApproveCacheEntry创建"
+      "trigger": "ApproveCacheEntry创建",
+      "managementPermission": "qa.manage"
     }
   ],
   "backgroundTasks": [

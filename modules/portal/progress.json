@@ -2,11 +2,11 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "8a606b77659975834beb2722bdc84422671e6b82c5882c8a60d5c128e6bfb78b",
+  "contractSha256": "ca5016b6f48377d4c4be5da49db93f1e5ed3840ec9b9c7baf947d5c60b54ce57",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "portal-route-gate",
-  "branch": "codex/portal-route-gate",
-  "baseCommit": "dc803f1d92f3b9d528ec92e11e929f544bd6a9a1",
+  "assignedSession": "R1持续实施第一轮统一复核",
+  "branch": "codex/continuous-r1-cycle01",
+  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
   "deliveryCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
   "deployment": "not_started",
   "files": [
@@ -963,7 +963,18 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "portal.Resolve",
+      "path": "modules/portal/internal/auth_proof.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施身份接线，待VPS生成与编译"
     }
   ],
-  "rule": "本次仅交付路由/入口安全/维护门禁与HTTP外壳首片；跨域授权上下文、bootstrap/偏好/SSE、审计、UI及容器镜像仍planned或blocked，不以fail-closed响应冒充业务完成。"
+  "rule": "本轮公共支持与授权链修复在集成分支，最终VPS与实际提交映射完成后更新状态；行为验收和部署未执行。"
 }

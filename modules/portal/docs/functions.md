@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 52 个函数：约束 15 个，参考 37 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 53 个函数：约束 15 个，参考 38 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -193,6 +193,7 @@ func AssertSameOrigin(input AssertSameOriginInput) (AssertSameOriginResult, erro
 1. 解析完整 Origin
 2. 按 scheme/host/port 规范比较
 3. 拒绝缺失或不匹配的写入 Origin
+4. 规范化scheme/主机/有效端口，IPv6用方括号与net.JoinHostPort；Host显式默认端口与省略默认端口等价
 
 **错误**
 
@@ -277,6 +278,7 @@ func ResolveAuthContext(ctx context.Context, op OperationContext, input ResolveA
 1. 按 cookie 查会话
 2. 向 identity 查询 session 与权限 revision
 3. 校验站点和资源权限并返回 proof
+4. 使用identity:checkAuthorization的portal accessToken模式，action固定为当前静态owner:operationId，不能由浏览器自报主体或动作
 
 **错误**
 
@@ -288,7 +290,7 @@ func ResolveAuthContext(ctx context.Context, op OperationContext, input ResolveA
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：每请求结果不可跨站点缓存；缓存上限 5 秒且强制撤回检查
 - 幂等：读操作
-- 依赖：`identity:checkAuthorization`
+- 依赖：`identity:checkAuthorization`、`portal.Resolve`
 
 ## portal.BuildInternalProof
 
@@ -320,6 +322,7 @@ func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInt
 1. 绑定 service audience、method、path、body digest
 2. 约束 expiry 不超过 10 秒及源 auth expiry
 3. 使用入口专有密钥签名
+4. SessionVersion取identity权威返回的auth.sessionRevision，不能用permissionRevision代替
 
 **错误**
 
@@ -329,7 +332,7 @@ func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInt
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：签名器线程安全；nonce 每请求唯一
 - 幂等：不同请求 nonce 不同
-- 依赖：`portal.AuthorizeRoute`
+- 依赖：`portal.AuthorizeRoute`、`platform.SignDelegation`
 
 ## portal.AuthorizeRoute
 
@@ -371,6 +374,48 @@ func AuthorizeRoute(input AuthorizeRouteInput) (AuthorizeRouteResult, error)
 - 幂等：纯函数
 - 依赖：无
 
+## portal.Resolve
+
+- 级别：参考
+- 文件：`modules/portal/internal/auth_proof.go`
+- 作用：通过identity版本化接口解析当前会话与动作授权
+
+```go
+func (r IdentityAuthResolver) Resolve(ctx context.Context, cookies SessionCookies, required PermissionRequirement) (AuthContext, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 传播请求取消与可信op | 由入口构造 |
+| `cookies` | `SessionCookies` | 仅提取会话访问token | 禁止日志 |
+| `required` | `PermissionRequirement` | 静态路由所需权限与动作 | 不能由客户端覆盖 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `auth` | `AuthContext` | identity当前权威授权结果 | 无error才有效 |
+| `error` | `error` | 公共安全失败 | 不含token |
+
+**步骤**
+
+1. 用accessToken/permission/action调用identity:checkAuthorization，不传浏览器自报subject/site
+2. 身份依赖失败关闭，authorized=false拒绝；成功返回权威AuthContext
+3. access模式仅发送accessToken/permission/action，不夹带subject/site/session/resource/expectedPermissionRevision即使为null
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：identity不可用或响应格式不合法（可重试）
+- `FORBIDDEN`：当前主体无操作权限（不可重试）
+
+- 副作用：HTTP调用identity
+- 授权：由已解析静态路由的portal入口调用
+- 并发：客户端可并发，不缓存允许结果
+- 幂等：只读
+- 依赖：`identity:checkAuthorization`
+
 ## portal.ForwardRequest
 
 - 级别：参考
@@ -401,6 +446,7 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 1. 构建固定上游地址
 2. 设置 route timeout、取消与流限制
 3. 执行调用并保留可审计 requestId
+4. 禁止自动跟随重定向，透传拥有服务原3xx；上游请求ctx取消句柄随响应移交StreamResponse，不能在返回响应头时取消
 
 **错误**
 
@@ -444,6 +490,7 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 1. 校验状态/头白名单
 2. 保持 Content-Range、ETag 与内容长度
 3. 分块复制并在断开时取消读取
+4. 关闭上游Body后释放ForwardRequest的请求取消句柄，SSE和大响应仍受同一请求截止及浏览器取消控制
 
 **错误**
 
@@ -527,6 +574,8 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 3. 路由标记x-admission的公开AI请求：从可信代理链取访客地址（只在内存），携访客会话、动作与请求摘要调用traffic-guard:createAdmission；拒绝返回429/403与retryAfter或挑战要求，通过则附X-Admission-Permit头
 4. ForwardRequest以本服务断言与委托证明转发；StreamResponse有背压地回传（SSE与Range透传），失败经MapUpstreamFailure映射
 5. RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计
+6. 账户权限写请求检查CSRF；anonymous凭证登录/刷新和公开请求仍要求固定部署Origin但不要求有效access，避免过期令牌阻断refresh
+7. 用户proof只用专用委托密钥，服务HTTP断言仍使用服务密钥，两个用途不互换
 
 **错误**
 
@@ -1912,6 +1961,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 装配IdentityAuthResolver与CSRFVerifier；可信Origin只来自platform.ServiceConfig.publicBaseURL，不从请求Host反推
+8. 分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭
 
 **错误**
 

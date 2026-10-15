@@ -359,7 +359,8 @@
           "steps": [
             "解析完整 Origin",
             "按 scheme/host/port 规范比较",
-            "拒绝缺失或不匹配的写入 Origin"
+            "拒绝缺失或不匹配的写入 Origin",
+            "规范化scheme/主机/有效端口，IPv6用方括号与net.JoinHostPort；Host显式默认端口与省略默认端口等价"
           ],
           "errors": [
             {
@@ -530,7 +531,8 @@
           "steps": [
             "按 cookie 查会话",
             "向 identity 查询 session 与权限 revision",
-            "校验站点和资源权限并返回 proof"
+            "校验站点和资源权限并返回 proof",
+            "使用identity:checkAuthorization的portal accessToken模式，action固定为当前静态owner:operationId，不能由浏览器自报主体或动作"
           ],
           "errors": [
             {
@@ -556,7 +558,8 @@
           "concurrency": "每请求结果不可跨站点缓存；缓存上限 5 秒且强制撤回检查",
           "idempotency": "读操作",
           "dependencies": [
-            "identity:checkAuthorization"
+            "identity:checkAuthorization",
+            "portal.Resolve"
           ],
           "resources": [],
           "contract": "reference"
@@ -617,7 +620,8 @@
           "steps": [
             "绑定 service audience、method、path、body digest",
             "约束 expiry 不超过 10 秒及源 auth expiry",
-            "使用入口专有密钥签名"
+            "使用入口专有密钥签名",
+            "SessionVersion取identity权威返回的auth.sessionRevision，不能用permissionRevision代替"
           ],
           "errors": [
             {
@@ -633,7 +637,8 @@
           "concurrency": "签名器线程安全；nonce 每请求唯一",
           "idempotency": "不同请求 nonce 不同",
           "dependencies": [
-            "portal.AuthorizeRoute"
+            "portal.AuthorizeRoute",
+            "platform.SignDelegation"
           ],
           "resources": [],
           "contract": "reference"
@@ -696,6 +701,84 @@
           "concurrency": "不可变 auth",
           "idempotency": "纯函数",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.Resolve",
+          "name": "Resolve",
+          "signature": "func (r IdentityAuthResolver) Resolve(ctx context.Context, cookies SessionCookies, required PermissionRequirement) (AuthContext, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "传播请求取消与可信op",
+              "constraints": [
+                "由入口构造"
+              ]
+            },
+            {
+              "name": "cookies",
+              "type": "SessionCookies",
+              "description": "仅提取会话访问token",
+              "constraints": [
+                "禁止日志"
+              ]
+            },
+            {
+              "name": "required",
+              "type": "PermissionRequirement",
+              "description": "静态路由所需权限与动作",
+              "constraints": [
+                "不能由客户端覆盖"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "auth",
+              "type": "AuthContext",
+              "description": "identity当前权威授权结果",
+              "constraints": [
+                "无error才有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "公共安全失败",
+              "constraints": [
+                "不含token"
+              ]
+            }
+          ],
+          "purpose": "通过identity版本化接口解析当前会话与动作授权",
+          "steps": [
+            "用accessToken/permission/action调用identity:checkAuthorization，不传浏览器自报subject/site",
+            "身份依赖失败关闭，authorized=false拒绝；成功返回权威AuthContext",
+            "access模式仅发送accessToken/permission/action，不夹带subject/site/session/resource/expectedPermissionRevision即使为null"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "identity不可用或响应格式不合法",
+              "retryable": true
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前主体无操作权限",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用identity"
+          ],
+          "authorization": "由已解析静态路由的portal入口调用",
+          "concurrency": "客户端可并发，不缓存允许结果",
+          "idempotency": "只读",
+          "dependencies": [
+            "identity:checkAuthorization"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -764,7 +847,8 @@
           "steps": [
             "构建固定上游地址",
             "设置 route timeout、取消与流限制",
-            "执行调用并保留可审计 requestId"
+            "执行调用并保留可审计 requestId",
+            "禁止自动跟随重定向，透传拥有服务原3xx；上游请求ctx取消句柄随响应移交StreamResponse，不能在返回响应头时取消"
           ],
           "errors": [
             {
@@ -853,7 +937,8 @@
           "steps": [
             "校验状态/头白名单",
             "保持 Content-Range、ETag 与内容长度",
-            "分块复制并在断开时取消读取"
+            "分块复制并在断开时取消读取",
+            "关闭上游Body后释放ForwardRequest的请求取消句柄，SSE和大响应仍受同一请求截止及浏览器取消控制"
           ],
           "errors": [
             {
@@ -990,7 +1075,9 @@
             "写入或带凭据请求先AssertSameOrigin与VerifyCSRF；管理路由ResolveAuthContext经identity核会话与权限，AuthorizeRoute预检，BuildInternalProof签发≤10秒用户委托证明",
             "路由标记x-admission的公开AI请求：从可信代理链取访客地址（只在内存），携访客会话、动作与请求摘要调用traffic-guard:createAdmission；拒绝返回429/403与retryAfter或挑战要求，通过则附X-Admission-Permit头",
             "ForwardRequest以本服务断言与委托证明转发；StreamResponse有背压地回传（SSE与Range透传），失败经MapUpstreamFailure映射",
-            "RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计"
+            "RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计",
+            "账户权限写请求检查CSRF；anonymous凭证登录/刷新和公开请求仍要求固定部署Origin但不要求有效access，避免过期令牌阻断refresh",
+            "用户proof只用专用委托密钥，服务HTTP断言仍使用服务密钥，两个用途不互换"
           ],
           "errors": [
             {
@@ -3508,7 +3595,9 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "装配IdentityAuthResolver与CSRFVerifier；可信Origin只来自platform.ServiceConfig.publicBaseURL，不从请求Host反推",
+            "分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭"
           ],
           "errors": [
             {

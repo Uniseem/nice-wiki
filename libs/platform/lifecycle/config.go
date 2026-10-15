@@ -7,6 +7,7 @@ package lifecycle
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -43,7 +44,9 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 	if config.Dependencies == nil {
 		config.Dependencies = map[string]string{}
 	}
-	applyEnv(env, &config)
+	if err := applyEnv(env, &config); err != nil {
+		return platform.ServiceConfig{}, err
+	}
 	applyFlags(flags, &config)
 	if err := validateConfig(config); err != nil {
 		return platform.ServiceConfig{}, err
@@ -120,7 +123,7 @@ func loadConfigFile(path string, config *platform.ServiceConfig) error {
 }
 
 // applyEnv 只读取NW_前缀环境变量；依赖地址形如NW_DEP_<SLUG>。
-func applyEnv(env []string, config *platform.ServiceConfig) {
+func applyEnv(env []string, config *platform.ServiceConfig) error {
 	for _, entry := range env {
 		name, value, found := strings.Cut(entry, "=")
 		if !found || !strings.HasPrefix(name, envPrefix) {
@@ -138,12 +141,23 @@ func applyEnv(env []string, config *platform.ServiceConfig) {
 			config.TrustAnchorRef = value
 		case "SIGNING_KEY_REF":
 			config.SigningKeyRef = value
+		case "DELEGATION_KEY_REF":
+			config.DelegationKeyRef = value
+		case "PUBLIC_BASE_URL":
+			config.PublicBaseURL = value
+		case "ALLOW_LOCAL_HTTP":
+			allowed, err := strconv.ParseBool(value)
+			if err != nil {
+				return platform.NewError(platform.CodeValidation, false, "本地HTTP开关必须为布尔值")
+			}
+			config.AllowLocalHTTP = allowed
 		default:
 			if slug, ok := strings.CutPrefix(key, "DEP_"); ok && value != "" {
 				config.Dependencies[strings.ToLower(slug)] = value
 			}
 		}
 	}
+	return nil
 }
 
 func applyFlags(flags flagSet, config *platform.ServiceConfig) {
@@ -169,6 +183,9 @@ func validateConfig(config platform.ServiceConfig) error {
 	if config.TrustAnchorRef == "" || config.SigningKeyRef == "" {
 		return platform.NewError(platform.CodeValidation, false, "缺少公钥表或私钥引用")
 	}
+	if config.DelegationKeyRef != "" && !filepath.IsAbs(config.DelegationKeyRef) {
+		return platform.NewError(platform.CodeValidation, false, "委托私钥引用必须为绝对路径")
+	}
 	if len(config.Dependencies) > maxDependencies {
 		return platform.NewError(platform.CodeValidation, false, "依赖地址数量超限")
 	}
@@ -182,6 +199,25 @@ func validateConfig(config platform.ServiceConfig) error {
 		}
 		if parsed.User != nil {
 			return platform.NewError(platform.CodeValidation, false, "依赖地址不得包含URL凭证")
+		}
+	}
+	if config.PublicBaseURL != "" {
+		address, err := url.Parse(config.PublicBaseURL)
+		if err != nil || address.Hostname() == "" || address.User != nil || address.RawQuery != "" || address.Fragment != "" || address.Opaque != "" {
+			return platform.NewError(platform.CodeValidation, false, "部署公共地址不合法")
+		}
+		local := address.Hostname() == "localhost"
+		if ip := net.ParseIP(address.Hostname()); ip != nil {
+			local = ip.IsLoopback()
+		}
+		if address.Scheme != "https" && !(address.Scheme == "http" && config.AllowLocalHTTP && local) {
+			return platform.NewError(platform.CodeValidation, false, "部署公共地址必须为HTTPS，本地HTTP须显式允许")
+		}
+		if port := address.Port(); port != "" {
+			number, err := strconv.Atoi(port)
+			if err != nil || number < 1 || number > 65535 {
+				return platform.NewError(platform.CodeValidation, false, "部署公共地址端口不合法")
+			}
 		}
 	}
 	return nil

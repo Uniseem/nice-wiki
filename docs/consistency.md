@@ -27,3 +27,7 @@ site-config的dataEpoch和maintenanceRevision是权威。data-protection持久�
 每域数据根分为active（业务数据，进入快照、恢复时整体替换）、control（屏障、恢复日志、identity服务签名密钥，永不替换）与restore/<restoreId>/staged|before（暂存与换出的旧数据）。恢复不签发专用许可：stage/discard只接受data-protection服务身份携带的superadmin委托，换目录发生在进程启动时、不需要跨服务授权。identity换入后撤销全部会话，管理员用备份中的账号重新登录；恢复进度凭只读进度令牌查看。部署必须配置进程守护自动重启。
 
 data git只是允许数据的版本镜像，源历史在各域持久保存；镜像延迟显式可见，镜像不含账号/配置密钥/数据库/资源，不能代替完整备份。
+
+任务领取、完成和失败写回同时绑定owner、worker、持久fence与dataEpoch；队列持久保留rootOperationId，worker从所属域权威任务读取原主体、预算和期限，不能用启动上下文或重试生成新付费根。执行结果携完整可空ObjectRef与paidResultRefs，取消同样保留已付费结果。过期执行权先隔离为orphan并提升fence，只有owner持久确认completed或safeToRetry后才能复用结果或重排；未知结果不能凭进程健康重试。
+
+取消意图以持久cancel_requested为准，失败、重排、领取、心跳均保留；只有owner明确确认安全取消才终局cancelled。已取消任务的不明确失败进入orphan，保留已付费结果并由owner核实，不自动重跑。owner已落盘成功与取消竞争时保留成功结果。

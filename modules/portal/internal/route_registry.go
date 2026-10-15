@@ -292,6 +292,7 @@ type PermissionRequirement struct {
 	Permission string
 	ResourceID *string
 	SiteID     string
+	Action     string
 }
 
 type RouteDefinition struct {
@@ -400,6 +401,7 @@ type UpstreamResponse struct {
 	Headers      HeaderMap
 	StreamHandle string
 	Response     *http.Response
+	Cancel       context.CancelFunc `json:"-"`
 }
 type ForwardRequestInput struct {
 	Route   ResolvedRoute
@@ -496,6 +498,7 @@ type ProxyRuntime struct {
 	Registry          RouteRegistry
 	Dependencies      map[string]string
 	SigningKey        platform.SigningKey
+	DelegationKey     platform.SigningKey
 	Issuer            string
 	Request           *http.Request
 	Body              []byte
