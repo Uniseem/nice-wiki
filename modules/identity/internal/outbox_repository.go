@@ -85,25 +85,30 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 		defer func() { _ = tx.Rollback() }()
 	}
 
+	// 外部业务事务拥有请求摘要和完整结果回执，本函数只追加事件。
+	// 自有事务仍维持事件登记操作本身的幂等回执。
 	var existingDigest, state string
-	err := tx.QueryRowContext(ctx, `
+	var err error
+	if ownedTx {
+		err = tx.QueryRowContext(ctx, `
 		SELECT input_digest, state
 		FROM operation_receipts
 		WHERE site_id = ? AND actor_id = ? AND operation_id = ?`,
-		op.Actor.SiteID, op.Actor.SubjectID, op.OperationID,
-	).Scan(&existingDigest, &state)
-	switch {
-	case err == nil:
-		if existingDigest != requestHash {
-			return PublishIdentityEventResult{}, platform.NewError(platform.CodeConflict, false, "幂等操作摘要不一致")
+			op.Actor.SiteID, op.Actor.SubjectID, op.OperationID,
+		).Scan(&existingDigest, &state)
+		switch {
+		case err == nil:
+			if existingDigest != requestHash {
+				return PublishIdentityEventResult{}, platform.NewError(platform.CodeConflict, false, "幂等操作摘要不一致")
+			}
+			if state != "committed" {
+				return PublishIdentityEventResult{}, platform.NewError(platform.CodeConflict, false, "幂等回执状态不一致")
+			}
+		case errors.Is(err, sql.ErrNoRows):
+			// 首次登记，继续在同一事务写入outbox和receipt。
+		case err != nil:
+			return PublishIdentityEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "幂等回执不可读")
 		}
-		if state != "committed" {
-			return PublishIdentityEventResult{}, platform.NewError(platform.CodeConflict, false, "幂等回执状态不一致")
-		}
-	case errors.Is(err, sql.ErrNoRows):
-		// 首次登记，继续在同一事务写入outbox和receipt。
-	case err != nil:
-		return PublishIdentityEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "幂等回执不可读")
 	}
 	if err := ctx.Err(); err != nil {
 		return PublishIdentityEventResult{}, identityContextError(err)
@@ -127,7 +132,7 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 	if err := outbox.EnqueueEvent(tx, envelope); err != nil {
 		return PublishIdentityEventResult{}, mapIdentityOutboxError(err)
 	}
-	if existingDigest == "" {
+	if ownedTx && existingDigest == "" {
 		if err := ctx.Err(); err != nil {
 			return PublishIdentityEventResult{}, identityContextError(err)
 		}

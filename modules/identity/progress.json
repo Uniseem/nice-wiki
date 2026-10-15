@@ -2,12 +2,12 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "3f8d76f9740878b50b8c7fd96d8bed4e163d9344810e7dc6048945da875a73d2",
+  "contractSha256": "d933fc22ad34e08a69df1d81253f19279b49e3ca2741b5a1e81edfb80b95a999",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（账号索引、注册前置、幂等与恢复安全边界）",
-  "branch": "codex/analytics-r1-storage-contract-audit",
-  "baseCommit": "7aa44567609713b8810b9b8ca9ba61579648d55a",
-  "deliveryCommit": "1ee1458c6174c634b24160d6774d070e9a4d0f2d",
+  "assignedSession": "R1-01（自身会话分页与账户全部会话撤销）",
+  "branch": "codex/identity-session-r1",
+  "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -62,23 +62,23 @@
     },
     {
       "path": "modules/identity/internal/session_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "ReadSessions/WithSessionCursorKey已完成本域编译；CreateSession/IssueSessionTokens/RefreshSession仍待登录协议与跨域边界确认，待集成复核"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "RevokeAllSessions已完成本域编译；RevokeSession/RevokeSessionFamily/RevokeOtherSessions仍待后续工作包，待集成复核"
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
@@ -329,6 +329,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/identity/migrations/0002_session_revocation.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本次工作包待提交与统一复核"
     }
   ],
   "functions": [
@@ -533,13 +543,13 @@
     {
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
       },
-      "blocker": null
+      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过"
     },
     {
       "id": "identity.RevokeSession",
@@ -566,13 +576,13 @@
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
       },
-      "blocker": null
+      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过"
     },
     {
       "id": "identity.RevokeOtherSessions",
@@ -881,6 +891,17 @@
         "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）；initialized/journalRecovered/activeDataEpoch已基于真实存储与运行代次"
       },
       "blocker": null
+    },
+    {
+      "id": "identity.WithSessionCursorKey",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
+      },
+      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过",
+      "path": "modules/identity/internal/session_service.go"
     }
   ],
   "rule": "R1-01纯规则工作包：NormalizeAccountName、AssertSuperadminImmutable与Argon2id口令三函数已实现；Go编译/格式检查待具备Go工具链的环境，业务验收未执行；根THIRD_PARTY_NOTICES与framework登记由集成会话处理；会话、账号CRUD、HTTP与后台循环仍未实现。"

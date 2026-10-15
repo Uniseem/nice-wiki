@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 50 个函数：约束 29 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 51 个函数：约束 29 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -796,20 +796,56 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 
 **步骤**
 
-1. 主体限制为自己
-2. 排序issuedAt/sessionId
-3. 不返token/IP
+1. 主体必须是持有account.self的admin；查询条件固定为op.actor.subjectId与siteId，不接受其他账户参数
+2. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；游标须由平台签名器验签并绑定identity.sessions作用域、accountId、siteId及dataEpoch
+3. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：会话数据库或签名密钥不可用（可重试）
+- `INTEGRITY_ERROR`：会话记录或分页位置损坏（不可重试）
 
 - 副作用：无
 - 授权：account.self
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
+- 依赖：`identity.WithSessionCursorKey`、`platform.SignCursor`、`platform.VerifyCursor`
+- 其他依赖说明：libs/platform/serviceauth.SignCursor与VerifyCursor实现签名游标；未装配密钥时只要请求或生成游标即DEPENDENCY_UNAVAILABLE
+
+## identity.WithSessionCursorKey
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：向自身会话分页查询注入受信签名密钥引用
+
+```go
+func WithSessionCursorKey(ctx context.Context, key platform.SigningKey) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅由服务装配将本服务SigningKey放入进程私有上下文；ReadSessions调用平台签名机制，不接受浏览器传入密钥引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：身份服务私有装配
+- 并发：上下文不可变派生
+- 幂等：相同输入构造等价上下文
 - 依赖：无
+- 其他依赖说明：libs/platform/serviceauth.SignCursor与VerifyCursor
 
 ## identity.RevokeSession
 
@@ -922,9 +958,10 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 
 **步骤**
 
-1. 内部状态事务或superadmin核对
-2. 按accountId锁全部族
-3. 撤销并提高失效revision，授权读取不能继续接受旧proof
+1. 外部调用必须是superadmin；账户状态迁移可在由WithIdentityTransaction注入的身份私有事务内调用，事务句柄不从网络输入
+2. 按accountId与当前siteId读取权威账户/凭据版本；同事务将该账户全部未撤销会话写入revokedAt并提升session.revision，不改已撤销行
+3. 在同一事务登记identity.authorization.changed；disabled/deleted映射status、admin_reset映射password，server_reset/restore保持原值；授权读取仍须同步检查sessions.revokedAt与revision
+4. 自有事务的幂等键绑定site/actor/operation、callerService、动作、dataEpoch与请求摘要；完整计数结果及哈希写入operation_receipts.result_json，重放返回原计数且不撤销后来建立的会话；嵌入事务由外层用例统一回执与提交
 
 **错误**
 
@@ -933,9 +970,10 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin或身份私有状态迁移
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 并发：SQLite单连接串行化；更新、outbox和回执同一事务；外层事务由其调用方负责提交或回滚
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：无
+- 依赖：`identity.PublishIdentityEvent`
+- 其他依赖说明：内嵌调用方须在开启事务前确保平台outbox schema已建立；会话家族撤销/签发字段仍待后续工作包
 
 ## identity.RevokeOtherSessions
 
@@ -1390,9 +1428,9 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 
 **步骤**
 
-1. 核对无账号口令/IP正文
-2. 同业务txn写eventId唯一outbox
-3. 只在业务事务内写outbox；提交后由identity.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs
+1. 在身份业务事务内按events.json登记唯一事件信封并调用平台outbox.EnqueueEvent
+2. 受信WithIdentityTransaction存在时只追加outbox，由外层业务用例统一请求摘要、完整结果回执、提交或回滚；未注入外部事务时打开自有事务并保存事件登记操作的幂等回执
+3. 仅提交后由RelayOutbox投递jobs，不直接广播；同事件ID不同载荷失败关闭
 
 **错误**
 
@@ -1402,7 +1440,7 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：私有身份txn
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：eventId去重
+- 幂等：外部事务由业务用例维护完整请求/结果回执；自有事务按事件输入摘要保存本操作回执；outbox按eventId去重
 - 依赖：`platform.EnqueueEvent`
 
 ## identity.RelayOutbox

@@ -1,3 +1,23 @@
+# 本轮交接（R1-01 自身会话分页与账户全部会话撤销，2026-10-15）
+
+- 分支 `codex/identity-session-r1`，基线 `00dd199239aba487bceb5227aac52f27ce949d74`；独占 `modules/identity/`。公共依赖由集成会话提供：nullable生成修复 `7e5aa58`、平台游标签名 `1daa621`，本分支仅cherry-pick既有提交，未自行修改公共代码。
+- `ReadSessions` 固定查询当前admin主体的site/account，按issuedAt/sessionId升序键集分页，默认20、最多100；平台 `SignCursor/VerifyCursor` 负责签名，载荷绑定identity.sessions/site/account/dataEpoch。只返回明确列出的会话元数据，revokedAt保留null，不返回secret/摘要/IP；`WithSessionCursorKey`由后续HTTP装配注入可信SigningKey。
+- `RevokeAllSessions` 对自有事务核验superadmin，对嵌入调用只接受进程内`WithIdentityTransaction`句柄；按站点/账户读取当前权威版本，原子写revokedAt、提升session.revision、追加平台outbox。自有事务将动作/caller/epoch/请求摘要和完整计数回执一并提交，幂等重放返回原计数，不撤销首次提交后新建的会话；外层私有事务拥有最终回执与提交/回滚。
+- `PublishIdentityEvent`已审计全部实际调用方：此前没有外部事务调用方，本轮新增RevokeAllSessions。外部事务分支只入outbox，不再抢占外层operationId回执；自有事务保留原事件输入摘要、queued结果哈希及同eventId去重模式，未改变该模式的请求语义。
+- `0002_session_revocation.sql`只追加operation_receipts.result_json与自身列表索引，不改写旧会话，不预埋未确认的家族/authEpoch/签发字段。旧回执缺完整结果时不得猜测恢复。
+- ReadSessions的OpenAPI补503/422，并将原任意字符串limit修正为types.json一致的整数1..100、默认20。`make gen`生成本域Go接口；函数/文件/API文档由`make docs`重生。
+
+## 本轮检查与交付限制
+
+- identity本域 `GOFLAGS=-mod=readonly go build ./...`、`go vet ./...`、`gofmt -l`为空与`git diff --check`通过。首次基线全量`make build`通过；合入公共nullable修复后的最终全量构建在content旧实现的PreviousRevisionId指针适配处失败，集成会话已认领，未跨域修复。
+- `make gen`、`make docs`成功。`make check`仅报根framework未登记本轮3个实际文件：internal/session_service.go、internal/session_revocation.go、migrations/0002_session_revocation.sql；公共登记交集成会话处理。
+- 新函数暂记blocked（待集成全量编译），不是业务验收通过；部分实现文件保持in_progress。未新增测试、样例、fixture、临时验证程序、真实接口/模型、服务进程、部署或push。
+- 未实现CreateSession/IssueSessionTokens/RefreshSession/单会话或家族撤销/其他设备撤销/CSRF/HTTP接线；没有未登记的ValidateSession。CreateSession仍缺可信登录风控上下文与初始化下一路由字段；签发固定issuer/audience、验签入口、认证代次及refresh家族规则须先由集成会话统一收口，不能猜协议。
+
+## 下一步（一项）
+
+先收口`internal/session_service.go`中`IssueSessionTokens`的会话协议：对照本域types/implementation、公共protocols与portal授权解析入口，确认固定issuer/audience、access验签入口、refresh单次轮换与auth epoch权威来源；先同步合同与调用方，再实施签发，不能扩展HTTP或以未签名令牌代替。
+
 # 身份权限会话交接
 
 ## 集成复核修复（2026-10-15，main）

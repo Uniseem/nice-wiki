@@ -1651,9 +1651,9 @@
           ],
           "purpose": "读取自身登录设备",
           "steps": [
-            "主体限制为自己",
-            "排序issuedAt/sessionId",
-            "不返token/IP"
+            "主体必须是持有account.self的admin；查询条件固定为op.actor.subjectId与siteId，不接受其他账户参数",
+            "按issuedAt/sessionId升序键集分页，默认20条、最多100条；游标须由平台签名器验签并绑定identity.sessions作用域、accountId、siteId及dataEpoch",
+            "显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor"
           ],
           "errors": [
             {
@@ -1665,15 +1665,52 @@
               "code": "VALIDATION",
               "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
               "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "会话数据库或签名密钥不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "会话记录或分页位置损坏",
+              "retryable": false
             }
           ],
           "sideEffects": [],
           "authorization": "account.self",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "identity.WithSessionCursorKey",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
+          "resources": [
+            "libs/platform/serviceauth.SignCursor与VerifyCursor实现签名游标；未装配密钥时只要请求或生成游标即DEPENDENCY_UNAVAILABLE"
+          ],
           "contract": "binding"
+        },
+        {
+          "id": "identity.WithSessionCursorKey",
+          "name": "WithSessionCursorKey",
+          "signature": "func WithSessionCursorKey(ctx context.Context, key platform.SigningKey) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "向自身会话分页查询注入受信签名密钥引用",
+          "steps": [
+            "仅由服务装配将本服务SigningKey放入进程私有上下文；ReadSessions调用平台签名机制，不接受浏览器传入密钥引用"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "身份服务私有装配",
+          "concurrency": "上下文不可变派生",
+          "idempotency": "相同输入构造等价上下文",
+          "dependencies": [],
+          "resources": [
+            "libs/platform/serviceauth.SignCursor与VerifyCursor"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1899,9 +1936,10 @@
           ],
           "purpose": "立即失效账户全部登录",
           "steps": [
-            "内部状态事务或superadmin核对",
-            "按accountId锁全部族",
-            "撤销并提高失效revision，授权读取不能继续接受旧proof"
+            "外部调用必须是superadmin；账户状态迁移可在由WithIdentityTransaction注入的身份私有事务内调用，事务句柄不从网络输入",
+            "按accountId与当前siteId读取权威账户/凭据版本；同事务将该账户全部未撤销会话写入revokedAt并提升session.revision，不改已撤销行",
+            "在同一事务登记identity.authorization.changed；disabled/deleted映射status、admin_reset映射password，server_reset/restore保持原值；授权读取仍须同步检查sessions.revokedAt与revision",
+            "自有事务的幂等键绑定site/actor/operation、callerService、动作、dataEpoch与请求摘要；完整计数结果及哈希写入operation_receipts.result_json，重放返回原计数且不撤销后来建立的会话；嵌入事务由外层用例统一回执与提交"
           ],
           "errors": [
             {
@@ -1919,10 +1957,14 @@
             "私有事务、receipt和撤销outbox"
           ],
           "authorization": "superadmin或身份私有状态迁移",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "concurrency": "SQLite单连接串行化；更新、outbox和回执同一事务；外层事务由其调用方负责提交或回滚",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "identity.PublishIdentityEvent"
+          ],
+          "resources": [
+            "内嵌调用方须在开启事务前确保平台outbox schema已建立；会话家族撤销/签发字段仍待后续工作包"
+          ],
           "contract": "reference"
         },
         {
@@ -2869,9 +2911,9 @@
           ],
           "purpose": "与身份提交原子登记事件",
           "steps": [
-            "核对无账号口令/IP正文",
-            "同业务txn写eventId唯一outbox",
-            "只在业务事务内写outbox；提交后由identity.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs"
+            "在身份业务事务内按events.json登记唯一事件信封并调用平台outbox.EnqueueEvent",
+            "受信WithIdentityTransaction存在时只追加outbox，由外层业务用例统一请求摘要、完整结果回执、提交或回滚；未注入外部事务时打开自有事务并保存事件登记操作的幂等回执",
+            "仅提交后由RelayOutbox投递jobs，不直接广播；同事件ID不同载荷失败关闭"
           ],
           "errors": [
             {
@@ -2890,7 +2932,7 @@
           ],
           "authorization": "私有身份txn",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "eventId去重",
+          "idempotency": "外部事务由业务用例维护完整请求/结果回执；自有事务按事件输入摘要保存本操作回执；outbox按eventId去重",
           "dependencies": [
             "platform.EnqueueEvent"
           ],
@@ -4233,6 +4275,12 @@
       "path": "modules/identity/internal/gen/oapi-codegen.yaml",
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/identity/migrations/0002_session_revocation.sql",
+      "kind": "migration",
+      "purpose": "为自有撤销事务追加完整结果回执列，并建立自身会话键集分页索引；不变更旧会话或预埋未确认签发协议",
       "functions": []
     }
   ],

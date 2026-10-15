@@ -120,3 +120,9 @@
 | revokeSessionRequest | 退出当前或指定自身登录请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
+
+## 自身会话列表与撤销持久化（R1-01）
+
+`0002_session_revocation.sql` 仅为 `operation_receipts` 追加可空 `result_json` 和自身会话分页索引，不改写旧会话。自有账户会话撤销事务保存完整计数及其哈希；幂等重放返回原计数，不再次撤销首次提交后新建的会话。旧回执没有完整结果时拒绝猜测恢复结果。嵌入账户状态迁移事务时，回执与提交由外层用例统一负责，身份事件函数只追加同事务 outbox。
+
+自身会话列表按 `issued_at/session_id` 升序键集分页，签名游标绑定当前 `siteId/accountId/dataEpoch` 和 `identity.sessions` 作用域；会话摘要、口令、令牌及网络地址均不进入列表。家族、令牌摘要、认证代次及签发协议随下一工作包确认，未在本迁移预埋。
