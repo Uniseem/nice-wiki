@@ -132,11 +132,11 @@
     },
     {
       "path": "libs/platform/apivalidate/validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "051c3834de1fe339dd8e3b9c1b40fc7e6721ccd8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：make build（各Go模块 -mod=readonly go build/vet、gofmt）通过；VPS联网重新tidy与平台go.sum一致；make docs无漂移、make gen可重复、make check通过（844文件/907函数）"
       },
       "blocker": null
     },
@@ -359,22 +359,22 @@
     {
       "id": "platform.NewSiteConfigClient",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "051c3834de1fe339dd8e3b9c1b40fc7e6721ccd8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：make build（各Go模块 -mod=readonly go build/vet、gofmt）通过；VPS联网重新tidy与平台go.sum一致；make docs无漂移、make gen可重复、make check通过（844文件/907函数）"
       },
       "blocker": null
     },
     {
       "id": "platform.NewRequestValidator",
       "path": "libs/platform/apivalidate/validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "051c3834de1fe339dd8e3b9c1b40fc7e6721ccd8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：make build（各Go模块 -mod=readonly go build/vet、gofmt）通过；VPS联网重新tidy与平台go.sum一致；make docs无漂移、make gen可重复、make check通过（844文件/907函数）"
       },
       "blocker": null
     },
