@@ -657,6 +657,8 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：jobs不可用（可重试）
+- `LOCKED`：维护无有效control写窗口、窗口截止或恢复阶段禁止写入（可重试）
+- `VALIDATION`：必需运行权威/写窗口或循环参数未装配（不可重试）
 
 - 副作用：读写outbox；HTTP调用jobs
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
@@ -777,6 +779,7 @@ func relayWriteContext(ctx context.Context, config RelayConfig) (context.Context
 - `VALIDATION`：输入不符合边界（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
 - `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+- `LOCKED`：维护无有效control写窗口、窗口截止或恢复阶段禁止写入（可重试）
 
 - 副作用：无
 - 授权：平台受信调用
@@ -1392,6 +1395,7 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream EventSt
 - `VALIDATION`：输入不符合边界（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
 - `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+- `CANCELLED`：客户端断开或写截止不可用（不可重试）
 
 - 副作用：无
 - 授权：平台受信调用

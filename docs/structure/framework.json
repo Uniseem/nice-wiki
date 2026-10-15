@@ -3392,6 +3392,16 @@
       "path": "modules/jobs/migrations/0004_orphan_jobs.sql",
       "kind": "migration",
       "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用"
+    },
+    {
+      "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
+      "kind": "migration",
+      "purpose": "追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie"
+    },
+    {
+      "path": "modules/identity/migrations/control/0001_bootstrap.sql",
+      "kind": "migration",
+      "purpose": "独立control schema1与不可逆bootstrap决定；不随active恢复替换"
     }
   ]
 }

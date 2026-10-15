@@ -1733,16 +1733,6 @@
     },
     {
       "method": "GET",
-      "path": "/v1/objects/{objectId}",
-      "owner": "site-config",
-      "operationId": "readConfigObject",
-      "permission": "site.read",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
       "path": "/v1/policies",
       "owner": "traffic-guard",
       "operationId": "getPolicy",

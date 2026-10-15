@@ -275,10 +275,13 @@ func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, qu
 			query[key] = append(query[key], entries...)
 		}
 	}
+	if query.Get("lastEventId") == "" && lastEventId != "" {
+		query.Set("lastEventId", lastEventId)
+	}
 	if encoded := query.Encode(); encoded != "" {
 		requestPath += "?" + encoded
 	}
-	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
+	reader, err := c.sse(ctx, http.MethodGet, requestPath, "")
 	if err != nil {
 		return nil, err
 	}
