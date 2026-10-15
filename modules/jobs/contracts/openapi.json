@@ -1344,6 +1344,26 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "query",
+            "name": "workerId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "当前worker执行权；由owner领取结果构造"
+          },
+          {
+            "in": "query",
+            "name": "fencingToken",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+            },
+            "description": "当前worker执行权；由owner领取结果构造"
           }
         ],
         "security": [

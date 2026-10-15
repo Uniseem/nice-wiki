@@ -2,13 +2,13 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 50 个：手写 27、UI 4、生成 8、配置 10、迁移 1。函数 51 个：约束 33，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 50 个：手写 26、UI 4、生成 8、配置 10、迁移 2。函数 60 个：约束 33，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/jobs/internal/validation.go` | 手写 | 验证任务入口；同文件职责限本域以下登记函数 | `jobs.ValidateJobSpec`（参考） |
-| `modules/jobs/internal/queue.go` | 手写 | 持久提交任务；同文件职责限本域以下登记函数 | `jobs.CreateJob`、`jobs.FailJob` |
-| `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease` |
+| `modules/jobs/internal/queue.go` | 手写 | 持久提交任务；同文件职责限本域以下登记函数 | `jobs.CreateJob`、`jobs.FailJob`、`jobs.InstallStore`（参考） |
+| `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.beginLeaseOperation`（参考）、`jobs.close`（参考）、`jobs.readLease`（参考）、`jobs.claimCandidates`（参考）、`jobs.receipt`（参考）、`jobs.saveReceipt`（参考）、`jobs.enqueueState`（参考）、`jobs.leaseLost`（参考）、`jobs.countActiveLeases`（参考） |
 | `modules/jobs/internal/results.go` | 手写 | 提交成功结果；同文件职责限本域以下登记函数 | `jobs.CompleteJob` |
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
 | `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考） |
@@ -19,7 +19,6 @@
 | `modules/jobs/internal/event_validation.go` | 手写 | 验证跨域事件；同文件职责限本域以下登记函数 | `jobs.ValidateEnvelope`（参考） |
 | `modules/jobs/internal/event_store.go` | 手写 | 持久接收事件；同文件职责限本域以下登记函数 | `jobs.PublishEvent` |
 | `modules/jobs/internal/event_delivery.go` | 手写 | 至少一次投递；同文件职责限本域以下登记函数 | `jobs.RequeueExpiredDeliveries`（参考）、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery` |
-| `modules/jobs/internal/owner_client.go` | 手写 | 构建owner主动领取响应，不发影子执行HTTP；同文件职责限本域以下登记函数 | `jobs.DispatchOwnerTask`（参考） |
 | `modules/jobs/internal/cron.go` | 手写 | 严格解析定时表达式；同文件职责限本域以下登记函数 | `jobs.ValidateCron`（参考）、`jobs.NextFireAt`（参考） |
 | `modules/jobs/internal/schedule_store.go` | 手写 | 创建定时任务；同文件职责限本域以下登记函数 | `jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules` |
 | `modules/jobs/internal/barrier_coordinator.go` | 手写 | 等待全域安全点；同文件职责限本域以下登记函数 | `jobs.CoordinateBarrier` |
@@ -56,3 +55,4 @@
 | `modules/jobs/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/jobs/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/jobs/internal/queries.go` | 手写 | 查看任务队列 | `jobs.ListJobs`、`jobs.RetryJob`、`jobs.ListDeliveries` |
+| `modules/jobs/migrations/0002_leases.sql` | 迁移 | 只追加租约持久fence计数、领取/心跳幂等回执与进度checkpoint唯一键 | 无 |

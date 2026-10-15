@@ -296,9 +296,10 @@
         },
         "phase": {
           "type": "string",
-          "description": "phase；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+          "description": "注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误"
         },
         "completedUnits": {
           "type": "integer",
@@ -988,9 +989,9 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
-          "description": "limit 非负 int64；不用浮点数",
-          "default": 20
+          "maximum": 10,
+          "description": "省略时默认10；显式值1～10；实际还受owner在途上限8限制",
+          "default": 10
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -1000,7 +1001,6 @@
       "required": [
         "owner",
         "workerId",
-        "limit",
         "dataEpoch"
       ]
     },
@@ -1015,7 +1015,7 @@
             "$ref": "#/$defs/ClaimedJob",
             "description": "ClaimedJob领域数据合同"
           },
-          "maxItems": 10000,
+          "maxItems": 10,
           "description": "有序列表；空列表表示没有可用项"
         },
         "fencingTokens": {
@@ -1026,7 +1026,7 @@
             "maximum": 9223372036854775807,
             "description": "item 非负 int64；不用浮点数"
           },
-          "maxItems": 10000,
+          "maxItems": 10,
           "description": "有序列表；空列表表示没有可用项"
         }
       },
@@ -1108,6 +1108,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "progress": {
+          "$ref": "#/$defs/ProgressCheckpoint",
+          "description": "未报告进度时省略；与续租在相同事务提交"
         }
       },
       "required": [
@@ -1629,49 +1633,39 @@
     "AppendProgressInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "持久进度安全点输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "jobId": {
-          "type": "string",
-          "description": "jobId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
-        "fencingToken": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "fencingToken 非负 int64；不用浮点数"
+        "checkpointKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
         "phase": {
           "type": "string",
-          "description": "phase；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+          "description": "注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误"
         },
         "completedUnits": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "completedUnits 非负 int64；不用浮点数"
+          "maximum": 9223372036854775807
         },
         "totalUnits": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "totalUnits 非负 int64；不用浮点数"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+          "maximum": 9223372036854775807
         }
       },
       "required": [
         "jobId",
-        "fencingToken",
+        "checkpointKey",
         "phase",
         "completedUnits",
-        "totalUnits",
-        "dataEpoch"
-      ]
+        "totalUnits"
+      ],
+      "description": "内部进度持久化输入；仅Heartbeat已验租约的事务调用，不另开HTTP入口"
     },
     "AppendProgressResult": {
       "type": "object",
@@ -1889,63 +1883,6 @@
       },
       "required": [
         "queued"
-      ]
-    },
-    "DispatchOwnerTaskInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "构建owner主动领取响应，不发影子执行HTTP输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "jobId": {
-          "type": "string",
-          "description": "jobId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "fencingToken": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "fencingToken 非负 int64；不用浮点数"
-        },
-        "inputRef": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
-          "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
-        },
-        "owner": {
-          "type": "string",
-          "description": "owner；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        }
-      },
-      "required": [
-        "jobId",
-        "fencingToken",
-        "inputRef",
-        "owner",
-        "dataEpoch"
-      ]
-    },
-    "DispatchOwnerTaskResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "构建owner主动领取响应，不发影子执行HTTP成功结果；失败不返回半成功结果",
-      "properties": {
-        "jobs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ClaimedJob",
-            "description": "ClaimedJob领域数据合同"
-          },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
-        }
-      },
-      "required": [
-        "jobs"
       ]
     },
     "ValidateCronInput": {
@@ -2518,9 +2455,10 @@
         },
         "phase": {
           "type": "string",
-          "description": "phase；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+          "description": "注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误"
         },
         "completedUnits": {
           "type": "integer",
@@ -2626,15 +2564,14 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
-          "description": "limit 非负 int64；不用浮点数",
-          "default": 20
+          "maximum": 10,
+          "description": "省略时默认10；显式值1～10；实际还受owner在途上限8限制",
+          "default": 10
         }
       },
       "required": [
         "owner",
-        "workerId",
-        "limit"
+        "workerId"
       ]
     },
     "HeartbeatJobRequestBody": {
@@ -2651,6 +2588,10 @@
         "fencingToken": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "fencingToken 非负 int64；不用浮点数"
+        },
+        "progress": {
+          "$ref": "#/$defs/ProgressCheckpoint",
+          "description": "未报告进度时省略；与续租在相同事务提交"
         }
       },
       "required": [
@@ -3468,6 +3409,87 @@
         "timezone",
         "type"
       ]
+    },
+    "ProgressCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "checkpointKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+          "description": "注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误"
+        },
+        "completedUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "totalUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "checkpointKey",
+        "phase",
+        "completedUnits",
+        "totalUnits"
+      ],
+      "description": "可选心跳进度；checkpointKey按job幂等，同阶段完成数量不能倒退"
+    },
+    "Store": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*Store",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "leaseOperation": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*leaseOperation",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "leaseRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "leaseRecord",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "claimCandidate": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "claimCandidate",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "LeaseReceiptResult": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "any",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "ProgressTransaction": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*sql.Tx",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "LeaseRuntimeProvider": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "func(context.Context) (LeaseRuntimeView, error)",
+      "description": "仅Go内部句柄或值，不作为HTTP或事件载荷"
+    },
+    "LeaseRuntimeView": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "LeaseRuntimeView",
+      "description": "可信运行权威RuntimeView，加control屏障safePointRequested与barrierDeadline；未装配或维护缺截止时失败关闭"
     }
   }
 }

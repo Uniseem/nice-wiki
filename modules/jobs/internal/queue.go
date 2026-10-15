@@ -45,9 +45,10 @@ type CreateJobResult = gen.CreateJobResult
 // Store 是 jobs active 区数据库句柄。单连接保证短写事务串行执行；
 // outbox 与任务状态使用同一个 SQLite 事务。
 type Store struct {
-	db     *sql.DB
-	mu     sync.RWMutex
-	closed bool
+	db           *sql.DB
+	mu           sync.RWMutex
+	closed       bool
+	leaseRuntime LeaseRuntimeProvider
 }
 
 var activeQueue struct {
@@ -57,7 +58,8 @@ var activeQueue struct {
 
 // InstallStore 将启动阶段打开的本域存储安装为当前任务入口使用的存储。
 // 装配完整 handler 前不会调用 CreateJob，因此不会用空存储伪造服务就绪。
-func InstallStore(store *Store) {
+func InstallStore(store *Store, runtime LeaseRuntimeProvider) {
+	store.leaseRuntime = runtime
 	activeQueue.Lock()
 	activeQueue.store = store
 	activeQueue.Unlock()

@@ -14,7 +14,9 @@ worker拉取映射：public-site.render-publication→public-site PrewarmPublica
 
 queued→leased→running→succeeded；失败running→retry-wait→queued或dead-letter；queued/retry-wait→cancelled；running→cancel-requested→cancelled/succeeded
 
-lease fencingToken 单调增加；expired lease 重排时旧worker结果必须拒绝
+lease fencingToken 单调增加；计数保存在job记录且不随lease释放丢失。claim每批请求1～10个，实际取min(limit,10,owner剩余在途容量8)，按notBefore/createdAt/jobId排序。同claim操作重放原批次，不续租；expired lease 重排时旧worker结果必须拒绝。
+
+心跳可选携带安全阶段代码与计数；HeartbeatJob先在本事务核对owner/epoch/worker/fence和有效expiry，再调用AppendProgress并统一提交续租、进度、outbox及回执。维护期间续租截止不晚于control屏障deadline；重复心跳不延长原expiry；当前屏障截止更早时返回缩短后的有效expiry，取消/安全点标志读取当前状态。
 
 事件accepted→delivering→acknowledged；消费者独立按eventId/revision去重，顺序仅producer/subject修订
 
