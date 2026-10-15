@@ -3267,6 +3267,56 @@
       "path": "docs/push-log/2026-10-15-0004.md",
       "kind": "documentation",
       "purpose": "2026-10-15第四次推送记录：实现尺度、编译门槛与平台公共机制"
+    },
+    {
+      "path": "modules/identity/internal/session_revocation.go",
+      "kind": "source",
+      "purpose": "账户全部会话撤销与原子回执事件"
+    },
+    {
+      "path": "modules/identity/internal/session_service.go",
+      "kind": "source",
+      "purpose": "账户自身会话分页查询与受信游标签名引用"
+    },
+    {
+      "path": "modules/identity/migrations/0002_session_revocation.sql",
+      "kind": "migration",
+      "purpose": "完整撤销结果回执与分页索引的追加迁移"
+    },
+    {
+      "path": "modules/jobs/internal/leases.go",
+      "kind": "source",
+      "purpose": "owner/worker租约、持久fence与领取续租回执"
+    },
+    {
+      "path": "modules/jobs/internal/progress.go",
+      "kind": "source",
+      "purpose": "同租约事务中的安全进度与outbox"
+    },
+    {
+      "path": "modules/jobs/migrations/0002_leases.sql",
+      "kind": "migration",
+      "purpose": "持久fence、租约回执和检查点的追加迁移"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_defaults.go",
+      "kind": "source",
+      "purpose": "确定性生成首站点完整默认配置"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_repository.go",
+      "kind": "source",
+      "purpose": "持久初始化决定、准备材料与协调状态"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_service.go",
+      "kind": "source",
+      "purpose": "安全初始化状态读取与协调字段隔离"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
+      "kind": "migration",
+      "purpose": "初始化不可变决定与当前状态的追加迁移"
     }
   ]
 }

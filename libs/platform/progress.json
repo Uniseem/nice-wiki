@@ -414,24 +414,24 @@
     {
       "id": "platform.SignCursor",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "1daa6211ac18c5576538e1b547923438efac426d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
-      "blocker": "本轮公共机制实现中，待编译与集成检查"
+      "blocker": null
     },
     {
       "id": "platform.VerifyCursor",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "1daa6211ac18c5576538e1b547923438efac426d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
-      "blocker": "本轮公共机制实现中，待编译与集成检查"
+      "blocker": null
     }
   ],
   "rule": "R1-00交付：全部条目verified（实现+已有检查通过），行为验收待R2；生成物与合同一致性由make gen可重现与make check保证。"

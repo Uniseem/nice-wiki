@@ -1,5 +1,11 @@
 # 站点配置与初始化会话交接
 
+## 本轮统一复核结果（2026-10-15）
+
+- 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。
+- make docs无漂移；make gen第二次运行零变化，核对发生在用户追加VPS专用要求之前；后续所有编译/测试只在VPS，VPS不可用则blocked，不自行本机回退。本轮没有新增或运行业务测试、真实接口、模型、服务或部署。
+- 根framework已登记本轮10个实际文件，生成器与消费者统一刷新；本轮已完成函数和完整文件按证据转verified，部分文件与入口仍如实in_progress/blocked。主分支实际实现SHA以progress.json为准。
+
 ## 本轮 R1-02 初始化准备与决定（2026-10-15）
 
 - 基线 `00dd199239aba487bceb5227aac52f27ce949d74`，独占分支 `codex/site-config-init-r1`，范围仅 `modules/site-config/`。公共 nullable 生成修复及 content 适配由集成会话提供，作为前置提交引入，不计本域交付。

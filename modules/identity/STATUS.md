@@ -1,5 +1,7 @@
 # 身份权限当前进度
 
+最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
+
 更新：2026-10-15。阶段：R1-01 实施中（本轮补自身会话分页和账户全部会话撤销，待集成全量编译复核）；业务验收与部署未开始。
 
 - 本轮会话撤销工作包：新增 `ReadSessions`、`WithSessionCursorKey`、`RevokeAllSessions` 和追加迁移 `0002_session_revocation.sql`；修正 `PublishIdentityEvent` 外部事务的回执归属，实际实现等待集成全量 `make build` 通过后转 implemented/verified。identity 本域 build/vet/gofmt 已通过；全量构建仅被公共 nullable 生成修复后的 content 适配编译错误阻断，结构检查仅缺根框架登记3个实际文件。未新增测试或业务验收。

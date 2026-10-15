@@ -7,7 +7,7 @@
   "assignedSession": "R1-03 租约fencing与心跳进度（Codex）",
   "branch": "codex/jobs-lease-r1",
   "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+  "deliveryCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
   "deployment": "not_started",
   "files": [
     {
@@ -22,21 +22,21 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
     {
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
@@ -92,11 +92,11 @@
     },
     {
       "path": "modules/jobs/internal/progress.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
@@ -502,11 +502,11 @@
     },
     {
       "path": "modules/jobs/migrations/0002_leases.sql",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     }
@@ -548,44 +548,44 @@
     {
       "id": "jobs.ClaimJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
     {
       "id": "jobs.StartJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
     {
       "id": "jobs.HeartbeatJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
     {
       "id": "jobs.CheckLease",
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
@@ -691,11 +691,11 @@
     {
       "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null
     },
@@ -1064,114 +1064,114 @@
     },
     {
       "id": "jobs.InstallStore",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/queue.go"
     },
     {
       "id": "jobs.beginLeaseOperation",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.close",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.readLease",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.claimCandidates",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.receipt",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.saveReceipt",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.enqueueState",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.leaseLost",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.countActiveLeases",
-      "state": "implemented",
-      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
+      "state": "verified",
+      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
         "state": "passed",
-        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     }
   ],
-  "rule": "本域按单项工作包更新实现状态；implemented表示源码已提交且通过编译门槛；verified需对应完整已有检查通过，accepted仅在未来行为验收通过后登记。本轮公共结构登记待集成，租约组暂记implemented。"
+  "rule": "本轮已交付函数与完整文件由集成会话按隔离VPS编译/结构检查证据升级verified；部分实现文件仍in_progress，未完成用例/HTTP/后台装配继续planned或blocked，行为验收未执行。"
 }

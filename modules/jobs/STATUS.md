@@ -1,5 +1,7 @@
 # 任务与事件当前进度
 
+最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
+
 更新：2026-10-15。阶段：R1-03租约fencing与可选心跳进度已实现并通过编译门槛；完整HTTP/启动装配、重试回收、事件投递/死信、业务验收与部署尚未完成。
 
 - 本轮独占 `modules/jobs/`，分支 `codex/jobs-lease-r1`，基线 `00dd199239aba487bceb5227aac52f27ce949d74`；实现提交 `e6e0d81226358a11a5764ee9ebb43a6706810e9e`，未push。

@@ -1,5 +1,11 @@
 # 任务与事件会话交接
 
+## 本轮统一复核结果（2026-10-15）
+
+- 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。
+- make docs无漂移；make gen第二次运行零变化，核对发生在用户追加VPS专用要求之前；后续所有编译/测试只在VPS，VPS不可用则blocked，不自行本机回退。本轮没有新增或运行业务测试、真实接口、模型、服务或部署。
+- 根framework已登记本轮10个实际文件，生成器与消费者统一刷新；本轮已完成函数和完整文件按证据转verified，部分文件与入口仍如实in_progress/blocked。主分支实际实现SHA以progress.json为准。
+
 ## 本轮事实（R1-03租约fencing，2026-10-15）
 
 - 独占范围：`modules/jobs/`；分支 `codex/jobs-lease-r1`；基线 `00dd199239aba487bceb5227aac52f27ce949d74`，开始时工作区干净。
@@ -33,6 +39,13 @@
 先收口并实现 `internal/scheduler.go` 的 `ReapExpiredLeases` 与所依赖的重试分类/截止计算：读本域types、functions、operations及root一致性要求，明确owner不可达时orphan确认与可安全重试的分支，再实现同事务递增job.fencing_counter/租约token、保留rootOperationId/inputRef/paid结果引用及状态outbox。不得自动重做不可证明未完成的付费阶段；完整检查通过后同步台账。
 
 ## 历史交接
+
+
+## 本轮下一步（一项）
+
+实现任务完成/失败与过期回收：先核对CompleteJob/FailJob/租约回收合同，延续持久fence与付费结果不重算规则；control屏障提供者与HTTP装配仍待各自工作包，不跨域读取存储。
+
+以下为历史交接，旧下一步以本节为准。
 
 
 ## 集成复核修复（2026-10-15，main）

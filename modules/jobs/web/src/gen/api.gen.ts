@@ -672,8 +672,8 @@ export interface components {
             /** @description workerId；UTF-8；不得为 null */
             workerId: string;
             /**
-             * @description limit 非负 int64；不用浮点数
-             * @default 20
+             * @description 省略时默认10；显式值1～10；实际还受owner在途上限8限制
+             * @default 10
              */
             limit: number;
         };
@@ -686,12 +686,22 @@ export interface components {
             /** @description safePointRequested 的明确真假结果，不可 null */
             safePointRequested: boolean;
         };
+        /** @description 可选心跳进度；checkpointKey按job幂等，同阶段完成数量不能倒退 */
+        ProgressCheckpoint: {
+            checkpointKey: components["schemas"]["Identifier"];
+            /** @description 注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误 */
+            phase: string;
+            completedUnits: number;
+            totalUnits: number;
+        };
         /** @description 同worker/fence续租30秒；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         HeartbeatJobRequestBody: {
             /** @description workerId；UTF-8；不得为 null */
             workerId: string;
             /** @description fencingToken 非负 int64；不用浮点数 */
             fencingToken: components["schemas"]["Revision"];
+            /** @description 未报告进度时省略；与续租在相同事务提交 */
+            progress?: components["schemas"]["ProgressCheckpoint"];
         };
         /** @description 提交成功结果成功结果；失败不返回半成功结果 */
         CompleteJobResult: {
@@ -1816,7 +1826,12 @@ export interface operations {
     };
     checkLease: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description 当前worker执行权；由owner领取结果构造 */
+                workerId: string;
+                /** @description 当前worker执行权；由owner领取结果构造 */
+                fencingToken: components["schemas"]["Revision"];
+            };
             header?: {
                 /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
                 "X-Request-Id"?: components["schemas"]["Identifier"];

@@ -7,7 +7,7 @@
   "assignedSession": "R1-01（自身会话分页与账户全部会话撤销）",
   "branch": "codex/identity-session-r1",
   "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
+  "deliveryCommit": "3cc791b8c7b0dc5f14453060ea455dc2124caec8",
   "deployment": "not_started",
   "files": [
     {
@@ -543,13 +543,13 @@
     {
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
-      "state": "blocked",
-      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
+      "state": "verified",
+      "implementationCommit": "ac55706f6cd722ae6e67bf1dff1295846920c20b",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
+        "state": "passed",
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
-      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过"
+      "blocker": null
     },
     {
       "id": "identity.RevokeSession",
@@ -576,13 +576,13 @@
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "blocked",
-      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
+      "state": "verified",
+      "implementationCommit": "3cc791b8c7b0dc5f14453060ea455dc2124caec8",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
+        "state": "passed",
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
-      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过"
+      "blocker": null
     },
     {
       "id": "identity.RevokeOtherSessions",
@@ -894,15 +894,15 @@
     },
     {
       "id": "identity.WithSessionCursorKey",
-      "state": "blocked",
-      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
+      "state": "verified",
+      "implementationCommit": "3cc791b8c7b0dc5f14453060ea455dc2124caec8",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
+        "state": "passed",
+        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
       },
-      "blocker": "待集成全量make build通过后回填实现提交并转implemented/verified；本域检查已通过",
+      "blocker": null,
       "path": "modules/identity/internal/session_service.go"
     }
   ],
-  "rule": "R1-01纯规则工作包：NormalizeAccountName、AssertSuperadminImmutable与Argon2id口令三函数已实现；Go编译/格式检查待具备Go工具链的环境，业务验收未执行；根THIRD_PARTY_NOTICES与framework登记由集成会话处理；会话、账号CRUD、HTTP与后台循环仍未实现。"
+  "rule": "本轮已交付函数与完整文件由集成会话按隔离VPS编译/结构检查证据升级verified；部分实现文件仍in_progress，未完成用例/HTTP/后台装配继续planned或blocked，行为验收未执行。"
 }

@@ -1,6 +1,22 @@
-# 当前状态（2026-10-15，R1并行工作包合并与集成复核修复）
+# 当前状态（2026-10-15，R1三个工作包并行交付与统一复核）
 
-阶段：R1实施中；本轮两轮并行业务切片已合入main并经集成复核修复，14个Go模块编译/vet/gofmt与结构检查通过；行为验收和部署尚未完成。
+阶段：R1实施中；本轮三个独立worktree工作包已统一复核并合入main，最小业务链路、行为验收和部署仍未完成。
+
+## 最新事实
+
+- identity完成自身会话签名游标分页与账户全部会话撤销，撤销、完整结果回执与outbox同事务；登录签发/刷新/CSRF仍未完成。
+- site-config完成确定性默认配置、安全初始化状态读取、不可反悔决定及完整准备配置/hash持久化；commit仍只是持久决定，不冒充settings权威文件提交或初始化完成。
+- jobs完成领取、启动、心跳、租约校验与同事务进度；持久fence计数不随lease释放丢失，按owner/worker/epoch隔离，领取有界、回执重放不延长租约，维护受control屏障截止约束；完整HTTP/后台/control屏障装配仍未完成。
+- 公共复核修正：分页游标签名统一放platform；CheckLease补workerId；生成器正确保留带description的可空引用，content旧head比较和site-config恢复字段同步采用null语义。10个新增实际文件已登记。
+- 最新机器台账：846文件、920函数、372HTTP操作、2172类型；函数已实现或验证159个（66个verified）、in_progress 9个、blocked 14个、planned 738个。函数条目比例不等同产品完成率。
+- 隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：14个Go模块make build（-mod=readonly build/vet/gofmt）和make check完整通过；源码排除私有配置、凭据、数据与本机.git，VPS独立建立临时Git元数据，以既有代用身份检查暂存内容。make docs无漂移、make gen重复无漂移已在本轮早期核对。未新增测试、未运行业务测试、服务进程、真实接口、模型或部署。
+- 用户本轮追加：所有编译和测试均在VPS执行，已同步根/15域AGENTS与实施/合并规则；VPS不可用则blocked，未经当次授权不回退本机。本轮追加前已执行过本机检查，此事实保留于交接。
+- 本轮提交仅本地，未push；原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
+
+## 历史实施记录
+
+以下为先前批次的原始范围与证据，数量、下一步和执行环境以页首最新事实为准。
+
 
 - old归档提交272bddc保存全部旧代码、旧文档及会话记录；旧server/web/api/deploy相对原main的blob未改变。main当前树只保留新框架、许可和产品需求快照，不复用旧业务实现。
 - 站点功能及细节按old产品基线保留；分成15个独立服务加2个共享组件（libs/platform、deploy），当前实际结构检查统计843个文件、905个函数、372个HTTP操作、2161个类型定义（含公共类型引用和内部类型）；约束/参考数量见各域files.md。已实现条目仍须以模块progress.json和检查证据为准，不能视为业务验收通过。
@@ -31,4 +47,4 @@
 
 - 编译门槛与公共机制（2026-10-15，用户确认）：根与15域AGENTS改为R1实施阶段规则，Go代码记implemented前须`make build`（14个Go模块-mod=readonly build/vet/gofmt）通过，优先VPS、不可用时本机运行，go.sum只由go命令生成；make check新增go.sum存在与格式检查；合并流程要求集成会话编译并逐个审查逻辑。libs/platform新增`lifecycle.NewSiteConfigClient`（10域改用，删除各自适配）与`apivalidate.NewRequestValidator`（kin-openapi入口请求校验，待HTTP绑定时装配）。台账844文件、907函数。
 
-下一步：本次修复与台账已在本地提交、未推送（push需当次授权）；后续按各模块handoff的下一项与依赖顺序继续实现。push仍需当次授权；不得把结构检查当作业务验收，也不部署。
+下一步：收口identity.IssueSessionTokens与portal会话解析的issuer/audience、refresh单次轮换和auth epoch权威来源，先同步合同再实现签发。本轮未授权push或部署。

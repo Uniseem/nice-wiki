@@ -1,10 +1,16 @@
 # platform 交接（R1-00）
 
+## 本轮统一复核结果（2026-10-15）
+
+- 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。
+- make docs无漂移；make gen第二次运行零变化，核对发生在用户追加VPS专用要求之前；后续所有编译/测试只在VPS，VPS不可用则blocked，不自行本机回退。本轮没有新增或运行业务测试、真实接口、模型、服务或部署。
+- 根framework已登记本轮10个实际文件，生成器与消费者统一刷新；本轮已完成函数和完整文件按证据转verified，部分文件与入口仍如实in_progress/blocked。主分支实际实现SHA以progress.json为准。
+
 ## 本轮公共支持（2026-10-15，三个工作包集成）
 
 - `serviceauth.SignCursor/VerifyCursor` 统一 Ed25519 分页游标签名；专用 NW-CURSOR 类型，scope 由调用方绑定模块、查询、站点、主体和 dataEpoch，游标不替代授权。密钥复用 LoadSigningKey，不在各域另造签名工具。
 - `JobsClient.CheckLease` 同时接收 jobId、workerId 和 fencingToken；worker 写回前原样携带当前 worker 身份。
-- 当前在集成分支实现，平台模块本地 readonly build/vet/gofmt 通过；新增条目暂记 in_progress，等待三个模块交付、全量 make build 与可达性检查。行为验收未执行。
+- 当前在集成分支实现，平台模块本地 readonly build/vet/gofmt 通过；新增条目已随三个模块交付按隔离VPS全量make build与可达性检查转verified。行为验收未执行。
 
 ## 公共机制补充（2026-10-15，集成会话，main）
 

@@ -1,5 +1,7 @@
 # platform 状态
 
+最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
+
 - 阶段：R1-00 已实现并检查（分支 codex/platform-r1-00，基线 d7cf792431d8，交付 fa70c657322c；台账全部 verified，行为验收待R2）。
 - 范围：libs/platform 全部17个约束函数与共享类型包（platform.go）、nw-keys、scripts/gen_code.py 与 make gen；15域生成物可重现并编译通过。
 - 检查：本地与隔离VPS（go1.25.5、8核）go vet ./...、go build ./... 通过；15个模块生成物经临时模块逐域编译验证（本地与VPS各15/15）；make check 本地与隔离VPS通过；make gen重复运行无差异。未运行业务验收。
@@ -9,4 +11,4 @@
 详细交接见 docs/handoff.md；逐文件/函数台账见 progress.json。
 - 2026-10-15 补充：新增 `lifecycle.NewSiteConfigClient` 与 `apivalidate.NewRequestValidator`（平台库新增 kin-openapi 依赖）；make build 与 make check 通过，详见 [handoff](docs/handoff.md)。
 
-- 本轮三个工作包集成：新增作用域绑定的分页游标签名/验证，CheckLease补workerId；平台单模块编译/vet通过，新增函数暂记in_progress，待全量集成检查。
+- 本轮三个工作包集成：新增作用域绑定的分页游标签名/验证，CheckLease补workerId；平台单模块编译/vet通过，新增函数已按隔离VPS全量检查转verified。
