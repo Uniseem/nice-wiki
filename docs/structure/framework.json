@@ -3537,6 +3537,16 @@
       "path": "modules/content/internal/revision_reader.go",
       "kind": "source",
       "purpose": "读取COMMITTED正文并核真相"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "kind": "source",
+      "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/002_task_availability.sql",
+      "kind": "migration",
+      "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。"
     }
   ]
 }
