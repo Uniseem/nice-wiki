@@ -3402,6 +3402,26 @@
       "path": "modules/identity/migrations/control/0001_bootstrap.sql",
       "kind": "migration",
       "purpose": "独立control schema1与不可逆bootstrap决定；不随active恢复替换"
+    },
+    {
+      "path": "modules/site-config/internal/config_service.go",
+      "kind": "source",
+      "purpose": "读取后台站点配置"
+    },
+    {
+      "path": "modules/site-config/internal/config_validator.go",
+      "kind": "source",
+      "purpose": "校验配置所有字段和关联约束"
+    },
+    {
+      "path": "modules/site-config/internal/object_reader.go",
+      "kind": "source",
+      "purpose": "经协议读取本域正文或快照对象"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0004_config_operations.sql",
+      "kind": "migration",
+      "purpose": "一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威"
     }
   ]
 }
