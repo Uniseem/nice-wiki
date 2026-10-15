@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 40 个：手写 29、生成 3、配置 6、迁移 2。函数 50 个：约束 30，参考 20。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 41 个：手写 29、生成 3、配置 6、迁移 3。函数 51 个：约束 30，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -20,7 +20,7 @@
 | `modules/site-config/internal/migrations/active/0001_active.sql` | 迁移 | 初始active业务索引表：schema_migrations、site_config_state、config_revision_index与announcement_heads | 无 |
 | `modules/site-config/internal/initialization_service.go` | 手写 | 无需AI完成首站点初始化 | `site-config.InitializeSite`、`site-config.ReadInitializationStatus`、`site-config.ResumeInitialization`、`site-config.AbortInitialization` |
 | `modules/site-config/internal/initialization_defaults.go` | 手写 | 确定性生成首次基础配置 | `site-config.PrepareDefaultConfig`（参考） |
-| `modules/site-config/internal/initialization_repository.go` | 手写 | 持久化不可反悔的初始化决定 | `site-config.PersistInitializationDecision`（参考） |
+| `modules/site-config/internal/initialization_repository.go` | 手写 | 持久化不可反悔的初始化决定 | `site-config.PersistInitializationDecision`（参考）、`site-config.ReadInitializationRecord`（参考） |
 | `modules/site-config/internal/announcement_validator.go` | 手写 | 校验公告纯文本正文并规范序列化 | `site-config.ValidateAnnouncementBody`（参考） |
 | `modules/site-config/internal/announcement_files.go` | 手写 | 持久写不可变公告正文文件 | `site-config.WriteAnnouncementRevision`（参考）、`site-config.CommitAnnouncementHead`（参考）、`site-config.RecoverAnnouncementJournal`（参考） |
 | `modules/site-config/internal/operation_repository.go` | 手写 | 查询配置幂等回执 | `site-config.ResolveConfigOperation`（参考） |
@@ -46,3 +46,4 @@
 | `modules/site-config/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/site-config/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/site-config/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/site-config/internal/migrations/active/0002_initialization.sql` | 迁移 | 初始化不可反悔决定、完整准备配置及SHA256、幂等回执和当前协调状态；不替代settings权威文件 | 无 |

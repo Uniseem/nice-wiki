@@ -780,7 +780,7 @@
       "get": {
         "operationId": "readInitializationStatus",
         "summary": "读取安全初始化阶段",
-        "description": "调用函数 site-config.ReadInitializationStatus；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "读取安全初始化阶段。始终返回initialized与仅phase/safeError的state；只有同站点superadmin或identity/site-config可信服务调用才附coordination。",
         "x-handler": "site-config.ReadInitializationStatus",
         "x-permission": "anonymous",
         "security": [],
@@ -798,6 +798,16 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：持久初始化决定、准备配置哈希或active水位不一致",
             "content": {
               "application/problem+json": {
                 "schema": {

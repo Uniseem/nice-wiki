@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "2d96d60b178063fbc99d6242d0b2833d29b75ce7fd86523b4da0b2cee5bea5fe",
+  "contractSha256": "83725bf69cbfc05a6590dddda7d6c17896b7cac185570ad008688c26bab78b9d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-02（语言标签纯规则切片）",
-  "branch": "codex/analytics-r1-storage-contract-audit",
-  "baseCommit": "685cd3d",
-  "deliveryCommit": "663bf07",
+  "assignedSession": "R1-02（初始化准备、状态读取与决定持久化）",
+  "branch": "codex/site-config-init-r1",
+  "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -132,31 +132,31 @@
     },
     {
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/initialization_defaults.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
@@ -409,6 +409,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -613,11 +623,11 @@
     {
       "id": "site-config.ReadInitializationStatus",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
@@ -646,22 +656,22 @@
     {
       "id": "site-config.PrepareDefaultConfig",
       "path": "modules/site-config/internal/initialization_defaults.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
     {
       "id": "site-config.PersistInitializationDecision",
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
       },
       "blocker": null
     },
@@ -961,6 +971,17 @@
         "evidence": null
       },
       "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+    },
+    {
+      "id": "site-config.ReadInitializationRecord",
+      "path": "modules/site-config/internal/initialization_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+      },
+      "blocker": null
     }
   ],
   "rule": "R1-02运行状态与active存储工作包已实现：control.db、active/site-config.db只追加迁移、RuntimeState权威读写、RuntimePhase CAS迁移矩阵、14域activationReceipts、公告journal恢复、localRuntime与Ready schema/epoch/journal校验已落地；Go构建验证和业务验收待具备工具链/后续授权，HTTP业务路由、outbox、后台循环和换目录回执仍阻塞。"

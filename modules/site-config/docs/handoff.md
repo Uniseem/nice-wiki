@@ -1,5 +1,24 @@
 # 站点配置与初始化会话交接
 
+## 本轮 R1-02 初始化准备与决定（2026-10-15）
+
+- 基线 `00dd199239aba487bceb5227aac52f27ce949d74`，独占分支 `codex/site-config-init-r1`，范围仅 `modules/site-config/`。公共 nullable 生成修复及 content 适配由集成会话提供，作为前置提交引入，不计本域交付。
+- 实际函数：PrepareDefaultConfig、ReadInitializationStatus、PersistInitializationDecision、ReadInitializationRecord。配置准备使用可信 preparedAt，所有默认值明确登记 data/types/implementation；不读取 Host、不触发 AI、不制造示例。
+- 类型差异：InitializationState 的 operationId/siteId 可 null；状态接口固定 initialized + 安全 state，完整 coordination 仅同站点超管或 identity/site-config 服务返回。消费者 identity/portal 的生成类型需集成会话统一刷新，路径/operationId 不变。状态完整性错误补 OpenAPI 422。
+- 决定表保存完整规范准备配置及 SHA256，CAS 当前状态与原始幂等结果同事务提交，FULL 同步；commit 后保持 preparing。未实现 settings 权威文件提交、ResumeInitialization 或完整 InitializeSite，不能宣称初始化链路已打通。
+- nullable 修复的本域适配：RuntimeState 的 restoreId/targetDataEpoch/barrierId 保留 null，比较按值、SQL 写入空值、恢复完成清空回执；platform RuntimeView 的内部可选字符串仅在适配点转换。
+- 检查：本机 Go 工具链已找到并使用，本域 readonly build/vet/gofmt 通过；全仓 `make build` 通过（14 个 Go 模块 readonly build/vet/gofmt）；`make docs` 已生成本域文档；`make check` 仅因根 framework 尚未登记本轮 4 个实际文件失败，其余合同/台账/引用检查通过，由集成会话统一登记后复跑。未新增测试/样例、临时验证程序；未调用真实接口/模型，未运行业务服务或部署，未 push。
+- 公共结构请求：新增已获集成会话许可的 `modules/site-config/internal/migrations/active/0002_initialization.sql`，请根 framework 登记；新增 ReadInitializationRecord 为本域私有参考函数。
+
+### 下一步（一项）
+
+实现 InitializeSite/ResumeInitialization 与 settings 权威文件提交这一组紧密关联函数：先读 types/implementation 中 WriteConfigRevision、CommitConfigHead、PublishConfigEvent 及本轮完整准备材料格式，补齐权威文件 journal/receipt/outbox 的原子恢复边界；可信 publicBaseURL 进程配置注入由 HTTP 装配工作包统一接入。完成条件是持久 commit 可从 preparing 幂等推进 initialized，不包含真实行为验收或部署。
+
+---
+
+以下为先前会话历史，当前事实以本轮记录和 progress.json 为准。
+
+
 ## 集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 50 个函数：约束 30 个，参考 20 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 51 个函数：约束 30 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -456,6 +456,7 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch Identifier)
 1. 设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接
 2. 执行active目录连续只追加迁移，未知版本拒绝启动
 3. 首次建库只建立未初始化状态，不生成伪配置
+4. 设置SQLite synchronous=FULL，初始化决定与准备材料在返回前持久提交
 
 **错误**
 
@@ -782,23 +783,24 @@ func ReadInitializationStatus(ctx context.Context, op OperationContext, input Re
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadInitializationStatusResult` | 读取安全初始化阶段的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 持久状态或准备配置哈希不一致，失败关闭 |
 
 **步骤**
 
-1. 未初始化返回仅phase和安全错误
-2. 内部identity/site-config按operationId读取持久决定
-3. 不返回ownerEmail/password/capability
+1. active只读事务读取initialized与当前初始化状态；无协调记录且未初始化时phase=uninitialized、decision=none、revision/configRevision=0、operationId/siteId=null，updatedAt取active建库时间
+2. 所有调用返回initialized与仅phase/safeError的state，不输出ownerEmail/password/capability
+3. 仅identity/site-config服务身份或同站点admin且含superadmin授权时附coordination完整协调状态；匿名和其他主体完全省略coordination
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：初始化决定、准备配置哈希或active水位不一致（不可重试）
 
 - 副作用：无
-- 授权：anonymous仅安全initialized/phase；superadmin或注册service读协调字段
+- 授权：anonymous仅initialized与安全state；同站点superadmin或service:identity/site-config可读coordination
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`site-config.ReadInitializationRecord`
 
 ## site-config.ResumeInitialization
 
@@ -911,9 +913,11 @@ func PrepareDefaultConfig(input PrepareDefaultConfigInput) (PrepareDefaultConfig
 
 **步骤**
 
-1. 设置baseLanguage默认zh-Hans、站名为mainTitle、backgroundText=Welcome To且translate=false
-2. 首页只hero一屏，0–3按钮；默认纯色背景/遮罩/浅深文字；默认footer源代码链接
-3. 不制造示例文档、假渠道或调用模型，initialized=false等待持久配置提交
+1. baseLanguage缺省或空串为zh-Hans；显式标签规范化；updatedAt使用input.preparedAt，revision/home.revision=0且initialized=false
+2. 站名为mainTitle；Welcome To不翻译，空subtitle和按钮，纯色背景#0F172A、overlayPercent=0、textColor=light；不制造示例文档或调用模型
+3. themeColor=#2563EB；titleTemplate={title} | {site}、description空、indexingEnabled=true；logo/favicon/defaultShareImage/banner为null
+4. footer版权和links为空、备案为null、sourceCodeURL=https://github.com/Uniseem/nice-wiki；资源默认doc16MiB/upload128MiB/site10GiB/上传并发4；安全默认previewTTL900s/sessionAbsoluteTTL604800s
+5. publicBaseURL保持可信调用方显式输入；不从请求Host推断部署地址
 
 **错误**
 
@@ -952,20 +956,65 @@ func PersistInitializationDecision(ctx context.Context, op OperationContext, inp
 
 **步骤**
 
-1. 锁operationId初始化record
-2. 要求prepare阶段完整才commit；commit后不能改abort
-3. 私有事务落决定与stage引用并fsync，再执行外部后续动作
+1. 仅由本域已授权用例私有调用；要求op.dataEpoch与active匹配，state的operationId/siteId非null，用户委托站点若存在须一致；保留原调用OperationContext，不要求调用服务为自身
+2. 按operationId读取不可变决定回执；同operation/site/decision/准备配置哈希返回原决定版本，不同请求或不同决定返回CONFLICT；已提交同请求读取回执允许处于维护状态，新决定仍须CheckWriteEpoch通过
+3. active私有事务CAS expectedRevision；无记录仅允许0，已commit不得改abort或开启另一operation；已abort可用新operation继续本域向导，但不重开identity注册
+4. commit要求state为preparing且完整preparedConfig属于同site、initialized=false、revision/home.revision=0；同时保存规范JSON与SHA256；abort要求preparedConfig=null且无commit
+5. 同事务写不可变决定回执与当前状态，revision递增；commit保留preparing等待权威文件提交，abort进入aborted；SQLite synchronous=FULL提交后才执行外部动作
 
 **错误**
 
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `VERSION_MISMATCH`：expectedRevision或active dataEpoch已改变（不可重试）
+- `LOCKED`：维护或恢复屏障禁止新决定（不可重试）
 
-- 副作用：私有初始化决定日志
+- 副作用：active初始化决定、完整prepared配置和哈希、当前状态与幂等回执；不发布配置或事件
 - 授权：site-config 私有协调
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：同决定重复返回原版本；不同终局决定CONFLICT
+- 依赖：`site-config.CheckWriteEpoch`、`site-config.ReadInitializationRecord`
+
+## site-config.ReadInitializationRecord
+
+- 级别：参考
+- 文件：`modules/site-config/internal/initialization_repository.go`
+- 作用：读取私有初始化协调状态并核对active初始化水位
+
+```go
+func (s *ActiveStore) ReadInitializationRecord(ctx context.Context, q ReadTransaction) (InitializationState, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 传播到私有数据库读取 |  |
+| `q` | `ReadTransaction` | 同一active数据库只读或写事务 | 内部句柄，不经HTTP序列化 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `state` | `InitializationState` | 完整可信协调状态，未开始时标识为null |  |
+| `initialized` | `bool` | active初始化完成标志 |  |
+| `error` | `Error` | 私有存储或完整性失败 |  |
+
+**步骤**
+
+1. 同一事务读取active初始化水位及当前协调JSON
+2. 严格解析持久状态，核对决定与完整准备配置SHA256、active水位；无协调记录且未初始化才返回合法初始状态，不生成占位ID
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：初始化决定、准备配置哈希或active水位不一致（不可重试）
+
+- 副作用：无
+- 授权：私有数据库读取；调用层裁剪公开字段
+- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 幂等：只读
 - 依赖：无
 
 ## site-config.ValidateAnnouncementBody

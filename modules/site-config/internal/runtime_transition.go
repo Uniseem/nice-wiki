@@ -152,19 +152,19 @@ func validateTransitionFields(current gen.RuntimeState, command gen.RuntimeTrans
 		return platform.NewError(platform.CodeLocked, false, "迁移缺少barrierId")
 	}
 	if current.Phase == gen.Running && command.Action == gen.BeginBackup {
-		if command.RestoreId != "" || command.TargetDataEpoch != "" {
+		if command.RestoreId != nil || command.TargetDataEpoch != nil {
 			return platform.NewError(platform.CodeIntegrityError, false, "备份迁移包含恢复字段")
 		}
 		return nil
 	}
 	if current.Phase == gen.BackupBarrier && command.Action == gen.CompleteBackup {
-		if command.RestoreId != "" || command.TargetDataEpoch != "" || command.BarrierId != current.BarrierId {
+		if command.RestoreId != nil || command.TargetDataEpoch != nil || current.BarrierId == nil || command.BarrierId != *current.BarrierId {
 			return platform.NewError(platform.CodeLocked, false, "备份屏障参数不一致")
 		}
 		return nil
 	}
 	if current.Phase == gen.Running && command.Action == gen.BeginRestore {
-		if !platform.ValidIdentifier(platform.Identifier(command.RestoreId)) || !platform.ValidIdentifier(platform.Identifier(command.TargetDataEpoch)) || command.TargetDataEpoch == current.DataEpoch {
+		if command.RestoreId == nil || command.TargetDataEpoch == nil || !platform.ValidIdentifier(*command.RestoreId) || !platform.ValidIdentifier(*command.TargetDataEpoch) || *command.TargetDataEpoch == current.DataEpoch {
 			return platform.NewError(platform.CodeValidation, false, "恢复迁移参数不合法")
 		}
 		return nil
@@ -191,13 +191,13 @@ func validateTransitionFields(current gen.RuntimeState, command gen.RuntimeTrans
 }
 
 func validateRestoreCommand(current gen.RuntimeState, command gen.RuntimeTransition) error {
-	if command.RestoreId == "" || command.RestoreId != current.RestoreId {
+	if command.RestoreId == nil || current.RestoreId == nil || *command.RestoreId != *current.RestoreId {
 		return platform.NewError(platform.CodeVersionMismatch, false, "restoreId已变化")
 	}
-	if command.TargetDataEpoch == "" || command.TargetDataEpoch != current.TargetDataEpoch {
+	if command.TargetDataEpoch == nil || current.TargetDataEpoch == nil || *command.TargetDataEpoch != *current.TargetDataEpoch {
 		return platform.NewError(platform.CodeVersionMismatch, false, "targetDataEpoch已变化")
 	}
-	if command.BarrierId == "" || command.BarrierId != current.BarrierId {
+	if command.BarrierId == "" || current.BarrierId == nil || command.BarrierId != *current.BarrierId {
 		return platform.NewError(platform.CodeVersionMismatch, false, "barrierId已变化")
 	}
 	return nil
@@ -208,19 +208,13 @@ func updateRuntimeState(ctx context.Context, tx *sql.Tx, current, next gen.Runti
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "编码requiredModules失败")
 	}
-	nullable := func(value string) any {
-		if value == "" {
-			return nil
-		}
-		return value
-	}
 	result, err := tx.ExecContext(ctx, `
         UPDATE runtime_state
            SET data_epoch = ?, target_data_epoch = ?, phase = ?, maintenance = ?,
                restore_id = ?, barrier_id = ?, revision = ?, required_modules = ?, updated_at = ?
          WHERE singleton = 1 AND revision = ?`,
-		string(next.DataEpoch), nullable(string(next.TargetDataEpoch)), string(next.Phase), boolInt(next.Maintenance),
-		nullable(string(next.RestoreId)), nullable(string(next.BarrierId)), int64(next.Revision), string(requiredJSON),
+		string(next.DataEpoch), next.TargetDataEpoch, string(next.Phase), boolInt(next.Maintenance),
+		next.RestoreId, next.BarrierId, int64(next.Revision), string(requiredJSON),
 		next.UpdatedAt.UTC().Format(time.RFC3339Nano), int64(current.Revision))
 	if err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "写入运行状态失败")
@@ -245,20 +239,20 @@ func applyTransition(current gen.RuntimeState, command gen.RuntimeTransition) (g
 	next.UpdatedAt = time.Now().UTC()
 	switch command.Action {
 	case gen.BeginBackup:
-		next.Phase, next.Maintenance, next.BarrierId = gen.BackupBarrier, true, command.BarrierId
+		next.Phase, next.Maintenance, next.BarrierId = gen.BackupBarrier, true, &command.BarrierId
 	case gen.CompleteBackup, gen.AbortRestore:
 		next.Phase, next.Maintenance = gen.Running, false
-		next.TargetDataEpoch, next.RestoreId, next.BarrierId = "", "", ""
+		next.TargetDataEpoch, next.RestoreId, next.BarrierId = nil, nil, nil
 	case gen.CompleteRestore:
-		next.DataEpoch = current.TargetDataEpoch
+		next.DataEpoch = *current.TargetDataEpoch
 		next.Phase, next.Maintenance = gen.Running, false
-		next.TargetDataEpoch, next.RestoreId, next.BarrierId = "", "", ""
+		next.TargetDataEpoch, next.RestoreId, next.BarrierId = nil, nil, nil
 	case gen.CompleteRollback:
 		next.Phase, next.Maintenance = gen.Running, false
-		next.TargetDataEpoch, next.RestoreId, next.BarrierId = "", "", ""
+		next.TargetDataEpoch, next.RestoreId, next.BarrierId = nil, nil, nil
 	case gen.BeginRestore:
 		next.Phase, next.Maintenance = gen.RestoreStaging, true
-		next.RestoreId, next.TargetDataEpoch, next.BarrierId = command.RestoreId, command.TargetDataEpoch, command.BarrierId
+		next.RestoreId, next.TargetDataEpoch, next.BarrierId = command.RestoreId, command.TargetDataEpoch, &command.BarrierId
 	case gen.BeginSwitch:
 		next.Phase, next.Maintenance = gen.RestoreSwitching, true
 	case gen.MarkBlocked:
@@ -268,6 +262,9 @@ func applyTransition(current gen.RuntimeState, command gen.RuntimeTransition) (g
 	default:
 		return gen.RuntimeState{}, platform.NewError(platform.CodeValidation, false, "未知RuntimeTransition action")
 	}
+	if next.Phase == gen.Running {
+		next.ActivationReceipts = []gen.ActivationReceipt{}
+	}
 	return next, validateRuntimeStateShape(next)
 }
 
@@ -275,11 +272,11 @@ func validateActivationInput(current gen.RuntimeState, input gen.RegisterActivat
 	if current.Phase != gen.RestoreSwitching && current.Phase != gen.RestoreRollingBack {
 		return platform.NewError(platform.CodeLocked, false, "当前阶段不接受激活回执")
 	}
-	if input.RestoreId == "" || input.RestoreId != current.RestoreId {
+	if input.RestoreId == "" || current.RestoreId == nil || input.RestoreId != *current.RestoreId {
 		return platform.NewError(platform.CodeVersionMismatch, false, "restoreId与当前恢复不一致")
 	}
 	receipt := input.Receipt
-	if !isRequiredModule(string(receipt.Module)) || !platform.ValidIdentifier(platform.Identifier(receipt.StageId)) || receipt.TargetDataEpoch != current.TargetDataEpoch || !platform.ValidHash(platform.Hash(receipt.ManifestHash)) || receipt.Signature == "" {
+	if !isRequiredModule(string(receipt.Module)) || !platform.ValidIdentifier(platform.Identifier(receipt.StageId)) || current.TargetDataEpoch == nil || receipt.TargetDataEpoch != *current.TargetDataEpoch || !platform.ValidHash(platform.Hash(receipt.ManifestHash)) || receipt.Signature == "" {
 		return platform.NewError(platform.CodeIntegrityError, false, "激活回执字段不合法")
 	}
 	if current.Phase == gen.RestoreSwitching && receipt.State != gen.Switched {

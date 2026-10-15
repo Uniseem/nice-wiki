@@ -1,6 +1,6 @@
 # 数据、权威与持久化
 
-site-config私有settings/siteId/revisionId.json是站点设置权威文件，banner正文同样不可变；私有head/journal只有COMMITTED可见。derived数据库仅设置索引、历史水位、receipt/outbox/stages。独立control.db保留runtimeState与恢复切换回执，绝不被业务快照覆盖。设置文件（不含credentials/keys/可信代理）通过对象API由data-protection镜像纳入data git。requiredModules固定为ActivationReceipt枚举中的14个有状态域，portal无状态，不登记恢复回执。
+site-config私有settings/siteId/revisionId.json是站点设置权威文件，banner正文同样不可变；私有head/journal只有COMMITTED可见。业务数据库保存设置索引、历史水位、receipt/outbox/stages，以及不可重建的初始化决定与完整准备材料。独立control.db保留runtimeState与恢复切换回执，绝不被业务快照覆盖。设置文件（不含credentials/keys/可信代理）通过对象API由data-protection镜像纳入data git。requiredModules固定为ActivationReceipt枚举中的14个有状态域，portal无状态，不登记恢复回执。
 
 严格保留old home.md/D17、D34、admin.md站点设置。hero仅一屏，无卡片精选。主标题/副标题/按钮文字、站点名、footer/banner会翻译，Welcome To默认不翻译可开。bannerId是访客localStorage关闭身份。baseLanguage在初始化选择默认zh-Hans；已初始化无变更基准语言的新产品入口。
 
@@ -121,3 +121,11 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | restoreConfigRevisionRequest | 回滚站点设置请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
+
+## 初始化准备与决定
+
+`active/site-config.db` 的 `initialization_decisions` 保存每个初始化 operation 的不可反悔决定、原始结果回执、完整准备配置规范 JSON 与 SHA256；`initialization_state` 保存当前协调状态和 CAS revision。二者由 `0002_initialization.sql` 只追加迁移建立，同事务以 SQLite `synchronous=FULL` 提交。决定记录不是可重建索引，也不等同 `settings` 权威文件已提交。commit 后仍为 preparing；后续 ResumeInitialization 必须核对材料、写权威文件并推进初始化完成，不能在本阶段向公开站点发布。
+
+尚未开始时 operationId/siteId 为 null，revision/configRevision 为 0；updatedAt 使用 active 状态的持久建库时间。公开状态固定为 `initialized` 与只含 phase/safeError 的 state。完整 coordination 只向同站点超管或 identity/site-config 可信服务返回，匿名完全省略。
+
+初始化默认值在本轮集成裁决中明确：主题色 `#2563EB`，hero 背景 `#0F172A`、遮罩 0、浅色文字、无按钮、副标题空、背景字 `Welcome To` 且不翻译；标题模板 `{title} | {site}`、允许索引，版权/自定义链接空、备案 null、源码链接 `https://github.com/Uniseem/nice-wiki`。资源上限为文档 16 MiB、单次上传 128 MiB、站点 10 GiB、上传并发 4；预览 900 秒、会话最长 604800 秒。logo/favicon/defaultShareImage/banner 为 null。以上默认数值此前产品基线未固定，本轮据现有 schema 范围补齐；不新增示例文档、账号、AI 渠道或模型任务。

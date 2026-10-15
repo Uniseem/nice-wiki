@@ -67,7 +67,7 @@ var activeBusinessStore struct {
 }
 
 // ActiveStore 是 site-config active 区私有数据库与不可变正文目录的句柄。
-// 数据库只保存派生索引和恢复后水位，正文文件仍是权威数据。
+// 数据库保存索引、水位及独立持久初始化决定，正文文件仍是权威数据。
 type ActiveStore struct {
 	db         *sql.DB
 	activeRoot string
@@ -150,7 +150,8 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch platform.Id
 	dsn := "file:" + path +
 		"?_pragma=journal_mode(WAL)" +
 		"&_pragma=foreign_keys(ON)" +
-		"&_pragma=busy_timeout(3000)"
+		"&_pragma=busy_timeout(3000)" +
+		"&_pragma=synchronous(FULL)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeInternal, false, "打开active业务库失败")
@@ -464,8 +465,8 @@ func (s *RuntimeStore) ReadRuntimeView(ctx context.Context) (platform.RuntimeVie
 	return platform.RuntimeView{
 		DataEpoch:       platform.Identifier(state.DataEpoch),
 		Phase:           string(state.Phase),
-		RestoreID:       platform.Identifier(state.RestoreId),
-		TargetDataEpoch: platform.Identifier(state.TargetDataEpoch),
+		RestoreID:       runtimeIdentifier(state.RestoreId),
+		TargetDataEpoch: runtimeIdentifier(state.TargetDataEpoch),
 		Maintenance:     state.Maintenance,
 	}, nil
 }
@@ -641,14 +642,14 @@ func (s *RuntimeStore) readStateFrom(ctx context.Context, q queryer) (gen.Runtim
 	return state, nil
 }
 
-func (s *RuntimeStore) readReceipts(ctx context.Context, q queryer, restoreID gen.Identifier) ([]gen.ActivationReceipt, error) {
-	if restoreID == "" {
+func (s *RuntimeStore) readReceipts(ctx context.Context, q queryer, restoreID *gen.Identifier) ([]gen.ActivationReceipt, error) {
+	if restoreID == nil {
 		return []gen.ActivationReceipt{}, nil
 	}
 	rows, err := q.QueryContext(ctx, `
         SELECT module, stage_id, target_data_epoch, state, manifest_hash,
                recorded_at, signature
-          FROM activation_receipts WHERE restore_id = ? ORDER BY module`, string(restoreID))
+          FROM activation_receipts WHERE restore_id = ? ORDER BY module`, *restoreID)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "读取激活回执失败")
 	}
@@ -768,32 +769,41 @@ func validateRuntimeStateShape(state gen.RuntimeState) error {
 		return platform.NewError(platform.CodeIntegrityError, false, "运行phase与maintenance不一致")
 	}
 	if state.Phase == gen.Running {
-		if state.TargetDataEpoch != "" || state.RestoreId != "" || state.BarrierId != "" {
+		if state.TargetDataEpoch != nil || state.RestoreId != nil || state.BarrierId != nil {
 			return platform.NewError(platform.CodeIntegrityError, false, "running状态包含恢复字段")
 		}
 		return nil
 	}
-	if state.BarrierId == "" {
+	if state.BarrierId == nil || !platform.ValidIdentifier(*state.BarrierId) {
 		return platform.NewError(platform.CodeIntegrityError, false, "维护状态缺少barrierId")
 	}
 	if state.Phase != gen.BackupBarrier {
-		if !platform.ValidIdentifier(platform.Identifier(state.RestoreId)) || !platform.ValidIdentifier(platform.Identifier(state.TargetDataEpoch)) {
+		if state.RestoreId == nil || state.TargetDataEpoch == nil || !platform.ValidIdentifier(*state.RestoreId) || !platform.ValidIdentifier(*state.TargetDataEpoch) {
 			return platform.NewError(platform.CodeIntegrityError, false, "恢复状态缺少restoreId或targetDataEpoch")
 		}
 	}
 	for _, receipt := range state.ActivationReceipts {
-		if string(receipt.TargetDataEpoch) != string(state.TargetDataEpoch) {
+		if state.TargetDataEpoch == nil || receipt.TargetDataEpoch != *state.TargetDataEpoch {
 			return platform.NewError(platform.CodeIntegrityError, false, "激活回执代次与运行状态不一致")
 		}
 	}
 	return nil
 }
 
-func nullableIdentifier(value sql.NullString) gen.Identifier {
+func nullableIdentifier(value sql.NullString) *gen.Identifier {
 	if !value.Valid {
+		return nil
+	}
+	id := gen.Identifier(value.String)
+	return &id
+}
+
+// runtimeIdentifier 仅适配platform内部RuntimeView的可选字符串；HTTP DTO保留null。
+func runtimeIdentifier(value *gen.Identifier) platform.Identifier {
+	if value == nil {
 		return ""
 	}
-	return gen.Identifier(value.String)
+	return *value
 }
 
 func isMissingTable(err error) bool {

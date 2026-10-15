@@ -1,8 +1,8 @@
 # 生命周期与工作流
 
-初始化 uninitialized→preparing→config_committed→completed；持久commit后恢复完成或blocked。单条banner enabled/timewindow决定是否可见，无额外富文公告产品。runtime running→restore_staging→restore_switching→running（或restore_rolling_back→running），任一域未登记回执保持维护。
+初始化 uninitialized→preparing→config_committed→completed；持久commit后恢复完成或blocked。持久化函数的 commit 结果仍停 preparing，不代表配置已提交；同决定同准备配置摘要重试返回原版本，异摘要或终局决定冲突失败。abort 前不能存在 commit，abort 不删除身份账号或重开注册。单条banner enabled/timewindow决定是否可见，无额外富文公告产品。runtime running→restore_staging→restore_switching→running（或restore_rolling_back→running），任一域未登记回执保持维护。
 
-初始化只需已登录唯一超管填写站点名和基准语言，默认中文zh-Hans。publicBaseURL/部署参数来自受控环境，AI不配置不探测不调用。写config权威文件与决定日志，再initialized完成。
+初始化只需已登录唯一超管填写站点名和基准语言，默认中文zh-Hans。publicBaseURL/部署参数来自受控环境，AI不配置不探测不调用。PrepareDefaultConfig 接受显式 publicBaseURL 与可信 preparedAt，不读取请求 Host 或当前时钟；公开地址的进程配置注入留给 HTTP 装配工作包。先持久化完整准备配置和 commit 决定，后续恢复用例再写 config 权威文件并完成 initialized。
 
 UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted loop playsinline、图片preload，prefers-reduced-motion视频只poster。UpdateBanner保存唯一公告文字/安全链接/起止时间，文字进localization；前端关闭只localStorage。
 

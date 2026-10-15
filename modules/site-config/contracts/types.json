@@ -182,25 +182,29 @@
           "type": "integer",
           "description": "文档 UTF-8 规范 JSON 上限",
           "minimum": 1024,
-          "maximum": 16777216
+          "maximum": 16777216,
+          "default": 16777216
         },
         "maxUploadBytes": {
           "type": "integer",
           "description": "单个资源上传上限",
           "minimum": 1024,
-          "maximum": 2147483648
+          "maximum": 2147483648,
+          "default": 134217728
         },
         "siteStorageBytes": {
           "type": "integer",
           "description": "站点存储逻辑配额",
           "minimum": 1048576,
-          "maximum": 1099511627776
+          "maximum": 1099511627776,
+          "default": 10737418240
         },
         "maxUploadConcurrency": {
           "type": "integer",
           "description": "上传并发",
           "minimum": 1,
-          "maximum": 100
+          "maximum": 100,
+          "default": 4
         }
       },
       "required": [
@@ -219,13 +223,15 @@
           "type": "integer",
           "description": "管理员预览TTL",
           "minimum": 60,
-          "maximum": 86400
+          "maximum": 86400,
+          "default": 900
         },
         "sessionAbsoluteTTLSeconds": {
           "type": "integer",
           "description": "会话最长",
           "minimum": 3600,
-          "maximum": 604800
+          "maximum": 604800,
+          "default": 604800
         }
       },
       "required": [
@@ -275,7 +281,8 @@
           "description": "#RRGGBB",
           "minLength": 7,
           "maxLength": 7,
-          "pattern": "^#[0-9A-Fa-f]{6}$"
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "default": "#2563EB"
         },
         "defaultShareImage": {
           "anyOf": [
@@ -300,7 +307,8 @@
           "type": "string",
           "description": "title/site模板",
           "minLength": 1,
-          "maxLength": 200
+          "maxLength": 200,
+          "default": "{title} | {site}"
         },
         "description": {
           "type": "string",
@@ -310,7 +318,8 @@
         },
         "indexingEnabled": {
           "type": "boolean",
-          "description": "搜索引擎"
+          "description": "搜索引擎",
+          "default": true
         },
         "home": {
           "$ref": "#/$defs/HomeConfig",
@@ -515,7 +524,7 @@
           "description": "需登记切换回执的有状态域集合",
           "items": {
             "type": "string",
-          "description": "14个有状态注册module slug（portal无状态，不登记回执）",
+            "description": "14个有状态注册module slug（portal无状态，不登记回执）",
             "minLength": 1,
             "maxLength": 64
           },
@@ -627,12 +636,26 @@
       "additionalProperties": false,
       "properties": {
         "operationId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "初始化操作"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "初始化操作；尚无协调记录时为null，不生成占位ID"
         },
         "siteId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "已由identity首注册取得站点"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "已由identity首注册取得站点；尚无协调记录时为null，不生成占位ID"
         },
         "phase": {
           "type": "string",
@@ -1323,12 +1346,21 @@
       "description": "读取安全初始化阶段的结果",
       "additionalProperties": false,
       "properties": {
+        "initialized": {
+          "type": "boolean",
+          "description": "active已提交配置是否完成初始化；不能用于重开注册"
+        },
         "state": {
+          "$ref": "#/$defs/PublicInitializationState",
+          "description": "仅安全phase和safeError"
+        },
+        "coordination": {
           "$ref": "#/$defs/InitializationState",
-          "description": "InitializationState"
+          "description": "仅同站点超管或identity/site-config可信服务返回，匿名省略"
         }
       },
       "required": [
+        "initialized",
         "state"
       ]
     },
@@ -1352,15 +1384,27 @@
           "description": "SafeURL"
         },
         "baseLanguage": {
-          "$ref": "#/$defs/LanguageTag",
-          "description": "LanguageTag"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LanguageTag"
+            },
+            {
+              "const": ""
+            }
+          ],
+          "description": "空串按zh-Hans；显式标签规范化",
+          "default": "zh-Hans"
+        },
+        "preparedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "可信用例时钟；纯函数使用此值生成updatedAt，重复输入结果一致"
         }
       },
       "required": [
         "siteId",
         "name",
         "publicBaseURL",
-        "baseLanguage"
+        "preparedAt"
       ]
     },
     "PrepareDefaultConfigResult": {
@@ -1379,7 +1423,7 @@
     },
     "PersistInitializationDecisionInput": {
       "type": "object",
-      "description": "持久化不可反悔的初始化决定的输入",
+      "description": "持久化不可反悔的初始化决定；state提供本次operation/site与CAS版本，commit携完整准备配置",
       "additionalProperties": false,
       "properties": {
         "state": {
@@ -1397,12 +1441,24 @@
         "expectedRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "初始化CAS"
+        },
+        "preparedConfig": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SiteConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "commit须完整准备配置，与决定同事务保存规范JSON及SHA256；abort为null"
         }
       },
       "required": [
         "state",
         "decision",
-        "expectedRevision"
+        "expectedRevision",
+        "preparedConfig"
       ]
     },
     "PersistInitializationDecisionResult": {
@@ -2051,7 +2107,8 @@
           "type": "string",
           "description": "默认显示源代码链接，AGPL网络用户可获得源码",
           "minLength": 1,
-          "maxLength": 2048
+          "maxLength": 2048,
+          "default": "https://github.com/Uniseem/nice-wiki"
         }
       },
       "required": [
@@ -2825,6 +2882,47 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "PublicInitializationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公开安全初始化阶段，不包含协调标识和私有决定",
+      "properties": {
+        "phase": {
+          "type": "string",
+          "description": "阶段",
+          "enum": [
+            "uninitialized",
+            "preparing",
+            "config_committed",
+            "completed",
+            "aborting",
+            "aborted",
+            "blocked"
+          ]
+        },
+        "safeError": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Problem",
+              "description": "Problem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "phase",
+        "safeError"
+      ]
+    },
+    "ReadTransaction": {
+      "type": "object",
+      "description": "仅内部使用的active数据库读取事务，承载QueryContext与QueryRowContext",
+      "x-internal": true
     }
   }
 }

@@ -960,7 +960,8 @@
           "steps": [
             "设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接",
             "执行active目录连续只追加迁移，未知版本拒绝启动",
-            "首次建库只建立未初始化状态，不生成伪配置"
+            "首次建库只建立未初始化状态，不生成伪配置",
+            "设置SQLite synchronous=FULL，初始化决定与准备材料在返回前持久提交"
           ],
           "errors": [
             {
@@ -1611,28 +1612,36 @@
               "type": "Error",
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 持久状态或准备配置哈希不一致，失败关闭"
               ]
             }
           ],
           "purpose": "读取安全初始化阶段",
           "steps": [
-            "未初始化返回仅phase和安全错误",
-            "内部identity/site-config按operationId读取持久决定",
-            "不返回ownerEmail/password/capability"
+            "active只读事务读取initialized与当前初始化状态；无协调记录且未初始化时phase=uninitialized、decision=none、revision/configRevision=0、operationId/siteId=null，updatedAt取active建库时间",
+            "所有调用返回initialized与仅phase/safeError的state，不输出ownerEmail/password/capability",
+            "仅identity/site-config服务身份或同站点admin且含superadmin授权时附coordination完整协调状态；匿名和其他主体完全省略coordination"
           ],
           "errors": [
             {
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "初始化决定、准备配置哈希或active水位不一致",
+              "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "anonymous仅安全initialized/phase；superadmin或注册service读协调字段",
+          "authorization": "anonymous仅initialized与安全state；同站点superadmin或service:identity/site-config可读coordination",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "site-config.ReadInitializationRecord"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -1858,9 +1867,11 @@
           ],
           "purpose": "确定性生成首次基础配置",
           "steps": [
-            "设置baseLanguage默认zh-Hans、站名为mainTitle、backgroundText=Welcome To且translate=false",
-            "首页只hero一屏，0–3按钮；默认纯色背景/遮罩/浅深文字；默认footer源代码链接",
-            "不制造示例文档、假渠道或调用模型，initialized=false等待持久配置提交"
+            "baseLanguage缺省或空串为zh-Hans；显式标签规范化；updatedAt使用input.preparedAt，revision/home.revision=0且initialized=false",
+            "站名为mainTitle；Welcome To不翻译，空subtitle和按钮，纯色背景#0F172A、overlayPercent=0、textColor=light；不制造示例文档或调用模型",
+            "themeColor=#2563EB；titleTemplate={title} | {site}、description空、indexingEnabled=true；logo/favicon/defaultShareImage/banner为null",
+            "footer版权和links为空、备案为null、sourceCodeURL=https://github.com/Uniseem/nice-wiki；资源默认doc16MiB/upload128MiB/site10GiB/上传并发4；安全默认previewTTL900s/sessionAbsoluteTTL604800s",
+            "publicBaseURL保持可信调用方显式输入；不从请求Host推断部署地址"
           ],
           "errors": [
             {
@@ -1942,9 +1953,11 @@
           ],
           "purpose": "持久化不可反悔的初始化决定",
           "steps": [
-            "锁operationId初始化record",
-            "要求prepare阶段完整才commit；commit后不能改abort",
-            "私有事务落决定与stage引用并fsync，再执行外部后续动作"
+            "仅由本域已授权用例私有调用；要求op.dataEpoch与active匹配，state的operationId/siteId非null，用户委托站点若存在须一致；保留原调用OperationContext，不要求调用服务为自身",
+            "按operationId读取不可变决定回执；同operation/site/decision/准备配置哈希返回原决定版本，不同请求或不同决定返回CONFLICT；已提交同请求读取回执允许处于维护状态，新决定仍须CheckWriteEpoch通过",
+            "active私有事务CAS expectedRevision；无记录仅允许0，已commit不得改abort或开启另一operation；已abort可用新operation继续本域向导，但不重开identity注册",
+            "commit要求state为preparing且完整preparedConfig属于同site、initialized=false、revision/home.revision=0；同时保存规范JSON与SHA256；abort要求preparedConfig=null且无commit",
+            "同事务写不可变决定回执与当前状态，revision递增；commit保留preparing等待权威文件提交，abort进入aborted；SQLite synchronous=FULL提交后才执行外部动作"
           ],
           "errors": [
             {
@@ -1961,14 +1974,92 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision或active dataEpoch已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护或恢复屏障禁止新决定",
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "私有初始化决定日志"
+            "active初始化决定、完整prepared配置和哈希、当前状态与幂等回执；不发布配置或事件"
           ],
           "authorization": "site-config 私有协调",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "同决定重复返回原版本；不同终局决定CONFLICT",
+          "dependencies": [
+            "site-config.CheckWriteEpoch",
+            "site-config.ReadInitializationRecord"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "site-config.ReadInitializationRecord",
+          "name": "ReadInitializationRecord",
+          "signature": "func (s *ActiveStore) ReadInitializationRecord(ctx context.Context, q ReadTransaction) (InitializationState, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "传播到私有数据库读取",
+              "constraints": []
+            },
+            {
+              "name": "q",
+              "type": "ReadTransaction",
+              "description": "同一active数据库只读或写事务",
+              "constraints": [
+                "内部句柄，不经HTTP序列化"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "state",
+              "type": "InitializationState",
+              "description": "完整可信协调状态，未开始时标识为null",
+              "constraints": []
+            },
+            {
+              "name": "initialized",
+              "type": "bool",
+              "description": "active初始化完成标志",
+              "constraints": []
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "私有存储或完整性失败",
+              "constraints": []
+            }
+          ],
+          "purpose": "读取私有初始化协调状态并核对active初始化水位",
+          "steps": [
+            "同一事务读取active初始化水位及当前协调JSON",
+            "严格解析持久状态，核对决定与完整准备配置SHA256、active水位；无协调记录且未初始化才返回合法初始状态，不生成占位ID"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "初始化决定、准备配置哈希或active水位不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "私有数据库读取；调用层裁剪公开字段",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -4410,6 +4501,12 @@
       "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
+      "functions": []
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
+      "kind": "migration",
+      "purpose": "初始化不可反悔决定、完整准备配置及SHA256、幂等回执和当前协调状态；不替代settings权威文件",
       "functions": []
     }
   ],
