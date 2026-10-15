@@ -6,6 +6,8 @@
 
 会话access由identity固定`iss=identity`、`aud=portal`、`typ=NW-SESSION`的Ed25519令牌表示，15分钟访问期、最长7天绝对期限；refresh和CSRF各为独立32字节随机secret，仅保留SHA256摘要。refresh不依赖未过期access；旧refresh再次使用必须先提交族与会话撤销和安全outbox，再返回未认证，不能因返回错误回滚撤销。浏览器刷新须singleflight；敏感响应不进入可重放普通回执，响应丢失后重新登录。
 
+任务入口能力由根jobManagementGrants生成目录派生：账号已有任一登记任务业务能力才增加job.manage，仍只有既有10项用户开关。portal粗预检通过后，jobs按任务持久owner/type再次请求具体权限；受限初始口令与停用账户不获得该能力。
+
 初始口令的单次授权额外检查可信服务从静态路由绑定产生的`action`，仅`identity:changePassword`、`identity:revokeSession`、`identity:readSelf`与`account.self`组合允许；缺失或其他action失败关闭，不允许会话列表或偏好读取。受限登出只撤销当前设备。action不能由浏览器选择，也不能增加原有功能grants；后续HTTP绑定须按实际handler提供固定值。
 
 服务器查control/account-index.json找账号；忘密在identity私有control/reset-superadmin.txt写新口令，watcher核对固定路径/hash与OS权限，凭据提交后删除该文件，mustChangePassword=true。

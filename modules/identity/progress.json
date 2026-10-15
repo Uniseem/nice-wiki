@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "cf11248b4ce11b367fdf89fcf895515b0b9e6d62debbb33da8cdb2ede7fd4bb9",
+  "contractSha256": "c6e6c4f8a967aab7834e23acfbe5fdb1916d315d529e83a4e6cf54de5bf14e42",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-01（会话签发刷新、CSRF与即时授权）",
   "branch": "codex/identity-session-complete-r1",
@@ -42,13 +42,13 @@
     },
     {
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "implemented",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "统一复核新增job.manage入口能力派生，待根生成目录更新及VPS最终编译"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
+      "blocker": "等待根jobManagementGrants生成和VPS make gen/docs/build/check"
     },
     {
       "path": "modules/identity/internal/credential_service.go",
@@ -465,13 +465,13 @@
     {
       "id": "identity.MapFunctionGrants",
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "implemented",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "统一复核新增job.manage入口能力派生，待根生成目录更新及VPS最终编译"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
+      "blocker": "等待根jobManagementGrants生成和VPS make gen/docs/build/check"
     },
     {
       "id": "identity.HashPassword",

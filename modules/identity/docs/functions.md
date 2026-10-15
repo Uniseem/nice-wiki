@@ -730,7 +730,7 @@ func IssueSessionTokens(ctx context.Context, op OperationContext, input IssueSes
 - 授权：identity私有sessiontxn
 - 并发：固定key版本
 - 幂等：外层业务事务单次签发；不持久化明文敏感响应，重复旧refresh撤销族而不回放secret
-- 依赖：`identity.sessionRuntimeFromContext`
+- 依赖：`identity.sessionRuntimeFromContext`、`platform.GenerateSessionSecrets`、`platform.SignSessionAccess`
 - 其他依赖说明：auth_state认证代次权威；session_families与consumed_refresh_tokens私有摘要表；libs/platform/serviceauth.GenerateSessionSecrets与SignSessionAccess：随机数和签名机制唯一来源
 
 ## identity.RefreshSession
@@ -762,8 +762,8 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 
 1. 只接受portal服务转发的refresh cookie；同Origin与SameSite=Strict由入口建立，打开本域串行写事务
 2. 按refresh SHA256摘要查当前族；若命中已消费摘要，则在同事务撤销该族和session、登记安全outbox，提交后返回UNAUTHENTICATED
-3. 当前族须未撤销且authEpoch/dataEpoch与当前权威一致、session未撤销且未过绝对期限、账户active、credential/permissionRevision未失效
-4. 从本域权限表建立最新AuthContext，保留mustChangePassword限制，session revision CAS加一后调用IssueSessionTokens；提交后仅向cookie adapter返回本次敏感值
+3. 当前族须未撤销且authEpoch/dataEpoch与当前权威一致、session未撤销且未过绝对期限、账户active、credentialRevision未失效；旧permissionRevision仅用于刷新，不使已失效access恢复可用
+4. 同一事务从本域权限表建立最新AuthContext，保留mustChangePassword限制，CAS将session.permissionRevision更新到当前权威并将session revision加一，再调用IssueSessionTokens；提交后仅向cookie adapter返回本次敏感值
 
 **错误**
 
@@ -807,9 +807,10 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 **步骤**
 
 1. 主体必须是持有account.self的admin；查询条件固定为op.actor.subjectId与siteId，不接受其他账户参数
-2. 在一致只读事务读取当前session/账户/族/认证代次，确认主体站点、未撤销、访问与绝对期限及最新凭据权限水位；初始口令受限会话拒绝会话列表
-3. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；平台签名scope由identity.sessions、siteId、accountId、dataEpoch以Identifier不含的竖线分隔构成，载荷只含排序位置；验证相同scope后才解码
-4. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
+2. 自身当前委托的op.actor.sessionRevision必须为正数并等于session权威revision，缺失或陈旧失败关闭
+3. 在一致只读事务读取当前session/账户/族/认证代次，确认主体站点、未撤销、访问与绝对期限及最新凭据权限水位；初始口令受限会话拒绝会话列表
+4. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；平台签名scope由identity.sessions、siteId、accountId、dataEpoch以Identifier不含的竖线分隔构成，载荷只含排序位置；验证相同scope后才解码
+5. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
 
 **错误**
 
@@ -951,9 +952,10 @@ func RevokeSession(ctx context.Context, op OperationContext, input RevokeSession
 **步骤**
 
 1. 要求admin主体持account.self；查询session归属必须匹配actor site/account
-2. 按action/caller/actor/epoch/input摘要读取完整幂等回执；不同摘要CONFLICT，原回执重放不再写入
-3. 回执不存在时在同一事务核验当前session最新权威；初始口令受限主体只可撤销当前设备；调用RevokeSessionFamily，旧迁移目标会话没有族时直接撤销并追加安全事件
-4. 回执与撤销outbox原子提交；返回revoked=true供cookie adapter清除当前设备凭据
+2. 自身当前委托的op.actor.sessionRevision必须为正数并等于session权威revision，缺失或陈旧失败关闭
+3. 按action/caller/actor/epoch/input摘要读取完整幂等回执；不同摘要CONFLICT，原回执重放不再写入
+4. 回执不存在时在同一事务核验当前session最新权威；初始口令受限主体只可撤销当前设备；调用RevokeSessionFamily，旧迁移目标会话没有族时直接撤销并追加安全事件
+5. 回执与撤销outbox原子提交；返回revoked=true供cookie adapter清除当前设备凭据
 
 **错误**
 
@@ -1147,7 +1149,7 @@ func VerifySessionCSRF(ctx context.Context, op OperationContext, input VerifySes
 - 授权：service:portal
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`
+- 依赖：`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`platform.VerifySessionAccess`
 
 ## identity.CheckAuthorization
 
@@ -1192,7 +1194,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 - 授权：service，主体必须来自可信委托
 - 并发：权限一致快照，不能缓存长期允许
 - 幂等：只读
-- 依赖：`identity.MapFunctionGrants`、`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`
+- 依赖：`identity.MapFunctionGrants`、`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`、`platform.VerifySessionAccess`
 
 ## identity.readSessionSnapshot
 
@@ -1246,7 +1248,7 @@ func validateSessionSnapshot(snapshot sessionSnapshot, dataEpoch platform.Identi
 
 **步骤**
 
-1. 比较撤销、auth/data epoch、凭据权限水位和初始口令限制，检查绝对期限；仅access场景另查访问期限
+1. 比较撤销、auth/data epoch、凭据水位和初始口令限制，检查绝对期限；access/委托场景另要求当前权限版本与访问期限，refresh允许旧权限版本但必须由外层同事务CAS更新后签发
 
 **错误**
 
@@ -1320,7 +1322,7 @@ func verifySessionAccess(ctx context.Context, query sessionQueryer, runtime Sess
 - 授权：本域进程私有函数；不作为HTTP入口
 - 并发：信任调用方传入的私有事务和运行配置
 - 幂等：只读或不可变上下文派生
-- 依赖：`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
+- 依赖：`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`platform.VerifySessionAccess`
 - 其他依赖说明：libs/platform/serviceauth.VerifySessionAccess：固定协议验签唯一来源
 
 ## identity.ReadPreferences

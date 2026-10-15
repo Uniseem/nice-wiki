@@ -2,6 +2,8 @@
 
 分支`codex/identity-session-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`；仅拥有本域。源码提交`59070a0645a744e67426f511fcddd2040e46816f`，仅本域20文件。隔离源码已准备：会话签发、单次refresh轮换、旧值复用先提交族撤销、固定Origin与独立CSRF摘要、即时权限检查、单设备/族/其他设备撤销。追加0003迁移保存认证代次和摘要；恢复决定NewAuthEpoch与数据库权威同步。初始口令仅允许静态action指定的改密、当前登出和必要自身资料，会话列表拒绝。
 
+统一复核追加：MapFunctionGrants根据根生成的JobManagementGrants追加任务入口粗预检能力；具体任务权限仍由jobs按持久owner/type核验，不新增用户开关。该改动待根生成与VPS最终检查。
+
 修改条目保持in_progress，等待集成会话VPS gen/docs/build/check与逐项复核；未在本机执行编译、格式、vet、生成或测试。注册、登录风控、完整改密事务、HTTP与后台装配仍未完成。未新增测试、样例或临时验证程序，未运行真实服务/接口/模型，未部署或push。下文仅为先前已合并批次的历史证据，不证明本轮通过。
 
 ---

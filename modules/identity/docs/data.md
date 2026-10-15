@@ -4,7 +4,7 @@
 
 账号名不可修改，删除账户保留墓碑姓名供git历史/审计署名。权限只10项功能全站勾选，首次创建schema permissions可省略且后端默认全选；技术grants仅映射实现，不增加产品文档scope。会话可重建，丢失仅要求重新登录。认证代次保存在active身份库的auth_state单行；恢复启动决定的NewAuthEpoch必须与此权威同步落盘，并撤销全部session和refresh族。session_families是一对一设备族，保存access/refresh/CSRF摘要及auth/data epoch；consumed_refresh_tokens保留已消费摘要供复用撤销判定，不保存原始cookie值。
 
-技术授权唯一映射来源为根contracts/permission-groups.json，普通账户固定基础grants加勾选10组；language与translation不同。job.manage只用于获授权任务owner对象委托，不等于任意任务管理。
+技术授权唯一映射来源为根contracts/permission-groups.json，普通账户固定基础grants加勾选10组；language与translation不同。job.manage由根jobManagementGrants目录中任一已有业务能力派生，只供portal入口粗预检，不增加用户功能开关。jobs须按持久owner/type再次核对具体业务权限，不能据此管理任意任务或系统任务。
 
 类型、required/额外字段、枚举、最大长度、空值与格式均由 [types.json](../contracts/types.json) 定义。函数输入和结果各有独立 schema，内部句柄类型标 x-internal。
 

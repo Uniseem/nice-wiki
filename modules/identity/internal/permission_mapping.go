@@ -112,6 +112,14 @@ func MapFunctionGrants(input MapFunctionGrantsInput) (MapFunctionGrantsResult, e
 		}
 	}
 
+	// job.manage只表示任务入口可见；具体owner/type权限仍由jobs按持久记录核验。
+	for _, grant := range gen.JobManagementGrants {
+		if _, allowed := grants[grant]; allowed {
+			grants["job.manage"] = struct{}{}
+			break
+		}
+	}
+
 	result := make([]string, 0, len(grants))
 	for grant := range grants {
 		result = append(result, grant)

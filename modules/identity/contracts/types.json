@@ -1073,7 +1073,7 @@
       "properties": {
         "grants": {
           "type": "array",
-          "description": "排序去重",
+          "description": "排序去重；job.manage由已有任务业务能力派生，仅作为入口粗预检，具体owner/type仍由jobs授权",
           "items": {
             "type": "string",
             "description": "全局技术权限",
