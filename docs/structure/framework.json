@@ -3547,6 +3547,21 @@
       "path": "modules/model-gateway/migrations/002_task_availability.sql",
       "kind": "migration",
       "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。"
+    },
+    {
+      "path": "modules/media/internal/chunk_writer.go",
+      "kind": "source",
+      "purpose": "顺序原子写有界上传块"
+    },
+    {
+      "path": "modules/media/internal/asset_service.go",
+      "kind": "source",
+      "purpose": "读取资源/variants安全元数据"
+    },
+    {
+      "path": "modules/media/migrations/0002_upload_chunks.sql",
+      "kind": "migration",
+      "purpose": "只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次"
     }
   ]
 }
