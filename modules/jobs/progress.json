@@ -7,7 +7,7 @@
   "assignedSession": "R1-03 租约fencing与心跳进度（Codex）",
   "branch": "codex/jobs-lease-r1",
   "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": null,
+  "deliveryCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
   "deployment": "not_started",
   "files": [
     {
@@ -22,21 +22,21 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
     {
       "path": "modules/jobs/internal/leases.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
@@ -92,11 +92,11 @@
     },
     {
       "path": "modules/jobs/internal/progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
@@ -502,11 +502,11 @@
     },
     {
       "path": "modules/jobs/migrations/0002_leases.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     }
@@ -526,66 +526,66 @@
     {
       "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
       "verification": {
         "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "evidence": "已通过暂存内容diff检查、隐私检查及Python sqlite3内存迁移语法检查；本机无go/gofmt/make，未编译、格式化或执行行为验收"
       },
-      "blocker": null
+      "blocker": "Go工具链不可用，尚未完成编译、gofmt与行为验收"
     },
     {
       "id": "jobs.FailJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
+      "state": "planned",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "evidence": null
       },
       "blocker": null
     },
     {
       "id": "jobs.ClaimJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
     {
       "id": "jobs.StartJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
     {
       "id": "jobs.HeartbeatJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
     {
       "id": "jobs.CheckLease",
       "path": "modules/jobs/internal/leases.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
@@ -691,11 +691,11 @@
     {
       "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null
     },
@@ -1064,114 +1064,114 @@
     },
     {
       "id": "jobs.InstallStore",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/queue.go"
     },
     {
       "id": "jobs.beginLeaseOperation",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.close",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.readLease",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.claimCandidates",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.receipt",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.saveReceipt",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.enqueueState",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.leaseLost",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.countActiveLeases",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "e6e0d81226358a11a5764ee9ebb43a6706810e9e",
       "verification": {
-        "state": "not_run",
-        "evidence": "本次正在实施；编译与结构检查后回填"
+        "state": "passed",
+        "evidence": "本机 darwin/arm64 Go1.27.1：根make build通过（14模块-mod=readonly build/vet/gofmt）；make docs生成且无漂移；make privacy通过；make check仅3项公共framework未登记新增实际文件，其余合同/类型/引用/可达/权限检查通过。未执行测试、业务进程、接口、模型、联调或部署"
       },
       "blocker": null,
       "path": "modules/jobs/internal/leases.go"
     }
   ],
-  "rule": "本域按单项工作包更新实现状态；implemented仅表示源码已提交，verified需有可复现检查证据，accepted仅在未来行为验收通过后登记。"
+  "rule": "本域按单项工作包更新实现状态；implemented表示源码已提交且通过编译门槛；verified需对应完整已有检查通过，accepted仅在未来行为验收通过后登记。本轮公共结构登记待集成，租约组暂记implemented。"
 }

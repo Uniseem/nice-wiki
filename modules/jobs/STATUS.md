@@ -1,5 +1,18 @@
 # 任务与事件当前进度
 
+更新：2026-10-15。阶段：R1-03租约fencing与可选心跳进度已实现并通过编译门槛；完整HTTP/启动装配、重试回收、事件投递/死信、业务验收与部署尚未完成。
+
+- 本轮独占 `modules/jobs/`，分支 `codex/jobs-lease-r1`，基线 `00dd199239aba487bceb5227aac52f27ce949d74`；实现提交 `e6e0d81226358a11a5764ee9ebb43a6706810e9e`，未push。
+- 已实现 `ClaimJob`、`StartJob`、`HeartbeatJob`、`CheckLease`：owner/epoch/worker/fence隔离、到期拒绝、30秒租约、owner在途上限8、批次默认10及最多10、持久fence计数、领取/心跳幂等回执、状态outbox。
+- `AppendProgress`随租约包实现为同事务参考函数；心跳可选报告安全阶段代码与计数，checkpointKey/inputHash去重，seq单增且同phase不能倒退。续租、进度、事件和回执一起提交或回滚。
+- `LeaseRuntimeProvider`要求装配层提供可信runtime与control屏障安全点/截止；缺少钩子、维护缺有效截止时失败关闭。租约组不继续使用错误放在active库的旧barriers表；全量屏障布局留后续专包收口。
+- 本机Go1.27.1根 `make build` 通过（14模块只读依赖build/vet/gofmt），`make docs`和`make privacy`通过。`make check`仅有新增3个实际文件待公共framework登记，其余合同、类型、引用、可达性、权限和隐私检查通过；台账暂记implemented，待集成完整检查后升级verified。
+- OpenAPI补CheckLease必填workerId/fencingToken查询参数、claim可省略limit及heartbeat可选progress；生成目录未手改，由集成会话统一生成。平台JobsClient的workerId支持由集成会话公共提交提供。
+- 未新增测试/样例/临时验证程序，未运行真实接口、业务进程、模型、联调或部署；完整BuildApplication仍按未装配依赖返回不可用，业务验收未登记完成。
+
+## 既有工作记录
+
+
 更新：2026-10-15。阶段：R1-05 `CreateJob` 任务提交持久化已实现；租约、事件投递/死信、完整装配、业务验收与部署未开始。
 
 - 2026-10-15 集成复核修复：`ValidateJobSpec` 白名单改读 make gen 生成的 `internal/gen/job_types.gen.go`（与 config/job-types.json 同源）。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。

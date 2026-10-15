@@ -1,5 +1,40 @@
 # 任务与事件会话交接
 
+## 本轮事实（R1-03租约fencing，2026-10-15）
+
+- 独占范围：`modules/jobs/`；分支 `codex/jobs-lease-r1`；基线 `00dd199239aba487bceb5227aac52f27ce949d74`，开始时工作区干净。
+- 实现提交：`e6e0d81226358a11a5764ee9ebb43a6706810e9e`（jobs：实现任务租约 fencing 与心跳进度事务）。本段及台账回填随后单独提交，未push。
+- 实际代码：新增 `internal/leases.go`（四个binding函数和内部事务/租约/回执/有界候选辅助）、`internal/progress.go`（同事务AppendProgress）；`internal/queue.go`的Store增加可信runtime/control屏障读取钩子，`InstallStore`随启动装配注入。新增只追加迁移 `migrations/0002_leases.sql`，保留原0001内容。
+
+### 已实现的事务与权限
+
+- Claim只领本service所属owner、当前epoch的queued任务；limit省略时显式默认10，实际批次为min(limit,10,owner剩余容量8)。SQL预筛到期候选超集，Go精确排序并只保留10个引用；CAS修改状态、attempt、revision和不随lease释放归零的fencing_counter，写30秒租约、状态outbox和领取回执。
+- 同claim操作及输入返回原批次，不续租；不同输入返回CONFLICT。Start核owner/worker/epoch和lease token及持久fence计数，CAS leased→running并写状态事件，同fence重复不重复事件。维护/屏障期间拒绝领取或开始。
+- Heartbeat与CheckLease核活动状态、精确expiry及control屏障截止；过期不能复活。维护缺control安全点/截止返回不可用，当前屏障可把续租或重放心跳的有效expiry缩短；返回取消/安全点标志取当前状态。
+- 可选progress仅含checkpointKey、安全phase代码与计数；Heartbeat同事务验租约后调用AppendProgress，不嵌套事务、不重复边界校验。检查completed≤total，同job/checkpointKey/inputHash去重，seq单增，同phase历史完成数不能倒退；进度outbox、续租与回执统一提交。
+
+### 合同收口
+
+- OpenAPI先声明CheckLease必填workerId/fencingToken查询参数；types同步claim limit可选默认10/上限10、最多10个返回项；Heartbeat的HTTP/内部输入增加可选ProgressCheckpoint。
+- 既有phase“枚举”并无来源，实际schema原为任意字符串；本轮改为1～64位小写字母/数字/点/横线安全代码，事件与进度响应同源。
+- 参考函数DispatchOwnerTask的归一化职责并入Claim，删除其未来文件/函数/类型和台账，避免不可达影子函数。AppendProgress改为接收已验租约的本域事务句柄，具体辅助拆分已登记合同/台账并重新make docs。
+- `0001`的barriers曾放在active库，与control约束冲突。本包不迁移全量屏障，也不让租约代码再读该表；当前必须注入runtime/control屏障读取钩子，缺少时失败关闭。既有CreateJob的完整屏障与启动接线留后续工作包处理。
+- 公共生成器nullable修复与平台JobsClient.CheckLease增加workerId由集成会话提供；本工作分支未cherry-pick公共提交、未手改生成文件，OpenAPI生成物由集成会话统一重建。
+
+### 检查与限制
+
+- 本机darwin/arm64 Go1.27.1，PATH包含Homebrew工具链：根 `make build` 返回0，14个Go模块 `-mod=readonly` build/vet通过且gofmt为空。实现提交前 `git diff --cached --check` 与 `make privacy` 返回0；用户GitHub代用身份保持不变，提交含GPT-6合著者代用地址。
+- `make docs`已生成本域functions/files且无范围外漂移。根 `make check` 返回1，仅公共framework未登记3个新增实际文件：`internal/leases.go`、`internal/progress.go`、`migrations/0002_leases.sql`；其余模块合同/类型/接口/依赖/可达性/文档链接/隐私检查均未报错。由集成会话补公共登记并在隔离VPS统一复核。
+- 租约组台账暂为implemented并附编译通过证据，未记accepted；完整HTTP、可信runtime/control屏障提供者、应用装配、任务回收/重试、事件投递/死信尚未交付。没有新测试、样例、临时业务验证程序、真实接口/模型、服务运行、联调或部署。
+- 未改root/scripts/libs/deploy或其他域；未push。交付后工作区应为空，以Git实际状态为准。
+
+### 下一步（一项）
+
+先收口并实现 `internal/scheduler.go` 的 `ReapExpiredLeases` 与所依赖的重试分类/截止计算：读本域types、functions、operations及root一致性要求，明确owner不可达时orphan确认与可安全重试的分支，再实现同事务递增job.fencing_counter/租约token、保留rootOperationId/inputRef/paid结果引用及状态outbox。不得自动重做不可证明未完成的付费阶段；完整检查通过后同步台账。
+
+## 历史交接
+
+
 ## 集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
