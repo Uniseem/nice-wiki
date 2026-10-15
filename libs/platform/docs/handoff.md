@@ -1,5 +1,9 @@
 # platform 交接（R1-00）
 
+## 第五轮JSON SSE传输（进行中）
+
+ProgressEvent保持业务JSON直出；新增SSEFrame/JSONEventStream与ServeJSONEventStream，旧EventEnvelope流薄适配同一公共pump。单条背压、15秒心跳、30秒写截止、data16MiB和取消/关闭集中实现，域端仍负责当前权限/epoch、7天持久续传与每主体流数量。正在VPS检查前保持in_progress，不以此宣称jobs进度已实现。
+
 ## 第四轮持久恢复公共机制（合成快照通过）
 
 新增CanonicalJSON、NewWriteContext、RunRecoveryLoop；outbox安全写窗口复用公共实现，清理与领取分别重取窗口。进程模板支持可选BackgroundApplication及统一取消/Drain/后台等待/关闭资源，恢复哨兵统一返回75。输入域保留每次RPC后的epoch/屏障核对，不由循环发起付费重算；公开地址边界拒绝解码后连续斜杠，避免生成协议相对链接。

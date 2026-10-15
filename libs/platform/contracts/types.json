@@ -845,6 +845,41 @@
       "type": "object",
       "x-internal": true,
       "description": "Application可选接口BackgroundTasks() []BackgroundTask和Drain(context.Context)error；Drain只停止HTTP，不关闭业务库"
+    },
+    "SSEFrame": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Go内部SSE帧，业务JSON不套EventEnvelope；Data由域端按其HTTP wire合同构造",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "data": {
+          "x-internal": true,
+          "description": "json.RawMessage，单条JSON data不超过16MiB；公共pump压成单行避免SSE字段注入"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "data"
+      ]
+    },
+    "JSONEventStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Next(context.Context)(SSEFrame,error), Close()error；读权限/epoch与持久续传由域实现，公共pump统一生命周期"
+    },
+    "envelopeJSONStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "仅apivalidate内部EventStream到JSONEventStream薄适配"
     }
   }
 }

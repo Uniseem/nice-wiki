@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 43 个函数：约束 19 个，参考 24 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 46 个函数：约束 19 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1518,8 +1518,8 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream EventSt
 
 **步骤**
 
-1. 每次最多一条待写事件，使用LastID输出id，15秒注释心跳并flush
-2. 取消/结束关闭底层流归还资源；响应开始后不再写JSON Problem
+1. EventEnvelope逐条Marshal成原业务JSON，LastID为帧id、固定message事件名，不增加业务包装
+2. 薄委托ServeJSONEventStream统一心跳/取消/写截止与背压；响应开始后不追加JSON Problem
 
 **错误**
 
@@ -1532,7 +1532,7 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream EventSt
 - 授权：平台受信调用
 - 并发：无共享可写业务状态，可并发
 - 幂等：纯转换或按调用上下文执行，不改变业务费用根
-- 依赖：无
+- 依赖：`platform.ServeJSONEventStream`、`platform.envelopeJSONStream.Next`、`platform.envelopeJSONStream.Close`
 
 ## platform.NewServiceHandler
 
@@ -1621,6 +1621,122 @@ func NewIdentityAuthorizer(client AuthorizationClient) Authorizer
 - 并发：无共享可写业务状态，可并发
 - 幂等：纯转换或按调用上下文执行，不改变业务费用根
 - 依赖：`identity:checkAuthorization`
+
+## platform.ServeJSONEventStream
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：统一任意已登记业务JSON的SSE传输
+
+```go
+func ServeJSONEventStream(ctx context.Context, w http.ResponseWriter, stream JSONEventStream) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 请求取消 | 受信装配或调用边界 |
+| `w` | `http.ResponseWriter` | SSE响应 | 受信装配或调用边界 |
+| `stream` | `JSONEventStream` | 本域已核权限与持久续传的JSON流 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 流结束或安全IO失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 最多一条待写JSON帧，保留域端ID与事件名；15秒注释心跳并flush；写截止取min(now+30秒,请求ctx更早截止)
+2. 校id上限4096且无NUL/CR/LF、事件名合法标识符，data上限16MiB；json.Compact生成合法单行JSON，防SSE字段注入
+3. 取消/结束关闭底层流归还资源，持久游标/授权/epoch由域端负责；响应开始后只结束连接不再追加JSON Problem
+4. ctx主动取消时把底层写截止推进至now唤醒阻塞IO；截止设置与取消回调互斥，防未来截止覆盖取消；返回前停止并等取消回调，禁止响应结束后再碰writer
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+- `CANCELLED`：客户端断开或写截止不可用（不可重试）
+- `BUDGET_EXCEEDED`：单条JSON data超16MiB（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
+## platform.envelopeJSONStream.Next
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：事件信封到JSON帧的薄适配
+
+```go
+func (s envelopeJSONStream) Next(ctx context.Context) (SSEFrame, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 请求取消 | 传给底层Next |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `frame` | `SSEFrame` | 原信封JSON帧 | 错误时无效 |
+| `error` | `error` | 原流或编码错误 | 失败关闭 |
+
+**步骤**
+
+1. 底层Next读取一条，Marshal原信封并取同一条LastID，事件名固定message
+
+**错误**
+
+- `INTEGRITY_ERROR`：事件编码失败（不可重试）
+
+- 副作用：无
+- 授权：平台受信流装配
+- 并发：由公共pump单goroutine串行读
+- 幂等：只读序列或幂等关闭，不写业务数据
+- 依赖：无
+
+## platform.envelopeJSONStream.Close
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：透传底层事件流关闭
+
+```go
+func (s envelopeJSONStream) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 底层关闭结果 | 不追加业务写入 |
+
+**步骤**
+
+1. 只调用底层Close释放读取资源
+
+**错误**
+
+- `INTEGRITY_ERROR`：事件编码失败（不可重试）
+
+- 副作用：无
+- 授权：平台受信流装配
+- 并发：由公共pump单goroutine串行读
+- 幂等：只读序列或幂等关闭，不写业务数据
+- 依赖：无
 
 ## platform.ApplyRestoreSwap
 

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 19 个：手写 17、生成 1、配置 1。函数 43 个：约束 19，参考 24。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 19 个：手写 17、生成 1、配置 1。函数 46 个：约束 19，参考 27。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -18,7 +18,7 @@
 | `libs/platform/modelclient/invoke.go` | 手写 | 模型调用助手 | `platform.InvokeModel` |
 | `libs/platform/lifecycle/config.go` | 手写 | 服务配置加载 | `platform.LoadServiceConfig`、`platform.NormalizePublicURL`（参考）、`platform.CanonicalPublicOrigin`（参考）、`platform.ValidatePrivatePath`（参考） |
 | `libs/platform/lifecycle/runtime.go` | 手写 | 运行状态读取与监视 | `platform.ReadRuntime`、`platform.WatchRuntime`、`platform.NewSiteConfigClient`、`platform.NewWriteContext`（参考）、`platform.RunRecoveryLoop`（参考） |
-| `libs/platform/apivalidate/validator.go` | 手写 | HTTP入口统一请求校验中间件（kin-openapi openapi3filter） | `platform.NewRequestValidator`、`platform.NewPayloadValidator`（参考）、`platform.ServeEventStream`（参考）、`platform.NewServiceHandler`（参考）、`platform.NewIdentityAuthorizer`（参考） |
+| `libs/platform/apivalidate/validator.go` | 手写 | HTTP入口统一请求校验中间件（kin-openapi openapi3filter） | `platform.NewRequestValidator`、`platform.NewPayloadValidator`（参考）、`platform.ServeEventStream`（参考）、`platform.NewServiceHandler`（参考）、`platform.NewIdentityAuthorizer`（参考）、`platform.ServeJSONEventStream`（参考）、`platform.envelopeJSONStream.Next`（参考）、`platform.envelopeJSONStream.Close`（参考） |
 | `libs/platform/lifecycle/restore_swap.go` | 手写 | 恢复换目录 | `platform.ApplyRestoreSwap` |
 | `libs/platform/lifecycle/service.go` | 手写 | 进程模板 | `platform.RunService` |
 | `libs/platform/cmd/nw-keys/main.go` | 手写 | 服务密钥生成工具 | `platform.main` |

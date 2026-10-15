@@ -3,6 +3,7 @@
 package apivalidate
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -170,18 +172,39 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 // ServeEventStream 将单条增量事件写入SSE；读取、写入与心跳共享请求取消。
 // 返回时流已经关闭；响应开始后调用方只记录错误码，不再写JSON错误。
 func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream platform.EventStream) error {
+	return ServeJSONEventStream(ctx, w, envelopeJSONStream{source: stream})
+}
+
+type envelopeJSONStream struct{ source platform.EventStream }
+
+func (s envelopeJSONStream) Next(ctx context.Context) (platform.SSEFrame, error) {
+	event, err := s.source.Next(ctx)
+	if err != nil {
+		return platform.SSEFrame{}, err
+	}
+	raw, err := json.Marshal(event)
+	if err != nil {
+		return platform.SSEFrame{}, platform.NewError(platform.CodeIntegrityError, false, "事件无法编码")
+	}
+	return platform.SSEFrame{ID: s.source.LastID(), Event: "message", Data: raw}, nil
+}
+
+func (s envelopeJSONStream) Close() error { return s.source.Close() }
+
+// ServeJSONEventStream 统一业务JSON流的SSE帧、心跳与背压；不增加领域包装。
+// 返回前取消读取并关闭流，响应开始后由调用方结束连接，不追加Problem。
+func ServeJSONEventStream(ctx context.Context, w http.ResponseWriter, stream platform.JSONEventStream) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer func() { cancel(); _ = stream.Close() }()
 	type eventResult struct {
-		event platform.EventEnvelope
-		id    string
+		frame platform.SSEFrame
 		err   error
 	}
 	next := make(chan eventResult)
 	go func() {
 		for {
-			event, err := stream.Next(ctx)
-			result := eventResult{event: event, id: stream.LastID(), err: err}
+			frame, err := stream.Next(ctx)
+			result := eventResult{frame: frame, err: err}
 			select {
 			case next <- result:
 			case <-ctx.Done():
@@ -196,7 +219,32 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream platfor
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
 	controller := http.NewResponseController(w)
-	if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+	var deadlineMu sync.Mutex
+	setWriteDeadline := func() error {
+		deadlineMu.Lock()
+		defer deadlineMu.Unlock()
+		deadline := time.Now().Add(30 * time.Second)
+		if requested, ok := ctx.Deadline(); ok && requested.Before(deadline) {
+			deadline = requested
+		}
+		if ctx.Err() != nil {
+			deadline = time.Now()
+		}
+		return controller.SetWriteDeadline(deadline)
+	}
+	writeCancelled := make(chan struct{})
+	stopWriteCancellation := context.AfterFunc(ctx, func() {
+		defer close(writeCancelled)
+		deadlineMu.Lock()
+		defer deadlineMu.Unlock()
+		_ = controller.SetWriteDeadline(time.Now())
+	})
+	defer func() {
+		if !stopWriteCancellation() {
+			<-writeCancelled
+		}
+	}()
+	if err := setWriteDeadline(); err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "事件响应不支持写截止")
 	}
 	if err := controller.Flush(); err != nil {
@@ -209,7 +257,7 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream platfor
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+			if err := setWriteDeadline(); err != nil {
 				return platform.NewError(platform.CodeCancelled, false, "事件连接写截止不可用")
 			}
 			if _, err := io.WriteString(w, ": heartbeat\n\n"); err != nil {
@@ -225,17 +273,24 @@ func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream platfor
 			if result.err != nil {
 				return result.err
 			}
-			if len(result.id) > 4096 || strings.ContainsAny(result.id, "\r\n") {
+			frame := result.frame
+			if len(frame.ID) > 4096 || strings.ContainsAny(frame.ID, "\x00\r\n") {
 				return platform.NewError(platform.CodeIntegrityError, false, "事件游标不合法")
 			}
-			raw, err := json.Marshal(result.event)
-			if err != nil {
+			if !platform.ValidIdentifier(frame.Event) {
+				return platform.NewError(platform.CodeIntegrityError, false, "事件名不合法")
+			}
+			if len(frame.Data) > 16<<20 {
+				return platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限")
+			}
+			var raw bytes.Buffer
+			if err := json.Compact(&raw, frame.Data); err != nil {
 				return platform.NewError(platform.CodeIntegrityError, false, "事件无法编码")
 			}
-			if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+			if err := setWriteDeadline(); err != nil {
 				return platform.NewError(platform.CodeCancelled, false, "事件连接写截止不可用")
 			}
-			if _, err := fmt.Fprintf(w, "id: %s\nevent: message\ndata: %s\n\n", result.id, raw); err != nil {
+			if _, err := fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", frame.ID, frame.Event, raw.Bytes()); err != nil {
 				return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
 			}
 			if err := controller.Flush(); err != nil {

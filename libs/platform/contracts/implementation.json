@@ -2732,8 +2732,8 @@
           ],
           "purpose": "统一SSE事件流与心跳背压",
           "steps": [
-            "每次最多一条待写事件，使用LastID输出id，15秒注释心跳并flush",
-            "取消/结束关闭底层流归还资源；响应开始后不再写JSON Problem"
+            "EventEnvelope逐条Marshal成原业务JSON，LastID为帧id、固定message事件名，不增加业务包装",
+            "薄委托ServeJSONEventStream统一心跳/取消/写截止与背压；响应开始后不追加JSON Problem"
           ],
           "errors": [
             {
@@ -2761,7 +2761,11 @@
           "authorization": "平台受信调用",
           "concurrency": "无共享可写业务状态，可并发",
           "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
-          "dependencies": [],
+          "dependencies": [
+            "platform.ServeJSONEventStream",
+            "platform.envelopeJSONStream.Next",
+            "platform.envelopeJSONStream.Close"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -2923,6 +2927,173 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.ServeJSONEventStream",
+          "name": "ServeJSONEventStream",
+          "signature": "func ServeJSONEventStream(ctx context.Context, w http.ResponseWriter, stream JSONEventStream) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "请求取消",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "w",
+              "type": "http.ResponseWriter",
+              "description": "SSE响应",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "stream",
+              "type": "JSONEventStream",
+              "description": "本域已核权限与持久续传的JSON流",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "流结束或安全IO失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "统一任意已登记业务JSON的SSE传输",
+          "steps": [
+            "最多一条待写JSON帧，保留域端ID与事件名；15秒注释心跳并flush；写截止取min(now+30秒,请求ctx更早截止)",
+            "校id上限4096且无NUL/CR/LF、事件名合法标识符，data上限16MiB；json.Compact生成合法单行JSON，防SSE字段注入",
+            "取消/结束关闭底层流归还资源，持久游标/授权/epoch由域端负责；响应开始后只结束连接不再追加JSON Problem",
+            "ctx主动取消时把底层写截止推进至now唤醒阻塞IO；截止设置与取消回调互斥，防未来截止覆盖取消；返回前停止并等取消回调，禁止响应结束后再碰writer"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "客户端断开或写截止不可用",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "单条JSON data超16MiB",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "contract": "reference",
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "事件编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信流装配",
+          "concurrency": "由公共pump单goroutine串行读",
+          "idempotency": "只读序列或幂等关闭，不写业务数据",
+          "dependencies": [],
+          "resources": [],
+          "id": "platform.envelopeJSONStream.Next",
+          "name": "envelopeJSONStream.Next",
+          "signature": "func (s envelopeJSONStream) Next(ctx context.Context) (SSEFrame, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "请求取消",
+              "constraints": [
+                "传给底层Next"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "frame",
+              "type": "SSEFrame",
+              "description": "原信封JSON帧",
+              "constraints": [
+                "错误时无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "原流或编码错误",
+              "constraints": [
+                "失败关闭"
+              ]
+            }
+          ],
+          "purpose": "事件信封到JSON帧的薄适配",
+          "steps": [
+            "底层Next读取一条，Marshal原信封并取同一条LastID，事件名固定message"
+          ]
+        },
+        {
+          "contract": "reference",
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "事件编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信流装配",
+          "concurrency": "由公共pump单goroutine串行读",
+          "idempotency": "只读序列或幂等关闭，不写业务数据",
+          "dependencies": [],
+          "resources": [],
+          "id": "platform.envelopeJSONStream.Close",
+          "name": "envelopeJSONStream.Close",
+          "signature": "func (s envelopeJSONStream) Close() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "底层关闭结果",
+              "constraints": [
+                "不追加业务写入"
+              ]
+            }
+          ],
+          "purpose": "透传底层事件流关闭",
+          "steps": [
+            "只调用底层Close释放读取资源"
+          ]
         }
       ]
     },

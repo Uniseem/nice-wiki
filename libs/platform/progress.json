@@ -2,9 +2,9 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "b8cecdffdfad6b3d8f7f2fbe2bfd09f8bb2af2293696e52796451d1bd478a829",
+  "contractSha256": "b9fc6705d498d86ceb9a91c8fb8d4cbab5b39c7ba65134da6a9bb6b935f262cf",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第四轮持久恢复公共机制",
+  "assignedSession": "第五轮公共JSON SSE机制",
   "branch": "codex/r1-round4-integration",
   "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
   "deliveryCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
@@ -132,11 +132,11 @@
     },
     {
       "path": "libs/platform/apivalidate/validator.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
       },
       "blocker": null
     },
@@ -172,11 +172,11 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "verified",
-      "implementationCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
       },
       "blocker": null
     },
@@ -557,11 +557,11 @@
     {
       "id": "platform.ServeEventStream",
       "path": "libs/platform/apivalidate/validator.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
       },
       "blocker": null
     },
@@ -670,6 +670,36 @@
         "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
       },
       "blocker": null
+    },
+    {
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
+      },
+      "blocker": null,
+      "id": "platform.ServeJSONEventStream"
+    },
+    {
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
+      },
+      "blocker": null,
+      "id": "platform.envelopeJSONStream.Next"
+    },
+    {
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮JSON SSE公共传输，待VPS全量生成编译与检查。"
+      },
+      "blocker": null,
+      "id": "platform.envelopeJSONStream.Close"
     }
   ],
   "rule": "已实现公共机制通过VPS现阶段检查，不证明尚未实现的调用方/业务、guard或cookie链可运行；用户要求第二轮后停止，不开展下一轮。"

@@ -636,6 +636,19 @@ type EventStream interface {
 	Close() error
 }
 
+// SSEFrame 保留业务JSON本身，ID与事件名只用于SSE帧，不添加领域信封。
+type SSEFrame struct {
+	ID    string
+	Event string
+	Data  json.RawMessage
+}
+
+// JSONEventStream 的Next负责本域权限与持久续传，传输生命周期由公共pump管理。
+type JSONEventStream interface {
+	Next(context.Context) (SSEFrame, error)
+	Close() error
+}
+
 // ModelEventStream 网关调用事件流的增量读取；事件为StreamEvent。
 type ModelEventStream interface {
 	Next(ctx context.Context) (StreamEvent, error)

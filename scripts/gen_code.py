@@ -128,7 +128,7 @@ func (c *producerClient) sse(ctx context.Context, method, rawPath, lastEventID s
 	return &sseReader{scanner: scanner, resp: resp}, nil
 }
 
-// SSE帧总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
+// SSE data总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
 const maxSSEFrameBytes = 16 << 20
 
 // sseReader 按SSE帧逐条读取；data行原文由适配层解析。
@@ -136,6 +136,7 @@ type sseReader struct {
 	scanner *bufio.Scanner
 	resp    *http.Response
 	lastID  string
+	lastEvent string
 }
 
 // next 返回下一帧的id与data；流结束返回io.EOF。
@@ -144,26 +145,37 @@ func (s *sseReader) next(ctx context.Context) (string, []byte, error) {
 		return "", nil, err
 	}
 	var id string
+	event := "message"
 	var data []byte
+	dataSeen := false
 	for s.scanner.Scan() {
 		line := s.scanner.Text()
 		switch {
 		case line == "":
-			if len(data) > 0 {
+			if dataSeen {
 				if id != "" {
 					s.lastID = id
 				}
+				s.lastEvent = event
 				return id, data, nil
 			}
 			id = ""
+			event = "message"
 		case strings.HasPrefix(line, ":"):
 			// 心跳或注释，不作为业务进度。
 		case strings.HasPrefix(line, "id:"):
 			id = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
+		case strings.HasPrefix(line, "event:"):
+			event = strings.TrimPrefix(strings.TrimPrefix(line, "event:"), " ")
+			if event == "" { event = "message" }
 		case strings.HasPrefix(line, "data:"):
 			value := strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " ")
-			if len(data)+len(value) > maxSSEFrameBytes { return "", nil, platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限") }
+			separator := 0
+			if dataSeen { separator = 1 }
+			if len(data)+separator+len(value) > maxSSEFrameBytes { return "", nil, platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限") }
+			if dataSeen { data = append(data, '\\n') }
 			data = append(data, []byte(value)...)
+			dataSeen = true
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
@@ -221,6 +233,20 @@ func problemToError(raw []byte) error {
 	retryable := problem.Retryable || code == platform.CodeDependencyUnavailable
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
+'''
+
+
+JSON_CLIENT_STREAM = '''// jsonEventStream保留OpenAPI登记的业务JSON帧，不套事件信封。
+type jsonEventStream struct { r *sseReader }
+
+func (s jsonEventStream) Next(ctx context.Context) (platform.SSEFrame, error) {
+    _, data, err := s.r.next(ctx)
+    if err != nil { return platform.SSEFrame{}, err }
+    if !json.Valid(data) { return platform.SSEFrame{}, platform.NewError(platform.CodeUnsupportedSchema, false, "JSON事件帧不合法") }
+    return platform.SSEFrame{ID:s.r.lastID, Event:s.r.lastEvent, Data:json.RawMessage(data)}, nil
+}
+
+func (s jsonEventStream) Close() error { return s.r.resp.Body.Close() }
 '''
 
 
@@ -479,13 +505,13 @@ def op_signature_parts(op):
     return params, idempotency
 
 
-SSE_RETURNS = {"envelope": "(platform.EventStream, error)", "model": "(platform.ModelEventStream, error)"}
+SSE_RETURNS = {"envelope": "(platform.EventStream, error)", "model": "(platform.ModelEventStream, error)", "json": "(platform.JSONEventStream, error)"}
 
 
 def render_operation(struct, producer, oid, method, path, op):
     """渲染客户端方法；查询和SSE游标按唯一OpenAPI参数传递。"""
     params, idempotency = op_signature_parts(op)
-    sse = SSE_KIND.get(oid)
+    sse = op.get("x-sse-kind", SSE_KIND.get(oid))
     if sse and sse not in SSE_RETURNS:
         raise SystemExit(f"未知SSE操作 {oid}")
     has_body = method in ("POST", "PUT", "PATCH")
@@ -512,7 +538,7 @@ def render_operation(struct, producer, oid, method, path, op):
         lines.append("\tquery := url.Values{}")
         lines.append("\tfor _, values := range queries { for key, entries := range values { query[key] = append(query[key], entries...) } }")
         if sse and any(p.get("name") == "afterSequence" for p in queries):
-            lines.append('\tif query.Get("afterSequence") == "" { if lastEventId == "" { query.Set("afterSequence", "0") } else { query.Set("afterSequence", lastEventId) } }')
+            lines.append('\tif query.Get("afterSequence") == "" && query.Get("lastEventId") == "" { if lastEventId == "" { query.Set("afterSequence", "0") } else { query.Set("afterSequence", lastEventId) } }')
         elif sse and any(p.get("name") == "lastEventId" for p in queries):
             lines.append('\tif query.Get("lastEventId") == "" && lastEventId != "" { query.Set("lastEventId", lastEventId) }')
         for p in queries:
@@ -525,7 +551,7 @@ def render_operation(struct, producer, oid, method, path, op):
         header = "lastEventId" if last_header else '""'
         lines.append(f"\treader, err := c.sse(ctx, http.Method{method.title()}, {expr}, {header})")
         lines.append("\tif err != nil { return nil, err }")
-        adapter = "eventEnvelopeStream{r: reader}" if sse == "envelope" else "modelEventStream{r: reader}"
+        adapter = {"envelope": "eventEnvelopeStream{r: reader}", "model": "modelEventStream{r: reader}", "json": "jsonEventStream{r: reader}"}[sse]
         lines.append(f"\treturn {adapter}, nil")
     else:
         if idempotency:
@@ -541,6 +567,8 @@ def render_clients(slug, impl, producer_specs):
     """生成本域clients.gen.go内容。"""
     needed = needed_operations(impl)
     lines = [CLIENTS_HEAD]
+    if any(operation_index(producer_specs[p])[oid][2].get("x-sse-kind") == "json" for p, ops in needed.items() for oid in ops if p in producer_specs and oid in operation_index(producer_specs[p])):
+        lines.append(JSON_CLIENT_STREAM)
     for producer, ops in needed.items():
         if producer not in producer_specs:
             raise SystemExit(f"{slug}: 生产方规格缺失 {producer}")

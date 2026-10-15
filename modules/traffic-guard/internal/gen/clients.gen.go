@@ -98,14 +98,15 @@ func (c *producerClient) sse(ctx context.Context, method, rawPath, lastEventID s
 	return &sseReader{scanner: scanner, resp: resp}, nil
 }
 
-// SSE帧总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
+// SSE data总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
 const maxSSEFrameBytes = 16 << 20
 
 // sseReader 按SSE帧逐条读取；data行原文由适配层解析。
 type sseReader struct {
-	scanner *bufio.Scanner
-	resp    *http.Response
-	lastID  string
+	scanner   *bufio.Scanner
+	resp      *http.Response
+	lastID    string
+	lastEvent string
 }
 
 // next 返回下一帧的id与data；流结束返回io.EOF。
@@ -114,28 +115,45 @@ func (s *sseReader) next(ctx context.Context) (string, []byte, error) {
 		return "", nil, err
 	}
 	var id string
+	event := "message"
 	var data []byte
+	dataSeen := false
 	for s.scanner.Scan() {
 		line := s.scanner.Text()
 		switch {
 		case line == "":
-			if len(data) > 0 {
+			if dataSeen {
 				if id != "" {
 					s.lastID = id
 				}
+				s.lastEvent = event
 				return id, data, nil
 			}
 			id = ""
+			event = "message"
 		case strings.HasPrefix(line, ":"):
 			// 心跳或注释，不作为业务进度。
 		case strings.HasPrefix(line, "id:"):
 			id = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
+		case strings.HasPrefix(line, "event:"):
+			event = strings.TrimPrefix(strings.TrimPrefix(line, "event:"), " ")
+			if event == "" {
+				event = "message"
+			}
 		case strings.HasPrefix(line, "data:"):
 			value := strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " ")
-			if len(data)+len(value) > maxSSEFrameBytes {
+			separator := 0
+			if dataSeen {
+				separator = 1
+			}
+			if len(data)+separator+len(value) > maxSSEFrameBytes {
 				return "", nil, platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限")
 			}
+			if dataSeen {
+				data = append(data, '\n')
+			}
 			data = append(data, []byte(value)...)
+			dataSeen = true
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
