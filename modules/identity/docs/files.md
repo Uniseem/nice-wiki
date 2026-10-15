@@ -2,32 +2,32 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 34 个：手写 21、生成 4、配置 6、迁移 3。函数 57 个：约束 29，参考 28。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 36 个：手写 21、生成 4、配置 6、迁移 5。函数 93 个：约束 29，参考 64。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/identity/internal/registration_service.go` | 手写 | 决定后台显示首次注册或登录 | `identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin` |
-| `modules/identity/internal/account_service.go` | 手写 | 超管创建子账号并标记强改 | `identity.CreateAccount`、`identity.ReadSelf`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword` |
+| `modules/identity/internal/registration_service.go` | 手写 | 决定后台显示首次注册或登录 | `identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.WithRegistrationRuntime`（参考）、`identity.registrationRuntimeFromContext`（参考）、`identity.ReadInitializationStatus`（参考）、`identity.readBootstrapClaim`（参考）、`identity.reserveBootstrap`（参考）、`identity.markBootstrapCommitted`（参考）、`identity.recoverBootstrapClaim`（参考） |
+| `modules/identity/internal/account_service.go` | 手写 | 超管创建子账号并标记强改 | `identity.CreateAccount`、`identity.ReadSelf`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.readAccount`（参考）、`identity.readActorAccount`（参考）、`identity.insertAccount`（参考）、`identity.selectedPermissionNames`（参考）、`identity.privateIdentityDigest`（参考）、`identity.readIdentityReceipt`（参考）、`identity.saveIdentityReceipt`（参考）、`identity.commitAccountWrite`（参考）、`identity.syncAccountIndex`（参考）、`identity.recoverAccountIndex`（参考）、`identity.identityDBError`（参考）、`identity.hasGrant`（参考） |
 | `modules/identity/internal/account_validator.go` | 手写 | 规范不可变账号名 | `identity.NormalizeAccountName`（参考）、`identity.AssertSuperadminImmutable`（参考） |
 | `modules/identity/internal/permission_mapping.go` | 手写 | 将已确认功能勾选映射成服务权限 | `identity.MapFunctionGrants`（参考） |
-| `modules/identity/internal/credential_service.go` | 手写 | 生成Argon2id口令哈希 | `identity.HashPassword`（参考）、`identity.VerifyPassword`（参考）、`identity.ValidatePasswordChange`（参考）、`identity.ChangePassword` |
-| `modules/identity/internal/session_service.go` | 手写 | 账号名口令登录 | `identity.CreateSession`、`identity.IssueSessionTokens`（参考）、`identity.RefreshSession`、`identity.ReadSessions`、`identity.WithSessionCursorKey`（参考）、`identity.WithSessionRuntime`（参考）、`identity.sessionRuntimeFromContext`（参考） |
+| `modules/identity/internal/credential_service.go` | 手写 | 生成Argon2id口令哈希 | `identity.HashPassword`（参考）、`identity.VerifyPassword`（参考）、`identity.ValidatePasswordChange`（参考）、`identity.ChangePassword`、`identity.sensitiveReplayError`（参考） |
+| `modules/identity/internal/session_service.go` | 手写 | 账号名口令登录 | `identity.CreateSession`、`identity.IssueSessionTokens`（参考）、`identity.RefreshSession`、`identity.ReadSessions`、`identity.WithSessionCursorKey`（参考）、`identity.WithSessionRuntime`（参考）、`identity.sessionRuntimeFromContext`（参考）、`identity.WithLoginRuntime`（参考）、`identity.beginIdentityLogin`（参考）、`identity.finishIdentityLogin`（参考）、`identity.insertSession`（参考）、`identity.anonymousIdentityOperation`（参考） |
 | `modules/identity/internal/session_revocation.go` | 手写 | 退出当前或指定自身登录 | `identity.RevokeSession`、`identity.RevokeSessionFamily`（参考）、`identity.RevokeAllSessions`（参考）、`identity.RevokeOtherSessions`（参考） |
 | `modules/identity/internal/csrf_service.go` | 手写 | portal内部核对CSRF | `identity.VerifySessionCSRF` |
 | `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization`、`identity.readSessionSnapshot`（参考）、`identity.validateSessionSnapshot`（参考）、`identity.sessionAuthContext`（参考）、`identity.verifySessionAccess`（参考） |
 | `modules/identity/internal/preference_service.go` | 手写 | 读自身后台偏好 | `identity.ReadPreferences`、`identity.UpdatePreferences` |
-| `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考） |
+| `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考）、`identity.readAccountAuthorityQuery`（参考）、`identity.encodeAccountIndex`（参考） |
 | `modules/identity/internal/operation_repository.go` | 手写 | 读取幂等回执 | `identity.ResolveIdentityOperation`（参考） |
 | `modules/identity/internal/outbox_repository.go` | 手写 | 与身份提交原子登记事件 | `identity.PublishIdentityEvent`（参考）、`identity.RelayOutbox` |
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考） |
 | `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier` |
 | `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot` |
-| `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考） |
-| `modules/identity/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续 | `identity.All`（参考） |
+| `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考）、`identity.openIdentityControl`（参考）、`identity.AppendDecision`（参考）、`identity.CompleteDecision`（参考） |
+| `modules/identity/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续 | `identity.All`（参考）、`identity.ControlSchema`（参考） |
 | `modules/identity/migrations/0001_domain.sql` | 迁移 | 初始权威表：accounts（唯一超管部分唯一索引）、credentials、account_permissions、sessions、preferences、operation_receipts、schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/identity/cmd/identity/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `identity.main` |
 | `modules/identity/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `identity.BuildApplication` |
-| `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready` |
+| `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready`、`identity.NewApplication`（参考）、`identity.identityContext`（参考）、`identity.authorizeOperation`（参考）、`identity.operationHandlers`（参考）、`identity.jsonOperation`（参考） |
 | `modules/identity/go.mod` | 配置 | 独立module nice-wiki/modules/identity；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/identity/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/identity/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/identity；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -40,3 +40,5 @@
 | `modules/identity/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/identity/migrations/0002_session_revocation.sql` | 迁移 | 为自有撤销事务追加完整结果回执列，并建立自身会话键集分页索引；不变更旧会话或预埋未确认签发协议 | 无 |
 | `modules/identity/migrations/0003_session_tokens.sql` | 迁移 | 只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据 | 无 |
+| `modules/identity/migrations/0004_private_operation_receipts.sql` | 迁移 | 追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie | 无 |
+| `modules/identity/migrations/control/0001_bootstrap.sql` | 迁移 | 独立control schema1与不可逆bootstrap决定；不随active恢复替换 | 无 |

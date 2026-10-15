@@ -122,7 +122,8 @@
           "steps": [
             "读不可逆bootstrapClaim与唯一superadmin索引",
             "首次无账户返回registrationOpen=true，不要求初始化码",
-            "site-config状态只决定登录后的向导，不重开注册"
+            "site-config状态只决定登录后的向导，不重开注册",
+            "active为空时另查不随恢复替换的control bootstrap_claim；已有reserved或committed都不向新请求开放注册"
           ],
           "errors": [
             {
@@ -136,7 +137,9 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
           "dependencies": [
-            "site-config:readInitializationStatus"
+            "site-config:readInitializationStatus",
+            "identity.readBootstrapClaim",
+            "identity.registrationRuntimeFromContext"
           ],
           "resources": [],
           "contract": "binding"
@@ -192,15 +195,22 @@
                 "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
                 "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
                 "RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致",
+                "UNAUTHENTICATED: 当前会话失效或账号口令不正确",
+                "FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足"
               ]
             }
           ],
           "purpose": "首个注册账户原子成为唯一超管",
           "steps": [
-            "Origin与登录准入检查，但不要求初始化码、邮件或MFA",
-            "确认两次口令一致，站点注册唯一锁下核对从无账户；HashPassword",
-            "同事务生成siteId和不可逆bootstrapClaim、唯一superadmin账户及session；竞争失败CONFLICT转登录，之后永不重开注册"
+            "匿名凭证动作只接受已认证portal，回执/claim主体固定service portal/system，清可选用户proof；cookie或委托变化不改变同op幂等作用域",
+            "portal固定Origin与签名网络作用域由入口建立；以规范账号名调用guard begin action=bootstrap，不新增初始化码/MFA/邮箱",
+            "两次口令一致且HashPassword；site-config未初始化且尚无协调站点才可首次注册",
+            "control.db先持久不可逆bootstrap_claim reserved：固定原operation/caller/actor/HMAC/keyId/dataEpoch/accountId/siteId；同原op同epoch可续未决，异请求或换epochConflict",
+            "在本域账号互斥和active事务内核对从无账户，写唯一superadmin、凭据/功能、session与安全回执/outbox；guard authenticated成功后提交",
+            "active提交与账号索引文件不宣称跨库/跨文件原子：control journal补齐派生索引；active安全回执可恢复control reserved→committed，状态永不回退或删除",
+            "首次成功返回raw token和/admin/setup；重放只读安全回执并提示重新登录，不重复建session；control committed而active为空失败关闭，不重开注册"
           ],
           "errors": [
             {
@@ -222,6 +232,21 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "账户/控制决定/回执/索引或初始化归属完整性不一致",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "当前会话失效或账号口令不正确",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "可信服务/网络作用域或本域当前功能授权不满足",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -229,17 +254,179 @@
           ],
           "authorization": "anonymous；无需初始化码，部署后立即注册或先不暴露端口",
           "concurrency": "bootstrapClaim+isSuperadmin唯一约束同事务，首注册至多一个",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "idempotency": "相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭",
           "dependencies": [
             "identity.HashPassword",
             "identity.IssueSessionTokens",
-            "identity.ResolveIdentityOperation",
-            "platform.PrivateOperationDigest",
-            "traffic-guard:beginLoginAttempt",
-            "traffic-guard:finishLoginAttempt"
+            "identity.NormalizeAccountName",
+            "identity.beginIdentityLogin",
+            "identity.finishIdentityLogin",
+            "identity.privateIdentityDigest",
+            "identity.readIdentityReceipt",
+            "identity.saveIdentityReceipt",
+            "identity.reserveBootstrap",
+            "identity.markBootstrapCommitted",
+            "identity.insertAccount",
+            "identity.selectedPermissionNames",
+            "identity.insertSession",
+            "identity.PublishIdentityEvent",
+            "identity.commitAccountWrite",
+            "identity.syncAccountIndex",
+            "identity.sensitiveReplayError",
+            "identity.registrationRuntimeFromContext",
+            "identity.anonymousIdentityOperation"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "identity.WithRegistrationRuntime",
+          "name": "WithRegistrationRuntime",
+          "signature": "func WithRegistrationRuntime(ctx context.Context, runtime RegistrationRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "注入初始化权威适配",
+          "steps": [
+            "注入初始化权威适配"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.registrationRuntimeFromContext",
+          "name": "registrationRuntimeFromContext",
+          "signature": "func registrationRuntimeFromContext(ctx context.Context) RegistrationRuntime",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "取得进程注入的初始化适配，禁止未知当未初始化",
+          "steps": [
+            "取得进程注入的初始化适配，禁止未知当未初始化"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.WithRegistrationRuntime",
+            "identity.ReadInitializationStatus"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.ReadInitializationStatus",
+          "name": "ReadInitializationStatus",
+          "signature": "func (runtime RegistrationClient) ReadInitializationStatus(ctx context.Context, op OperationContext) (InitializationStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "通过版本化site-config客户端读取并核对安全阶段与归属",
+          "steps": [
+            "通过版本化site-config客户端读取并核对安全阶段与归属"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "site-config:readInitializationStatus"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readBootstrapClaim",
+          "name": "readBootstrapClaim",
+          "signature": "func readBootstrapClaim(ctx context.Context, control *sql.DB) (bootstrapClaim, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取不随active恢复替换的不可逆注册决定",
+          "steps": [
+            "读取不随active恢复替换的不可逆注册决定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.reserveBootstrap",
+          "name": "reserveBootstrap",
+          "signature": "func reserveBootstrap(ctx context.Context, op OperationContext, store *Store, digest, keyID string) (bootstrapClaim, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅相同原op/caller/actor/HMAC/keyId/dataEpoch允许续未决，其他Conflict",
+          "steps": [
+            "仅相同原op/caller/actor/HMAC/keyId/dataEpoch允许续未决，其他Conflict"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.readBootstrapClaim",
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.markBootstrapCommitted",
+          "name": "markBootstrapCommitted",
+          "signature": "func markBootstrapCommitted(ctx context.Context, store *Store, claim bootstrapClaim) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "控制决定仅reserved到committed单向收敛",
+          "steps": [
+            "控制决定仅reserved到committed单向收敛"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.recoverBootstrapClaim",
+          "name": "recoverBootstrapClaim",
+          "signature": "func recoverBootstrapClaim(store *Store) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核控制身份与active超管，按已提交安全回执补记控制终局",
+          "steps": [
+            "核控制身份与active超管，按已提交安全回执补记控制终局"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.readBootstrapClaim",
+            "identity.markBootstrapCommitted",
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -301,15 +488,17 @@
                 "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
                 "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
                 "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致"
               ]
             }
           ],
           "purpose": "超管创建子账号并标记强改",
           "steps": [
-            "仅superadmin，规范不可变账号名与唯一键",
-            "权限省略时默认全部10项；不能赋予superadmin-only技术权限",
-            "HashPassword，同事务建active、mustChangePassword=true，写账户索引与审计"
+            "唯一超管当前会话在事务内核对active、credential/permission/session/auth/data水位与superadmin；账号名规范不可变，省略权限默认既有10项全选",
+            "私有输入HMAC含动作/caller/epoch并记录keyId，不存可离线猜口令的普通SHA；完整安全结果回执同op重放，不重复新建",
+            "HashPassword后在单个active事务插入mustChangePassword=true子账号、凭据、功能与身份outbox及完整安全回执；唯一名冲突Conflict，账号总数上限10000",
+            "账号写提交前记identity.account-index决定，active提交后派生账号索引并完结；启动从active权威补齐未决索引，不宣称数据库事务覆盖文件"
           ],
           "errors": [
             {
@@ -341,6 +530,11 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "账户/控制决定/回执/索引或初始化归属完整性不一致",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -354,8 +548,16 @@
             "identity.HashPassword",
             "identity.MapFunctionGrants",
             "identity.WriteAccountIndex",
-            "identity.ResolveIdentityOperation",
-            "platform.PrivateOperationDigest"
+            "identity.privateIdentityDigest",
+            "identity.readIdentityReceipt",
+            "identity.readActorAccount",
+            "identity.insertAccount",
+            "identity.selectedPermissionNames",
+            "identity.saveIdentityReceipt",
+            "identity.commitAccountWrite",
+            "identity.syncAccountIndex",
+            "identity.hasGrant",
+            "identity.PublishIdentityEvent"
           ],
           "resources": [],
           "contract": "binding"
@@ -409,15 +611,19 @@
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
                 "UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销",
-                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见"
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "CONFLICT: 幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放",
+                "INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致",
+                "DEPENDENCY_UNAVAILABLE: 私有存储、平台签名摘要、初始化或登录风控不可用",
+                "FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足"
               ]
             }
           ],
           "purpose": "读取当前账户",
           "steps": [
-            "使用proof主体与site",
-            "返回可见metadata",
-            "删除/停用账户UNAUTHENTICATED；不返hash"
+            "主体固定取op.actor，并在一致快照核当前账户、会话、凭据/权限/session/auth/data水位及访问/绝对期限",
+            "受限初始口令只允许静态identity:readSelf必要资料；停用或删除立即UNAUTHENTICATED",
+            "返回公开账户metadata和当前credentialRevision供改密CAS，不返回hash、refresh/CSRF摘要、token或IP"
           ],
           "errors": [
             {
@@ -429,13 +635,35 @@
               "code": "NOT_FOUND",
               "when": "资源不存在或在当前主体作用域中不可见",
               "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "账户/控制决定/回执/索引或初始化归属完整性不一致",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储、平台签名摘要、初始化或登录风控不可用",
+              "retryable": true
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "可信服务/网络作用域或本域当前功能授权不满足",
+              "retryable": false
             }
           ],
           "sideEffects": [],
           "authorization": "account.self；强改会话仅允许必要资料",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "identity.readActorAccount"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -845,6 +1073,264 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "identity.readAccount",
+          "name": "readAccount",
+          "signature": "func readAccount(ctx context.Context, query sessionQueryer, accountID, siteID string) (Account, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取账户安全元数据及既有功能选择",
+          "steps": [
+            "读取账户安全元数据及既有功能选择"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readActorAccount",
+          "name": "readActorAccount",
+          "signature": "func readActorAccount(ctx context.Context, op OperationContext, query sessionQueryer, permission, action string) (sessionSnapshot, Account, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在本域事务快照核当前会话和静态动作权限",
+          "steps": [
+            "在本域事务快照核当前会话和静态动作权限"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.readSessionSnapshot",
+            "identity.validateSessionSnapshot",
+            "identity.sessionAuthContext",
+            "identity.readAccount",
+            "identity.hasGrant"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.insertAccount",
+          "name": "insertAccount",
+          "signature": "func insertAccount(ctx context.Context, tx *sql.Tx, account Account, encodedHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在外层事务写账户凭据与既有功能",
+          "steps": [
+            "在外层事务写账户凭据与既有功能"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.selectedPermissionNames",
+          "name": "selectedPermissionNames",
+          "signature": "func selectedPermissionNames(input PermissionSelection) []string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "省略权限取既有10项默认全选，不增用户开关",
+          "steps": [
+            "省略权限取既有10项默认全选，不增用户开关"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.privateIdentityDigest",
+          "name": "privateIdentityDigest",
+          "signature": "func privateIdentityDigest(ctx context.Context, op OperationContext, action string, input any) (platform.Hash, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "动作域分离的私有HMAC摘要与keyId，不持久明文口令",
+          "steps": [
+            "动作域分离的私有HMAC摘要与keyId，不持久明文口令"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.sessionRuntimeFromContext",
+            "platform.PrivateOperationDigest"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readIdentityReceipt",
+          "name": "readIdentityReceipt",
+          "signature": "func readIdentityReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, digest, keyID string, result any) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按操作键读取同HMAC和keyId的安全回执，校核结果哈希",
+          "steps": [
+            "按操作键读取同HMAC和keyId的安全回执，校核结果哈希"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.saveIdentityReceipt",
+          "name": "saveIdentityReceipt",
+          "signature": "func saveIdentityReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, digest, keyID string, safeResult any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只保存安全完整metadata或引用回执，不接受调用方原始token",
+          "steps": [
+            "只保存安全完整metadata或引用回执，不接受调用方原始token"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.commitAccountWrite",
+          "name": "commitAccountWrite",
+          "signature": "func commitAccountWrite(ctx context.Context, op OperationContext, store *Store, tx *sql.Tx) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "控制日志先记索引决定，active提交后补齐索引再完结",
+          "steps": [
+            "不可反悔active提交前，在相同事务读取候选权威并以共用编码器核对16MiB上限，超限回滚，不写出下一次不可读索引",
+            "控制日志先记索引决定，active提交后补齐索引再完结"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.AppendDecision",
+            "identity.CompleteDecision",
+            "identity.syncAccountIndex",
+            "identity.readAccountAuthorityQuery",
+            "identity.encodeAccountIndex"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.syncAccountIndex",
+          "name": "syncAccountIndex",
+          "signature": "func syncAccountIndex(ctx context.Context, op OperationContext, store *Store) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从已提交active权威重建派生索引，受本域账号互斥保护",
+          "steps": [
+            "从已提交active权威重建派生索引，受本域账号互斥保护"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.WriteAccountIndex"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.recoverAccountIndex",
+          "name": "recoverAccountIndex",
+          "signature": "func recoverAccountIndex(store *Store, entry journalEntry) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "启动时从active补齐未决索引，未知或领先控制索引失败关闭",
+          "steps": [
+            "启动时从active补齐未决索引，未知或领先控制索引失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.syncAccountIndex",
+            "identity.CompleteDecision",
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.identityDBError",
+          "name": "identityDBError",
+          "signature": "func identityDBError() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "输出不含SQL原值或私有路径的安全存储错误",
+          "steps": [
+            "输出不含SQL原值或私有路径的安全存储错误"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.hasGrant",
+          "name": "hasGrant",
+          "signature": "func hasGrant(grants []string, wanted string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "判断当前派生权限集合是否包含固定业务能力",
+          "steps": [
+            "判断当前派生权限集合是否包含固定业务能力"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1284,15 +1770,18 @@
                 "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
                 "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
                 "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致"
               ]
             }
           ],
           "purpose": "改口令并结束其他设备登录",
           "steps": [
-            "VerifyPassword与ValidatePasswordChange，强改会话允许此唯一业务写入",
-            "HashPassword后CAS凭据，清mustChangePassword",
-            "同事务撤销其他设备全部session，当前session升credential版本并重新发cookie；保持当前设备可进入后台"
+            "当前可信会话允许account.self的固定changePassword动作，初始口令也可；验证旧口令、两次新口令相同且不同于旧值，expectedCredentialRevision必须等于当前权威",
+            "新Argon2哈希在短写事务外计算，写事务重新核对会话与凭据版本后CAS更新credentialRevision、清mustChangePassword并提升账户revision",
+            "同一事务RevokeOtherSessions撤销其他设备，保留设备同步新credential/permission/restricted水位并提升session revision，IssueSessionTokens消费旧refresh且轮换独立秘密",
+            "身份事件、私有HMAC/keyId及仅含账户/会话/凭据引用的安全回执同事务；账号索引由决定日志补齐，raw secret从不入普通回执",
+            "仅首次成功返回当前设备新token；重复相同操作明确CONFLICT要求重新登录，不重发旧秘密或重新改密；切换key且无原key拒绝重新执行"
           ],
           "errors": [
             {
@@ -1324,6 +1813,11 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "账户/控制决定/回执/索引或初始化归属完整性不一致",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1331,18 +1825,44 @@
           ],
           "authorization": "account.self；mustChangePassword会话也可调用",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "idempotency": "相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭",
           "dependencies": [
             "identity.VerifyPassword",
             "identity.ValidatePasswordChange",
             "identity.HashPassword",
             "identity.RevokeOtherSessions",
             "identity.IssueSessionTokens",
-            "identity.ResolveIdentityOperation",
-            "platform.PrivateOperationDigest"
+            "identity.privateIdentityDigest",
+            "identity.readIdentityReceipt",
+            "identity.readActorAccount",
+            "identity.readSessionSnapshot",
+            "identity.sessionAuthContext",
+            "identity.saveIdentityReceipt",
+            "identity.commitAccountWrite",
+            "identity.PublishIdentityEvent",
+            "identity.sensitiveReplayError"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "identity.sensitiveReplayError",
+          "name": "sensitiveReplayError",
+          "signature": "func sensitiveReplayError() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "敏感响应已提交但不重放，要求重新登录",
+          "steps": [
+            "敏感响应已提交但不重放，要求重新登录"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1401,15 +1921,22 @@
               "constraints": [
                 "UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销",
                 "RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "CONFLICT: 幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放",
+                "INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致",
+                "FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足"
               ]
             }
           ],
           "purpose": "账号名口令登录",
           "steps": [
-            "traffic-guard按账号/IP失败保护准入；账号不存在/口令错误统一UNAUTHENTICATED",
-            "VerifyPassword，active才可session，必要时安全rehash",
-            "初始口令session restrictedToPasswordChange=true，仅返回改密路由；否则查询初始化状态后向导/后台"
+            "匿名凭证动作只接受已认证portal，回执/claim主体固定service portal/system，清可选用户proof；cookie或委托变化不改变同op幂等作用域",
+            "仅接受portal已签名建立的1..2个LoginNetworkScopes；规范账号名后以platform.PrivateOperationDigest派生账号HMAC，调用traffic-guard.beginLoginAttempt，未知或拒绝不继续",
+            "按站点/主体/operation读取带digest_key_id的私有HMAC回执；已提交仅提示重新登录，不重发raw cookie或再建session",
+            "读取账号凭据，VerifyPassword；账号不存在、密码错误或非active统一UNAUTHENTICATED并finish rejected；损坏依赖或中断报aborted，不记录口令/原IP",
+            "必要时按当前Argon2参数rehash且不提升凭据语义版本；读取site-config安全初始化权威，未知阶段或归属不一致失败关闭",
+            "guard finish authenticated成功后，在短写事务重新核active账户与credentialRevision，按本域当前权限插入会话并IssueSessionTokens；摘要与安全引用回执同事务",
+            "首次提交才返回raw tokens，nextRoute只选/admin/me（强改专用）、/admin/setup或/admin；重复同op无新秘密，key版本变更不能按新操作执行"
           ],
           "errors": [
             {
@@ -1426,6 +1953,21 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "账户/控制决定/回执/索引或初始化归属完整性不一致",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "可信服务/网络作用域或本域当前功能授权不满足",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1433,14 +1975,23 @@
           ],
           "authorization": "anonymous + 同Origin；只显示账号名和口令，不新增MFA/邮箱",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "idempotency": "相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭",
           "dependencies": [
             "identity.VerifyPassword",
             "identity.IssueSessionTokens",
             "site-config:readInitializationStatus",
-            "platform.PrivateOperationDigest",
-            "traffic-guard:beginLoginAttempt",
-            "traffic-guard:finishLoginAttempt"
+            "identity.NormalizeAccountName",
+            "identity.HashPassword",
+            "identity.privateIdentityDigest",
+            "identity.readIdentityReceipt",
+            "identity.beginIdentityLogin",
+            "identity.finishIdentityLogin",
+            "identity.readAccount",
+            "identity.insertSession",
+            "identity.saveIdentityReceipt",
+            "identity.sensitiveReplayError",
+            "identity.registrationRuntimeFromContext",
+            "identity.anonymousIdentityOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -1824,6 +2375,113 @@
           "dependencies": [
             "identity.WithSessionRuntime"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.WithLoginRuntime",
+          "name": "WithLoginRuntime",
+          "signature": "func WithLoginRuntime(ctx context.Context, runtime LoginRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "注入真实版本化登录风控客户端",
+          "steps": [
+            "注入真实版本化登录风控客户端"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.beginIdentityLogin",
+          "name": "beginIdentityLogin",
+          "signature": "func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, action string) (loginAttempt, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅接受portal签名网络作用域，平台HMAC账号后申请幂等登录准入",
+          "steps": [
+            "仅接受portal签名网络作用域，平台HMAC账号后申请幂等登录准入"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.WithLoginRuntime",
+            "identity.sessionRuntimeFromContext",
+            "platform.PrivateOperationDigest",
+            "traffic-guard:beginLoginAttempt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.finishIdentityLogin",
+          "name": "finishIdentityLogin",
+          "signature": "func finishIdentityLogin(ctx context.Context, op OperationContext, attempt loginAttempt, outcome string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "向guard提交authenticated/rejected/aborted幂等终局，未知不放行",
+          "steps": [
+            "向guard提交authenticated/rejected/aborted幂等终局，未知不放行",
+            "authenticated/rejected表示已发送不可逆核验事实；发送后响应未知不改报aborted，aborted只用于此前依赖中断"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.WithLoginRuntime",
+            "traffic-guard:finishLoginAttempt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.insertSession",
+          "name": "insertSession",
+          "signature": "func insertSession(ctx context.Context, tx *sql.Tx, account Account, credentialRevision platform.Revision) (Session, platform.AuthContext, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "插入一次设备会话并从当前账户派生初始授权，不生成秘密",
+          "steps": [
+            "插入一次设备会话并从当前账户派生初始授权，不生成秘密"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.MapFunctionGrants",
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.anonymousIdentityOperation",
+          "name": "anonymousIdentityOperation",
+          "signature": "func anonymousIdentityOperation(ctx context.Context, op OperationContext) (context.Context, OperationContext, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "portal匿名凭证操作固定service主体与私有回执scope，清除可选用户proof",
+          "steps": [
+            "portal匿名凭证操作固定service主体与私有回执scope，清除可选用户proof"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "遵循本域账号互斥与外层事务",
+          "idempotency": "纯派生或只读",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -2861,7 +3519,8 @@
           "steps": [
             "抽取accountName/isSuperadmin/status，不复制credential",
             "固定control路径写临时JSON、fsync、rename并fsync目录",
-            "索引不进git；服务签名密钥在control区，不随恢复替换；失败记录重建待办"
+            "索引不进git；服务签名密钥在control区，不随恢复替换；失败记录重建待办",
+            "读写与恢复统一16MiB正规文件上限；编码器在安装前拒绝超限，业务提交前也以同一编码器检查，10000账户数量上限不变"
           ],
           "errors": [
             {
@@ -2874,9 +3533,11 @@
             "私有可读索引文件"
           ],
           "authorization": "私有账号提交/恢复",
-          "concurrency": "索引revision单调，低版本不覆盖",
+          "concurrency": "进程内accountIndexWriteMu覆盖现有水位读取、临时文件安装与目录fsync；账号业务互斥覆盖active提交至索引补齐，禁止并发低水位覆盖高水位",
           "idempotency": "同revision同hash不重复写",
-          "dependencies": [],
+          "dependencies": [
+            "identity.encodeAccountIndex"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -3050,6 +3711,44 @@
             "identity.HashPassword",
             "identity.RevokeAllSessions"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readAccountAuthorityQuery",
+          "name": "readAccountAuthorityQuery",
+          "signature": "func readAccountAuthorityQuery(ctx context.Context, query sessionQueryer) (accountAuthority, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "复用同一权威读取实现，允许提交前事务读取候选索引",
+          "steps": [
+            "复用同一权威读取实现，允许提交前事务读取候选索引"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "遵循本域账号互斥与外层事务",
+          "idempotency": "纯派生或只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.encodeAccountIndex",
+          "name": "encodeAccountIndex",
+          "signature": "func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "唯一编码与16MiB大小约束，提交前、写入、恢复一致",
+          "steps": [
+            "唯一编码与16MiB大小约束，提交前、写入、恢复一致"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "遵循本域账号互斥与外层事务",
+          "idempotency": "纯派生或只读",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -3943,7 +4642,8 @@
           "purpose": "打开本域active区业务库与control区决定日志句柄",
           "steps": [
             "按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化",
-            "以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄"
+            "以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄",
+            "独立打开control/control.db并核control schema=1；不可逆bootstrap claim不随active恢复替换，未知控制schema隔离启动"
           ],
           "errors": [
             {
@@ -3968,7 +4668,9 @@
           },
           "concurrency": "单连接串行；决定日志append串行加锁",
           "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
-          "dependencies": [],
+          "dependencies": [
+            "identity.openIdentityControl"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -4020,8 +4722,9 @@
           "outputs": [],
           "purpose": "恢复决定日志并使未完成决定可见",
           "steps": [
-            "逐行读取决定日志，同一id以最后一行状态生效",
-            "存在open状态条目返回INTEGRITY_ERROR隔离启动；全部完结则标记JournalRecovered"
+            "对identity.account-index未决决定从当前active权威补齐派生索引后完成日志；无账户但已有控制索引拒绝重新开户",
+            "核bootstrap控制身份与active唯一超管，reserved且安全回执已提交时单向补记committed；committed缺active超管或身份不一致隔离",
+            "其他未知open决定仍INTEGRITY_ERROR失败关闭；全部安全后才设置JournalRecovered，不把未知决定当回滚"
           ],
           "errors": [
             {
@@ -4046,6 +4749,69 @@
           },
           "concurrency": "单连接串行；决定日志append串行加锁",
           "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [
+            "identity.recoverAccountIndex",
+            "identity.recoverBootstrapClaim"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.openIdentityControl",
+          "name": "openIdentityControl",
+          "signature": "func openIdentityControl(dataRoot string) (*sql.DB, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "打开独立control库并初始化或核对受支持schema1",
+          "steps": [
+            "打开独立control库并初始化或核对受支持schema1"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [
+            "identity.ControlSchema",
+            "identity.identityDBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.AppendDecision",
+          "name": "AppendDecision",
+          "signature": "func (s *Store) AppendDecision(kind string, payload any) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "控制决定open追加并fsync，明文载荷只含安全引用",
+          "steps": [
+            "控制决定open追加并fsync，明文载荷只含安全引用"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.CompleteDecision",
+          "name": "CompleteDecision",
+          "signature": "func (s *Store) CompleteDecision(id string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "对应控制决定done追加并fsync，不撤回既有决定",
+          "steps": [
+            "对应控制决定done追加并fsync，不撤回既有决定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信用例/装配或启动恢复私有助手",
+          "concurrency": "信任外层事务或本域账号互斥；不作为HTTP独立入口",
+          "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -4090,6 +4856,25 @@
           },
           "concurrency": "单连接串行；决定日志append串行加锁",
           "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.ControlSchema",
+          "name": "ControlSchema",
+          "signature": "func ControlSchema() (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "返回独立control库schema1的内嵌唯一SQL来源",
+          "steps": [
+            "读取control/0001_bootstrap.sql；与active编号迁移隔离，不复制SQL"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "身份存储私有装配",
+          "concurrency": "只读内嵌资源",
+          "idempotency": "确定性",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -4200,7 +4985,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理"
           ],
           "errors": [
             {
@@ -4244,8 +5030,11 @@
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
             "identity.WithSessionRuntime",
+            "identity.WithLoginRuntime",
+            "identity.WithRegistrationRuntime",
+            "platform.CanonicalPublicOrigin",
             "platform.NewServiceHandler",
-            "platform.CanonicalPublicOrigin"
+            "identity.NewApplication"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4507,6 +5296,131 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "identity.NewApplication",
+          "name": "NewApplication",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier, sessionRuntime identity.SessionRuntime) (*Application, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动",
+          "steps": [
+            "装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动",
+            "维护白名单仅checkAuthorization与verifySessionCSRF控制链只读核权；登录/刷新/账号写不绕过维护屏障"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定服务caller与平台用户权威回调；健康就绪匿名",
+          "concurrency": "只读应用容器，事务由本域用例负责",
+          "idempotency": "以业务用例回执为准",
+          "dependencies": [
+            "platform.NewServiceHandler",
+            "identity.operationHandlers",
+            "identity.authorizeOperation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.identityContext",
+          "name": "identityContext",
+          "signature": "func (a *Application) identityContext(ctx context.Context) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "注入进程受信本域存储和客户端，不重做入口schema或服务验签",
+          "steps": [
+            "注入进程受信本域存储和客户端，不重做入口schema或服务验签"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定服务caller与平台用户权威回调；健康就绪匿名",
+          "concurrency": "只读应用容器，事务由本域用例负责",
+          "idempotency": "以业务用例回执为准",
+          "dependencies": [
+            "identity.WithSessionRuntime",
+            "identity.WithLoginRuntime",
+            "identity.WithRegistrationRuntime",
+            "identity.WithSessionCursorKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.authorizeOperation",
+          "name": "authorizeOperation",
+          "signature": "func (a *Application) authorizeOperation(ctx context.Context, op OperationContext, permission, action string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "以固定静态动作调用本域单次授权，不HTTP递归",
+          "steps": [
+            "以固定静态动作调用本域单次授权，不HTTP递归"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定服务caller与平台用户权威回调；健康就绪匿名",
+          "concurrency": "只读应用容器，事务由本域用例负责",
+          "idempotency": "以业务用例回执为准",
+          "dependencies": [
+            "identity.identityContext",
+            "identity.CheckAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.operationHandlers",
+          "name": "operationHandlers",
+          "signature": "func (a *Application) operationHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅登记真实已完成用例，路径参数由平台入口提供",
+          "steps": [
+            "仅登记真实已完成用例，路径参数由平台入口提供"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定服务caller与平台用户权威回调；健康就绪匿名",
+          "concurrency": "只读应用容器，事务由本域用例负责",
+          "idempotency": "以业务用例回执为准",
+          "dependencies": [
+            "identity.jsonOperation",
+            "identity.ReadRegistrationState",
+            "identity.RegisterFirstSuperadmin",
+            "identity.CreateSession",
+            "identity.RefreshSession",
+            "identity.CreateAccount",
+            "identity.ReadSelf",
+            "identity.ChangePassword",
+            "identity.VerifySessionCSRF",
+            "identity.CheckAuthorization",
+            "identity.ReadSessions",
+            "identity.RevokeSession",
+            "identity.Health",
+            "identity.Ready"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.jsonOperation",
+          "name": "jsonOperation",
+          "signature": "func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]) http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传",
+          "steps": [
+            "解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定服务caller与平台用户权威回调；健康就绪匿名",
+          "concurrency": "只读应用容器，事务由本域用例负责",
+          "idempotency": "以业务用例回执为准",
+          "dependencies": [
+            "identity.identityContext"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4580,6 +5494,18 @@
       "path": "modules/identity/migrations/0003_session_tokens.sql",
       "kind": "migration",
       "purpose": "只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据",
+      "functions": []
+    },
+    {
+      "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
+      "kind": "migration",
+      "purpose": "追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie",
+      "functions": []
+    },
+    {
+      "path": "modules/identity/migrations/control/0001_bootstrap.sql",
+      "kind": "migration",
+      "purpose": "独立control schema1与不可逆bootstrap决定；不随active恢复替换",
       "functions": []
     }
   ],

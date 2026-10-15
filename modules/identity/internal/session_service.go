@@ -11,6 +11,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/identity/internal/gen"
 )
 
 // Session 是不含令牌、摘要、网络地址的会话元数据。
@@ -384,4 +385,266 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话刷新提交失败")
 	}
 	return RefreshSessionResult{Tokens: issued.Tokens}, nil
+}
+
+type CreateSessionInput struct {
+	AccountName AccountName `json:"accountName"`
+	Password    string      `json:"password"`
+}
+type CreateSessionResult struct {
+	Tokens    SessionTokens `json:"tokens"`
+	NextRoute string        `json:"nextRoute"`
+}
+
+// LoginRuntime 只持有按版本化合同签名调用的风控客户端，不接收浏览器伪造的作用域。
+type LoginRuntime struct{ Client *gen.TrafficGuardClient }
+type loginRuntimeContextKey struct{}
+type loginAttempt struct {
+	AttemptID string             `json:"attemptId"`
+	ExpiresAt platform.Timestamp `json:"expiresAt"`
+	Revision  platform.Revision  `json:"revision"`
+}
+
+func WithLoginRuntime(ctx context.Context, runtime LoginRuntime) context.Context {
+	return context.WithValue(ctx, loginRuntimeContextKey{}, runtime)
+}
+
+func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, action string) (loginAttempt, error) {
+	runtime, ok := ctx.Value(loginRuntimeContextKey{}).(LoginRuntime)
+	if !ok || runtime.Client == nil {
+		return loginAttempt{}, platform.NewError(platform.CodeDependencyUnavailable, true, "登录风控尚未装配")
+	}
+	if op.CallerService != "portal" || len(op.LoginNetworkScopes) < 1 || len(op.LoginNetworkScopes) > 2 {
+		return loginAttempt{}, platform.NewError(platform.CodeForbidden, false, "登录缺少受信网络作用域")
+	}
+	session, err := sessionRuntimeFromContext(ctx)
+	if err != nil {
+		return loginAttempt{}, err
+	}
+	accountKey, err := serviceauth.PrivateOperationDigest(session.Key, "login-account/v1", []byte(accountName))
+	if err != nil {
+		return loginAttempt{}, err
+	}
+	body := struct {
+		RequestID   string          `json:"requestId"`
+		AccountKey  string          `json:"accountKey"`
+		NetworkKeys []platform.Hash `json:"networkKeys"`
+		Action      string          `json:"action"`
+	}{
+		op.OperationID, accountKey, op.LoginNetworkScopes, action}
+	raw, err := runtime.Client.BeginLoginAttempt(platform.WithOperationContext(ctx, op), body, op.OperationID)
+	if err != nil {
+		return loginAttempt{}, err
+	}
+	var attempt loginAttempt
+	if json.Unmarshal(raw, &attempt) != nil || !platform.ValidIdentifier(attempt.AttemptID) || attempt.Revision < 1 {
+		return loginAttempt{}, platform.NewError(platform.CodeDependencyUnavailable, true, "登录风控响应不可用")
+	}
+	expires, err := platform.ParseTimestamp(attempt.ExpiresAt)
+	if err != nil || !time.Now().UTC().Before(expires) {
+		return loginAttempt{}, platform.NewError(platform.CodeUnauthenticated, false, "登录准入已到期")
+	}
+	return attempt, nil
+}
+
+func finishIdentityLogin(ctx context.Context, op OperationContext, attempt loginAttempt, outcome string) error {
+	runtime, ok := ctx.Value(loginRuntimeContextKey{}).(LoginRuntime)
+	if !ok || runtime.Client == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "登录风控尚未装配")
+	}
+	body := struct {
+		Outcome string `json:"outcome"`
+	}{outcome}
+	raw, err := runtime.Client.FinishLoginAttempt(platform.WithOperationContext(ctx, op), attempt.AttemptID, body, op.OperationID)
+	if err != nil {
+		return err
+	}
+	var response struct {
+		Accepted  bool   `json:"accepted"`
+		AttemptID string `json:"attemptId"`
+	}
+	if json.Unmarshal(raw, &response) != nil || !response.Accepted || response.AttemptID != attempt.AttemptID {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "登录风控终局响应不可用")
+	}
+	return nil
+}
+
+func insertSession(ctx context.Context, tx *sql.Tx, account Account, credentialRevision platform.Revision) (Session, platform.AuthContext, error) {
+	now := time.Now().UTC()
+	session := Session{SessionID: platform.NewIdentifier(), AccountID: account.AccountID, SiteID: account.SiteID,
+		CredentialRevision: credentialRevision, PermissionRevision: account.PermissionRevision,
+		IssuedAt: now.Format(time.RFC3339Nano), ExpiresAt: now.Add(15 * time.Minute).Format(time.RFC3339Nano),
+		AbsoluteExpiresAt: now.Add(7 * 24 * time.Hour).Format(time.RFC3339Nano), RestrictedToPasswordChange: account.MustChangePassword, Revision: 1}
+	_, err := tx.ExecContext(ctx, `INSERT INTO sessions(session_id,account_id,site_id,credential_revision,permission_revision,
+        issued_at,expires_at,absolute_expires_at,device_label,restricted_to_password_change,revision) VALUES(?,?,?,?,?,?,?,?,?,?,1)`,
+		session.SessionID, session.AccountID, session.SiteID, session.CredentialRevision, session.PermissionRevision,
+		session.IssuedAt, session.ExpiresAt, session.AbsoluteExpiresAt, session.DeviceLabel, session.RestrictedToPasswordChange)
+	if err != nil {
+		return Session{}, platform.AuthContext{}, identityDBError()
+	}
+	mapped, err := MapFunctionGrants(MapFunctionGrantsInput{Permissions: toFunctionPermissions(account.Permissions), IsSuperadmin: account.IsSuperadmin})
+	if err != nil {
+		return Session{}, platform.AuthContext{}, err
+	}
+	grants := mapped.Grants
+	if account.MustChangePassword {
+		grants = []string{"account.self"}
+	}
+	auth := platform.AuthContext{SubjectID: account.AccountID, Kind: "admin", SiteID: account.SiteID, SessionID: session.SessionID,
+		SessionRevision: 1, PermissionRevision: account.PermissionRevision, Grants: grants, ExpiresAt: session.ExpiresAt}
+	return session, auth, nil
+}
+
+// CreateSession 先完成账号与网络的风控终局，再原子签发本次唯一敏感结果。
+func CreateSession(ctx context.Context, op OperationContext, input CreateSessionInput) (CreateSessionResult, error) {
+	ctx, op, err := anonymousIdentityOperation(ctx, op)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	normalized, err := NormalizeAccountName(NormalizeAccountNameInput{AccountName: input.AccountName})
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	attempt, err := beginIdentityLogin(ctx, op, normalized.Normalized, "login")
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	outcomeSent := false
+	defer func() {
+		if !outcomeSent {
+			_ = finishIdentityLogin(ctx, op, attempt, "aborted")
+		}
+	}()
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return CreateSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话存储尚未装配")
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, op, "createSession", input)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	readTx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return CreateSessionResult{}, identityDBError()
+	}
+	var receipt sensitiveOperationReceipt
+	found, err := readIdentityReceipt(ctx, op, readTx, digest, keyID, &receipt)
+	if err != nil {
+		readTx.Rollback()
+		return CreateSessionResult{}, err
+	}
+	if found {
+		readTx.Rollback()
+		outcomeSent = true
+		return CreateSessionResult{}, sensitiveReplayError()
+	}
+	var accountID, siteID, passwordHash, status string
+	var credentialRevision platform.Revision
+	err = readTx.QueryRowContext(ctx, `SELECT a.account_id,a.site_id,c.password_hash,c.credential_revision,a.status FROM accounts a JOIN credentials c ON c.account_id=a.account_id WHERE a.account_name=?`, normalized.Normalized).
+		Scan(&accountID, &siteID, &passwordHash, &credentialRevision, &status)
+	readTx.Rollback()
+	if errors.Is(err, sql.ErrNoRows) {
+		outcomeSent = true
+		if err := finishIdentityLogin(ctx, op, attempt, "rejected"); err != nil {
+			return CreateSessionResult{}, err
+		}
+		return CreateSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "账号或口令不正确")
+	}
+	if err != nil {
+		return CreateSessionResult{}, identityDBError()
+	}
+	verified, err := VerifyPassword(VerifyPasswordInput{Password: input.Password, EncodedHash: passwordHash})
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	if !verified.Valid || status != "active" {
+		outcomeSent = true
+		if err := finishIdentityLogin(ctx, op, attempt, "rejected"); err != nil {
+			return CreateSessionResult{}, err
+		}
+		return CreateSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "账号或口令不正确")
+	}
+	rehashed := ""
+	if verified.NeedsRehash {
+		hash, err := HashPassword(ctx, op, HashPasswordInput{Password: input.Password})
+		if err != nil {
+			return CreateSessionResult{}, err
+		}
+		rehashed = hash.EncodedHash
+	}
+	runtime := registrationRuntimeFromContext(ctx)
+	if runtime == nil {
+		return CreateSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "初始化状态客户端尚未装配")
+	}
+	initialization, err := runtime.ReadInitializationStatus(ctx, op)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	if initialization.SiteID != nil && *initialization.SiteID != siteID {
+		return CreateSessionResult{}, platform.NewError(platform.CodeIntegrityError, false, "站点配置与账号归属不一致")
+	}
+	outcomeSent = true
+	if err := finishIdentityLogin(ctx, op, attempt, "authenticated"); err != nil {
+		return CreateSessionResult{}, err
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return CreateSessionResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	found, err = readIdentityReceipt(ctx, op, tx, digest, keyID, &receipt)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	if found {
+		return CreateSessionResult{}, sensitiveReplayError()
+	}
+	account, err := readAccount(ctx, tx, accountID, siteID)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	var currentRevision platform.Revision
+	if err := tx.QueryRowContext(ctx, `SELECT credential_revision FROM credentials WHERE account_id=?`, accountID).Scan(&currentRevision); err != nil {
+		return CreateSessionResult{}, identityDBError()
+	}
+	if account.Status != AccountStatusActive || currentRevision != credentialRevision {
+		return CreateSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "账号或口令不正确")
+	}
+	if rehashed != "" {
+		if _, err := tx.ExecContext(ctx, `UPDATE credentials SET password_hash=? WHERE account_id=? AND credential_revision=? AND password_hash=?`, rehashed, accountID, credentialRevision, passwordHash); err != nil {
+			return CreateSessionResult{}, identityDBError()
+		}
+	}
+	session, auth, err := insertSession(ctx, tx, account, credentialRevision)
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	issued, err := IssueSessionTokens(WithIdentityTransaction(ctx, tx), op, IssueSessionTokensInput{Session: session, Auth: auth})
+	if err != nil {
+		return CreateSessionResult{}, err
+	}
+	receipt = sensitiveOperationReceipt{AccountID: accountID, SessionID: session.SessionID, CredentialRevision: credentialRevision}
+	if err := saveIdentityReceipt(ctx, op, tx, digest, keyID, receipt); err != nil {
+		return CreateSessionResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return CreateSessionResult{}, identityDBError()
+	}
+	next := "/admin"
+	if account.MustChangePassword {
+		next = "/admin/me"
+	} else if !initialization.Initialized {
+		next = "/admin/setup"
+	}
+	return CreateSessionResult{Tokens: issued.Tokens, NextRoute: next}, nil
+}
+
+// anonymousIdentityOperation 固定匿名凭证动作的幂等主体，不因可选cookie或委托变化。
+func anonymousIdentityOperation(ctx context.Context, op OperationContext) (context.Context, OperationContext, error) {
+	if op.CallerService != "portal" {
+		return nil, OperationContext{}, platform.NewError(platform.CodeForbidden, false, "匿名凭证入口仅允许portal")
+	}
+	op.Actor = platform.AuthContext{Kind: "service", SubjectID: "portal", SiteID: "system", Grants: []string{}, ExpiresAt: op.Deadline}
+	ctx = platform.WithPortalProof(ctx, "")
+	return platform.WithOperationContext(ctx, op), op, nil
 }

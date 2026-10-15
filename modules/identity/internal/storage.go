@@ -24,9 +24,12 @@ const (
 
 // Store 是本域active区业务库与control区决定日志的句柄。
 type Store struct {
-	db      *sql.DB
-	journal *os.File
-	jmu     sync.Mutex
+	db        *sql.DB
+	control   *sql.DB
+	dataRoot  string
+	accountMu sync.Mutex
+	journal   *os.File
+	jmu       sync.Mutex
 	// JournalRecovered 本次启动恢复后是否已无未完成决定。
 	JournalRecovered bool
 	// AppliedMigrations 本次启动后已应用的迁移数。
@@ -65,7 +68,13 @@ func OpenDatabase(dataRoot string) (*Store, error) {
 		db.Close()
 		return nil, platform.NewError(platform.CodeInternal, false, "打开决定日志失败")
 	}
-	return &Store{db: db, journal: journal}, nil
+	control, err := openIdentityControl(dataRoot)
+	if err != nil {
+		journal.Close()
+		db.Close()
+		return nil, err
+	}
+	return &Store{db: db, control: control, journal: journal, dataRoot: dataRoot}, nil
 }
 
 // RunMigrations 按编号升序在事务中应用未执行的迁移；数据库中出现
@@ -130,8 +139,8 @@ func (s *Store) RunMigrations() error {
 	return nil
 }
 
-// RecoverJournal 扫描决定日志并使未完成决定可见：存在open决定时返回
-// INTEGRITY_ERROR隔离启动，由业务函数落地各自补完成逻辑。
+// RecoverJournal 补齐已登记的账号索引决定并核对bootstrap控制身份。
+// 其他未知open决定仍返回INTEGRITY_ERROR隔离启动。
 func (s *Store) RecoverJournal() error {
 	entries, err := readJournal(s.journal)
 	if err != nil {
@@ -140,11 +149,20 @@ func (s *Store) RecoverJournal() error {
 	open := 0
 	for _, entry := range entries {
 		if entry.State == "open" {
-			open++
+			if entry.Kind == "identity.account-index" {
+				if err := recoverAccountIndex(s, entry); err != nil {
+					return err
+				}
+			} else {
+				open++
+			}
 		}
 	}
 	if open > 0 {
 		return platform.NewError(platform.CodeIntegrityError, false, "决定日志存在未完成条目")
+	}
+	if err := recoverBootstrapClaim(s); err != nil {
+		return err
 	}
 	s.JournalRecovered = true
 	return nil
@@ -184,8 +202,20 @@ func (s *Store) Close() error {
 		_ = s.journal.Close()
 		s.journal = nil
 	}
+	var controlErr error
+	if s.control != nil {
+		controlErr = s.control.Close()
+		s.control = nil
+	}
 	if s.db != nil {
-		return s.db.Close()
+		err := s.db.Close()
+		s.db = nil
+		if err != nil {
+			return err
+		}
+	}
+	if controlErr != nil {
+		return controlErr
 	}
 	return nil
 }
@@ -228,4 +258,46 @@ func appendJournalLine(file *os.File, mu *sync.Mutex, entry journalEntry) error 
 		return platform.NewError(platform.CodeInternal, false, "决定日志fsync失败")
 	}
 	return nil
+}
+
+// openIdentityControl 只打开不随恢复替换的bootstrap权威，不与active库宣称跨库原子。
+func openIdentityControl(dataRoot string) (*sql.DB, error) {
+	path := filepath.Join(dataRoot, "control", "control.db")
+	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(3000)")
+	if err != nil {
+		return nil, identityDBError()
+	}
+	db.SetMaxOpenConns(1)
+	var exists int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='control_schema'`).Scan(&exists); err != nil {
+		db.Close()
+		return nil, identityDBError()
+	}
+	if exists == 0 {
+		schema, err := migrations.ControlSchema()
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			db.Close()
+			return nil, identityDBError()
+		}
+		if _, err := tx.Exec(schema); err != nil {
+			tx.Rollback()
+			db.Close()
+			return nil, identityDBError()
+		}
+		if err := tx.Commit(); err != nil {
+			db.Close()
+			return nil, identityDBError()
+		}
+	}
+	var version int
+	if err := db.QueryRow(`SELECT schema_version FROM control_schema WHERE singleton=1`).Scan(&version); err != nil || version != 1 {
+		db.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份控制库schema不受支持")
+	}
+	return db, nil
 }

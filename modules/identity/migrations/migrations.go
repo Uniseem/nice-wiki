@@ -13,7 +13,7 @@ import (
 	"strconv"
 )
 
-//go:embed *.sql
+//go:embed *.sql control/*.sql
 var files embed.FS
 
 // namePattern 迁移文件名格式：四位编号_小写字母数字下划线.sql。
@@ -35,6 +35,9 @@ func All() ([]Migration, error) {
 	}
 	all := make([]Migration, 0, len(entries))
 	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
 		match := namePattern.FindStringSubmatch(entry.Name())
 		if match == nil {
 			return nil, fmt.Errorf("迁移文件名不合法: %s", entry.Name())
@@ -56,4 +59,13 @@ func All() ([]Migration, error) {
 		}
 	}
 	return all, nil
+}
+
+// ControlSchema 返回独立control库的初始schema；未来变更须单独升级版本。
+func ControlSchema() (string, error) {
+	raw, err := files.ReadFile("control/0001_bootstrap.sql")
+	if err != nil {
+		return "", fmt.Errorf("读取控制库迁移失败")
+	}
+	return string(raw), nil
 }

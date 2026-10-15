@@ -36,3 +36,8 @@
 | `identity.ObserveSuperadminResetFile` | 每5秒 | 检测服务器超管重置文件 |
 | `identity.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
 <!-- flows:end -->
+
+
+登录/首次注册只接受portal经服务断言建立的网络HMAC作用域（当前/前一UTC日），不从浏览器字段或普通header兜底。identity通过平台HMAC规范账号名，调用traffic-guard.beginLoginAttempt，再以authenticated/rejected/aborted提交幂等终局；错密码、未知账号、停用账号使用同一未认证结果。authenticated仅表示口令和active核验事实，在会话事务提交前确认；一旦发送authenticated/rejected，即便响应未知，也不改报aborted。未知风控或初始化状态拒绝登录。
+
+首次注册先持久control reserved决定，再写active账户/凭据/会话/安全回执和outbox；active提交后补齐索引并单向标记committed。同原op重试不重发秘密，改密当前设备轮换且其他设备立即撤销；ReadSelf返回credentialRevision供改密CAS。固定nextRoute只从/admin/me（强改视图）、/admin/setup、/admin选择。

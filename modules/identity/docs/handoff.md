@@ -1,3 +1,22 @@
+# 本轮交接：完整登录注册与账号口令事务（2026-10-15，待VPS复核）
+
+- 独占modules/identity，分支codex/identity-login-accounts-r1，从精确468986fc34e1c90b6b5ca575539fdd2b9748cd06新建，保留上一轮分支。本轮源码准备提交；VPS格式/生成与依赖文件已回传，最终检查待根。状态以progress.json及实际Git为准。
+- CreateSession：只接受portal签名LoginNetworkScopes，平台HMAC规范账号名，真实调用guard beginLoginAttempt/finishLoginAttempt；错密码/未知/停用统一拒绝，依赖失败或未知不发会话。authenticated核验事实在提交前确认，发送后不改报aborted。私有回执不重发secret，重新核权威凭据/状态后同事务签发。
+- RegisterFirstSuperadmin：独立control.db不可逆reserved决定保存原op/caller/actor/HMAC/keyId/dataEpoch及固定账户/站点，只有全部匹配且同原epoch可续未决；active写唯一超管/凭据/会话/安全回执/outbox。active已提交安全回执可补记committed；恢复空库不重开注册，不宣称跨库原子。
+- CreateAccount：当前唯一超管事务核验，权限只既有10项、默认全选，子账号初始口令强改；账户、凭据、功能、outbox和安全完整回执同事务。ChangePassword：校旧密码、凭据CAS、清强改、撤销其他设备并轮换当前设备秘密，安全回执仅引用，重复提示重新登录。
+- ReadSelf从当前有效会话读取metadata并补credentialRevision，供改密expectedCredentialRevision；受限会话只允许静态必要自身资料。登录/注册nextRoute只从现有/admin/me（强改视图）、/admin/setup、/admin选择。
+- 账号索引：本域账号互斥跨active提交到索引补齐；索引安装另有进程互斥。control journal先记identity.account-index决定，active提交后同步派生索引并完结；启动按active权威补齐，控制索引领先或未知决定失败关闭。
+- 新实际文件：migrations/0004_private_operation_receipts.sql（active追加digest_key_id）、migrations/control/0001_bootstrap.sql（独立control schema1）。migrations.go只追加内嵌控制schema，active编号迁移不改写。根framework登记由集成会话完成。
+- 公共依赖：platform.PrivateOperationDigest、OperationContext.LoginNetworkScopes与签名断言传递、guard beginLoginAttempt/finishLoginAttempt合同和生成客户端由根同步；HTTP共享装配机制未冻结前不复制边界校验。公共依赖合成提交26138c1由根统一集成，本分支未自行cherry-pick。所有生成物只由VPS make gen/docs刷新；本轮gofmt/gen/docs和go生成的go.mod/go.sum已回传，最终build/check结论仍待根。
+- 统一复核修订：匿名凭证回执/claim固定portal/system主体并清可选用户proof；维护仅核权/CSRF控制链只读白名单；索引统一16MiB且在active不可反悔提交前用共用编码检查，10000账户上限不变。真实认证组已绑定公共HTTP工厂，缺其余handler则整体启动失败。
+- 检查：仅本地读取、源码编辑和git diff --check；未本机编译/格式/vet/测试/运行SQL，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型、未部署或push。交付条目仍in_progress等待VPS及逐项复核。
+
+## 下一步（一项）
+
+冻结用例源码后，由集成会话汇总公共HMAC/登录网络作用域/guard与HTTP依赖的VPS最终make gen/docs/build/check结果；修复真实错误并统一复核，随后按公共HTTP装配签名接入这些已完成用例，其他未完成handler继续明确阻塞。
+
+---
+
 # 当前工作包：会话签发、刷新与即时授权（2026-10-15，VPS编译与结构复核通过）
 
 ## 持续实施第一轮最终集成事实（2026-10-15）

@@ -36,7 +36,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	if _, err := loadSigningKey(config.SigningKeyRef); err != nil {
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
 		return nil, err
 	}
 	runtimeAuthority, err := NewRuntimeClient(config)
@@ -68,7 +69,17 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
-	return transport.NewApplication(config, anchors, runtimeAuthority, store, view.DataEpoch), nil
+	origin, err := lifecycle.CanonicalPublicOrigin(config.PublicBaseURL)
+	if err != nil {
+		store.Close()
+		return nil, err
+	}
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, store, view.DataEpoch, identity.SessionRuntime{Key: key, Anchors: anchors, PublicOrigin: origin})
+	if err != nil {
+		store.Close()
+		return nil, err
+	}
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端（platform.SiteConfigClient），

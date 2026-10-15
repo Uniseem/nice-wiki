@@ -2,33 +2,33 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "0fb081cf0e3e7d14c1846ab8f6625cd40301314d5d4b6f40811b3293b974f4f4",
+  "contractSha256": "5bd5f0d28113e9c8fb50f2f9b6f1b4675d4780c74dba04981e720fa5b64c6868",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1持续实施第一轮统一复核",
-  "branch": "main",
-  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
-  "deliveryCommit": "9c86c83d43c231a22704573c421f8063e3ee0c54",
+  "assignedSession": "R1-01（完整登录/首次注册/账号创建与改密）",
+  "branch": "codex/identity-login-accounts-r1",
+  "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "RegisterFirstSuperadmin仅完成输入和依赖前置，仍缺唯一超管/凭据/索引/会话的完整写事务"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "CreateAccount仅完成授权/输入/权限前置校验；仍需HashPassword、事务、幂等回执、账户索引与撤销事件接线"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/internal/account_validator.go",
@@ -56,19 +56,19 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "HashPassword、VerifyPassword、ValidatePasswordChange已实现；同文件ChangePassword仍待会话/事务工作包"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "CreateSession仍缺登录风控、密码核对后的会话创建事务与初始化下一路由；已交付签发/刷新/会话列表及助手通过VPS现阶段检查"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
@@ -112,13 +112,13 @@
     },
     {
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
-      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；账号manifest与全域revision来源仍需设计确认"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
@@ -172,23 +172,23 @@
     },
     {
       "path": "modules/identity/internal/storage.go",
-      "state": "verified",
-      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/migrations/migrations.go",
-      "state": "verified",
-      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "path": "modules/identity/migrations/0001_domain.sql",
@@ -216,39 +216,39 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮公共HTTP装配，未本机编译或测试"
       },
-      "blocker": "步骤4-7剩余：全部OpenAPI x-handler绑定、换入后注入restoreId并调用InvalidateRestoredSessions、registerActivation回执、ObserveSuperadminResetFile/RelayOutbox后台循环；存储打开/迁移/恢复已实现"
+      "blocker": "真实认证组已绑定；其余账户管理/偏好/恢复/屏障handler未完成，公共工厂拒绝整体启动"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "533a1239fa8c48e1a3471005556cdead06669c6f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（go.sum 依赖经 go mod tidy 固定）"
+        "state": "not_run",
+        "evidence": "第二轮公共HTTP装配，未本机编译或测试"
       },
-      "blocker": null
+      "blocker": "真实认证组已绑定；其余账户管理/偏好/恢复/屏障handler未完成，公共工厂拒绝整体启动"
     },
     {
       "path": "modules/identity/go.mod",
-      "state": "implemented",
-      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
       },
-      "blocker": null
+      "blocker": "待公共26138c1合成依赖与VPS最终检查"
     },
     {
       "path": "modules/identity/go.sum",
-      "state": "implemented",
-      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
       },
-      "blocker": null
+      "blocker": "待公共26138c1合成依赖与VPS最终检查"
     },
     {
       "path": "modules/identity/Dockerfile",
@@ -349,52 +349,72 @@
         "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "path": "modules/identity/migrations/control/0001_bootstrap.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     }
   ],
   "functions": [
     {
       "id": "identity.ReadRegistrationState",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "implemented",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.RegisterFirstSuperadmin",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "仅完成输入与依赖前置校验；仍需bootstrapClaim、HashPassword、session签发、traffic-guard、幂等回执与outbox同事务接线"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.CreateAccount",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "仅完成授权、账号名、口令和功能权限前置校验；仍需事务、幂等回执、账户索引与撤销事件接线"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.ReadSelf",
       "path": "modules/identity/internal/account_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.ListAccounts",
@@ -509,24 +529,24 @@
     {
       "id": "identity.ChangePassword",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.CreateSession",
       "path": "modules/identity/internal/session_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.IssueSessionTokens",
@@ -663,13 +683,13 @@
     {
       "id": "identity.WriteAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
-      "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；账号manifest与全域revision来源仍需设计确认"
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.ObserveSuperadminResetFile",
@@ -795,13 +815,13 @@
     {
       "id": "identity.OpenDatabase",
       "path": "modules/identity/internal/storage.go",
-      "state": "verified",
-      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.RunMigrations",
@@ -817,24 +837,24 @@
     {
       "id": "identity.RecoverJournal",
       "path": "modules/identity/internal/storage.go",
-      "state": "verified",
-      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.All",
       "path": "modules/identity/migrations/migrations.go",
-      "state": "verified",
-      "implementationCommit": "28af316bf6a42a2378f30f17a2fe036380af4ff9",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：go build ./...、go vet ./...、gofmt -l 为空通过；make check 本地与VPS通过（829文件/894函数登记一致）"
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": null
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
     },
     {
       "id": "identity.main",
@@ -978,7 +998,403 @@
         "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
+    },
+    {
+      "id": "identity.WithRegistrationRuntime",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.registrationRuntimeFromContext",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.ReadInitializationStatus",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.readBootstrapClaim",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.reserveBootstrap",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.markBootstrapCommitted",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.recoverBootstrapClaim",
+      "path": "modules/identity/internal/registration_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.readAccount",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.readActorAccount",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.insertAccount",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.selectedPermissionNames",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.privateIdentityDigest",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.readIdentityReceipt",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.saveIdentityReceipt",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.commitAccountWrite",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.syncAccountIndex",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.recoverAccountIndex",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.identityDBError",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.hasGrant",
+      "path": "modules/identity/internal/account_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.sensitiveReplayError",
+      "path": "modules/identity/internal/credential_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.WithLoginRuntime",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.beginIdentityLogin",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.finishIdentityLogin",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.insertSession",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.openIdentityControl",
+      "path": "modules/identity/internal/storage.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.AppendDecision",
+      "path": "modules/identity/internal/storage.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.CompleteDecision",
+      "path": "modules/identity/internal/storage.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.ControlSchema",
+      "path": "modules/identity/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+      },
+      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+    },
+    {
+      "id": "identity.NewApplication",
+      "path": "modules/identity/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+      },
+      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.identityContext",
+      "path": "modules/identity/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+      },
+      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.authorizeOperation",
+      "path": "modules/identity/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+      },
+      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.operationHandlers",
+      "path": "modules/identity/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+      },
+      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.jsonOperation",
+      "path": "modules/identity/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+      },
+      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.anonymousIdentityOperation",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮统一复核明确修订，待VPS检查"
+      },
+      "blocker": "待VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.readAccountAuthorityQuery",
+      "path": "modules/identity/internal/server_recovery.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮统一复核明确修订，待VPS检查"
+      },
+      "blocker": "待VPS gen/docs/build/check"
+    },
+    {
+      "id": "identity.encodeAccountIndex",
+      "path": "modules/identity/internal/server_recovery.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮统一复核明确修订，待VPS检查"
+      },
+      "blocker": "待VPS gen/docs/build/check"
     }
   ],
-  "rule": "本轮交付函数和完整文件依据隔离VPS编译/生成/完整结构检查转verified；含未实现注册、登录或outbox循环的文件仍in_progress。完整HTTP/后台装配、业务验收和部署未完成，主分支提交映射由集成会话合并后更新。"
+  "rule": "本轮源码已收到VPS gofmt/gen/docs与go工具生成的依赖文件，最终统一复核结论尚待根；新增用例与改动文件保持in_progress，不以编译/结构检查冒充业务验收。"
 }

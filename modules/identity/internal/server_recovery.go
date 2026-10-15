@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -22,9 +23,11 @@ import (
 
 const (
 	accountIndexFileName = "account-index.json"
-	maxAccountIndexBytes = 4 << 20
+	maxAccountIndexBytes = 16 << 20
 	maxIndexedAccounts   = 10000
 )
+
+var accountIndexWriteMu sync.Mutex
 
 type serverAccountIndexContextKey struct{}
 
@@ -125,19 +128,16 @@ func ReadServerAccountIndex(ctx context.Context, op OperationContext, input Read
 // WriteAccountIndex 从完整账号元数据中抽取最小索引，并以同目录临时文件、
 // fsync、rename、目录fsync的顺序提交。低revision永不覆盖较新的索引。
 func WriteAccountIndex(ctx context.Context, op OperationContext, input WriteAccountIndexInput) (WriteAccountIndexResult, error) {
+	accountIndexWriteMu.Lock()
+	defer accountIndexWriteMu.Unlock()
 	state, err := accountIndexContext(ctx, op, true)
 	if err != nil {
 		return WriteAccountIndexResult{}, err
 	}
-	index, err := buildAccountIndex(input)
+	index, encoded, err := encodeAccountIndex(input)
 	if err != nil {
 		return WriteAccountIndexResult{}, err
 	}
-	encoded, err := json.MarshalIndent(index, "", "  ")
-	if err != nil {
-		return WriteAccountIndexResult{}, platform.NewError(platform.CodeInternal, false, "账号索引不可编码")
-	}
-	encoded = append(encoded, '\n')
 
 	controlDir, err := ensurePrivateControlDir(state.dataRoot)
 	if err != nil {
@@ -235,7 +235,12 @@ func readAccountAuthority(ctx context.Context, dataRoot string) (accountAuthorit
 	if err := db.PingContext(ctx); err != nil {
 		return accountAuthority{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账号权威库不可用")
 	}
-	rows, err := db.QueryContext(ctx, `SELECT account_id, account_name, is_superadmin, status, revision FROM accounts ORDER BY account_id`)
+	return readAccountAuthorityQuery(ctx, db)
+}
+
+// readAccountAuthorityQuery 可读取同一未提交账号事务，供提交前索引编码上限核对。
+func readAccountAuthorityQuery(ctx context.Context, query sessionQueryer) (accountAuthority, error) {
+	rows, err := query.QueryContext(ctx, `SELECT account_id, account_name, is_superadmin, status, revision FROM accounts ORDER BY account_id`)
 	if err != nil {
 		return accountAuthority{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账号权威记录不可读")
 	}
@@ -487,4 +492,21 @@ func accountIndexFileMissing(dataRoot string) bool {
 func isCode(err error, code string) bool {
 	var platformErr *platform.Error
 	return errors.As(err, &platformErr) && platformErr.Code == code
+}
+
+// encodeAccountIndex 由提交前检查与实际安装共用唯一编码和大小约束。
+func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, error) {
+	index, err := buildAccountIndex(input)
+	if err != nil {
+		return AccountIndex{}, nil, err
+	}
+	raw, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		return AccountIndex{}, nil, platform.NewError(platform.CodeInternal, false, "账号索引不可编码")
+	}
+	raw = append(raw, '\n')
+	if len(raw) > maxAccountIndexBytes {
+		return AccountIndex{}, nil, platform.NewError(platform.CodeRateLimited, false, "账号索引达到容量上限")
+	}
+	return index, raw, nil
 }

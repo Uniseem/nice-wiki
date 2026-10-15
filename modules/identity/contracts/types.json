@@ -697,7 +697,7 @@
       "properties": {
         "registrationOpen": {
           "type": "boolean",
-          "description": "只有从无任何账户时true"
+          "description": "active从无账户且control没有不可逆bootstrap claim时才true；恢复空库不重新开放"
         },
         "initialized": {
           "type": "boolean",
@@ -758,11 +758,21 @@
         "tokens": {
           "$ref": "#/$defs/SessionTokens",
           "description": "SessionTokens"
+        },
+        "nextRoute": {
+          "type": "string",
+          "enum": [
+            "/admin/me",
+            "/admin/setup",
+            "/admin"
+          ],
+          "description": "固定后台路径；mustChangePassword时/admin/me只装配改密视图，不返回用户可控重定向"
         }
       },
       "required": [
         "account",
-        "tokens"
+        "tokens",
+        "nextRoute"
       ]
     },
     "CreateAccountInput": {
@@ -817,10 +827,15 @@
         "account": {
           "$ref": "#/$defs/Account",
           "description": "Account"
+        },
+        "credentialRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前私有凭据CAS水位，供改密expectedCredentialRevision；不含口令哈希"
         }
       },
       "required": [
-        "account"
+        "account",
+        "credentialRevision"
       ]
     },
     "ListAccountsInput": {
@@ -1279,10 +1294,20 @@
         "tokens": {
           "$ref": "#/$defs/SessionTokens",
           "description": "SessionTokens"
+        },
+        "nextRoute": {
+          "type": "string",
+          "enum": [
+            "/admin/me",
+            "/admin/setup",
+            "/admin"
+          ],
+          "description": "固定后台路径；mustChangePassword时/admin/me只装配改密视图，不返回用户可控重定向"
         }
       },
       "required": [
-        "tokens"
+        "tokens",
+        "nextRoute"
       ]
     },
     "IssueSessionTokensInput": {

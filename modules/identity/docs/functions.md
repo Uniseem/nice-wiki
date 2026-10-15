@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 57 个函数：约束 29 个，参考 28 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 93 个函数：约束 29 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -36,6 +36,7 @@ func ReadRegistrationState(ctx context.Context, op OperationContext, input ReadR
 1. 读不可逆bootstrapClaim与唯一superadmin索引
 2. 首次无账户返回registrationOpen=true，不要求初始化码
 3. site-config状态只决定登录后的向导，不重开注册
+4. active为空时另查不随恢复替换的control bootstrap_claim；已有reserved或committed都不向新请求开放注册
 
 **错误**
 
@@ -45,7 +46,7 @@ func ReadRegistrationState(ctx context.Context, op OperationContext, input ReadR
 - 授权：anonymous
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`site-config:readInitializationStatus`
+- 依赖：`site-config:readInitializationStatus`、`identity.readBootstrapClaim`、`identity.registrationRuntimeFromContext`
 
 ## identity.RegisterFirstSuperadmin
 
@@ -70,13 +71,17 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RegisterFirstSuperadminResult` | 首个注册账户原子成为唯一超管的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致；UNAUTHENTICATED: 当前会话失效或账号口令不正确；FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足 |
 
 **步骤**
 
-1. Origin与登录准入检查，但不要求初始化码、邮件或MFA
-2. 确认两次口令一致，站点注册唯一锁下核对从无账户；HashPassword
-3. 同事务生成siteId和不可逆bootstrapClaim、唯一superadmin账户及session；竞争失败CONFLICT转登录，之后永不重开注册
+1. 匿名凭证动作只接受已认证portal，回执/claim主体固定service portal/system，清可选用户proof；cookie或委托变化不改变同op幂等作用域
+2. portal固定Origin与签名网络作用域由入口建立；以规范账号名调用guard begin action=bootstrap，不新增初始化码/MFA/邮箱
+3. 两次口令一致且HashPassword；site-config未初始化且尚无协调站点才可首次注册
+4. control.db先持久不可逆bootstrap_claim reserved：固定原operation/caller/actor/HMAC/keyId/dataEpoch/accountId/siteId；同原op同epoch可续未决，异请求或换epochConflict
+5. 在本域账号互斥和active事务内核对从无账户，写唯一superadmin、凭据/功能、session与安全回执/outbox；guard authenticated成功后提交
+6. active提交与账号索引文件不宣称跨库/跨文件原子：control journal补齐派生索引；active安全回执可恢复control reserved→committed，状态永不回退或删除
+7. 首次成功返回raw token和/admin/setup；重放只读安全回执并提示重新登录，不重复建session；control committed而active为空失败关闭，不重开注册
 
 **错误**
 
@@ -84,12 +89,239 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `RATE_LIMITED`：频率、并发或容量上限已达，返回 retryAfter（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：账户/控制决定/回执/索引或初始化归属完整性不一致（不可重试）
+- `UNAUTHENTICATED`：当前会话失效或账号口令不正确（不可重试）
+- `FORBIDDEN`：可信服务/网络作用域或本域当前功能授权不满足（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：anonymous；无需初始化码，部署后立即注册或先不暴露端口
 - 并发：bootstrapClaim+isSuperadmin唯一约束同事务，首注册至多一个
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`、`traffic-guard:beginLoginAttempt`、`traffic-guard:finishLoginAttempt`
+- 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
+- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`identity.NormalizeAccountName`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.saveIdentityReceipt`、`identity.reserveBootstrap`、`identity.markBootstrapCommitted`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.insertSession`、`identity.PublishIdentityEvent`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`
+
+## identity.WithRegistrationRuntime
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：注入初始化权威适配
+
+```go
+func WithRegistrationRuntime(ctx context.Context, runtime RegistrationRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 注入初始化权威适配
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
+
+## identity.registrationRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：取得进程注入的初始化适配，禁止未知当未初始化
+
+```go
+func registrationRuntimeFromContext(ctx context.Context) RegistrationRuntime
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取得进程注入的初始化适配，禁止未知当未初始化
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.WithRegistrationRuntime`、`identity.ReadInitializationStatus`
+
+## identity.ReadInitializationStatus
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：通过版本化site-config客户端读取并核对安全阶段与归属
+
+```go
+func (runtime RegistrationClient) ReadInitializationStatus(ctx context.Context, op OperationContext) (InitializationStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 通过版本化site-config客户端读取并核对安全阶段与归属
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`site-config:readInitializationStatus`
+
+## identity.readBootstrapClaim
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：读取不随active恢复替换的不可逆注册决定
+
+```go
+func readBootstrapClaim(ctx context.Context, control *sql.DB) (bootstrapClaim, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取不随active恢复替换的不可逆注册决定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.reserveBootstrap
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：仅相同原op/caller/actor/HMAC/keyId/dataEpoch允许续未决，其他Conflict
+
+```go
+func reserveBootstrap(ctx context.Context, op OperationContext, store *Store, digest, keyID string) (bootstrapClaim, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅相同原op/caller/actor/HMAC/keyId/dataEpoch允许续未决，其他Conflict
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.readBootstrapClaim`、`identity.identityDBError`
+
+## identity.markBootstrapCommitted
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：控制决定仅reserved到committed单向收敛
+
+```go
+func markBootstrapCommitted(ctx context.Context, store *Store, claim bootstrapClaim) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 控制决定仅reserved到committed单向收敛
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.recoverBootstrapClaim
+
+- 级别：参考
+- 文件：`modules/identity/internal/registration_service.go`
+- 作用：核控制身份与active超管，按已提交安全回执补记控制终局
+
+```go
+func recoverBootstrapClaim(store *Store) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核控制身份与active超管，按已提交安全回执补记控制终局
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.readBootstrapClaim`、`identity.markBootstrapCommitted`、`identity.identityDBError`
 
 ## identity.CreateAccount
 
@@ -114,13 +346,14 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `CreateAccountResult` | 超管创建子账号并标记强改的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致 |
 
 **步骤**
 
-1. 仅superadmin，规范不可变账号名与唯一键
-2. 权限省略时默认全部10项；不能赋予superadmin-only技术权限
-3. HashPassword，同事务建active、mustChangePassword=true，写账户索引与审计
+1. 唯一超管当前会话在事务内核对active、credential/permission/session/auth/data水位与superadmin；账号名规范不可变，省略权限默认既有10项全选
+2. 私有输入HMAC含动作/caller/epoch并记录keyId，不存可离线猜口令的普通SHA；完整安全结果回执同op重放，不重复新建
+3. HashPassword后在单个active事务插入mustChangePassword=true子账号、凭据、功能与身份outbox及完整安全回执；唯一名冲突Conflict，账号总数上限10000
+4. 账号写提交前记identity.account-index决定，active提交后派生账号索引并完结；启动从active权威补齐未决索引，不宣称数据库事务覆盖文件
 
 **错误**
 
@@ -130,12 +363,13 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：账户/控制决定/回执/索引或初始化归属完整性不一致（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：账户管理仅唯一superadmin；自身操作account.self；权限按功能全站，不按文档scope
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`
+- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.hasGrant`、`identity.PublishIdentityEvent`
 
 ## identity.ReadSelf
 
@@ -160,24 +394,28 @@ func ReadSelf(ctx context.Context, op OperationContext, input ReadSelfInput) (Re
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadSelfResult` | 读取当前账户的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；NOT_FOUND: 资源不存在或在当前主体作用域中不可见 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；CONFLICT: 幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放；INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致；DEPENDENCY_UNAVAILABLE: 私有存储、平台签名摘要、初始化或登录风控不可用；FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足 |
 
 **步骤**
 
-1. 使用proof主体与site
-2. 返回可见metadata
-3. 删除/停用账户UNAUTHENTICATED；不返hash
+1. 主体固定取op.actor，并在一致快照核当前账户、会话、凭据/权限/session/auth/data水位及访问/绝对期限
+2. 受限初始口令只允许静态identity:readSelf必要资料；停用或删除立即UNAUTHENTICATED
+3. 返回公开账户metadata和当前credentialRevision供改密CAS，不返回hash、refresh/CSRF摘要、token或IP
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
+- `CONFLICT`：幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放（不可重试）
+- `INTEGRITY_ERROR`：账户/控制决定/回执/索引或初始化归属完整性不一致（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有存储、平台签名摘要、初始化或登录风控不可用（可重试）
+- `FORBIDDEN`：可信服务/网络作用域或本域当前功能授权不满足（不可重试）
 
 - 副作用：无
 - 授权：account.self；强改会话仅允许必要资料
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`identity.readActorAccount`
 
 ## identity.ListAccounts
 
@@ -358,6 +596,391 @@ func ResetAccountPassword(ctx context.Context, op OperationContext, input ResetA
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`identity.HashPassword`、`identity.RevokeAllSessions`、`identity.ResolveIdentityOperation`
+
+## identity.readAccount
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：读取账户安全元数据及既有功能选择
+
+```go
+func readAccount(ctx context.Context, query sessionQueryer, accountID, siteID string) (Account, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取账户安全元数据及既有功能选择
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.readActorAccount
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：在本域事务快照核当前会话和静态动作权限
+
+```go
+func readActorAccount(ctx context.Context, op OperationContext, query sessionQueryer, permission, action string) (sessionSnapshot, Account, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在本域事务快照核当前会话和静态动作权限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`、`identity.readAccount`、`identity.hasGrant`
+
+## identity.insertAccount
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：在外层事务写账户凭据与既有功能
+
+```go
+func insertAccount(ctx context.Context, tx *sql.Tx, account Account, encodedHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在外层事务写账户凭据与既有功能
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.selectedPermissionNames
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：省略权限取既有10项默认全选，不增用户开关
+
+```go
+func selectedPermissionNames(input PermissionSelection) []string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 省略权限取既有10项默认全选，不增用户开关
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
+
+## identity.privateIdentityDigest
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：动作域分离的私有HMAC摘要与keyId，不持久明文口令
+
+```go
+func privateIdentityDigest(ctx context.Context, op OperationContext, action string, input any) (platform.Hash, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 动作域分离的私有HMAC摘要与keyId，不持久明文口令
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.sessionRuntimeFromContext`、`platform.PrivateOperationDigest`
+
+## identity.readIdentityReceipt
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：按操作键读取同HMAC和keyId的安全回执，校核结果哈希
+
+```go
+func readIdentityReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, digest, keyID string, result any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按操作键读取同HMAC和keyId的安全回执，校核结果哈希
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.saveIdentityReceipt
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：只保存安全完整metadata或引用回执，不接受调用方原始token
+
+```go
+func saveIdentityReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, digest, keyID string, safeResult any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只保存安全完整metadata或引用回执，不接受调用方原始token
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.identityDBError`
+
+## identity.commitAccountWrite
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：控制日志先记索引决定，active提交后补齐索引再完结
+
+```go
+func commitAccountWrite(ctx context.Context, op OperationContext, store *Store, tx *sql.Tx) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 不可反悔active提交前，在相同事务读取候选权威并以共用编码器核对16MiB上限，超限回滚，不写出下一次不可读索引
+2. 控制日志先记索引决定，active提交后补齐索引再完结
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.AppendDecision`、`identity.CompleteDecision`、`identity.syncAccountIndex`、`identity.readAccountAuthorityQuery`、`identity.encodeAccountIndex`
+
+## identity.syncAccountIndex
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：从已提交active权威重建派生索引，受本域账号互斥保护
+
+```go
+func syncAccountIndex(ctx context.Context, op OperationContext, store *Store) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 从已提交active权威重建派生索引，受本域账号互斥保护
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.WriteAccountIndex`
+
+## identity.recoverAccountIndex
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：启动时从active补齐未决索引，未知或领先控制索引失败关闭
+
+```go
+func recoverAccountIndex(store *Store, entry journalEntry) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 启动时从active补齐未决索引，未知或领先控制索引失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.syncAccountIndex`、`identity.CompleteDecision`、`identity.identityDBError`
+
+## identity.identityDBError
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：输出不含SQL原值或私有路径的安全存储错误
+
+```go
+func identityDBError() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输出不含SQL原值或私有路径的安全存储错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
+
+## identity.hasGrant
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：判断当前派生权限集合是否包含固定业务能力
+
+```go
+func hasGrant(grants []string, wanted string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 判断当前派生权限集合是否包含固定业务能力
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
 
 ## identity.NormalizeAccountName
 
@@ -621,13 +1244,15 @@ func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswo
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ChangePasswordResult` | 改口令并结束其他设备登录的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致 |
 
 **步骤**
 
-1. VerifyPassword与ValidatePasswordChange，强改会话允许此唯一业务写入
-2. HashPassword后CAS凭据，清mustChangePassword
-3. 同事务撤销其他设备全部session，当前session升credential版本并重新发cookie；保持当前设备可进入后台
+1. 当前可信会话允许account.self的固定changePassword动作，初始口令也可；验证旧口令、两次新口令相同且不同于旧值，expectedCredentialRevision必须等于当前权威
+2. 新Argon2哈希在短写事务外计算，写事务重新核对会话与凭据版本后CAS更新credentialRevision、清mustChangePassword并提升账户revision
+3. 同一事务RevokeOtherSessions撤销其他设备，保留设备同步新credential/permission/restricted水位并提升session revision，IssueSessionTokens消费旧refresh且轮换独立秘密
+4. 身份事件、私有HMAC/keyId及仅含账户/会话/凭据引用的安全回执同事务；账号索引由决定日志补齐，raw secret从不入普通回执
+5. 仅首次成功返回当前设备新token；重复相同操作明确CONFLICT要求重新登录，不重发旧秘密或重新改密；切换key且无原key拒绝重新执行
 
 **错误**
 
@@ -637,12 +1262,45 @@ func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswo
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：账户/控制决定/回执/索引或初始化归属完整性不一致（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：account.self；mustChangePassword会话也可调用
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`
+- 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
+- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.readSessionSnapshot`、`identity.sessionAuthContext`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.PublishIdentityEvent`、`identity.sensitiveReplayError`
+
+## identity.sensitiveReplayError
+
+- 级别：参考
+- 文件：`modules/identity/internal/credential_service.go`
+- 作用：敏感响应已提交但不重放，要求重新登录
+
+```go
+func sensitiveReplayError() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 敏感响应已提交但不重放，要求重新登录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
 
 ## identity.CreateSession
 
@@ -667,25 +1325,32 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `CreateSessionResult` | 账号名口令登录的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；RATE_LIMITED: 频率、并发或容量上限已达，返回 retryAfter；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；CONFLICT: 幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放；INTEGRITY_ERROR: 账户/控制决定/回执/索引或初始化归属完整性不一致；FORBIDDEN: 可信服务/网络作用域或本域当前功能授权不满足 |
 
 **步骤**
 
-1. traffic-guard按账号/IP失败保护准入；账号不存在/口令错误统一UNAUTHENTICATED
-2. VerifyPassword，active才可session，必要时安全rehash
-3. 初始口令session restrictedToPasswordChange=true，仅返回改密路由；否则查询初始化状态后向导/后台
+1. 匿名凭证动作只接受已认证portal，回执/claim主体固定service portal/system，清可选用户proof；cookie或委托变化不改变同op幂等作用域
+2. 仅接受portal已签名建立的1..2个LoginNetworkScopes；规范账号名后以platform.PrivateOperationDigest派生账号HMAC，调用traffic-guard.beginLoginAttempt，未知或拒绝不继续
+3. 按站点/主体/operation读取带digest_key_id的私有HMAC回执；已提交仅提示重新登录，不重发raw cookie或再建session
+4. 读取账号凭据，VerifyPassword；账号不存在、密码错误或非active统一UNAUTHENTICATED并finish rejected；损坏依赖或中断报aborted，不记录口令/原IP
+5. 必要时按当前Argon2参数rehash且不提升凭据语义版本；读取site-config安全初始化权威，未知阶段或归属不一致失败关闭
+6. guard finish authenticated成功后，在短写事务重新核active账户与credentialRevision，按本域当前权限插入会话并IssueSessionTokens；摘要与安全引用回执同事务
+7. 首次提交才返回raw tokens，nextRoute只选/admin/me（强改专用）、/admin/setup或/admin；重复同op无新秘密，key版本变更不能按新操作执行
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `RATE_LIMITED`：频率、并发或容量上限已达，返回 retryAfter（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `CONFLICT`：幂等HMAC/keyId、唯一账户、CAS或不可逆bootstrap决定冲突；敏感成功响应不可重放（不可重试）
+- `INTEGRITY_ERROR`：账户/控制决定/回执/索引或初始化归属完整性不一致（不可重试）
+- `FORBIDDEN`：可信服务/网络作用域或本域当前功能授权不满足（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：anonymous + 同Origin；只显示账号名和口令，不新增MFA/邮箱
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`site-config:readInitializationStatus`、`platform.PrivateOperationDigest`、`traffic-guard:beginLoginAttempt`、`traffic-guard:finishLoginAttempt`
+- 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
+- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`site-config:readInitializationStatus`、`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.readAccount`、`identity.insertSession`、`identity.saveIdentityReceipt`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`
 
 ## identity.IssueSessionTokens
 
@@ -924,6 +1589,167 @@ func sessionRuntimeFromContext(ctx context.Context) (SessionRuntime, error)
 - 并发：信任调用方传入的私有事务和运行配置
 - 幂等：只读或不可变上下文派生
 - 依赖：`identity.WithSessionRuntime`
+
+## identity.WithLoginRuntime
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：注入真实版本化登录风控客户端
+
+```go
+func WithLoginRuntime(ctx context.Context, runtime LoginRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 注入真实版本化登录风控客户端
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
+
+## identity.beginIdentityLogin
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：仅接受portal签名网络作用域，平台HMAC账号后申请幂等登录准入
+
+```go
+func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, action string) (loginAttempt, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅接受portal签名网络作用域，平台HMAC账号后申请幂等登录准入
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.WithLoginRuntime`、`identity.sessionRuntimeFromContext`、`platform.PrivateOperationDigest`、`traffic-guard:beginLoginAttempt`
+
+## identity.finishIdentityLogin
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：向guard提交authenticated/rejected/aborted幂等终局，未知不放行
+
+```go
+func finishIdentityLogin(ctx context.Context, op OperationContext, attempt loginAttempt, outcome string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 向guard提交authenticated/rejected/aborted幂等终局，未知不放行
+2. authenticated/rejected表示已发送不可逆核验事实；发送后响应未知不改报aborted，aborted只用于此前依赖中断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.WithLoginRuntime`、`traffic-guard:finishLoginAttempt`
+
+## identity.insertSession
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：插入一次设备会话并从当前账户派生初始授权，不生成秘密
+
+```go
+func insertSession(ctx context.Context, tx *sql.Tx, account Account, credentialRevision platform.Revision) (Session, platform.AuthContext, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 插入一次设备会话并从当前账户派生初始授权，不生成秘密
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.MapFunctionGrants`、`identity.identityDBError`
+
+## identity.anonymousIdentityOperation
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：portal匿名凭证操作固定service主体与私有回执scope，清除可选用户proof
+
+```go
+func anonymousIdentityOperation(ctx context.Context, op OperationContext) (context.Context, OperationContext, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. portal匿名凭证操作固定service主体与私有回执scope，清除可选用户proof
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信私有用例或恢复
+- 并发：遵循本域账号互斥与外层事务
+- 幂等：纯派生或只读
+- 依赖：无
 
 ## identity.RevokeSession
 
@@ -1486,6 +2312,7 @@ func WriteAccountIndex(ctx context.Context, op OperationContext, input WriteAcco
 1. 抽取accountName/isSuperadmin/status，不复制credential
 2. 固定control路径写临时JSON、fsync、rename并fsync目录
 3. 索引不进git；服务签名密钥在control区，不随恢复替换；失败记录重建待办
+4. 读写与恢复统一16MiB正规文件上限；编码器在安装前拒绝超限，业务提交前也以同一编码器检查，10000账户数量上限不变
 
 **错误**
 
@@ -1493,9 +2320,9 @@ func WriteAccountIndex(ctx context.Context, op OperationContext, input WriteAcco
 
 - 副作用：私有可读索引文件
 - 授权：私有账号提交/恢复
-- 并发：索引revision单调，低版本不覆盖
+- 并发：进程内accountIndexWriteMu覆盖现有水位读取、临时文件安装与目录fsync；账号业务互斥覆盖active提交至索引补齐，禁止并发低水位覆盖高水位
 - 幂等：同revision同hash不重复写
-- 依赖：无
+- 依赖：`identity.encodeAccountIndex`
 
 ## identity.ObserveSuperadminResetFile
 
@@ -1581,6 +2408,70 @@ func ApplySuperadminReset(ctx context.Context, op OperationContext, input ApplyS
 - 并发：超管credential行锁+fileHashreceipt
 - 幂等：fileHash作为operationId；删除失败重复仅补清理
 - 依赖：`identity.HashPassword`、`identity.RevokeAllSessions`
+
+## identity.readAccountAuthorityQuery
+
+- 级别：参考
+- 文件：`modules/identity/internal/server_recovery.go`
+- 作用：复用同一权威读取实现，允许提交前事务读取候选索引
+
+```go
+func readAccountAuthorityQuery(ctx context.Context, query sessionQueryer) (accountAuthority, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用同一权威读取实现，允许提交前事务读取候选索引
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信私有用例或恢复
+- 并发：遵循本域账号互斥与外层事务
+- 幂等：纯派生或只读
+- 依赖：无
+
+## identity.encodeAccountIndex
+
+- 级别：参考
+- 文件：`modules/identity/internal/server_recovery.go`
+- 作用：唯一编码与16MiB大小约束，提交前、写入、恢复一致
+
+```go
+func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 唯一编码与16MiB大小约束，提交前、写入、恢复一致
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信私有用例或恢复
+- 并发：遵循本域账号互斥与外层事务
+- 幂等：纯派生或只读
+- 依赖：无
 
 ## identity.ResolveIdentityOperation
 
@@ -1999,6 +2890,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 
 1. 按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化
 2. 以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄
+3. 独立打开control/control.db并核control schema=1；不可逆bootstrap claim不随active恢复替换，未知控制schema隔离启动
 
 **错误**
 
@@ -2009,7 +2901,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 - 授权：permission：service；rule：进程启动装配，不对外暴露
 - 并发：单连接串行；决定日志append串行加锁
 - 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
-- 依赖：无
+- 依赖：`identity.openIdentityControl`
 
 ## identity.RunMigrations
 
@@ -2065,8 +2957,9 @@ func (s *Store) RecoverJournal() error
 
 **步骤**
 
-1. 逐行读取决定日志，同一id以最后一行状态生效
-2. 存在open状态条目返回INTEGRITY_ERROR隔离启动；全部完结则标记JournalRecovered
+1. 对identity.account-index未决决定从当前active权威补齐派生索引后完成日志；无账户但已有控制索引拒绝重新开户
+2. 核bootstrap控制身份与active唯一超管，reserved且安全回执已提交时单向补记committed；committed缺active超管或身份不一致隔离
+3. 其他未知open决定仍INTEGRITY_ERROR失败关闭；全部安全后才设置JournalRecovered，不把未知决定当回滚
 
 **错误**
 
@@ -2077,6 +2970,102 @@ func (s *Store) RecoverJournal() error
 - 授权：permission：service；rule：进程启动装配，不对外暴露
 - 并发：单连接串行；决定日志append串行加锁
 - 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：`identity.recoverAccountIndex`、`identity.recoverBootstrapClaim`
+
+## identity.openIdentityControl
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：打开独立control库并初始化或核对受支持schema1
+
+```go
+func openIdentityControl(dataRoot string) (*sql.DB, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 打开独立control库并初始化或核对受支持schema1
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：`identity.ControlSchema`、`identity.identityDBError`
+
+## identity.AppendDecision
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：控制决定open追加并fsync，明文载荷只含安全引用
+
+```go
+func (s *Store) AppendDecision(kind string, payload any) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 控制决定open追加并fsync，明文载荷只含安全引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
+- 依赖：无
+
+## identity.CompleteDecision
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：对应控制决定done追加并fsync，不撤回既有决定
+
+```go
+func (s *Store) CompleteDecision(id string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 对应控制决定done追加并fsync，不撤回既有决定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信用例/装配或启动恢复私有助手
+- 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
+- 幂等：按外层操作回执或决定水位，纯读取无副作用
 - 依赖：无
 
 ## identity.All
@@ -2110,6 +3099,38 @@ func All() ([]Migration, error)
 - 授权：permission：service；rule：进程启动装配，不对外暴露
 - 并发：单连接串行；决定日志append串行加锁
 - 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
+- 依赖：无
+
+## identity.ControlSchema
+
+- 级别：参考
+- 文件：`modules/identity/migrations/migrations.go`
+- 作用：返回独立control库schema1的内嵌唯一SQL来源
+
+```go
+func ControlSchema() (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取control/0001_bootstrap.sql；与active编号迁移隔离，不复制SQL
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：身份存储私有装配
+- 并发：只读内嵌资源
+- 幂等：确定性
 - 依赖：无
 
 ## identity.main
@@ -2181,6 +3202,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+8. 先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理
 
 **错误**
 
@@ -2192,7 +3214,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`platform.NewServiceHandler`、`platform.CanonicalPublicOrigin`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## identity.Serve
@@ -2359,3 +3381,164 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
+
+## identity.NewApplication
+
+- 级别：参考
+- 文件：`modules/identity/internal/transport/server.go`
+- 作用：装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier, sessionRuntime identity.SessionRuntime) (*Application, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动
+2. 维护白名单仅checkAuthorization与verifySessionCSRF控制链只读核权；登录/刷新/账号写不绕过维护屏障
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定服务caller与平台用户权威回调；健康就绪匿名
+- 并发：只读应用容器，事务由本域用例负责
+- 幂等：以业务用例回执为准
+- 依赖：`platform.NewServiceHandler`、`identity.operationHandlers`、`identity.authorizeOperation`
+
+## identity.identityContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/transport/server.go`
+- 作用：注入进程受信本域存储和客户端，不重做入口schema或服务验签
+
+```go
+func (a *Application) identityContext(ctx context.Context) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 注入进程受信本域存储和客户端，不重做入口schema或服务验签
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定服务caller与平台用户权威回调；健康就绪匿名
+- 并发：只读应用容器，事务由本域用例负责
+- 幂等：以业务用例回执为准
+- 依赖：`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`identity.WithSessionCursorKey`
+
+## identity.authorizeOperation
+
+- 级别：参考
+- 文件：`modules/identity/internal/transport/server.go`
+- 作用：以固定静态动作调用本域单次授权，不HTTP递归
+
+```go
+func (a *Application) authorizeOperation(ctx context.Context, op OperationContext, permission, action string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 以固定静态动作调用本域单次授权，不HTTP递归
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定服务caller与平台用户权威回调；健康就绪匿名
+- 并发：只读应用容器，事务由本域用例负责
+- 幂等：以业务用例回执为准
+- 依赖：`identity.identityContext`、`identity.CheckAuthorization`
+
+## identity.operationHandlers
+
+- 级别：参考
+- 文件：`modules/identity/internal/transport/server.go`
+- 作用：仅登记真实已完成用例，路径参数由平台入口提供
+
+```go
+func (a *Application) operationHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅登记真实已完成用例，路径参数由平台入口提供
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定服务caller与平台用户权威回调；健康就绪匿名
+- 并发：只读应用容器，事务由本域用例负责
+- 幂等：以业务用例回执为准
+- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`
+
+## identity.jsonOperation
+
+- 级别：参考
+- 文件：`modules/identity/internal/transport/server.go`
+- 作用：解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传
+
+```go
+func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]) http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定服务caller与平台用户权威回调；健康就绪匿名
+- 并发：只读应用容器，事务由本域用例负责
+- 幂等：以业务用例回执为准
+- 依赖：`identity.identityContext`

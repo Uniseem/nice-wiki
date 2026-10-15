@@ -7,16 +7,22 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/identity/internal"
 	"nice-wiki/modules/identity/internal/gen"
 )
+
+type OperationContext = platform.OperationContext
+
+type operationExecutor[I any, O any] func(context.Context, identity.OperationContext, I) (O, error)
 
 const (
 	moduleName    = "identity"
@@ -32,31 +38,153 @@ const (
 
 // Application 是 identity 装配完成后的内部容器（x-internal，不序列化）。
 type Application struct {
-	config       platform.ServiceConfig
-	anchors      platform.TrustAnchors
-	runtime      platform.SiteConfigClient
-	store        *identity.Store
-	openedEpoch  platform.Identifier
-	state        atomic.Int32
-	serveStarted atomic.Bool
-	shutdownOnce sync.Once
-	shutdownErr  error
-	httpServer   *http.Server
+	config              platform.ServiceConfig
+	anchors             platform.TrustAnchors
+	runtime             platform.SiteConfigClient
+	store               *identity.Store
+	openedEpoch         platform.Identifier
+	sessionRuntime      identity.SessionRuntime
+	loginRuntime        identity.LoginRuntime
+	registrationRuntime identity.RegistrationClient
+	state               atomic.Int32
+	serveStarted        atomic.Bool
+	shutdownOnce        sync.Once
+	shutdownErr         error
+	httpServer          *http.Server
 }
 
-// NewApplication 组装 HTTP 容器并直接注册匿名健康/就绪路由；
-// openedEpoch 是本次打开业务库时观察到的运行代次，供就绪比对。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier) *Application {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, store: store, openedEpoch: openedEpoch}
-	mux := http.NewServeMux()
-	application.registerHealthRoutes(mux)
-	application.httpServer = &http.Server{
-		Addr:              config.Listen,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
-		MaxHeaderBytes:    64 << 10,
+// NewApplication 组装真实认证组并要求公共入口核对完整OpenAPI覆盖。
+// 缺其余handler明确失败；openedEpoch绑定当前打开的业务代次。
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier, sessionRuntime identity.SessionRuntime) (*Application, error) {
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, store: store,
+		openedEpoch: openedEpoch, sessionRuntime: sessionRuntime,
+		loginRuntime:        identity.LoginRuntime{Client: gen.NewTrafficGuardClient(config.Dependencies["traffic-guard"], moduleName, sessionRuntime.Key)},
+		registrationRuntime: identity.RegistrationClient{Client: gen.NewSiteConfigClient(config.Dependencies["site-config"], moduleName, sessionRuntime.Key)}}
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份HTTP规格不可读取")
 	}
-	return application
+	handlers := application.operationHandlers()
+	callers := map[string][]string{}
+	for id := range handlers {
+		if id != "health" && id != "ready" {
+			callers[id] = []string{"portal"}
+		}
+	}
+	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
+	limits := map[string]int64{}
+	for id := range handlers {
+		limits[id] = 16 << 10
+	}
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self: moduleName, Anchors: anchors, OpenedDataEpoch: openedEpoch, AllowedCallers: callers, OperationBodyLimits: limits,
+		MaintenanceOperations: map[string]bool{"checkAuthorization": true, "verifySessionCSRF": true},
+		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
+		},
+		Authorize: application.authorizeOperation,
+	}, handlers)
+	if err != nil {
+		return nil, err
+	}
+	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	return application, nil
+}
+
+// identityContext 只装配进程持有的资源；可信op由平台入口一次建立。
+func (a *Application) identityContext(ctx context.Context) context.Context {
+	ctx = identity.WithIdentityStore(ctx, a.store)
+	ctx = identity.WithSessionRuntime(ctx, a.sessionRuntime)
+	ctx = identity.WithSessionCursorKey(ctx, a.sessionRuntime.Key)
+	ctx = identity.WithLoginRuntime(ctx, a.loginRuntime)
+	return identity.WithRegistrationRuntime(ctx, a.registrationRuntime)
+}
+
+func (a *Application) authorizeOperation(ctx context.Context, op OperationContext, permission, action string) error {
+	sessionID := op.Actor.SessionID
+	decision, err := identity.CheckAuthorization(a.identityContext(ctx), op, identity.AuthorizationRequest{
+		SubjectID: op.Actor.SubjectID, SessionID: &sessionID, SiteID: op.Actor.SiteID, Permission: permission, Action: action})
+	if err != nil {
+		return err
+	}
+	if !decision.Authorized {
+		return platform.NewError(platform.CodeForbidden, false, "当前账户没有该操作权限")
+	}
+	return nil
+}
+
+// operationHandlers 只登记真实已完成用例；缺其他合同操作时公共工厂拒绝整个启动。
+func (a *Application) operationHandlers() map[string]http.Handler {
+	handlers := map[string]http.Handler{
+		"readRegistrationState":   jsonOperation(a, identity.ReadRegistrationState),
+		"registerFirstSuperadmin": jsonOperation(a, identity.RegisterFirstSuperadmin),
+		"createSession":           jsonOperation(a, identity.CreateSession),
+		"refreshSession":          jsonOperation(a, identity.RefreshSession),
+		"createAccount":           jsonOperation(a, identity.CreateAccount),
+		"readSelf":                jsonOperation(a, identity.ReadSelf),
+		"changePassword":          jsonOperation(a, identity.ChangePassword),
+		"verifySessionCSRF":       jsonOperation(a, identity.VerifySessionCSRF),
+		"checkAuthorization":      jsonOperation(a, identity.CheckAuthorization),
+		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			result, err := Health(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"ready": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			result, err := Ready(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+	}
+	handlers["readSessions"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		result, err := identity.ReadSessions(ctx, op, identity.ReadSessionsInput{Page: identity.SessionPageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}})
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+	handlers["revokeSession"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		result, err := identity.RevokeSession(ctx, op, identity.RevokeSessionInput{SessionID: r.PathValue("sessionId")})
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+	return handlers
+}
+
+// jsonOperation 只解码平台已验证的输入；内部敏感结果仅返回已限定的portal服务。
+func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		var input I
+		if r.Body != nil && r.ContentLength != 0 {
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "身份输入不可解码"))
+				return
+			}
+		}
+		result, err := execute(ctx, op, input)
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
 }
 
 // Serve 与 Shutdown 实现 platform.Application，供进程模板调用。

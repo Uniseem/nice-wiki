@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/base64"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/outbox"
 )
 
 // Password 与 types.json 的敏感口令标量对应；本域不记录其原值。
@@ -290,4 +292,154 @@ func credentialContextError(err error) error {
 	default:
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "口令计算上下文不可用")
 	}
+}
+
+// ChangePasswordInput 只包含口令与凭据CAS，主体固定取可信当前会话。
+type ChangePasswordInput struct {
+	OldPassword                string            `json:"oldPassword"`
+	NewPassword                Password          `json:"newPassword"`
+	Confirmation               Password          `json:"confirmation"`
+	ExpectedCredentialRevision platform.Revision `json:"expectedCredentialRevision"`
+}
+type ChangePasswordResult struct {
+	Account              Account       `json:"account"`
+	CurrentSessionTokens SessionTokens `json:"currentSessionTokens"`
+}
+type sensitiveOperationReceipt struct {
+	AccountID          string            `json:"accountId"`
+	SessionID          string            `json:"sessionId"`
+	CredentialRevision platform.Revision `json:"credentialRevision"`
+}
+
+// ChangePassword 原子更新凭据与当前设备，并撤销其他设备；回执只保存安全引用。
+func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswordInput) (ChangePasswordResult, error) {
+	valid, err := ValidatePasswordChange(ValidatePasswordChangeInput{OldPassword: input.OldPassword, NewPassword: input.NewPassword, Confirmation: input.Confirmation})
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if !valid.Valid {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeValidation, false, "新口令须一致且与旧口令不同")
+	}
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, op, "changePassword", input)
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	readTx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ChangePasswordResult{}, identityDBError()
+	}
+	var receipt sensitiveOperationReceipt
+	found, err := readIdentityReceipt(ctx, op, readTx, digest, keyID, &receipt)
+	if err != nil {
+		readTx.Rollback()
+		return ChangePasswordResult{}, err
+	}
+	if found {
+		readTx.Rollback()
+		return ChangePasswordResult{}, sensitiveReplayError()
+	}
+	snapshot, _, err := readActorAccount(ctx, op, readTx, "account.self", "identity:changePassword")
+	if err != nil {
+		readTx.Rollback()
+		return ChangePasswordResult{}, err
+	}
+	if snapshot.CurrentCredentialRevision != input.ExpectedCredentialRevision {
+		readTx.Rollback()
+		return ChangePasswordResult{}, platform.NewError(platform.CodeConflict, false, "凭据版本已变化")
+	}
+	var passwordHash string
+	err = readTx.QueryRowContext(ctx, `SELECT password_hash FROM credentials WHERE account_id=?`, op.Actor.SubjectID).Scan(&passwordHash)
+	readTx.Rollback()
+	if err != nil {
+		return ChangePasswordResult{}, identityDBError()
+	}
+	verified, err := VerifyPassword(VerifyPasswordInput{Password: input.OldPassword, EncodedHash: passwordHash})
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if !verified.Valid {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeUnauthenticated, false, "原口令不正确")
+	}
+	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.NewPassword})
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
+		return ChangePasswordResult{}, err
+	}
+	store.accountMu.Lock()
+	defer store.accountMu.Unlock()
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ChangePasswordResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	found, err = readIdentityReceipt(ctx, op, tx, digest, keyID, &receipt)
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if found {
+		return ChangePasswordResult{}, sensitiveReplayError()
+	}
+	snapshot, account, err := readActorAccount(ctx, op, tx, "account.self", "identity:changePassword")
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if snapshot.CurrentCredentialRevision != input.ExpectedCredentialRevision {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeConflict, false, "凭据版本已变化")
+	}
+	changed, err := tx.ExecContext(ctx, `UPDATE credentials SET password_hash=?,credential_revision=credential_revision+1 WHERE account_id=? AND credential_revision=?`, hashed.EncodedHash, account.AccountID, input.ExpectedCredentialRevision)
+	if err != nil {
+		return ChangePasswordResult{}, identityDBError()
+	}
+	if count, err := changed.RowsAffected(); err != nil || count != 1 {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeConflict, false, "凭据版本已变化")
+	}
+	account.Revision++
+	account.MustChangePassword = false
+	account.UpdatedAt = platform.Now()
+	changed, err = tx.ExecContext(ctx, `UPDATE accounts SET must_change_password=0,revision=?,updated_at=? WHERE account_id=? AND revision=?`, account.Revision, account.UpdatedAt, account.AccountID, account.Revision-1)
+	if err != nil {
+		return ChangePasswordResult{}, identityDBError()
+	}
+	if count, err := changed.RowsAffected(); err != nil || count != 1 {
+		return ChangePasswordResult{}, platform.NewError(platform.CodeConflict, false, "账户版本已变化")
+	}
+	inner := WithIdentityTransaction(ctx, tx)
+	if _, err := RevokeOtherSessions(inner, op, RevokeOtherSessionsInput{AccountID: account.AccountID, KeepSessionID: op.Actor.SessionID}); err != nil {
+		return ChangePasswordResult{}, err
+	}
+	current, err := readSessionSnapshot(ctx, tx, op.Actor.SessionID)
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	auth, err := sessionAuthContext(ctx, tx, current)
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	issued, err := IssueSessionTokens(inner, op, IssueSessionTokensInput{Session: current.Session, Auth: auth})
+	if err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if _, err := PublishIdentityEvent(inner, op, PublishIdentityEventInput{EventID: platform.NewIdentifier(), Event: IdentityChanged{
+		AccountID: account.AccountID, SiteID: account.SiteID, PermissionRevision: account.PermissionRevision,
+		CredentialRevision: input.ExpectedCredentialRevision + 1, Reason: "password", OccurredAt: account.UpdatedAt}}); err != nil {
+		return ChangePasswordResult{}, err
+	}
+	receipt = sensitiveOperationReceipt{AccountID: account.AccountID, SessionID: op.Actor.SessionID, CredentialRevision: input.ExpectedCredentialRevision + 1}
+	if err := saveIdentityReceipt(ctx, op, tx, digest, keyID, receipt); err != nil {
+		return ChangePasswordResult{}, err
+	}
+	if err := commitAccountWrite(ctx, op, store, tx); err != nil {
+		return ChangePasswordResult{}, err
+	}
+	return ChangePasswordResult{Account: account, CurrentSessionTokens: issued.Tokens}, nil
+}
+
+func sensitiveReplayError() error {
+	return platform.NewError(platform.CodeConflict, false, "该操作已提交；敏感会话响应不可重放，请重新登录")
 }

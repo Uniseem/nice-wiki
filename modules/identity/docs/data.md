@@ -126,3 +126,10 @@
 `0002_session_revocation.sql` 仅为 `operation_receipts` 追加可空 `result_json` 和自身会话分页索引，不改写旧会话。自有账户会话撤销事务保存完整计数及其哈希；幂等重放返回原计数，不再次撤销首次提交后新建的会话。旧回执没有完整结果时拒绝猜测恢复结果。嵌入账户状态迁移事务时，回执与提交由外层用例统一负责，身份事件函数只追加同事务 outbox。
 
 自身会话列表按 `issued_at/session_id` 升序键集分页，签名游标绑定当前 `siteId/accountId/dataEpoch` 和 `identity.sessions` 作用域；会话摘要、口令、令牌及网络地址均不进入列表。家族、令牌摘要、认证代次及签发协议随下一工作包确认，未在本迁移预埋。
+
+
+本轮账号事务落地：active的operation_receipts追加digest_key_id；含口令输入只持久平台按私钥seed域分离生成的HMAC，不存普通可离线猜测SHA。keyId改变而旧key不可用时同op失败关闭，不能当新请求。登录、注册、改密安全回执仅保存account/session/credential引用，raw cookie只存在首次成功响应。
+
+独立control/control.db的schema1保存bootstrap_claim不可逆决定：原operation/caller/actor、HMAC/keyId/dataEpoch、固定accountId/siteId、claimedAt以及reserved/committed。控制库不随active恢复替换；只允许相同原op及原epoch续未决，恢复空active不重开注册。active提交和control提交不宣称跨库原子，启动按安全回执补记已提交控制决定。
+
+账号索引是active账户的派生运维文件；账号业务互斥覆盖active提交至索引补齐，索引自身锁覆盖水位读取与安装，control journal的identity.account-index决定在启动按active权威补齐。未知决定或控制索引领先活动权威仍隔离，不静默回退覆盖。
