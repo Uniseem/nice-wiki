@@ -2,11 +2,11 @@
 
 ## 统一复核追加修复（2026-10-15，VPS通过、待最终集成）
 
-- 原源码`5eabae7a7e9d`及台账`1a16fc73130c`已交付，根复核发现两项真实缺口后追加本包修复；仅本域，未push。
+- 追加修复源码`92f4fe029c58baeace5657b9c7762dc9cb5ccd19`，台账回填随后单独提交。原源码`5eabae7a7e9d`及台账`1a16fc73130c`已交付，根复核发现两项真实缺口后追加本包修复；仅本域，未push。
 - 管理权限按私有job的owner/type/epoch读取，匹配由各域jobTypes生成的managementPermission；job.manage是入口粗能力，终点请求具体业务功能。读取Store/客户端引用后释放锁再做identity网络请求；Read/Cancel重新取当前runtime并在事务核对已授权任务owner/type/epoch。
 - 取消标志以持久cancel_requested为准，Heartbeat不再仅从state推导；Start/Claim/Requeue拒绝已取消意图的任务。Fail在取消请求后报告CANCELLED才确认安全cancelled，其他错误包括可重试依赖/超时均先orphan、保留付费引用并移除lease，等待owner安全确认，不能清除取消或重新执行。
 - Fail主动交还当前lease进入orphan时保留当前fencing_counter供原操作只读回执，旧worker因lease已移除及非活动状态无法通过CheckLease；过期回收仍按原合同递增fence。历史queued/retry-wait带取消标记由回收事务隔离。
-- 未新增文件、迁移或依赖。隔离VPS make docs/gen成功，14模块make build（只读依赖build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）；managementPermission目录、格式和函数文档已回写。源码提交后回填SHA记implemented，verified待根最终集成。未本机编译/格式/测试，未新增测试或临时验证。
+- 未新增文件、迁移或依赖。隔离VPS make docs/gen成功，14模块make build（只读依赖build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）；managementPermission目录、格式和函数文档已回写。本次源码SHA已回填，交付函数与完整文件记implemented，scheduler因剩余TickSchedules保持in_progress，verified待根最终集成。未本机编译/格式/测试，未新增测试或临时验证。
 
 
 ## 本包事实（R1-03终局与租约恢复，2026-10-15）
