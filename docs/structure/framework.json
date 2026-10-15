@@ -3452,6 +3452,11 @@
       "path": "modules/jobs/internal/http_events.go",
       "kind": "source",
       "purpose": "已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0006.md",
+      "kind": "documentation",
+      "purpose": "2026-10-15两轮持续实施交付、复核、普通推送及停止范围记录"
     }
   ]
 }
