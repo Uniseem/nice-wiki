@@ -462,21 +462,21 @@
     },
     {
       "path": "modules/media/migrations/0001_domain.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "978e0cee659dc342650193c628710ff75115add5",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：GOFLAGS=-mod=readonly go build ./...、go vet ./... 通过，gofmt -l 为空；VPS联网重新tidy与go.sum一致；make docs无漂移、make gen可重复、make check通过（843文件/905函数登记一致）"
       },
       "blocker": null
     },
     {
       "path": "modules/media/migrations/migrations.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "978e0cee659dc342650193c628710ff75115add5",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：GOFLAGS=-mod=readonly go build ./...、go vet ./... 通过，gofmt -l 为空；VPS联网重新tidy与go.sum一致；make docs无漂移、make gen可重复、make check通过（843文件/905函数登记一致）"
       },
       "blocker": null
     }
@@ -1068,11 +1068,11 @@
     {
       "id": "media.All",
       "path": "modules/media/migrations/migrations.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "978e0cee659dc342650193c628710ff75115add5",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：GOFLAGS=-mod=readonly go build ./...、go vet ./... 通过，gofmt -l 为空；VPS联网重新tidy与go.sum一致；make docs无漂移、make gen可重复、make check通过（843文件/905函数登记一致）"
       },
       "blocker": null
     }

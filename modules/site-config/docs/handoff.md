@@ -9,7 +9,7 @@
 - 公告恢复时，被后续修订取代但确实提交过的 PREPARED 不再计为孤儿；可选时间戳为零值时按完整性错误拒绝。修正 go.sum 中抄错的校验和。
 
 - 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
-- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本模块本次无新增登记文件或函数。
 - 遗留：已提交恢复后平台对“running 阶段仍残留 switched 日志”的处理需在恢复工作包核对。
 
 ## 本次事实（R1-02 语言标签纯规则切片，2026-10-15）

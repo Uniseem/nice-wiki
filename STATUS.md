@@ -24,7 +24,7 @@
 
 - 2026-10-15两轮并行交付已合并：identity账号/注册/权限/恢复切片，site-config语言标签与运行状态持久化，jobs任务提交，content草稿提交事务，media上传与blob恢复，traffic-guard策略存储，localization/memory/model-gateway私有持久化，knowledge文本规范化，qa问题规范化，以及portal路由/代理/维护门禁。analytics完成契约审计并如实记录阻塞；各域未完成的handler、事件/任务循环、模型调用和业务验收仍按台账标记。
 - 2026-10-15集成复核修复（本会话，main工作区）：在本地Go工具链与隔离VPS首次复核云端切片。修复构建层问题：11个模块go.mod/go.sum不完整，jobs/site-config的go.sum校验和抄错，content/model-gateway/media/portal/site-config有编译错误，vet报非常量格式串，34个文件未gofmt。修复逻辑缺陷：9域运行状态响应未解开`state`外层导致无法启动；portal委托期限超10秒致登录请求全失败，同源判断、CSRF自比、转发头透传可信头，端口与ADR0005错位；content恢复误隔离历史提交；memory启动失败后永久锁死；media改为ADR0005私有SQLite，并修复COMMITTED先于元数据落盘；site-config换回永远无法完成；identity账号索引水位冲突；model-gateway/memory自建outbox/inbox绕开平台。jobs任务类型与identity权限映射改由make gen生成Go表；jobs、traffic-guard、localization、memory、model-gateway、media的迁移改为go:embed唯一来源；jobs `dedupeKey`合同收紧为非空。台账中不存在的变基前SHA已映射为main上的实际提交，qa baseCommit补全。
-- 当前台账统计为843文件、905函数：已实现或验证126个（26个verified），in_progress 16个（含本次新增迁移函数，待修复提交后回填SHA），blocked 14个，planned 749个。本地darwin/arm64 go1.27.1与隔离VPS go1.25.5：14个Go模块`-mod=readonly`下build/vet通过、gofmt为空，make docs无漂移、make gen可重复、make check通过（372操作、2161类型）。未新增测试、未运行业务进程、联调、镜像或部署；检查不证明业务行为正确。
+- 当前台账统计为843文件、905函数：已实现或验证133个（33个verified），in_progress 9个，blocked 14个，planned 749个。本次修复提交为`978e0cee659dc342650193c628710ff75115add5`，新增迁移包/文件与7个函数已回填该SHA并转verified，新增生成表按约定记planned。本地darwin/arm64 go1.27.1与隔离VPS go1.25.5：14个Go模块`-mod=readonly`下build/vet通过、gofmt为空，make docs无漂移、make gen可重复、make check通过（372操作、2161类型）。未新增测试、未运行业务进程、联调、镜像或部署；检查不证明业务行为正确。
 - 已推送历史无法改写的记录问题：云端82个提交中只有3个带AI合著者署名；各模块handoff中的旧短SHA仍是变基前编号，以progress.json为准。
 
-下一步：经用户确认后提交本次修复，随后回填新增文件/函数的提交SHA并按证据转verified；再按各模块handoff的下一项与依赖顺序继续实现。push仍需当次授权；不得把结构检查当作业务验收，也不部署。
+下一步：本次修复与台账已在本地提交、未推送（push需当次授权）；后续按各模块handoff的下一项与依赖顺序继续实现。push仍需当次授权；不得把结构检查当作业务验收，也不部署。

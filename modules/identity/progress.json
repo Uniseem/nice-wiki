@@ -312,7 +312,7 @@
     },
     {
       "path": "modules/identity/internal/gen/permission_groups.gen.go",
-      "state": "in_progress",
+      "state": "planned",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
