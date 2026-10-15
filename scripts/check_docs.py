@@ -89,6 +89,8 @@ def scan_privacy(label, text):
 
 def check_links(path):
     text = path.read_text(encoding='utf-8')
+    text = re.sub(r'(?ms)^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?^[ \t]*\1[ \t]*$', '', text)
+    text = re.sub(r'(`+)[^`]*?\1', '', text)
     for target in re.findall(r'\[[^\]]*\]\(([^)]+)\)', text):
         target = target.split(' "')[0].strip('<>')
         if urlsplit(target).scheme or target.startswith('#'):

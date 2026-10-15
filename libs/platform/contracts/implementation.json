@@ -1178,13 +1178,24 @@
             "按序号以30秒行租约领取已提交pending行",
             "逐条调用jobs:publishEvent，确认后标relayed",
             "失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined",
-            "屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行"
+            "屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行",
+            "Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名"
           ],
           "errors": [
             {
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "jobs不可用",
               "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护无有效control写窗口、窗口截止或恢复阶段禁止写入",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "必需运行权威/写窗口或循环参数未装配",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1198,7 +1209,8 @@
           "concurrency": "行级租约防多实例重复",
           "idempotency": "eventId固定",
           "dependencies": [
-            "jobs:publishEvent"
+            "jobs:publishEvent",
+            "platform.relayWriteContext"
           ],
           "resources": [],
           "contract": "binding"
@@ -1318,6 +1330,97 @@
           "dependencies": [
             "jobs:publishEvent"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.relayWriteContext",
+          "name": "relayWriteContext",
+          "signature": "func relayWriteContext(ctx context.Context, config RelayConfig) (context.Context, RuntimeView, CancelFunc, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "背景生命周期取消",
+              "constraints": [
+                "可信装配"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "RelayConfig",
+              "description": "受信运行权威和写窗口",
+              "constraints": [
+                "可信装配"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "受IO和屏障截止约束",
+              "constraints": [
+                "失败无结果"
+              ]
+            },
+            {
+              "name": "view",
+              "type": "RuntimeView",
+              "description": "最新权威",
+              "constraints": [
+                "失败无结果"
+              ]
+            },
+            {
+              "name": "cancel",
+              "type": "CancelFunc",
+              "description": "完成后释放",
+              "constraints": [
+                "失败无结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败无写权限",
+              "constraints": [
+                "失败无结果"
+              ]
+            }
+          ],
+          "purpose": "relayWriteContext公共边界",
+          "steps": [
+            "每次IO前读取runtime和control写窗口；未知、不允许恢复阶段或维护无窗口时拒写",
+            "IO最长30秒且服从父ctx和屏障更早截止，更新本次控制请求deadline而不更改既有费用根"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护无有效control写窗口、窗口截止或恢复阶段禁止写入",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -1926,6 +2029,76 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.ValidatePrivatePath",
+          "name": "ValidatePrivatePath",
+          "signature": "func ValidatePrivatePath(path, kind string, allowMissing bool) error",
+          "inputs": [
+            {
+              "name": "path",
+              "type": "string",
+              "description": "绝对私有权威路径",
+              "constraints": [
+                "可信装配"
+              ]
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "directory或regular-file",
+              "constraints": [
+                "可信装配"
+              ]
+            },
+            {
+              "name": "allowMissing",
+              "type": "bool",
+              "description": "仅首次创建可缺失尾部",
+              "constraints": [
+                "可信装配"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "失败无结果"
+              ]
+            }
+          ],
+          "purpose": "ValidatePrivatePath公共边界",
+          "steps": [
+            "逐段Lstat拒链接与非目录，正规文件拒特殊文件及多硬链接；拒相对跳转",
+            "仅allowMissing允许首次创建尚不存在路径；调用方在打开前和创建后核对，不改变现有路径语义"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2335,6 +2508,11 @@
             {
               "code": "INTEGRITY_ERROR",
               "when": "持久规格或载荷损坏",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "客户端断开或写截止不可用",
               "retryable": false
             }
           ],

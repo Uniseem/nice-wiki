@@ -281,8 +281,9 @@ const (
 type RelayConfig struct {
 	BatchLimit int `json:"batchLimit"`
 	PollMillis int `json:"pollMillis"`
-	// Runtime 读取当前运行状态，用于屏障与换代判断；可为nil。
-	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
+	// Runtime 与 WriteWindow均必需；未知权威或关闭安全窗口时停止active写入。
+	Runtime     func(ctx context.Context) (RuntimeView, error) `json:"-"`
+	WriteWindow func(context.Context) (time.Time, error)       `json:"-"`
 }
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。

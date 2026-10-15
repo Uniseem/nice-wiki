@@ -72,12 +72,15 @@ func (c *producerClient) do(ctx context.Context, method, rawPath string, body an
 }
 
 // sse 打开text/event-stream连接，返回帧读取器。
-func (c *producerClient) sse(ctx context.Context, method, rawPath string) (*sseReader, error) {
+func (c *producerClient) sse(ctx context.Context, method, rawPath, lastEventID string) (*sseReader, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.base+rawPath, nil)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeValidation, false, "请求构造失败")
 	}
 	req.Header.Set("Accept", "text/event-stream")
+	if lastEventID != "" {
+		req.Header.Set("Last-Event-ID", lastEventID)
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "生产方服务不可达")
@@ -90,8 +93,13 @@ func (c *producerClient) sse(ctx context.Context, method, rawPath string) (*sseR
 		}
 		return nil, problemToError(raw)
 	}
-	return &sseReader{scanner: bufio.NewScanner(resp.Body), resp: resp}, nil
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 64<<10), maxSSEFrameBytes+1024)
+	return &sseReader{scanner: scanner, resp: resp}, nil
 }
+
+// SSE帧总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
+const maxSSEFrameBytes = 16 << 20
 
 // sseReader 按SSE帧逐条读取；data行原文由适配层解析。
 type sseReader struct {
@@ -123,7 +131,11 @@ func (s *sseReader) next(ctx context.Context) (string, []byte, error) {
 		case strings.HasPrefix(line, "id:"):
 			id = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
 		case strings.HasPrefix(line, "data:"):
-			data = append(data, []byte(strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " "))...)
+			value := strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " ")
+			if len(data)+len(value) > maxSSEFrameBytes {
+				return "", nil, platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限")
+			}
+			data = append(data, []byte(value)...)
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
@@ -195,8 +207,19 @@ func (c *ContentClient) ReadPublicTree(ctx context.Context) (json.RawMessage, er
 }
 
 // ReadPublishedRevision GET /v1/documents/{documentId}/published（content:readPublishedRevision）。
-func (c *ContentClient) ReadPublishedRevision(ctx context.Context, documentId string) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/documents/"+url.PathEscape(documentId)+"/published", nil, "")
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *ContentClient) ReadPublishedRevision(ctx context.Context, documentId string, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/documents/" + url.PathEscape(documentId) + "/published"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // ValidatePublications POST /v1/publications:validate（content:validatePublications）。
@@ -240,8 +263,19 @@ func (c *JobsClient) CancelJob(ctx context.Context, jobId string, body any, idem
 }
 
 // CheckLease GET /v1/jobs/{jobId}/lease（jobs:checkLease）。
-func (c *JobsClient) CheckLease(ctx context.Context, jobId string) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/jobs/"+url.PathEscape(jobId)+"/lease", nil, "")
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *JobsClient) CheckLease(ctx context.Context, jobId string, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/jobs/" + url.PathEscape(jobId) + "/lease"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // ClaimJob POST /v1/jobs:claim（jobs:claimJob）。
@@ -301,8 +335,19 @@ func (c *JobsClient) StartJob(ctx context.Context, jobId string, body any, idemp
 }
 
 // SubscribeEvents GET /v1/events:subscribe（jobs:subscribeEvents）。
-func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string) (platform.EventStream, error) {
-	reader, err := c.sse(ctx, http.MethodGet, "/v1/events:subscribe"+"?lastEventId="+url.QueryEscape(lastEventId))
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, queries ...url.Values) (platform.EventStream, error) {
+	requestPath := "/v1/events:subscribe"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
 	if err != nil {
 		return nil, err
 	}
@@ -317,8 +362,19 @@ func NewMediaClient(baseURL, issuer string, key platform.SigningKey) *MediaClien
 }
 
 // ReadAsset GET /v1/assets/{assetId}（media:readAsset）。
-func (c *MediaClient) ReadAsset(ctx context.Context, assetId string) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/assets/"+url.PathEscape(assetId)+"", nil, "")
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *MediaClient) ReadAsset(ctx context.Context, assetId string, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/assets/" + url.PathEscape(assetId) + ""
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // ReadVideoMetadata POST /v1/videos/metadata（media:readVideoMetadata）。
@@ -361,13 +417,45 @@ func (c *ModelGatewayClient) QuoteCost(ctx context.Context, body any) (json.RawM
 }
 
 // ReadModels GET /v1/models（model-gateway:readModels）。
-func (c *ModelGatewayClient) ReadModels(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/models", nil, "")
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *ModelGatewayClient) ReadModels(ctx context.Context, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/models"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // ResumeInference GET /v1/inferences/{invocationId}/events（model-gateway:resumeInference）。
-func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId string, lastEventId string) (platform.ModelEventStream, error) {
-	reader, err := c.sse(ctx, http.MethodGet, "/v1/inferences/"+url.PathEscape(invocationId)+"/events"+"?lastEventId="+url.QueryEscape(lastEventId))
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId string, lastEventId string, queries ...url.Values) (platform.ModelEventStream, error) {
+	requestPath := "/v1/inferences/" + url.PathEscape(invocationId) + "/events"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if query.Get("afterSequence") == "" {
+		if lastEventId == "" {
+			query.Set("afterSequence", "0")
+		} else {
+			query.Set("afterSequence", lastEventId)
+		}
+	}
+	if query.Get("limit") == "" {
+		query.Set("limit", "20")
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	reader, err := c.sse(ctx, http.MethodGet, requestPath, "")
 	if err != nil {
 		return nil, err
 	}

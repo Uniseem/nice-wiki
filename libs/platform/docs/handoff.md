@@ -1,5 +1,14 @@
 # platform 交接（R1-00）
 
+## 第二轮收尾复核（2026-10-15）
+
+- 最终合成快照VPS docs/gen、14模块readonly build/vet/gofmt和完整make check通过，统计855文件/1012函数/374操作/2211类型。
+- 补RelayConfig必需WriteWindow：未知权威或安全窗口关闭不写active outbox，逐条网络调用后重新核窗口再确认/重试；保留父ctx更早截止与费用根。
+- 新增ValidatePrivatePath供身份control权威启动定位，拒目录链链接、特殊文件与硬链接；仅首次创建允许缺失尾部。
+- 客户端查询参数、SSE Last-Event-ID/afterSequence/default limit按OpenAPI生成；SSE帧预算16MiB，不沿用64KiB scanner默认导致合法事件截断。Markdown链接检查忽略代码围栏/inline code伪链接，隐私扫描仍查全文。
+- 用户要求第二轮结束push并清空目标：仅收尾，不开始第三轮；guard实际登录保护、portal peer/cookie、owner恢复和完整handler等仍按未完成交接。
+
+
 ## 持续实施第二轮进行中
 
 - 新增PrivateOperationDigest、NewPayloadValidator、ServeEventStream、NormalizePublicURL、NewServiceHandler和窄EventPublisher适配；事件schema/生产方/订阅/具体权限目录由gen生成。

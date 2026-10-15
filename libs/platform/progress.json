@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "2de962ea5422367e5257336b00fba41fe760c435c885c71396a5d2d1432305f6",
+  "contractSha256": "0b794243ceabe99733ce0c77f5ca45f216625b0640e868dfb223b5899659b95a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第二轮",
   "branch": "codex/continuous-r1-cycle02",
@@ -608,6 +608,28 @@
         "evidence": null
       },
       "blocker": "第二轮公共机制等待VPS"
+    },
+    {
+      "id": "platform.relayWriteContext",
+      "path": "libs/platform/outbox/relay.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮统一复核报告的路径/屏障边界，等待VPS"
+    },
+    {
+      "id": "platform.ValidatePrivatePath",
+      "path": "libs/platform/lifecycle/config.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮统一复核报告的路径/屏障边界，等待VPS"
     }
   ],
   "rule": "公共机制本轮已实现并通过VPS现阶段检查；各调用服务的完整HTTP/后台装配与行为验收仍待后续。"

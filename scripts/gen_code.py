@@ -103,12 +103,13 @@ func (c *producerClient) do(ctx context.Context, method, rawPath string, body an
 }
 
 // sse 打开text/event-stream连接，返回帧读取器。
-func (c *producerClient) sse(ctx context.Context, method, rawPath string) (*sseReader, error) {
+func (c *producerClient) sse(ctx context.Context, method, rawPath, lastEventID string) (*sseReader, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.base+rawPath, nil)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeValidation, false, "请求构造失败")
 	}
 	req.Header.Set("Accept", "text/event-stream")
+	if lastEventID != "" { req.Header.Set("Last-Event-ID", lastEventID) }
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "生产方服务不可达")
@@ -121,8 +122,13 @@ func (c *producerClient) sse(ctx context.Context, method, rawPath string) (*sseR
 		}
 		return nil, problemToError(raw)
 	}
-	return &sseReader{scanner: bufio.NewScanner(resp.Body), resp: resp}, nil
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 64<<10), maxSSEFrameBytes+1024)
+	return &sseReader{scanner: scanner, resp: resp}, nil
 }
+
+// SSE帧总界与默认内部HTTP载荷预算一致，不能被多data行绕过。
+const maxSSEFrameBytes = 16 << 20
 
 // sseReader 按SSE帧逐条读取；data行原文由适配层解析。
 type sseReader struct {
@@ -154,7 +160,9 @@ func (s *sseReader) next(ctx context.Context) (string, []byte, error) {
 		case strings.HasPrefix(line, "id:"):
 			id = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
 		case strings.HasPrefix(line, "data:"):
-			data = append(data, []byte(strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " "))...)
+			value := strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " ")
+			if len(data)+len(value) > maxSSEFrameBytes { return "", nil, platform.NewError(platform.CodeBudgetExceeded, false, "事件帧超过载荷上限") }
+			data = append(data, []byte(value)...)
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
@@ -421,12 +429,14 @@ SSE_RETURNS = {"envelope": "(platform.EventStream, error)", "model": "(platform.
 
 
 def render_operation(struct, producer, oid, method, path, op):
-    """渲染一个客户端方法。"""
+    """渲染客户端方法；查询和SSE游标按唯一OpenAPI参数传递。"""
     params, idempotency = op_signature_parts(op)
     sse = SSE_KIND.get(oid)
     if sse and sse not in SSE_RETURNS:
         raise SystemExit(f"未知SSE操作 {oid}")
     has_body = method in ("POST", "PUT", "PATCH")
+    queries = [p for p in op.get("parameters", []) if p.get("in") == "query"]
+    last_header = any(p.get("in") == "header" and p.get("name", "").lower() == "last-event-id" for p in op.get("parameters", []))
     name = oid[0].upper() + oid[1:]
     args = ["ctx context.Context"] + [f"{param} string" for param in params]
     if sse:
@@ -435,27 +445,40 @@ def render_operation(struct, producer, oid, method, path, op):
         args.append("body any")
     if idempotency:
         args.append("idempotencyKey string")
+    if queries:
+        args.append("queries ...url.Values")
     returns = SSE_RETURNS[sse] if sse else "(json.RawMessage, error)"
     lines = [f"// {name} {method} {path}（{producer}:{oid}）。"]
+    if queries:
+        lines.append("// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。")
     lines.append(f"func (c *{struct}Client) {name}(" + ", ".join(args) + f") {returns} {{")
     expr = render_path_expression(path)
+    if queries:
+        lines.append(f"\trequestPath := {expr}")
+        lines.append("\tquery := url.Values{}")
+        lines.append("\tfor _, values := range queries { for key, entries := range values { query[key] = append(query[key], entries...) } }")
+        if sse and any(p.get("name") == "afterSequence" for p in queries):
+            lines.append('\tif query.Get("afterSequence") == "" { if lastEventId == "" { query.Set("afterSequence", "0") } else { query.Set("afterSequence", lastEventId) } }')
+        elif sse and any(p.get("name") == "lastEventId" for p in queries):
+            lines.append('\tif query.Get("lastEventId") == "" && lastEventId != "" { query.Set("lastEventId", lastEventId) }')
+        for p in queries:
+            default = p.get("schema", {}).get("default")
+            if default is not None:
+                lines.append(f'\tif query.Get({go_string(p["name"])}) == "" {{ query.Set({go_string(p["name"])}, {go_string(str(default))}) }}')
+        lines.append('\tif encoded := query.Encode(); encoded != "" { requestPath += "?" + encoded }')
+        expr = "requestPath"
     if sse:
-        query = ""
-        if "lastEventId string" in args:
-            query = ' + "?lastEventId=" + url.QueryEscape(lastEventId)'
-        lines.append(f"\treader, err := c.sse(ctx, http.Method{method.title()}, {expr}{query})")
-        lines.append("\tif err != nil {")
-        lines.append("\t\treturn nil, err")
-        lines.append("\t}")
+        header = "lastEventId" if last_header else '""'
+        lines.append(f"\treader, err := c.sse(ctx, http.Method{method.title()}, {expr}, {header})")
+        lines.append("\tif err != nil { return nil, err }")
         adapter = "eventEnvelopeStream{r: reader}" if sse == "envelope" else "modelEventStream{r: reader}"
         lines.append(f"\treturn {adapter}, nil")
     else:
         if idempotency:
-            lines.append("\tif idempotencyKey == \"\" {")
-            lines.append("\t\treturn nil, platform.NewError(platform.CodeValidation, false, \"缺少幂等键\")")
-            lines.append("\t}")
+            lines.append('\tif idempotencyKey == "" { return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键") }')
         body_arg = "body" if has_body else "nil"
-        lines.append(f"\treturn c.do(ctx, http.Method{method.title()}, {expr}, {body_arg}, " + ("idempotencyKey)" if idempotency else "\"\")"))
+        key = "idempotencyKey" if idempotency else '""'
+        lines.append(f"\treturn c.do(ctx, http.Method{method.title()}, {expr}, {body_arg}, {key})")
     lines.append("}")
     return "\n".join(lines)
 

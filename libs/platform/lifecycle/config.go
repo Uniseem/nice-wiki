@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"golang.org/x/net/idna"
 
@@ -127,6 +128,56 @@ func CanonicalPublicOrigin(publicBaseURL string) (string, error) {
 		return "", platform.NewError(platform.CodeValidation, false, "可信公开地址缺少Origin")
 	}
 	return u.Scheme + "://" + u.Host, nil
+}
+
+// ValidatePrivatePath 在打开私有权威前拒绝目录链链接、特殊文件及硬链接文件。
+// allowMissing只允许首次创建时尚不存在的尾部，不改变现有文件的类型要求。
+func ValidatePrivatePath(path, kind string, allowMissing bool) error {
+	if !filepath.IsAbs(path) || (kind != "directory" && kind != "regular-file") {
+		return platform.NewError(platform.CodeValidation, false, "私有路径声明不合法")
+	}
+	for _, part := range strings.Split(path, string(filepath.Separator)) {
+		if part == "." || part == ".." {
+			return platform.NewError(platform.CodeIntegrityError, false, "私有路径含相对跳转")
+		}
+	}
+	clean := filepath.Clean(path)
+	volume := filepath.VolumeName(clean)
+	current := volume + string(filepath.Separator)
+	if clean == current && kind == "regular-file" {
+		return platform.NewError(platform.CodeIntegrityError, false, "根目录不能作为私有权威文件")
+	}
+	parts := strings.Split(strings.TrimPrefix(clean, current), string(filepath.Separator))
+	if clean == current {
+		parts = nil
+	}
+	for index, part := range parts {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if os.IsNotExist(err) && allowMissing {
+			return nil
+		}
+		if err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "私有权威路径不可读取")
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return platform.NewError(platform.CodeIntegrityError, false, "私有权威路径包含符号链接")
+		}
+		leaf := index == len(parts)-1
+		if !leaf || kind == "directory" {
+			if !info.IsDir() {
+				return platform.NewError(platform.CodeIntegrityError, false, "私有目录链包含非目录")
+			}
+		} else {
+			if !info.Mode().IsRegular() {
+				return platform.NewError(platform.CodeIntegrityError, false, "私有权威不是正规文件")
+			}
+			if stat, ok := info.Sys().(*syscall.Stat_t); ok && stat.Nlink != 1 {
+				return platform.NewError(platform.CodeIntegrityError, false, "私有权威文件存在硬链接")
+			}
+		}
+	}
+	return nil
 }
 
 type flagSet struct {

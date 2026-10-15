@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 37 个函数：约束 19 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 39 个函数：约束 19 个，参考 20 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -652,6 +652,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 2. 逐条调用jobs:publishEvent，确认后标relayed
 3. 失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined
 4. 屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行
+5. Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名
 
 **错误**
 
@@ -661,7 +662,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：行级租约防多实例重复
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`
+- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`
 
 ## platform.NewEventPublisher
 
@@ -739,6 +740,49 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event EventEnvelope) e
 - 并发：无共享可写业务状态，可并发
 - 幂等：纯转换或按调用上下文执行，不改变业务费用根
 - 依赖：`jobs:publishEvent`
+
+## platform.relayWriteContext
+
+- 级别：参考
+- 文件：`libs/platform/outbox/relay.go`
+- 作用：relayWriteContext公共边界
+
+```go
+func relayWriteContext(ctx context.Context, config RelayConfig) (context.Context, RuntimeView, CancelFunc, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 背景生命周期取消 | 可信装配 |
+| `config` | `RelayConfig` | 受信运行权威和写窗口 | 可信装配 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 受IO和屏障截止约束 | 失败无结果 |
+| `view` | `RuntimeView` | 最新权威 | 失败无结果 |
+| `cancel` | `CancelFunc` | 完成后释放 | 失败无结果 |
+| `error` | `error` | 失败无写权限 | 失败无结果 |
+
+**步骤**
+
+1. 每次IO前读取runtime和control写窗口；未知、不允许恢复阶段或维护无窗口时拒写
+2. IO最长30秒且服从父ctx和屏障更早截止，更新本次控制请求deadline而不更改既有费用根
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
 
 ## platform.ClaimInbox
 
@@ -1060,6 +1104,47 @@ func CanonicalPublicOrigin(publicBaseURL string) (string, error)
 **步骤**
 
 1. 从受信规范URL去basePath提取Origin，不从Host请求头猜测，不重复引入另一套IDNA策略
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
+## platform.ValidatePrivatePath
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/config.go`
+- 作用：ValidatePrivatePath公共边界
+
+```go
+func ValidatePrivatePath(path, kind string, allowMissing bool) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `path` | `string` | 绝对私有权威路径 | 可信装配 |
+| `kind` | `string` | directory或regular-file | 可信装配 |
+| `allowMissing` | `bool` | 仅首次创建可缺失尾部 | 可信装配 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全失败 | 失败无结果 |
+
+**步骤**
+
+1. 逐段Lstat拒链接与非目录，正规文件拒特殊文件及多硬链接；拒相对跳转
+2. 仅allowMissing允许首次创建尚不存在路径；调用方在打开前和创建后核对，不改变现有路径语义
 
 **错误**
 

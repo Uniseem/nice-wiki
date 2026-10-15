@@ -12,7 +12,7 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 | `walk_nodes(value)` | JSON 兼容 dict/list/标量；返回 dict 节点迭代器 | 递归对象值和数组元素，只 yield 对象节点 | 无文件/网络副作用 |
 | `check_ref(base, target)` | base 为引用方 JSON 路径；target 为 `$ref` 字符串；返回 None | 分离文件/JSON Pointer→只匹配已登记 `$id` 或仓库内文件→解码 `~0/~1`→确认节点存在 | 禁止联网取远程 schema；错误加入 ISSUES |
 | `scan_privacy(label, text)` | 相对路径/用途标签与 UTF-8 文本；返回 None | 检查非代用邮箱、本机用户目录、常见令牌/私钥、非文档 IPv4；不记录命中值 | 仅追加规则问题；模式扫描不能代替人工隐私复核 |
-| `check_links(path)` | Markdown 路径；返回 None | 提取 Markdown 文件链接→忽略外部 URL/锚点→解码路径→确认仓库内目标存在 | 只读文件；不访问外部 URL，也不验证锚点标题 |
+| `check_links(path)` | Markdown 路径；返回 None | 先忽略代码围栏/行内代码中的伪链接→提取 Markdown 文件链接→忽略外部 URL/锚点→解码路径→确认仓库内目标存在 | 只读文件；不访问外部 URL，也不验证锚点标题 |
 | `check_modules(modules, permissions, codes, shared=())` | 已解析服务模块数组、权限列表、错误码列表与共享组件数组；返回服务/共享组件/文件/函数/操作/类型计数 dict | 确认每域资料齐全→登记文件/函数→检查函数字段、ID“模块slug.函数名”、合同级别、resources与签名约定（Go操作函数以ctx context.Context, op OperationContext开头，浏览器函数不收服务端上下文）→核对类型、错误、HTTP处理器为binding/权限/参数→每条依赖必须解析为本域函数ID、共享库函数ID或存在的“模块:operationId”；共享组件只要求README、合同、台账与生成文档，不校验HTTP与签名约定 | 只读合同；问题累积到 ISSUES；数量不等于功能验收 |
 | `check_identity()` | 无参数；返回 None | 读取当前 Git 用户名/邮箱→确认 GitHub 代用邮箱→同隐私扫描 | 启动只读 `git config --get` 子进程；未配置时记录失败，不修改配置 |
 | `check_events(modules)` | 模块清单；返回 None | 收集唯一生产方→核对字段/交付语义→消费者必须引用同名同版唯一生产方载荷schema→consume条目handler必须是本域binding函数→有消费事件的域须有同时调用jobs订阅与确认的循环→生产事件的域（jobs除外）须有调用jobs:publishEvent的转发函数→调用publishEvent的域须登记生产事件 | 只读合同，错误追加 ISSUES |
@@ -46,3 +46,5 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 当前检查不证明 Go/TypeScript 可编译，不覆盖业务行为、schema 全规范合法性、供应方协议、部署可用性或竞态；这些必须在对应实施与验收阶段落实。
 
 任务目录与权限映射由gen_code.py的gen_jobs_catalog/gen_go_registries从各域jobTypes.managementPermission及根permission-groups.json生成，禁止各域手写第二份映射。上述设计校验只检查目录一致性，不验证运行时授权行为。
+
+客户端生成按OpenAPI声明转发查询参数（原始客户端可用可选url.Values），SSE的Last-Event-ID header与afterSequence query分别按规格生成，不猜测统一lastEventId查询参数；默认分页上限来自schema固定default。

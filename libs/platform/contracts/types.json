@@ -357,12 +357,18 @@
         },
         "runtime": {
           "x-internal": true,
-          "description": "Go函数，不序列化；读取当前RuntimeView，用于屏障与换代判断"
+          "description": "必需当前RuntimeView回调；未知不得按running处理"
+        },
+        "writeWindow": {
+          "x-internal": true,
+          "description": "必需Go函数(context.Context)(time.Time,error)，返回本域control屏障截止；正常运行无屏障为零时间，未知/关闭直接报错"
         }
       },
       "required": [
         "batchLimit",
-        "pollMillis"
+        "pollMillis",
+        "writeWindow",
+        "runtime"
       ]
     },
     "ConsumerConfig": {
@@ -752,6 +758,11 @@
       "type": "object",
       "x-internal": true,
       "description": "Next(context.Context)(EventEnvelope,error)、LastID()string、Close()error的增量流；取消须解除等待，Close归还订阅槽，不返回原业务秘密"
+    },
+    "CancelFunc": {
+      "type": "object",
+      "x-internal": true,
+      "description": "context.CancelFunc，完成或失败后释放IO上下文"
     }
   }
 }
