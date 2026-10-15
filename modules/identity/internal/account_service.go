@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
+	"sort"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -349,4 +351,449 @@ func hasGrant(grants []string, wanted string) bool {
 		}
 	}
 	return false
+}
+
+type ListAccountsInput struct {
+	Page SessionPageRequest `json:"page"`
+}
+type ListAccountsResult struct {
+	Accounts []Account       `json:"accounts"`
+	PageInfo SessionPageInfo `json:"pageInfo"`
+}
+type accountPageCursor struct {
+	AccountName string `json:"accountName"`
+	AccountID   string `json:"accountId"`
+}
+
+type SetAccountStatusInput struct {
+	AccountID        platform.Identifier `json:"accountId"`
+	Status           AccountStatus       `json:"status"`
+	ExpectedRevision platform.Revision   `json:"expectedRevision"`
+}
+type SetAccountStatusResult struct {
+	Account Account `json:"account"`
+}
+type SetAccountPermissionsInput struct {
+	AccountID        platform.Identifier `json:"accountId"`
+	Permissions      PermissionSelection `json:"permissions"`
+	ExpectedRevision platform.Revision   `json:"expectedRevision"`
+}
+type SetAccountPermissionsResult struct {
+	Account Account `json:"account"`
+}
+type ResetAccountPasswordInput struct {
+	AccountID        platform.Identifier `json:"accountId"`
+	InitialPassword  Password            `json:"initialPassword"`
+	ExpectedRevision platform.Revision   `json:"expectedRevision"`
+}
+type ResetAccountPasswordResult struct {
+	Account Account `json:"account"`
+}
+
+// ListAccounts 在同一授权快照中分页列出子账号；墓碑保留，凭据不进入结果。
+func ListAccounts(ctx context.Context, op OperationContext, input ListAccountsInput) (ListAccountsResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return ListAccountsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
+	}
+	tx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ListAccountsResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	if err := requireAccountManagement(ctx, op, tx, "identity:listAccounts"); err != nil {
+		return ListAccountsResult{}, err
+	}
+	limit := input.Page.Limit
+	if limit == 0 {
+		limit = 20
+	}
+	scope := "identity.accounts.v1|" + op.Actor.SiteID + "|" + op.Actor.SubjectID + "|" + op.DataEpoch + "|subaccounts"
+	position := accountPageCursor{}
+	key, signed := ctx.Value(sessionCursorKey{}).(platform.SigningKey)
+	if input.Page.Cursor != "" {
+		if !signed {
+			return ListAccountsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户游标签名器尚未装配")
+		}
+		raw, err := serviceauth.VerifyCursor(key, scope, input.Page.Cursor)
+		if err != nil {
+			return ListAccountsResult{}, err
+		}
+		if json.Unmarshal(raw, &position) != nil {
+			return ListAccountsResult{}, platform.NewError(platform.CodeValidation, false, "账户游标载荷不合法")
+		}
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT account_id FROM accounts WHERE site_id=? AND is_superadmin=0
+        AND (account_name>? OR (account_name=? AND account_id>?)) ORDER BY account_name,account_id LIMIT ?`,
+		op.Actor.SiteID, position.AccountName, position.AccountName, position.AccountID, limit+1)
+	if err != nil {
+		return ListAccountsResult{}, identityDBError()
+	}
+	ids := make([]string, 0, limit+1)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return ListAccountsResult{}, identityDBError()
+		}
+		ids = append(ids, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return ListAccountsResult{}, identityDBError()
+	}
+	result := ListAccountsResult{Accounts: make([]Account, 0, limit)}
+	if len(ids) > limit {
+		result.PageInfo.HasMore = true
+		ids = ids[:limit]
+	}
+	for _, id := range ids {
+		account, err := readAccount(ctx, tx, id, op.Actor.SiteID)
+		if err != nil {
+			return ListAccountsResult{}, err
+		}
+		result.Accounts = append(result.Accounts, account)
+	}
+	if result.PageInfo.HasMore {
+		if !signed {
+			return ListAccountsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户游标签名器尚未装配")
+		}
+		last := result.Accounts[len(result.Accounts)-1]
+		raw, _ := json.Marshal(accountPageCursor{AccountName: last.AccountName, AccountID: last.AccountID})
+		result.PageInfo.NextCursor, err = serviceauth.SignCursor(key, scope, raw)
+		if err != nil {
+			return ListAccountsResult{}, err
+		}
+	}
+	return result, nil
+}
+
+type accountManagementOperation struct {
+	store  *Store
+	tx     *sql.Tx
+	digest string
+	keyID  string
+}
+
+// beginAccountManagement 为管理写入建立同一权威事务；超管标志取账户row。
+func beginAccountManagement(ctx context.Context, op OperationContext, store *Store, digest, keyID, action string) (*accountManagementOperation, error) {
+	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
+		return nil, err
+	}
+	store.accountMu.Lock()
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		store.accountMu.Unlock()
+		return nil, identityDBError()
+	}
+	work := &accountManagementOperation{store: store, tx: tx, digest: digest, keyID: keyID}
+	if err := requireAccountManagement(ctx, op, tx, action); err != nil {
+		work.closeAccountManagement()
+		return nil, err
+	}
+	return work, nil
+}
+
+func (work *accountManagementOperation) closeAccountManagement() {
+	_ = work.tx.Rollback()
+	work.store.accountMu.Unlock()
+}
+
+func requireAccountManagement(ctx context.Context, op OperationContext, query sessionQueryer, action string) error {
+	_, actor, err := readActorAccount(ctx, op, query, "account.manage", action)
+	if err != nil {
+		return err
+	}
+	if !actor.IsSuperadmin {
+		return platform.NewError(platform.CodeForbidden, false, "账户管理仅允许唯一超管")
+	}
+	return nil
+}
+
+// replayAccountManagement 只回放安全原结果，派生索引从当前权威重建，不重做旧业务。
+func (work *accountManagementOperation) replayAccountManagement(ctx context.Context, op OperationContext, result any) (bool, error) {
+	found, err := readIdentityReceipt(ctx, op, work.tx, work.digest, work.keyID, result)
+	if err != nil || !found {
+		return found, err
+	}
+	if err := work.tx.Rollback(); err != nil {
+		return false, identityDBError()
+	}
+	if err := syncAccountIndex(ctx, op, work.store); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (work *accountManagementOperation) commitAccountManagement(ctx context.Context, op OperationContext, result any, accountChanged bool) error {
+	if err := saveIdentityReceipt(ctx, op, work.tx, work.digest, work.keyID, result); err != nil {
+		return err
+	}
+	if accountChanged {
+		return commitAccountWrite(ctx, op, work.store, work.tx)
+	}
+	if err := work.tx.Commit(); err != nil {
+		return identityDBError()
+	}
+	return nil
+}
+
+func readManagedAccount(ctx context.Context, op OperationContext, query sessionQueryer, accountID string) (Account, error) {
+	account, err := readAccount(ctx, query, accountID, op.Actor.SiteID)
+	if err != nil {
+		return Account{}, err
+	}
+	if account.Status == AccountStatusDeleted {
+		return Account{}, platform.NewError(platform.CodeForbidden, false, "已删除账户仅保留署名，不能再次管理")
+	}
+	return account, nil
+}
+
+// SetAccountStatus 原子改变子账号状态并撤销所有设备；恢复启用不复活旧会话。
+func SetAccountStatus(ctx context.Context, op OperationContext, input SetAccountStatusInput) (SetAccountStatusResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return SetAccountStatusResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, op, "setAccountStatus", input)
+	if err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	work, err := beginAccountManagement(ctx, op, store, digest, keyID, "identity:setAccountStatus")
+	if err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	defer work.closeAccountManagement()
+	var result SetAccountStatusResult
+	found, err := work.replayAccountManagement(ctx, op, &result)
+	if err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	if found {
+		return result, nil
+	}
+	account, err := readManagedAccount(ctx, op, work.tx, input.AccountID)
+	if err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	if _, err := AssertSuperadminImmutable(AssertSuperadminImmutableInput{Account: account, RequestedStatus: input.Status}); err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	if account.Revision != input.ExpectedRevision {
+		return SetAccountStatusResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	if account.Status == input.Status {
+		result.Account = account
+		if err := work.commitAccountManagement(ctx, op, result, false); err != nil {
+			return SetAccountStatusResult{}, err
+		}
+		return result, nil
+	}
+	now := platform.Now()
+	changed, err := work.tx.ExecContext(ctx, `UPDATE accounts SET status=?,revision=revision+1,permission_revision=permission_revision+1,updated_at=?
+        WHERE account_id=? AND site_id=? AND revision=?`, input.Status, now, account.AccountID, account.SiteID, input.ExpectedRevision)
+	if err != nil {
+		return SetAccountStatusResult{}, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return SetAccountStatusResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	account.Status = input.Status
+	account.Revision++
+	account.PermissionRevision++
+	account.UpdatedAt = now
+	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, work.tx), op, RevokeAllSessionsInput{AccountID: account.AccountID, Reason: "status"}); err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	result.Account = account
+	if err := work.commitAccountManagement(ctx, op, result, true); err != nil {
+		return SetAccountStatusResult{}, err
+	}
+	return result, nil
+}
+
+// SetAccountPermissions 只改变既有功能选择；旧access/委托立即失效，refresh可升级。
+func SetAccountPermissions(ctx context.Context, op OperationContext, input SetAccountPermissionsInput) (SetAccountPermissionsResult, error) {
+	if _, err := MapFunctionGrants(MapFunctionGrantsInput{Permissions: input.Permissions}); err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	names := selectedPermissionNames(input.Permissions)
+	sort.Strings(names)
+	input.Permissions = toFunctionPermissions(names)
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return SetAccountPermissionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, op, "setAccountPermissions", input)
+	if err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	work, err := beginAccountManagement(ctx, op, store, digest, keyID, "identity:setAccountPermissions")
+	if err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	defer work.closeAccountManagement()
+	var result SetAccountPermissionsResult
+	found, err := work.replayAccountManagement(ctx, op, &result)
+	if err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	if found {
+		return result, nil
+	}
+	account, err := readManagedAccount(ctx, op, work.tx, input.AccountID)
+	if err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	if account.IsSuperadmin {
+		return SetAccountPermissionsResult{}, platform.NewError(platform.CodeForbidden, false, "唯一超管权限不可修改")
+	}
+	if account.Revision != input.ExpectedRevision {
+		return SetAccountPermissionsResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	if slices.Equal(account.Permissions, names) {
+		result.Account = account
+		if err := work.commitAccountManagement(ctx, op, result, false); err != nil {
+			return SetAccountPermissionsResult{}, err
+		}
+		return result, nil
+	}
+	now := platform.Now()
+	changed, err := work.tx.ExecContext(ctx, `UPDATE accounts SET revision=revision+1,permission_revision=permission_revision+1,updated_at=?
+        WHERE account_id=? AND site_id=? AND revision=?`, now, account.AccountID, account.SiteID, input.ExpectedRevision)
+	if err != nil {
+		return SetAccountPermissionsResult{}, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return SetAccountPermissionsResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	if _, err := work.tx.ExecContext(ctx, `DELETE FROM account_permissions WHERE account_id=?`, account.AccountID); err != nil {
+		return SetAccountPermissionsResult{}, identityDBError()
+	}
+	for _, permission := range names {
+		if _, err := work.tx.ExecContext(ctx, `INSERT INTO account_permissions(account_id,permission) VALUES(?,?)`, account.AccountID, permission); err != nil {
+			return SetAccountPermissionsResult{}, identityDBError()
+		}
+	}
+	account.Permissions = names
+	account.Revision++
+	account.PermissionRevision++
+	account.UpdatedAt = now
+	var credentialRevision platform.Revision
+	if err := work.tx.QueryRowContext(ctx, `SELECT credential_revision FROM credentials WHERE account_id=?`, account.AccountID).Scan(&credentialRevision); err != nil {
+		return SetAccountPermissionsResult{}, identityDBError()
+	}
+	if _, err := PublishIdentityEvent(WithIdentityTransaction(ctx, work.tx), op, PublishIdentityEventInput{EventID: platform.NewIdentifier(), Event: IdentityChanged{
+		AccountID: account.AccountID, SiteID: account.SiteID, PermissionRevision: account.PermissionRevision, CredentialRevision: credentialRevision, Reason: "permissions", OccurredAt: now}}); err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	result.Account = account
+	if err := work.commitAccountManagement(ctx, op, result, true); err != nil {
+		return SetAccountPermissionsResult{}, err
+	}
+	return result, nil
+}
+
+// ResetAccountPassword 将新初始口令只写Argon2哈希，原始新口令仅参与私有HMAC绑定。
+func ResetAccountPassword(ctx context.Context, op OperationContext, input ResetAccountPasswordInput) (ResetAccountPasswordResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账户存储尚未装配")
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, op, "resetAccountPassword", input)
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	readTx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ResetAccountPasswordResult{}, identityDBError()
+	}
+	if err := requireAccountManagement(ctx, op, readTx, "identity:resetAccountPassword"); err != nil {
+		readTx.Rollback()
+		return ResetAccountPasswordResult{}, err
+	}
+	var result ResetAccountPasswordResult
+	found, err := readIdentityReceipt(ctx, op, readTx, digest, keyID, &result)
+	if err != nil {
+		readTx.Rollback()
+		return ResetAccountPasswordResult{}, err
+	}
+	if found {
+		readTx.Rollback()
+		store.accountMu.Lock()
+		err := syncAccountIndex(ctx, op, store)
+		store.accountMu.Unlock()
+		if err != nil {
+			return ResetAccountPasswordResult{}, err
+		}
+		return result, nil
+	}
+	account, err := readManagedAccount(ctx, op, readTx, input.AccountID)
+	readTx.Rollback()
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	if account.IsSuperadmin {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeForbidden, false, "超管重置只能走服务器恢复")
+	}
+	if account.Revision != input.ExpectedRevision {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.InitialPassword})
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	work, err := beginAccountManagement(ctx, op, store, digest, keyID, "identity:resetAccountPassword")
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	defer work.closeAccountManagement()
+	found, err = work.replayAccountManagement(ctx, op, &result)
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	if found {
+		return result, nil
+	}
+	account, err = readManagedAccount(ctx, op, work.tx, input.AccountID)
+	if err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	if account.IsSuperadmin {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeForbidden, false, "超管重置只能走服务器恢复")
+	}
+	if account.Revision != input.ExpectedRevision {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	var credentialRevision platform.Revision
+	if err := work.tx.QueryRowContext(ctx, `SELECT credential_revision FROM credentials WHERE account_id=?`, account.AccountID).Scan(&credentialRevision); err != nil {
+		return ResetAccountPasswordResult{}, identityDBError()
+	}
+	changed, err := work.tx.ExecContext(ctx, `UPDATE credentials SET password_hash=?,credential_revision=credential_revision+1 WHERE account_id=? AND credential_revision=?`, hashed.EncodedHash, account.AccountID, credentialRevision)
+	if err != nil {
+		return ResetAccountPasswordResult{}, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeVersionMismatch, false, "凭据版本已变化")
+	}
+	now := platform.Now()
+	changed, err = work.tx.ExecContext(ctx, `UPDATE accounts SET must_change_password=1,revision=revision+1,updated_at=? WHERE account_id=? AND site_id=? AND revision=?`, now, account.AccountID, account.SiteID, input.ExpectedRevision)
+	if err != nil {
+		return ResetAccountPasswordResult{}, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return ResetAccountPasswordResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账户版本已变化")
+	}
+	account.MustChangePassword = true
+	account.Revision++
+	account.UpdatedAt = now
+	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, work.tx), op, RevokeAllSessionsInput{AccountID: account.AccountID, Reason: "admin_reset"}); err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	result.Account = account
+	if err := work.commitAccountManagement(ctx, op, result, true); err != nil {
+		return ResetAccountPasswordResult{}, err
+	}
+	return result, nil
 }

@@ -1,3 +1,17 @@
+# 当前工作包：第三轮账号管理（2026-10-15，VPS现阶段检查通过）
+
+用户已重新授权持续实施，先前第二轮停止说明只保留为历史。本分支codex/identity-management-r1，基线9acad1ab56532521222f592af0d4b3a849792db5，独占modules/identity。
+
+本轮四个已登记函数ListAccounts、SetAccountStatus、SetAccountPermissions、ResetAccountPassword及真实HTTP绑定已通过现阶段检查：唯一超管取权威row，子账号签名键集分页、CAS、原安全回执、即时撤销与索引决定恢复均复用既有机制。私有撤销count解除与会话模型不一致的10000上限，不新增会话产品限制。无新增实际文件。
+
+2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。
+
+已完整实现条目待本轮源码提交生成后回填准确SHA；完整BuildApplication/main仍因偏好、服务器恢复、屏障及后台未齐保持blocked，transport装配文件仍in_progress。旧ResolveIdentityOperation及其DTO真实无调用，已删除；原文件保留受信Store上下文/既有仓库前置并据实登记。无新增/删除文件路径，未本机go/gofmt/生成/编译/测试，未push。
+
+下一项为既有ReadPreferences/UpdatePreferences及真实HTTP绑定，先核本域最新合同与当前会话授权；本工作包交付后冻结，由根分派再开始。
+
+---
+
 # 当前工作包：登录注册与账号口令事务（2026-10-15，VPS现阶段检查通过）
 
 ## 第二轮最终集成与停止范围

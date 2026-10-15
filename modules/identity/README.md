@@ -36,6 +36,8 @@
 确认的old功能/默认行为保持，新的服务私有存储/CAS/fencing只改变内部架构。D55优先于先前初始化AI条款。
 
 
+内部Go API继续由本域OpenAPI生成。本域没有独立web/UI；portal已有浏览器生成阶段按其OpenAPI的`x-browser-auth-adapters`与`Browser*`类型合成四个认证操作的安全副本，access/refresh只由cookie承载，不把内部token响应类型直接提供给浏览器。
+
 ## 进度与新会话交接
 
 先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。

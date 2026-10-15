@@ -2,12 +2,12 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 36 个：手写 21、生成 4、配置 6、迁移 5。函数 93 个：约束 29，参考 64。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 36 个：手写 21、生成 4、配置 6、迁移 5。函数 101 个：约束 29，参考 72。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/identity/internal/registration_service.go` | 手写 | 决定后台显示首次注册或登录 | `identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.WithRegistrationRuntime`（参考）、`identity.registrationRuntimeFromContext`（参考）、`identity.ReadInitializationStatus`（参考）、`identity.readBootstrapClaim`（参考）、`identity.reserveBootstrap`（参考）、`identity.markBootstrapCommitted`（参考）、`identity.recoverBootstrapClaim`（参考） |
-| `modules/identity/internal/account_service.go` | 手写 | 超管创建子账号并标记强改 | `identity.CreateAccount`、`identity.ReadSelf`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.readAccount`（参考）、`identity.readActorAccount`（参考）、`identity.insertAccount`（参考）、`identity.selectedPermissionNames`（参考）、`identity.privateIdentityDigest`（参考）、`identity.readIdentityReceipt`（参考）、`identity.saveIdentityReceipt`（参考）、`identity.commitAccountWrite`（参考）、`identity.syncAccountIndex`（参考）、`identity.recoverAccountIndex`（参考）、`identity.identityDBError`（参考）、`identity.hasGrant`（参考） |
+| `modules/identity/internal/account_service.go` | 手写 | 超管创建子账号并标记强改 | `identity.CreateAccount`、`identity.ReadSelf`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.readAccount`（参考）、`identity.readActorAccount`（参考）、`identity.insertAccount`（参考）、`identity.selectedPermissionNames`（参考）、`identity.privateIdentityDigest`（参考）、`identity.readIdentityReceipt`（参考）、`identity.saveIdentityReceipt`（参考）、`identity.commitAccountWrite`（参考）、`identity.syncAccountIndex`（参考）、`identity.recoverAccountIndex`（参考）、`identity.identityDBError`（参考）、`identity.hasGrant`（参考）、`identity.beginAccountManagement`（参考）、`identity.closeAccountManagement`（参考）、`identity.requireAccountManagement`（参考）、`identity.replayAccountManagement`（参考）、`identity.commitAccountManagement`（参考）、`identity.readManagedAccount`（参考） |
 | `modules/identity/internal/account_validator.go` | 手写 | 规范不可变账号名 | `identity.NormalizeAccountName`（参考）、`identity.AssertSuperadminImmutable`（参考） |
 | `modules/identity/internal/permission_mapping.go` | 手写 | 将已确认功能勾选映射成服务权限 | `identity.MapFunctionGrants`（参考） |
 | `modules/identity/internal/credential_service.go` | 手写 | 生成Argon2id口令哈希 | `identity.HashPassword`（参考）、`identity.VerifyPassword`（参考）、`identity.ValidatePasswordChange`（参考）、`identity.ChangePassword`、`identity.sensitiveReplayError`（参考） |
@@ -17,7 +17,7 @@
 | `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization`、`identity.readSessionSnapshot`（参考）、`identity.validateSessionSnapshot`（参考）、`identity.sessionAuthContext`（参考）、`identity.verifySessionAccess`（参考） |
 | `modules/identity/internal/preference_service.go` | 手写 | 读自身后台偏好 | `identity.ReadPreferences`、`identity.UpdatePreferences` |
 | `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考）、`identity.readAccountAuthorityQuery`（参考）、`identity.encodeAccountIndex`（参考） |
-| `modules/identity/internal/operation_repository.go` | 手写 | 读取幂等回执 | `identity.ResolveIdentityOperation`（参考） |
+| `modules/identity/internal/operation_repository.go` | 手写 | 装配受信私有存储上下文与既有仓库调用前置 | `identity.WithIdentityStore`（参考）、`identity.identityStoreFromContext`（参考）、`identity.checkIdentityRepositoryContext`（参考） |
 | `modules/identity/internal/outbox_repository.go` | 手写 | 与身份提交原子登记事件 | `identity.PublishIdentityEvent`（参考）、`identity.RelayOutbox` |
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考） |
 | `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier` |

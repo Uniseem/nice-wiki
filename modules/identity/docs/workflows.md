@@ -41,3 +41,8 @@
 登录/首次注册只接受portal经服务断言建立的网络HMAC作用域（当前/前一UTC日），不从浏览器字段或普通header兜底。identity通过平台HMAC规范账号名，调用traffic-guard.beginLoginAttempt，再以authenticated/rejected/aborted提交幂等终局；错密码、未知账号、停用账号使用同一未认证结果。authenticated仅表示口令和active核验事实，在会话事务提交前确认；一旦发送authenticated/rejected，即便响应未知，也不改报aborted。未知风控或初始化状态拒绝登录。
 
 首次注册先持久control reserved决定，再写active账户/凭据/会话/安全回执和outbox；active提交后补齐索引并单向标记committed。同原op重试不重发秘密，改密当前设备轮换且其他设备立即撤销；ReadSelf返回credentialRevision供改密CAS。固定nextRoute只从/admin/me（强改视图）、/admin/setup、/admin选择。
+
+
+第三轮账号管理：只有当前会话权威对应的唯一超管row可管理同站点子账号。列表含deleted墓碑但不含超管，accountName/accountId稳定键集分页的签名scope绑定主体、站点和dataEpoch。已删除墓碑不再写入；唯一超管状态仅active原样无副作用，权限/密码重置入口拒绝修改超管。
+
+状态/权限/重置先匹配HMAC/keyId原成功回执再CAS，重放不覆盖后来权限、撤销后来新会话或再次重置密码。实际停用/删除/重新启用或重置与全session/族撤销、身份事件和安全回执同事务；启用不复活旧登录。功能集合变化只提升permissionRevision并写事件，旧access/委托同步失效，合法refresh可按既定协议升级；无变化请求只记成功回执，不制造版本或撤销。所有索引仍在不可反悔提交前按统一16MiB上限检查。

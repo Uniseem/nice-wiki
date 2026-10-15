@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 93 个函数：约束 29 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 101 个函数：约束 29 个，参考 72 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -46,7 +46,7 @@ func ReadRegistrationState(ctx context.Context, op OperationContext, input ReadR
 - 授权：anonymous
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`site-config:readInitializationStatus`、`identity.readBootstrapClaim`、`identity.registrationRuntimeFromContext`
+- 依赖：`site-config:readInitializationStatus`、`identity.readBootstrapClaim`、`identity.registrationRuntimeFromContext`、`identity.identityStoreFromContext`
 
 ## identity.RegisterFirstSuperadmin
 
@@ -97,7 +97,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 - 授权：anonymous；无需初始化码，部署后立即注册或先不暴露端口
 - 并发：bootstrapClaim+isSuperadmin唯一约束同事务，首注册至多一个
 - 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
-- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`identity.NormalizeAccountName`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.saveIdentityReceipt`、`identity.reserveBootstrap`、`identity.markBootstrapCommitted`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.insertSession`、`identity.PublishIdentityEvent`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`
+- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`identity.NormalizeAccountName`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.saveIdentityReceipt`、`identity.reserveBootstrap`、`identity.markBootstrapCommitted`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.insertSession`、`identity.PublishIdentityEvent`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`、`identity.identityStoreFromContext`
 
 ## identity.WithRegistrationRuntime
 
@@ -369,7 +369,7 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 - 授权：账户管理仅唯一superadmin；自身操作account.self；权限按功能全站，不按文档scope
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.hasGrant`、`identity.PublishIdentityEvent`
+- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.insertAccount`、`identity.selectedPermissionNames`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.syncAccountIndex`、`identity.hasGrant`、`identity.PublishIdentityEvent`、`identity.identityStoreFromContext`
 
 ## identity.ReadSelf
 
@@ -415,7 +415,7 @@ func ReadSelf(ctx context.Context, op OperationContext, input ReadSelfInput) (Re
 - 授权：account.self；强改会话仅允许必要资料
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`identity.readActorAccount`
+- 依赖：`identity.readActorAccount`、`identity.identityStoreFromContext`
 
 ## identity.ListAccounts
 
@@ -440,24 +440,28 @@ func ListAccounts(ctx context.Context, op OperationContext, input ListAccountsIn
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ListAccountsResult` | 超管读取子账号列表的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；INTEGRITY_ERROR: 私有回执、账户权威或派生索引完整性不一致；UNAUTHENTICATED: 当前超管会话撤销、到期或水位失效；DEPENDENCY_UNAVAILABLE: 私有账户存储或平台游标签名器不可用 |
 
 **步骤**
 
-1. 核对唯一superadmin
-2. 按accountName/id稳定分页
-3. 保留deleted署名，不返凭据
+1. 同一只读事务使用当前session/账户权威核superadmin，唯一超管判断取账户row，不接受浏览器角色或客户端accountId作用域
+2. 只查op.actor.siteId的非超管账号，active/disabled/deleted墓碑都保留；按不可变accountName/accountId升序键集分页，默认20、最多100
+3. 平台SignCursor/VerifyCursor签名scope绑定identity.accounts.v1、site/account/dataEpoch与subaccounts筛选；载荷只含最后排序位置，不能跨站点/主体/恢复代次重用
+4. 多读一条判断hasMore，再在同一快照读取该页完整安全metadata与既有功能；不返回凭据、token、摘要或IP
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `INTEGRITY_ERROR`：私有回执、账户权威或派生索引完整性不一致（不可重试）
+- `UNAUTHENTICATED`：当前超管会话撤销、到期或水位失效（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有账户存储或平台游标签名器不可用（可重试）
 
 - 副作用：无
 - 授权：superadmin
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 并发：单个只读SQLite快照；名字/ID不可变且墓碑不删除，分页不用offset
 - 幂等：签名cursor一致水位
-- 依赖：无
+- 依赖：`identity.requireAccountManagement`、`identity.readAccount`、`platform.SignCursor`、`platform.VerifyCursor`、`identity.identityStoreFromContext`
 
 ## identity.SetAccountStatus
 
@@ -482,13 +486,15 @@ func SetAccountStatus(ctx context.Context, op OperationContext, input SetAccount
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `SetAccountStatusResult` | 停用/恢复/删除子账号的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；NOT_FOUND: 同一站点不存在该目标账户，不泄漏其他站点账户；INTEGRITY_ERROR: 私有回执、账户权威或派生索引完整性不一致 |
 
 **步骤**
 
-1. AssertSuperadminImmutable拒绝对唯一超管停用或删除
-2. 检查目标revision，deleted不可复活为同账户新实体
-3. 事务改状态+permissionRevision，立即RevokeAllSessions，删除仅软墓碑保留署名
+1. 账号管理互斥和单一active事务内核当前唯一超管row与会话授权；先读同op/caller/actor/epoch/HMAC/keyId完整原成功回执，重放不重复撤销后来会话
+2. 限定同site目标，已删除墓碑禁止再管理；AssertSuperadminImmutable保持唯一超管仅active，拒停用/删除；核expectedRevision，不匹配VERSION_MISMATCH
+3. 相同状态且CAS水位匹配仅保存安全成功回执，无版本提升/事件/会话变化；唯一超管active原样返回
+4. 实际状态迁移按既有active↔disabled→deleted规则，账户revision和permissionRevision各增1；同事务RevokeAllSessions撤销全部session/refresh族并登记status事件，重新启用不复活旧登录
+5. 完整安全回执与撤销/outbox同事务；候选索引先以共用16MiB编码检查，再控制决定/active提交/派生索引补齐，不物理删除墓碑姓名
 
 **错误**
 
@@ -498,12 +504,14 @@ func SetAccountStatus(ctx context.Context, op OperationContext, input SetAccount
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `NOT_FOUND`：同一站点不存在该目标账户，不泄漏其他站点账户（不可重试）
+- `INTEGRITY_ERROR`：私有回执、账户权威或派生索引完整性不一致（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.AssertSuperadminImmutable`、`identity.RevokeAllSessions`、`identity.WriteAccountIndex`、`identity.ResolveIdentityOperation`
+- 并发：accountMu覆盖权威写事务到索引补齐；账户/凭据CAS、业务变更、会话/事件和原结果回执同事务
+- 幂等：site/actor/operation主键；私有HMAC绑定动作/caller/dataEpoch/规范输入和keyId；同键同摘要回原成功，不重做后来状态；异输入或缺原key版本Conflict
+- 依赖：`identity.privateIdentityDigest`、`identity.beginAccountManagement`、`identity.replayAccountManagement`、`identity.readManagedAccount`、`identity.commitAccountManagement`、`identity.AssertSuperadminImmutable`、`identity.RevokeAllSessions`、`identity.identityStoreFromContext`
 
 ## identity.SetAccountPermissions
 
@@ -528,13 +536,15 @@ func SetAccountPermissions(ctx context.Context, op OperationContext, input SetAc
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `SetAccountPermissionsResult` | 修改10项功能权限的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；NOT_FOUND: 同一站点不存在该目标账户，不泄漏其他站点账户；INTEGRITY_ERROR: 私有回执、账户权威或派生索引完整性不一致 |
 
 **步骤**
 
-1. 仅超管；禁止修改isSuperadmin/accountName
-2. MapFunctionGrants不接收文档scope/继承角色
-3. CAS替换flags并增permissionRevision；受保护请求同步查新版本
+1. 仅当前唯一超管row可管理；同site目标须未删除且非超管，禁止修改accountName/isSuperadmin，功能只既有10项、无文档scope或继承
+2. MapFunctionGrants验证既有选择，排序后HMAC规范请求；先重放同op完整原回执，再核expectedRevision；旧op不能覆盖后续权限
+3. 选择集合未变化且CAS水位匹配只保存成功回执，不增水位、不发事件；变化时CAS替换功能、账户revision与permissionRevision各增1
+4. 同事务写identity.authorization.changed permissions事件与最新credentialRevision及安全回执；旧access/委托由权威permissionRevision立即拒绝，不依赖事件窗口
+5. 不撤销refresh族；refresh在既定凭据/认证/数据代次与绝对期限仍有效时同事务升级最新权限并轮换；索引候选16MiB检查与决定恢复复用既有实现
 
 **错误**
 
@@ -544,12 +554,14 @@ func SetAccountPermissions(ctx context.Context, op OperationContext, input SetAc
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `NOT_FOUND`：同一站点不存在该目标账户，不泄漏其他站点账户（不可重试）
+- `INTEGRITY_ERROR`：私有回执、账户权威或派生索引完整性不一致（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.MapFunctionGrants`、`identity.PublishIdentityEvent`、`identity.ResolveIdentityOperation`
+- 并发：accountMu覆盖权威写事务到索引补齐；账户/凭据CAS、业务变更、会话/事件和原结果回执同事务
+- 幂等：site/actor/operation主键；私有HMAC绑定动作/caller/dataEpoch/规范输入和keyId；同键同摘要回原成功，不重做后来状态；异输入或缺原key版本Conflict
+- 依赖：`identity.privateIdentityDigest`、`identity.beginAccountManagement`、`identity.replayAccountManagement`、`identity.readManagedAccount`、`identity.commitAccountManagement`、`identity.MapFunctionGrants`、`identity.selectedPermissionNames`、`identity.PublishIdentityEvent`、`identity.identityStoreFromContext`
 
 ## identity.ResetAccountPassword
 
@@ -574,13 +586,15 @@ func ResetAccountPassword(ctx context.Context, op OperationContext, input ResetA
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ResetAccountPasswordResult` | 超管重置子账号初始口令的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；NOT_FOUND: 同一站点不存在该目标账户，不泄漏其他站点账户；INTEGRITY_ERROR: 私有回执、账户权威或派生索引完整性不一致 |
 
 **步骤**
 
-1. 仅superadmin，超管自身忘密走服务器恢复
-2. HashPassword，事务写新凭据与mustChangePassword=true
-3. 立即使全部session失效；下次只能改密
+1. 只允许当前唯一超管row管理同site未删除子账号；唯一超管自身不可走此入口，忘密仍走服务器恢复；先读安全原成功回执，禁止旧op在后续改密后重新重置
+2. 私有输入摘要只用platform PrivateOperationDigest HMAC，记录keyId，原始initialPassword/token不入回执/日志；对原成功请求不重算Argon2或重复写凭据
+3. 只读预核当前权限和目标expectedRevision后在短写事务外HashPassword；写事务再次核当前会话、原回执与账户CAS，防计算期间并发状态/权限/密码变化
+4. CAS提升credentialRevision、账户revision，设mustChangePassword=true，保持原active/disabled状态；同事务RevokeAllSessions撤session/refresh族并发password事件，下次新登录只能改密
+5. 返回与持久回执只含安全Account原结果；候选索引在不可反悔提交前16MiB检查，控制决定与派生索引恢复复用既有实现
 
 **错误**
 
@@ -590,12 +604,14 @@ func ResetAccountPassword(ctx context.Context, op OperationContext, input ResetA
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `NOT_FOUND`：同一站点不存在该目标账户，不泄漏其他站点账户（不可重试）
+- `INTEGRITY_ERROR`：私有回执、账户权威或派生索引完整性不一致（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.HashPassword`、`identity.RevokeAllSessions`、`identity.ResolveIdentityOperation`
+- 并发：accountMu覆盖权威写事务到索引补齐；账户/凭据CAS、业务变更、会话/事件和原结果回执同事务
+- 幂等：site/actor/operation主键；私有HMAC绑定动作/caller/dataEpoch/规范输入和keyId；同键同摘要回原成功，不重做后来状态；异输入或缺原key版本Conflict
+- 依赖：`identity.privateIdentityDigest`、`identity.beginAccountManagement`、`identity.replayAccountManagement`、`identity.readManagedAccount`、`identity.commitAccountManagement`、`identity.requireAccountManagement`、`identity.readIdentityReceipt`、`identity.syncAccountIndex`、`identity.HashPassword`、`identity.RevokeAllSessions`、`identity.identityStoreFromContext`
 
 ## identity.readAccount
 
@@ -982,6 +998,198 @@ func hasGrant(grants []string, wanted string) bool
 - 幂等：按外层操作回执或决定水位，纯读取无副作用
 - 依赖：无
 
+## identity.beginAccountManagement
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：开启管理写事务并核当前权威超管，失败回滚和释放账号互斥
+
+```go
+func beginAccountManagement(ctx context.Context, op OperationContext, store *Store, digest, keyID, action string) (*accountManagementOperation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 开启管理写事务并核当前权威超管，失败回滚和释放账号互斥
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：`identity.requireAccountManagement`、`identity.closeAccountManagement`、`identity.identityDBError`
+
+## identity.closeAccountManagement
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：释放外层管理事务与账号互斥
+
+```go
+func (work *accountManagementOperation) closeAccountManagement()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 释放外层管理事务与账号互斥
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：无
+
+## identity.requireAccountManagement
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：核当前账户session/grants与账户row.isSuperadmin，不从浏览器或权限名称猜身份
+
+```go
+func requireAccountManagement(ctx context.Context, op OperationContext, query sessionQueryer, action string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前账户session/grants与账户row.isSuperadmin，不从浏览器或权限名称猜身份
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：`identity.readActorAccount`
+
+## identity.replayAccountManagement
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：只返回完整安全原成功回执；索引取当前权威，不重放旧状态/撤销
+
+```go
+func (work *accountManagementOperation) replayAccountManagement(ctx context.Context, op OperationContext, result any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只返回完整安全原成功回执；索引取当前权威，不重放旧状态/撤销
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：`identity.readIdentityReceipt`、`identity.syncAccountIndex`
+
+## identity.commitAccountManagement
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：回执与实际变更一起提交；真正账号变更才经既有索引预检/决定恢复
+
+```go
+func (work *accountManagementOperation) commitAccountManagement(ctx context.Context, op OperationContext, result any, accountChanged bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回执与实际变更一起提交；真正账号变更才经既有索引预检/决定恢复
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：`identity.saveIdentityReceipt`、`identity.commitAccountWrite`
+
+## identity.readManagedAccount
+
+- 级别：参考
+- 文件：`modules/identity/internal/account_service.go`
+- 作用：仅查当前站点，已删除墓碑拒绝再管理
+
+```go
+func readManagedAccount(ctx context.Context, op OperationContext, query sessionQueryer, accountID string) (Account, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅查当前站点，已删除墓碑拒绝再管理
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域账号管理私有助手；当前超管权威由requireAccountManagement建立
+- 并发：同一accountMu和外层SQLite事务，不嵌套事务
+- 幂等：按原业务完整回执；只读/释放助手无业务副作用
+- 依赖：`identity.readAccount`
+
 ## identity.NormalizeAccountName
 
 - 级别：参考
@@ -1268,7 +1476,7 @@ func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswo
 - 授权：account.self；mustChangePassword会话也可调用
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
-- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.readSessionSnapshot`、`identity.sessionAuthContext`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.PublishIdentityEvent`、`identity.sensitiveReplayError`
+- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readActorAccount`、`identity.readSessionSnapshot`、`identity.sessionAuthContext`、`identity.saveIdentityReceipt`、`identity.commitAccountWrite`、`identity.PublishIdentityEvent`、`identity.sensitiveReplayError`、`identity.identityStoreFromContext`
 
 ## identity.sensitiveReplayError
 
@@ -1350,7 +1558,7 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 - 授权：anonymous + 同Origin；只显示账号名和口令，不新增MFA/邮箱
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：相同operation/输入只存HMAC摘要与安全account/session/credential引用；仅首次事务返回敏感token，重复返回CONFLICT要求重新登录，不重复建会话；keyId不匹配失败关闭
-- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`site-config:readInitializationStatus`、`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.readAccount`、`identity.insertSession`、`identity.saveIdentityReceipt`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`
+- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`site-config:readInitializationStatus`、`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.beginIdentityLogin`、`identity.finishIdentityLogin`、`identity.readAccount`、`identity.insertSession`、`identity.saveIdentityReceipt`、`identity.sensitiveReplayError`、`identity.registrationRuntimeFromContext`、`identity.anonymousIdentityOperation`、`identity.identityStoreFromContext`
 
 ## identity.IssueSessionTokens
 
@@ -1443,7 +1651,7 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 - 授权：service:portal；refresh cookie + SameSite=Strict + Origin，入口只建立来源与服务身份，不要求有效access
 - 并发：家族行互斥
 - 幂等：refresh单次消费；并发或重放旧值撤销同族，敏感响应丢失需重新登录，浏览器singleflight
-- 依赖：`identity.IssueSessionTokens`、`identity.RevokeSessionFamily`、`identity.MapFunctionGrants`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`
+- 依赖：`identity.IssueSessionTokens`、`identity.RevokeSessionFamily`、`identity.MapFunctionGrants`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`、`identity.identityStoreFromContext`
 
 ## identity.ReadSessions
 
@@ -1490,7 +1698,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 - 授权：account.self
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`identity.WithSessionCursorKey`、`platform.SignCursor`、`platform.VerifyCursor`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
+- 依赖：`identity.WithSessionCursorKey`、`platform.SignCursor`、`platform.VerifyCursor`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.identityStoreFromContext`
 - 其他依赖说明：libs/platform/serviceauth.SignCursor与VerifyCursor实现签名游标；未装配密钥时只要请求或生成游标即DEPENDENCY_UNAVAILABLE
 
 ## identity.WithSessionCursorKey
@@ -1796,7 +2004,7 @@ func RevokeSession(ctx context.Context, op OperationContext, input RevokeSession
 - 授权：account.self
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.RevokeSessionFamily`、`identity.PublishIdentityEvent`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
+- 依赖：`identity.RevokeSessionFamily`、`identity.PublishIdentityEvent`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.identityStoreFromContext`
 
 ## identity.RevokeSessionFamily
 
@@ -1871,22 +2079,23 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 
 1. 外部调用必须是superadmin；账户状态迁移可在由WithIdentityTransaction注入的身份私有事务内调用，事务句柄不从网络输入
 2. 按accountId与当前siteId读取权威账户/凭据版本；同事务将该账户全部未撤销refresh族和session写入revokedAt并提升各自revision，不改已撤销行
-3. 在同一事务登记identity.authorization.changed；disabled/deleted映射status、admin_reset映射password，server_reset/restore保持原值；授权读取仍须同步检查sessions.revokedAt与revision
+3. 同事务登记identity.authorization.changed；disabled/deleted/status映射status、admin_reset映射password，server_reset/restore保持原值；授权仍须同步核session撤销及版本
 4. 自有事务的幂等键绑定site/actor/operation、callerService、动作、dataEpoch与请求摘要；完整计数结果及哈希写入operation_receipts.result_json，重放返回原计数且不撤销后来建立的会话；嵌入事务由外层用例统一回执与提交
+5. Count为非负int64，不设置与登录会话模型不一致的人为10000上限；计数不可读仍完整回滚
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 - `CONFLICT`：同一operationId绑定的调用方、代次或请求摘要不同（不可重试）
-- `INTEGRITY_ERROR`：完整结果回执缺失、哈希不一致或撤销数量超出合同（不可重试）
+- `INTEGRITY_ERROR`：完整结果回执缺失、哈希不一致或撤销计数不可读（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin或身份私有状态迁移
 - 并发：SQLite单连接串行化；更新、outbox和回执同一事务；外层事务由其调用方负责提交或回滚
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.PublishIdentityEvent`
-- 其他依赖说明：内嵌调用方须在开启事务前确保平台outbox schema已建立；会话家族撤销/签发字段仍待后续工作包
+- 依赖：`identity.PublishIdentityEvent`、`identity.identityStoreFromContext`
+- 其他依赖说明：内嵌调用方须在开启事务前确保平台outbox schema已建立；撤销session和一对一refresh族同事务
 
 ## identity.RevokeOtherSessions
 
@@ -1976,7 +2185,7 @@ func VerifySessionCSRF(ctx context.Context, op OperationContext, input VerifySes
 - 授权：service:portal
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`platform.VerifySessionAccess`
+- 依赖：`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`platform.VerifySessionAccess`、`identity.identityStoreFromContext`
 
 ## identity.CheckAuthorization
 
@@ -2021,7 +2230,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 - 授权：service，主体必须来自可信委托
 - 并发：权限一致快照，不能缓存长期允许
 - 幂等：只读
-- 依赖：`identity.MapFunctionGrants`、`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`、`platform.VerifySessionAccess`
+- 依赖：`identity.MapFunctionGrants`、`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`、`platform.VerifySessionAccess`、`identity.identityStoreFromContext`
 
 ## identity.readSessionSnapshot
 
@@ -2473,46 +2682,100 @@ func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, err
 - 幂等：纯派生或只读
 - 依赖：无
 
-## identity.ResolveIdentityOperation
+## identity.WithIdentityStore
 
 - 级别：参考
 - 文件：`modules/identity/internal/operation_repository.go`
-- 作用：读取幂等回执
+- 作用：把受信身份Store注入本域上下文
 
 ```go
-func ResolveIdentityOperation(ctx context.Context, op OperationContext, input ResolveIdentityOperationInput) (ResolveIdentityOperationResult, error)
+func WithIdentityStore(ctx context.Context, store *Store) context.Context
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ResolveIdentityOperationInput` | 读取幂等回执的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ResolveIdentityOperationResult` | 读取幂等回执的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+无
 
 **步骤**
 
-1. 查询site/actor/operation唯一键
-2. 异摘要CONFLICT，敏感input仅salted digest不存明文
-3. 已提交返回安全结果hash供上层重读
+1. 以私有context key绑定启动持有的Store，不将句柄编码到网络
 
 **错误**
 
-- `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- 无
 
 - 副作用：无
-- 授权：私有事务
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：只读
+- 授权：仅本域受信启动装配或私有仓库链调用，句柄不来自网络
+- 并发：上下文持有只读资源引用；存储并发由具体用例事务约束
+- 幂等：不改变业务状态
+- 依赖：无
+
+## identity.identityStoreFromContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/operation_repository.go`
+- 作用：读取本域已装配Store引用
+
+```go
+func identityStoreFromContext(ctx context.Context) (*Store, bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅从本域私有context key取Store，缺失或nil返回false
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信启动装配或私有仓库链调用，句柄不来自网络
+- 并发：上下文持有只读资源引用；存储并发由具体用例事务约束
+- 幂等：不改变业务状态
+- 依赖：无
+
+## identity.checkIdentityRepositoryContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/operation_repository.go`
+- 作用：保留既有outbox/恢复仓库调用前置
+
+```go
+func checkIdentityRepositoryContext(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 现有outbox/恢复入口检查取消与可信operationId/dataEpoch/deadline；不从网络重建或扩大op
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信启动装配或私有仓库链调用，句柄不来自网络
+- 并发：上下文持有只读资源引用；存储并发由具体用例事务约束
+- 幂等：不改变业务状态
 - 依赖：无
 
 ## identity.PublishIdentityEvent
@@ -2555,7 +2818,7 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 - 授权：私有身份txn
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：外部事务由业务用例维护完整请求/结果回执；自有事务按事件输入摘要保存本操作回执；outbox按eventId去重
-- 依赖：`platform.EnqueueEvent`
+- 依赖：`platform.EnqueueEvent`、`identity.identityStoreFromContext`、`identity.checkIdentityRepositoryContext`
 
 ## identity.RelayOutbox
 
@@ -2641,7 +2904,7 @@ func InvalidateRestoredSessions(ctx context.Context, op OperationContext, input 
 - 授权：仅identity启动流程在换入恢复数据后内部调用
 - 并发：启动阶段独占，入口开放前完成
 - 幂等：同restoreId只执行一次，control日志记录
-- 依赖：无
+- 依赖：`identity.identityStoreFromContext`、`identity.checkIdentityRepositoryContext`
 
 ## identity.AcquireBarrier
 
@@ -3218,7 +3481,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
 - 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`platform.ValidatePrivatePath`
-- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；本域无独立web/UI；内部Go API继续由identity OpenAPI生成，portal浏览器认证副本由portal OpenAPI x-browser-auth-adapters与Browser*类型合成，禁止将内部token响应类型直接供浏览器
 
 ## identity.Serve
 
@@ -3448,7 +3711,7 @@ func (a *Application) identityContext(ctx context.Context) context.Context
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`identity.WithSessionCursorKey`
+- 依赖：`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`identity.WithSessionCursorKey`、`identity.WithIdentityStore`
 
 ## identity.authorizeOperation
 
@@ -3503,6 +3766,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 **步骤**
 
 1. 仅登记真实已完成用例，路径参数由平台入口提供
+2. 本轮绑定四个账号管理真用例；列表只从已验证query组装page，三个写入accountId固定取平台PathValue，正文不允许覆盖路径身份
 
 **错误**
 
@@ -3512,7 +3776,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`
+- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`
 
 ## identity.jsonOperation
 
@@ -3521,7 +3785,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 - 作用：解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传
 
 ```go
-func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]) http.Handler
+func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O], bindInput ...func(*I, *http.Request)) http.Handler
 ```
 
 **输入**
@@ -3535,6 +3799,7 @@ func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]
 **步骤**
 
 1. 解码平台已验证输入并返回受信服务结果，敏感结果禁止浏览器通用透传
+2. 静态可选binder在已校验正文解码后填入平台验证的路径字段；只有装配代码能传binder，不接受请求自报绑定策略
 
 **错误**
 

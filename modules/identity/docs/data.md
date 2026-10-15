@@ -105,8 +105,6 @@
 | ObserveSuperadminResetFileResult | 检测服务器超管重置文件的结果 |
 | ApplySuperadminResetInput | 用服务器文件恢复唯一超管口令的输入 |
 | ApplySuperadminResetResult | 用服务器文件恢复唯一超管口令的结果 |
-| ResolveIdentityOperationInput | 读取幂等回执的输入 |
-| ResolveIdentityOperationResult | 读取幂等回执的结果 |
 | PublishIdentityEventInput | 与身份提交原子登记事件的输入 |
 | PublishIdentityEventResult | 与身份提交原子登记事件的结果 |
 | InvalidateRestoredSessionsInput | 恢复数据后使备份登录失效的输入 |
@@ -133,3 +131,8 @@
 独立control/control.db的schema1保存bootstrap_claim不可逆决定：原operation/caller/actor、HMAC/keyId/dataEpoch、固定accountId/siteId、claimedAt以及reserved/committed。控制库不随active恢复替换；只允许相同原op及原epoch续未决，恢复空active不重开注册。active提交和control提交不宣称跨库原子，启动按安全回执补记已提交控制决定。
 
 账号索引是active账户的派生运维文件；账号业务互斥覆盖active提交至索引补齐，索引自身锁覆盖水位读取与安装，control journal的identity.account-index决定在启动按active权威补齐。未知决定或控制索引领先活动权威仍隔离，不静默回退覆盖。
+
+
+账号管理回执仅保存完整安全Account原结果；重置输入含原始新口令，只存平台私有HMAC/keyId，不存口令或token。RevokeAllSessions的私有count为非负int64，与未设总数上限的会话模型一致，不因超过10000而阻止安全撤销；不改变产品会话数量策略。分页游标只承载不可变accountName/accountId排序位置，签名作用域绑定site/admin/dataEpoch和子账号筛选，不能当授权凭据。
+
+旧只读hash查询ResolveIdentityOperation已移除；当前写用例直接在原私有事务中用readIdentityReceipt核对HMAC/keyId并回放完整安全结果，避免为未调用的参考助手保留孤立入口。

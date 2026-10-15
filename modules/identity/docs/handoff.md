@@ -1,3 +1,24 @@
+# 第三轮交接：账号管理紧密函数组（2026-10-15，VPS现阶段检查通过）
+
+- 用户已重新授权继续实施，覆盖先前“不开展第三轮”的停止指令；旧停止记录保留为历史。独占modules/identity，分支codex/identity-management-r1，从精确9acad1ab56532521222f592af0d4b3a849792db5接续，初始工作树干净。
+- ListAccounts只返回同site子账号，含deleted墓碑，不含超管。当前会话、权限与row.isSuperadmin在一致快照核验；accountName/accountId键集排序，默认20/最多100，游标签名绑定主体/site/dataEpoch/子账号筛选，不返回任何凭据/会话秘密。修正原OpenAPI limit任意字符串为整数。
+- SetAccountStatus保持active↔disabled→deleted规则；唯一超管只接受active原样无副作用。状态真实变化CAS同时升revision/permissionRevision，RevokeAllSessions在同事务撤销全部session与refresh族并写status事件，重新启用不复活旧登录。删除保留不可再管理墓碑。
+- SetAccountPermissions拒绝超管/墓碑，只改既有10项功能。选择排序后做HMAC规范化；集合相同只记安全回执，变化时CAS提升权限水位、替换功能表并发事件。旧access/委托同步失效，refresh仍可在既定安全条件下更新最新权限，不强行撤销其族。
+- ResetAccountPassword预核当前超管row/同站点目标/CAS后在写事务外HashPassword，写事务重新核原成功回执和版本，CAS提升credentialRevision、设强改、保持原状态，并同事务撤销全部会话/族。超管自身忘密仍走服务器恢复；原始新口令只参与平台HMAC及Argon2，不入回执或日志。
+- 三个写用例先回放原成功再目标CAS；原结果只含安全Account元数据，旧op不重置后来密码/权限或撤销后来新会话。实际变更继续由既有commitAccountWrite执行候选16MiB检查、control决定、active提交和派生索引补齐；重放只用当前权威补索引。
+- 根已确认RevokeAllSessionsResult.count改非负int64并删除10000数量失败分支，因为登录未设会话总数上限；不新增产品会话限制。仅本域私有调用及生成类型受影响，无新HTTP端点。
+- 四个真实HTTP映射已加入既有server.go。公共入口负责唯一schema/服务身份/委托/epoch/维护校验；写路径accountId从PathValue静态绑定，正文不能冒充目标；其余handler/后台未完，完整启动仍blocked。
+- 本域无web/UI生成物。内部Go契约仍由identity OpenAPI；portal浏览器生成按portal OpenAPI x-browser-auth-adapters与Browser*合成认证安全副本，源说明已补，不新增目录或生成文件。
+- 仅修改既有登记文件，无新增/删除实际路径。2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。
+- 旧ResolveIdentityOperation及其DTO真实无调用，由readIdentityReceipt原事务完整安全回放替代，已删源码/合同/台账/两schema。operation_repository.go保留受信Store上下文与仍有真实调用的仓库前置并登记实际图。
+- 准确源码SHA在本轮源码提交后回填；完整BuildApplication/main仍blocked，transport装配文件因缺其余handler/后台保持in_progress。没有本机编译/格式/生成/测试/运行SQL，也没有新增测试、fixture、mock、样例或临时验证程序，未push。
+
+## 下一步（一项）
+
+继续既有ReadPreferences/UpdatePreferences紧密组与真实HTTP映射：先读本域最新合同，沿用当前session权威、CAS和私有安全回执；受限初始口令会话仍不得读取/保存偏好。本工作包完成后冻结，由根分派后开展，不自行启动下一工作包。
+
+---
+
 # 本轮交接：完整登录注册与账号口令事务（2026-10-15，VPS现阶段检查通过）
 
 ## 第二轮最终集成与停止范围

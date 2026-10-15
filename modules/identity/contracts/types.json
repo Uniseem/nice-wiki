@@ -1500,7 +1500,8 @@
             "deleted",
             "admin_reset",
             "server_reset",
-            "restore"
+            "restore",
+            "status"
           ]
         }
       },
@@ -1516,9 +1517,9 @@
       "properties": {
         "count": {
           "type": "integer",
-          "description": "数量",
+          "description": "本次事务撤销会话数，非负int64；不以人为数量上限阻止安全撤销",
           "minimum": 0,
-          "maximum": 10000
+          "maximum": 9223372036854775807
         }
       },
       "required": [
@@ -1782,57 +1783,6 @@
       },
       "required": [
         "completed"
-      ]
-    },
-    "ResolveIdentityOperationInput": {
-      "type": "object",
-      "description": "读取幂等回执的输入",
-      "additionalProperties": false,
-      "properties": {
-        "operationId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "ID"
-        },
-        "requestHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "Hash"
-        }
-      },
-      "required": [
-        "operationId",
-        "requestHash"
-      ]
-    },
-    "ResolveIdentityOperationResult": {
-      "type": "object",
-      "description": "读取幂等回执的结果",
-      "additionalProperties": false,
-      "properties": {
-        "state": {
-          "type": "string",
-          "description": "状态",
-          "enum": [
-            "absent",
-            "in_progress",
-            "committed"
-          ]
-        },
-        "resultHash": {
-          "anyOf": [
-            {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-              "description": "Hash"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "未提交null"
-        }
-      },
-      "required": [
-        "state",
-        "resultHash"
       ]
     },
     "PublishIdentityEventInput": {

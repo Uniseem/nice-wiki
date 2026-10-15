@@ -93,8 +93,8 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 		return RevokeAllSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话撤销写入失败")
 	}
 	count, err := changed.RowsAffected()
-	if err != nil || count > 10000 {
-		return RevokeAllSessionsResult{}, platform.NewError(platform.CodeIntegrityError, false, "会话撤销数量超出合同")
+	if err != nil {
+		return RevokeAllSessionsResult{}, platform.NewError(platform.CodeIntegrityError, false, "会话撤销计数不可读")
 	}
 	reason := input.Reason
 	switch reason {

@@ -498,7 +498,7 @@
       "get": {
         "operationId": "listAccounts",
         "summary": "超管读取子账号列表",
-        "description": "调用函数 identity.ListAccounts；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "超管按accountName/accountId签名键集分页读取同站点子账号，含deleted墓碑；不返回超管或任何凭据/会话秘密。",
         "x-handler": "identity.ListAccounts",
         "x-permission": "superadmin",
         "security": [
@@ -513,10 +513,11 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "每页返回上限，省略为20"
             }
           },
           {
@@ -554,6 +555,46 @@
           },
           "403": {
             "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：当前超管会话失效",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT或VERSION_MISMATCH：操作摘要/key版本或账户CAS水位冲突",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威、游标或完整结果回执损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：私有存储、签名或索引不可用",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -728,6 +769,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "NOT_FOUND：当前站点不存在该账户",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威、游标或完整结果回执损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -827,6 +888,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "NOT_FOUND：当前站点不存在该账户",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威、游标或完整结果回执损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -919,6 +1000,26 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：当前站点不存在该账户",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威、游标或完整结果回执损坏",
             "content": {
               "application/problem+json": {
                 "schema": {

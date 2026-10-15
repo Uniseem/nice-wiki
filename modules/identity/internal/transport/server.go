@@ -121,10 +121,19 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 		"createSession":           jsonOperation(a, identity.CreateSession),
 		"refreshSession":          jsonOperation(a, identity.RefreshSession),
 		"createAccount":           jsonOperation(a, identity.CreateAccount),
-		"readSelf":                jsonOperation(a, identity.ReadSelf),
-		"changePassword":          jsonOperation(a, identity.ChangePassword),
-		"verifySessionCSRF":       jsonOperation(a, identity.VerifySessionCSRF),
-		"checkAuthorization":      jsonOperation(a, identity.CheckAuthorization),
+		"setAccountStatus": jsonOperation(a, identity.SetAccountStatus, func(input *identity.SetAccountStatusInput, r *http.Request) {
+			input.AccountID = r.PathValue("accountId")
+		}),
+		"setAccountPermissions": jsonOperation(a, identity.SetAccountPermissions, func(input *identity.SetAccountPermissionsInput, r *http.Request) {
+			input.AccountID = r.PathValue("accountId")
+		}),
+		"resetAccountPassword": jsonOperation(a, identity.ResetAccountPassword, func(input *identity.ResetAccountPasswordInput, r *http.Request) {
+			input.AccountID = r.PathValue("accountId")
+		}),
+		"readSelf":           jsonOperation(a, identity.ReadSelf),
+		"changePassword":     jsonOperation(a, identity.ChangePassword),
+		"verifySessionCSRF":  jsonOperation(a, identity.VerifySessionCSRF),
+		"checkAuthorization": jsonOperation(a, identity.CheckAuthorization),
 		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			result, err := Health(r.Context(), a)
 			if err != nil {
@@ -142,6 +151,17 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 			writeJSON(w, http.StatusOK, result)
 		}),
 	}
+	handlers["listAccounts"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		result, err := identity.ListAccounts(ctx, op, identity.ListAccountsInput{Page: identity.SessionPageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}})
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
 	handlers["readSessions"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := a.identityContext(r.Context())
 		op, _ := platform.OperationContextFrom(ctx)
@@ -167,7 +187,7 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 }
 
 // jsonOperation 只解码平台已验证的输入；内部敏感结果仅返回已限定的portal服务。
-func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]) http.Handler {
+func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O], bindInput ...func(*I, *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := a.identityContext(r.Context())
 		op, _ := platform.OperationContextFrom(ctx)
@@ -177,6 +197,9 @@ func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]
 				writeProblem(w, platform.NewError(platform.CodeValidation, false, "身份输入不可解码"))
 				return
 			}
+		}
+		if len(bindInput) > 0 {
+			bindInput[0](&input, r)
 		}
 		result, err := execute(ctx, op, input)
 		if err != nil {
