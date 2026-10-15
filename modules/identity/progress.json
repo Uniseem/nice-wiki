@@ -7,13 +7,13 @@
   "assignedSession": "R1-01（完整登录/首次注册/账号创建与改密）",
   "branch": "codex/identity-login-accounts-r1",
   "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": null,
+  "deliveryCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -23,12 +23,12 @@
     {
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": "本轮CreateAccount/ReadSelf与私有事务助手已提交待VPS最终复核；同文件ListAccounts/状态/权限/密码重置仍未实现"
     },
     {
       "path": "modules/identity/internal/account_validator.go",
@@ -53,7 +53,7 @@
     {
       "path": "modules/identity/internal/credential_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -63,7 +63,7 @@
     {
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -113,12 +113,12 @@
     {
       "path": "modules/identity/internal/server_recovery.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": "本轮索引编码/提交前检查与恢复已提交待VPS最终复核；ObserveSuperadminResetFile/ApplySuperadminReset仍未实现"
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
@@ -173,7 +173,7 @@
     {
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -183,7 +183,7 @@
     {
       "path": "modules/identity/migrations/migrations.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -213,7 +213,7 @@
     {
       "path": "modules/identity/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮公共HTTP装配，未本机编译或测试"
@@ -223,7 +223,7 @@
     {
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮公共HTTP装配，未本机编译或测试"
@@ -233,7 +233,7 @@
     {
       "path": "modules/identity/go.mod",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
@@ -243,7 +243,7 @@
     {
       "path": "modules/identity/go.sum",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
@@ -353,7 +353,7 @@
     {
       "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -363,7 +363,7 @@
     {
       "path": "modules/identity/migrations/control/0001_bootstrap.sql",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -376,7 +376,7 @@
       "id": "identity.ReadRegistrationState",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -387,7 +387,7 @@
       "id": "identity.RegisterFirstSuperadmin",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -398,7 +398,7 @@
       "id": "identity.CreateAccount",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -409,7 +409,7 @@
       "id": "identity.ReadSelf",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -530,7 +530,7 @@
       "id": "identity.ChangePassword",
       "path": "modules/identity/internal/credential_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -541,7 +541,7 @@
       "id": "identity.CreateSession",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -684,7 +684,7 @@
       "id": "identity.WriteAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -816,7 +816,7 @@
       "id": "identity.OpenDatabase",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -838,7 +838,7 @@
       "id": "identity.RecoverJournal",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -849,7 +849,7 @@
       "id": "identity.All",
       "path": "modules/identity/migrations/migrations.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -871,12 +871,12 @@
       "id": "identity.BuildApplication",
       "path": "modules/identity/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "合同步骤剩余：全部OpenAPI x-handler绑定、换入后注入restoreId并调用InvalidateRestoredSessions、site-config:registerActivation回执（需stageId/manifestHash/域签名）、ObserveSuperadminResetFile与RelayOutbox后台循环；配置/目录/信任锚/签名密钥/运行权威读取/ApplyRestoreSwap/active区DB迁移/决定日志恢复已实现"
+      "blocker": "本轮真实认证/账号handler和公共入口已装配；其余账号管理/偏好/屏障/恢复handler及后台循环仍未完成，公共工厂拒绝不完整启动"
     },
     {
       "id": "identity.Serve",
@@ -1003,7 +1003,7 @@
       "id": "identity.WithRegistrationRuntime",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1014,7 +1014,7 @@
       "id": "identity.registrationRuntimeFromContext",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1025,7 +1025,7 @@
       "id": "identity.ReadInitializationStatus",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1036,7 +1036,7 @@
       "id": "identity.readBootstrapClaim",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1047,7 +1047,7 @@
       "id": "identity.reserveBootstrap",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1058,7 +1058,7 @@
       "id": "identity.markBootstrapCommitted",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1069,7 +1069,7 @@
       "id": "identity.recoverBootstrapClaim",
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1080,7 +1080,7 @@
       "id": "identity.readAccount",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1091,7 +1091,7 @@
       "id": "identity.readActorAccount",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1102,7 +1102,7 @@
       "id": "identity.insertAccount",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1113,7 +1113,7 @@
       "id": "identity.selectedPermissionNames",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1124,7 +1124,7 @@
       "id": "identity.privateIdentityDigest",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1135,7 +1135,7 @@
       "id": "identity.readIdentityReceipt",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1146,7 +1146,7 @@
       "id": "identity.saveIdentityReceipt",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1157,7 +1157,7 @@
       "id": "identity.commitAccountWrite",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1168,7 +1168,7 @@
       "id": "identity.syncAccountIndex",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1179,7 +1179,7 @@
       "id": "identity.recoverAccountIndex",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1190,7 +1190,7 @@
       "id": "identity.identityDBError",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1201,7 +1201,7 @@
       "id": "identity.hasGrant",
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1212,7 +1212,7 @@
       "id": "identity.sensitiveReplayError",
       "path": "modules/identity/internal/credential_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1223,7 +1223,7 @@
       "id": "identity.WithLoginRuntime",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1234,7 +1234,7 @@
       "id": "identity.beginIdentityLogin",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1245,7 +1245,7 @@
       "id": "identity.finishIdentityLogin",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1256,7 +1256,7 @@
       "id": "identity.insertSession",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1267,7 +1267,7 @@
       "id": "identity.openIdentityControl",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1278,7 +1278,7 @@
       "id": "identity.AppendDecision",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1289,7 +1289,7 @@
       "id": "identity.CompleteDecision",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1300,7 +1300,7 @@
       "id": "identity.ControlSchema",
       "path": "modules/identity/migrations/migrations.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -1311,7 +1311,7 @@
       "id": "identity.NewApplication",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
@@ -1322,7 +1322,7 @@
       "id": "identity.identityContext",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
@@ -1333,7 +1333,7 @@
       "id": "identity.authorizeOperation",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
@@ -1344,7 +1344,7 @@
       "id": "identity.operationHandlers",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
@@ -1355,7 +1355,7 @@
       "id": "identity.jsonOperation",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
@@ -1366,7 +1366,7 @@
       "id": "identity.anonymousIdentityOperation",
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "本轮统一复核明确修订，待VPS检查"
@@ -1377,7 +1377,7 @@
       "id": "identity.readAccountAuthorityQuery",
       "path": "modules/identity/internal/server_recovery.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "本轮统一复核明确修订，待VPS检查"
@@ -1388,7 +1388,7 @@
       "id": "identity.encodeAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
         "state": "not_run",
         "evidence": "本轮统一复核明确修订，待VPS检查"

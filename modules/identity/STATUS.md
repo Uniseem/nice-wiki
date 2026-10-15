@@ -1,8 +1,8 @@
 # 当前工作包：登录注册与账号口令事务（2026-10-15，待VPS统一复核）
 
-分支codex/identity-login-accounts-r1，精确基线468986fc34e1c90b6b5ca575539fdd2b9748cd06，仅本域。已准备CreateSession、RegisterFirstSuperadmin、CreateAccount、ChangePassword、ReadSelf真实用例源码，使用guard版本化begin/finish准入与账号/网络HMAC，未知依赖失败关闭；新增独立control bootstrap不可逆决定、私有HMAC/keyId回执与账号索引决定恢复。raw token仅首次提交响应，不进入普通回执。
+分支codex/identity-login-accounts-r1，精确基线468986fc34e1c90b6b5ca575539fdd2b9748cd06，仅本域。源码提交`491f3e049b98f01b85ee4e9bf69b6b3c147fadc9`（28文件），已准备CreateSession、RegisterFirstSuperadmin、CreateAccount、ChangePassword、ReadSelf真实用例源码，使用guard版本化begin/finish准入与账号/网络HMAC，未知依赖失败关闭；新增独立control bootstrap不可逆决定、私有HMAC/keyId回执与账号索引决定恢复。raw token仅首次提交响应，不进入普通回执。
 
-本轮所有源码保持in_progress；集成会话VPS首轮gofmt/gen/docs及go命令生成的依赖文件已回传，最终build/check结论等待根统一复核。未在本机编译、格式、生成、vet、测试或运行SQL；公共依赖以合成快照26138c1为准，模块分支尚未自行合入公共变更。新实际SQL文件仅0004_private_operation_receipts.sql和control/0001_bootstrap.sql。HTTP装配等待公共入口机制；其余账号管理、后台循环、行为验收与部署未完成。未新增测试/样例/fixture/临时验证程序，未调用真实接口/模型、未启动服务、未push。
+本轮所有源码保持in_progress；集成会话VPS首轮gofmt/gen/docs及go命令生成的依赖文件已回传，最终build/check结论等待根统一复核。未在本机编译、格式、生成、vet、测试或运行SQL；公共依赖以合成快照26138c1为准，模块分支尚未自行合入公共变更。新实际SQL文件仅0004_private_operation_receipts.sql和control/0001_bootstrap.sql。已实现认证组已绑定公共入口，缺其余handler则整体启动失败；其余账号管理、后台循环、行为验收与部署未完成。未新增测试/样例/fixture/临时验证程序，未调用真实接口/模型、未启动服务、未push。
 
 ---
 
