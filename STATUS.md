@@ -1,17 +1,19 @@
-# 当前状态（2026-10-15，R1三个工作包并行交付与统一复核）
+# 当前状态（2026-10-15，R1持续实施第一轮统一复核）
 
-阶段：R1实施中；本轮三个独立worktree工作包已统一复核并合入main，最小业务链路、行为验收和部署仍未完成。
+阶段：R1实施中；identity、site-config、jobs三个独立worktree交付已逐个统一复核并顺序集成，最小业务链路、行为验收和部署仍未完成。
 
 ## 最新事实
 
-- identity完成自身会话签名游标分页与账户全部会话撤销，撤销、完整结果回执与outbox同事务；登录签发/刷新/CSRF仍未完成。
-- site-config完成确定性默认配置、安全初始化状态读取、不可反悔决定及完整准备配置/hash持久化；commit仍只是持久决定，不冒充settings权威文件提交或初始化完成。
-- jobs完成领取、启动、心跳、租约校验与同事务进度；持久fence计数不随lease释放丢失，按owner/worker/epoch隔离，领取有界、回执重放不延长租约，维护受control屏障截止约束；完整HTTP/后台/control屏障装配仍未完成。
-- 公共复核修正：分页游标签名统一放platform；CheckLease补workerId；生成器正确保留带description的可空引用，content旧head比较和site-config恢复字段同步采用null语义。10个新增实际文件已登记。
-- 最新机器台账：846文件、920函数、372HTTP操作、2172类型；函数已实现或验证159个（66个verified）、in_progress 9个、blocked 14个、planned 738个。函数条目比例不等同产品完成率。
-- 隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：14个Go模块make build（-mod=readonly build/vet/gofmt）和make check完整通过；源码排除私有配置、凭据、数据与本机.git，VPS独立建立临时Git元数据，以既有代用身份检查暂存内容。make docs无漂移、make gen重复无漂移已在本轮早期核对。未新增测试、未运行业务测试、服务进程、真实接口、模型或部署。
-- 用户本轮追加：所有编译和测试均在VPS执行，已同步根/15域AGENTS与实施/合并规则；VPS不可用则blocked，未经当次授权不回退本机。本轮追加前已执行过本机检查，此事实保留于交接。
-- 本次用户已授权并完成普通推送main，首轮远端核对为b4bda15；结果记录随后同步，详情见docs/push-log/2026-10-15-0005.md。原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
+- identity完成access签发、refresh单次轮换与复用撤销、独立CSRF、当前会话/权限/认证代次权威核验、自身会话与族撤销；权限变更后refresh同事务更新版本。完整注册、登录、账号管理与HTTP装配仍未完成。
+- site-config完成Initialize/Resume/Abort、settings权威对象和PREPARED/COMMITTED/head提交、CAS、原始回执、配置事件outbox与启动恢复；文件IO逐段拒绝链接、只读正规文件并有16MiB上限。配置编辑、首页/公告和完整HTTP仍未完成。
+- jobs完成终局、有限重试、安全取消、任务读取、过期租约orphan隔离/核实恢复框架；保留原费用根、付费结果与单调fence。未知owner结果不自动重跑；真实owner恢复API适配、事件/定时/屏障与完整启动仍未完成。
+- 公共和portal复核修正：真实sessionRevision、专用委托密钥、固定配置Origin、静态action、二跳委托、任务具体权限目录、worker独立控制幂等键与取消竞争；代理流上下文保留到响应关闭，禁止自动重定向，IPv6/默认端口同源匹配。
+- 最新机器台账：850文件、943函数、372HTTP操作、2186类型；已实现或验证204函数（123 verified），in_progress 9、blocked 15、planned 715。函数条目比例不等同产品完成率；portal完整装配从旧记录implemented纠正为blocked。
+- 三模块顺序合入后的每一步均在独立VPS源码镜像运行make docs/gen、14个Go模块make build（readonly build/vet/gofmt）及完整make check通过；最终生成回传零变化。linux/amd64 go1.25.5、GOMAXPROCS=8；未新增测试、未运行业务测试、SQL行为验收、真实接口/模型、服务、镜像或部署。
+- 根结构补登14个实际文件；台账引用已映射集成分支实际提交。VPS只同步无凭据源码，不同步本机.git、私有配置、环境、密钥或运行数据。编译与测试全部VPS，未本机回退。
+- 当前持续实施授权没有追加push；原有未跟踪HTML未改动、未提交。旧归档与远端不变；本轮待推送记录见docs/push-log/_pending.md。目标保持全部代码初步完成，未以这一轮交付替代整体完成。
+
+下一轮：三个并行工作包继续identity完整登录/注册与口令事务、site-config配置读取编辑与校验、jobs事件存储投递与确认；集成会话负责公共HTTP装配与owner恢复协议收口，完成后统一复核。
 
 ## 历史实施记录
 

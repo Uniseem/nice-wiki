@@ -3357,6 +3357,41 @@
       "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
       "kind": "migration",
       "purpose": "只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform"
+    },
+    {
+      "path": "modules/jobs/internal/results.go",
+      "kind": "source",
+      "purpose": "提交成功结果；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/retry.go",
+      "kind": "source",
+      "purpose": "固定错误重试分类；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/scheduler.go",
+      "kind": "source",
+      "purpose": "到期重排；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/cancellation.go",
+      "kind": "source",
+      "purpose": "请求取消任务；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/query.go",
+      "kind": "source",
+      "purpose": "读取管理任务状态；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/migrations/0003_terminal_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造"
+    },
+    {
+      "path": "modules/jobs/migrations/0004_orphan_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用"
     }
   ]
 }

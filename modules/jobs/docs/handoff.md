@@ -1,5 +1,14 @@
 # 任务与事件会话交接
 
+## 持续实施第一轮最终集成事实（2026-10-15）
+
+- 终局、取消、有限重试、持久任务权限与orphan框架通过；owner恢复适配、事件/定时/屏障和HTTP仍未完成。
+- 主线实际源码提交：7566a0c、167aec4；模块分支交付经cherry-pick后SHA已在progress.json映射，后文原分支SHA保留用于溯源。
+- 三域逐个合入后各自VPS make docs/gen、14模块readonly build/vet/gofmt与完整make check通过；最终850文件/943函数/372操作/2186类型，生成回传零变化。现有设计检查补核managementPermission与jobManagementGrants集合一致。
+- 全部编译/格式/vet/生成检查均在VPS；没有新增测试，也没有运行业务测试、SQL行为验收、服务/真实接口/模型、镜像、部署或push。部分文件与入口继续in_progress/blocked，不把检查当业务验收。
+- 下一项以本节和根plan最新工作包为准，后文“等待VPS”等旧说明为过程历史。
+
+
 ## 统一复核追加修复（2026-10-15，VPS通过、待最终集成）
 
 - 追加修复源码`92f4fe029c58baeace5657b9c7762dc9cb5ccd19`，台账回填随后单独提交。原源码`5eabae7a7e9d`及台账`1a16fc73130c`已交付，根复核发现两项真实缺口后追加本包修复；仅本域，未push。

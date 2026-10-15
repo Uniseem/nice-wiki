@@ -4,19 +4,19 @@
   "phase": "implementation",
   "contractSha256": "c6e6c4f8a967aab7834e23acfbe5fdb1916d315d529e83a4e6cf54de5bf14e42",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（会话签发刷新、CSRF与即时授权）",
-  "branch": "codex/identity-session-complete-r1",
+  "assignedSession": "R1持续实施第一轮统一复核",
+  "branch": "main",
   "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
-  "deliveryCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
+  "deliveryCommit": "9c86c83d43c231a22704573c421f8063e3ee0c54",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": "RegisterFirstSuperadmin仅完成输入和依赖前置，仍缺唯一超管/凭据/索引/会话的完整写事务"
     },
@@ -43,10 +43,10 @@
     {
       "path": "modules/identity/internal/permission_mapping.go",
       "state": "verified",
-      "implementationCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
+      "implementationCommit": "9c86c83d43c231a22704573c421f8063e3ee0c54",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -63,40 +63,40 @@
     {
       "path": "modules/identity/internal/session_service.go",
       "state": "in_progress",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": "CreateSession仍缺登录风控、密码核对后的会话创建事务与初始化下一路由；已交付签发/刷新/会话列表及助手通过VPS现阶段检查"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
     {
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -133,20 +133,20 @@
     {
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": "PublishIdentityEvent本轮变更通过VPS检查；RelayOutbox jobs客户端与循环仍未实现"
     },
     {
       "path": "modules/identity/internal/restore_security.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -343,10 +343,10 @@
     {
       "path": "modules/identity/migrations/0003_session_tokens.sql",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     }
@@ -466,10 +466,10 @@
       "id": "identity.MapFunctionGrants",
       "path": "modules/identity/internal/permission_mapping.go",
       "state": "verified",
-      "implementationCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
+      "implementationCommit": "9c86c83d43c231a22704573c421f8063e3ee0c54",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -532,10 +532,10 @@
       "id": "identity.IssueSessionTokens",
       "path": "modules/identity/internal/session_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -543,10 +543,10 @@
       "id": "identity.RefreshSession",
       "path": "modules/identity/internal/session_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -554,10 +554,10 @@
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -565,10 +565,10 @@
       "id": "identity.RevokeSession",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -576,10 +576,10 @@
       "id": "identity.RevokeSessionFamily",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -587,10 +587,10 @@
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -598,10 +598,10 @@
       "id": "identity.RevokeOtherSessions",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -609,10 +609,10 @@
       "id": "identity.VerifySessionCSRF",
       "path": "modules/identity/internal/csrf_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -620,10 +620,10 @@
       "id": "identity.CheckAuthorization",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -708,10 +708,10 @@
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -730,10 +730,10 @@
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -917,10 +917,10 @@
       "id": "identity.WithSessionRuntime",
       "path": "modules/identity/internal/session_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -928,10 +928,10 @@
       "id": "identity.sessionRuntimeFromContext",
       "path": "modules/identity/internal/session_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -939,10 +939,10 @@
       "id": "identity.readSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -950,10 +950,10 @@
       "id": "identity.validateSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -961,10 +961,10 @@
       "id": "identity.sessionAuthContext",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     },
@@ -972,10 +972,10 @@
       "id": "identity.verifySessionAccess",
       "path": "modules/identity/internal/authorization_service.go",
       "state": "verified",
-      "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+      "implementationCommit": "8092ab46627510caf2afa3ac9cda5df786e8d055",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
+        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
     }

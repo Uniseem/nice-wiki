@@ -1,5 +1,14 @@
 # 当前工作包：会话签发、刷新与即时授权（2026-10-15，VPS编译与结构复核通过）
 
+## 持续实施第一轮最终集成事实（2026-10-15）
+
+- 会话签发/刷新/CSRF/核权与撤销通过；完整登录注册与HTTP/后台仍未完成。
+- 主线实际源码提交：8092ab4、9c86c83；模块分支交付经cherry-pick后SHA已在progress.json映射，后文原分支SHA保留用于溯源。
+- 三域逐个合入后各自VPS make docs/gen、14模块readonly build/vet/gofmt与完整make check通过；最终850文件/943函数/372操作/2186类型，生成回传零变化。现有设计检查补核managementPermission与jobManagementGrants集合一致。
+- 全部编译/格式/vet/生成检查均在VPS；没有新增测试，也没有运行业务测试、SQL行为验收、服务/真实接口/模型、镜像、部署或push。部分文件与入口继续in_progress/blocked，不把检查当业务验收。
+- 下一项以本节和根plan最新工作包为准，后文“等待VPS”等旧说明为过程历史。
+
+
 - 分支`codex/identity-session-complete-r1`；基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，只拥有modules/identity。接续前代理相同工作包未提交撤销代码与追加迁移后逐项审阅；本轮源码提交`59070a0645a744e67426f511fcddd2040e46816f`，仅本域20文件；源码提交后工作树清洁，台账记录随后单独提交以引用准确SHA。
 - IssueSessionTokens仅接受本域事务，由platform统一生成独立随机secret和专用Ed25519签名；固定issuer/audience/type，绑定会话/凭据/权限/认证/数据版本，15分钟访问且不超过首次签发后7天。原始cookie不入普通回执或日志，族、摘要与会话访问期限同事务。
 - RefreshSession仅允许portal，入口建立固定Origin与Strict refresh cookie，不要求access有效。当前refresh一次消费；命中已消费摘要则同事务撤销族和session、登记安全outbox，提交后返回未认证。敏感响应丢失需重新登录，浏览器刷新singleflight。权限从本域权威功能表重建；刷新允许旧permissionRevision，同一事务CAS写入最新权限与session版本后签发；旧access/委托仍失败关闭，不放宽凭据/认证/数据代次或撤销。

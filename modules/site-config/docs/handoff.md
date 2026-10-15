@@ -1,5 +1,14 @@
 # 站点配置与初始化会话交接
 
+## 持续实施第一轮最终集成事实（2026-10-15）
+
+- 初始化与settings权威提交、恢复和文件IO通过；配置编辑、完整HTTP/后台仍未完成。
+- 主线实际源码提交：a0d6adf、0e8cc9f、c2d734b；模块分支交付经cherry-pick后SHA已在progress.json映射，后文原分支SHA保留用于溯源。
+- 三域逐个合入后各自VPS make docs/gen、14模块readonly build/vet/gofmt与完整make check通过；最终850文件/943函数/372操作/2186类型，生成回传零变化。现有设计检查补核managementPermission与jobManagementGrants集合一致。
+- 全部编译/格式/vet/生成检查均在VPS；没有新增测试，也没有运行业务测试、SQL行为验收、服务/真实接口/模型、镜像、部署或push。部分文件与入口继续in_progress/blocked，不把检查当业务验收。
+- 下一项以本节和根plan最新工作包为准，后文“等待VPS”等旧说明为过程历史。
+
+
 ## 本轮 R1-02 初始化完成与 settings 权威提交（2026-10-15）
 
 - 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。本轮源码提交 `5b6bc4e39fd72457d302031e0f369cece55ae1c5`，格式/生成/台账提交 `6396715d91a56bb6a12cb4ddd151b4117ff27520`；旧分支保留。配置 IO 边界修复 `53156c7d74fb065b1355250ab916d03518c49d0b`、格式/生成与 vet 修正 `8613254c72d63ddf30ce3710cf222d21a7738181` 均已通过本轮 VPS 复跑。

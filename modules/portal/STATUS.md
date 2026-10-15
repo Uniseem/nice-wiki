@@ -1,5 +1,10 @@
 # 主系统当前进度
 
+最新统一集成事实（2026-10-15）：权威access/CSRF、专用委托、固定Origin和代理修复已通过；BuildApplication仍因本域端点、准入和恢复装配blocked。
+VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：dad2dce，逐项以progress.json为准。未执行业务验收或部署。
+以下旧说明作为历史记录，当前状态以前述事实和台账为准。
+
+
 本轮持续实施集成分支（未合main）：接入identity权威access授权与CSRF，使用真实会话版本和静态action；专用委托密钥独立于服务断言，固定配置Origin，修复流取消时机、重定向与IPv6默认端口。
 VPS上一快照14模块build/vet/gofmt与make check通过；委托二跳与代理错误映射的最后修订等待最终复跑。业务验收和部署未执行。
 

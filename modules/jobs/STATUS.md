@@ -1,5 +1,10 @@
 # 任务与事件当前进度
 
+最新统一集成事实（2026-10-15）：终局、取消、有限重试、持久任务权限与orphan框架通过；owner恢复适配、事件/定时/屏障和HTTP仍未完成。
+VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：7566a0c、167aec4，逐项以progress.json为准。未执行业务验收或部署。
+以下旧说明作为历史记录，当前状态以前述事实和台账为准。
+
+
 统一复核追加修复（2026-10-15，VPS通过、待最终集成）：管理终点从持久任务owner/type映射具体managementPermission后请求identity，job.manage仅作入口粗能力；外部授权请求不持有Store锁，事务内复核任务作用域。持久cancel_requested优先于临时失败重试：未明确安全的失败进入orphan，CANCELLED确认后才终止；claim/start/requeue/heartbeat共同保留取消意图。本轮隔离VPS make docs/gen及14模块make build（只读依赖build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）；修复源码`92f4fe029c58baeace5657b9c7762dc9cb5ccd19`已回填，交付条目记implemented，verified等待根最终集成。
 
 更新：2026-10-15。R1-03终局与回收包源码及VPS编译门槛已完成，源码提交`5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef`，交付条目记implemented；完整结构检查待集成收口。分支`codex/jobs-execution-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，独占`modules/jobs/`。

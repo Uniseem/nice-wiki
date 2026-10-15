@@ -1,5 +1,14 @@
 # platform 交接（R1-00）
 
+## 持续实施第一轮最终集成事实（2026-10-15）
+
+- 会话签名、委托、可信配置和worker控制/结果链已通过统一复核；调用服务完整装配仍未完成。
+- 主线实际源码提交：dad2dce；模块分支交付经cherry-pick后SHA已在progress.json映射，后文原分支SHA保留用于溯源。
+- 三域逐个合入后各自VPS make docs/gen、14模块readonly build/vet/gofmt与完整make check通过；最终850文件/943函数/372操作/2186类型，生成回传零变化。现有设计检查补核managementPermission与jobManagementGrants集合一致。
+- 全部编译/格式/vet/生成检查均在VPS；没有新增测试，也没有运行业务测试、SQL行为验收、服务/真实接口/模型、镜像、部署或push。部分文件与入口继续in_progress/blocked，不把检查当业务验收。
+- 下一项以本节和根plan最新工作包为准，后文“等待VPS”等旧说明为过程历史。
+
+
 ## 持续实施第一轮公共集成（待合main）
 
 - 统一会话访问签名/独立秘密、专用委托签名、会话版本、可信公共地址与任务完整结果写回。worker控制操作使用独立幂等键，费用根与executor原操作不变；取消确认由owner负责，权威未知暂停领取。

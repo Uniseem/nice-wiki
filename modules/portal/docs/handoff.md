@@ -1,5 +1,14 @@
 # 主系统会话交接
 
+## 持续实施第一轮最终集成事实（2026-10-15）
+
+- 权威access/CSRF、专用委托、固定Origin和代理修复已通过；BuildApplication仍因本域端点、准入和恢复装配blocked。
+- 主线实际源码提交：dad2dce；模块分支交付经cherry-pick后SHA已在progress.json映射，后文原分支SHA保留用于溯源。
+- 三域逐个合入后各自VPS make docs/gen、14模块readonly build/vet/gofmt与完整make check通过；最终850文件/943函数/372操作/2186类型，生成回传零变化。现有设计检查补核managementPermission与jobManagementGrants集合一致。
+- 全部编译/格式/vet/生成检查均在VPS；没有新增测试，也没有运行业务测试、SQL行为验收、服务/真实接口/模型、镜像、部署或push。部分文件与入口继续in_progress/blocked，不把检查当业务验收。
+- 下一项以本节和根plan最新工作包为准，后文“等待VPS”等旧说明为过程历史。
+
+
 ## 持续实施第一轮公共集成（待合main）
 
 - 接入identity权威access授权与CSRF，使用真实会话版本和静态action；专用委托密钥独立于服务断言，固定配置Origin，修复流取消时机、重定向与IPv6默认端口。
