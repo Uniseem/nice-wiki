@@ -2,7 +2,7 @@
 
 ## 本包事实（R1-03终局与租约恢复，2026-10-15）
 
-- 分支`codex/jobs-execution-complete-r1`；基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`；开始工作区干净，独占`modules/jobs/`。交付提交待本次源码提交后回填，未push。
+- 分支`codex/jobs-execution-complete-r1`；基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`；开始工作区干净，独占`modules/jobs/`。源码提交`5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef`，台账回填随后单独提交，未push。
 - 新增`internal/results.go`、`retry.go`、`cancellation.go`、`query.go`、`scheduler.go`、`migrations/0003_terminal_jobs.sql`、`0004_orphan_jobs.sql`；修改queue/leases及本域types、OpenAPI、implementation。所有生成目录不手改，由集成会话统一make docs/gen。
 - 既有终局回执只读重放；换新操作键补写回执前同样核当前control屏障截止，safe水位后拒绝active回执写入。
 - Complete/Fail现带workerId；Complete可省略或传null resultRef，无结果任务可完成；Fail可选paidResultRefs，retryAt仅retry-wait存在。成功主结果、已有付费引用、终局状态、租约释放、outbox、操作键及job/fence回执同事务。相同终局可重放，不同worker/fence/结果拒绝。
@@ -11,7 +11,7 @@
 - 保存可信rootOperationId并随Claim返回，重试不生成新付费根。历史缺根保持未知，不从operationId猜根；允许owner确认已完成后复用结果，安全取消不需要新根。Claim不领取根未知任务。
 - 0001/0002未改写；0003追加根操作、安全错误码、取消标志、扩展操作回执及job_outcomes；0004只追加重建jobs状态CHECK和job_orphans，不在迁移中执行无outbox业务状态变更。FK目标保持同名jobs，迁移事务延期检查至重建结束。
 - InstallStore接收可信runtime/control提供者、生成IdentityClient和OwnerRecoveryChecker。完整BuildApplication、control持久屏障与实际owner恢复版本化适配仍未接通，明确unavailable，不宣称恢复业务已可运行。
-- 检查：集成会话隔离VPS首轮make docs/gen成功，14模块make build（-mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make check仅公共可达性与新增文件framework登记待集成收口。源码提交后回填SHA记implemented，完整结构检查尚未标通过。本机只读取与编辑；未编译/格式/vet/运行SQL/临时业务验证，未新增测试、样例、fixture或mock，未调用真实接口/模型、未启动服务或部署。
+- 检查：集成会话隔离VPS首轮make docs/gen成功，14模块make build（-mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make check仅公共可达性与新增文件framework登记待集成收口。源码提交与SHA已回填，已交付函数及完整文件记implemented，scheduler仍有TickSchedules未实施而保持in_progress；完整结构检查尚未标通过。本机只读取与编辑；未编译/格式/vet/运行SQL/临时业务验证，未新增测试、样例、fixture或mock，未调用真实接口/模型、未启动服务或部署。
 
 ### 本包下一步（一项）
 

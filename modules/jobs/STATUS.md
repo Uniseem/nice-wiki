@@ -1,6 +1,6 @@
 # 任务与事件当前进度
 
-更新：2026-10-15。R1-03终局与回收包源码及VPS编译门槛已完成，待提交SHA与完整结构检查收口。分支`codex/jobs-execution-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，独占`modules/jobs/`。
+更新：2026-10-15。R1-03终局与回收包源码及VPS编译门槛已完成，源码提交`5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef`，交付条目记implemented；完整结构检查待集成收口。分支`codex/jobs-execution-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，独占`modules/jobs/`。
 
 - 新增CompleteJob、FailJob、RequestCancel、ConfirmCancelled、ReadJob、固定重试与到期重排；结果/状态/租约/outbox/操作与终局回执同事务，worker/owner/epoch/fence及control截止限制保持。已付费引用合并保留；无结果任务不生成空ObjectRef。
 - ReapExpiredLeases先失效旧fence并隔离orphan，再经可信OwnerRecoveryChecker确认completed或safeToRetry，pending/unknown保持orphan；实际owner版本化适配未接通，不能视为恢复业务可用。维护/control屏障期间暂停回收与重排。
