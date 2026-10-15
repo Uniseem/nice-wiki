@@ -8,6 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"nice-wiki/libs/platform/apivalidate"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -37,7 +40,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
-	if _, err := loadTrustAnchors(config.TrustAnchorRef); err != nil {
+	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
+	if err != nil {
 		return nil, err
 	}
 	key, err := loadSigningKey(config.SigningKeyRef)
@@ -67,26 +71,50 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障工作包")
 	}
 
-	if err := mediaDomain.InstallLocalBlobStore(config.DataRoot); err != nil {
-		return nil, err
-	}
-	if _, err := mediaDomain.RecoverBlobJournal(ctx, platform.OperationContext{
-		RequestID:     platform.NewIdentifier(),
-		OperationID:   platform.NewIdentifier(),
-		CallerService: ModuleSlug,
-		Actor: platform.AuthContext{
-			SubjectID: "system",
-			SiteID:    "system",
-		},
-		DataEpoch: view.DataEpoch,
-	}, mediaDomain.RecoverBlobJournalInput{}); err != nil {
+	if err := mediaDomain.InstallLocalBlobStore(config.DataRoot, view.DataEpoch); err != nil {
 		return nil, err
 	}
 
-	// 其余 x-handler、outbox/事件循环和 jobs worker 尚未实现；启动必须
-	// 明确失败，不能让健康路由掩盖缺口。私有存储和 blob journal 已在
-	// 上面的恢复边界内完成检查，后续工作包继续接入业务路由。
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "media业务装配依赖尚未实现")
+	complete := false
+	defer func() {
+		if !complete {
+			_ = mediaDomain.CloseLocalBlobStore()
+		}
+	}()
+	if err := mediaDomain.ConfigureWriteWindow(platform.WriteWindowConfig{Runtime: runtimeClient.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+		current, err := runtimeClient.ReadRuntimeState(work)
+		if err != nil {
+			return time.Time{}, err
+		}
+		if current.DataEpoch == "" {
+			return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体写窗口当前代次未知")
+		}
+		if current.DataEpoch != view.DataEpoch {
+			return time.Time{}, platform.NewError(platform.CodeVersionMismatch, false, "媒体写窗口已切换数据代次")
+		}
+		if current.Maintenance || current.Phase != platform.PhaseRunning {
+			return time.Time{}, platform.NewError(platform.CodeLocked, true, "媒体维护写窗口已关闭")
+		}
+		return time.Time{}, nil
+	}}); err != nil {
+		return nil, err
+	}
+	id := platform.NewIdentifier()
+	startup := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, DataEpoch: view.DataEpoch,
+		Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system"}}
+	if _, err := mediaDomain.RecoverBlobJournal(ctx, startup, mediaDomain.RecoverBlobJournalInput{}); err != nil {
+		return nil, err
+	}
+	if err := mediaDomain.RecoverUploadChunks(ctx, startup); err != nil {
+		return nil, err
+	}
+	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	application, err := transport.NewApplication(config, anchors, runtimeClient, view.DataEpoch, apivalidate.NewIdentityAuthorizer(identity))
+	if err != nil {
+		return nil, err
+	}
+	complete = true
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，供平台进程模板读取

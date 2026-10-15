@@ -1,5 +1,24 @@
 # 资源媒体会话交接
 
+## 第五轮上传分块与资源读取（2026-10-16，源码待VPS）
+
+- 独占modules/media/；codex/media-chunks-read-r1从5894bfb368bfb79331709b3e0f0e5e6ed92bf098起，原site-config分支保留。本轮只做PutUploadChunk/ReadAsset及根批准的Begin原结果闭环，不扩Complete/pin。
+- 固定actor/site/epoch/upload/offset/length/sha/revision业务摘要，不含io.Reader或候选时钟。HTTP Content-Length明确1..8MiB；有界length+1核精确字节与SHA，安全私有暂存fsync后记录PREPARED，追加/fsync后offset/revision CAS+COMMITTED原结果/hash同事务。同操作旧成功先于配额/offset/CAS/reader消费，只读原UploadSession快照。
+- Begin hash绑定caller/actor/site/epoch与原严格输入；当前授权/epoch后先查原快照，再做新名称候选和站点配额。新上传session/创建epoch/原结果同事务；旧无快照或NULL epoch回执明确冲突/版本错误，保留原上传不猜、不删、不重建。0002为获准只追加迁移，0001未改。
+- 新上传及分块写复用NewWriteContext的真实Runtime/WriteWindow，当前只允许running且非维护，未知失败关闭，无伪造屏障30秒窗口。启动按已提交SQL水位核前缀SHA或截未确认尾；未提交材料保留不假成功。仅普通文件，根路径Lstat/目录能力/NOFOLLOW及固定生成名，不接收任意路径。
+- ReadAsset按唯一持久Asset schema和索引一致性返回ready安全DTO；固定content/site-config/public-site/localization/knowledge纯服务，用户media.read/upload/manage与同站点。仅当前真实版本，其他指定版本NOT_FOUND，不伪造历史或发布权限。
+- 真实HTTP绑定Begin/Read/Abort/Chunk/ReadAsset和health/ready，使用NewServiceHandler与NewIdentityAuthorizer；identity:checkAuthorization新增consumer由根VPS生成。缺其他OpenAPI handler严格失败并关闭本地库，restore控制未完仍不Ready。无占位成功。
+- 新实际文件3个：internal/chunk_writer.go、internal/asset_service.go、migrations/0002_upload_chunks.sql，根统一framework登记。参考助手已同步实际合同；生成目录未手改。无新库、测试/mock/fixture/样例/临时业务验证程序，无本机Go/gofmt/gen/vet/类型检查/测试，无真实接口/模型、服务、部署或push。
+- 当前所有本轮改变in_progress，等待根统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check后再source+metadata交付，不把旧证据当新编译。自动审批曾拒绝将旧助手删除混入合同更新；后经完整定义/HEAD/全域引用/接口装配只读核对，独立精确删除获准，未扩大范围。
+
+### 本轮收尾与停止
+
+收到根统一产物/证据后只修确证问题，提交本域source+metadata、回填实际SHA并冻结。用户要求这轮结束后停止持续目标，由根统一push和报告百分比；本域不push，不自动开展后包，后续继续需新的用户授权。
+
+## 历史记录
+
+# 资源媒体会话交接
+
 ## 集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
@@ -52,3 +71,7 @@ acquire顶层显式site/object/revision/version/operation/digest且refs允许空
 
 
 第四轮恢复分支补充：Release以完整来源材料和可空pinId调用。媒体只在回源明确同材料aborted/rejected后，按源互斥及对象稳定锁序，同事务封存来源与释放pending pin；本地无pin也持久封存，晚到Acquire不得再落pin。网络404/未知不是无pin证明，源已提交/current/history均不释放。此协议仍planned，不宣称媒体业务实现。修订后的契约、生成物与实际集成树已在VPS通过docs/gen、14现有模块readonly build/vet/gofmt与完整check（858/1105/379/2253），生成回传无冲突；未执行业务验收。
+
+创建上传在SQL Commit尝试前即保留候选临时文件；Commit错误仍报错但不删除可能已落库会话对应文件，由同op读取持久原回执确认。未知文件不自动计数成功，也不在本包扩GC。
+
+本轮私有文件安全收口复用公共lifecycle.ValidatePrivatePath：既有上传/暂存普通文件打开前后均拒硬链接，并核Root、fd和绝对路径SameFile；media.db打开前后同一公共校验，未知失败关闭，不复制规则。

@@ -44,3 +44,10 @@
 | `media.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `media.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
 <!-- flows:end -->
+
+
+第五轮分块：当前授权/epoch → 原操作/来源/hash → 原成功只读返回 → 新操作真实running写窗口 → receiving/expiry/offset/revision/创建epoch → 有界临时chunk与hash/fsync → PREPARED持久 → 追加/fsync → 再核窗口/expiry → SQL水位CAS与COMMITTED原结果。中断后只按SQL已提交水位核前缀/截尾，绝不把PREPARED当已收齐或ready。
+
+第五轮Begin：原严格输入+caller/actor/site/epoch业务hash → 固定原回执 → 新操作running窗口/规范名称/site-config配额 → 创建临时文件fsync → session+创建epoch+原结果同事务。旧成功不再走当前配额；旧缺材料失败要求新操作。
+
+构造先装配公共运行写窗口、核blob和chunk本地日志，再绑定真实已实现HTTP。全部OpenAPI handler未齐时NewServiceHandler失败，关闭存储，不启动部分可用服务；本轮不实现CompleteUpload和引用pin业务。维护仅允许Begin/Chunk的旧成功回放，所有新/未完成写入仍由公共窗口拒绝。

@@ -139,6 +139,7 @@ func (s *localBlobStore) RecoverBlobJournal(ctx context.Context) (RecoverBlobJou
 			result.IsolatedCount++
 		}
 	}
+	s.blobRecovered = true
 	return result, nil
 }
 

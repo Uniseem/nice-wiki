@@ -12,13 +12,16 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode/utf8"
 
 	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动（ADR0005）。
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/inbox"
+	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/media/internal/gen"
 	mediamigrations "nice-wiki/modules/media/migrations"
@@ -79,9 +82,15 @@ const (
 // 数据库单连接串行写入；mu 串行化同进程的提交，使“写文件→元数据事务”
 // 不与另一提交交错。所有路径都由受约束的 ID/hash 生成。
 type localBlobStore struct {
-	root string
-	db   *sql.DB
-	mu   sync.Mutex
+	root           string
+	db             *sql.DB
+	mu             sync.Mutex
+	openedEpoch    Identifier
+	window         platform.WriteWindowConfig
+	validateAsset  func(json.RawMessage) error
+	validateUpload func(json.RawMessage) error
+	chunkRecovered bool
+	blobRecovered  bool
 }
 
 // activeBlobStore 由本域存储装配在接受业务请求前设置；nil 时所有依赖该
@@ -93,11 +102,11 @@ var (
 
 // InstallLocalBlobStore 打开本域 active 私有目录与 SQLite 元数据库并装配
 // 不可变 blob 边界。该入口只接受服务配置生成的数据根，不接受请求携带的路径。
-func InstallLocalBlobStore(dataRoot string) error {
+func InstallLocalBlobStore(dataRoot string, openedEpoch Identifier) error {
 	if !filepath.IsAbs(dataRoot) {
 		return platform.NewError(platform.CodeValidation, false, "数据根必须为绝对路径")
 	}
-	store, err := openLocalBlobStore(filepath.Join(dataRoot, "active"))
+	store, err := openLocalBlobStore(filepath.Join(dataRoot, "active"), openedEpoch)
 	if err != nil {
 		return err
 	}
@@ -117,29 +126,73 @@ func currentBlobStore() blobStore {
 	return activeBlobStore
 }
 
-func openLocalBlobStore(activeRoot string) (*localBlobStore, error) {
+func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobStore, error) {
 	if !filepath.IsAbs(activeRoot) {
 		return nil, platform.NewError(platform.CodeValidation, false, "媒体存储根必须为绝对路径")
 	}
+	if !platform.ValidIdentifier(openedEpoch) {
+		return nil, platform.NewError(platform.CodeValidation, false, "媒体活动代次缺失")
+	}
+	if err := ensureMediaDirectory(activeRoot); err != nil {
+		return nil, err
+	}
 	root := filepath.Join(activeRoot, "media")
 	for _, directory := range []string{"blobs", "uploads", "staging", "isolated"} {
-		if err := os.MkdirAll(filepath.Join(root, directory), 0o700); err != nil {
+		if err := ensureMediaDirectory(filepath.Join(root, directory)); err != nil {
 			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "建立媒体私有目录失败")
 		}
 	}
-	dsn := "file:" + filepath.Join(activeRoot, mediaDatabaseName) +
+	databasePath := filepath.Join(activeRoot, mediaDatabaseName)
+	if err := lifecycle.ValidatePrivatePath(databasePath, "regular-file", true); err != nil {
+		return nil, err
+	}
+	databaseBefore, statErr := os.Lstat(databasePath)
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体数据库路径不可读")
+	}
+	dsn := "file:" + databasePath +
 		"?_pragma=journal_mode(WAL)" +
 		"&_pragma=foreign_keys(ON)" +
-		"&_pragma=busy_timeout(3000)"
+		"&_pragma=busy_timeout(3000)" +
+		"&_pragma=synchronous(FULL)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeInternal, false, "打开媒体元数据库失败")
 	}
 	db.SetMaxOpenConns(1)
-	store := &localBlobStore{root: root, db: db}
+	store := &localBlobStore{root: root, db: db, openedEpoch: openedEpoch}
 	if err := db.Ping(); err != nil {
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体元数据库不可用")
+	}
+	if err := lifecycle.ValidatePrivatePath(databasePath, "regular-file", false); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	databaseAfter, err := os.Lstat(databasePath)
+	if err != nil || (databaseBefore != nil && !os.SameFile(databaseBefore, databaseAfter)) {
+		_ = db.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体数据库打开后身份已变化")
+	}
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		_ = db.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体持久schema不可读")
+	}
+	document, err := spec.MarshalJSON()
+	if err != nil {
+		_ = db.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体持久schema无法编码")
+	}
+	store.validateAsset, err = apivalidate.NewPayloadValidator(document, "Asset")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateUpload, err = apivalidate.NewPayloadValidator(document, "UploadSession")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
 	}
 	if err := store.runMigrations(); err != nil {
 		_ = db.Close()
@@ -345,11 +398,15 @@ func copyAndSync(sourcePath, destinationPath string) error {
 type storedUpload struct {
 	session   gen.UploadSession
 	createdBy Identifier
+	dataEpoch Identifier
 }
 
-func readUploadRow(ctx context.Context, exec sqlExecer, uploadID Identifier) (storedUpload, bool, error) {
-	var raw, createdBy string
-	err := exec.QueryRowContext(ctx, `SELECT session_json, created_by FROM upload_sessions WHERE upload_id = ?`, string(uploadID)).Scan(&raw, &createdBy)
+func readUploadRow(ctx context.Context, exec sqlExecer, uploadID Identifier, validate func(json.RawMessage) error) (storedUpload, bool, error) {
+	var raw sql.NullString
+	var createdBy, site, state string
+	var expected int
+	var epoch sql.NullString
+	err := exec.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(session_json AS BLOB))<=16777216 THEN session_json ELSE NULL END,created_by,data_epoch,site_id,state,expected_bytes FROM upload_sessions WHERE upload_id = ?`, string(uploadID)).Scan(&raw, &createdBy, &epoch, &site, &state, &expected)
 	if errors.Is(err, sql.ErrNoRows) {
 		return storedUpload{}, false, nil
 	}
@@ -357,10 +414,10 @@ func readUploadRow(ctx context.Context, exec sqlExecer, uploadID Identifier) (st
 		return storedUpload{}, false, mapMediaDBError(err, "读取上传会话失败")
 	}
 	var session gen.UploadSession
-	if err := json.Unmarshal([]byte(raw), &session); err != nil || session.UploadId != uploadID {
+	if !raw.Valid || validate == nil || validate(json.RawMessage(raw.String)) != nil || json.Unmarshal([]byte(raw.String), &session) != nil || session.UploadId != uploadID || session.SiteId != site || string(session.State) != state || session.ExpectedBytes != expected || session.ReceivedBytes > session.ExpectedBytes || !platform.ValidIdentifier(createdBy) {
 		return storedUpload{}, false, platform.NewError(platform.CodeIntegrityError, false, "上传会话元数据损坏")
 	}
-	return storedUpload{session: session, createdBy: Identifier(createdBy)}, true, nil
+	return storedUpload{session: session, createdBy: Identifier(createdBy), dataEpoch: epoch.String}, true, nil
 }
 
 func writeUploadRow(ctx context.Context, exec sqlExecer, record storedUpload, insert bool) error {
@@ -371,10 +428,10 @@ func writeUploadRow(ctx context.Context, exec sqlExecer, record storedUpload, in
 	now := string(platform.Now())
 	if insert {
 		_, err = exec.ExecContext(ctx, `
-			INSERT INTO upload_sessions (upload_id, site_id, created_by, state, expected_bytes, session_json, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			INSERT INTO upload_sessions (upload_id, site_id, created_by, state, expected_bytes, session_json, updated_at,data_epoch)
+			VALUES (?, ?, ?, ?, ?, ?, ?,?)`,
 			string(record.session.UploadId), string(record.session.SiteId), string(record.createdBy),
-			string(record.session.State), record.session.ExpectedBytes, string(raw), now)
+			string(record.session.State), record.session.ExpectedBytes, string(raw), now, record.dataEpoch)
 	} else {
 		_, err = exec.ExecContext(ctx, `
 			UPDATE upload_sessions SET state = ?, session_json = ?, updated_at = ? WHERE upload_id = ?`,
@@ -393,7 +450,7 @@ func (s *localBlobStore) OpenUpload(ctx context.Context, uploadID Identifier) (i
 	if !validIdentifier(uploadID) {
 		return nil, platform.NewError(platform.CodeValidation, false, "上传标识不合法")
 	}
-	if _, exists, err := readUploadRow(ctx, s.db, uploadID); err != nil {
+	if _, exists, err := readUploadRow(ctx, s.db, uploadID, s.validateUpload); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, platform.NewError(platform.CodeNotFound, false, "上传不存在")
@@ -415,104 +472,122 @@ func (s *localBlobStore) OpenUpload(ctx context.Context, uploadID Identifier) (i
 
 // CreateUpload 为后续上传 handler 提供私有 receiving 会话落点；会话、回执与
 // 临时文件必须同时成功，元数据事务失败时删除临时文件，不留下可被恢复误认的半成品。
-func (s *localBlobStore) CreateUpload(ctx context.Context, session gen.UploadSession, createdBy Identifier, quota uploadQuota, operationID Identifier, requestHash Hash) (gen.UploadSession, error) {
-	if err := ctx.Err(); err != nil {
-		return gen.UploadSession{}, contextError(err)
+func (s *localBlobStore) replayBeginUpload(ctx context.Context, op OperationContext, q sqlExecer, requestHash Hash) (gen.UploadSession, bool, error) {
+	var storedHash, id string
+	var raw, rawHash sql.NullString
+	err := q.QueryRowContext(ctx, `SELECT request_hash,upload_id,CASE WHEN result_json IS NULL OR length(CAST(result_json AS BLOB))<=16777216 THEN result_json ELSE NULL END,result_hash FROM upload_receipts WHERE operation_id=?`, op.OperationID).Scan(&storedHash, &id, &raw, &rawHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return gen.UploadSession{}, false, nil
 	}
-	if !validIdentifier(session.UploadId) || !validIdentifier(session.SiteId) ||
-		!validIdentifier(createdBy) || !validHash(session.ExpectedSha256) ||
-		session.ExpectedBytes < 1 || session.ExpectedBytes > int(maxUploadBytes) ||
-		session.ReceivedBytes != 0 || session.State != gen.Receiving ||
-		session.OriginalName == "" || session.ExpiresAt.IsZero() ||
-		quota.MaxUploadBytes < 1 || quota.SiteStorageBytes < 1 || quota.MaxUploadConcurrency < 1 ||
-		session.ExpectedBytes > quota.MaxUploadBytes || !validIdentifier(operationID) || !validHash(requestHash) {
-		return gen.UploadSession{}, platform.NewError(platform.CodeValidation, false, "上传会话参数不合法")
+	if err != nil {
+		return gen.UploadSession{}, false, mapMediaDBError(err, "读取创建上传原回执失败")
 	}
+	if storedHash != requestHash || !raw.Valid || !rawHash.Valid {
+		return gen.UploadSession{}, true, platform.NewError(platform.CodeConflict, false, "创建上传操作已绑定其他材料或旧回执缺原结果")
+	}
+	record, found, err := readUploadRow(ctx, q, id, s.validateUpload)
+	if err != nil {
+		return gen.UploadSession{}, true, err
+	}
+	if !found {
+		return gen.UploadSession{}, true, platform.NewError(platform.CodeIntegrityError, false, "创建上传回执缺来源会话")
+	}
+	if record.dataEpoch == "" || record.dataEpoch != op.DataEpoch {
+		return gen.UploadSession{}, true, platform.NewError(platform.CodeVersionMismatch, false, "创建上传原代次未知或已变化")
+	}
+	if record.createdBy != op.Actor.SubjectID || record.session.SiteId != op.Actor.SiteID {
+		return gen.UploadSession{}, true, platform.NewError(platform.CodeConflict, false, "创建上传操作已绑定其他主体或站点")
+	}
+	if platform.HashBytes([]byte(raw.String)) != rawHash.String || s.validateUpload(json.RawMessage(raw.String)) != nil {
+		return gen.UploadSession{}, true, platform.NewError(platform.CodeIntegrityError, false, "创建上传原结果损坏")
+	}
+	var result gen.UploadSession
+	if json.Unmarshal([]byte(raw.String), &result) != nil || result.UploadId != id || result.SiteId != op.Actor.SiteID || result.State != gen.Receiving || result.Revision != 0 || result.ReceivedBytes != 0 {
+		return result, true, platform.NewError(platform.CodeIntegrityError, false, "创建上传原结果与来源不符")
+	}
+	return result, true, nil
+}
+
+func (s *localBlobStore) CreateUpload(ctx context.Context, op OperationContext, session gen.UploadSession, quota uploadQuota, requestHash Hash) (gen.UploadSession, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	tx, err := s.db.BeginTx(ctx, nil)
+	original, found, err := s.replayBeginUpload(ctx, op, s.db, requestHash)
+	if err != nil || found {
+		return original, err
+	}
+	work, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return gen.UploadSession{}, err
+	}
+	defer cancel()
+	tx, err := s.db.BeginTx(work, nil)
 	if err != nil {
 		return gen.UploadSession{}, mapMediaDBError(err, "开始上传会话事务失败")
 	}
-	defer func() { _ = tx.Rollback() }()
-
-	var storedHash, storedUploadID string
-	err = tx.QueryRowContext(ctx, `SELECT request_hash, upload_id FROM upload_receipts WHERE operation_id = ?`, string(operationID)).Scan(&storedHash, &storedUploadID)
-	switch {
-	case err == nil:
-		if Hash(storedHash) != requestHash {
-			return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "operationId已用于其他上传请求")
-		}
-		stored, exists, readErr := readUploadRow(ctx, tx, Identifier(storedUploadID))
-		if readErr != nil {
-			return gen.UploadSession{}, readErr
-		}
-		if !exists {
-			return gen.UploadSession{}, platform.NewError(platform.CodeIntegrityError, false, "上传回执缺少会话")
-		}
-		return stored.session, nil
-	case !errors.Is(err, sql.ErrNoRows):
-		return gen.UploadSession{}, mapMediaDBError(err, "读取上传回执失败")
+	defer tx.Rollback()
+	var chunkID string
+	if err := tx.QueryRowContext(work, `SELECT operation_id FROM upload_chunks WHERE operation_id=?`, op.OperationID).Scan(&chunkID); err == nil {
+		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "operationId已绑定上传分块")
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return gen.UploadSession{}, mapMediaDBError(err, "读取分块操作绑定失败")
 	}
-	if _, exists, err := readUploadRow(ctx, tx, session.UploadId); err != nil {
-		return gen.UploadSession{}, err
-	} else if exists {
-		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "上传会话已存在")
-	}
-
 	var receivingCount int
-	var receivingBytes int64
-	if err := tx.QueryRowContext(ctx, `
-		SELECT COUNT(*), COALESCE(SUM(expected_bytes), 0) FROM upload_sessions
-		WHERE site_id = ? AND state = ?`, string(session.SiteId), string(gen.Receiving)).Scan(&receivingCount, &receivingBytes); err != nil {
-		return gen.UploadSession{}, mapMediaDBError(err, "读取上传配额失败")
+	var receivingBytes, readyBytes int64
+	if err := tx.QueryRowContext(work, `SELECT COUNT(*),COALESCE(SUM(expected_bytes),0) FROM upload_sessions WHERE site_id=? AND state='receiving'`, op.Actor.SiteID).Scan(&receivingCount, &receivingBytes); err != nil {
+		return gen.UploadSession{}, mapMediaDBError(err, "读取上传预留失败")
 	}
-	var readyBytes int64
-	if err := tx.QueryRowContext(ctx, `
-		SELECT COALESCE(SUM(byte_size), 0) FROM assets WHERE site_id = ? AND state = ?`,
-		string(session.SiteId), string(gen.AssetStateReady)).Scan(&readyBytes); err != nil {
+	if err := tx.QueryRowContext(work, `SELECT COALESCE(SUM(byte_size),0) FROM assets WHERE site_id=? AND state='ready'`, op.Actor.SiteID).Scan(&readyBytes); err != nil {
 		return gen.UploadSession{}, mapMediaDBError(err, "读取站点存储用量失败")
 	}
-	if receivingCount >= quota.MaxUploadConcurrency {
-		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "上传并发配额已满")
+	if session.ExpectedBytes > quota.MaxUploadBytes || receivingCount >= quota.MaxUploadConcurrency || receivingBytes+readyBytes > quota.SiteStorageBytes-int64(session.ExpectedBytes) {
+		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "站点上传资源配额已满")
 	}
-	if receivingBytes+readyBytes > quota.SiteStorageBytes-int64(session.ExpectedBytes) {
-		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "站点存储配额已满")
-	}
-
-	temporaryPath := s.uploadPath(session.UploadId)
-	file, err := os.OpenFile(temporaryPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	root, err := s.openMediaRoot()
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "上传临时对象已存在")
-		}
+		return gen.UploadSession{}, err
+	}
+	defer root.Close()
+	name := "uploads/" + session.UploadId + ".part"
+	file, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
 		return gen.UploadSession{}, platform.NewError(platform.CodeDependencyUnavailable, true, "创建上传临时对象失败")
 	}
-	committed := false
+	preserveTemporary := false
 	defer func() {
-		if !committed {
-			_ = os.Remove(temporaryPath)
+		file.Close()
+		if !preserveTemporary {
+			_ = root.Remove(name)
 		}
 	}()
 	if err := file.Sync(); err != nil {
-		_ = file.Close()
 		return gen.UploadSession{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化上传临时对象失败")
 	}
 	if err := file.Close(); err != nil {
 		return gen.UploadSession{}, platform.NewError(platform.CodeDependencyUnavailable, true, "关闭上传临时对象失败")
 	}
-	if err := writeUploadRow(ctx, tx, storedUpload{session: session, createdBy: createdBy}, true); err != nil {
+	directory, err := root.Open("uploads")
+	if err != nil {
+		return gen.UploadSession{}, platform.NewError(platform.CodeDependencyUnavailable, true, "打开上传目录失败")
+	}
+	defer directory.Close()
+	if err := directory.Sync(); err != nil {
+		return gen.UploadSession{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化上传目录失败")
+	}
+	if err := writeUploadRow(work, tx, storedUpload{session: session, createdBy: op.Actor.SubjectID, dataEpoch: op.DataEpoch}, true); err != nil {
 		return gen.UploadSession{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO upload_receipts (operation_id, request_hash, upload_id, created_at) VALUES (?, ?, ?, ?)`,
-		string(operationID), string(requestHash), string(session.UploadId), string(platform.Now())); err != nil {
-		return gen.UploadSession{}, mapMediaDBError(err, "保存上传回执失败")
+	raw, err := platform.CanonicalJSON(session)
+	if err != nil {
+		return gen.UploadSession{}, platform.NewError(platform.CodeIntegrityError, false, "创建上传原结果无法编码")
 	}
+	if _, err := tx.ExecContext(work, `INSERT INTO upload_receipts(operation_id,request_hash,upload_id,created_at,result_json,result_hash) VALUES(?,?,?,?,?,?)`, op.OperationID, requestHash, session.UploadId, platform.Now(), string(raw), platform.HashBytes(raw)); err != nil {
+		return gen.UploadSession{}, mapMediaDBError(err, "持久化创建上传原回执失败")
+	}
+	// Commit返回错误可能无法确定是否已落库，保留文件但仍返回错误；同op查原回执确认。
+	preserveTemporary = true
 	if err := tx.Commit(); err != nil {
 		return gen.UploadSession{}, mapMediaDBError(err, "提交上传会话失败")
 	}
-	committed = true
 	return session, nil
 }
 
@@ -523,7 +598,7 @@ func (s *localBlobStore) ReadUpload(ctx context.Context, uploadID Identifier) (g
 	if !validIdentifier(uploadID) {
 		return gen.UploadSession{}, "", platform.NewError(platform.CodeValidation, false, "上传标识不合法")
 	}
-	record, exists, err := readUploadRow(ctx, s.db, uploadID)
+	record, exists, err := readUploadRow(ctx, s.db, uploadID, s.validateUpload)
 	if err != nil {
 		return gen.UploadSession{}, "", err
 	}
@@ -547,7 +622,7 @@ func (s *localBlobStore) AbortUpload(ctx context.Context, siteID, uploadID Ident
 		return mapMediaDBError(err, "开始取消上传事务失败")
 	}
 	defer func() { _ = tx.Rollback() }()
-	record, exists, err := readUploadRow(ctx, tx, uploadID)
+	record, exists, err := readUploadRow(ctx, tx, uploadID, s.validateUpload)
 	if err != nil {
 		return err
 	}
@@ -588,7 +663,7 @@ func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, request blobCom
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	record, exists, err := readUploadRow(ctx, s.db, request.UploadID)
+	record, exists, err := readUploadRow(ctx, s.db, request.UploadID, s.validateUpload)
 	if err != nil {
 		return gen.Asset{}, err
 	}
@@ -833,4 +908,115 @@ func mapBlobStoreError(err error, fallback string) error {
 		return platformErr
 	}
 	return platform.NewError(platform.CodeDependencyUnavailable, true, "%s", fallback)
+}
+
+// ensureMediaDirectory 逐段拒绝符号链接/特殊文件，目录创建后同步父目录。
+func ensureMediaDirectory(path string) error {
+	current := string(filepath.Separator)
+	for _, part := range strings.Split(strings.TrimPrefix(filepath.Clean(path), current), string(filepath.Separator)) {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if errors.Is(err, os.ErrNotExist) {
+			if err = os.Mkdir(current, 0o700); err != nil {
+				return platform.NewError(platform.CodeDependencyUnavailable, true, "创建媒体私有目录失败")
+			}
+			if err = syncDirectory(filepath.Dir(current)); err != nil {
+				return platform.NewError(platform.CodeDependencyUnavailable, true, "持久化媒体私有目录失败")
+			}
+			continue
+		}
+		if err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "媒体私有目录不可读")
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return platform.NewError(platform.CodeIntegrityError, false, "媒体私有目录包含链接或非目录")
+		}
+	}
+	return nil
+}
+
+func (s *localBlobStore) openMediaRoot() (*os.Root, error) {
+	if err := ensureMediaDirectory(s.root); err != nil {
+		return nil, err
+	}
+	root, err := os.OpenRoot(s.root)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "打开媒体私有目录失败")
+	}
+	for _, dir := range []string{"uploads", "staging"} {
+		info, err := root.Lstat(dir)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			root.Close()
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体上传目录不安全")
+		}
+	}
+	return root, nil
+}
+
+// openMediaRegular 使用根目录能力和NOFOLLOW打开已存在的普通文件。
+func openMediaRegular(root *os.Root, absoluteRoot, name string, flags int) (*os.File, error) {
+	absolute := filepath.Join(absoluteRoot, name)
+	if err := lifecycle.ValidatePrivatePath(absolute, "regular-file", false); err != nil {
+		return nil, err
+	}
+	before, err := root.Lstat(name)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体上传文件缺失")
+	}
+	namedBefore, err := os.Lstat(absolute)
+	if err != nil || !os.SameFile(before, namedBefore) {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体目录能力与路径身份不一致")
+	}
+	file, err := root.OpenFile(name, flags|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "打开媒体上传文件失败")
+	}
+	after, err := file.Stat()
+	if err != nil || !after.Mode().IsRegular() || !os.SameFile(before, after) {
+		file.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体上传文件身份已变化")
+	}
+	if err := lifecycle.ValidatePrivatePath(absolute, "regular-file", false); err != nil {
+		file.Close()
+		return nil, err
+	}
+	namedAfter, err := os.Lstat(absolute)
+	if err != nil || !os.SameFile(after, namedAfter) {
+		file.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体文件打开后路径身份已变化")
+	}
+	return file, nil
+}
+
+// ConfigureWriteWindow 仅由受信装配注入运行权威；本轮维护直接关闭，不伪造屏障窗口。
+func ConfigureWriteWindow(config platform.WriteWindowConfig) error {
+	store, ok := currentBlobStore().(*localBlobStore)
+	if !ok || config.Runtime == nil || config.WriteWindow == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "媒体写窗口未完整装配")
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	store.window = config
+	return nil
+}
+
+func CloseLocalBlobStore() error {
+	activeBlobStoreMu.Lock()
+	store := activeBlobStore
+	activeBlobStore = nil
+	activeBlobStoreMu.Unlock()
+	if local, ok := store.(*localBlobStore); ok {
+		return local.Close()
+	}
+	return nil
+}
+
+func LocalStorageRecovered(epoch Identifier) bool {
+	s, ok := currentBlobStore().(*localBlobStore)
+	if !ok {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.openedEpoch == epoch && s.chunkRecovered && s.blobRecovered
 }

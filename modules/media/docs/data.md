@@ -152,3 +152,20 @@ acquire顶层显式site/object/revision/version/operation/digest且refs允许空
 
 
 第四轮恢复分支补充：Release以完整来源材料和可空pinId调用。媒体只在回源明确同材料aborted/rejected后，按源互斥及对象稳定锁序，同事务封存来源与释放pending pin；本地无pin也持久封存，晚到Acquire不得再落pin。网络404/未知不是无pin证明，源已提交/current/history均不释放。此协议仍planned，不宣称媒体业务实现。
+
+
+## 第五轮上传分块与原回执
+
+0002_upload_chunks.sql只追加upload_sessions.data_epoch、upload_chunks和Begin回执result_json/result_hash。旧session的NULL epoch不推定为当前代次，旧Begin回执缺原快照不从mutable session重建。新Begin原始输入连同caller/actor/site/epoch规范摘要，当前授权/epoch后、配额和名称策略前回放首次安全UploadSession；新session/创建epoch/原结果/hash同事务。
+
+每个chunk的actor/site/epoch/upload、offset/length/SHA/expectedRevision、服务生成stageId、阶段及原结果独立持久。临时chunk精确长度和SHA核对、文件/目录fsync后才PREPARED；追加上传文件fsync后，同SQL事务CAS offset/revision并写COMMITTED原UploadSession和hash。没有回执的尾字节不是真实已接收水位；启动核连续COMMITTED前缀与SHA，尾只按SQL水位截去，短文件或坏回执失败关闭。PREPARED和未知临时材料不自动发布或计数，ready文件不自动清理。
+
+分块body由HTTP解析后的明确Content-Length和io.Reader绑定，单块1..8MiB，内部没有跨进程句柄表。所有上传路径仅受信根目录与服务生成ID构造，Lstat拒目录链符号链接/特殊对象，目录能力与NOFOLLOW保护普通文件打开；持久JSON读取16MiB有界，schema来自唯一生成规格。数据库FULL同步。
+
+ReadAsset只读真实ready元数据并核索引与唯一Asset schema，明确版本只匹配当前真实ref.version，不存在历史NOT_FOUND。DTO不含OS路径、文件句柄或发布授权。注册纯服务精确名单固定；用户当前授权且同站点。读op与已打开active epoch不符拒绝；调用服务仍核结果siteId与自己的来源。
+
+创建上传在SQL Commit尝试前即保留候选临时文件；Commit错误仍报错但不删除可能已落库会话对应文件，由同op读取持久原回执确认。未知文件不自动计数成功，也不在本包扩GC。
+
+本轮私有文件安全收口复用公共lifecycle.ValidatePrivatePath：既有上传/暂存普通文件打开前后均拒硬链接，并核Root、fd和绝对路径SameFile；media.db打开前后同一公共校验，未知失败关闭，不复制规则。
+
+Begin配额读取在当前用户media.upload/原站点与回执边界之后，按bounded op保留deadline/epoch/root/costClass，派生固定media纯服务Actor并清原PortalProof，不携用户session/grants，不额外要求编辑者site.read。site-config返回siteId必须仍等于原用户站点。

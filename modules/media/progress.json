@@ -2,23 +2,23 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "8cd3b19c76d82c27ccae1dccbc4be26ba70a4a48c2c1557e62f6f4910722f1ab",
+  "contractSha256": "5e13814c0ae146d5a532db476709b30bbf5d70829aa66c106e7db0905e3098e7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "媒体私有存储与上传处理",
-  "branch": "codex/media-upload-storage",
-  "baseCommit": "3db911390e35a07007d70a1d2f5cc15fe4092667",
-  "deliveryCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+  "assignedSession": "第五轮媒体分块上传与安全资源读取",
+  "branch": "codex/media-chunks-read-r1",
+  "baseCommit": "5894bfb368bfb79331709b3e0f0e5e6ed92bf098",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/media/internal/upload_service.go",
-      "state": "implemented",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "HTTP适配、分块写入和完成校验仍未接入；本机没有Go/gofmt，未取得编译证据"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/upload_validator.go",
@@ -32,11 +32,11 @@
     },
     {
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
       "blocker": null
     },
@@ -82,21 +82,21 @@
     },
     {
       "path": "modules/media/internal/blob_repository.go",
-      "state": "implemented",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机没有Go/gofmt，未取得编译证据；完成校验、outbox和HTTP提交仍未装配"
-    },
-    {
-      "path": "modules/media/internal/asset_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/internal/asset_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
       "blocker": null
     },
@@ -282,13 +282,13 @@
     },
     {
       "path": "modules/media/internal/blob_recovery.go",
-      "state": "implemented",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "本机没有Go/gofmt，未取得编译证据；删除journal只保留人工清理边界"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/outbox_repository.go",
@@ -333,22 +333,22 @@
     {
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "已接入本域存储、site-config配额客户端和blob恢复；全部OpenAPI处理器、分块/完成、registerActivation、outbox/订阅/worker仍缺失，按合同继续返回DEPENDENCY_UNAVAILABLE"
+      "blocker": "全量handler/恢复回执仍缺"
     },
     {
       "path": "modules/media/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "8e42afbbce051c3f9c1f974103f84c4bbc7cad05",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "本地无Go/gofmt且未获VPS检查证据，保持未验证"
+      "blocker": null
     },
     {
       "path": "modules/media/go.mod",
@@ -479,19 +479,29 @@
         "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：GOFLAGS=-mod=readonly go build ./...、go vet ./... 通过，gofmt -l 为空；VPS联网重新tidy与go.sum一致；make docs无漂移、make gen可重复、make check通过（843文件/905函数登记一致）"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/media/migrations/0002_upload_chunks.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "获准只追加迁移，待统一VPS"
+      },
+      "blocker": null
     }
   ],
   "functions": [
     {
       "id": "media.BeginUpload",
       "path": "modules/media/internal/upload_service.go",
-      "state": "implemented",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "HTTP入口尚未装配；本机没有Go/gofmt，未取得编译证据"
+      "blocker": null
     },
     {
       "id": "media.ReadUpload",
@@ -540,11 +550,11 @@
     {
       "id": "media.PutUploadChunk",
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
       "blocker": null
     },
@@ -606,11 +616,11 @@
     {
       "id": "media.ReadAsset",
       "path": "modules/media/internal/asset_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
       "blocker": null
     },
@@ -992,12 +1002,12 @@
       "id": "media.BuildApplication",
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6bea2b3ae370b82556d7d72fdfe0af6ec664e63",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
       },
-      "blocker": "本域私有存储和RecoverBlobJournal已接入；全部x-handler、分块/完成、registerActivation回执、RelayOutbox、ConsumeEvents与RunWorker未实现"
+      "blocker": "部分真实handler已接线；CompleteUpload/其他handler、恢复回执和后台缺失，严格工厂失败关闭"
     },
     {
       "id": "media.Serve",
@@ -1075,7 +1085,326 @@
         "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：GOFLAGS=-mod=readonly go build ./...、go vet ./... 通过，gofmt -l 为空；VPS联网重新tidy与go.sum一致；make docs无漂移、make gen可重复、make check通过（843文件/905函数登记一致）"
       },
       "blocker": null
+    },
+    {
+      "id": "media.hashBeginUploadRequest",
+      "path": "modules/media/internal/upload_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.validateUploadActor",
+      "path": "modules/media/internal/upload_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.mediaWriteContext",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.hashChunkRequest",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readChunkOperation",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.chunkContextReader.Read",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.chunkStageName",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.writeChunkStage",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.reconcileUploadFile",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.verifyUploadChunks",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.commitChunk",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.RecoverUploadChunks",
+      "path": "modules/media/internal/chunk_writer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.InstallLocalBlobStore",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.openLocalBlobStore",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readUploadRow",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.writeUploadRow",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.ensureMediaDirectory",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.openMediaRoot",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.openMediaRegular",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.ConfigureWriteWindow",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.CloseLocalBlobStore",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.LocalStorageRecovered",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.replayBeginUpload",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.CreateUpload",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.NewApplication",
+      "path": "modules/media/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.serviceHandlers",
+      "path": "modules/media/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.serveUploadChunk",
+      "path": "modules/media/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.writeRequestProblem",
+      "path": "modules/media/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮源码及助手已同步，待根统一VPS docs/gen/build/check；未本机Go工具或业务验收"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readUploadQuota",
+      "path": "modules/media/internal/upload_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "quota固定media纯服务上下文收口，待根统一VPS"
+      },
+      "blocker": null
     }
   ],
-  "rule": "本次实现BeginUpload、ReadUpload、AbortUpload、CommitAssetBlob和RecoverBlobJournal；装配本域active私有目录、quota/operation receipt、不可变blob与journal恢复。分块写入、完成校验、HTTP全量路由、引用/后台/事件/任务仍未实现；BuildApplication在缺失约束级handler时按合同返回DEPENDENCY_UNAVAILABLE。"
+  "rule": "第五轮仅PutUploadChunk/ReadAsset、必要恢复/真实HTTP及获准Begin固定原回执闭环；本轮改变in_progress待统一VPS，完整Build/Complete/pin/其余handler与后台仍未完成。用户要求本轮收口后停止持续实施，由根统一push，本域不push不开后包。"
 }

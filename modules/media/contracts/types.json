@@ -348,7 +348,7 @@
     },
     "BinaryChunk": {
       "type": "object",
-      "description": "上传字节内部句柄",
+      "description": "仅本进程的受信有界原始上传流；HTTP body适配产生，不跨进程序列化",
       "additionalProperties": false,
       "properties": {
         "offset": {
@@ -367,18 +367,17 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
           "description": "Hash"
         },
-        "streamHandle": {
-          "type": "string",
-          "description": "内部受限stream句柄，HTTP binary adapter产生",
-          "minLength": 1,
-          "maxLength": 128
+        "reader": {
+          "type": "object",
+          "x-internal": true,
+          "description": "io.Reader；由HTTP适配注入，不接受JSON或全局handle表"
         }
       },
       "required": [
         "offset",
         "length",
         "sha256",
-        "streamHandle"
+        "reader"
       ],
       "x-internal": true
     },

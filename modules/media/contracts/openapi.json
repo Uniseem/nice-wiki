@@ -328,6 +328,26 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：原回执或持久元数据损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：新操作在维护或关闭窗口暂停",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -528,6 +548,17 @@
               "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
               "description": "Revision"
             }
+          },
+          {
+            "in": "header",
+            "name": "Content-Length",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8388608
+            },
+            "description": "必须有明确原始body长度；HTTP适配使用解析后的r.ContentLength，未知长度chunked拒绝400 VALIDATION"
           }
         ],
         "responses": {
@@ -580,6 +611,46 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "FORBIDDEN：无当前上传权限或非同站点上传者",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：上传不存在",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：维护或安全写窗口关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "BUDGET_EXCEEDED：公共入口硬body预算优先拒绝超限；预算内长度协议不合法仍400",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -589,7 +660,7 @@
               "schema": {
                 "type": "string",
                 "format": "binary",
-                "description": "有界原始chunk；X-Upload-Offset/X-Chunk-SHA256/If-Match合并handler BinaryChunk，禁止客户端自造streamHandle"
+                "description": "有界原始chunk；服务端将受信Content-Length/Reader、X-Upload-Offset/X-Chunk-SHA256/If-Match合并为内部BinaryChunk，客户端不能构造句柄"
               }
             }
           }
@@ -843,6 +914,26 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：资源持久元数据损坏或与索引不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：读取不属于已打开active代次",
             "content": {
               "application/problem+json": {
                 "schema": {

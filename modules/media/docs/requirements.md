@@ -12,7 +12,7 @@
 | M05-R06 | Excalidraw三文件/SVG安全 | scene JSON+亮暗SVG各hash保存，旧历史保留；SVG CSP sandbox，public不React |
 | M05-R07 | 私有存储与恢复 | blobjournal/hash完整；snapshot与control区分离，确认人工delete决定才恢复补删 |
 
-每项当前状态均为未实现、未执行验收。
+基础函数分批实施不等于整项完成；逐项代码状态见progress.json，全部业务验收仍未执行。
 
 
 来源：[产品保持矩阵](../../../docs/product-preservation.md)、[冻结产品基线](../../../docs/product-baseline/README.md)；具体产品来源与ADR在README来源索引和本域operations列出。所有需求状态未执行，不能以合同数量视为完成业务。

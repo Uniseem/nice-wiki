@@ -7,13 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
+	mediaDomain "nice-wiki/modules/media/internal"
 	"nice-wiki/modules/media/internal/gen"
 )
 
@@ -43,55 +46,131 @@ type Application struct {
 	httpServer          *http.Server
 }
 
-// NewApplication 创建只含启动控制路由的 HTTP 容器。业务依赖未接入时
-// journalRecovered 应保持 false，Ready 会按合同返回 DEPENDENCY_UNAVAILABLE。
-func NewApplication(
-	config platform.ServiceConfig,
-	runtimeAuthority platform.SiteConfigClient,
-	activeDataEpoch platform.Identifier,
-	journalRecovered bool,
-	restoreControlReady bool,
-) *Application {
-	application := &Application{
-		config:              config,
-		runtime:             runtimeAuthority,
-		activeDataEpoch:     activeDataEpoch,
-		journalRecovered:    journalRecovered,
-		restoreControlReady: restoreControlReady,
+// NewApplication 只绑定真实已实现handler；缺任一OpenAPI处理器则失败关闭。
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeDataEpoch platform.Identifier,
+	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
+	application := &Application{config: config, runtime: runtimeAuthority, activeDataEpoch: activeDataEpoch, journalRecovered: mediaDomain.LocalStorageRecovered(activeDataEpoch), restoreControlReady: false}
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
-	mux := http.NewServeMux()
-	application.registerHealthRoutes(mux)
-	application.httpServer = &http.Server{
-		Addr:              config.Listen,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
-		MaxHeaderBytes:    64 << 10,
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch,
+		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}},
+		ServiceActorCallers:   map[string][]string{"readAsset": {"content", "site-config", "public-site", "localization", "knowledge"}},
+		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
+	if err != nil {
+		return nil, err
 	}
-	return application
+	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	return application, nil
+}
+
+func (a *Application) serviceHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			result, err := Health(r.Context(), a)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"ready": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			result, err := Ready(r.Context(), a)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"beginUpload": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var input mediaDomain.BeginUploadInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "上传声明无法转换"))
+				return
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.BeginUpload(r.Context(), op, input)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readUpload": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ReadUpload(r.Context(), op, mediaDomain.ReadUploadInput{UploadId: r.PathValue("uploadId")})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"abortUpload": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.AbortUpload(r.Context(), op, mediaDomain.AbortUploadInput{UploadId: r.PathValue("uploadId")})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"putUploadChunk": http.HandlerFunc(serveUploadChunk),
+		"readAsset": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var version *gen.Revision
+			if text := r.URL.Query().Get("version"); text != "" {
+				value, err := strconv.Atoi(text)
+				if err != nil {
+					writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "资源版本无法转换"))
+					return
+				}
+				version = &value
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ReadAsset(r.Context(), op, mediaDomain.ReadAssetInput{AssetId: r.PathValue("assetId"), Version: version})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+	}
+}
+
+func serveUploadChunk(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength < 1 || r.ContentLength > 8<<20 {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "分块必须有1至8MiB的明确Content-Length"))
+		return
+	}
+	offset, err := strconv.Atoi(r.Header.Get("X-Upload-Offset"))
+	if err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "上传offset无法转换"))
+		return
+	}
+	revision, err := strconv.Atoi(r.Header.Get("If-Match"))
+	if err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "上传revision无法转换"))
+		return
+	}
+	op, _ := platform.OperationContextFrom(r.Context())
+	result, err := mediaDomain.PutUploadChunk(r.Context(), op, mediaDomain.PutUploadChunkInput{UploadId: r.PathValue("uploadId"), ExpectedRevision: revision,
+		Chunk: mediaDomain.BinaryChunk{Offset: offset, Length: int(r.ContentLength), SHA256: r.Header.Get("X-Chunk-SHA256"), Reader: r.Body}})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func writeRequestProblem(w http.ResponseWriter, r *http.Request, err error) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	_ = problem.WriteProblem(w, problem.FromError(err, op.RequestID))
 }
 
 // Serve 与 Shutdown 实现平台服务生命周期接口。
 func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a) }
 func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
-
-func (a *Application) registerHealthRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		status, err := Health(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, status)
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		readiness, err := Ready(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, readiness)
-	})
-}
 
 // Serve 启动本域 HTTP server；平台进程模板负责在信号或恢复切换时调用
 // Shutdown，重复启动不打开第二个监听器。
@@ -135,6 +214,10 @@ func Shutdown(ctx context.Context, app *Application) error {
 				return
 			}
 			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
+			return
+		}
+		if err := mediaDomain.CloseLocalBlobStore(); err != nil {
+			app.shutdownErr = err
 			return
 		}
 		app.state.Store(stateClosed)
@@ -196,8 +279,4 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
-}
-
-func writeProblem(w http.ResponseWriter, err error) {
-	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
 }

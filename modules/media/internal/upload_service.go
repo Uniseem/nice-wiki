@@ -29,7 +29,7 @@ type siteConfigReader interface {
 }
 
 type uploadSessionStore interface {
-	CreateUpload(ctx context.Context, session gen.UploadSession, createdBy Identifier, quota uploadQuota, operationID Identifier, requestHash Hash) (gen.UploadSession, error)
+	CreateUpload(ctx context.Context, op OperationContext, session gen.UploadSession, quota uploadQuota, requestHash Hash) (gen.UploadSession, error)
 	ReadUpload(ctx context.Context, uploadID Identifier) (gen.UploadSession, Identifier, error)
 	AbortUpload(ctx context.Context, siteID, uploadID Identifier) error
 }
@@ -71,55 +71,51 @@ type siteConfigQuotaResponse struct {
 // BeginUpload 校验上传声明、读取站点配额并创建 receiving 会话。具体 HTTP
 // JSON/权限入口仍由本域 OpenAPI 装配工作包接入；本函数不暴露任何本地路径。
 func BeginUpload(ctx context.Context, op OperationContext, input BeginUploadInput) (BeginUploadResult, error) {
-	workCtx, cancel, err := uploadOperationContext(ctx, op)
+	if err := validateUploadActor(op, "media.upload"); err != nil {
+		return BeginUploadResult{}, err
+	}
+	store, ok := currentBlobStore().(*localBlobStore)
+	if !ok {
+		return BeginUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体上传存储未装配")
+	}
+	if op.DataEpoch != store.openedEpoch {
+		return BeginUploadResult{}, platform.NewError(platform.CodeVersionMismatch, false, "上传不属于已打开活动代次")
+	}
+	requestHash, err := hashBeginUploadRequest(op, input)
+	if err != nil {
+		return BeginUploadResult{}, err
+	}
+	original, found, err := store.replayBeginUpload(ctx, op, store.db, requestHash)
+	if err != nil {
+		return BeginUploadResult{}, err
+	}
+	if found {
+		return BeginUploadResult{Upload: original}, nil
+	}
+	work, cancel, err := store.mediaWriteContext(ctx, op)
 	if err != nil {
 		return BeginUploadResult{}, err
 	}
 	defer cancel()
-	if err := validateUploadActor(op, "media.upload"); err != nil {
-		return BeginUploadResult{}, err
-	}
-	if !validHash(input.Sha256) || input.ByteSize < 1 || input.ByteSize > int(maxUploadBytes) || !validUploadKind(input.Kind) {
-		return BeginUploadResult{}, platform.NewError(platform.CodeValidation, false, "上传声明不合法")
-	}
 	name, err := NormalizeOriginalName(NormalizeOriginalNameInput{OriginalName: input.OriginalName})
-	if err != nil {
-		return BeginUploadResult{}, err
-	}
-	requestHash, err := hashBeginUploadRequest(op.Actor.SiteID, input, name.SafeName)
 	if err != nil {
 		return BeginUploadResult{}, err
 	}
 	reader := currentSiteConfigReader()
 	if reader == nil {
-		return BeginUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "site-config配置读取能力尚未装配")
+		return BeginUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "站点资源配额未装配")
 	}
-	quota, err := readUploadQuota(workCtx, reader, op.Actor.SiteID)
+	quotaOp, _ := platform.OperationContextFrom(work)
+	quotaOp.CallerService = "media"
+	quotaOp.Actor = platform.AuthContext{Kind: "service", SubjectID: "media", SiteID: op.Actor.SiteID, ExpiresAt: quotaOp.Deadline}
+	quotaCtx := platform.WithOperationContext(platform.WithPortalProof(work, ""), quotaOp)
+	quota, err := readUploadQuota(quotaCtx, reader, op.Actor.SiteID)
 	if err != nil {
 		return BeginUploadResult{}, err
 	}
-	store := currentBlobStore()
-	uploadStore, ok := store.(uploadSessionStore)
-	if !ok {
-		return BeginUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体上传存储尚未装配")
-	}
-	session := gen.UploadSession{
-		ExpectedBytes:  input.ByteSize,
-		ExpectedSha256: input.Sha256,
-		ExpiresAt:      time.Now().UTC().Add(24 * time.Hour),
-		Kind:           gen.UploadSessionKind(input.Kind),
-		OriginalName:   name.SafeName,
-		ReceivedBytes:  0,
-		Revision:       0,
-		SiteId:         op.Actor.SiteID,
-		State:          gen.Receiving,
-		UploadId:       platform.NewIdentifier(),
-	}
-	createdSession, err := uploadStore.CreateUpload(workCtx, session, op.Actor.SubjectID, quota, op.OperationID, requestHash)
-	if err != nil {
-		return BeginUploadResult{}, err
-	}
-	return BeginUploadResult{Upload: createdSession}, nil
+	session := gen.UploadSession{ExpectedBytes: input.ByteSize, ExpectedSha256: input.Sha256, ExpiresAt: time.Now().UTC().Add(24 * time.Hour), Kind: gen.UploadSessionKind(input.Kind), OriginalName: name.SafeName, ReceivedBytes: 0, Revision: 0, SiteId: op.Actor.SiteID, State: gen.Receiving, UploadId: platform.NewIdentifier()}
+	created, err := store.CreateUpload(ctx, op, session, quota, requestHash)
+	return BeginUploadResult{Upload: created}, err
 }
 
 // ReadUpload 只返回上传状态、offset和期限，不返回临时路径或内部句柄。
@@ -181,17 +177,8 @@ func AbortUpload(ctx context.Context, op OperationContext, input AbortUploadInpu
 }
 
 func validateUploadActor(op OperationContext, grant string) error {
-	if !validIdentifier(op.OperationID) || !validIdentifier(op.Actor.SiteID) || !validIdentifier(op.Actor.SubjectID) {
-		return platform.NewError(platform.CodeValidation, false, "授权主体不合法")
-	}
-	if !hasGrant(op.Actor.Grants, grant) {
-		return platform.NewError(platform.CodeForbidden, false, "主体缺少上传权限")
-	}
-	if op.Actor.ExpiresAt != "" {
-		expiresAt, err := platform.ParseTimestamp(op.Actor.ExpiresAt)
-		if err != nil || !expiresAt.After(time.Now()) {
-			return platform.NewError(platform.CodeForbidden, false, "授权已过期")
-		}
+	if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || (!hasGrant(op.Actor.Grants, grant) && !hasGrant(op.Actor.Grants, "superadmin")) {
+		return platform.NewError(platform.CodeForbidden, false, "当前管理会话缺少上传权限")
 	}
 	return nil
 }
@@ -203,17 +190,6 @@ func hasGrant(grants []string, expected string) bool {
 		}
 	}
 	return false
-}
-
-func validUploadKind(kind gen.BeginUploadInputKind) bool {
-	switch kind {
-	case gen.BeginUploadInputKindAttachment, gen.BeginUploadInputKindDrawingScene,
-		gen.BeginUploadInputKindDrawingSvg, gen.BeginUploadInputKindImage,
-		gen.BeginUploadInputKindPlatformCover, gen.BeginUploadInputKindVideo:
-		return true
-	default:
-		return false
-	}
 }
 
 func readUploadQuota(ctx context.Context, reader siteConfigReader, siteID Identifier) (uploadQuota, error) {
@@ -238,25 +214,17 @@ func readUploadQuota(ctx context.Context, reader siteConfigReader, siteID Identi
 	}, nil
 }
 
-func hashBeginUploadRequest(siteID Identifier, input BeginUploadInput, safeName string) (Hash, error) {
-	canonical := struct {
-		SiteID       Identifier               `json:"siteId"`
-		SHA256       Hash                     `json:"sha256"`
-		ByteSize     int                      `json:"byteSize"`
-		OriginalName string                   `json:"originalName"`
-		SafeName     string                   `json:"safeName"`
-		Kind         gen.BeginUploadInputKind `json:"kind"`
-	}{
-		SiteID:       siteID,
-		SHA256:       input.Sha256,
-		ByteSize:     input.ByteSize,
-		OriginalName: input.OriginalName,
-		SafeName:     safeName,
-		Kind:         input.Kind,
-	}
-	raw, err := json.Marshal(canonical)
+func hashBeginUploadRequest(op OperationContext, input BeginUploadInput) (Hash, error) {
+	raw, err := platform.CanonicalJSON(struct {
+		Kind      string           `json:"kind"`
+		Caller    string           `json:"caller"`
+		Actor     Identifier       `json:"actor"`
+		SiteID    Identifier       `json:"siteId"`
+		DataEpoch Identifier       `json:"dataEpoch"`
+		Input     BeginUploadInput `json:"input"`
+	}{"begin_upload", op.CallerService, op.Actor.SubjectID, op.Actor.SiteID, op.DataEpoch, input})
 	if err != nil {
-		return "", platform.NewError(platform.CodeIntegrityError, false, "生成上传请求摘要失败")
+		return "", platform.NewError(platform.CodeIntegrityError, false, "上传业务摘要无法编码")
 	}
 	return platform.HashBytes(raw), nil
 }

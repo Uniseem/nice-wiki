@@ -2,18 +2,18 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 47 个：手写 37、生成 3、配置 6、迁移 1。函数 54 个：约束 36，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 48 个：手写 38、生成 3、配置 6、迁移 1。函数 83 个：约束 36，参考 47。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/media/internal/upload_service.go` | 手写 | 开始内容寻址可续传上传 | `media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload` |
+| `modules/media/internal/upload_service.go` | 手写 | 开始内容寻址可续传上传 | `media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.hashBeginUploadRequest`（参考）、`media.validateUploadActor`（参考）、`media.readUploadQuota`（参考） |
 | `modules/media/internal/upload_validator.go` | 手写 | 清理展示文件名而不用于路径 | `media.NormalizeOriginalName`（参考）、`media.HashUpload`（参考） |
-| `modules/media/internal/chunk_writer.go` | 手写 | 顺序原子写有界上传块 | `media.PutUploadChunk` |
+| `modules/media/internal/chunk_writer.go` | 手写 | 顺序原子写有界上传块 | `media.PutUploadChunk`、`media.mediaWriteContext`（参考）、`media.hashChunkRequest`（参考）、`media.readChunkOperation`（参考）、`media.chunkContextReader.Read`（参考）、`media.chunkStageName`（参考）、`media.writeChunkStage`（参考）、`media.reconcileUploadFile`（参考）、`media.verifyUploadChunks`（参考）、`media.commitChunk`（参考）、`media.RecoverUploadChunks`（参考） |
 | `modules/media/internal/upload_completion.go` | 手写 | 完成hash/MIME验证后发布ready资源 | `media.CompleteUpload` |
 | `modules/media/internal/upload_maintenance.go` | 手写 | 仅回收过期未完成临时字节 | `media.ExpireUploadSessions`（参考） |
 | `modules/media/internal/mime_validator.go` | 手写 | 从字节识别类型 | `media.SniffAssetType`（参考） |
 | `modules/media/internal/payload_validator.go` | 手写 | 验证SVG/场景/附件/视频安全交付 | `media.ValidateAssetPayload`（参考） |
-| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务 | `media.CommitAssetBlob`（参考） |
+| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务 | `media.CommitAssetBlob`（参考）、`media.InstallLocalBlobStore`（参考）、`media.openLocalBlobStore`（参考）、`media.readUploadRow`（参考）、`media.writeUploadRow`（参考）、`media.ensureMediaDirectory`（参考）、`media.openMediaRoot`（参考）、`media.openMediaRegular`（参考）、`media.ConfigureWriteWindow`（参考）、`media.CloseLocalBlobStore`（参考）、`media.LocalStorageRecovered`（参考）、`media.replayBeginUpload`（参考）、`media.CreateUpload`（参考） |
 | `modules/media/internal/asset_service.go` | 手写 | 读取资源/variants安全元数据 | `media.ReadAsset`、`media.ListAssets` |
 | `modules/media/internal/image_variants.go` | 手写 | 关联浏览器多宽WebP原图 | `media.AttachImageVariants` |
 | `modules/media/internal/drawing_validator.go` | 手写 | 校验Excalidraw场景和提取文字 | `media.ValidateDrawingScene`（参考） |
@@ -39,7 +39,7 @@
 | `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `media.ExportSnapshot`、`media.StageSnapshot`、`media.DiscardSnapshot` |
 | `modules/media/cmd/media/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `media.main` |
 | `modules/media/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `media.BuildApplication` |
-| `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready` |
+| `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready`、`media.NewApplication`（参考）、`media.serviceHandlers`（参考）、`media.serveUploadChunk`（参考）、`media.writeRequestProblem`（参考） |
 | `modules/media/go.mod` | 配置 | 独立module nice-wiki/modules/media；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/media/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/media/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/media；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -53,3 +53,4 @@
 | `modules/media/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/media/migrations/0001_domain.sql` | 迁移 | 初始权威表（ADR0005私有SQLite）：upload_sessions、upload_receipts、assets、blob_journal与schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/media/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `media.All`（参考） |
+| `modules/media/migrations/0002_upload_chunks.sql` | 手写 | 只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次 | 无 |

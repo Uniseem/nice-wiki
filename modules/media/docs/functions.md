@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 54 个函数：约束 36 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 83 个函数：约束 36 个，参考 47 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,9 +33,10 @@ func BeginUpload(ctx context.Context, op OperationContext, input BeginUploadInpu
 
 **步骤**
 
-1. media.upload+epoch验证，NormalizeOriginalName与站点大小/并发/配额预留
-2. 同site+sha已ready返回完成复用；不同内容不泄漏其他站点dedup
-3. 创建24h receiving与服务生成tmp路径，operationId唯一receipt
+1. 当前media.upload会话和opened epoch先核；kind/caller/actor/site/epoch及原严格输入CanonicalJSON摘要，operationId异材料CONFLICT
+2. 配额/名称候选/offset/CAS前核完整旧回执，owner/site/创建epoch一致才返回原UploadSession；旧缺原快照或NULL epoch拒绝，不从mutable会话猜原结果
+3. 新操作公共NewWriteContext只允许running；NormalizeOriginalName纯语义，读取site-config版本化配额，生成24小时receiving候选
+4. 创建前重核窗口和本域并发/站点配额，普通新临时文件及目录fsync后session/创建epoch/原结果hash同事务，失败不自动重建旧上传
 
 **错误**
 
@@ -45,12 +46,14 @@ func BeginUpload(ctx context.Context, op OperationContext, input BeginUploadInpu
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久原始结果或来源元数据损坏（不可重试）
+- `LOCKED`：新操作遇维护或写窗口关闭（可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：上传属于编辑文档功能media.upload；资源库读取/清理media.manage；公开交付仅已公开暴露hash或有效管理员preview
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`media.NormalizeOriginalName`、`site-config:readSiteConfig`
+- 幂等：actor/caller/site/epoch及原始输入稳定摘要；原成功返回首次快照，旧缺快照/创建epoch不猜
+- 依赖：`media.NormalizeOriginalName`、`site-config:readSiteConfig`、`platform.CanonicalJSON`、`media.validateUploadActor`、`media.hashBeginUploadRequest`、`media.replayBeginUpload`、`media.mediaWriteContext`、`media.CreateUpload`、`media.readUploadQuota`
 
 ## media.ReadUpload
 
@@ -136,6 +139,103 @@ func AbortUpload(ctx context.Context, op OperationContext, input AbortUploadInpu
 - 并发：upload mutex
 - 幂等：重复abort成功
 - 依赖：无
+
+## media.hashBeginUploadRequest
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_service.go`
+- 作用：kind/caller/actor/site/epoch及原严格输入规范摘要，不含新时钟/名称策略
+
+```go
+func hashBeginUploadRequest(op OperationContext,input BeginUploadInput) (Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. kind/caller/actor/site/epoch及原严格输入规范摘要，不含新时钟/名称策略
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`platform.CanonicalJSON`
+
+## media.validateUploadActor
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_service.go`
+- 作用：仅当前管理会话和业务grant，不重复入口身份/期限
+
+```go
+func validateUploadActor(op OperationContext, grant string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅当前管理会话和业务grant，不重复入口身份/期限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.readUploadQuota
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_service.go`
+- 作用：仅免费只读站点配额；调用点派生固定media纯服务并清原PortalProof，不要求上传者site.read
+
+```go
+func readUploadQuota(ctx context.Context, reader siteConfigReader, siteID Identifier) (uploadQuota, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 调用点先核当前用户media.upload及scope/hash/旧回执，再从bounded op保留deadline/epoch/root/costClass，只替换为固定media纯服务Actor并清PortalProof，不携用户session/grants
+2. 只调已登记site-config.readSiteConfig，响应siteId必须等于原用户站点，配额未知或非法失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权上传链中的固定media服务只读配额；原用户站点不可改变
+- 并发：只读远端权威，ctx取消传播
+- 幂等：只读，不触发模型/付费任务
+- 依赖：`site-config:readSiteConfig`
 
 ## media.NormalizeOriginalName
 
@@ -246,9 +346,12 @@ func PutUploadChunk(ctx context.Context, op OperationContext, input PutUploadChu
 
 **步骤**
 
-1. 锁upload核state/expiry/expectedOffset+revision，单chunk≤8MiB
-2. 有界流写临时chunk核SHA，重复chunkoperationId同digest返回原offset
-3. fsync chunk后原子append/offset日志，不同offset/version冲突无部分计数，崩溃按chunkjournal补齐或截尾
+1. 当前media.upload管理会话、同站点本人且op.dataEpoch等于受信打开active代次；先核同op已绑定的actor/site/epoch/upload/稳定摘要，成功只读返回原UploadSession，不重查当前quota/offset/CAS/不消费reader
+2. 新/未完成先由公共NewWriteContext取得真实running窗口，维护直接LOCKED；upload独占下核receiving/expiry/offset/expectedRevision及创建epoch，旧NULL epoch不猜测继续
+3. HTTP明确Content-Length 1..8MiB绑定内部io.Reader；有界读length+1，精确长度与SHA一致才fsync私有临时chunk。摘要固定upload/offset/length/sha/expectedRevision，不含reader或新时钟
+4. 完整材料/私有stage标识PREPARED先持久，再按SQL权威offset截去未提交尾并追加已核chunk、fsync；确认窗口仍running后offset+revision CAS与COMMITTED原结果/hash同SQL事务
+5. 崩溃后或下次写前只按已提交SQL水位截尾，短文件/坏材料失败关闭；未提交prepared/temp保留或隔离，不计数成功，不自动发布ready
+6. 整条HTTP链公共硬body预算优先413 BUDGET_EXCEEDED；预算内缺失/未知或不合法Content-Length为400，内部不复制入口schema
 
 **错误**
 
@@ -257,12 +360,336 @@ func PutUploadChunk(ctx context.Context, op OperationContext, input PutUploadChu
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `FORBIDDEN`：非当前上传权限或非本人（不可重试）
+- `NOT_FOUND`：上传不存在（不可重试）
+- `LOCKED`：维护或安全写窗口关闭（可重试）
+- `BUDGET_EXCEEDED`：公共HTTP入口body硬预算超限，优先于长度schema错误（不可重试）
 
-- 副作用：私有事务/文件/receipt/outbox
-- 授权：media.upload本人
+- 副作用：本域有界临时chunk、fsync、准备决定、上传offset/CAS和原始操作回执；不发布资源或事件
+- 授权：media.upload当前管理会话且仅同站点上传者；当前授权/epoch先于旧成功回放
 - 并发：uploadId独占，offset更新同journal事务
-- 幂等：chunkoperationId+offset+SHA去重
+- 幂等：operationId绑定actor/site/epoch/upload及稳定业务hash；原成功返回原不可变UploadSession回执，异材料CONFLICT
+- 依赖：`platform.NewWriteContext`、`platform.CanonicalJSON`、`media.mediaWriteContext`、`media.hashChunkRequest`、`media.readChunkOperation`、`media.readUploadRow`、`media.openMediaRoot`、`media.reconcileUploadFile`、`media.writeChunkStage`、`media.openMediaRegular`、`media.chunkStageName`、`media.commitChunk`
+
+## media.mediaWriteContext
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：公共有界写窗口核op/opened epoch，仅running非维护可写
+
+```go
+func (s *localBlobStore) mediaWriteContext(ctx context.Context,op OperationContext) (context.Context,context.CancelFunc,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 公共有界写窗口核op/opened epoch，仅running非维护可写
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`platform.NewWriteContext`
+
+## media.hashChunkRequest
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：actor/site/epoch/upload/offset/length/SHA/CAS规范摘要，排除reader/时钟
+
+```go
+func hashChunkRequest(op OperationContext,input PutUploadChunkInput) (Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. actor/site/epoch/upload/offset/length/SHA/CAS规范摘要，排除reader/时钟
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`platform.CanonicalJSON`
+
+## media.readChunkOperation
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：16MiB有界核阶段、材料与原UploadSession/hash及水位
+
+```go
+func (s *localBlobStore) readChunkOperation(ctx context.Context,q sqlExecer,id Identifier) (chunkOperation,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 16MiB有界核阶段、材料与原UploadSession/hash及水位
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
 - 依赖：无
+
+## media.chunkContextReader.Read
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：向IO传播ctx取消，不重复入口期限机制
+
+```go
+func (r chunkContextReader) Read(buffer []byte) (int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 向IO传播ctx取消，不重复入口期限机制
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.chunkStageName
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：服务生成stage标识构造私有相对文件名
+
+```go
+func chunkStageName(id Identifier) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 服务生成stage标识构造私有相对文件名
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.writeChunkStage
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：length+1有界读取，核精确长度/SHA，新文件及目录fsync后才准备
+
+```go
+func writeChunkStage(ctx context.Context,root *os.Root,input BinaryChunk) (Identifier,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. length+1有界读取，核精确长度/SHA，新文件及目录fsync后才准备
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.chunkContextReader.Read`、`media.chunkStageName`
+
+## media.reconcileUploadFile
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：短于SQL水位失败，未提交尾只在真实窗口截尾fsync；启动核已提交前缀
+
+```go
+func (s *localBlobStore) reconcileUploadFile(ctx context.Context,op OperationContext,root *os.Root,record storedUpload,verify bool) (*os.File,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 短于SQL水位失败，未提交尾只在真实窗口截尾fsync；启动核已提交前缀
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.openMediaRegular`、`media.mediaWriteContext`、`media.verifyUploadChunks`
+
+## media.verifyUploadChunks
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：启动核连续offset/revision/来源及每段SHA，普通追加不反复重哈全文件
+
+```go
+func (s *localBlobStore) verifyUploadChunks(ctx context.Context,file *os.File,record storedUpload) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 启动核连续offset/revision/来源及每段SHA，普通追加不反复重哈全文件
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.readChunkOperation`、`media.chunkContextReader.Read`
+
+## media.commitChunk
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：追加fsync后重取running窗口/expiry，offset+revision CAS与COMMITTED原结果同事务
+
+```go
+func (s *localBlobStore) commitChunk(ctx context.Context,op OperationContext,input PutUploadChunkInput,record storedUpload,hash Hash) (gen.UploadSession,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 追加fsync后重取running窗口/expiry，offset+revision CAS与COMMITTED原结果同事务
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.mediaWriteContext`、`platform.CanonicalJSON`
+
+## media.RecoverUploadChunks
+
+- 级别：参考
+- 文件：`modules/media/internal/chunk_writer.go`
+- 作用：受信启动只按SQL确认水位核前缀/截尾，不自动计数PREPARED；旧NULL epoch保留不可续传
+
+```go
+func RecoverUploadChunks(ctx context.Context,op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 受信启动只按SQL确认水位核前缀/截尾，不自动计数PREPARED；旧NULL epoch保留不可续传
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.openMediaRoot`、`media.readUploadRow`、`media.reconcileUploadFile`
 
 ## media.CompleteUpload
 
@@ -479,6 +906,392 @@ func CommitAssetBlob(ctx context.Context, op OperationContext, input CommitAsset
 - 幂等：同SHA/bytes复用，异bytes完整性拒绝
 - 依赖：无
 
+## media.InstallLocalBlobStore
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：受信配置安装私有SQLite与opened epoch
+
+```go
+func InstallLocalBlobStore(dataRoot string, openedEpoch Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 受信配置安装私有SQLite与opened epoch
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.openLocalBlobStore`
+
+## media.openLocalBlobStore
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：目录/DB拒链接特殊对象，FULL同步只追加迁移，唯一生成schema校验持久Asset/UploadSession
+
+```go
+func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobStore, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 目录/DB拒链接特殊对象，FULL同步只追加迁移，唯一生成schema校验持久Asset/UploadSession
+2. media.db打开前允许缺失、Ping后必须存在，复用ValidatePrivatePath拒硬链接/链接/特殊文件，并核既有DB前后SameFile
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.ensureMediaDirectory`、`media.All`、`platform.NewPayloadValidator`、`platform.ValidatePrivatePath`
+
+## media.readUploadRow
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：16MiB有界读取唯一UploadSession schema，核索引/创建主体及水位
+
+```go
+func readUploadRow(ctx context.Context, exec sqlExecer, uploadID Identifier,validate func(json.RawMessage)error) (storedUpload, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 16MiB有界读取唯一UploadSession schema，核索引/创建主体及水位
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.writeUploadRow
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：新上传持久创建epoch，更新不改归属
+
+```go
+func writeUploadRow(ctx context.Context, exec sqlExecer, record storedUpload, insert bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 新上传持久创建epoch，更新不改归属
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.ensureMediaDirectory
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：逐段Lstat拒链接/非目录，创建后同步父目录
+
+```go
+func ensureMediaDirectory(path string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐段Lstat拒链接/非目录，创建后同步父目录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.openMediaRoot
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：标准库目录能力约束私有路径，上传/staging父目录拒链接
+
+```go
+func (s *localBlobStore) openMediaRoot() (*os.Root,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 标准库目录能力约束私有路径，上传/staging父目录拒链接
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.ensureMediaDirectory`
+
+## media.openMediaRegular
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：普通文件NOFOLLOW/NONBLOCK并核打开前后身份
+
+```go
+func openMediaRegular(root *os.Root, absoluteRoot, name string, flags int) (*os.File, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用ValidatePrivatePath于受信绝对root+相对生成路径的打开前后，拒硬链接/符号链接/特殊对象；保留Root/fd/绝对路径SameFile身份核对与NOFOLLOW，不复制公共路径规则
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`platform.ValidatePrivatePath`
+
+## media.ConfigureWriteWindow
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：仅受信装配真实Runtime/WriteWindow，缺回调失败关闭
+
+```go
+func ConfigureWriteWindow(config platform.WriteWindowConfig) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅受信装配真实Runtime/WriteWindow，缺回调失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.CloseLocalBlobStore
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：装配失败或HTTP排空后撤下并关闭store
+
+```go
+func CloseLocalBlobStore() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配失败或HTTP排空后撤下并关闭store
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.LocalStorageRecovered
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：真实blob/chunk恢复完成且epoch匹配才报告journal恢复
+
+```go
+func LocalStorageRecovered(epoch Identifier) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实blob/chunk恢复完成且epoch匹配才报告journal恢复
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.replayBeginUpload
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：owner/site/创建epoch及原快照/hash一致才只读回放，旧缺快照不猜mutable结果
+
+```go
+func (s *localBlobStore) replayBeginUpload(ctx context.Context,op OperationContext,q sqlExecer,requestHash Hash) (gen.UploadSession,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. owner/site/创建epoch及原快照/hash一致才只读回放，旧缺快照不猜mutable结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.readUploadRow`
+
+## media.CreateUpload
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：复查原回执后真实窗口/配额，普通新临时文件fsync，session/epoch/原快照同事务
+
+```go
+func (s *localBlobStore) CreateUpload(ctx context.Context,op OperationContext,session gen.UploadSession,quota uploadQuota,requestHash Hash) (gen.UploadSession,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复查原回执后真实窗口/配额，普通新临时文件fsync，session/epoch/原快照同事务
+2. 调用SQL Commit前标记保留候选文件；Commit错误继续返回错误但不删可能已提交对象，同op以持久原回执确认，不把未知当成功
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.replayBeginUpload`、`media.mediaWriteContext`、`media.openMediaRoot`、`media.writeUploadRow`、`platform.CanonicalJSON`
+
 ## media.ReadAsset
 
 - 级别：约束
@@ -506,22 +1319,24 @@ func ReadAsset(ctx context.Context, op OperationContext, input ReadAssetInput) (
 
 **步骤**
 
-1. media.read/upload/manage当前用户或既定注册content/site-config/public-site/localization/knowledge纯服务，精确服务白名单不能从浏览器头传入
-2. 精确version/hash/state读取，不返回path
-3. deleted/notready明确状态或NOT_FOUND，不能将未知视ready
-4. version query省略为当前null，提供时为严格非负Revision；注册纯服务读精确元数据后调用域核结果siteId与自己的持久来源，不把服务身份当发布授权
+1. 仅当前media.read/upload/manage管理会话或静态content/site-config/public-site/localization/knowledge纯服务；域入口当前授权，用户按返回siteId核同站点
+2. 核op.dataEpoch与本域受信打开active代次相同；有界读真实assets行，按唯一持久Asset schema校验且索引/id/site/sha/size/type/state一致
+3. 只返回ready安全DTO，无路径/内部句柄；deleted/notready为NOT_FOUND，未知持久状态或坏元数据INTEGRITY_ERROR
+4. 省略version为当前；提供严格非负Revision且必须等于真实不可变ref.version；当前库仅一版本，不存在历史版本NOT_FOUND，不伪造历史；注册服务调用域仍核返回siteId，不将元数据读取当发布授权
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏或与索引不符（不可重试）
+- `VERSION_MISMATCH`：非当前已打开active代次（不可重试）
 
 - 副作用：无
 - 授权：media.read或注册引用/检索service
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`platform.NewPayloadValidator`
 
 ## media.ListAssets
 
@@ -2021,6 +2836,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 受信安装opened epoch与真实running写窗口，启动核chunk水位；统一工厂只绑定真实已实现handler，缺其余操作失败并关本地库，不填占位
+8. WriteWindow回调第二次runtime读取先核DataEpoch：未知503，已知不等于Build打开epoch为409，再判phase/maintenance；不能只信NewWriteContext第一次view
 
 **错误**
 
@@ -2032,7 +2849,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -2116,7 +2933,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：无
+- 依赖：`media.CloseLocalBlobStore`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## media.Health
@@ -2199,6 +3016,134 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
+
+## media.NewApplication
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：真实HTTP入口，缺任一handler平台失败关闭，control未完成不假造Ready
+
+```go
+func NewApplication(config platform.ServiceConfig,anchors platform.TrustAnchors,runtimeAuthority platform.SiteConfigClient,activeDataEpoch platform.Identifier, authorize func(context.Context,platform.OperationContext,string,string)error) (*Application,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实HTTP入口，缺任一handler平台失败关闭，control未完成不假造Ready
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`platform.NewServiceHandler`、`media.serviceHandlers`、`media.LocalStorageRecovered`
+
+## media.serviceHandlers
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：真实health/ready及Begin/Read/Abort/Chunk/ReadAsset转换，不填占位
+
+```go
+func (a *Application) serviceHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实health/ready及Begin/Read/Abort/Chunk/ReadAsset转换，不填占位
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`
+
+## media.serveUploadChunk
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：严格入口后转换header/path，用解析Content-Length绑定io.Reader，无handle表
+
+```go
+func serveUploadChunk(w http.ResponseWriter,r *http.Request)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格入口后转换header/path，用解析Content-Length绑定io.Reader，无handle表
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：`media.PutUploadChunk`、`media.writeRequestProblem`
+
+## media.writeRequestProblem
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：受信requestId输出安全Problem，不回显正文/私有路径
+
+```go
+func writeRequestProblem(w http.ResponseWriter,r *http.Request,err error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 受信requestId输出安全Problem，不回显正文/私有路径
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
+- 并发：本域私有store互斥及SQL CAS
+- 幂等：原来源及规范摘要绑定，未知失败关闭
+- 依赖：无
 
 ## media.ConsumeEvents
 
