@@ -15,3 +15,5 @@ public-site 重启：扫描 cache 索引文件哈希与遗留 tmp，损坏命中
 恢复（ADR0003）：全域snapshot完整→全部域暂存→持久切换决定→各服务重启换入→全部回执与readiness→解除maintenance。control区不随恢复替换。切换后故障可继续等待或整体换回，不允许部分回滚。免费派生索引清空可重建，已付费结果引用必须保留，不能自动发模型请求。
 
 本阶段没有真实服务/模型/Git远程操作，没有运行业务验收。
+
+resolvePublishedLink只允许已认证site-config纯服务主体；拒其他服务、访客及用户委托。任何content/配置/语言权威未知返回503，current ref或规范路径水位改变为STALE_RESULT/503，不返回visible=false掩盖依赖故障。响应no-store，不开放草稿/撤回历史，不触发翻译、模型、任务或付费；本轮只有契约，未实现/运行真实接口。

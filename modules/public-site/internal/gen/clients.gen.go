@@ -416,6 +416,9 @@ func (c *LocalizationClient) ListLanguages(ctx context.Context, queries ...url.V
 			query[key] = append(query[key], entries...)
 		}
 	}
+	if query.Get("includeDisabled") == "" {
+		query.Set("includeDisabled", "false")
+	}
 	if encoded := query.Encode(); encoded != "" {
 		requestPath += "?" + encoded
 	}
@@ -465,6 +468,11 @@ func (c *SiteConfigClient) ReadConfigObject(ctx context.Context, objectId string
 // ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
 func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
+}
+
+// ReadSiteConfig GET /v1/config（site-config:readSiteConfig）。
+func (c *SiteConfigClient) ReadSiteConfig(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/config", nil, "")
 }
 
 // RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。

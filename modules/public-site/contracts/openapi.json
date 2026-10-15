@@ -1451,6 +1451,115 @@
           }
         ]
       }
+    },
+    "/v1/public-links:resolve": {
+      "post": {
+        "operationId": "resolvePublishedLink",
+        "summary": "按文档及块ID解析当前安全公开链接",
+        "description": "仅site-config已认证纯服务主体，不接受访客、其他服务或用户委托。只读当前epoch公开链接；调用方已按baseLanguage补齐language。已启用语言缺译时保留该语言URL。依赖未知或权威变化503，不伪造不可见；禁止递归site-config.readPublicHome。",
+        "x-handler": "public-site.ResolvePublishedLink",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "types.json#/$defs/ResolvePublishedLinkInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "权威已知的可见/不可用结果，不授予后续读取授权",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                },
+                "required": true,
+                "description": "只用于当前请求，不能作为后续公开授权缓存"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "types.json#/$defs/ResolvePublishedLinkResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：输入不符合严格schema",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：服务断言缺失或失效",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：非site-config纯服务主体或夹带用户委托",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：请求dataEpoch与当前权威不一致",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE或STALE_RESULT：权威未知或最终路径/发布/配置/语言水位变化",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "DEADLINE_EXCEEDED：调用链截止到达",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

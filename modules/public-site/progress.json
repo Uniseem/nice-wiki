@@ -2,11 +2,11 @@
   "version": 1,
   "module": "public-site",
   "phase": "design",
-  "contractSha256": "1fe6b8029d8bd69531d0e2b0335b945e28b9ebaf102a8c617375620691d32a66",
+  "contractSha256": "ddd64d09efdf6b2326f6ada75431c107729eb205c9d2c43ae10b58a6c463f949",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
+  "assignedSession": "第四轮支援：首页公开链接解析纯合同",
+  "branch": "codex/public-site-link-contract-r1",
+  "baseCommit": "b56430efe56b724d6efdbe8bf3ae39f15fc6803c",
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
@@ -76,7 +76,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 仍为设计/生成物，不代表手写业务已实现。"
       },
       "blocker": null
     },
@@ -686,7 +686,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 仍为设计/生成物，不代表手写业务已实现。"
       },
       "blocker": null
     },
@@ -696,7 +696,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 仍为设计/生成物，不代表手写业务已实现。"
       },
       "blocker": null
     },
@@ -716,7 +716,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 仍为设计/生成物，不代表手写业务已实现。"
       },
       "blocker": null
     }
@@ -839,7 +839,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
       },
       "blocker": null
     },
@@ -1345,7 +1345,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
       },
       "blocker": null
     },
@@ -1425,7 +1425,18 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "public-site.ResolvePublishedLink",
+      "path": "modules/public-site/internal/links.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
+      },
+      "blocker": "本域尚无go.mod与业务实现，不把生成/结构检查当Go编译或行为实现"
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "本轮只补首页公开链接解析producer契约，业务函数/文件及生成产物仍planned；无Go实现/编译、行为验收或部署，不把根14既有模块通过当本域可运行。"
 }

@@ -438,6 +438,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public-links:resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按文档及块ID解析当前安全公开链接
+         * @description 仅site-config已认证纯服务主体，不接受访客、其他服务或用户委托。只读当前epoch公开链接；调用方已按baseLanguage补齐language。已启用语言缺译时保留该语言URL。依赖未知或权威变化503，不伪造不可见；禁止递归site-config.readPublicHome。
+         */
+        post: operations["resolvePublishedLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -718,6 +738,43 @@ export interface components {
              * @enum {unknown}
              */
             scope: "staged" | "before";
+        };
+        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
+        types_LanguageTag: string;
+        /** @description 沿用站点配置规范语言tag；是否启用另核localization当前权威，不使用后台UILocale */
+        LanguageTag: components["schemas"]["types_LanguageTag"];
+        /** @description 仅site-config纯服务解析公开链接；调用方已以基准语言补齐language */
+        ResolvePublishedLinkInput: {
+            /** @description 稳定文档ID，不收slug或URL */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 显式请求语言，必填；本端不做浏览器偏好回退 */
+            language: components["schemas"]["LanguageTag"];
+            /** @description null表示文档；非null必须在当前精确已发布正文中存在 */
+            blockId: components["schemas"]["Identifier"] | null;
+        };
+        /** @description 同源规范相对URL：恰好一个起始/，包含当前publicBaseURL的basePath、显式语言和content权威canonicalPath；可带已确认稳定blockId锚点，无query、外部origin、反斜杠或控制空白 */
+        PublicRelativeLink: string;
+        /** @description 已知权威结果的封闭联合；依赖或版本未知返回Problem。false不含草稿、标题、元数据或旧路径；true引用须对应请求文档和当前epoch */
+        ResolvePublishedLinkResult: {
+            /** @enum {boolean} */
+            visible: true;
+            href: components["schemas"]["PublicRelativeLink"];
+            publication: components["schemas"]["PublishedRevisionRef"];
+            /** @description 等于请求language；缺译不改变URL语言 */
+            resolvedLanguage: components["schemas"]["LanguageTag"];
+            /** @enum {string} */
+            reason: "available";
+        } | {
+            /** @enum {boolean} */
+            visible: false;
+            href: null;
+            publication: null;
+            resolvedLanguage: null;
+            /**
+             * @description unavailable统一不存在/未公开/撤回/删除；anchor_missing为当前公开正文中请求块不存在；language_unavailable仅未启用或停用，不表示译文暂缺
+             * @enum {string}
+             */
+            reason: "unavailable" | "anchor_missing" | "language_unavailable";
         };
     };
     responses: never;
@@ -1646,6 +1703,86 @@ export interface operations {
             };
             /** @description LOCKED：当前恢复阶段不允许删除该目录 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resolvePublishedLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolvePublishedLinkInput"];
+            };
+        };
+        responses: {
+            /** @description 权威已知的可见/不可用结果，不授予后续读取授权 */
+            200: {
+                headers: {
+                    /** @description 只用于当前请求，不能作为后续公开授权缓存 */
+                    "Cache-Control": "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvePublishedLinkResult"];
+                };
+            };
+            /** @description VALIDATION：输入不符合严格schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：服务断言缺失或失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：非site-config纯服务主体或夹带用户委托 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description VERSION_MISMATCH：请求dataEpoch与当前权威不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE或STALE_RESULT：权威未知或最终路径/发布/配置/语言水位变化 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEADLINE_EXCEEDED：调用链截止到达 */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

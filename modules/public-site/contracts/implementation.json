@@ -711,6 +711,123 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "public-site.ResolvePublishedLink",
+          "name": "ResolvePublishedLink",
+          "signature": "func ResolvePublishedLink(ctx context.Context, op OperationContext, input ResolvePublishedLinkInput) (ResolvePublishedLinkResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "沿调用链传播取消和截止",
+              "constraints": "外部IO使用调用ctx，不创建独立重试窗口"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "入口建立的site-config纯服务上下文和当前固定dataEpoch",
+              "constraints": "仅callerService=site-config且actor.kind=service，不接受用户委托或浏览器自声明scope"
+            },
+            {
+              "name": "input",
+              "type": "ResolvePublishedLinkInput",
+              "description": "documentId/language/blockId全部必填，blockId可null；language已按调用方baseLanguage补齐",
+              "constraints": "严格schema在边界一次验证，函数内不重解析服务断言/期限或重做字段schema"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ResolvePublishedLinkResult",
+              "description": "当前请求安全公开链接判断；false无标题/metadata/draft/旧路径",
+              "constraints": "true才href/publication/resolvedLanguage非null且available；false三项全null；resolvedLanguage=request.language，不授予后续读取授权"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败仅公共Problem，不返回半结果",
+              "constraints": "依赖未知/权威变化503，不能从旧缓存制造visible=false"
+            }
+          ],
+          "purpose": "为site-config按稳定文档及块ID提供当前安全公开相对URL",
+          "steps": [
+            "入口静态限制仅已认证site-config纯服务调用，固定当前op.dataEpoch；公共边界一次建立服务断言、caller、严格schema和deadline，拒绝用户委托",
+            "通过site-config:readSiteConfig读取已提交安全配置及revision/baseLanguage/publicBaseURL，绝不调用readPublicHome或其主页解析链，避免递归；localization:listLanguages(includeDisabled=false)提供当前启用语言权威",
+            "通过content:readPublicTree的同一公开树快照按documentId取精确PublishedRevisionRef、visibilityRevision与权威canonicalPath；不存在/未公开/撤回/删除统一false/unavailable且三项null，不读取草稿或管理metadata",
+            "canonicalPath须由content同一公开快照提供完整分段URL编码路径，不含语言/basePath/query/fragment，正确保留被公开导航隐藏祖先的路径；不得按裁剪parentId/pathSegment自行拼slug，也不用渲染cache或事件投影替代公开权威",
+            "公开目标的language未启用或已停用才false/language_unavailable；已启用语言译文暂缺继续按M06-R006显示旧译/原文，URL保留请求language，resolvedLanguage=request.language，不调用模型或创建翻译",
+            "blockId非null时携精确publishedRevisionId调用content:readPublishedRevision，只读当前公开正文并按LoadPublishedBundle既有hash/schema及稳定块ID规则核验；锚点不存在候选为false/anchor_missing，不偷偷退到文档顶部，不因缺译判锚点不存在",
+            "复用本域BuildCanonical规范机制，将可信publicBaseURL的basePath、请求language和content权威canonicalPath恰好拼接一次，清除全部query；从原始规范URL取得同源相对路径，附已存在稳定blockId的URL编码片段，不在JSON接口写HTML属性转义串或外部origin",
+            "返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化或未知直接STALE_RESULT/503，不自动重算或重试",
+            "成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "严格输入schema不满足",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "condition": "服务断言缺失或失效",
+              "httpStatus": 401,
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "不是site-config纯服务主体或夹带用户委托",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "请求dataEpoch非当前权威代次",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "content/配置/启用语言权威未知或不可达，不能从旧缓存推定不可见",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "公开引用/规范路径/visibility/config/language水位变化，不交付不一致URL",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "调用链截止到达",
+              "httpStatus": 504,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅callerService=site-config且actor.kind=service，无用户委托；只读公开数据，不借服务身份访问draft或撤回历史"
+          },
+          "concurrency": "总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；变化直接503，不重试",
+          "idempotency": "只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权",
+          "dependencies": [
+            "site-config:readSiteConfig",
+            "content:readPublicTree",
+            "content:readPublishedRevision",
+            "content:resolvePublicPath",
+            "content:validatePublications",
+            "localization:listLanguages",
+            "public-site.BuildCanonical"
+          ],
+          "resources": [
+            "content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径",
+            "冻结i18n/site/editor设计及M06-R006：翻译缺失不改变显式语言URL",
+            "本轮仅合同，无Go业务或新实际文件；本域无go.mod，函数保持planned"
+          ],
+          "contract": "binding"
         }
       ]
     },
@@ -999,9 +1116,8 @@
           ],
           "purpose": "生成规范地址",
           "steps": [
-            "仅信任 site-config 配置域名",
-            "移除追踪 query",
-            "拼接语言路径并 HTML 属性转义"
+            "只信任site-config安全配置publicBaseURL，basePath与调用方语言规范路径恰好组合一次",
+            "移除全部query，返回原始规范URL；HTML属性转义仅在HTML输出点执行，不污染JSON链接解析结果"
           ],
           "errors": [
             {
@@ -4720,7 +4836,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "POST /v1/public-links:resolve真实绑定ResolvePublishedLink；静态AllowedCallers仅site-config且限纯服务主体；未实现时不得用stub或忽略缺handler启动"
           ],
           "errors": [
             {
@@ -4757,7 +4874,8 @@
             "public-site.RunWorker",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "public-site.ResolvePublishedLink"
           ],
           "resources": [
             "本域implementation全部x-handler",

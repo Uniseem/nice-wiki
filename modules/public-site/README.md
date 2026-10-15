@@ -24,3 +24,5 @@
 ## 进度与新会话交接
 
 先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+
+第四轮支援仅补site-config所需的`resolvePublishedLink`只读生产方契约；按稳定documentId/可选blockId与显式语言解析当前公开同源相对URL。本域仍无业务Go module，函数/生成物保持planned，协议生成与结构检查不代表接口已实现。

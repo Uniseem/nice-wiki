@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 71 个：手写 51、UI 4、生成 5、配置 10、迁移 1。函数 64 个：约束 31，参考 33。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 71 个：手写 51、UI 4、生成 5、配置 10、迁移 1。函数 65 个：约束 32，参考 33。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -12,7 +12,7 @@
 | `modules/public-site/internal/content_client.go` | 手写 | 取得同一发布修订完整包；同文件职责限本域以下登记函数 | `public-site.LoadPublishedBundle`（参考） |
 | `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.SanitizeHTML`（参考） |
 | `modules/public-site/internal/toc.go` | 手写 | 生成稳定锚点目录；同文件职责限本域以下登记函数 | `public-site.BuildTOC`（参考） |
-| `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考） |
+| `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考）、`public-site.ResolvePublishedLink` |
 | `modules/public-site/internal/media_client.go` | 手写 | 取得公开资源清单；同文件职责限本域以下登记函数 | `public-site.ResolvePublicMedia`（参考） |
 | `modules/public-site/internal/navigation.go` | 手写 | 构建可访问公开导航树；同文件职责限本域以下登记函数 | `public-site.BuildNavigation`（参考） |
 | `modules/public-site/internal/breadcrumbs.go` | 手写 | 生成面包屑；同文件职责限本域以下登记函数 | `public-site.BuildBreadcrumbs`（参考） |

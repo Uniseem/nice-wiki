@@ -15,3 +15,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
 快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
+
+首页公开链接解析使用ResolvePublishedLinkInput/Result：输入documentId、language、blockId全部必填（blockId可null）；输出visible、href、publication、resolvedLanguage、reason全部必填。oneOf强制true时三项非null且reason=available，false时三项全null且reason只能unavailable/anchor_missing/language_unavailable。false不返回标题、metadata、草稿、旧路径或具体未公开原因；未知依赖返回503而非负结果。
+
+content公开树的required canonicalPath由content同一快照给出完整规范层级，已分段URL编码且不含语言/basePath/query/fragment；公开导航跳过未公开祖先后的parentId不可用于消费方拼路径。href由本域既有canonical机制组合当前可信basePath、显式启用语言和该路径，附已存在块锚点，不含query/外部origin。ResolvedLanguage表示URL语言，已启用语言缺译时仍等于请求语言，正文沿既定规则旧译/原文回退。

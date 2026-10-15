@@ -1516,7 +1516,7 @@
       "properties": {
         "canonicalURL": {
           "type": "string",
-          "description": "canonicalURL；UTF-8；不得为 null",
+          "description": "原始规范绝对URL；JSON链接解析从中取同源相对path，不含HTML属性转义；HTML输出点另行转义",
           "maxLength": 8192
         }
       },
@@ -3885,6 +3885,125 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
+    },
+    "LanguageTag": {
+      "$ref": "../../site-config/contracts/types.json#/$defs/LanguageTag",
+      "description": "沿用站点配置规范语言tag；是否启用另核localization当前权威，不使用后台UILocale"
+    },
+    "PublicRelativeLink": {
+      "type": "string",
+      "description": "同源规范相对URL：恰好一个起始/，包含当前publicBaseURL的basePath、显式语言和content权威canonicalPath；可带已确认稳定blockId锚点，无query、外部origin、反斜杠或控制空白",
+      "minLength": 1,
+      "maxLength": 8192,
+      "pattern": "^/[^/?#\\\\\\s][^?#\\\\\\s]*(#[^?#\\\\\\s]+)?$"
+    },
+    "ResolvePublishedLinkInput": {
+      "type": "object",
+      "description": "仅site-config纯服务解析公开链接；调用方已以基准语言补齐language",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "稳定文档ID，不收slug或URL"
+        },
+        "language": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "显式请求语言，必填；本端不做浏览器偏好回退"
+        },
+        "blockId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null表示文档；非null必须在当前精确已发布正文中存在"
+        }
+      },
+      "required": [
+        "documentId",
+        "language",
+        "blockId"
+      ]
+    },
+    "ResolvePublishedLinkResult": {
+      "description": "已知权威结果的封闭联合；依赖或版本未知返回Problem。false不含草稿、标题、元数据或旧路径；true引用须对应请求文档和当前epoch",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visible": {
+              "type": "boolean",
+              "enum": [
+                true
+              ]
+            },
+            "href": {
+              "$ref": "#/$defs/PublicRelativeLink"
+            },
+            "publication": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+            },
+            "resolvedLanguage": {
+              "$ref": "#/$defs/LanguageTag",
+              "description": "等于请求language；缺译不改变URL语言"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "available"
+              ]
+            }
+          },
+          "required": [
+            "visible",
+            "href",
+            "publication",
+            "resolvedLanguage",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visible": {
+              "type": "boolean",
+              "enum": [
+                false
+              ]
+            },
+            "href": {
+              "type": "null"
+            },
+            "publication": {
+              "type": "null"
+            },
+            "resolvedLanguage": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "unavailable",
+                "anchor_missing",
+                "language_unavailable"
+              ],
+              "description": "unavailable统一不存在/未公开/撤回/删除；anchor_missing为当前公开正文中请求块不存在；language_unavailable仅未启用或停用，不表示译文暂缺"
+            }
+          },
+          "required": [
+            "visible",
+            "href",
+            "publication",
+            "resolvedLanguage",
+            "reason"
+          ]
+        }
+      ]
     }
   }
 }

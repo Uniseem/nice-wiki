@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 64 个函数：约束 31 个，参考 33 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 65 个函数：约束 32 个，参考 33 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -305,6 +305,60 @@ func RewriteInternalLinks(ctx context.Context, op OperationContext, in RewriteIn
 - 幂等：读取无副作用
 - 依赖：`content:resolvePublicPath`
 
+## public-site.ResolvePublishedLink
+
+- 级别：约束
+- 文件：`modules/public-site/internal/links.go`
+- 作用：为site-config按稳定文档及块ID提供当前安全公开相对URL
+
+```go
+func ResolvePublishedLink(ctx context.Context, op OperationContext, input ResolvePublishedLinkInput) (ResolvePublishedLinkResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 沿调用链传播取消和截止 | 外部IO使用调用ctx，不创建独立重试窗口 |
+| `op` | `OperationContext` | 入口建立的site-config纯服务上下文和当前固定dataEpoch | 仅callerService=site-config且actor.kind=service，不接受用户委托或浏览器自声明scope |
+| `input` | `ResolvePublishedLinkInput` | documentId/language/blockId全部必填，blockId可null；language已按调用方baseLanguage补齐 | 严格schema在边界一次验证，函数内不重解析服务断言/期限或重做字段schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ResolvePublishedLinkResult` | 当前请求安全公开链接判断；false无标题/metadata/draft/旧路径 | true才href/publication/resolvedLanguage非null且available；false三项全null；resolvedLanguage=request.language，不授予后续读取授权 |
+| `error` | `error` | 失败仅公共Problem，不返回半结果 | 依赖未知/权威变化503，不能从旧缓存制造visible=false |
+
+**步骤**
+
+1. 入口静态限制仅已认证site-config纯服务调用，固定当前op.dataEpoch；公共边界一次建立服务断言、caller、严格schema和deadline，拒绝用户委托
+2. 通过site-config:readSiteConfig读取已提交安全配置及revision/baseLanguage/publicBaseURL，绝不调用readPublicHome或其主页解析链，避免递归；localization:listLanguages(includeDisabled=false)提供当前启用语言权威
+3. 通过content:readPublicTree的同一公开树快照按documentId取精确PublishedRevisionRef、visibilityRevision与权威canonicalPath；不存在/未公开/撤回/删除统一false/unavailable且三项null，不读取草稿或管理metadata
+4. canonicalPath须由content同一公开快照提供完整分段URL编码路径，不含语言/basePath/query/fragment，正确保留被公开导航隐藏祖先的路径；不得按裁剪parentId/pathSegment自行拼slug，也不用渲染cache或事件投影替代公开权威
+5. 公开目标的language未启用或已停用才false/language_unavailable；已启用语言译文暂缺继续按M06-R006显示旧译/原文，URL保留请求language，resolvedLanguage=request.language，不调用模型或创建翻译
+6. blockId非null时携精确publishedRevisionId调用content:readPublishedRevision，只读当前公开正文并按LoadPublishedBundle既有hash/schema及稳定块ID规则核验；锚点不存在候选为false/anchor_missing，不偷偷退到文档顶部，不因缺译判锚点不存在
+7. 复用本域BuildCanonical规范机制，将可信publicBaseURL的basePath、请求language和content权威canonicalPath恰好拼接一次，清除全部query；从原始规范URL取得同源相对路径，附已存在稳定blockId的URL编码片段，不在JSON接口写HTML属性转义串或外部origin
+8. 返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化或未知直接STALE_RESULT/503，不自动重算或重试
+9. 成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁
+
+**错误**
+
+- `VALIDATION` / HTTP 400：严格输入schema不满足（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：服务断言缺失或失效（不可重试）
+- `FORBIDDEN` / HTTP 403：不是site-config纯服务主体或夹带用户委托（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：请求dataEpoch非当前权威代次（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：content/配置/启用语言权威未知或不可达，不能从旧缓存推定不可见（可重试）
+- `STALE_RESULT` / HTTP 503：公开引用/规范路径/visibility/config/language水位变化，不交付不一致URL（可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：调用链截止到达（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅callerService=site-config且actor.kind=service，无用户委托；只读公开数据，不借服务身份访问draft或撤回历史
+- 并发：总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；变化直接503，不重试
+- 幂等：只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权
+- 依赖：`site-config:readSiteConfig`、`content:readPublicTree`、`content:readPublishedRevision`、`content:resolvePublicPath`、`content:validatePublications`、`localization:listLanguages`、`public-site.BuildCanonical`
+- 其他依赖说明：content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径；冻结i18n/site/editor设计及M06-R006：翻译缺失不改变显式语言URL；本轮仅合同，无Go业务或新实际文件；本域无go.mod，函数保持planned
+
 ## public-site.ResolvePublicMedia
 
 - 级别：参考
@@ -458,9 +512,8 @@ func BuildCanonical(ctx context.Context, op OperationContext, in BuildCanonicalI
 
 **步骤**
 
-1. 仅信任 site-config 配置域名
-2. 移除追踪 query
-3. 拼接语言路径并 HTML 属性转义
+1. 只信任site-config安全配置publicBaseURL，basePath与调用方语言规范路径恰好组合一次
+2. 移除全部query，返回原始规范URL；HTML属性转义仅在HTML输出点执行，不污染JSON链接解析结果
 
 **错误**
 
@@ -2437,6 +2490,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+8. POST /v1/public-links:resolve真实绑定ResolvePublishedLink；静态AllowedCallers仅site-config且限纯服务主体；未实现时不得用stub或忽略缺handler启动
 
 **错误**
 
@@ -2448,7 +2502,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`、`public-site.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`
+- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`、`public-site.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`public-site.ResolvePublishedLink`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## public-site.Serve

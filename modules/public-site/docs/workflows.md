@@ -55,3 +55,7 @@
 | `public-site.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `public-site.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
 <!-- flows:end -->
+
+首页链接只读服务契约：site-config纯服务以当前epoch调用POST /v1/public-links:resolve；public-site读取readSiteConfig安全配置（禁止readPublicHome递归）、listLanguages启用语言与content公开树的权威canonicalPath/current ref。可选锚点仅在当前精确published正文中核；返回前重核resolvePublicPath、validatePublications及配置/语言水位。未知或并发变化直接503，不自动重算或使用旧缓存冒充不可见；no-store结果也不替代真实页面每次的content门禁。
+
+冻结语言规则来自[i18n](../../../docs/product-baseline/design/i18n.md)、[site](../../../docs/product-baseline/design/site.md)与[editor](../../../docs/product-baseline/design/editor.md)：启用语言缺译显示旧译/原文并提示，保留该语言URL；不静默回退基准语言URL。只有语言未启用或停用才language_unavailable，resolvedLanguage在成功时等于请求language。文档ID/块ID链接跨改名、移动和语言保持稳定。
