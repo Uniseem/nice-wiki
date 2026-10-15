@@ -3502,6 +3502,16 @@
       "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
       "kind": "migration",
       "purpose": "追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威"
+    },
+    {
+      "path": "modules/jobs/internal/http_progress.go",
+      "kind": "source",
+      "purpose": "任务进度SSE；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/migrations/0007_progress_retention.sql",
+      "kind": "migration",
+      "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间"
     }
   ]
 }
