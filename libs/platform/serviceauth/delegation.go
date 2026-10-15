@@ -90,3 +90,68 @@ func checkDelegationClaims(claims platform.DelegationClaims) error {
 	}
 	return nil
 }
+
+// cursorEnvelope 把分页位置与调用方的查询、主体及数据代次绑定。
+type cursorEnvelope struct {
+	Scope   string `json:"scope"`
+	Payload []byte `json:"payload"`
+}
+
+// SignCursor 用本服务密钥签发分页游标。scope 由可信调用方构造；游标
+// 仅承载查询位置，不替代身份与资源授权。
+func SignCursor(key platform.SigningKey, scope string, payload []byte) (string, error) {
+	if scope == "" || len(scope) > 512 || len(payload) == 0 || len(payload) > 1024 {
+		return "", platform.NewError(platform.CodeValidation, false, "游标作用域或载荷长度不合法")
+	}
+	privateKey, err := LoadSigningKey(key)
+	if err != nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "游标签名密钥不可用")
+	}
+	header, _ := json.Marshal(map[string]string{"alg": algEdDSA, "kid": key.KeyID, "typ": "NW-CURSOR"})
+	body, _ := json.Marshal(cursorEnvelope{Scope: scope, Payload: payload})
+	input := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(body)
+	return input + "." + base64.RawURLEncoding.EncodeToString(ed25519.Sign(privateKey, []byte(input))), nil
+}
+
+// VerifyCursor 验证专用类型、固定密钥、签名和查询作用域后返回分页位置。
+func VerifyCursor(key platform.SigningKey, scope string, token string) ([]byte, error) {
+	invalid := func() ([]byte, error) {
+		return nil, platform.NewError(platform.CodeValidation, false, "分页游标不合法或作用域不符")
+	}
+	if len(token) == 0 || len(token) > 4096 {
+		return invalid()
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return invalid()
+	}
+	headerRaw, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return invalid()
+	}
+	var header struct {
+		Alg string `json:"alg"`
+		Kid string `json:"kid"`
+		Typ string `json:"typ"`
+	}
+	if json.Unmarshal(headerRaw, &header) != nil || header.Alg != algEdDSA || header.Kid != key.KeyID || header.Typ != "NW-CURSOR" {
+		return invalid()
+	}
+	privateKey, err := LoadSigningKey(key)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "游标签名密钥不可用")
+	}
+	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil || !ed25519.Verify(privateKey.Public().(ed25519.PublicKey), []byte(parts[0]+"."+parts[1]), signature) {
+		return invalid()
+	}
+	body, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return invalid()
+	}
+	var envelope cursorEnvelope
+	if json.Unmarshal(body, &envelope) != nil || envelope.Scope != scope || len(envelope.Payload) == 0 || len(envelope.Payload) > 1024 {
+		return invalid()
+	}
+	return envelope.Payload, nil
+}

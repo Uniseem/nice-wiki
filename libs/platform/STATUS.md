@@ -8,3 +8,5 @@
 
 详细交接见 docs/handoff.md；逐文件/函数台账见 progress.json。
 - 2026-10-15 补充：新增 `lifecycle.NewSiteConfigClient` 与 `apivalidate.NewRequestValidator`（平台库新增 kin-openapi 依赖）；make build 与 make check 通过，详见 [handoff](docs/handoff.md)。
+
+- 本轮三个工作包集成：新增作用域绑定的分页游标签名/验证，CheckLease补workerId；平台单模块编译/vet通过，新增函数暂记in_progress，待全量集成检查。

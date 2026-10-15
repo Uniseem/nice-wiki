@@ -1,5 +1,11 @@
 # platform 交接（R1-00）
 
+## 本轮公共支持（2026-10-15，三个工作包集成）
+
+- `serviceauth.SignCursor/VerifyCursor` 统一 Ed25519 分页游标签名；专用 NW-CURSOR 类型，scope 由调用方绑定模块、查询、站点、主体和 dataEpoch，游标不替代授权。密钥复用 LoadSigningKey，不在各域另造签名工具。
+- `JobsClient.CheckLease` 同时接收 jobId、workerId 和 fencingToken；worker 写回前原样携带当前 worker 身份。
+- 当前在集成分支实现，平台模块本地 readonly build/vet/gofmt 通过；新增条目暂记 in_progress，等待三个模块交付、全量 make build 与可达性检查。行为验收未执行。
+
 ## 公共机制补充（2026-10-15，集成会话，main）
 
 - `lifecycle.NewSiteConfigClient(cfg, key)`（runtime.go）：各域共用的 site-config 运行状态客户端，以本服务断言调用 GET /v1/runtime-state 并解开 `{"state": RuntimeState}` 外层；10 个模块的 `NewRuntimeClient` 已改为调用它，删除各自的 runtimeAuthority 适配。

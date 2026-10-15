@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "8a2d71d89f9af17be37b10182e375dcf0554c663522596b3002022ac04f716b1",
+  "contractSha256": "44caf47ae4a0636d3e82a081b16c46cd3258a5696a76aedb0fd88e7bf7e2fdad",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-00",
   "branch": "codex/platform-r1-00",
@@ -410,6 +410,28 @@
         "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过；nw-keys临时目录冒烟通过"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.SignCursor",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮公共机制实现中，待编译与集成检查"
+    },
+    {
+      "id": "platform.VerifyCursor",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮公共机制实现中，待编译与集成检查"
     }
   ],
   "rule": "R1-00交付：全部条目verified（实现+已有检查通过），行为验收待R2；生成物与合同一致性由make gen可重现与make check保证。"

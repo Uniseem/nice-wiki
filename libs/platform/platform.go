@@ -580,7 +580,7 @@ type JobsClient interface {
 	ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]ClaimedJob, error)
 	StartJob(ctx context.Context, jobID, workerID string, fencingToken int64) error
 	HeartbeatJob(ctx context.Context, jobID, workerID string, fencingToken int64) (HeartbeatInfo, error)
-	CheckLease(ctx context.Context, jobID string, fencingToken int64) (bool, error)
+	CheckLease(ctx context.Context, jobID, workerID string, fencingToken int64) (bool, error)
 	CompleteJob(ctx context.Context, jobID string, fencingToken int64, result ObjectRef, paidResultRefs []Identifier) error
 	FailJob(ctx context.Context, jobID string, fencingToken int64, errorCode string) error
 }

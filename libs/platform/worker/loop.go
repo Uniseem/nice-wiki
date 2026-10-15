@@ -128,7 +128,7 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 		// 租约已过期：立即停止写入，不重放已派发的模型调用。
 		return
 	}
-	valid, err := l.client.CheckLease(ctx, job.JobID, job.FencingToken)
+	valid, err := l.client.CheckLease(ctx, job.JobID, workerID, job.FencingToken)
 	if err != nil || !valid {
 		return
 	}

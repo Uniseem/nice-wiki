@@ -195,7 +195,7 @@
     {
       "path": "libs/platform/serviceauth/delegation.go",
       "kind": "handwritten",
-      "purpose": "portal用户委托证明验证",
+      "purpose": "用户委托验证与作用域绑定的分页游标签名",
       "functions": [
         {
           "id": "platform.VerifyDelegation",
@@ -268,6 +268,168 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.SignCursor",
+          "name": "SignCursor",
+          "signature": "func SignCursor(key SigningKey, scope string, payload []byte) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "本服务受控Ed25519密钥引用；只在服务进程内使用",
+              "constraints": [
+                "私钥不进入日志或返回值"
+              ]
+            },
+            {
+              "name": "scope",
+              "type": "string",
+              "description": "调用方构造的查询与授权范围",
+              "constraints": [
+                "绑定服务/查询/站点/主体/dataEpoch，最多512字节"
+              ]
+            },
+            {
+              "name": "payload",
+              "type": "[]byte",
+              "description": "签名载荷",
+              "constraints": [
+                "1至1024字节"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "token",
+              "type": "string",
+              "description": "不透明签名游标",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误；不回显载荷或密钥",
+              "constraints": [
+                "仅公共错误码"
+              ]
+            }
+          ],
+          "purpose": "签发作用域绑定的分页游标",
+          "steps": [
+            "限制scope为非空且不超过512字节、payload为1至1024字节；调用方把服务、查询、站点、主体和dataEpoch绑定进scope",
+            "复用LoadSigningKey读取固定key版本；以Ed25519签名NW-CURSOR专用头与scope/payload信封",
+            "返回不透明游标；不存储、不记录私钥或载荷"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标格式、长度、签名或作用域不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "服务私有签名密钥不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取本服务secret引用的私钥，复用平台密钥缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数；调用方负责构造已授权查询的scope，不从客户端直接采用scope"
+          },
+          "concurrency": "无共享可变查询状态；密钥缓存由LoadSigningKey统一管理",
+          "idempotency": "同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据",
+          "dependencies": [],
+          "resources": [
+            "受控Ed25519密钥引用"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.VerifyCursor",
+          "name": "VerifyCursor",
+          "signature": "func VerifyCursor(key SigningKey, scope string, token string) ([]byte, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "本服务受控Ed25519密钥引用；只在服务进程内使用",
+              "constraints": [
+                "私钥不进入日志或返回值"
+              ]
+            },
+            {
+              "name": "scope",
+              "type": "string",
+              "description": "调用方构造的查询与授权范围",
+              "constraints": [
+                "绑定服务/查询/站点/主体/dataEpoch，最多512字节"
+              ]
+            },
+            {
+              "name": "token",
+              "type": "string",
+              "description": "请求携带的不透明游标",
+              "constraints": [
+                "最多4096字节"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "payload",
+              "type": "[]byte",
+              "description": "验证后的原始游标载荷",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误；不回显载荷或密钥",
+              "constraints": [
+                "仅公共错误码"
+              ]
+            }
+          ],
+          "purpose": "验证分页游标并返回载荷",
+          "steps": [
+            "限制输入不超过4096字节，解析三段compact游标；只接受EdDSA、NW-CURSOR类型与当前keyId",
+            "复用LoadSigningKey取得本地公钥验签，拒绝格式错误、签名错误或scope不符",
+            "仅在验证后返回原始payload；跨主体、站点、查询或dataEpoch由调用方scope隔离"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标格式、长度、签名或作用域不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "服务私有签名密钥不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取本服务secret引用的私钥，复用平台密钥缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数；调用方负责构造已授权查询的scope，不从客户端直接采用scope"
+          },
+          "concurrency": "无共享可变查询状态；密钥缓存由LoadSigningKey统一管理",
+          "idempotency": "同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据",
+          "dependencies": [],
+          "resources": [
+            "受控Ed25519密钥引用"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -798,7 +960,8 @@
             "jobs:claimJob只领取登记类型；维护期间暂停",
             "jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消",
             "写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob",
-            "lease过期立即停止写入，不重放已派发模型调用"
+            "lease过期立即停止写入，不重放已派发模型调用",
+            "写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约"
           ],
           "errors": [
             {

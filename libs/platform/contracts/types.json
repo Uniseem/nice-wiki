@@ -296,7 +296,7 @@
     "JobsClient": {
       "type": "object",
       "x-internal": true,
-      "description": "由jobs openapi生成的客户端，自动附服务断言"
+      "description": "由jobs openapi生成的客户端，自动附服务断言；CheckLease(ctx, jobId, workerId, fencingToken)核对worker与fence。"
     },
     "GatewayClient": {
       "type": "object",

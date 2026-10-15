@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 19 个函数：约束 19 个，参考 0 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 21 个函数：约束 19 个，参考 2 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -129,6 +129,92 @@ func VerifyDelegation(anchors TrustAnchors, proof string, expect DelegationExpec
 - 并发：纯函数
 - 幂等：无状态
 - 依赖：无
+
+## platform.SignCursor
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：签发作用域绑定的分页游标
+
+```go
+func SignCursor(key SigningKey, scope string, payload []byte) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 本服务受控Ed25519密钥引用；只在服务进程内使用 | 私钥不进入日志或返回值 |
+| `scope` | `string` | 调用方构造的查询与授权范围 | 绑定服务/查询/站点/主体/dataEpoch，最多512字节 |
+| `payload` | `[]byte` | 签名载荷 | 1至1024字节 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `token` | `string` | 不透明签名游标 | 无error时有效 |
+| `error` | `error` | 安全错误；不回显载荷或密钥 | 仅公共错误码 |
+
+**步骤**
+
+1. 限制scope为非空且不超过512字节、payload为1至1024字节；调用方把服务、查询、站点、主体和dataEpoch绑定进scope
+2. 复用LoadSigningKey读取固定key版本；以Ed25519签名NW-CURSOR专用头与scope/payload信封
+3. 返回不透明游标；不存储、不记录私钥或载荷
+
+**错误**
+
+- `VALIDATION`：游标格式、长度、签名或作用域不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：服务私有签名密钥不可用（可重试）
+
+- 副作用：读取本服务secret引用的私钥，复用平台密钥缓存
+- 授权：permission：service；rule：库函数；调用方负责构造已授权查询的scope，不从客户端直接采用scope
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.VerifyCursor
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：验证分页游标并返回载荷
+
+```go
+func VerifyCursor(key SigningKey, scope string, token string) ([]byte, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 本服务受控Ed25519密钥引用；只在服务进程内使用 | 私钥不进入日志或返回值 |
+| `scope` | `string` | 调用方构造的查询与授权范围 | 绑定服务/查询/站点/主体/dataEpoch，最多512字节 |
+| `token` | `string` | 请求携带的不透明游标 | 最多4096字节 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `payload` | `[]byte` | 验证后的原始游标载荷 | 无error时有效 |
+| `error` | `error` | 安全错误；不回显载荷或密钥 | 仅公共错误码 |
+
+**步骤**
+
+1. 限制输入不超过4096字节，解析三段compact游标；只接受EdDSA、NW-CURSOR类型与当前keyId
+2. 复用LoadSigningKey取得本地公钥验签，拒绝格式错误、签名错误或scope不符
+3. 仅在验证后返回原始payload；跨主体、站点、查询或dataEpoch由调用方scope隔离
+
+**错误**
+
+- `VALIDATION`：游标格式、长度、签名或作用域不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：服务私有签名密钥不可用（可重试）
+
+- 副作用：读取本服务secret引用的私钥，复用平台密钥缓存
+- 授权：permission：service；rule：库函数；调用方负责构造已授权查询的scope，不从客户端直接采用scope
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
 
 ## platform.BuildOperationContext
 
@@ -409,6 +495,7 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 2. jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消
 3. 写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob
 4. lease过期立即停止写入，不重放已派发模型调用
+5. 写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约
 
 **错误**
 
