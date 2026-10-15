@@ -58,3 +58,5 @@
 
 
 2026-10-15第二轮收尾：identity、site-config、jobs工作树核心/真实HTTP映射已交付并逐个合入；统一修复控制路径、维护幂等旧结果、旧事件producer、relay安全写窗口、客户端查询与SSE参数/帧预算。隔离VPS完整gen/docs、14模块build/vet/gofmt与make check通过（855文件/1012函数/374操作/2211类型）。未运行新增/业务测试或部署。guard登录保护业务、portal peer/cookie、完整handler、owner恢复及其余功能按台账未完成。用户明确第二轮后push并清空持续目标，因此不再自动推进下一工作包，不能把本次停止记为R1全部代码完成。
+
+本次main已普通推送并核对远端60a6d38，old未变；结果记录随后同步。用户要求第二轮后停止，后续包保留计划、不自动执行。
