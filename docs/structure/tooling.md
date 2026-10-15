@@ -1,8 +1,8 @@
 # 设计校验工具的文件与函数合同
 
-实际工具只有根 Makefile、scripts/check_docs.py 与 scripts/render_docs.py；它们不执行或模拟业务，不产生测试、样例、数据库或模型调用。Python 仅使用标准库，最低 3.11。VPS 执行 `make check`；本地允许只读文档结构检查。所有问题仅输出仓库相对路径及规则，不输出疑似秘密值。
+实际工具为根 Makefile、scripts/check_docs.py、scripts/render_docs.py 与 scripts/gen_code.py；它们不执行或模拟业务，不产生测试、样例、数据库或模型调用。Python 仅使用标准库，最低 3.11。VPS 执行 `make check`；本地允许只读文档结构检查。所有问题仅输出仓库相对路径及规则，不输出疑似秘密值。
 
-Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 身份，`summary` 输出设计数量；`docs` 调用 render_docs.py 从各域合同重新生成 functions.md、files.md 与 api.md 接口清单；`gen/build/test` 在设计阶段报未实现并退出 1，不能当成功构建。`PYTHON` 可指定标准库 Python 解释器。
+Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 身份，`summary` 输出设计数量；`docs` 调用 render_docs.py 从各域合同重新生成 functions.md、files.md 与 api.md 接口清单；R1阶段`gen`从唯一机器契约生成Go/TypeScript/API路由及任务权限目录，`build`对现有14个Go模块执行readonly build/vet/gofmt；`test`只提示尚未登记套件，不能当业务测试成功。`PYTHON` 可指定标准库 Python 解释器。
 
 | 函数/准确签名 | 输入与返回 | 作用与步骤 | 副作用/错误 |
 |---|---|---|---|
@@ -16,7 +16,7 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 | `check_modules(modules, permissions, codes, shared=())` | 已解析服务模块数组、权限列表、错误码列表与共享组件数组；返回服务/共享组件/文件/函数/操作/类型计数 dict | 确认每域资料齐全→登记文件/函数→检查函数字段、ID“模块slug.函数名”、合同级别、resources与签名约定（Go操作函数以ctx context.Context, op OperationContext开头，浏览器函数不收服务端上下文）→核对类型、错误、HTTP处理器为binding/权限/参数→每条依赖必须解析为本域函数ID、共享库函数ID或存在的“模块:operationId”；共享组件只要求README、合同、台账与生成文档，不校验HTTP与签名约定 | 只读合同；问题累积到 ISSUES；数量不等于功能验收 |
 | `check_identity()` | 无参数；返回 None | 读取当前 Git 用户名/邮箱→确认 GitHub 代用邮箱→同隐私扫描 | 启动只读 `git config --get` 子进程；未配置时记录失败，不修改配置 |
 | `check_events(modules)` | 模块清单；返回 None | 收集唯一生产方→核对字段/交付语义→消费者必须引用同名同版唯一生产方载荷schema→consume条目handler必须是本域binding函数→有消费事件的域须有同时调用jobs订阅与确认的循环→生产事件的域（jobs除外）须有调用jobs:publishEvent的转发函数→调用publishEvent的域须登记生产事件 | 只读合同，错误追加 ISSUES |
-| `check_wiring(modules, shared=())` | 服务模块与共享组件数组；返回 None | 读取各域jobTypes/backgroundTasks→执行函数须为binding且是RunWorker依赖→后台函数须是BuildApplication依赖→有系统定时须依赖jobs:createSchedule→从接口处理、事件处理与main出发计算可达性，非界面函数必须可达→service接口（屏障/快照/健康除外）必须有调用方→x-admission只在匿名接口 | 只读合同；错误追加 ISSUES |
+| `check_wiring(modules, shared=())` | 服务模块与共享组件数组；返回 None | 读取各域jobTypes/backgroundTasks→每个任务的managementPermission必须属于已登记具体业务权限，全部使用集合与jobManagementGrants严格一致→执行函数须为binding且是RunWorker依赖→后台函数须是BuildApplication依赖→有系统定时须依赖jobs:createSchedule→从接口处理、事件处理与main出发计算可达性，非界面函数必须可达→service接口（屏障/快照/健康除外）必须有调用方→x-admission只在匿名接口 | 只读合同；错误追加 ISSUES |
 | `check_rendered()` | 无参数；返回 None | 导入 render_docs.expected_docs()→逐个比对各域 functions.md/files.md/api.md/workflows.md 与共享组件生成文档 | 只读文件；不一致时提示运行 make docs，不自动改写 |
 | `check_framework()` | 无参数；返回 None | 枚举实际文档/合同/工具/根文件→与framework.json逐路径比对→报告未登记或缺失 | 不创建或删除文件；不含私有vps.txt、.git |
 | `check_staged()` | 无参数；返回 None | git diff列暂存增加/修改→逐blob隐私扫描→拒绝私有运行目录和未审阅二进制 | 仅调用只读Git子进程，不暂存、不提交 |
@@ -44,3 +44,5 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 模块 JSON 读取顺序先全部装入 CACHE，再核对 `$id` 引用。每次独立 Python 进程启动时 ISSUES/CACHE 为空；不并发改仓库。任何非零退出均不能标记 R0-04 通过。全局框架的实际文件清单登记在 [framework.json](framework.json)，模块未来源码清单登记在各域 implementation.json。
 
 当前检查不证明 Go/TypeScript 可编译，不覆盖业务行为、schema 全规范合法性、供应方协议、部署可用性或竞态；这些必须在对应实施与验收阶段落实。
+
+任务目录与权限映射由gen_code.py的gen_jobs_catalog/gen_go_registries从各域jobTypes.managementPermission及根permission-groups.json生成，禁止各域手写第二份映射。上述设计校验只检查目录一致性，不验证运行时授权行为。

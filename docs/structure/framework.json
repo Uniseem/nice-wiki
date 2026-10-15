@@ -3337,6 +3337,26 @@
       "path": "modules/identity/migrations/0003_session_tokens.sql",
       "kind": "migration",
       "purpose": "只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据"
+    },
+    {
+      "path": "modules/site-config/internal/operation_repository.go",
+      "kind": "source",
+      "purpose": "查询配置幂等回执"
+    },
+    {
+      "path": "modules/site-config/internal/outbox_repository.go",
+      "kind": "source",
+      "purpose": "将配置事件与业务提交原子登记"
+    },
+    {
+      "path": "modules/site-config/internal/config_files.go",
+      "kind": "source",
+      "purpose": "写权威版本化站点设置文件"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
+      "kind": "migration",
+      "purpose": "只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform"
     }
   ]
 }

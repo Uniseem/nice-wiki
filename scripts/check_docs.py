@@ -215,6 +215,12 @@ def check_modules(modules, permissions, codes, shared=()):
 
 def check_wiring(modules, shared=()):
     functions, files, roots, ops, callers = {}, {}, set(), {}, set()
+    permissions = set(load_json(ROOT / "contracts/permissions.json").get("permissions", []))
+    management = load_json(ROOT / "contracts/permission-groups.json").get("jobManagementGrants", [])
+    if not isinstance(management, list) or not management or len(management) != len(set(management)) or any(p not in permissions or p in ("anonymous", "service", "job.manage") for p in management):
+        fail("任务管理权限", "jobManagementGrants须为非空、不重复的已登记具体业务权限")
+    management = set(management)
+    used_management = set()
     for component in shared:
         for f in load_json(ROOT / component['root'] / 'contracts/implementation.json').get('files', []):
             for fn in f.get('functions', []):
@@ -250,6 +256,11 @@ def check_wiring(modules, shared=()):
             continue
         worker = slug + '.RunWorker'
         for job in job_types:
+            permission = job.get("managementPermission")
+            if permission not in management:
+                fail(slug, "任务缺少已登记的具体managementPermission " + str(job.get("type")))
+            else:
+                used_management.add(permission)
             if not str(job.get('type', '')).startswith(slug + '.') or job.get('executor') not in local or not job.get('trigger'):
                 fail(slug, 'jobTypes条目不合法 ' + str(job.get('type')))
             elif worker not in local or job['executor'] not in functions[worker].get('dependencies', []):
@@ -264,6 +275,8 @@ def check_wiring(modules, shared=()):
                 fail(slug, '后台任务未挂在BuildApplication ' + task['function'])
         if any(j.get('schedule') for j in job_types) and 'jobs:createSchedule' not in build.get('dependencies', []):
             fail(slug, '有系统定时任务但BuildApplication未登记jobs:createSchedule')
+    if used_management != management:
+        fail("任务管理权限", "jobManagementGrants必须与全部任务类型使用的具体管理权限一致")
     for fn in functions.values():
         callers.update(d for d in fn.get('dependencies', []) if ':' in d)
     seen, stack = set(), list(roots)
