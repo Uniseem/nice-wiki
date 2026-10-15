@@ -3343,12 +3343,29 @@
         "body": {
           "$ref": "#/$defs/DocumentBody",
           "description": "DocumentBody"
+        },
+        "expectedHead": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "上游已授权CAS快照，首次null；不从文件系统推测head"
+        },
+        "expectedDraftVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "上游已核共享草稿版本，返回draftVersion为该值+1"
         }
       },
       "required": [
         "documentId",
         "revisionId",
-        "body"
+        "body",
+        "expectedHead",
+        "expectedDraftVersion"
       ]
     },
     "WriteRevisionFileResult": {
@@ -3474,7 +3491,7 @@
               "type": "null"
             }
           ],
-          "description": "从head取null"
+          "description": "null取可信COMMITTED修订索引的权威hash；非null还须与该引用一致，错误调用方hash不隔离合法文件"
         }
       },
       "required": [
@@ -6106,6 +6123,30 @@
     },
     "ReadReferenceDecisionResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/ReferenceSourceDecision"
+    },
+    "RevisionFileStore": {
+      "type": "object",
+      "x-internal": true,
+      "description": "既有DraftCommitStore的受信扩展；scope绑定caller/actor/site/epoch/op和规范摘要，提供真实持久准备/读取资格/隔离及公共安全窗口；没有adapter则拒绝，不是可用DB实现",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "PreparedRevisionFile": {
+      "type": "object",
+      "x-internal": true,
+      "description": "内部准备原材料+当前状态preparing/prepared/committed/aborted/quarantined；Result的Draft/Journal首次持久后不变，独立于原8字段JSONL",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "CommittedRevisionFile": {
+      "type": "object",
+      "x-internal": true,
+      "description": "受信私有COMMITTED资格快照，含同site/doc/revision/epoch的Draft/ObjectRef及committed Journal；隔离或PREPARED不得返回",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
     }
   }
 }

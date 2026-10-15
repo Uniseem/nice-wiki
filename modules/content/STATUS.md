@@ -1,3 +1,14 @@
+# 当前工作包：第五轮不可变正文文件核心（2026-10-15，源码待VPS）
+
+分支codex/content-revision-files-r1，基线9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，独占modules/content。上一public-site纯契约f9aa83f/9567637已独立交付并保留分支，本轮不再改该域或根。
+
+- 已写WriteRevisionFile/ReadRevisionBody及直接要求的CanonicalizeBody/HashBlock、树/行内/表格/分栏语义源码。准备原材料先持久、复用原结果，fsync/rename不推进head；读取仅可信COMMITTED资格，坏文件真实隔离无fallback。
+- 新增实际路径仅既有登记的internal/{body_canonicalizer,block_validator,table_validator,columns_validator,revision_reader}.go；原revision_files/revision_repository复用并统一16MiB硬限。接口扩展遵守根裁定，无DB adapter假实现，无新迁移或真实HTTP成功占位。
+- 新改条目均in_progress，待根VPS docs/gen/build/check；未本机Go/gofmt/gen/编译/测试，未新增测试/mock/fixture/样例/临时验证程序，未运行真实API/模型/服务，未push或部署。
+- 真实私有DB准备/提交资格/隔离adapter、保存/发布/HTTP/后台仍缺，BuildApplication/main继续blocked；既有fence/稳定ID历史ledger/head/refs/receipt/outbox事务责任未转移到文件准备。
+
+---
+
 # 文档生命周期当前进度
 
 更新：2026-10-15。阶段：R1 实施中；本域业务尚未验收、尚未部署。

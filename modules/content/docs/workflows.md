@@ -33,3 +33,7 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 | `content.ExpireIdleLocks` | 每30秒 | 释放失联或提示后仍空闲锁 |
 | `content.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
 <!-- flows:end -->
+
+第五轮文件核心不接HTTP或业务保存成功：上游授权/CAS快照→规范hash→私有原准备回放→新操作当前站点大小及本树语义→公共写窗口+真实持久preparing→原8字段PREPARED/fsync→tmp/fsync/不覆盖rename/目录同步→MarkPrepared。head/稳定ID ledger/refs/receipt/outbox仍在后续既有CommitDraftTransaction同事务完成。Read只允许受信COMMITTED资格，保留历史节点语义，坏文件隔离而不从旧head或缓存降级。
+
+待实现SaveDraft的媒体abort恢复对齐新版ReleaseResourceReferences：先源持久aborted/rejected，再携sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest、nullable pinId、reason请求媒体原子封存。pinId未知不先重新Acquire，避免资源已不可用时恢复永久卡住；COMMITTED优先且不释放已提交历史引用。此条仍planned，不代表媒体流程已实现。

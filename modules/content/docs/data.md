@@ -216,3 +216,15 @@ PublicTreeNode.canonicalPath为新增required完整路径，只是公开树响�
 ## 第四轮首页跨域只读协议
 
 readReferenceDecision仅media纯服务读取引用源最小决定，COMMITTED优先，缺失/未知不得释放pin。该新约束函数仍planned，不是已实现服务。
+
+## 第五轮正文文件核心
+
+硬上限统一16MiB，替换未有writer历史数据的旧64MiB常量；新写另服受信当前站点maxDocumentBytes，历史读只服硬上限，不等价资源上传配额。规范JSON复用platform.CanonicalJSON，marks按类型英文名升序，Unicode/代码/latex及正文数组顺序不改。所有block/item/row/cell/column ID全树唯一且合计≤10000，深度≤32；历史retired ID由提交事务ledger+head CAS拒复用，不由previousBody猜历史，合法历史读取不会拒绝已退役ID。
+
+WriteRevisionFile参考输入新增expectedHead(nullable)/expectedDraftVersion，来自SaveDraft/Create已核CAS快照；author仅可信op，ObjectRef固定content/revisionId/version1、application/json与完整hash/长度。既有WithDraftCommitStore注入扩展RevisionFileStore，准备持久保存caller/actor/site/epoch/op、完整规范摘要及首次Draft/Journal结果；私有preparing→prepared→committed/aborted/quarantined与原8字段JSONL格式分开，不声明跨FS/DB原子，也不推进head/ledger。
+
+新准备逐层校验私有路径，拒链接/特殊/多硬链接/点目录跳转，0700目录与0600临时文件；公共安全窗口覆盖当前epoch与控制截止，PREPARED日志fsync、tmp/fsync、同目录不覆盖rename及父目录同步后真实MarkPrepared才成功。崩溃preparing复用原材料续文件，同op不重造时间/commitId；prepared/committed复核原文件后回原结果，不因后来配额降低重做业务。
+
+ReadRevisionBody只从受信COMMITTED索引拿完整ObjectRef/归属和资格，nullable expectedHash从该精确修订索引取，不从文件系统推当前head。持久文件边界一次使用生成DocumentBody schema验证，再核块语义、规范编码与hash；读前后资格一致才返回。真实材料/文件损坏持久隔离并关闭公开，无fallback；调用方错expectedHash只拒绝，不隔离与权威一致的文件。没有实际窄存储adapter则失败关闭。
+
+窄存储的FindPreparation必须合并原JSONL最新终止/隔离状态与COMMITTED receipt；不能用旧索引复活启动已隔离孤儿。隔离按COMMITTED优先：已提交损坏关闭文档，未提交坏准备只隔离该准备，不关闭另一个合法head；本轮没有假adapter实现。

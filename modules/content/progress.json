@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "3c5b717e1d5bb9f0c7d6bbc4d1313938e30dfa6f5c686bf44ecd60c38b553ea8",
+  "contractSha256": "b148fbca5b5a7a575158a79447bca83ef4ed5240c420bb720caa4a2c2ca60723",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-05（正文提交日志恢复）",
-  "branch": "codex/content-r1-05-recovery",
-  "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "36a8091453977012a35f39ee3179360a24471d0e",
+  "assignedSession": "第五轮content不可变正文文件核心",
+  "branch": "codex/content-revision-files-r1",
+  "baseCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -82,33 +82,33 @@
     },
     {
       "path": "modules/content/internal/block_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
       },
-      "blocker": null
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
     },
     {
       "path": "modules/content/internal/table_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
       },
-      "blocker": null
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
     },
     {
       "path": "modules/content/internal/columns_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
       },
-      "blocker": null
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
     },
     {
       "path": "modules/content/internal/reference_extractor.go",
@@ -122,43 +122,43 @@
     },
     {
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
       },
-      "blocker": null
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
     },
     {
       "path": "modules/content/internal/revision_files.go",
-      "state": "implemented",
-      "implementationCommit": "a5aecca9b9053532f66f588e79c0a0423daa75aa",
-      "verification": {
-        "state": "not_run",
-        "evidence": "已完成静态 JSON/隐私/差异空白检查；当前环境无 Go/gofmt，未运行编译或恢复行为检查"
-      },
-      "blocker": "Go工具链不可用；未接入BuildApplication，未进行业务行为验收"
-    },
-    {
-      "path": "modules/content/internal/revision_repository.go",
-      "state": "verified",
-      "implementationCommit": "973a598476258007c3e22a1ee092e751b09df747",
-      "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/content/internal/revision_reader.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
       },
-      "blocker": null
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+    },
+    {
+      "path": "modules/content/internal/revision_repository.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+      },
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+    },
+    {
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+      },
+      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
     },
     {
       "path": "modules/content/internal/publication_metadata.go",
@@ -791,46 +791,46 @@
     {
       "id": "content.ValidateBlockTree",
       "path": "modules/content/internal/block_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.ValidateInline",
       "path": "modules/content/internal/block_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.ValidateTableGrid",
       "path": "modules/content/internal/table_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.ValidateColumns",
       "path": "modules/content/internal/columns_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.CollectResourceReferences",
@@ -846,68 +846,68 @@
     {
       "id": "content.CanonicalizeBody",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.HashBlock",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.WriteRevisionFile",
       "path": "modules/content/internal/revision_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.RecoverPreparedCommits",
       "path": "modules/content/internal/revision_files.go",
-      "state": "implemented",
-      "implementationCommit": "a5aecca9b9053532f66f588e79c0a0423daa75aa",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "已实现启动/safe屏障内journal扫描、COMMITTED正文/hash/head核对、PREPARED receipt规则、正文与文档隔离；未运行Go编译和行为验收"
+        "evidence": "本轮共用硬限/可取消文件IO或ledger职责同步，待VPS"
       },
-      "blocker": "Go工具链不可用；BuildApplication接线留待后续任务"
+      "blocker": "待VPS；真实DB adapter/安全屏障及完整启动未装配"
     },
     {
       "id": "content.CommitDraftJournal",
       "path": "modules/content/internal/revision_repository.go",
-      "state": "verified",
-      "implementationCommit": "973a598476258007c3e22a1ee092e751b09df747",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮共用硬限/可取消文件IO或ledger职责同步，待VPS"
       },
-      "blocker": null
+      "blocker": "待VPS；真实DB adapter/安全屏障及完整启动未装配"
     },
     {
       "id": "content.ReadRevisionBody",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
       },
-      "blocker": null
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     },
     {
       "id": "content.PreparePublicationMetadata",
@@ -1330,13 +1330,13 @@
     {
       "id": "content.main",
       "path": "modules/content/cmd/content/main.go",
-      "state": "implemented",
+      "state": "blocked",
       "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "仅装配platform.ServiceSpec与lifecycle.RunService；Go构建未运行"
       },
-      "blocker": "Go工具链验证环境不可用"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
     },
     {
       "id": "content.BuildApplication",
@@ -1347,7 +1347,7 @@
         "state": "not_run",
         "evidence": "已实现配置/信任锚/运行权威/ApplyRestoreSwap前置检查；依赖未实现时显式返回DEPENDENCY_UNAVAILABLE，未伪造联调成功"
       },
-      "blocker": "业务存储、journal恢复、全部OpenAPI x-handler、后台函数与activation回执未实现；Go构建未运行"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
     },
     {
       "id": "content.Serve",
@@ -1424,7 +1424,282 @@
         "evidence": "第四轮首页所需生产方只读协议；仅契约，业务未实现。"
       },
       "blocker": null
+    },
+    {
+      "id": "content.visit",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateInlineNodes",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateContentLink",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateContentMath",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.contentInteger",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.contentNumber",
+      "path": "modules/content/internal/block_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateTableGridNode",
+      "path": "modules/content/internal/table_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateColumnsNode",
+      "path": "modules/content/internal/columns_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.hasNestedColumns",
+      "path": "modules/content/internal/columns_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.bodyJSONValue",
+      "path": "modules/content/internal/body_canonicalizer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.canonicalContentValue",
+      "path": "modules/content/internal/body_canonicalizer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.orderContentMarks",
+      "path": "modules/content/internal/body_canonicalizer.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.revisionPreparationDigest",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validatePreparedMaterial",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.newRevisionWriteWindow",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.persistPreparedRevision",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.verifyRevisionMaterialFile",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.quarantineRevisionMaterial",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.revisionFileStoreFromContext",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.revisionFileLocation",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.validateCommittedMaterial",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.readImmutableRevision",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.Read",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.decodeStoredBody",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+    },
+    {
+      "id": "content.isolateRevisionRead",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+      },
+      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
     }
   ],
-  "rule": "R1-04已创建启动入口、生命周期装配、默认配置、部署清单、Dockerfile、Makefile和go.mod；main/Serve/Shutdown/Health/Ready已写入但未通过Go工具链验证，BuildApplication按合同因本域业务处理器、私有存储、journal恢复、x-handler与后台函数未实现而保持blocked并返回DEPENDENCY_UNAVAILABLE。R1-05仅实现content.RecoverPreparedCommits及其恢复依赖注入/隔离辅助逻辑，未接入BuildApplication、HTTP或其他发布/回滚用例；源码状态implemented，静态检查有记录但Go编译和业务验收未执行，不能标verified或accepted。go.sum未能由go mod download生成，其余业务文件/函数仍planned，不能批量宣称已完成。"
+  "rule": "第五轮只实现不可变正文文件/读回与直接语义/hash辅助；新改条目in_progress待VPS，准备不推进head；真实DB adapter/HTTP和完整启动仍blocked，未行为验收/部署。"
 }

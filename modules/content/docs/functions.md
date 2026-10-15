@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 74 个函数：约束 42 个，参考 32 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 99 个函数：约束 42 个，参考 57 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -686,6 +686,7 @@ func SaveDraft(ctx context.Context, op OperationContext, input SaveDraftInput) (
 1. doc mutex检查有效holder/boot/fence/lease，ctx授权与epoch；ValidateBlockTree/IDs
 2. CollectResourceReferences先media acquire pins，再WriteRevisionFile不可变fsync
 3. 同私有txn再检查lease/fence和expectedHead/version，CommitDraftJournal+refs+receipt/outbox；commit后confirm pins，失败release且隔离未提交文件
+4. WriteRevisionFile的expectedHead取已核expectedDraftRevisionId，expectedDraftVersion取原输入；author不由浏览器提供。abort pin释放携sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest、nullable pinId及reason；先持久aborted/rejected，再由media原子封存源，pin未知不得先重新Acquire，COMMITTED不释放
 
 **错误**
 
@@ -730,9 +731,9 @@ func ValidateBlockTree(ctx context.Context, op OperationContext, input ValidateB
 
 **步骤**
 
-1. schemaVersion逐级已支持；strict types拒绝unknown node/attrs/mark与HTML
-2. 全树含list/cell/column IDs唯一，深度≤32/块≤10000，总JSON≤站点限；删除ID不可被另一内容重用
-3. ValidateInline/TableGrid/Columns；已有块保ID，复制新ID，移动不换ID；不增加block引用/图谱/实时协作
+1. 正文结构/未知节点属性marks由请求入口或持久文件边界生成schema一次校验；本函数信任该结构，不重复schema验证
+2. 全树block/item/cell/row/column ID唯一，合计≤10000、结构深度≤32；列表首项paragraph，语义调用Inline/TableGrid/Columns，不改变ID/内容
+3. 删除ID历史禁止复用由CommitDraftTransaction.Commit的稳定ID ledger与head CAS同事务落实；previousBody不能代替全部历史，历史读取不做current retired判断
 
 **错误**
 
@@ -744,7 +745,7 @@ func ValidateBlockTree(ctx context.Context, op OperationContext, input ValidateB
 - 授权：私有正文验证
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.ValidateInline`、`content.ValidateTableGrid`、`content.ValidateColumns`
+- 依赖：`content.bodyJSONValue`、`content.visit`
 
 ## content.ValidateInline
 
@@ -784,6 +785,199 @@ func ValidateInline(input ValidateInlineInput) (ValidateInlineResult, error)
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
+- 依赖：`content.validateInlineNodes`
+- 其他依赖说明：Go内部参数是已过边界schema并用UseNumber转换的JSON节点表示；本树单次转换后真实调用，不重复Marshal/schema；JSON形状由types唯一来源约束
+
+## content.visit
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：全树稳定ID前序去重/总数与深度、列表首段和嵌套语义
+
+```go
+func (state *blockTreeValidation) visit(node map[string]any, depth int) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 全树稳定ID前序去重/总数与深度、列表首段和嵌套语义
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.ValidateInline`、`content.ValidateTableGrid`、`content.ValidateColumns`、`content.validateContentMath`
+
+## content.validateInlineNodes
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：拒行内NUL/重复mark，外链和公式执行已登记语义检查
+
+```go
+func validateInlineNodes(nodes []any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒行内NUL/重复mark，外链和公式执行已登记语义检查
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.validateContentLink`、`content.validateContentMath`
+
+## content.validateContentLink
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：只允许有有效host的http/https或mailto，拒userinfo/控制URL，不记录原值
+
+```go
+func validateContentLink(href string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只允许有有效host的http/https或mailto，拒userinfo/控制URL，不记录原值
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.validateContentMath
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：拒文件/网络/HTML命令头input/include/includegraphics/openin/openout/read/write/href/url/htmlClass/htmlId/htmlStyle/htmlData，不运行TeX或模型
+
+```go
+func validateContentMath(latex string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒文件/网络/HTML命令头input/include/includegraphics/openin/openout/read/write/href/url/htmlClass/htmlId/htmlStyle/htmlData，不运行TeX或模型
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.contentInteger
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：读取已校验JSON整数供网格计算
+
+```go
+func contentInteger(value any) int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取已校验JSON整数供网格计算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.contentNumber
+
+- 级别：参考
+- 文件：`modules/content/internal/block_validator.go`
+- 作用：读取已校验JSON数值供分栏误差计算
+
+```go
+func contentNumber(value any) float64
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取已校验JSON数值供分栏误差计算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
 - 依赖：无
 
 ## content.ValidateTableGrid
@@ -824,7 +1018,40 @@ func ValidateTableGrid(input ValidateTableGridInput) (ValidateTableGridResult, e
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：无
+- 依赖：`content.validateTableGridNode`
+- 其他依赖说明：Go内部参数是已过边界schema并用UseNumber转换的JSON节点表示；本树单次转换后真实调用，不重复Marshal/schema；JSON形状由types唯一来源约束
+
+## content.validateTableGridNode
+
+- 级别：参考
+- 文件：`modules/content/internal/table_validator.go`
+- 作用：行优先放单元格，拒交叠/空洞/越界/零逻辑列及colwidth不等colspan
+
+```go
+func validateTableGridNode(table map[string]any) (ValidateTableGridResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 行优先放单元格，拒交叠/空洞/越界/零逻辑列及colwidth不等colspan
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.contentInteger`
 
 ## content.ValidateColumns
 
@@ -863,6 +1090,71 @@ func ValidateColumns(input ValidateColumnsInput) (ValidateColumnsResult, error)
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
+- 依赖：`content.validateColumnsNode`
+- 其他依赖说明：Go内部参数是已过边界schema并用UseNumber转换的JSON节点表示；本树单次转换后真实调用，不重复Marshal/schema；JSON形状由types唯一来源约束
+
+## content.validateColumnsNode
+
+- 级别：参考
+- 文件：`modules/content/internal/columns_validator.go`
+- 作用：检查比例数量/总和误差及column ID，迭代拒全部后代columns
+
+```go
+func validateColumnsNode(node map[string]any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 检查比例数量/总和误差及column ID，迭代拒全部后代columns
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.contentNumber`、`content.hasNestedColumns`
+
+## content.hasNestedColumns
+
+- 级别：参考
+- 文件：`modules/content/internal/columns_validator.go`
+- 作用：迭代检查所有content后代是否columns，避免递归栈兜底
+
+```go
+func hasNestedColumns(node map[string]any) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 迭代检查所有content后代是否columns，避免递归栈兜底
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
 - 依赖：无
 
 ## content.CollectResourceReferences
@@ -929,9 +1221,9 @@ func CanonicalizeBody(input CanonicalizeBodyInput) (CanonicalizeBodyResult, erro
 
 **步骤**
 
-1. 按schema键排序，不改Unicode文字/代码/latex
-2. 数组顺序保留，marks按固定类型排序而不变语义
-3. UTF8 canonicalJSON SHA256作为文件真相hash
+1. 仅规范对象键，Unicode文字/代码/latex不NFC、不trim、不改变正文数组顺序
+2. marks按类型英文名升序作唯一固定顺序，不维护第二份产品类型表
+3. 复用platform.CanonicalJSON生成UTF-8规范表示并SHA256；硬限16MiB，站点新写动态大小由WriteRevisionFile负责
 
 **错误**
 
@@ -942,7 +1234,7 @@ func CanonicalizeBody(input CanonicalizeBodyInput) (CanonicalizeBodyResult, erro
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：无
+- 依赖：`content.bodyJSONValue`、`content.canonicalContentValue`
 
 ## content.HashBlock
 
@@ -981,6 +1273,102 @@ func HashBlock(input HashBlockInput) (HashBlockResult, error)
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
+- 依赖：`content.bodyJSONValue`、`content.canonicalContentValue`
+
+## content.bodyJSONValue
+
+- 级别：参考
+- 文件：`modules/content/internal/body_canonicalizer.go`
+- 作用：将已过边界schema的值转为保整数精度的JSON表示，硬限16MiB
+
+```go
+func bodyJSONValue(input any) (any, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 将已过边界schema的值转为保整数精度的JSON表示，硬限16MiB
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.canonicalContentValue
+
+- 级别：参考
+- 文件：`modules/content/internal/body_canonicalizer.go`
+- 作用：规范mark类型次序后调用唯一平台JSON规范化
+
+```go
+func canonicalContentValue(value any) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 规范mark类型次序后调用唯一平台JSON规范化
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.orderContentMarks`、`platform.CanonicalJSON`
+
+## content.orderContentMarks
+
+- 级别：参考
+- 文件：`modules/content/internal/body_canonicalizer.go`
+- 作用：只在新表示中按mark类型英文名升序，不变更调用方正文
+
+```go
+func orderContentMarks(value any)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只在新表示中按mark类型英文名升序，不变更调用方正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
 - 依赖：无
 
 ## content.WriteRevisionFile
@@ -1010,20 +1398,32 @@ func WriteRevisionFile(ctx context.Context, op OperationContext, input WriteRevi
 
 **步骤**
 
-1. CanonicalizeBody，服务生成site/doc/revision.json私有路径
-2. 登记PREPAREDjournal，tmp写fsync→同FSrename→fsyncparent并核hash
-3. 同revision异hash拒绝；文件成功不代表head提交，失败不暴露PREPARED
+1. CanonicalizeBody得到≤16MiB规范JSON/hash；从既有WithDraftCommitStore读取扩展RevisionFileStore，核可信active root/site/打开epoch，路径仅服务生成site/doc/revisionId.json，拒绝路径跳转/链接/特殊文件/多硬链接
+2. 原操作按caller/actor/site/dataEpoch/operation及包含doc/revision/expectedHead/expectedDraftVersion/bodyHash的完整规范摘要先查持久准备材料；异摘要CONFLICT；同op使用首次Draft/Journal，不重造时间/commitId或受后来站点配额下降影响
+3. 新操作ValidateBlockTree语义并核当前受信maxDocumentBytes（1024..16MiB）；author只取可信op，ObjectRef固定owner=content/objectId=revisionId/version=1、application/json及完整hash/长度；draftVersion=expectedDraftVersion+1，previousRevisionId=expectedHead
+4. 公共lifecycle.NewWriteContext建立当前epoch和control截止；受信私有adapter原子保存preparing+摘要+原结果，不推进head；同revision归属冲突拒绝，缺真实adapter直接DEPENDENCY_UNAVAILABLE
+5. 单进程私有根文件准备串行到MarkPrepared；prepared/committed原结果只复核既有不可变文件并返回，aborted/quarantined不复活；preparing才续写，不新增自动重试
+6. 刷新安全窗口，沿公共ValidatePrivatePath逐段核目录/文件，Mkdir0700并同步所有新父目录；原8字段JSONL追加同commitId PREPARED并fsync，崩溃重复同记录由既有scanner去重，不改变格式或虚称跨库原子
+7. tmp0600同目录写入/文件fsync/close，IO后重新取当前窗口和epoch再原子rename+目录fsync；已有目标只核同hash/长度，绝不覆盖既有正文；安装后复核hash/长度/正规路径
+8. 真实持久MarkRevisionPrepared在当前安全窗口将preparing推进prepared后才返回原结果；不推进head/ledger/refs/业务COMMITTED receipt/outbox，业务提交仍由CommitDraftTransaction的fence+CAS完成。真实文件/材料损坏按COMMITTED优先持久隔离，未提交只隔离准备而不关闭另一合法head，不fallback，普通IO失败保留可恢复准备决定
 
 **错误**
 
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `VALIDATION`：正文语义或站点大小不满足（不可重试）
+- `CONFLICT`：原操作摘要或修订归属不一致，或原准备已终止（不可重试）
+- `VERSION_MISMATCH`：当前安全窗口或打开epoch不匹配（不可重试）
+- `LOCKED`：维护/屏障安全窗口关闭（可重试）
+- `INTEGRITY_ERROR`：原材料、文件hash/长度/正规路径不一致（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实存储adapter/配置/文件持久化未知（可重试）
+- `CANCELLED`：调用取消（可重试）
+- `DEADLINE_EXCEEDED`：IO截止到达（可重试）
 
 - 副作用：正文文件/PREPAREDjournal
 - 授权：私有正文提交
-- 并发：revisionId唯一文件永不覆盖
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.CanonicalizeBody`
+- 并发：私有根单进程拥有；文件准备进程内串行，窄adapter原子幂等/修订归属；临时文件不可见，只有业务COMMITTED后可读，不宣称FS与DB单事务
+- 幂等：caller/actor/site/epoch/op+完整规范摘要，先取首次原材料再新策略/CAS；同键异摘要冲突，不重造结果；preparing崩溃可续，不复活终局
+- 依赖：`content.CanonicalizeBody`、`content.ValidateBlockTree`、`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.revisionPreparationDigest`、`content.validatePreparedMaterial`、`content.newRevisionWriteWindow`、`content.persistPreparedRevision`、`content.verifyRevisionMaterialFile`、`content.quarantineRevisionMaterial`、`platform.NewWriteContext`、`platform.ValidatePrivatePath`
+- 其他依赖说明：Go实际公共函数为lifecycle.NewWriteContext与lifecycle.ValidatePrivatePath；contract平台前缀不是Go包名；RevisionFileStore所有持久方法需真实本域adapter；本项只实现文件核心，未装配时失败关闭；历史正文硬限16MiB，新写另服站点maxDocumentBytes；不等价上传配额
 
 ## content.RecoverPreparedCommits
 
@@ -1067,6 +1467,198 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 - 幂等：重复恢复不发布PREPARED
 - 依赖：无
 
+## content.revisionPreparationDigest
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：按caller/actor/site/epoch/动作及完整规范材料生成私有输入摘要
+
+```go
+func revisionPreparationDigest(op OperationContext, input WriteRevisionFileInput, bodyHash Hash) (Hash, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按caller/actor/site/epoch/动作及完整规范材料生成私有输入摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`platform.CanonicalJSON`
+
+## content.validatePreparedMaterial
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：核持久原Draft/Journal与当前同摘要材料身份，不重造或覆盖结果
+
+```go
+func validatePreparedMaterial(op OperationContext, input WriteRevisionFileInput, result WriteRevisionFileResult, canonical CanonicalizeBodyResult) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核持久原Draft/Journal与当前同摘要材料身份，不重造或覆盖结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.newRevisionWriteWindow
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：只用lifecycle.NewWriteContext受信回调建立当前epoch与控制截止，不复制公共机制
+
+```go
+func newRevisionWriteWindow(ctx context.Context, op OperationContext, store RevisionFileStore) (context.Context, context.CancelFunc, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只用lifecycle.NewWriteContext受信回调建立当前epoch与控制截止，不复制公共机制
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`platform.NewWriteContext`
+
+## content.persistPreparedRevision
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：安全窗口中持久原8字段PREPARED、tmp/fsync/不覆盖rename/父目录及最终hash；崩溃保留准备决定
+
+```go
+func persistPreparedRevision(ctx context.Context, op OperationContext, store RevisionFileStore, root, path string, result WriteRevisionFileResult, raw []byte) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 安全窗口中持久原8字段PREPARED、tmp/fsync/不覆盖rename/父目录及最终hash；崩溃保留准备决定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.newRevisionWriteWindow`、`content.verifyRevisionMaterialFile`、`content.Read`、`platform.ValidatePrivatePath`
+
+## content.verifyRevisionMaterialFile
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：复用既有文件hash/长度/fsync核验并在前后核私有正规路径
+
+```go
+func verifyRevisionMaterialFile(ctx context.Context, path string, draft DraftRevision) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用既有文件hash/长度/fsync核验并在前后核私有正规路径
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`platform.ValidatePrivatePath`
+
+## content.quarantineRevisionMaterial
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：将文件写回发现的真实损坏交同一持久隔离边界
+
+```go
+func quarantineRevisionMaterial(ctx context.Context, op OperationContext, store RevisionFileStore, input WriteRevisionFileInput, cause error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 将文件写回发现的真实损坏交同一持久隔离边界
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.isolateRevisionRead`
+
 ## content.CommitDraftJournal
 
 - 级别：参考
@@ -1097,6 +1689,7 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 1. 核PREPARED文件hash/fsync与有效fence登记
 2. 同事务CAS head/version、append稳定IDledger、journal COMMITTED、refs/receipt/outbox
 3. CAS失败正文未可见；已commitreceipt返原revision，不能网络失败重复改head
+4. 稳定ID ledger必须同head CAS原子拒绝所有历史retired ID复用；仅看previousBody不构成历史检查，不能由文件准备推进ledger
 
 **错误**
 
@@ -1138,20 +1731,251 @@ func ReadRevisionBody(ctx context.Context, op OperationContext, input ReadRevisi
 
 **步骤**
 
-1. 根据私有journal索引解析服务生成路径，不接受OSpath
-2. COMMITTED且site/doc/version归属匹配
-3. 流读取bounded JSON、sha/schema核对；失败INTEGRITY隔离无fallback
+1. 从受信RevisionFileStore读取同site/doc/revision/当前epoch且未隔离的COMMITTED资格与完整ObjectRef/Journal，不从8字段JSONL猜draftVersion或接收OSpath；未装adapter失败关闭，PREPARED不能作为正文返回
+2. 只按已核标识符生成既有私有路径，ObjectRef固定content/revisionId/version1且journal/hash/归属一致；expectedHash null取该提交索引真相，非null不符只拒绝错误引用，不隔离与权威一致的合法文件
+3. 公共ValidatePrivatePath逐段拒链接/特殊/多硬链接；有界读取完整字节，核文件身份、长度≤16MiB及ObjectRef SHA256，不按后来降低的新写配额拒绝历史读，也不截断当成功
+4. 持久文件边界一次用生成DocumentBody schema严格验证UTF-8/未知字段/版本，再执行本树语义和规范编码核hash；历史读不查询当前retired ledger，合法历史可含现已删除块ID
+5. 读取后再核不可变引用和COMMITTED资格；文件、材料或schema损坏必须真实持久隔离修订/文档并关闭公开，不fallback；普通依赖/取消故障不假装不存在或隔离合法文件
 
 **错误**
 
-- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `UNSUPPORTED_SCHEMA`：版本或块 schema 不受支持；禁止静默丢弃未知属性（不可重试）
+- `NOT_FOUND`：该修订无可读COMMITTED资格或不在已授权作用域（不可重试）
+- `INTEGRITY_ERROR`：持久文件/引用/严格schema/规范hash矛盾，隔离无fallback（不可重试）
+- `UNSUPPORTED_SCHEMA`：持久正文格式未知，不静默迁移或丢字段（不可重试）
+- `VERSION_MISMATCH`：打开数据代次不等于当前op（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：可信提交索引/adapter/schema或普通IO未知（可重试）
+- `CANCELLED`：调用取消（可重试）
+- `DEADLINE_EXCEEDED`：IO截止到达（可重试）
+
+- 副作用：损坏时调用真实私有隔离持久方法关闭该修订/文档公开资格；不改写正文或推进head
+- 授权：调用方先做content.read或已验证publication/preview
+- 并发：COMMITTED资格前后校验，文件不可变且打开epoch固定；不把多个服务或FS/DB读取宣称成单事务
+- 幂等：只读
+- 依赖：`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.validateCommittedMaterial`、`content.readImmutableRevision`、`content.decodeStoredBody`、`content.ValidateBlockTree`、`content.CanonicalizeBody`、`content.isolateRevisionRead`、`platform.ValidatePrivatePath`
+
+## content.revisionFileStoreFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：复用既有DraftCommitStore受信注入并要求真实文件扩展adapter
+
+```go
+func revisionFileStoreFromContext(ctx context.Context) (RevisionFileStore, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用既有DraftCommitStore受信注入并要求真实文件扩展adapter
+
+**错误**
+
+- 无
 
 - 副作用：无
-- 授权：调用方先做content.read或已验证publication/preview
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：只读
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+- 其他依赖说明：FindPreparation必须合并私有决定/原JSONL最新状态/COMMITTED receipt，不能用旧准备索引复活启动已隔离孤儿；真实adapter未装配拒绝
+
+## content.revisionFileLocation
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：核打开epoch/site/root，服务生成旧路径并拒点跳转/私有目录异常
+
+```go
+func revisionFileLocation(store RevisionFileStore, op OperationContext, documentID, revisionID Identifier) (string, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核打开epoch/site/root，服务生成旧路径并拒点跳转/私有目录异常
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`platform.ValidatePrivatePath`
+
+## content.validateCommittedMaterial
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：核持久COMMITTED材料的doc/revision/hash/前序/版本/对象不可变归属
+
+```go
+func validateCommittedMaterial(input ReadRevisionBodyInput, record CommittedRevisionFile) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核持久COMMITTED材料的doc/revision/hash/前序/版本/对象不可变归属
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.readImmutableRevision
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：有界核正规文件身份/完整长度/SHA与路径，读后不输出未验证字节
+
+```go
+func readImmutableRevision(ctx context.Context, path string, object gen.ObjectRef) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界核正规文件身份/完整长度/SHA与路径，读后不输出未验证字节
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.Read`、`platform.ValidatePrivatePath`
+
+## content.Read
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：将ctx取消传递给不原生接ctx的文件/字节Reader，纯函数不重复期限解析
+
+```go
+func (reader revisionContextReader) Read(buffer []byte) (int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 将ctx取消传递给不原生接ctx的文件/字节Reader，纯函数不重复期限解析
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.decodeStoredBody
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：持久边界一次用生成DocumentBody schema核UTF8/未知字段/版本，不静默迁移
+
+```go
+func decodeStoredBody(raw []byte) (DocumentBody, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持久边界一次用生成DocumentBody schema核UTF8/未知字段/版本，不静默迁移
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：无
+
+## content.isolateRevisionRead
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：只有真实材料/文件/schema损坏才持久隔离，普通依赖/取消和调用方错hash不隔离
+
+```go
+func isolateRevisionRead(ctx context.Context, op OperationContext, store RevisionFileStore, input ReadRevisionBodyInput, cause error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只有真实材料/文件/schema损坏才持久隔离，普通依赖/取消和调用方错hash不隔离
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
+- 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
+- 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
 - 依赖：无
 
 ## content.PreparePublicationMetadata

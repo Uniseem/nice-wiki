@@ -1,3 +1,22 @@
+# 第五轮交接：正文文件核心（2026-10-15，源码待VPS）
+
+- 精确基线9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，分支codex/content-revision-files-r1，初始clean，仅拥有modules/content。上一public-site源f9aa83fd199efd17593cf349938ef4c823336cfe/记录95676374b480e14d74a7b7251ffb2151bc1cc6f0已保留，无用户内容reset。
+- 本项WriteRevisionFile、ReadRevisionBody和直接语义/hash辅助已写源码，均in_progress待VPS；没有真实私有DB adapter，不能从源码/窄接口推定保存链可运行。
+- 根已裁定参考Write输入追加expectedHead(nullable)/expectedDraftVersion，上游提供已核CAS快照；author仅op，ObjectRef固定revisionId/version1。已有WithDraftCommitStore注入扩展窄接口，保存scope+规范摘要+首次Draft/Journal，preparing/MarkPrepared不推进head；读回资格/隔离必须真实持久，缺adapter失败关闭。
+- 原8字段JSONL不改格式，无隐式迁移；16MiB硬限统一旧64MiB（尚无writer历史数据）。新写当前站点大小仅新操作核，旧材料先回放不因配额下降拒绝，历史读只服硬限，不等价上传大小。
+- 平台机制只调用lifecycle.NewWriteContext/ValidatePrivatePath，不按合同ID误用platform包。每个阶段刷新当前窗口/打开epoch；tmp和目录fsync、目标已有只核原hash且不覆盖，成功准备与业务COMMITTED分离。
+- ValidateBlockTree只本树结构/唯一/语义；历史retired复用由CommitDraftTransaction的ledger+head CAS原子拒绝。历史Read合法包含现已删除块ID，不把previousBody当历史账。持久文件边界用生成schema一次严格验证，纯函数不重做HTTP校验。
+- 全树ID≤10000、深度≤32；table≤200×30且覆盖无洞/重叠、宽数等跨度，columns2..4比例和1误差≤1e-6且不嵌套；行内NUL/重复mark、URL userinfo/危险scheme、公式文件网络宏拒绝；保Unicode/代码/latex文本和数组顺序，只排序mark类型与对象键。
+- 仅新增既有登记5路径：internal/body_canonicalizer.go、internal/block_validator.go、internal/table_validator.go、internal/columns_validator.go、internal/revision_reader.go。原revision_files.go追加writer，revision_repository.go复用可取消IO并澄清ledger责任；无新DB/迁移/其他域文件。
+- 尚planned的SaveDraft/abort媒体协议已按根提醒同步完整source材料+nullable pinId+reason，源持久aborted/rejected后由media封存，pin未知不先Acquire；当前文件核心不实现媒体流程。
+- 全部Go格式/gen/build/vet/check仅根VPS；未新增测试/fixture/mock/样例/临时业务程序，未运行SQL、真实API/模型/服务，未push或部署。生成物不手改，完整BuildApplication/main仍blocked。
+
+## 下一步（一项）
+
+冻结此源码供根VPS统一docs/gen/build/check，收到结果只修真实缺陷，准确提交源码和证据；之后另行分配真实私有DB adapter与上游保存/提交/HTTP装配，不在本包扩域或把依赖未实做成成功占位。
+
+---
+
 # 文档生命周期会话交接
 
 ## 可空生成类型适配（2026-10-15，集成会话）
@@ -55,3 +74,5 @@
 PublicTreeNode.canonicalPath为新增required完整路径，只是公开树响应契约，ReadPublicTree尚未实现，不宣称路由可用。ValidatePublications登记site-config只读链接调用方；不能由消费者读取私有树或猜路径。
 
 readReferenceDecision仅media纯服务读取引用源最小决定，COMMITTED优先，缺失/未知不得释放pin。该新约束函数仍planned，不是已实现服务。
+
+窄存储的FindPreparation必须合并原JSONL最新终止/隔离状态与COMMITTED receipt；不能用旧索引复活启动已隔离孤儿。隔离按COMMITTED优先：已提交损坏关闭文档，未提交坏准备只隔离该准备，不关闭另一个合法head；本轮没有假adapter实现。

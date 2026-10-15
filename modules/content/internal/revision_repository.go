@@ -43,7 +43,7 @@ type DraftCommitRequest struct {
 
 // DraftCommitStore 是本域私有存储的装配边界。
 // BeginDraftCommit必须打开同一个私有事务；事务实现负责数据库行CAS、稳定ID台账、
-// COMMITTED journal、引用、receipt和outbox的原子提交。
+// COMMITTED journal、引用、receipt和outbox的原子提交；同head CAS拒绝历史retired ID复用。
 type DraftCommitStore interface {
 	RevisionRoot() string
 	RevisionSiteID() Identifier
@@ -266,7 +266,7 @@ func verifyPreparedRevisionFile(ctx context.Context, path string, draft DraftRev
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "PREPARED正文不可读")
 	}
 	hasher := sha256.New()
-	readSize, copyErr := io.CopyN(hasher, file, maxBodyBytes+1)
+	readSize, copyErr := io.CopyN(hasher, revisionContextReader{ctx: ctx, reader: file}, maxBodyBytes+1)
 	if copyErr != nil && !errors.Is(copyErr, io.EOF) {
 		_ = file.Close()
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "PREPARED正文读取失败")

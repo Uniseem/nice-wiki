@@ -17,13 +17,15 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/modules/content/internal/gen"
 )
 
 const (
 	journalRelativePath = "journal/commits.jsonl"
 	quarantineRelative  = "quarantine"
 	maxJournalLineBytes = 64 << 10
-	maxBodyBytes        = 64 << 20
+	maxBodyBytes        = 16 << 20
 )
 
 // OperationContext 是服务间调用的可信操作上下文。
@@ -729,4 +731,253 @@ func checkContextOnly(ctx context.Context) error {
 	default:
 		return nil
 	}
+}
+
+// WriteRevisionFileInput的CAS材料来自已授权上游，不从文件系统推测head。
+type WriteRevisionFileInput struct {
+	DocumentID           Identifier   `json:"documentId"`
+	RevisionID           Identifier   `json:"revisionId"`
+	Body                 DocumentBody `json:"body"`
+	ExpectedHead         *Identifier  `json:"expectedHead"`
+	ExpectedDraftVersion gen.Revision `json:"expectedDraftVersion"`
+}
+type WriteRevisionFileResult struct {
+	Draft   DraftRevision `json:"draft"`
+	Journal CommitJournal `json:"journal"`
+}
+
+// 私有根由单个content进程拥有；串行准备到Mark，避免并发同op回退JSONL状态。
+var revisionWriteGate = make(chan struct{}, 1)
+
+// WriteRevisionFile只准备不可变正文，业务head/ledger/refs/outbox仍由提交事务负责。
+func WriteRevisionFile(ctx context.Context, op OperationContext, input WriteRevisionFileInput) (WriteRevisionFileResult, error) {
+	canonical, err := CanonicalizeBody(CanonicalizeBodyInput{Body: input.Body})
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	store, err := revisionFileStoreFromContext(ctx)
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	root, path, err := revisionFileLocation(store, op, input.DocumentID, input.RevisionID)
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	digest, err := revisionPreparationDigest(op, input, canonical.ContentHash)
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	select {
+	case revisionWriteGate <- struct{}{}:
+	case <-ctx.Done():
+		return WriteRevisionFileResult{}, checkContextOnly(ctx)
+	}
+	defer func() { <-revisionWriteGate }()
+	record, found, err := store.FindRevisionPreparation(ctx, op, digest)
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	if !found {
+		if _, err := ValidateBlockTree(ctx, op, ValidateBlockTreeInput{Body: input.Body, DocumentID: input.DocumentID}); err != nil {
+			return WriteRevisionFileResult{}, err
+		}
+		limit := store.RevisionMaxDocumentBytes()
+		if limit < 1024 || limit > maxBodyBytes {
+			return WriteRevisionFileResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "正文站点大小配置不可用")
+		}
+		if int64(len(canonical.UTF8)) > limit {
+			return WriteRevisionFileResult{}, platform.NewError(platform.CodeValidation, false, "正文超过当前站点大小上限")
+		}
+		createdAt := time.Now().UTC()
+		now := platform.Timestamp(createdAt.Format(time.RFC3339Nano))
+		candidate := WriteRevisionFileResult{Draft: DraftRevision{
+			RevisionId: input.RevisionID, DocumentId: input.DocumentID, PreviousRevisionId: input.ExpectedHead, BodyHash: canonical.ContentHash,
+			Object:          gen.ObjectRef{Owner: "content", ObjectId: input.RevisionID, Version: 1, Sha256: canonical.ContentHash, ByteSize: len(canonical.UTF8), MediaType: "application/json"},
+			AuthorAccountId: op.Actor.SubjectID, CreatedAt: createdAt, DraftVersion: input.ExpectedDraftVersion + 1},
+			Journal: CommitJournal{CommitID: platform.NewIdentifier(), OperationID: op.OperationID, DocumentID: input.DocumentID, RevisionID: input.RevisionID,
+				BodyHash: canonical.ContentHash, ExpectedHead: input.ExpectedHead, State: "prepared", CreatedAt: now}}
+		work, cancel, err := newRevisionWriteWindow(ctx, op, store)
+		if err != nil {
+			return WriteRevisionFileResult{}, err
+		}
+		record, err = store.PrepareRevision(work, op, digest, candidate)
+		cancel()
+		if err != nil {
+			return WriteRevisionFileResult{}, err
+		}
+	}
+	if err := validatePreparedMaterial(op, input, record.Result, canonical); err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	switch record.State {
+	case "prepared", "committed":
+		// 已完成文件准备不再消耗新配额、生成新ID或追加PREPARED。
+		if err := verifyRevisionMaterialFile(ctx, path, record.Result.Draft); err != nil {
+			return WriteRevisionFileResult{}, quarantineRevisionMaterial(ctx, op, store, input, err)
+		}
+		return record.Result, nil
+	case "preparing":
+	case "aborted", "quarantined":
+		return WriteRevisionFileResult{}, platform.NewError(platform.CodeConflict, false, "正文准备操作已终止或隔离")
+	default:
+		return WriteRevisionFileResult{}, platform.NewError(platform.CodeIntegrityError, false, "正文准备决定状态不合法")
+	}
+	if err := persistPreparedRevision(ctx, op, store, root, path, record.Result, []byte(canonical.UTF8)); err != nil {
+		return WriteRevisionFileResult{}, quarantineRevisionMaterial(ctx, op, store, input, err)
+	}
+	work, cancel, err := newRevisionWriteWindow(ctx, op, store)
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	err = store.MarkRevisionPrepared(work, op, record.Result.Journal.CommitID)
+	cancel()
+	if err != nil {
+		return WriteRevisionFileResult{}, err
+	}
+	return record.Result, nil
+}
+
+func revisionPreparationDigest(op OperationContext, input WriteRevisionFileInput, bodyHash Hash) (Hash, error) {
+	raw, err := platform.CanonicalJSON(struct {
+		Caller, Actor, Site, Epoch, Action string
+		DocumentID, RevisionID             Identifier
+		ExpectedHead                       *Identifier
+		ExpectedDraftVersion               gen.Revision
+		BodyHash                           Hash
+	}{op.CallerService, op.Actor.SubjectID, op.Actor.SiteID, op.DataEpoch, "content.WriteRevisionFile.v1", input.DocumentID, input.RevisionID, input.ExpectedHead, input.ExpectedDraftVersion, bodyHash})
+	if err != nil {
+		return "", err
+	}
+	return platform.HashBytes(raw), nil
+}
+
+func validatePreparedMaterial(op OperationContext, input WriteRevisionFileInput, result WriteRevisionFileResult, canonical CanonicalizeBodyResult) error {
+	if err := validateDraftCommitInput(op, CommitDraftJournalInput{Draft: result.Draft, Journal: result.Journal, ExpectedHead: input.ExpectedHead, ExpectedDraftVersion: input.ExpectedDraftVersion}); err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "正文准备原材料与请求不一致")
+	}
+	if result.Draft.DocumentId != input.DocumentID || result.Draft.RevisionId != input.RevisionID || result.Draft.AuthorAccountId != op.Actor.SubjectID ||
+		result.Draft.Object.ObjectId != input.RevisionID || result.Draft.Object.Version != 1 || result.Draft.Object.ByteSize != len(canonical.UTF8) ||
+		result.Draft.BodyHash != canonical.ContentHash || Timestamp(result.Draft.CreatedAt.UTC().Format(time.RFC3339Nano)) != result.Journal.CreatedAt {
+		return platform.NewError(platform.CodeIntegrityError, false, "正文准备结果归属或规范哈希不一致")
+	}
+	return nil
+}
+
+func newRevisionWriteWindow(ctx context.Context, op OperationContext, store RevisionFileStore) (context.Context, context.CancelFunc, error) {
+	config := store.RevisionWriteWindow()
+	if config.Runtime == nil || config.WriteWindow == nil {
+		return nil, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文安全写窗口未装配")
+	}
+	work, view, cancel, err := lifecycle.NewWriteContext(platform.WithOperationContext(ctx, op), config)
+	if err != nil {
+		return nil, nil, err
+	}
+	if view.DataEpoch != op.DataEpoch || store.RevisionDataEpoch() != op.DataEpoch {
+		cancel()
+		return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "正文安全窗口代次已变化")
+	}
+	return work, cancel, nil
+}
+
+func persistPreparedRevision(ctx context.Context, op OperationContext, store RevisionFileStore, root, path string, result WriteRevisionFileResult, raw []byte) error {
+	work, cancel, err := newRevisionWriteWindow(ctx, op, store)
+	if err != nil {
+		return err
+	}
+	defer cancel()
+	directory := filepath.Dir(path)
+	journalPath := filepath.Join(root, journalRelativePath)
+	for _, dir := range []string{directory, filepath.Dir(journalPath)} {
+		if err := lifecycle.ValidatePrivatePath(dir, "directory", true); err != nil {
+			return err
+		}
+		if err := checkContextOnly(work); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "正文私有目录不可建立")
+		}
+		if err := lifecycle.ValidatePrivatePath(dir, "directory", false); err != nil {
+			return err
+		}
+	}
+	// 新建site/doc/journal的每层目录项都先持久化；不返回尚未持久的路径。
+	for _, dir := range []string{root, filepath.Dir(directory), directory, filepath.Dir(journalPath)} {
+		if err := syncDirectory(dir); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "正文私有目录不可持久化")
+		}
+	}
+	if err := lifecycle.ValidatePrivatePath(journalPath, "regular-file", true); err != nil {
+		return err
+	}
+	if err := appendJournalState(work, journalPath, result.Journal, "prepared"); err != nil {
+		return err
+	}
+	if err := lifecycle.ValidatePrivatePath(journalPath, "regular-file", false); err != nil {
+		return err
+	}
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", true); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return verifyRevisionMaterialFile(work, path, result.Draft)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文不可检查")
+	}
+	if err := checkContextOnly(work); err != nil {
+		return err
+	}
+	file, err := os.CreateTemp(directory, ".revision-*")
+	if err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文临时文件不可建立")
+	}
+	temporary := file.Name()
+	defer func() { _ = file.Close(); _ = os.Remove(temporary) }()
+	if _, err := io.Copy(file, revisionContextReader{ctx: work, reader: bytes.NewReader(raw)}); err != nil {
+		return normalizeDraftCommitError(err, "正文临时文件不可写")
+	}
+	if err := file.Sync(); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文临时文件不可持久化")
+	}
+	if err := file.Close(); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文临时文件不可关闭")
+	}
+	// 文件IO之后再取当前窗口，旧epoch或关闭屏障不执行rename。
+	final, release, err := newRevisionWriteWindow(ctx, op, store)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if err := checkContextOnly(final); err != nil {
+		return err
+	}
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", true); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return verifyRevisionMaterialFile(final, path, result.Draft)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文安装目标不可检查")
+	}
+	if err := os.Rename(temporary, path); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文不可原子安装")
+	}
+	if err := syncDirectory(directory); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文目录不可持久化")
+	}
+	return verifyRevisionMaterialFile(final, path, result.Draft)
+}
+
+func verifyRevisionMaterialFile(ctx context.Context, path string, draft DraftRevision) error {
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", false); err != nil {
+		return err
+	}
+	if err := verifyPreparedRevisionFile(ctx, path, draft); err != nil {
+		return err
+	}
+	return lifecycle.ValidatePrivatePath(path, "regular-file", false)
+}
+
+func quarantineRevisionMaterial(ctx context.Context, op OperationContext, store RevisionFileStore, input WriteRevisionFileInput, cause error) error {
+	return isolateRevisionRead(ctx, op, store, ReadRevisionBodyInput{DocumentID: input.DocumentID, RevisionID: input.RevisionID}, cause)
 }
