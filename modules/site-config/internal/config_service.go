@@ -155,6 +155,11 @@ func (s *ActiveStore) readCurrentConfig(ctx context.Context, op platform.Operati
 	if err != nil {
 		return gen.SiteConfig{}, configJournalRecord{}, err
 	}
+	return s.readConfigAtWatermark(ctx, op, tx, siteID, revision, revisionID)
+}
+
+// readConfigAtWatermark 复用同一文件权威边界；调用方已按私有或公开入口核准水位。
+func (s *ActiveStore) readConfigAtWatermark(ctx context.Context, op platform.OperationContext, tx *sql.Tx, siteID string, revision gen.Revision, revisionID string) (gen.SiteConfig, configJournalRecord, error) {
 	config, record, _, err := s.readIndexedConfig(ctx, tx, revisionID)
 	if err != nil {
 		var failure *platform.Error
@@ -230,4 +235,36 @@ func (s *ActiveStore) readConfigOperationResult(ctx context.Context, op platform
 		return config, platform.NewError(platform.CodeIntegrityError, false, "配置原始结果与操作回执不一致")
 	}
 	return config, nil
+}
+
+// loadPublicHomeConfig 是独立匿名首页入口，不改变私有readConfigWatermark的站点授权。
+// 仅本域ReadPublicHome使用返回的内部配置，HTTP结果由明确公开字段投影构造。
+func (s *ActiveStore) loadPublicHomeConfig(ctx context.Context, op platform.OperationContext) (gen.SiteConfig, error) {
+	if op.CallerService != "portal" && op.CallerService != "public-site" {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeForbidden, false, "公开首页只允许登记入口读取")
+	}
+	s.configMu.Lock()
+	defer s.configMu.Unlock()
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeDependencyUnavailable, true, "打开公开首页读取事务失败")
+	}
+	defer tx.Rollback()
+	var epoch string
+	var initialized, revision int
+	var siteID, revisionID sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT data_epoch,initialized,site_id,config_revision,config_revision_id FROM site_config_state WHERE singleton=1`).Scan(&epoch, &initialized, &siteID, &revision, &revisionID); err != nil {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "公开首页水位不可读")
+	}
+	if epoch != op.DataEpoch {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeVersionMismatch, false, "公开首页不属于活动dataEpoch")
+	}
+	if initialized != 1 {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeNotFound, false, "站点尚未完成初始化")
+	}
+	if !siteID.Valid || !revisionID.Valid || revision < 1 {
+		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "公开首页缺少正式配置引用")
+	}
+	config, _, err := s.readConfigAtWatermark(ctx, op, tx, siteID.String, revision, revisionID.String)
+	return config, err
 }

@@ -77,6 +77,8 @@ type ActiveStore struct {
 	initializationMu sync.Mutex
 	publicBaseURL    string
 	allowLocalHTTP   bool
+	homeRecovered    bool
+	homeRuntime      HomeRuntime
 	configRecovered  bool
 
 	stateMu          sync.RWMutex
@@ -348,7 +350,11 @@ func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch platfor
 	recovered := s.journalRecovered
 	expectedHash := s.journalHash
 	configRecovered := s.configRecovered
+	homeRecovered := s.homeRecovered
 	s.stateMu.RUnlock()
+	if !homeRecovered {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "首页引用本地决定尚未恢复")
+	}
 	if !configRecovered {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "配置journal尚未恢复")
 	}

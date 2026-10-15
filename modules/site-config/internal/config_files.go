@@ -190,6 +190,9 @@ func CommitConfigHead(ctx context.Context, op platform.OperationContext, input C
 	if _, err := CheckWriteEpoch(ctx, op, CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
 		return CommitConfigHeadResult{}, err
 	}
+	if err := store.checkHomeConfigCommit(ctx, tx, record, config); err != nil {
+		return CommitConfigHeadResult{}, err
+	}
 	if err := writeConfigRecord(store.activeRoot, record); err != nil {
 		return CommitConfigHeadResult{}, err
 	}
@@ -394,6 +397,9 @@ func (s *ActiveStore) applyConfigCommit(ctx context.Context, tx *sql.Tx, record 
 		if _, err := tx.ExecContext(ctx, `UPDATE initialization_state SET revision=?,state_json=? WHERE singleton=1 AND operation_id=?`, state.Revision, string(raw), record.OperationID); err != nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, true, "保存配置初始化阶段失败")
 		}
+	}
+	if err := markHomeConfigCommitted(ctx, tx, record.OperationID); err != nil {
+		return err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE config_operations SET state='committed',result_revision=? WHERE operation_id=? AND request_hash=?`, config.Revision, record.OperationID, record.RequestHash); err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "保存配置回执失败")

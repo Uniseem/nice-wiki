@@ -53,8 +53,8 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | NormalizeBaseURLResult | 规范公开站点地址的结果 |
 | ValidateLanguageTagInput | 规范基准语言 tag的输入 |
 | ValidateLanguageTagResult | 规范基准语言 tag的结果 |
-| UpdateHomeInput | 配置首页介绍、卡片和精选文档的输入 |
-| UpdateHomeResult | 配置首页介绍、卡片和精选文档的结果 |
+| UpdateHomeInput | 配置一屏hero首页的输入 |
+| UpdateHomeResult | 配置一屏hero首页的结果 |
 | ReadPublicHomeInput | 读取可公开的首页配置的输入 |
 | ReadPublicHomeResult | 读取可公开的首页配置的结果 |
 | ValidateHomeLinksInput | hero校验 |
@@ -161,3 +161,16 @@ URL/IDNA 规范化只调用平台 `lifecycle.NormalizePublicURL`；本域保存�
 
 
 HTTP 入站由平台工厂统一验证服务断言/原始委托、固定 caller、opened dataEpoch、期限、当前 identity 权威和严格请求 schema；本域适配只转换 JSON/路径/查询或输出对象流。纯 service actor 只在合同登记的读取操作和 caller 子白名单放行；携用户委托的 portal 请求仍走当前用户授权。运行状态读/迁移/回执和安全初始化状态属维护控制白名单。updateSiteConfig只为读取已完成旧回执开放到达；未命中旧成功时，任何候选SQL/文件IO之前先CheckWriteEpoch拒绝维护中新/未完成操作，提交处CAS/epoch检查不省略。其他本轮业务按默认维护门禁。所有登记接口必须绑定真实 handler，缺失时完整服务启动失败，不用空成功或通用占位 handler 冒充交付。
+
+
+## 首页引用持久决定
+
+`0005_home_reference_decisions.sql` 只追加 `home_reference_decisions`：候选配置与完整排序引用数组、digest、固定来源修订和 `pending/acquire_pending` 同事务。sourceObjectId 为 `HashBytes("site-config.home.v1|"+siteId)`，sourceRevisionId 为不可变 config revisionId，sourceVersion 为全局 config.revision；referenceId 固定 `home.background`/`home.poster`。空引用仍为非空 JSON 数组 `[]`，采用公共 CanonicalJSON 后取 HashBytes。数组、pin 材料均受既有 16 MiB 上限和完整哈希约束，pin 不含原始用户 proof。
+
+获取成功先持久 pin，才允许文件 COMMITTED；业务 SQL 水位、原始成功回执、outbox 与 `committed/confirm_pending` 同事务。COMMITTED 正规权威文件优先于本表，不能被中止或期限回退。后台低版本 confirm 只补历史，不倒退媒体当前水位。保存成功定义为配置业务已提交，外部确认失联保留待收敛，不改写已保存结果。
+
+明确未提交才在与 CommitConfigHead 相同的 configMu/SQL 写锁下记录 `aborted/release_pending`。终止恢复直接向 media 发送全部 source 材料与可空 pinId，媒体回源只接受明确 aborted/rejected 后，在 source 锁下原子封存；没有 pin 仍需持久 sealed，阻止迟到 Acquire 复活。终止恢复绝不重新 Acquire；NOT_FOUND 只表示该次获取失败，不是释放证明。404、pending、超时和未知决定一律不能释放；COMMITTED 缺持久 pin 为完整性错误。成功确认/封存释放的本域阶段分别持久为 confirmed/released。
+
+构造期 RecoverHomeReferenceState 只核本地决定、pin 与 COMMITTED，不向其他服务发 RPC。完整应用构造后，BackgroundTasks 交公共 RunRecoveryLoop 按安全写窗口有界收敛；每次 RPC 前后通过公共 NewWriteContext 并核对当前 active epoch，维护暂停。取消后 Drain 只停止 HTTP 并等请求，后台退出后 Shutdown 才关闭数据库。
+
+公开首页使用独立水位读取后显式投影，不改变后台配置读取的站点授权。公开 hero 保留所有按钮，可见文档仅使用 public-site 当前权威根相对 href、请求语言和发布引用；不可见字段为 null，未知依赖禁用该按钮。响应 href 无 query/控制空白且锚点必须是请求锚点。QA 只读免费能力，无配置/未知禁用，不触发模型；branding 仅四个公开字段，banner 仅启用且当前窗口，其余 null，FooterConfig 沿既定原形。

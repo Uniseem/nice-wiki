@@ -37,16 +37,19 @@ const (
 // runtime 是本域权威读取器：本域即运行状态权威，读取自身控制库而非
 // 远端 HTTP。
 type Application struct {
-	config       platform.ServiceConfig
-	anchors      platform.TrustAnchors
-	runtime      platform.SiteConfigClient
-	active       *siteconfig.ActiveStore
-	openedEpoch  platform.Identifier
-	state        atomic.Int32
-	serveStarted atomic.Bool
-	shutdownOnce sync.Once
-	shutdownErr  error
-	httpServer   *http.Server
+	config          platform.ServiceConfig
+	anchors         platform.TrustAnchors
+	runtime         platform.SiteConfigClient
+	active          *siteconfig.ActiveStore
+	openedEpoch     platform.Identifier
+	state           atomic.Int32
+	serveStarted    atomic.Bool
+	shutdownOnce    sync.Once
+	shutdownErr     error
+	backgroundTasks []platform.BackgroundTask
+	drainOnce       sync.Once
+	drainErr        error
+	httpServer      *http.Server
 }
 
 // NewApplication 只向统一入口提供真实已实现的handler；缺登记操作时
@@ -62,18 +65,45 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: openedEpoch,
 		AllowedCallers: serviceCallers(),
 		ServiceActorCallers: map[string][]string{
-			"readSiteConfig":       {"portal", "public-site", "content", "media", "localization", "identity"},
-			"readConfigObject":     {"public-site", "data-protection"},
-			"resumeInitialization": {"site-config"},
+			"readSiteConfig":            {"portal", "public-site", "content", "media", "localization", "identity"},
+			"readConfigObject":          {"public-site", "data-protection"},
+			"resumeInitialization":      {"site-config"},
+			"readHomeReferenceDecision": {"media"},
+			"readPublicHome":            {"portal", "public-site"},
 		},
 		MaintenanceOperations: map[string]bool{"readRuntimeState": true, "transitionRuntimeState": true, "registerActivation": true, "readInitializationStatus": true,
-			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true},
+			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true, "updateHome": true, "readHomeReferenceDecision": true},
 		Authorize: authorize,
 	}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
 	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	application.backgroundTasks = []platform.BackgroundTask{{Name: "site-config.home-reference-recovery", Run: func(ctx context.Context) error {
+		return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: runtimeAuthority.ReadRuntimeState,
+			WriteWindow: func(work context.Context) (time.Time, error) {
+				op, deadline := application.homeRecoveryOperation(work)
+				if _, err := siteconfig.CheckWriteEpoch(work, op, siteconfig.CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
+					var failure *platform.Error
+					if errors.As(err, &failure) && failure.Code == platform.CodeLocked {
+						return time.Time{}, platform.NewError(platform.CodeLocked, true, "首页恢复写窗口已暂停")
+					}
+					return time.Time{}, err
+				}
+				return deadline, nil
+			}, Recover: func(work context.Context) error {
+				op, _ := application.homeRecoveryOperation(work)
+				result, err := siteconfig.RecoverHomeReferences(work, op, siteconfig.RecoverHomeReferencesInput{})
+				if err == nil && result.PendingCount > 0 {
+					return platform.NewError(platform.CodeDependencyUnavailable, true, "首页资源引用仍待收敛")
+				}
+				var failure *platform.Error
+				if errors.As(err, &failure) && failure.Code == platform.CodeLocked {
+					return platform.NewError(platform.CodeLocked, true, "首页恢复写窗口已暂停")
+				}
+				return err
+			}})
+	}}}
 	return application, nil
 }
 
@@ -101,6 +131,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		}),
 		"readSiteConfig":           serveJSON(siteconfig.ReadSiteConfig),
 		"updateSiteConfig":         serveJSON(siteconfig.UpdateSiteConfig),
+		"updateHome":               serveJSON(siteconfig.UpdateHome),
 		"readRuntimeState":         serveJSON(siteconfig.ReadRuntimeState),
 		"transitionRuntimeState":   serveJSON(siteconfig.TransitionRuntimeState),
 		"registerActivation":       serveJSON(siteconfig.RegisterActivation),
@@ -109,6 +140,30 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
 		"abortInitialization":      serveJSON(siteconfig.AbortInitialization),
 		"readConfigObject":         http.HandlerFunc(serveConfigObject),
+		"readPublicHome": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var language *string
+			if values, ok := r.URL.Query()["language"]; ok {
+				value := values[0]
+				language = &value
+			}
+			result, err := siteconfig.ReadPublicHome(r.Context(), op, siteconfig.ReadPublicHomeInput{Language: language})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readHomeReferenceDecision": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := siteconfig.ReadHomeReferenceDecision(r.Context(), op, siteconfig.ReadHomeReferenceDecisionInput{SourceOperationID: r.PathValue("sourceOperationId")})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
 	}
 }
 
@@ -175,7 +230,7 @@ func serviceCallers() map[string][]string {
 		"readSiteConfig":           {"portal", "public-site", "content", "media", "localization", "identity"},
 		"readConfigObject":         {"portal", "public-site", "data-protection"},
 		"readInitializationStatus": {"portal", "identity", "site-config"}, "resumeInitialization": {"portal", "site-config"},
-		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"media"},
+		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"media"}, "readHomeReferenceDecision": {"media"},
 	}
 	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {
 		callers[id] = []string{"portal"}
@@ -206,8 +261,7 @@ func Serve(ctx context.Context, app *Application) error {
 // 调用返回同一次结果，deadline 未安全返回 DEADLINE_EXCEEDED。
 func Shutdown(ctx context.Context, app *Application) error {
 	app.shutdownOnce.Do(func() {
-		app.state.CompareAndSwap(stateReady, stateDraining)
-		err := app.httpServer.Shutdown(ctx)
+		err := app.Drain(ctx)
 		if err == nil {
 			if app.active != nil {
 				if closeErr := app.active.Close(); closeErr != nil {
@@ -308,4 +362,35 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
+}
+
+// BackgroundTasks 仅返回已装配闭包；统一进程模板在完整构造成功后启动与停止。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask(nil), a.backgroundTasks...)
+}
+
+// Drain 不关闭存储；公共生命周期先等后台结束，再调用Shutdown关闭资源。
+func (a *Application) Drain(ctx context.Context) error {
+	a.drainOnce.Do(func() {
+		a.state.CompareAndSwap(stateReady, stateDraining)
+		if err := a.httpServer.Shutdown(ctx); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				a.drainErr = platform.NewError(platform.CodeDeadlineExceeded, true, "入口请求未在期限内排空")
+			} else {
+				a.drainErr = platform.NewError(platform.CodeInternal, false, "停止HTTP入口失败")
+			}
+		}
+	})
+	return a.drainErr
+}
+
+func (a *Application) homeRecoveryOperation(ctx context.Context) (platform.OperationContext, time.Time) {
+	deadline := time.Now().UTC().Add(30 * time.Second)
+	if existing, ok := ctx.Deadline(); ok && existing.Before(deadline) {
+		deadline = existing
+	}
+	id := platform.NewIdentifier()
+	stamp := platform.Timestamp(deadline.UTC().Format(time.RFC3339Nano))
+	return platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: moduleName, DataEpoch: a.openedEpoch, Deadline: stamp,
+		Actor: platform.AuthContext{Kind: "service", SubjectID: moduleName, SiteID: "system", Grants: []string{}, ExpiresAt: stamp}}, deadline
 }

@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -73,6 +74,30 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	activeStore.ConfigureInitialization(config.PublicBaseURL, config.AllowLocalHTTP)
+	homeRuntime := siteconfig.HomeRuntime{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+		op, ok := platform.OperationContextFrom(work)
+		if !ok {
+			return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "首页写窗口缺少受信操作")
+		}
+		if _, err := siteconfig.CheckWriteEpoch(work, op, siteconfig.CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
+			var failure *platform.Error
+			if errors.As(err, &failure) && failure.Code == platform.CodeLocked {
+				return time.Time{}, platform.NewError(platform.CodeLocked, true, "首页写窗口已暂停")
+			}
+			return time.Time{}, err
+		}
+		return time.Now().UTC().Add(30 * time.Second), nil
+	}}
+	if base := config.Dependencies["media"]; base != "" {
+		homeRuntime.Media = gen.NewMediaClient(base, ModuleSlug, key)
+	}
+	if base := config.Dependencies["public-site"]; base != "" {
+		homeRuntime.PublicLinks = gen.NewPublicSiteClient(base, ModuleSlug, key)
+	}
+	if base := config.Dependencies["qa"]; base != "" {
+		homeRuntime.QA = gen.NewQaClient(base, ModuleSlug, key)
+	}
+	activeStore.ConfigureHome(homeRuntime)
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",
@@ -104,6 +129,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			_ = closeRuntime(runtimeAuthority)
 			return nil, err
 		}
+	}
+	if err := activeStore.RecoverHomeReferenceState(ctx, startupOperation); err != nil {
+		_ = activeStore.Close()
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
 	}
 	identityBase := config.Dependencies["identity"]
 	if identityBase == "" {

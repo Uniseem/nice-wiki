@@ -8,7 +8,9 @@
     "identity": "http://127.0.0.1:8101",
     "content": "http://127.0.0.1:8103",
     "media": "http://127.0.0.1:8104",
-    "jobs": "http://127.0.0.1:8111"
+    "jobs": "http://127.0.0.1:8111",
+    "public-site": "http://127.0.0.1:8081",
+    "qa": "http://127.0.0.1:8107"
   },
   "publicBaseURL": "",
   "allowLocalHTTP": false

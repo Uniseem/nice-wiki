@@ -53,17 +53,10 @@ func ValidateSiteConfig(input ValidateSiteConfigInput) (ValidateSiteConfigResult
 	if strings.ContainsAny(template, "{}") {
 		return ValidateSiteConfigResult{}, platform.NewError(platform.CodeValidation, false, "标题模板只允许title/site占位符")
 	}
-	ids := map[string]bool{}
-	for _, button := range config.Home.Buttons {
-		if ids[button.ButtonId] {
-			return ValidateSiteConfigResult{}, platform.NewError(platform.CodeValidation, false, "hero按钮ID重复")
-		}
-		ids[button.ButtonId] = true
-		if err := validateConfigLink(button.Target); err != nil {
-			return ValidateSiteConfigResult{}, err
-		}
+	if _, _, err := validateHomeStructure(config.Home); err != nil {
+		return ValidateSiteConfigResult{}, err
 	}
-	ids = map[string]bool{}
+	ids := map[string]bool{}
 	for _, link := range config.Footer.Links {
 		if ids[link.LinkId] {
 			return ValidateSiteConfigResult{}, platform.NewError(platform.CodeValidation, false, "页脚链接ID重复")

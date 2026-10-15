@@ -114,6 +114,11 @@ func (s *ActiveStore) reserveConfigCandidate(ctx context.Context, op platform.Op
 	if _, err := tx.ExecContext(ctx, `INSERT INTO config_operation_materials(operation_id,kind,config_json,config_hash,config_revision) VALUES(?,?,?,?,?)`, op.OperationID, kind, string(raw), platform.HashBytes(raw), config.Revision); err != nil {
 		return configCandidate{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化配置候选材料失败")
 	}
+	if kind == "home" {
+		if err := saveHomeReferenceIntent(ctx, op, tx, config, revisionID); err != nil {
+			return configCandidate{}, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return configCandidate{}, platform.NewError(platform.CodeDependencyUnavailable, true, "提交配置候选材料失败")
 	}

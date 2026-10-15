@@ -1,11 +1,14 @@
 # 站点配置与初始化当前进度
 
-## 第四轮首页权威组（2026-10-15，实施中）
+## 第四轮首页权威组（2026-10-15，完整源码冻结待VPS）
 
-- 分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/。
-- 本轮目标为UpdateHome、ReadPublicHome、ValidateHomeLinks与同组媒体pin恢复；已落纯hero规则、固定候选/完整引用intent、媒体专用安全来源决定API和COMMITTED优先的获取/确认/释放状态机，尚在实现，不声明已完成。
-- 新实际路径为已登记home_service.go/home_validator.go，及获批只追加迁移0005_home_reference_decisions.sql；公共规范JSON、通用恢复循环、媒体pin、公开文档链接与QA免费能力协议由根统一收口，生成目录不手改。
-- 本轮合同快照已通过统一VPS docs/gen、14模块readonly build/vet/gofmt及make check（858文件/1105函数/379操作/2253类型）；该快照未取Home Go与0005迁移，不能视为其编译证据。先交付合同-only提交，实际Go/迁移保留未提交并继续in_progress，待公共基线后统一检查。没有本机Go/gofmt/gen/vet/类型检查/测试。未新增测试/mock/fixture/临时验证程序，未运行服务/真实接口/模型/部署/push。完整Application其余handler仍blocked，所有行为验收未执行。
+- 分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/；合同-only提交fa2d1b7已交根，后续Go与迁移尚未提交。
+- UpdateHome、ReadPublicHome、ValidateHomeLinks及来源决定/恢复源码齐备；固定候选/完整refs/pin进入既有COMMITTED/CAS/回执/outbox链。终止直接Release完整source及nullable pinId，媒体回源明确终局并sealed，无pin也封存；不重Acquire，不释放未知或COMMITTED。
+- 公开hero保留全部按钮，安全投影区分目标/锚点/语言/AI与依赖不可用；固定可信地址构造QA链接，不暴露私有hero target。公共NewWriteContext/RunRecoveryLoop和后台Drain生命周期复用根实现，构造只核本地journal/决定。
+- 新实际文件为home_service.go、home_validator.go与0005_home_reference_decisions.sql。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及随后冻结的media封存协议，由根统一合成。生成目录不手改。
+- 完整源码已冻结待根统一VPS；所有本轮改变保持in_progress，BuildApplication等其余handler仍blocked。protocol-only快照通过docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253），未取Home Go/0005，不能当其编译证据。无本机Go工具、新测试/fixture/临时验证程序、服务、真实接口/模型、部署或push；业务验收未执行。
+
+- 本轮首次完整Home合成快照已在VPS make docs/gen及14模块readonly build/vet/gofmt通过；make check唯一余后台依赖登记，本次已补BuildApplication→RecoverHomeReferences，仍仅装配闭包，成功返回后由RunService启动。另补公开publication正revision边界，待根完整复跑，尚不标verified。
 
 以下为历史记录，旧停止指令已被本轮持续授权撤销；逐项状态以progress.json为准。
 

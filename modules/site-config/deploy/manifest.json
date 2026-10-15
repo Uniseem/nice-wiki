@@ -1,7 +1,11 @@
 {
   "slug": "site-config",
   "image": "nice-wiki-site-config",
-  "command": ["/site-config", "--config", "/config/service.defaults.json"],
+  "command": [
+    "/site-config",
+    "--config",
+    "/config/service.defaults.json"
+  ],
   "httpPort": 8102,
   "dataVolume": "/data/site-config",
   "secrets": [
@@ -34,6 +38,16 @@
       "module": "jobs",
       "endpoint": "http://jobs:8111",
       "env": "NW_DEP_JOBS"
+    },
+    {
+      "module": "public-site",
+      "endpoint": "http://public-site:8081",
+      "env": "NW_DEP_PUBLIC_SITE"
+    },
+    {
+      "module": "qa",
+      "endpoint": "http://qa:8107",
+      "env": "NW_DEP_QA"
     }
   ],
   "probes": {
