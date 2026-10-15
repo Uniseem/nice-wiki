@@ -1029,7 +1029,8 @@
           "steps": [
             "校验迁移记录完整且与内嵌迁移一致",
             "校验active状态与control活动epoch一致",
-            "校验journal已恢复且文件指纹未改变"
+            "校验journal已恢复且文件指纹未改变",
+            "配置journal须完成恢复，核对settings权威head、COMMITTED与SQL水位及对象hash/schema；initialized=false但已有config_committed/blocked水位是可恢复中间态，不能公开为已初始化"
           ],
           "errors": [
             {
@@ -1523,9 +1524,9 @@
           ],
           "purpose": "无需AI完成首站点初始化",
           "steps": [
-            "要求已注册唯一超管session；siteId取context，禁止匿名请求重开注册，不要初始化码",
-            "仅站点名和基准语言（默认zh-Hans），PrepareDefaultConfig；无渠道/密钥/模型/档位/探测/调用",
-            "持久commit决定后写配置权威文件、默认hero/footer，再initialized=true；中断由同operationId恢复"
+            "要求已注册唯一超管admin会话、非空session/subject/site和superadmin授权；siteId取受信context，不创建第二账号，不重开注册",
+            "规范语言后以kind=initialize/name/规范baseLanguage计算原始业务摘要；按actor/site/op查询回执，同operation异请求或主体CONFLICT；已有commit只可同operation继续；准备时钟只在首次生成并随决定保存",
+            "从ConfigureInitialization取得已由公共配置边界校验的受信publicBaseURL，缺失失败关闭；PrepareDefaultConfig仅无AI基础配置；持久commit与原始actor/site/epoch/hash回执同事务，ResumeInitialization提交权威文件并完成initialized"
           ],
           "errors": [
             {
@@ -1547,6 +1548,21 @@
               "code": "FORBIDDEN",
               "when": "非唯一超管或未注册会话",
               "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久决定、权威对象或回执不一致，失败关闭",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "CAS或dataEpoch已变化",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "运行状态处于维护或屏障阶段",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1559,7 +1575,8 @@
             "site-config.PrepareDefaultConfig",
             "site-config.PersistInitializationDecision",
             "site-config.ResumeInitialization",
-            "site-config.ResolveConfigOperation"
+            "site-config.ResolveConfigOperation",
+            "site-config.ConfigureInitialization"
           ],
           "resources": [],
           "contract": "binding"
@@ -1701,9 +1718,9 @@
           ],
           "purpose": "恢复崩溃或依赖断开的初始化阶段",
           "steps": [
-            "读取本服务初始化持久decision与config文件stage",
-            "commit按journal幂等提交config/hero/footer并完成initialized；不调用identity owner准备",
-            "未知文件结果按hash与COMMITTEDjournal恢复；失败blocked，不要求保存密码"
+            "同站点已登录admin具site.manage/superadmin或本域service受控启动才允许恢复；读取当前初始化commit决定，核对完整准备材料SHA256和原始actor/site/epoch/业务摘要回执，缺失失败关闭，不重新生成preparedAt、不调用identity owner准备",
+            "以epoch/site/初始化operation的SHA256作为稳定revisionId，完整准备配置仅改initialized/revision/home.revision为true/1/1，WriteConfigRevision先持久settings文件及PREPARED；CommitConfigHead先持久COMMITTED决定，再head、SQL索引/回执/outbox/config_committed",
+            "仅COMMITTED与已完成SQL水位一致后另事务推进completed和initialized=true，保存原始结果；取消沿ctx停止IO，已持久决定只能补完，失败记录安全blocked，重试不得改决定；completed后返回原初始化结果"
           ],
           "errors": [
             {
@@ -1720,17 +1737,33 @@
               "code": "CONFLICT",
               "when": "状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
               "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体不具备本函数所需站点权限",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "CAS或dataEpoch已变化",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "运行状态处于维护或屏障阶段",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "私有配置事务、operation receipt 与 outbox"
           ],
-          "authorization": "service:site-config受控启动或site.manage",
+          "authorization": "同站点已登录admin且site.manage/superadmin；或callerService=site-config且actor.kind=service受控启动",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
-            "site-config.PersistInitializationDecision",
-            "site-config.RecoverAnnouncementJournal"
+            "site-config.ReadInitializationRecord",
+            "site-config.WriteConfigRevision",
+            "site-config.CommitConfigHead"
           ],
           "resources": [],
           "contract": "binding"
@@ -1791,9 +1824,9 @@
           ],
           "purpose": "取消尚未持久commit的初始化",
           "steps": [
-            "commit决定存在则不能abort，继续恢复完成",
-            "尚未提交则写abort决定并清本服务config临时stage",
-            "不删除唯一超管、不开第二次注册"
+            "要求已注册唯一超管admin会话；先按actor/site/目标operation和kind=abort/目标operation/expectedRevision摘要返回原取消结果，不能用旧回执替换主体或请求",
+            "存在任何commit决定即CONFLICT，只能继续恢复；无commit时CAS expectedRevision持久abort及原始结果回执；本实现不在commit前生成settings临时stage，故无未提交配置stage可删除",
+            "不删除唯一超管、不重开注册；已abort可由新operation重新填写本域向导"
           ],
           "errors": [
             {
@@ -1810,19 +1843,65 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久决定、权威对象或回执不一致，失败关闭",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "CAS或dataEpoch已变化",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "运行状态处于维护或屏障阶段",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "私有配置事务、operation receipt 与 outbox"
           ],
-          "authorization": "sealed初始化capability持有人或superadmin",
+          "authorization": "同站点已注册唯一超管admin会话；不再使用sealed初始化capability",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
-            "site-config.PersistInitializationDecision"
+            "site-config.PersistInitializationDecision",
+            "site-config.ResolveConfigOperation"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "site-config.ConfigureInitialization",
+          "name": "ConfigureInitialization",
+          "signature": "func (s *ActiveStore) ConfigureInitialization(publicBaseURL string)",
+          "inputs": [
+            {
+              "name": "publicBaseURL",
+              "type": "string",
+              "description": "来自platform.ServiceConfig的可信地址；不从Host派生",
+              "constraints": [
+                "共享配置入口已校验https或显式允许的loopback http；空值仅允许既有读取启动"
+              ]
+            }
+          ],
+          "outputs": [],
+          "purpose": "注入公共配置边界已校验的可信部署公开地址",
+          "steps": [
+            "启动时把公共配置边界已校验的publicBaseURL保存为本域只读部署能力，供InitializeSite使用；不持久秘密、不改站点配置"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "本进程可信初始化环境"
+          ],
+          "authorization": "仅本域进程装配",
+          "concurrency": "启动装配注入，受私有状态锁保护",
+          "idempotency": "相同配置重复注入无业务副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1957,7 +2036,8 @@
             "按operationId读取不可变决定回执；同operation/site/decision/准备配置哈希返回原决定版本，不同请求或不同决定返回CONFLICT；已提交同请求读取回执允许处于维护状态，新决定仍须CheckWriteEpoch通过",
             "active私有事务CAS expectedRevision；无记录仅允许0，已commit不得改abort或开启另一operation；已abort可用新operation继续本域向导，但不重开identity注册",
             "commit要求state为preparing且完整preparedConfig属于同site、initialized=false、revision/home.revision=0；同时保存规范JSON与SHA256；abort要求preparedConfig=null且无commit",
-            "同事务写不可变决定回执与当前状态，revision递增；commit保留preparing等待权威文件提交，abort进入aborted；SQLite synchronous=FULL提交后才执行外部动作"
+            "同事务写不可变决定回执与当前状态，revision递增；commit保留preparing等待权威文件提交，abort进入aborted；SQLite synchronous=FULL提交后才执行外部动作",
+            "原始业务requestHash与actor/site/epoch/operation、稳定revisionId在同一决定事务保存config_operations；commit记in_progress，abort存committed与原始state结果。材料摘要只判断决定不反悔，不替代原始业务请求摘要"
           ],
           "errors": [
             {
@@ -2452,9 +2532,9 @@
           ],
           "purpose": "查询配置幂等回执",
           "steps": [
-            "按actor/site/op唯一键查询",
-            "异hashCONFLICT",
-            "返回已完成revision或in-progress；敏感初始化不持久ownerPassword"
+            "按全局operationId读取不可重建回执，同时核对原始actor/site/requestHash及当前dataEpoch",
+            "同键异主体/site/hash返回CONFLICT，异epoch返回VERSION_MISMATCH",
+            "返回absent/in_progress/committed及原始resultRevision；不写密码或将初始化准备材料冒充settings"
           ],
           "errors": [
             {
@@ -2466,6 +2546,11 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "CAS或dataEpoch已变化",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -2486,7 +2571,7 @@
         {
           "id": "site-config.PublishConfigEvent",
           "name": "PublishConfigEvent",
-          "signature": "func PublishConfigEvent(ctx context.Context, op OperationContext, input PublishConfigEventInput) (PublishConfigEventResult, error)",
+          "signature": "func PublishConfigEvent(ctx context.Context, op OperationContext, tx WriteTransaction, input PublishConfigEventInput) (PublishConfigEventResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -2504,6 +2589,14 @@
                 "deadline 未过期",
                 "dataEpoch 与 site-config 活动 epoch 一致",
                 "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "tx",
+              "type": "WriteTransaction",
+              "description": "配置提交方持有的本域SQLite业务事务",
+              "constraints": [
+                "本函数不自行提交或打开事务"
               ]
             },
             {
@@ -2538,9 +2631,9 @@
           ],
           "purpose": "将配置事件与业务提交原子登记",
           "steps": [
-            "校验最小payload",
-            "业务事务写eventId唯一outbox",
-            "只在业务事务内写outbox；提交后由site-config.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs；低revision不可覆盖"
+            "装配site.config.changed v1最小引用载荷和固定eventId=revisionId；信封revision/dataEpoch来自当前配置决定",
+            "复用platform.EnqueueEvent向调用方写事务登记唯一outbox，与配置水位和回执原子提交；本函数不直接调用jobs",
+            "同eventId同payloadHash复用，异hash失败；由后续RelayOutbox装配转发，低revision不可覆盖"
           ],
           "errors": [
             {
@@ -3647,9 +3740,9 @@
           ],
           "purpose": "写权威版本化站点设置文件",
           "steps": [
-            "规范JSON、核sha与schema",
-            "私有settings/site/revision.json同FS临时写fsync/rename/fsyncparent",
-            "PREPARED journal记hash，未COMMITTED不得读；不纳入secret/账号/代理key"
+            "输入属于本域私有受信配置；持久对象采用ConfigDocument(schemaVersion=1,config)规范JSON；按生成SiteConfig schema及文件hash/version校验；未知schema失败关闭",
+            "active/settings/<siteId>/<revisionId>.json同FS临时写fsync后Link排他发布，再fsync父目录；已有同revision同字节复用、异内容INTEGRITY_ERROR；head与journal通过临时写fsync/rename/fsyncparent发布",
+            "独立原子journal/config/<revisionId>.prepared.json保存PREPARED及ObjectRef；未有COMMITTED与已完成SQL水位不得公开；不包含secret/账号/可信代理key"
           ],
           "errors": [
             {
@@ -3664,7 +3757,7 @@
             }
           ],
           "sideEffects": [
-            "不可变配置文件、COMMITTED journal、receipt/outbox"
+            "不可变配置文件和PREPARED文件journal；不直接变更公开水位或写outbox"
           ],
           "authorization": "私有config写入",
           "concurrency": "revision文件不可覆盖",
@@ -3730,9 +3823,9 @@
           ],
           "purpose": "提交配置权威head与日志",
           "steps": [
-            "检查PREPARED文件hash和fsync",
-            "私有事务CAS head、COMMITTEDjournal、receipt/outbox",
-            "由data-protection经对象API读取镜像写git；任何失败不读取其他域目录"
+            "先取得active SQLite写锁再做跨进程CAS；已持久COMMITTED决定先于SQL占有目标修订，禁止另一revisionId抢占同水位；核对PREPARED、权威对象hash/schema、原始请求actor/site/epoch/hash回执及expectedRevision；CheckWriteEpoch拒绝新维护期提交",
+            "先持久不可变COMMITTED文件决定（含CAS、原始请求及变更组），再原子更新settings/site/head.json；随后同一SQLite FULL事务写索引/水位/回执/platform outbox，初始化阶段变为config_committed；文件决定已落盘后任何中断只允许补完，不能退回或改摘要",
+            "SQL事务完成不直接等同初始化完成；Resume另事务写completed与initialized=true。读取端必须核对head、COMMITTED和已完成权威水位；启动RecoverConfigJournal补完文件决定，不声称SQL原子覆盖文件系统"
           ],
           "errors": [
             {
@@ -3754,6 +3847,21 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久决定、权威对象或回执不一致，失败关闭",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId被不同主体或请求复用",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "运行状态处于维护或屏障阶段",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3761,9 +3869,98 @@
           ],
           "authorization": "私有config提交",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "idempotency": "原始actor/site/op/业务hash与COMMITTED决定固定；同键同内容补完或返回原配置，异内容CONFLICT/INTEGRITY_ERROR",
           "dependencies": [
             "site-config.WriteConfigRevision",
+            "site-config.PublishConfigEvent",
+            "site-config.CheckWriteEpoch"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "site-config.RecoverConfigJournal",
+          "name": "RecoverConfigJournal",
+          "signature": "func RecoverConfigJournal(ctx context.Context, op OperationContext, input RecoverConfigJournalInput) (RecoverConfigJournalResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RecoverConfigJournalInput",
+              "description": "恢复正文文件与提交日志的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RecoverConfigJournalResult",
+              "description": "恢复正文文件与提交日志的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+              ]
+            }
+          ],
+          "purpose": "启动前恢复settings权威文件提交决定",
+          "steps": [
+            "只接受本域受控启动；按修订排序严格读取原子COMMITTED文件决定，要求epoch一致、修订连续且PREPARED/正文hash/schema/原始回执一致",
+            "逐条幂等补完SQL索引/水位/回执/outbox，再发布最后COMMITTED head；不得从SQL准备JSON制造配置文件；已提交决定缺权威文件失败关闭",
+            "孤儿PREPARED写私有quarantine/config标记，不公开；仍有初始化commit决定的准备材料保留供Resume；完成后深度核对head与权威SQL水位再标恢复就绪"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "非本域受控启动调用配置恢复",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "配置head、SQL索引/水位/回执/outbox和孤儿隔离标记"
+          ],
+          "authorization": "callerService=site-config且actor.kind=service；受控启动入口，不接受HTTP触发",
+          "concurrency": "启动exclusive；运行时仅屏障safe执行",
+          "idempotency": "反复恢复不会使PREPARED变COMMITTED",
+          "dependencies": [
             "site-config.PublishConfigEvent"
           ],
           "resources": [],
@@ -4182,7 +4379,11 @@
             "site-config.RelayOutbox",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "site-config.ConfigureInitialization",
+            "site-config.RecoverConfigJournal",
+            "site-config.ResumeInitialization",
+            "site-config.ReadInitializationStatus"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4508,6 +4709,12 @@
       "kind": "migration",
       "purpose": "初始化不可反悔决定、完整准备配置及SHA256、幂等回执和当前协调状态；不替代settings权威文件",
       "functions": []
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
+      "kind": "migration",
+      "purpose": "只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform",
+      "functions": []
     }
   ],
   "jobTypes": [],
@@ -4519,6 +4726,11 @@
     {
       "function": "site-config.RelayOutbox",
       "schedule": "启动后持续，空闲每1秒"
+    },
+    {
+      "function": "site-config.RecoverConfigJournal",
+      "schedule": "启动时（入口开放前）",
+      "purpose": "回放settings COMMITTED决定并隔离孤儿PREPARED"
     }
   ]
 }

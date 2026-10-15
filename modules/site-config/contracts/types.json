@@ -1452,13 +1452,18 @@
             }
           ],
           "description": "commit须完整准备配置，与决定同事务保存规范JSON及SHA256；abort为null"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原始业务请求摘要（操作种类、站名、规范语言；abort含目标operation），与准备配置SHA256区分；同事务写actor/site/op回执"
         }
       },
       "required": [
         "state",
         "decision",
         "expectedRevision",
-        "preparedConfig"
+        "preparedConfig",
+        "requestHash"
       ]
     },
     "PersistInitializationDecisionResult": {
@@ -2353,11 +2358,40 @@
         "expectedRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "CAS"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原始稳定业务请求摘要，不使用恢复请求或preparedAt重算"
+        },
+        "initialization": {
+          "type": "boolean",
+          "description": "本次提交是否推进初始化config_committed阶段"
+        },
+        "changedSections": {
+          "type": "array",
+          "description": "变更组",
+          "items": {
+            "type": "string",
+            "description": "字段组",
+            "enum": [
+              "identity",
+              "home",
+              "seo",
+              "security",
+              "limits",
+              "language"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6
         }
       },
       "required": [
         "object",
-        "expectedRevision"
+        "expectedRevision",
+        "requestHash",
+        "initialization",
+        "changedSections"
       ]
     },
     "CommitConfigHeadResult": {
@@ -2674,6 +2708,15 @@
         "uiAssetDirectory": {
           "type": "string",
           "description": "无UI时空字符串；有UI则本域构建dist目录"
+        },
+        "publicBaseURL": {
+          "type": "string",
+          "description": "受信进程配置公开来源；缺省空，初始化使用时必须非空，绝不取请求Host"
+        },
+        "allowLocalHTTP": {
+          "type": "boolean",
+          "default": false,
+          "description": "仅显式开启且主机为loopback时允许http本地开发；其余公开地址要求https"
         }
       },
       "required": [
@@ -2923,6 +2966,65 @@
       "type": "object",
       "description": "仅内部使用的active数据库读取事务，承载QueryContext与QueryRowContext",
       "x-internal": true
+    },
+    "WriteTransaction": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域active私有SQLite写事务（*sql.Tx），由配置提交调用方持有并统一提交/回滚；不接受HTTP输入"
+    },
+    "ConfigureInitializationInput": {
+      "type": "object",
+      "x-internal": true,
+      "description": "公共配置边界已校验的可信公开地址；空值仅允许既有读取启动，初始化使用时失败关闭"
+    },
+    "RecoverConfigJournalInput": {
+      "type": "object",
+      "description": "启动时恢复settings COMMITTED决定，输入无请求字段",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RecoverConfigJournalResult": {
+      "type": "object",
+      "description": "配置决定回放和孤儿隔离统计",
+      "additionalProperties": false,
+      "properties": {
+        "committedCount": {
+          "type": "integer",
+          "description": "确认数",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "quarantinedCount": {
+          "type": "integer",
+          "description": "孤儿数",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "committedCount",
+        "quarantinedCount"
+      ]
+    },
+    "ConfigDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-internal": true,
+      "description": "settings权威文件格式v1；历史空白实现无既有settings格式迁移；未知版本拒绝并禁止发布",
+      "properties": {
+        "schemaVersion": {
+          "const": 1,
+          "description": "settings文件schema版本"
+        },
+        "config": {
+          "$ref": "#/$defs/SiteConfig"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "config"
+      ]
     }
   }
 }

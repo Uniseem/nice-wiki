@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "83725bf69cbfc05a6590dddda7d6c17896b7cac185570ad008688c26bab78b9d",
+  "contractSha256": "864dd6df0e50f72a283f6e13679658d6629bc05ea733ca394a60c816827cb5a5",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-02（初始化准备、状态读取与决定持久化）",
-  "branch": "codex/site-config-init-r1",
-  "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+  "assignedSession": "R1-02（初始化完成与settings权威文件恢复）",
+  "branch": "codex/site-config-initialization-complete-r1",
+  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
@@ -133,12 +133,12 @@
     {
       "path": "modules/site-config/internal/initialization_service.go",
       "state": "in_progress",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
-      "blocker": "仅ReadInitializationStatus完成；InitializeSite/ResumeInitialization/AbortInitialization待后续权威文件提交与恢复工作包"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/initialization_defaults.go",
@@ -152,11 +152,11 @@
     },
     {
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
@@ -182,21 +182,21 @@
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/outbox_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/site-config/internal/config_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
@@ -302,11 +302,11 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     },
@@ -417,6 +417,16 @@
       "verification": {
         "state": "passed",
         "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一在隔离VPS运行docs/gen/build/check；未在本机执行编译/格式/vet/类型检查/测试"
       },
       "blocker": null
     }
@@ -535,22 +545,22 @@
     {
       "id": "site-config.OpenActiveStore",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
     {
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -612,11 +622,11 @@
     {
       "id": "site-config.InitializeSite",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -634,22 +644,22 @@
     {
       "id": "site-config.ResumeInitialization",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
     {
       "id": "site-config.AbortInitialization",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -667,11 +677,11 @@
     {
       "id": "site-config.PersistInitializationDecision",
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -722,22 +732,22 @@
     {
       "id": "site-config.ResolveConfigOperation",
       "path": "modules/site-config/internal/operation_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
     {
       "id": "site-config.PublishConfigEvent",
       "path": "modules/site-config/internal/outbox_repository.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -854,22 +864,22 @@
     {
       "id": "site-config.WriteConfigRevision",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
     {
       "id": "site-config.CommitConfigHead",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     },
@@ -920,13 +930,13 @@
     {
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
-      "blocker": "active迁移与公告journal已接入；仍缺全部OpenAPI业务x-handler、换向后RegisterActivation回执与RelayOutbox后台装配；编译已通过，不代表完整装配完成"
+      "blocker": null
     },
     {
       "id": "site-config.Serve",
@@ -975,11 +985,33 @@
     {
       "id": "site-config.ReadInitializationRecord",
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.ConfigureInitialization",
+      "path": "modules/site-config/internal/initialization_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.RecoverConfigJournal",
+      "path": "modules/site-config/internal/config_files.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮源码待集成会话统一VPS门槛；业务验收未执行"
       },
       "blocker": null
     }

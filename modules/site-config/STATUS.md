@@ -1,15 +1,12 @@
 # 站点配置与初始化当前进度
 
-最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
+更新：2026-10-15。阶段：R1-02 实施中；本轮初始化完成与 settings 权威提交源码已写，等待集成会话统一在隔离 VPS 执行 docs/gen/build/check，暂为 in_progress。业务验收与部署未开始。
 
-更新：2026-10-15。阶段：R1-02 实施中；本轮完成初始化准备、状态读取与决定持久化代码，全仓编译门槛通过，根结构登记待集成会话完成。业务验收与部署未开始。
+- 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。
+- 已写 InitializeSite/ResumeInitialization/AbortInitialization：唯一超管会话与 site 作用域、稳定业务摘要、原始结果回执、不可反悔决定、blocked 后幂等补完；不调用 AI、identity owner 准备或真实接口。
+- 已写 WriteConfigRevision/CommitConfigHead/RecoverConfigJournal：schemaVersion=1 权威文件、不可变 PREPARED/COMMITTED、排他 Link、head Rename、逐级 fsync、SQLite 写锁/CAS、崩溃回放、孤儿隔离、SQL 与文件水位核对。
+- `0003_config_commit.sql` 只追加 config_operations；配置水位/回执和平台 outbox 同事务，不复制公共 outbox 表或转发机制。RelayOutbox 循环仍待 HTTP/后台装配工作包。
+- 可信公开地址由公共 ServiceConfig 边界校验后 ConfigureInitialization 注入，缺失地址初始化失败关闭；不从请求 Host 推导。启动恢复只根据明确 COMMITTED 决定，旧准备决定缺身份回执明确失败关闭。
+- 未完成：完整 OpenAPI 业务 x-handler、其他设置用例、RelayOutbox 循环、恢复换目录回执与快照/屏障装配。BuildApplication 的本组接线不等于完整模块装配完成。
 
-- 本轮代码提交 `02dfb5bb8c46d51b4506bfd42a049a85422ec0ff`；状态为 implemented，完整结构检查和统一复核后再由集成会话提升 verified。
-- 本轮基线 `00dd199239aba487bceb5227aac52f27ce949d74`，分支 `codex/site-config-init-r1`，独占 `modules/site-config/`。
-- `PrepareDefaultConfig` 使用显式部署地址和可信 preparedAt，生成已明确默认值的完整未发布配置；`ReadInitializationStatus` 始终返回 initialized 与安全阶段，只向同站点超管或 identity/site-config 可信服务附完整 coordination。未开始的 operationId/siteId 为 null，无占位 ID。
-- `PersistInitializationDecision` 在 active 私有事务中保存完整准备配置规范 JSON、SHA256、不可反悔决定、CAS 当前状态和原始结果回执；`0002_initialization.sql` 只追加迁移，SQLite synchronous=FULL。commit 仍停 preparing，后续恢复用例才可提交权威 settings 文件并完成初始化。
-- 同步公共 nullable 生成修复后，本域 runtime 的恢复字段真实使用 null；读取、迁移、SQL 写入与平台 RuntimeView 适配已同步，退出维护后的回执与重新读取一致为空。
-- 已有运行状态权威、active 迁移、公告 journal、语言规范化和健康/就绪代码继续保留；本域 build/vet/gofmt 已通过，全仓 14 模块 make build 也通过；make check 仅缺根 framework 的 4 文件登记，最终提交见本轮 handoff 和 progress.json。
-- 未完成：InitializeSite/ResumeInitialization/AbortInitialization 完整用例、settings 权威文件提交与恢复、HTTP 业务 x-handler、outbox 循环、恢复换目录回执装配。publicBaseURL 的可信进程配置注入仍留 HTTP 工作包，不从 Host 猜测。
-
-未新增测试、样例或临时验证程序；未运行业务进程、真实接口、模型、联调、镜像、部署或 push。业务验收保持未执行。
+本轮未在本机执行编译、格式化、lint、类型检查、测试或生成校验；未新增测试、样例、fixture 或临时验证程序；未运行服务、真实接口、模型、联调、镜像、部署或 push。

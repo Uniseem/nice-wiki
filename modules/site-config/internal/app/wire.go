@@ -70,6 +70,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
+	activeStore.ConfigureInitialization(config.PublicBaseURL)
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",
@@ -77,12 +78,25 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		CallerService:   ModuleSlug,
 		Deadline:        platform.Timestamp(time.Now().Add(30 * time.Second).UTC().Format(time.RFC3339Nano)),
 		DataEpoch:       view.DataEpoch,
+ Actor: platform.AuthContext{Kind:"service",SubjectID:ModuleSlug},
 	}
 	if _, err := siteconfig.RecoverAnnouncementJournal(ctx, startupOperation, siteconfig.RecoverAnnouncementJournalInput{}); err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
+    if _,err := siteconfig.RecoverConfigJournal(ctx,startupOperation,siteconfig.RecoverConfigJournalInput{}); err != nil {
+        _ = activeStore.Close()
+        _ = closeRuntime(runtimeAuthority)
+        return nil,err
+    }
+    initialization,err := siteconfig.ReadInitializationStatus(ctx,startupOperation,siteconfig.ReadInitializationStatusInput{})
+    if err != nil { _ = activeStore.Close(); _ = closeRuntime(runtimeAuthority); return nil,err }
+    if !view.Maintenance && initialization.Coordination != nil && initialization.Coordination.Decision == gen.Commit && initialization.Coordination.Phase != gen.InitializationStatePhaseCompleted {
+        if _,err := siteconfig.ResumeInitialization(ctx,startupOperation,gen.ResumeInitializationInput{OperationId:*initialization.Coordination.OperationId}); err != nil {
+            _ = activeStore.Close(); _ = closeRuntime(runtimeAuthority); return nil,err
+        }
+    }
 	return transport.NewApplication(config, anchors, runtimeAuthority, activeStore, view.DataEpoch), nil
 }
 

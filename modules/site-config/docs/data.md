@@ -124,8 +124,21 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 
 ## 初始化准备与决定
 
-`active/site-config.db` 的 `initialization_decisions` 保存每个初始化 operation 的不可反悔决定、原始结果回执、完整准备配置规范 JSON 与 SHA256；`initialization_state` 保存当前协调状态和 CAS revision。二者由 `0002_initialization.sql` 只追加迁移建立，同事务以 SQLite `synchronous=FULL` 提交。决定记录不是可重建索引，也不等同 `settings` 权威文件已提交。commit 后仍为 preparing；后续 ResumeInitialization 必须核对材料、写权威文件并推进初始化完成，不能在本阶段向公开站点发布。
+`active/site-config.db` 的 `initialization_decisions` 保存每个初始化 operation 的不可反悔决定、原始结果回执、完整准备配置规范 JSON 与 SHA256；`initialization_state` 保存当前协调状态和 CAS revision。二者由 `0002_initialization.sql` 只追加迁移建立，同事务以 SQLite `synchronous=FULL` 提交。决定记录不是可重建索引，也不等同 `settings` 权威文件已提交。commit 决定持久化后仍为 preparing；ResumeInitialization 核对材料和原始请求回执后，先提交 settings 权威文件与 COMMITTED 决定，再把配置水位推进 config_committed；最后独立事务推进 completed 与 initialized=true。准备阶段不对公开站点发布。
 
 尚未开始时 operationId/siteId 为 null，revision/configRevision 为 0；updatedAt 使用 active 状态的持久建库时间。公开状态固定为 `initialized` 与只含 phase/safeError 的 state。完整 coordination 只向同站点超管或 identity/site-config 可信服务返回，匿名完全省略。
 
 初始化默认值在本轮集成裁决中明确：主题色 `#2563EB`，hero 背景 `#0F172A`、遮罩 0、浅色文字、无按钮、副标题空、背景字 `Welcome To` 且不翻译；标题模板 `{title} | {site}`、允许索引，版权/自定义链接空、备案 null、源码链接 `https://github.com/Uniseem/nice-wiki`。资源上限为文档 16 MiB、单次上传 128 MiB、站点 10 GiB、上传并发 4；预览 900 秒、会话最长 604800 秒。logo/favicon/defaultShareImage/banner 为 null。以上默认数值此前产品基线未固定，本轮据现有 schema 范围补齐；不新增示例文档、账号、AI 渠道或模型任务。
+
+
+## settings 权威文件与提交恢复
+
+`active/settings/<siteId>/<revisionId>.json` 使用 `ConfigDocument` v1：`schemaVersion=1` 与完整 `config`。规范 JSON 是权威正文，SQLite 内的准备材料不能代替该文件。新增格式从空白 settings 实现开始；未知版本或不符合生成 SiteConfig schema 的文件失败关闭。修订号、对象大小与 SHA256 必须和 ObjectRef 一致。不可变对象通过同文件系统临时文件写入、fsync、排他 Link 和父目录 fsync 发布；相同修订同字节复用，异字节拒绝。head 采用临时文件 fsync、Rename 和父目录 fsync。新建目录逐级 fsync 父目录。
+
+`active/journal/config/<revisionId>.prepared.json` 和 `.committed.json` 是独立原子、不可变的规范记录，均为 schemaVersion=1。采用独立文件避免 JSONL 半条记录被误读为完整决定。PREPARED 只记录准备对象；COMMITTED 额外固定原始 actor/site/operation、业务 requestHash、dataEpoch、expectedRevision、初始化标记和 changedSections。配置事务先取得 SQLite 写锁，并检查目标修订不存在另一 COMMITTED 决定，之后持久 COMMITTED，再更新 head、最后提交 SQL 索引、水位、回执和平台 outbox。SQL 不宣称覆盖文件系统的原子性；COMMITTED 落盘后中断只能补完，不能回滚决定。
+
+`0003_config_commit.sql` 追加 `config_operations`，保存不可重建的原始 actor/site/op/epoch/业务摘要、稳定 revisionId、阶段与原始完成结果。初始化业务摘要固定为操作种类、站点名和规范语言；准备材料 SHA256 另存 `initialization_decisions`，不把包含 preparedAt 的材料摘要用作原始请求摘要。初始化决定与原始回执同事务提交；revisionId 由 epoch/site/初始化 operation 的 SHA256 固定。旧 0002 决定若缺原始身份回执不推测主体，按 INTEGRITY_ERROR 阻止完成。
+
+启动 `RecoverConfigJournal` 只回放明确 COMMITTED 的文件决定，逐条核对连续修订、epoch、PREPARED、权威对象 schema/hash 与原始回执，补全 SQL 索引、水位、回执和 outbox，再发布最新 head。没有 COMMITTED 的对象不公开；有初始化 commit 决定的 PREPARED 留给 Resume，其他 PREPARED 写入 `active/quarantine/config` 隔离标记。已提交对象缺失或损坏会阻止启动。Ready 须核对已恢复状态、COMMITTED、head、SQL 水位和权威对象。
+
+配置提交与初始化完成分开持久：config_committed 或 blocked 时允许存在配置水位 1、initialized=false 的恢复中间态；只有最后完成事务才置 initialized=true。初始化 completed 结果保留首次配置水位，不随后续设置修订改写；读取协调状态允许已完成初始化水位小于当前配置水位。abort 不生成配置 stage，不删除超管；同取消 operation 始终返回原始取消结果。

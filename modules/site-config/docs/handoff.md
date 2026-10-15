@@ -1,5 +1,24 @@
 # 站点配置与初始化会话交接
 
+## 本轮 R1-02 初始化完成与 settings 权威提交（2026-10-15）
+
+- 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。本轮源码暂未提交，等待统一 VPS 检查；旧分支保留。
+- 实际链路：InitializeSite → PersistInitializationDecision → ResumeInitialization → WriteConfigRevision → CommitConfigHead → PublishConfigEvent；AbortInitialization 在 commit 前持久取消与原始结果。准备材料哈希和原始业务请求哈希明确分开，重试不重造 preparedAt。
+- 权威文件使用 ConfigDocument v1（schemaVersion/config），不可变对象临时写/fsync/Link/fsyncparent；PREPARED/COMMITTED 独立原子记录，head 临时写/fsync/Rename/fsyncparent。COMMITTED 落盘后只能补完，不能以 SQLite 准备材料冒充权威文件。
+- CAS：不可反悔文件决定前取得 SQLite 写锁，检查目标水位没有另一 COMMITTED；SQL 同事务写索引/配置水位/原始回执/平台 outbox 与 config_committed，另事务才置 completed/initialized=true。允许重启恢复中间水位，后续配置修订不改首次初始化结果。
+- 启动先 RecoverConfigJournal 核明确提交决定及权威文件，补完 SQL 和 head；孤儿 PREPARED 隔离，有初始化 commit 的准备记录留给 Resume。非维护状态下继续未完成初始化。未知 schema、坏 hash、缺文件或原始身份回执失败关闭。
+- 集成裁决：公共 ServiceConfig 新增可选 publicBaseURL/allowLocalHTTP，边界校验 https 或显式 loopback http；本域 ConfigureInitialization 接收受信结果，缺失仅在初始化使用时失败。PublishConfigEvent 加本域 WriteTransaction 参数复用平台 outbox。
+- 新增实际文件：internal/config_files.go、operation_repository.go、outbox_repository.go（均已有未来结构），以及 internal/migrations/active/0003_config_commit.sql（新增迁移合同）。上述 4 个新增实际文件均需集成会话登记根 framework。新增合同入口 RecoverConfigJournal、参考 ConfigureInitialization，Resume 依赖改为真实配置链路。
+- 检查：已请求集成会话串行 VPS gofmt/docs/gen/build/check，源码状态 in_progress；本轮不在本机编译、格式、lint、类型检查、测试或生成校验。未新增测试/样例/fixture/临时验证程序，未运行真实接口/模型/服务/联调/镜像/部署/push。
+- 剩余装配：全量 x-handler、RelayOutbox、恢复换目录回执、快照与屏障仍未完成，不能把本组源文件或结构检查当作完整站点行为验收。
+
+### 下一步（一项）
+
+在集成会话统一 VPS 门槛和逐函数复核通过后，接入本域初始化/配置读取的 HTTP x-handler 与平台入口校验，先读 OpenAPI、types、初始化和配置恢复合同；同时使用既有可信 publicBaseURL 注入。完成条件是已实现 handler 调用本组用例并正确返回已持久结果，不包含真实接口调用、行为验收或部署。
+
+---
+
+
 ## 本轮统一复核结果（2026-10-15）
 
 - 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。
