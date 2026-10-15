@@ -15,3 +15,5 @@
 - 未新增测试、样例、快照、E2E、真实接口或真实模型调用；未push。
 
 逐文件/函数事实见 [progress.json](progress.json)，交接证据见 [docs/handoff.md](docs/handoff.md)。公共资料由集成会话维护，本域只修改 `modules/content/`。
+
+- 本轮集成适配：生成器修正nullable引用后，草稿前序修订按指针空值与expectedHead比较，首次提交和后续CAS语义保持一致；本域build/vet/gofmt通过，业务验收未执行。

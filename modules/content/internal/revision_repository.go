@@ -203,13 +203,9 @@ func validateDraftCommitInput(op OperationContext, input CommitDraftJournalInput
 		journal.State != "prepared" {
 		return platform.NewError(platform.CodeIntegrityError, false, "正文提交日志与草稿不一致")
 	}
-	if input.ExpectedHead == nil && draft.PreviousRevisionId != "" {
+	if !sameIdentifierPointer(input.ExpectedHead, draft.PreviousRevisionId) ||
+		(input.ExpectedHead != nil && !platform.ValidIdentifier(*input.ExpectedHead)) {
 		return platform.NewError(platform.CodeVersionMismatch, false, "正文提交旧head不一致")
-	}
-	if input.ExpectedHead != nil {
-		if !platform.ValidIdentifier(*input.ExpectedHead) || draft.PreviousRevisionId != *input.ExpectedHead {
-			return platform.NewError(platform.CodeVersionMismatch, false, "正文提交旧head不一致")
-		}
 	}
 	if !sameIdentifierPointer(input.ExpectedHead, journal.ExpectedHead) {
 		return platform.NewError(platform.CodeIntegrityError, false, "正文提交日志旧head不一致")

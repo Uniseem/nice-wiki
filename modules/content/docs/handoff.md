@@ -1,5 +1,10 @@
 # 文档生命周期会话交接
 
+## 可空生成类型适配（2026-10-15，集成会话）
+
+- 生成器修复后 DraftRevision.previousRevisionId 正确生成指针；CommitDraftJournal 复用 sameIdentifierPointer 对比 expectedHead 与前序修订，首次正文必须两者均为空，后续必须同值。
+- 本域 readonly build/vet/gofmt 通过，最终全量检查随三个工作包集成记录；业务验收未执行。
+
 ## 集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
