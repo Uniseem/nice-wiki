@@ -9,6 +9,7 @@
 - ReadConfigObject 限当前真实已提交 settings；返回进程内 Reader，HTTP 直接消费关闭并输出绑定元数据，不发送 bodyHandle。
 - Home 组保留下一紧密组：按钮禁用/解析 URL/AI 可用性协议及 media pin 崩溃续办尚未收口；完整 HTTP、RelayOutbox、恢复回执与快照/屏障继续未完成。
 - 已写真实 HTTP 协议适配：config 读写/原始对象流、初始化状态/三用例、runtime 读/迁移/activation 与健康/就绪；统一工厂建立身份/epoch/期限/schema，并使用平台 identity 权威授权回调。缺 Home/品牌/公告/历史/快照/屏障等真实 handler 时工厂拒绝启动，完整 BuildApplication 仍 blocked。
+- VPS 合成快照（315a3ff+公共26138c1）docs/gen及14模块readonly build/vet/gofmt通过；check余4项均非本域。随后按复核补维护边界：updateSiteConfig仅旧成功只读重放可到达，新/未完成操作在任何候选IO前CheckWriteEpoch；该追加修复待VPS复跑，不沿用前轮结果冒充通过。
 - 本轮未在本机格式化、生成、编译、vet、lint、类型检查或测试；未新增测试/样例/fixture/临时验证程序，未运行服务、真实接口、模型、部署或 push。
 
 ---

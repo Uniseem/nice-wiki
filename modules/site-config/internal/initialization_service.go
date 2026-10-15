@@ -50,7 +50,7 @@ func ReadInitializationStatus(ctx context.Context, op platform.OperationContext,
 func (s *ActiveStore) ConfigureInitialization(publicBaseURL string, allowLocalHTTP bool) {
 	s.stateMu.Lock()
 	s.publicBaseURL = publicBaseURL
- s.allowLocalHTTP = allowLocalHTTP
+	s.allowLocalHTTP = allowLocalHTTP
 	s.stateMu.Unlock()
 }
 

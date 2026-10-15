@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 42 个：手写 29、生成 3、配置 6、迁移 4。函数 53 个：约束 30，参考 23。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 43 个：手写 29、生成 3、配置 6、迁移 5。函数 53 个：约束 30，参考 23。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -48,3 +48,4 @@
 | `modules/site-config/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/site-config/internal/migrations/active/0002_initialization.sql` | 迁移 | 初始化不可反悔决定、完整准备配置及SHA256、幂等回执和当前协调状态；不替代settings权威文件 | 无 |
 | `modules/site-config/internal/migrations/active/0003_config_commit.sql` | 迁移 | 只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform | 无 |
+| `modules/site-config/internal/migrations/active/0004_config_operations.sql` | 迁移 | 一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威 | 无 |

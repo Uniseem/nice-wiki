@@ -142,31 +142,35 @@ func CommitConfigHead(ctx context.Context, op platform.OperationContext, input C
 	if _, err := tx.ExecContext(ctx, `UPDATE site_config_state SET singleton=singleton WHERE singleton=1`); err != nil {
 		return CommitConfigHeadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "取得配置提交写锁失败")
 	}
-    // 相同operation的并发调用可能晚于另一个新修订到达；先返回已经
-    // 完成的原结果，不用旧revision重写当前head。
-    var receiptState,receiptActor,receiptSite,receiptEpoch,receiptHash string
-    var receiptRevision sql.NullInt64
-    if err := tx.QueryRowContext(ctx,`SELECT state,actor_id,site_id,data_epoch,request_hash,result_revision FROM config_operations WHERE operation_id=?`,op.OperationID).Scan(&receiptState,&receiptActor,&receiptSite,&receiptEpoch,&receiptHash,&receiptRevision); err != nil {
-        return CommitConfigHeadResult{},platform.NewError(platform.CodeIntegrityError,false,"配置提交缺少原始操作回执")
-    }
-    if receiptActor != record.ActorID || receiptSite != record.SiteID || receiptEpoch != record.DataEpoch || receiptHash != record.RequestHash {
-        return CommitConfigHeadResult{},platform.NewError(platform.CodeConflict,false,"配置操作主体或原始请求不一致")
-    }
-    if receiptState == "committed" {
-        var activeEpoch string
-        if err := tx.QueryRowContext(ctx,`SELECT data_epoch FROM site_config_state WHERE singleton=1`).Scan(&activeEpoch); err != nil || activeEpoch != op.DataEpoch {
-            return CommitConfigHeadResult{},platform.NewError(platform.CodeVersionMismatch,false,"配置操作不属于活动dataEpoch")
-        }
-        decided,err := readConfigRecord(configRecordPath(store.activeRoot,record.RevisionID,"COMMITTED"))
-        if err != nil { return CommitConfigHeadResult{},err }
-        left,_ := canonicalConfigJSON(decided)
-        right,_ := canonicalConfigJSON(record)
-        if !receiptRevision.Valid || receiptRevision.Int64 != int64(config.Revision) || !bytes.Equal(left,right) {
-            return CommitConfigHeadResult{},platform.NewError(platform.CodeIntegrityError,false,"配置原始成功回执与COMMITTED决定不一致")
-        }
-        if err := verifyConfigReceipt(ctx,tx,record); err != nil { return CommitConfigHeadResult{},err }
-        return CommitConfigHeadResult{Config:config},nil
-    }
+	// 相同operation的并发调用可能晚于另一个新修订到达；先返回已经
+	// 完成的原结果，不用旧revision重写当前head。
+	var receiptState, receiptActor, receiptSite, receiptEpoch, receiptHash string
+	var receiptRevision sql.NullInt64
+	if err := tx.QueryRowContext(ctx, `SELECT state,actor_id,site_id,data_epoch,request_hash,result_revision FROM config_operations WHERE operation_id=?`, op.OperationID).Scan(&receiptState, &receiptActor, &receiptSite, &receiptEpoch, &receiptHash, &receiptRevision); err != nil {
+		return CommitConfigHeadResult{}, platform.NewError(platform.CodeIntegrityError, false, "配置提交缺少原始操作回执")
+	}
+	if receiptActor != record.ActorID || receiptSite != record.SiteID || receiptEpoch != record.DataEpoch || receiptHash != record.RequestHash {
+		return CommitConfigHeadResult{}, platform.NewError(platform.CodeConflict, false, "配置操作主体或原始请求不一致")
+	}
+	if receiptState == "committed" {
+		var activeEpoch string
+		if err := tx.QueryRowContext(ctx, `SELECT data_epoch FROM site_config_state WHERE singleton=1`).Scan(&activeEpoch); err != nil || activeEpoch != op.DataEpoch {
+			return CommitConfigHeadResult{}, platform.NewError(platform.CodeVersionMismatch, false, "配置操作不属于活动dataEpoch")
+		}
+		decided, err := readConfigRecord(configRecordPath(store.activeRoot, record.RevisionID, "COMMITTED"))
+		if err != nil {
+			return CommitConfigHeadResult{}, err
+		}
+		left, _ := canonicalConfigJSON(decided)
+		right, _ := canonicalConfigJSON(record)
+		if !receiptRevision.Valid || receiptRevision.Int64 != int64(config.Revision) || !bytes.Equal(left, right) {
+			return CommitConfigHeadResult{}, platform.NewError(platform.CodeIntegrityError, false, "配置原始成功回执与COMMITTED决定不一致")
+		}
+		if err := verifyConfigReceipt(ctx, tx, record); err != nil {
+			return CommitConfigHeadResult{}, err
+		}
+		return CommitConfigHeadResult{Config: config}, nil
+	}
 	paths, err := configJournalPaths(store.activeRoot, "COMMITTED")
 	if err != nil {
 		return CommitConfigHeadResult{}, platform.NewError(platform.CodeIntegrityError, false, "配置决定目录不可读")

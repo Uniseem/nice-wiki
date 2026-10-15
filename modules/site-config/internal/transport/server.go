@@ -6,15 +6,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
- "io"
- "strconv"
+	"io"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
- "nice-wiki/libs/platform/apivalidate"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
 	siteconfig "nice-wiki/modules/site-config/internal"
@@ -52,25 +52,29 @@ type Application struct {
 // NewApplication 只向统一入口提供真实已实现的handler；缺登记操作时
 // 平台工厂返回错误，不能把部分业务接线伪装成完整服务就绪。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, openedEpoch platform.Identifier,
-    authorize func(context.Context,platform.OperationContext,string,string)error) (*Application,error) {
-    application := &Application{config:config,anchors:anchors,runtime:runtimeAuthority,active:activeStore,openedEpoch:openedEpoch}
-    spec,err := gen.GetSwagger()
-    if err != nil { return nil,platform.NewError(platform.CodeIntegrityError,false,"本域HTTP规格不可读") }
-    handler,err := apivalidate.NewServiceHandler(spec,platform.ServiceBoundaryConfig{
-        Self:moduleName,Anchors:anchors,Runtime:runtimeAuthority.ReadRuntimeState,OpenedDataEpoch:openedEpoch,
-        AllowedCallers:serviceCallers(),
-        ServiceActorCallers:map[string][]string{
-            "readSiteConfig":{"portal","public-site","content","media","localization","identity"},
-            "readConfigObject":{"public-site","data-protection"},
-            "resumeInitialization":{"site-config"},
-        },
-        MaintenanceOperations:map[string]bool{"readRuntimeState":true,"transitionRuntimeState":true,"registerActivation":true,"readInitializationStatus":true,
-            "acquireBarrier":true,"releaseBarrier":true,"exportSnapshot":true,"stageSnapshot":true,"discardSnapshot":true},
-        Authorize:authorize,
-    },application.serviceHandlers())
-    if err != nil { return nil,err }
-    application.httpServer = &http.Server{Addr:config.Listen,Handler:handler,ReadHeaderTimeout:5*time.Second,MaxHeaderBytes:64<<10}
-    return application,nil
+	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, openedEpoch: openedEpoch}
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP规格不可读")
+	}
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: openedEpoch,
+		AllowedCallers: serviceCallers(),
+		ServiceActorCallers: map[string][]string{
+			"readSiteConfig":       {"portal", "public-site", "content", "media", "localization", "identity"},
+			"readConfigObject":     {"public-site", "data-protection"},
+			"resumeInitialization": {"site-config"},
+		},
+		MaintenanceOperations: map[string]bool{"readRuntimeState": true, "transitionRuntimeState": true, "registerActivation": true, "readInitializationStatus": true,
+			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true},
+		Authorize: authorize,
+	}, application.serviceHandlers())
+	if err != nil {
+		return nil, err
+	}
+	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	return application, nil
 }
 
 // Serve 与 Shutdown 实现 platform.Application，供进程模板调用。
@@ -78,83 +82,108 @@ func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a)
 func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
 
 func (a *Application) serviceHandlers() map[string]http.Handler {
-    return map[string]http.Handler{
-        "health":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-            status,err := Health(r.Context(),a)
-            if err != nil { writeProblem(w,err);return }
-            writeJSON(w,http.StatusOK,status)
-        }),
-        "ready":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-            status,err := Ready(r.Context(),a)
-            if err != nil { writeProblem(w,err);return }
-            writeJSON(w,http.StatusOK,status)
-        }),
-        "readSiteConfig":serveJSON(siteconfig.ReadSiteConfig),
-        "updateSiteConfig":serveJSON(siteconfig.UpdateSiteConfig),
-        "readRuntimeState":serveJSON(siteconfig.ReadRuntimeState),
-        "transitionRuntimeState":serveJSON(siteconfig.TransitionRuntimeState),
-        "registerActivation":serveJSON(siteconfig.RegisterActivation),
-        "readInitializationStatus":serveJSON(siteconfig.ReadInitializationStatus),
-        "initializeSite":serveJSON(siteconfig.InitializeSite),
-        "resumeInitialization":serveJSON(siteconfig.ResumeInitialization),
-        "abortInitialization":serveJSON(siteconfig.AbortInitialization),
-        "readConfigObject":http.HandlerFunc(serveConfigObject),
-    }
+	return map[string]http.Handler{
+		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			status, err := Health(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, status)
+		}),
+		"ready": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			status, err := Ready(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, status)
+		}),
+		"readSiteConfig":           serveJSON(siteconfig.ReadSiteConfig),
+		"updateSiteConfig":         serveJSON(siteconfig.UpdateSiteConfig),
+		"readRuntimeState":         serveJSON(siteconfig.ReadRuntimeState),
+		"transitionRuntimeState":   serveJSON(siteconfig.TransitionRuntimeState),
+		"registerActivation":       serveJSON(siteconfig.RegisterActivation),
+		"readInitializationStatus": serveJSON(siteconfig.ReadInitializationStatus),
+		"initializeSite":           serveJSON(siteconfig.InitializeSite),
+		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
+		"abortInitialization":      serveJSON(siteconfig.AbortInitialization),
+		"readConfigObject":         http.HandlerFunc(serveConfigObject),
+	}
 }
 
-func serveJSON[Input,Result any](handler func(context.Context,platform.OperationContext,Input)(Result,error)) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-        // 身份、期限与结构由NewServiceHandler一次建立；此处仅协议转换。
-        op,_ := platform.OperationContextFrom(r.Context())
-        var input Input
-        if r.Method!=http.MethodGet && r.Method!=http.MethodHead {
-            if err := json.NewDecoder(r.Body).Decode(&input); err != nil { writeRequestProblem(w,r,platform.NewError(platform.CodeValidation,false,"请求正文无法转换"));return }
-        }
-        result,err := handler(r.Context(),op,input)
-        if err != nil { writeRequestProblem(w,r,err);return }
-        writeJSON(w,http.StatusOK,result)
-    })
+func serveJSON[Input, Result any](handler func(context.Context, platform.OperationContext, Input) (Result, error)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 身份、期限与结构由NewServiceHandler一次建立；此处仅协议转换。
+		op, _ := platform.OperationContextFrom(r.Context())
+		var input Input
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "请求正文无法转换"))
+				return
+			}
+		}
+		result, err := handler(r.Context(), op, input)
+		if err != nil {
+			writeRequestProblem(w, r, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
 }
 
-func serveConfigObject(w http.ResponseWriter,r *http.Request) {
-    op,_ := platform.OperationContextFrom(r.Context())
-    version,err := strconv.Atoi(r.URL.Query().Get("version"))
-    if err != nil { writeRequestProblem(w,r,platform.NewError(platform.CodeValidation,false,"对象版本无法转换"));return }
-    result,err := siteconfig.ReadConfigObject(r.Context(),op,siteconfig.ReadConfigObjectInput{ObjectId:r.PathValue("objectId"),Version:version,ExpectedHash:r.URL.Query().Get("expectedHash")})
-    if err != nil { writeRequestProblem(w,r,err);return }
-    defer result.Reader.Close()
-    if deadline,ok := r.Context().Deadline();ok {
-        if err := http.NewResponseController(w).SetWriteDeadline(deadline);err!=nil { writeRequestProblem(w,r,platform.NewError(platform.CodeDependencyUnavailable,false,"对象响应不支持写截止"));return }
-    }
-    w.Header().Set("ETag",strconv.Quote(result.Object.Sha256))
-    w.Header().Set("Content-Type",result.Object.MediaType)
-    w.Header().Set("Content-Length",strconv.Itoa(result.Object.ByteSize))
-    w.Header().Set("X-Object-Id",result.Object.ObjectId)
-    w.Header().Set("X-Object-Version",strconv.Itoa(result.Object.Version))
-    w.Header().Set("X-Content-Type-Options","nosniff")
-    w.WriteHeader(http.StatusOK)
-    // 响应开始后不再附JSON错误；Content-Length令客户端识别截断。
-    _,_ = io.CopyN(w,result.Reader,int64(result.Object.ByteSize))
+func serveConfigObject(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	version, err := strconv.Atoi(r.URL.Query().Get("version"))
+	if err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "对象版本无法转换"))
+		return
+	}
+	result, err := siteconfig.ReadConfigObject(r.Context(), op, siteconfig.ReadConfigObjectInput{ObjectId: r.PathValue("objectId"), Version: version, ExpectedHash: r.URL.Query().Get("expectedHash")})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	defer result.Reader.Close()
+	if deadline, ok := r.Context().Deadline(); ok {
+		if err := http.NewResponseController(w).SetWriteDeadline(deadline); err != nil {
+			writeRequestProblem(w, r, platform.NewError(platform.CodeDependencyUnavailable, false, "对象响应不支持写截止"))
+			return
+		}
+	}
+	w.Header().Set("ETag", strconv.Quote(result.Object.Sha256))
+	w.Header().Set("Content-Type", result.Object.MediaType)
+	w.Header().Set("Content-Length", strconv.Itoa(result.Object.ByteSize))
+	w.Header().Set("X-Object-Id", result.Object.ObjectId)
+	w.Header().Set("X-Object-Version", strconv.Itoa(result.Object.Version))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	// 响应开始后不再附JSON错误；Content-Length令客户端识别截断。
+	_, _ = io.CopyN(w, result.Reader, int64(result.Object.ByteSize))
 }
 
-func writeRequestProblem(w http.ResponseWriter,r *http.Request,err error) {
-    op,_ := platform.OperationContextFrom(r.Context())
-    _ = problem.WriteProblem(w,problem.FromError(err,op.RequestID))
+func writeRequestProblem(w http.ResponseWriter, r *http.Request, err error) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	_ = problem.WriteProblem(w, problem.FromError(err, op.RequestID))
 }
 
 func serviceCallers() map[string][]string {
-    stateful := []string{"identity","site-config","content","media","public-site","model-gateway","knowledge","qa","localization","memory","traffic-guard","jobs","analytics","data-protection"}
-    runtime := append(append([]string{},stateful...),"portal")
-    callers := map[string][]string{
-        "readRuntimeState":runtime,"transitionRuntimeState":{"data-protection"},"registerActivation":stateful,
-        "readSiteConfig":{"portal","public-site","content","media","localization","identity"},
-        "readConfigObject":{"portal","public-site","data-protection"},
-        "readInitializationStatus":{"portal","identity","site-config"},"resumeInitialization":{"portal","site-config"},
-        "readPublicHome":{"portal","public-site"},"listResourceReferences":{"media"},
-    }
-    for _,id := range []string{"initializeSite","abortInitialization","updateSiteConfig","updateHome","updateBranding","updateFooter","updateBanner","readConfigHistory","restoreConfigRevision"} { callers[id]=[]string{"portal"} }
-    for _,id := range []string{"acquireBarrier","releaseBarrier","exportSnapshot","stageSnapshot","discardSnapshot"} { callers[id]=[]string{"data-protection"} }
-    return callers
+	stateful := []string{"identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
+	runtime := append(append([]string{}, stateful...), "portal")
+	callers := map[string][]string{
+		"readRuntimeState": runtime, "transitionRuntimeState": {"data-protection"}, "registerActivation": stateful,
+		"readSiteConfig":           {"portal", "public-site", "content", "media", "localization", "identity"},
+		"readConfigObject":         {"portal", "public-site", "data-protection"},
+		"readInitializationStatus": {"portal", "identity", "site-config"}, "resumeInitialization": {"portal", "site-config"},
+		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"media"},
+	}
+	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {
+		callers[id] = []string{"portal"}
+	}
+	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot"} {
+		callers[id] = []string{"data-protection"}
+	}
+	return callers
 }
 
 // Serve 运行独立HTTP服务；ctx 取消触发的停止由进程模板调用 Shutdown

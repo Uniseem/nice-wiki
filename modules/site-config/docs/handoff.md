@@ -11,6 +11,7 @@
 - 新增实际文件 4 个需根 framework 登记：internal/config_service.go、internal/config_validator.go、internal/object_reader.go、internal/migrations/active/0004_config_operations.sql。未新增测试、样例、fixture 或临时业务验证程序；所有格式/生成/编译/vet/检查只交根统一 VPS 执行。
 - HTTP 适配已按冻结工厂签名接真实已实现的 config/init/runtime 操作；固定 caller、纯 service actor 子白名单和维护控制白名单由本域装配，统一身份/操作上下文/schema/identity 授权机制只用平台。原始对象流设置写截止、绑定元数据、消费关闭，响应开始后不再写 JSON 错误。
 - 全部 OpenAPI 必须绑定真实 handler；当前 Home/品牌/公告/历史/快照/屏障等尚无实现，NewServiceHandler 会拒绝启动，BuildApplication 继续 blocked，不能把部分 HTTP 映射当完整模块就绪。
+- 首轮合成VPS快照315a3ff+公共26138c1的docs/gen和14模块readonly build/vet/gofmt通过，check余4项均非本域。回传生成物/gofmt/modsum后，按交叉复核追加updateSiteConfig维护边界：只读旧成功路径列白名单，其余新/未完成操作在任何候选SQL/文件IO前CheckWriteEpoch，Commit内部CAS门禁不省略；该追加修复尚待VPS复跑。
 - Home 组明确留待下一紧密组，不写假完成函数：ReadPublicHome 缺按钮 disabled/解析 URL 与 AI 可用性权威表达；UpdateHome 需持久 media pinId/确认阶段及 COMMITTED 后崩溃续办。不能删按钮冒充禁用，不能省略恢复路径。
 
 ### 下一步（一项）

@@ -33,15 +33,17 @@ func ReadSiteConfig(ctx context.Context, op OperationContext, input ReadSiteConf
 
 **步骤**
 
-1. 核对site.read或注册内部调用服务
-2. 读取当前已提交配置一致快照
-3. 不返回初始化capability、秘密或控制库签名key
+1. 要求同站点已登录admin具site.read/superadmin，或已登记portal/public-site/content/media/localization/identity服务主体；服务身份仅在actor.kind=service时使用内部读取分支，不能绕过委托用户权限
+2. 私有读快照要求initialized=true与dataEpoch一致；核对SQL当前索引、COMMITTED、head和权威文件hash/schema，返回完整已提交配置，准备材料不替代文件
+3. 不返回初始化capability、秘密或控制库签名key；读取与本域文件提交互斥，不能在COMMITTED/SQL未补齐时返回陈旧配置
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：权威文件/COMMITTED/SQL或原始材料不一致（不可重试）
+- `VERSION_MISMATCH`：活动epoch或expectedRevision已变化（不可重试）
 
 - 副作用：无
 - 授权：site.read 或 service:portal/public-site/content/media/localization/identity
@@ -76,9 +78,11 @@ func UpdateSiteConfig(ctx context.Context, op OperationContext, input UpdateSite
 
 **步骤**
 
-1. CheckWriteEpoch与site.manage，baseLanguage/initialized/epoch禁止patch
-2. ValidateSiteConfig后WriteConfigRevision
-3. CommitConfigHead CAS提交权威文件；发ConfigChanged翻译与data git镜像
+1. 要求同站点已登录admin具site.manage/superadmin；只更新HTTP明确列出的公开地址/SEO/资源上限/安全设置，baseLanguage/siteId/initialized/home/品牌/footer/banner不接受patch
+2. 以kind=settings及原始严格输入（含expectedRevision）的规范JSON计算稳定业务hash，先查actor/site/op回执；已提交重试从原revision权威文件返回原配置，不受新的URL/本地HTTP能力策略影响，不重写head/CAS/outbox
+3. 只有新操作/未完成操作应用当前受信allowLocalHTTP进行NormalizeBaseURL和纯ValidateSiteConfig；读取旧候选时还核对候选字段与本次规范输入一致。候选材料SHA256独立保存规范后的完整配置，不代替原始业务摘要
+4. 首次操作在epoch/initialized/site/expectedRevision事务核对后持久完整候选配置规范JSON/hash、稳定revisionId和原始回执；该JSON仅未提交恢复材料，保留最初updatedAt，同operation重试不重算。跨进程以SQLite写锁和现有文件COMMITTED CAS占有目标水位
+5. 纯ValidateSiteConfig通过后复用WriteConfigRevision/CommitConfigHead；COMMITTED前可失败，落盘后只补完既有对象/head/SQL回执/outbox；返回成功配置必须来自已提交权威对象。草稿和设置保存不触发AI
 
 **错误**
 
@@ -87,6 +91,9 @@ func UpdateSiteConfig(ctx context.Context, op OperationContext, input UpdateSite
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：权威文件/COMMITTED/SQL或原始材料不一致（不可重试）
+- `NOT_FOUND`：站点未完成初始化或对象未提交（不可重试）
+- `LOCKED`：维护或恢复屏障拒绝新写入（不可重试）
 
 - 副作用：私有配置事务、operation receipt 与 outbox
 - 授权：site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch
@@ -119,20 +126,19 @@ func ValidateSiteConfig(input ValidateSiteConfigInput) (ValidateSiteConfigResult
 
 **步骤**
 
-1. 核SiteConfig完整schema；不含email/MFA/invitation等新增产品policy
-2. baseLanguage只初始化选择并且SiteConfig对象维持不可变source含义
-3. 品牌颜色/资源/hero/footer/banner完整验证，模板只title/site与安全URL
+1. 结构/required/范围由HTTP严格生成schema或持久IO边界校验，本函数不重复schema解析；只校验配置字段间语义、规范语言、合法模板和安全URL
+2. titleTemplate只允许title/site两个占位符；基准语言的不可变性由只允许初始化的更新输入和聚合写入保证，不引入email/MFA/invitation产品policy
+3. 校验hero/footer ID唯一、安全外链、公告同站点与时间窗等纯语义；纯函数不访问content/media，不替未改变引用增加远端查询。改变引用由UpdateHome/品牌等用例校验当前发布/ready并持久pin恢复
 
 **错误**
 
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
-- `UNSUPPORTED_CAPABILITY`：当前依赖不提供声明的必需能力（不可重试）
 
 - 副作用：无
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：`site-config.NormalizeBaseURL`、`site-config.ValidateLanguageTag`、`site-config.ValidateHomeLinks`
+- 依赖：`site-config.NormalizeBaseURL`、`site-config.ValidateLanguageTag`
 
 ## site-config.NormalizeBaseURL
 
@@ -159,9 +165,8 @@ func NormalizeBaseURL(input NormalizeBaseURLInput) (NormalizeBaseURLResult, erro
 
 **步骤**
 
-1. 解析绝对URL
-2. 禁止userinfo、query、fragment、控制字符与非允许scheme
-3. host IDNA规范，去尾斜杠，保留部署允许的basePath
+1. 将raw URL与受信allowLocalHTTP传给platform.NormalizePublicURL；不手写IDNA或复制公共URL机制
+2. 统一绝对HTTPS、IDNA、IPv6/有效端口、控制字符、userinfo/query/fragment拒绝；HTTP仅受信能力明确允许且loopback；保留合法部署basePath并去尾斜杠
 
 **错误**
 
@@ -905,7 +910,7 @@ func AbortInitialization(ctx context.Context, op OperationContext, input AbortIn
 - 作用：注入公共配置边界已校验的可信部署公开地址
 
 ```go
-func (s *ActiveStore) ConfigureInitialization(publicBaseURL string)
+func (s *ActiveStore) ConfigureInitialization(publicBaseURL string, allowLocalHTTP bool)
 ```
 
 **输入**
@@ -913,6 +918,7 @@ func (s *ActiveStore) ConfigureInitialization(publicBaseURL string)
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `publicBaseURL` | `string` | 来自platform.ServiceConfig的可信地址；不从Host派生 | 共享配置入口已校验https或显式允许的loopback http；空值仅允许既有读取启动 |
+| `allowLocalHTTP` | `bool` | 公共配置边界已校验的显式loopback HTTP能力 | 只由进程配置注入；不能取自HTTP字段 |
 
 **输出**
 
@@ -920,7 +926,7 @@ func (s *ActiveStore) ConfigureInitialization(publicBaseURL string)
 
 **步骤**
 
-1. 启动时把公共配置边界已校验的publicBaseURL保存为本域只读部署能力，供InitializeSite使用；不持久秘密、不改站点配置
+1. 启动时把公共配置边界已校验的publicBaseURL保存为本域只读部署能力，供InitializeSite使用；不持久秘密、不改站点配置；同时保存allowLocalHTTP，只给纯URL校验使用
 
 **错误**
 
@@ -1386,19 +1392,21 @@ func ReadConfigObject(ctx context.Context, op OperationContext, input ReadConfig
 
 **步骤**
 
-1. 只允许注册audience和owner=site-config
-2. 从服务生成对象索引解析私有路径，校验version/hash
-3. 打开只读lease stream；客户端无法指定OS路径
+1. 仅public-site/data-protection已登记服务主体或同站点site.read/superadmin用户；owner固定site-config，输入仅objectId/version/hash，不接受磁盘路径
+2. 当前读取已真实登记的settings不可变对象：从config_revision_index与初始化/epoch/COMMITTED定位，校验version/hash/大小/schema，尚无完成提交索引的公告或快照对象NOT_FOUND，不制造通用成功
+3. 复用已有16MiB正规文件/目录链IO边界取得不可变字节快照，返回本域x-internal io.ReadCloser；HTTP设置绑定ObjectRef的ETag、Content-Type/Length/版本头后消费并关闭，不暴露bodyHandle或建立全局句柄表
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `VERSION_MISMATCH`：活动epoch或expectedRevision已变化（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域权威存储不可用（可重试）
 
-- 副作用：短期reader lease
+- 副作用：本进程有界不可变读取快照；Reader由HTTP关闭
 - 授权：service:public-site/data-protection或site.read
-- 并发：与对象删除fence协调
+- 并发：仅已提交历史对象；有界快照不受后续head变化或文件删除影响，不向客户端暴露文件句柄
 - 幂等：只读
 - 依赖：无
 
@@ -1829,10 +1837,11 @@ func CommitConfigHead(ctx context.Context, op OperationContext, input CommitConf
 
 **步骤**
 
-1. 先取得active SQLite写锁再做跨进程CAS；已持久COMMITTED决定先于SQL占有目标修订，禁止另一revisionId抢占同水位；核对PREPARED、权威对象hash/schema、原始请求actor/site/epoch/hash回执及expectedRevision；CheckWriteEpoch拒绝新维护期提交
-2. 先持久不可变COMMITTED文件决定（含CAS、原始请求及变更组），再原子更新settings/site/head.json；随后同一SQLite FULL事务写索引/水位/回执/platform outbox，初始化阶段变为config_committed；文件决定已落盘后任何中断只允许补完，不能退回或改摘要
-3. SQL事务完成不直接等同初始化完成；Resume另事务写completed与initialized=true。读取端必须核对head、COMMITTED和已完成权威水位；启动RecoverConfigJournal补完文件决定，不声称SQL原子覆盖文件系统
-4. head与journal读写统一使用已核对目录能力，拒绝symlink/特殊文件；同修订EEXIST复用必须重新有界读取正规文件核字节，不直接ReadFile跟随链接
+1. 持SQLite写锁后先核同actor/site/epoch/requestHash的已完成回执：要求精确COMMITTED与原权威对象一致，直接返回原配置，即使当前水位已更高；不得用旧修订重写最新head。仅新提交继续CAS/维护检查
+2. 先取得active SQLite写锁再做跨进程CAS；已持久COMMITTED决定先于SQL占有目标修订，禁止另一revisionId抢占同水位；核对PREPARED、权威对象hash/schema、原始请求actor/site/epoch/hash回执及expectedRevision；CheckWriteEpoch拒绝新维护期提交
+3. 先持久不可变COMMITTED文件决定（含CAS、原始请求及变更组），再原子更新settings/site/head.json；随后同一SQLite FULL事务写索引/水位/回执/platform outbox，初始化阶段变为config_committed；文件决定已落盘后任何中断只允许补完，不能退回或改摘要
+4. SQL事务完成不直接等同初始化完成；Resume另事务写completed与initialized=true。读取端必须核对head、COMMITTED和已完成权威水位；启动RecoverConfigJournal补完文件决定，不声称SQL原子覆盖文件系统
+5. head与journal读写统一使用已核对目录能力，拒绝symlink/特殊文件；同修订EEXIST复用必须重新有界读取正规文件核字节，不直接ReadFile跟随链接
 
 **错误**
 
@@ -2090,6 +2099,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功
 
 **错误**
 
@@ -2101,8 +2111,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`
-- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
+- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked
 
 ## site-config.Serve
 

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "517dce5b4b0e39623a7170168fd11459b6a02a3af157af49abbe343d3aafc34d",
+  "contractSha256": "f39fac0b89b924d976d9df140055221d9480fdde574597615b14618205b45bb5",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-02（一般设置权威读写与对象读取）",
   "branch": "codex/site-config-settings-r1",
@@ -16,7 +16,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -26,7 +26,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -76,7 +76,7 @@
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -136,7 +136,7 @@
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -186,7 +186,7 @@
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -195,8 +195,8 @@
       "state": "in_progress",
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -206,7 +206,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -266,7 +266,7 @@
       "implementationCommit": "c2d734bcd2fc26f3d25a2be9b4cd1f9b360fca9d",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮增加已完成配置原始回执优先返回，待统一VPS复跑"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -306,7 +306,7 @@
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮修改/新增源码待统一VPS格式/生成/编译；本机不运行"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -316,7 +316,7 @@
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮接已实现HTTP适配和平台统一入口；缺其余真实handler时完整装配仍失败，待VPS"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -436,7 +436,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮源码与迁移等待集成会话统一隔离VPS检查"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     }
@@ -449,7 +449,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -460,7 +460,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -471,7 +471,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -482,7 +482,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -779,7 +779,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -889,7 +889,7 @@
       "implementationCommit": "c2d734bcd2fc26f3d25a2be9b4cd1f9b360fca9d",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮补并发重试返回原权威配置，待统一VPS复跑"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -1010,7 +1010,7 @@
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮代码待统一VPS门槛，不代表行为验收"
+        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
       },
       "blocker": null
     },

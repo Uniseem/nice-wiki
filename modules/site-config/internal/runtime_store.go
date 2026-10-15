@@ -73,10 +73,10 @@ type ActiveStore struct {
 	db               *sql.DB
 	activeRoot       string
 	configMu         sync.Mutex
- settingsMu sync.Mutex
+	settingsMu       sync.Mutex
 	initializationMu sync.Mutex
 	publicBaseURL    string
- allowLocalHTTP bool
+	allowLocalHTTP   bool
 	configRecovered  bool
 
 	stateMu          sync.RWMutex
