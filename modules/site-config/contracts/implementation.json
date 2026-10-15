@@ -4090,7 +4090,8 @@
             "site-config.RecoverAnnouncementJournal",
             "site-config.RelayOutbox",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

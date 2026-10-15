@@ -38,7 +38,7 @@
 | R1-15 | localization | R1-12、R1-13 | 启用估价、增量翻译、人工保护、术语、界面字符串、语言建议 |
 | R1-16 | qa | R1-14、R1-15 | 准入后问答、缓存、引用、压缩、调试台、问答记录 |
 
-实现尺度按ADR0006（2026-10-15用户确认）：边界一次校验、内部信任输入、不写防御性冗余、默认不写测试。首个HTTP绑定工作包的前置项：由集成会话在libs/platform登记并实现基于kin-openapi内嵌规格的统一请求校验中间件（ADR0005），各域transport装配，不在函数内逐个补schema校验。
+实现尺度按ADR0006（2026-10-15用户确认）：边界一次校验、内部信任输入、不写防御性冗余、默认不写测试。libs/platform已提供统一请求校验中间件`apivalidate.NewRequestValidator`（kin-openapi，基于生成代码内嵌规格）与运行状态客户端`lifecycle.NewSiteConfigClient`；各域HTTP绑定工作包在transport装配校验中间件，不在函数内逐个补schema校验。Go代码记implemented前须`make build`通过，合并前集成会话在本机或VPS编译并逐个审查逻辑。
 
 每个包：先读根与模块规格并核对 Git 事实；只做本包所有权内文件；新增或修改测试、真实接口与模型调用、部署均按 AGENTS 另行确认；交付提交同步合同、台账与交接。
 

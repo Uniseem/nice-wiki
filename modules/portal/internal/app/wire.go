@@ -75,38 +75,7 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 	if err != nil {
 		return nil, err
 	}
-	return &runtimeAuthority{client: gen.NewSiteConfigClient(base, ModuleSlug, key)}, nil
-}
-
-type runtimeAuthority struct {
-	client *gen.SiteConfigClient
-}
-
-func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
-	raw, err := r.client.ReadRuntimeState(ctx)
-	if err != nil {
-		return platform.RuntimeView{}, err
-	}
-	var result struct {
-		State struct {
-			DataEpoch       string  `json:"dataEpoch"`
-			TargetDataEpoch *string `json:"targetDataEpoch"`
-			Phase           string  `json:"phase"`
-			Maintenance     bool    `json:"maintenance"`
-			RestoreID       *string `json:"restoreId"`
-		} `json:"state"`
-	}
-	if err := json.Unmarshal(raw, &result); err != nil || result.State.DataEpoch == "" || result.State.Phase == "" {
-		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
-	}
-	view := platform.RuntimeView{DataEpoch: result.State.DataEpoch, Phase: result.State.Phase, Maintenance: result.State.Maintenance}
-	if result.State.TargetDataEpoch != nil {
-		view.TargetDataEpoch = *result.State.TargetDataEpoch
-	}
-	if result.State.RestoreID != nil {
-		view.RestoreID = *result.State.RestoreID
-	}
-	return view, nil
+	return lifecycle.NewSiteConfigClient(config, key)
 }
 
 type catalogRoute struct {

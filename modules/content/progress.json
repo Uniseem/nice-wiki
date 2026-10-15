@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "fd5eb7fb13fd92655d9904f6a13d984435386fc9e17658315e9e438ce1e35d79",
+  "contractSha256": "029ab3106bb74f4ec57b8badce9dd24e146b49dce4b7badc804e98623e88a8e9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-05（正文提交日志恢复）",
   "branch": "codex/content-r1-05-recovery",

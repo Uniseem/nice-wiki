@@ -12,7 +12,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
-	"nice-wiki/modules/localization/internal/gen"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"nice-wiki/modules/localization/internal/transport"
 )
@@ -101,30 +100,7 @@ func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (p
 	if baseURL == "" {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "缺少site-config依赖地址")
 	}
-	return &runtimeAuthority{
-		client: gen.NewSiteConfigClient(baseURL, ModuleSlug, key),
-	}, nil
-}
-
-// runtimeAuthority 把生成客户端的原始JSON响应适配为 platform.RuntimeView。
-type runtimeAuthority struct {
-	client *gen.SiteConfigClient
-}
-
-func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
-	raw, err := r.client.ReadRuntimeState(ctx)
-	if err != nil {
-		return platform.RuntimeView{}, err
-	}
-	// site-config readRuntimeState 返回 {"state": RuntimeState}；RuntimeState 的
-	// dataEpoch/phase/restoreId/targetDataEpoch/maintenance 字段与 RuntimeView 同名。
-	var response struct {
-		State platform.RuntimeView `json:"state"`
-	}
-	if err := json.Unmarshal(raw, &response); err != nil || response.State.DataEpoch == "" || response.State.Phase == "" {
-		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
-	}
-	return response.State, nil
+	return lifecycle.NewSiteConfigClient(config, key)
 }
 
 // ensureDataLayout 建立 active/control/restore 三区；control 区不随业务

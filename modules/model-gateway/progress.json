@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "e49f6b90ea616ca16abe63f8dc8070a5550446df486283e0078aea6277dede70",
+  "contractSha256": "b744a18f57528aeb3d384cc8719fe305c608fa9ef5c9f38de6465b89d5e4f88f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-12（模型网关目录与私有存储最小切片）",
   "branch": "main",

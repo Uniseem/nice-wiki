@@ -4355,7 +4355,9 @@
             "media.RunWorker",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "media.All"
+            "media.All",
+            "platform.NewSiteConfigClient",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

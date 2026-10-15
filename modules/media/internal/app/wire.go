@@ -51,11 +51,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	authority, ok := runtimeClient.(*runtimeAuthority)
-	if !ok {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "site-config客户端类型不受支持")
-	}
-	if err := mediaDomain.InstallSiteConfigReader(authority.client); err != nil {
+	siteConfig := gen.NewSiteConfigClient(strings.TrimSpace(config.Dependencies["site-config"]), ModuleSlug, key)
+	if err := mediaDomain.InstallSiteConfigReader(siteConfig); err != nil {
 		return nil, err
 	}
 	view, err := lifecycle.ReadRuntime(ctx, runtimeClient)
@@ -110,30 +107,7 @@ func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (p
 	if baseURL == "" {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "缺少site-config依赖地址")
 	}
-	return &runtimeAuthority{
-		client: gen.NewSiteConfigClient(baseURL, ModuleSlug, key),
-	}, nil
-}
-
-// runtimeAuthority 把生成客户端的安全JSON响应适配为平台 RuntimeView。
-type runtimeAuthority struct {
-	client *gen.SiteConfigClient
-}
-
-func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
-	raw, err := r.client.ReadRuntimeState(ctx)
-	if err != nil {
-		return platform.RuntimeView{}, err
-	}
-	// site-config readRuntimeState 返回 {"state": RuntimeState}；RuntimeState 的
-	// dataEpoch/phase/restoreId/targetDataEpoch/maintenance 字段与 RuntimeView 同名。
-	var response struct {
-		State platform.RuntimeView `json:"state"`
-	}
-	if err := json.Unmarshal(raw, &response); err != nil || response.State.DataEpoch == "" || response.State.Phase == "" {
-		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
-	}
-	return response.State, nil
+	return lifecycle.NewSiteConfigClient(config, key)
 }
 
 func validateDependencyEndpoints(config platform.ServiceConfig) error {

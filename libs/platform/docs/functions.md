@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 17 个函数：约束 17 个，参考 0 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 19 个函数：约束 19 个，参考 0 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -582,6 +582,86 @@ func WatchRuntime(ctx context.Context, client SiteConfigClient, dataRoot string)
 - 并发：每进程一个
 - 幂等：只读
 - 依赖：`platform.ReadRuntime`
+
+## platform.NewSiteConfigClient
+
+- 级别：约束
+- 文件：`libs/platform/lifecycle/runtime.go`
+- 作用：构造各域共用的site-config运行状态客户端，供ReadRuntime/WatchRuntime使用
+
+```go
+func NewSiteConfigClient(cfg ServiceConfig, key SigningKey) (SiteConfigClient, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `cfg` | `ServiceConfig` | 本服务配置 | dependencies含site-config的http(s)地址；module为本服务身份 |
+| `key` | `SigningKey` | 本服务签名密钥引用 | 用于服务断言 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `SiteConfigClient` | 运行状态客户端 | 无error时有效 |
+| `error` | `error` | 失败原因 | 不含密钥 |
+
+**步骤**
+
+1. 以本服务断言调用site-config:readRuntimeState（GET /v1/runtime-state）
+2. 解开响应{"state": RuntimeState}外层，字段与RuntimeView同名；非2xx映射为公共错误码
+3. 各域NewRuntimeClient只装配参数，不自写适配
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺少site-config地址、不可达或响应不合法（可重试）
+
+- 副作用：HTTP调用site-config
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：客户端可并发使用；缓存由ReadRuntime负责
+- 幂等：只读
+- 依赖：`site-config:readRuntimeState`
+
+## platform.NewRequestValidator
+
+- 级别：约束
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：在HTTP入口按本域OpenAPI规格统一校验请求（ADR0005 kin-openapi；ADR0006边界一次校验）
+
+```go
+func NewRequestValidator(spec *openapi3.T) (func(http.Handler) http.Handler, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `spec` | `OpenAPIDocument` | 本域生成代码gen.GetSwagger()返回的内嵌规格 | 启动时构建一次 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `middleware` | `HTTPMiddleware` | 请求校验中间件 | 无error时有效 |
+| `error` | `error` | 规格无法建立校验路由 | 启动失败，不放行未校验请求 |
+
+**步骤**
+
+1. 按路径匹配规格路由（忽略servers）；未登记路径交给后续路由返回404/405
+2. 校验路径/查询/请求头参数与请求体：additionalProperties:false拒绝未知字段，长度、范围、枚举、必填按schema
+3. 失败返回VALIDATION Problem，issues只给字段位置与schema关键字，不回显取值；身份与委托由BuildOperationContext校验，这里不重复
+
+**错误**
+
+- `VALIDATION`：请求不符合接口规格（不可重试）
+- `INTEGRITY_ERROR`：内嵌规格无法建立校验路由（启动时）（不可重试）
+
+- 副作用：读取并复原请求体
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：中间件无共享可变状态，可并发
+- 幂等：纯校验
+- 依赖：无
 
 ## platform.ApplyRestoreSwap
 

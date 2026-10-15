@@ -1925,7 +1925,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## analytics.Serve

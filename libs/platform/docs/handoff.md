@@ -1,5 +1,13 @@
 # platform 交接（R1-00）
 
+## 公共机制补充（2026-10-15，集成会话，main）
+
+- `lifecycle.NewSiteConfigClient(cfg, key)`（runtime.go）：各域共用的 site-config 运行状态客户端，以本服务断言调用 GET /v1/runtime-state 并解开 `{"state": RuntimeState}` 外层；10 个模块的 `NewRuntimeClient` 已改为调用它，删除各自的 runtimeAuthority 适配。
+- `apivalidate.NewRequestValidator(spec)`（新文件 apivalidate/validator.go）：按 ADR0005 用 kin-openapi openapi3filter 基于各域 `gen.GetSwagger()` 内嵌规格在 HTTP 入口校验请求（ADR0006 边界一次校验），失败返回 VALIDATION Problem，issues 只给位置与 schema 关键字。各域 HTTP 绑定工作包在 transport 装配；目前尚无模块装配。
+- 平台库因此新增 kin-openapi v0.133.0 依赖（ADR0005 已批准），不再是“仅标准库”；gorilla/mux 等只是 kin-openapi 的测试依赖，只记 go.sum 校验和。
+- 合同：implementation.json 增 1 文件 2 函数，types.json 增内部类型 OpenAPIDocument、HTTPMiddleware；15 域 BuildApplication 依赖登记 `platform.NewRequestValidator`，使用运行状态客户端的 10 域另登记 `platform.NewSiteConfigClient`。
+- 验证：`make build`（14 个 Go 模块 -mod=readonly build/vet/gofmt）与 make check 通过；按 ADR0006 未写测试，中间件对各域规格的实际路由构建与校验行为要到首个 HTTP 绑定工作包启动服务时才验证。
+
 - 分支：codex/platform-r1-00；基线提交 d7cf792431d8fe1c4669ce05957ff288c3e182aa；实现提交 fa70c657322cfabbb575282f3436f4605f31d69d；台账交付记录紧随其后单独提交。
 - 独占范围：libs/platform/ 全部、scripts/gen_code.py、Makefile的gen目标、15域internal/gen与web|ui生成物、jobs/portal生成配置；跨域合同修订仅jobs ClaimedJob（attempt/dataEpoch）与各域clients.gen.go职责措辞（合并时同步）。
 - 未提交文件：无。

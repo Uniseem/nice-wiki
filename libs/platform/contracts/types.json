@@ -567,6 +567,16 @@
       "required": [
         "action"
       ]
+    },
+    "OpenAPIDocument": {
+      "type": "object",
+      "description": "kin-openapi *openapi3.T：本域生成代码 gen.GetSwagger() 返回的内嵌规格，仅进程内使用",
+      "x-internal": true
+    },
+    "HTTPMiddleware": {
+      "type": "object",
+      "description": "func(http.Handler) http.Handler 入口中间件，仅进程内使用",
+      "x-internal": true
     }
   }
 }

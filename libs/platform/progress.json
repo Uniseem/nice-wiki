@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "a818ba4a53dd91c41038fa0b8d2d93c650af414751e851fe2708e855f93400a8",
+  "contractSha256": "8a2d71d89f9af17be37b10182e375dcf0554c663522596b3002022ac04f716b1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-00",
   "branch": "codex/platform-r1-00",
@@ -10,16 +10,6 @@
   "deliveryCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
   "deployment": "not_started",
   "files": [
-    {
-      "path": "libs/platform/platform.go",
-      "state": "verified",
-      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
-      "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
-      },
-      "blocker": null
-    },
     {
       "path": "libs/platform/serviceauth/assertion.go",
       "state": "verified",
@@ -141,6 +131,16 @@
       "blocker": null
     },
     {
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "verified",
       "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
@@ -167,6 +167,16 @@
       "verification": {
         "state": "passed",
         "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过；nw-keys临时目录冒烟通过"
+      },
+      "blocker": null
+    },
+    {
+      "path": "libs/platform/platform.go",
+      "state": "verified",
+      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
+      "verification": {
+        "state": "passed",
+        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
       },
       "blocker": null
     },
@@ -343,6 +353,28 @@
       "verification": {
         "state": "passed",
         "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.NewSiteConfigClient",
+      "path": "libs/platform/lifecycle/runtime.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.NewRequestValidator",
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     },

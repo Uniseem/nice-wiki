@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "6fd33e21e72752ead12a18a268293713f7f39db678ea070e689732016608f6e6",
+  "contractSha256": "8a606b77659975834beb2722bdc84422671e6b82c5882c8a60d5c128e6bfb78b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "portal-route-gate",
   "branch": "codex/portal-route-gate",

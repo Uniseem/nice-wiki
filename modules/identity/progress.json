@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "774eb86c486116e3693ca348be1fc175fbd62626441a64247ef6254ee7977474",
+  "contractSha256": "3f8d76f9740878b50b8c7fd96d8bed4e163d9344810e7dc6048945da875a73d2",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-01（账号索引、注册前置、幂等与恢复安全边界）",
   "branch": "codex/analytics-r1-storage-contract-audit",

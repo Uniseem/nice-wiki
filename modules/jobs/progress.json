@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "a1b9ffa8a2b1f6546ee01344f466eb0c4ae380547cf34b1c264e200d5d2285da",
+  "contractSha256": "18f4305eea89eb72032f90ee875149080832a728a78652168d183580e04851fc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-05 CreateJob（Codex）",
   "branch": "codex/analytics-r1-storage-contract-audit",

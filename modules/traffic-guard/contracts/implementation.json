@@ -3799,7 +3799,9 @@
             "traffic-guard.ConsumeEvents",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "traffic-guard.All"
+            "traffic-guard.All",
+            "platform.NewSiteConfigClient",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

@@ -11,7 +11,7 @@ implementation.json 为 905 个函数生成了同一套通用条文：输入“�
 ## 选择
 
 1. **边界一次校验。** 请求结构（schema、未知字段、长度与范围）由 make gen 生成的严格服务端在 HTTP 入口校验；服务身份、用户委托、dataEpoch、截止时间与 costClass 由 libs/platform 在入口建立 OperationContext 时校验；事件与任务入口由平台循环建立。入口之后的内部函数信任已校验的 `input` 与 `op`，不重复解析 deadline、不重做 schema 校验、不重查调用方身份。
-   - 现状：按 ADR0005 用 kin-openapi 基于生成代码内嵌规格校验请求的中间件尚未在 libs/platform 登记和实现，是首个 HTTP 绑定工作包的前置项，由集成会话在 libs/platform 合同中补登记一次并供各域 transport 装配。落地前，各域不得在函数里逐个补写 schema 校验来替代。
+   - 实现：`libs/platform/apivalidate.NewRequestValidator` 按 ADR0005 用 kin-openapi 基于生成代码内嵌规格（`gen.GetSwagger()`）校验请求，各域 HTTP 绑定工作包在 transport 装配该中间件；不得在函数里逐个补写 schema 校验替代。
 2. **通用条文按调用链解释。** functions.md 与 implementation.json 中 inputs/outputs 的通用约束句、错误表里的通用错误码、步骤末尾的通用句，都由入口与平台一次满足，不要求逐函数实现。函数只实现自己特有的步骤，以及 `authorization.rule` 中写明的本函数专属判断（例如“仅 data-protection 服务身份”）。错误表列的是可能透出的码，不是每个都要在本函数构造。
 3. **取消与截止只靠传播。** 把 ctx 传给数据库、HTTP、文件等下游 IO 即可，长循环可在每轮读一次 `ctx.Err()`。不写自定义的截止解析和 context 错误映射；没有 IO 的纯函数不检查 ctx。通用的毫秒预算只在入口层设一次。
 4. **不写防御性冗余。** 不写不可能发生的分支，不对本函数刚构造的值再校验，不加“以防万一”的重试、降级或兜底，不复制标准库或 libs/platform 已有的工具（`strings.Contains`、`platform.ValidIdentifier`/`ValidHash`、错误映射等）。缺少的公共工具由集成会话在 libs/platform 补一次，不在各域复制。

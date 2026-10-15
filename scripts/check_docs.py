@@ -363,6 +363,27 @@ def check_framework():
         fail('实际结构', '登记文件不存在 ' + missing)
 
 
+GO_SUM_LINE = re.compile(r'^\S+ v\S+ h1:[A-Za-z0-9+/]{43}=$')
+
+
+def check_go_modules():
+    """go.mod 有依赖时必须有工具生成的 go.sum；校验行格式，手写或空文件直接拒绝。"""
+    for gomod in sorted(list((ROOT / 'modules').glob('*/go.mod')) + list((ROOT / 'libs').glob('*/go.mod'))):
+        label = relative(gomod)
+        text = gomod.read_text(encoding='utf-8')
+        if not re.search(r'^require\b', text, re.M):
+            continue
+        gosum = gomod.with_name('go.sum')
+        lines = gosum.read_text(encoding='utf-8').splitlines() if gosum.is_file() else []
+        if not lines:
+            fail(label, '有依赖但缺少 go.sum；只能由 go mod tidy 生成，不得手写')
+            continue
+        for number, line in enumerate(lines, 1):
+            if not GO_SUM_LINE.match(line):
+                fail(relative(gosum), f'第{number}行不是 go 工具生成的校验和格式')
+                break
+
+
 def check_staged():
     try:
         names = subprocess.check_output(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z'], cwd=ROOT).decode().split('\0')
@@ -453,6 +474,7 @@ def main():
         check_wiring(modules, shared)
         check_rendered()
         check_framework()
+        check_go_modules()
         check_progress(list(modules) + list(shared))
         if len(modules) != 15:
             fail('模块清单', '服务数必须为已登记15域')

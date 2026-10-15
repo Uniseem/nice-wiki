@@ -4756,7 +4756,8 @@
             "site-config:registerActivation",
             "public-site.RunWorker",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

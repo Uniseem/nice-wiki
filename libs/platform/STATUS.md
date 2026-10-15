@@ -7,3 +7,4 @@
 - 实现时确认的口径：nw-keys 读取的 deploy/config/services.json 按 {version,services:[{slug,secretsDir}]} 解析并容忍其余字段，deploy实施时对齐；私钥为PKCS8 PEM（0600），公钥为base64url；trust-anchors.json排序输出；重放缓存与私钥缓存均在进程内。
 
 详细交接见 docs/handoff.md；逐文件/函数台账见 progress.json。
+- 2026-10-15 补充：新增 `lifecycle.NewSiteConfigClient` 与 `apivalidate.NewRequestValidator`（平台库新增 kin-openapi 依赖）；make build 与 make check 通过，详见 [handoff](docs/handoff.md)。

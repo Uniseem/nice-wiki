@@ -2049,6 +2049,11 @@
       "purpose": "运行状态读取与监视实现"
     },
     {
+      "path": "libs/platform/apivalidate/validator.go",
+      "kind": "handwritten",
+      "purpose": "HTTP入口统一请求校验中间件（ADR0005/ADR0006）"
+    },
+    {
       "path": "libs/platform/lifecycle/restore_swap.go",
       "kind": "handwritten",
       "purpose": "恢复换目录实现"

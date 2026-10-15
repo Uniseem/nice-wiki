@@ -1138,6 +1138,145 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.NewSiteConfigClient",
+          "name": "NewSiteConfigClient",
+          "signature": "func NewSiteConfigClient(cfg ServiceConfig, key SigningKey) (SiteConfigClient, error)",
+          "inputs": [
+            {
+              "name": "cfg",
+              "type": "ServiceConfig",
+              "description": "本服务配置",
+              "constraints": [
+                "dependencies含site-config的http(s)地址",
+                "module为本服务身份"
+              ]
+            },
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "本服务签名密钥引用",
+              "constraints": [
+                "用于服务断言"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "client",
+              "type": "SiteConfigClient",
+              "description": "运行状态客户端",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": [
+                "不含密钥"
+              ]
+            }
+          ],
+          "purpose": "构造各域共用的site-config运行状态客户端，供ReadRuntime/WatchRuntime使用",
+          "steps": [
+            "以本服务断言调用site-config:readRuntimeState（GET /v1/runtime-state）",
+            "解开响应{\"state\": RuntimeState}外层，字段与RuntimeView同名；非2xx映射为公共错误码",
+            "各域NewRuntimeClient只装配参数，不自写适配"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺少site-config地址、不可达或响应不合法",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用site-config"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "客户端可并发使用；缓存由ReadRuntime负责",
+          "idempotency": "只读",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/apivalidate/validator.go",
+      "kind": "handwritten",
+      "purpose": "HTTP入口统一请求校验中间件（kin-openapi openapi3filter）",
+      "functions": [
+        {
+          "id": "platform.NewRequestValidator",
+          "name": "NewRequestValidator",
+          "signature": "func NewRequestValidator(spec *openapi3.T) (func(http.Handler) http.Handler, error)",
+          "inputs": [
+            {
+              "name": "spec",
+              "type": "OpenAPIDocument",
+              "description": "本域生成代码gen.GetSwagger()返回的内嵌规格",
+              "constraints": [
+                "启动时构建一次"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "middleware",
+              "type": "HTTPMiddleware",
+              "description": "请求校验中间件",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "规格无法建立校验路由",
+              "constraints": [
+                "启动失败，不放行未校验请求"
+              ]
+            }
+          ],
+          "purpose": "在HTTP入口按本域OpenAPI规格统一校验请求（ADR0005 kin-openapi；ADR0006边界一次校验）",
+          "steps": [
+            "按路径匹配规格路由（忽略servers）；未登记路径交给后续路由返回404/405",
+            "校验路径/查询/请求头参数与请求体：additionalProperties:false拒绝未知字段，长度、范围、枚举、必填按schema",
+            "失败返回VALIDATION Problem，issues只给字段位置与schema关键字，不回显取值；身份与委托由BuildOperationContext校验，这里不重复"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "请求不符合接口规格",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "内嵌规格无法建立校验路由（启动时）",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读取并复原请求体"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "中间件无共享可变状态，可并发",
+          "idempotency": "纯校验",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },

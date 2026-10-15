@@ -6217,7 +6217,9 @@
             "content.ExpireIdleLocks",
             "content.RelayOutbox",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "platform.NewSiteConfigClient",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

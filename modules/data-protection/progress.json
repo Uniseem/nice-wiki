@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "design",
-  "contractSha256": "f72f3587cfd172d87631731767a46a4e486305fa79cca3719f527194d93fb47c",
+  "contractSha256": "c5277f842ce382c614a8327430fc170aa424561f2979dc5b1b335f688638eb27",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": null,
   "branch": null,

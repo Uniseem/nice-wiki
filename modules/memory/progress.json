@@ -2,7 +2,7 @@
   "version": 1,
   "module": "memory",
   "phase": "implementation",
-  "contractSha256": "407d9d79c94c75ba7bb569f48f7c39caccbfad68ed5646133c0594ae2113ca7d",
+  "contractSha256": "75960b75f19101e5f0e3dea1e9b5d3d84b9cd2925d24484afe845706125878de",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-13（Codex，私有持久化与启动恢复）",
   "branch": "codex/memory-persistence",

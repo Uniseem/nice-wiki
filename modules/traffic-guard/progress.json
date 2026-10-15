@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "0f4c6264610667536575573824c382de45bec907be6fb3250f25efac8852b13f",
+  "contractSha256": "1f6d9a7a4cd1f6efd9baaf8376f036f49a2f33a47a3086b06cde81a36a50e750",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-13（traffic-guard私有策略库启动恢复审计）",
   "branch": "codex/analytics-r1-storage-contract-audit",

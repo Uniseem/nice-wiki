@@ -3561,7 +3561,9 @@
             "jobs.PurgeExpiredHistory",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "jobs.All"
+            "jobs.All",
+            "platform.NewSiteConfigClient",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

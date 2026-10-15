@@ -29,4 +29,6 @@
 
 - 实现尺度（ADR0006，2026-10-15用户确认）：边界一次校验、内部信任输入，合同通用约束句按调用链整体保证解释，不逐函数实现；不写防御性冗余与重复工具，默认不写测试与临时验证程序。已同步根AGENTS、实施手册与各域functions.md页首；已写代码不强制回改。统一请求校验中间件尚未在libs/platform登记，列为首个HTTP绑定工作包前置项。
 
+- 编译门槛与公共机制（2026-10-15，用户确认）：根与15域AGENTS改为R1实施阶段规则，Go代码记implemented前须`make build`（14个Go模块-mod=readonly build/vet/gofmt）通过，优先VPS、不可用时本机运行，go.sum只由go命令生成；make check新增go.sum存在与格式检查；合并流程要求集成会话编译并逐个审查逻辑。libs/platform新增`lifecycle.NewSiteConfigClient`（10域改用，删除各自适配）与`apivalidate.NewRequestValidator`（kin-openapi入口请求校验，待HTTP绑定时装配）。台账844文件、907函数。
+
 下一步：本次修复与台账已在本地提交、未推送（push需当次授权）；后续按各模块handoff的下一项与依赖顺序继续实现。push仍需当次授权；不得把结构检查当作业务验收，也不部署。

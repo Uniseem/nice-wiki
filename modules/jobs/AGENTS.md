@@ -12,4 +12,4 @@
 
 恢复控制journal与barrier在control区，不随业务快照替换。备份恢复控制操作只接受data-protection服务身份与superadmin委托；active目录只在进程重启时换入或换回（ADR0003）。
 
-可以读old产品设计/ADR确认产品，后续ADR优先；不复用旧业务代码结构，不读vps.txt。本文不授权本阶段源码、测试样例、真实模型或接口、远程push。
+可以读old产品设计/ADR确认产品，后续ADR优先；不复用旧业务代码结构。R1实施中：按 docs/plan.md 工作包与本域合同创建源码；Go 代码记 implemented 前须 make build 通过（优先VPS，连接信息只读被忽略的私有 vps.txt；VPS不可用时在本机运行同样的检查，不得因此跳过编译）；测试/样例按 ADR0006 默认不写；不执行真实接口/模型；push 须用户当次授权。业务验收保持未勾选。

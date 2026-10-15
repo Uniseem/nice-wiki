@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "5d6a734905083880f2f347e9d0f264d00d7710204a2ed424fd6c54d7e8fa9bce",
+  "contractSha256": "89d5c4a1eebd1d2309e2ca8f094b5303ec9b6c20099db7a6b5f1ff15c821f6d0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-知识域文本规范化",
   "branch": "codex/knowledge-normalize",

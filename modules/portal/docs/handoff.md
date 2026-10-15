@@ -10,6 +10,7 @@
 - `NormalizeForwardHeaders` 改为业务头白名单，浏览器提交的身份、转发地址、hop-by-hop 与平台可信头（X-Cost-Class、X-Deadline、X-Cancellation-Id、X-Data-Epoch 等）不再透传。
 - `config/service.defaults.json` 与 `deploy/manifest.json` 端口按 ADR0005 端口表更正（监听 8080，依赖 8081/8101–8113）；修正 `NormalizeForwardHeaders` 返回类型编译错误；`BuildInternalProof` 注释改为与设计一致（拥有方/方法由服务断言绑定，nonce 不签名）；补齐 go.sum。
 
+- 后续统一（同日）：`NewRuntimeClient` 改为调用平台 `lifecycle.NewSiteConfigClient`，删除本域 runtimeAuthority 适配；BuildApplication 依赖登记平台请求校验中间件，HTTP 绑定时在 transport 装配。
 - 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
 - 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本模块本次无新增登记文件或函数。
 - 遗留：合同要求注入 traceparent，平台尚无链路追踪机制，未实现；固定允许 Origin 列表需在平台 ServiceConfig 增加字段，当前以可信代理协议+Host 推导。

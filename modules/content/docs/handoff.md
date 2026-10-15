@@ -8,6 +8,7 @@
 - `RecoverPreparedCommits` 重写恢复判定：已提交修订（COMMITTED 或已有 receipt 的 PREPARED）核对正文与哈希；只有每篇文档最新的已提交修订才要求 head 指向它，历史提交不再被误判为 head 不一致而隔离文档；没有 receipt 的孤儿 PREPARED 只隔离该次提交，不关闭文档（对应合同步骤2/3）。
 - `normalizeDraftCommitError` 去掉恒同分支并修正非常量格式串（go vet）；补齐 go.sum。
 
+- 后续统一（同日）：`NewRuntimeClient` 改为调用平台 `lifecycle.NewSiteConfigClient`，删除本域 runtimeAuthority 适配；BuildApplication 依赖登记平台请求校验中间件，HTTP 绑定时在 transport 装配。
 - 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
 - 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本模块本次无新增登记文件或函数。
 - 遗留：恢复逻辑仍未经业务验收；`DraftCommitStore`/`RevisionRecoveryState` 的真实事务实现待后续工作包。

@@ -3908,7 +3908,9 @@
             "platform.ReadRuntime",
             "identity.OpenDatabase",
             "identity.RunMigrations",
-            "identity.RecoverJournal"
+            "identity.RecoverJournal",
+            "platform.NewSiteConfigClient",
+            "platform.NewRequestValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",
