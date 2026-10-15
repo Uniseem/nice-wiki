@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-02 实施中；本轮完成初始化准备、状态读取与决定持久化代码，全仓编译门槛通过，根结构登记待集成会话完成。业务验收与部署未开始。
 
+- 本轮代码提交 `02dfb5bb8c46d51b4506bfd42a049a85422ec0ff`；状态为 implemented，完整结构检查和统一复核后再由集成会话提升 verified。
 - 本轮基线 `00dd199239aba487bceb5227aac52f27ce949d74`，分支 `codex/site-config-init-r1`，独占 `modules/site-config/`。
 - `PrepareDefaultConfig` 使用显式部署地址和可信 preparedAt，生成已明确默认值的完整未发布配置；`ReadInitializationStatus` 始终返回 initialized 与安全阶段，只向同站点超管或 identity/site-config 可信服务附完整 coordination。未开始的 operationId/siteId 为 null，无占位 ID。
 - `PersistInitializationDecision` 在 active 私有事务中保存完整准备配置规范 JSON、SHA256、不可反悔决定、CAS 当前状态和原始结果回执；`0002_initialization.sql` 只追加迁移，SQLite synchronous=FULL。commit 仍停 preparing，后续恢复用例才可提交权威 settings 文件并完成初始化。

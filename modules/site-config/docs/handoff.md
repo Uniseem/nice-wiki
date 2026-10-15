@@ -3,6 +3,7 @@
 ## 本轮 R1-02 初始化准备与决定（2026-10-15）
 
 - 基线 `00dd199239aba487bceb5227aac52f27ce949d74`，独占分支 `codex/site-config-init-r1`，范围仅 `modules/site-config/`。公共 nullable 生成修复及 content 适配由集成会话提供，作为前置提交引入，不计本域交付。
+- 本轮代码提交：`02dfb5bb8c46d51b4506bfd42a049a85422ec0ff`；未提交业务文件为空，台账同步另作提交。
 - 实际函数：PrepareDefaultConfig、ReadInitializationStatus、PersistInitializationDecision、ReadInitializationRecord。配置准备使用可信 preparedAt，所有默认值明确登记 data/types/implementation；不读取 Host、不触发 AI、不制造示例。
 - 类型差异：InitializationState 的 operationId/siteId 可 null；状态接口固定 initialized + 安全 state，完整 coordination 仅同站点超管或 identity/site-config 服务返回。消费者 identity/portal 的生成类型需集成会话统一刷新，路径/operationId 不变。状态完整性错误补 OpenAPI 422。
 - 决定表保存完整规范准备配置及 SHA256，CAS 当前状态与原始幂等结果同事务提交，FULL 同步；commit 后保持 preparing。未实现 settings 权威文件提交、ResumeInitialization 或完整 InitializeSite，不能宣称初始化链路已打通。

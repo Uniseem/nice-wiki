@@ -7,7 +7,7 @@
   "assignedSession": "R1-02（初始化准备、状态读取与决定持久化）",
   "branch": "codex/site-config-init-r1",
   "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": null,
+  "deliveryCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
   "deployment": "not_started",
   "files": [
     {
@@ -35,10 +35,10 @@
       "state": "implemented",
       "implementationCommit": "663bf0741a5af3f6e911f05d7e499babd32c98f6",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，待执行gofmt、build与vet"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/home_service.go",
@@ -65,98 +65,98 @@
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本次新增active迁移、epoch/索引校验与Ready校验；本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/runtime_transition.go",
       "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/write_epoch.go",
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/migrations/migrations.go",
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/migrations/0001_control.sql",
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，控制库迁移执行待具备Go工具链后验证"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/migrations/active/0001_active.sql",
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，active迁移执行待具备Go工具链后验证"
-    },
-    {
-      "path": "modules/site-config/internal/initialization_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
     {
-      "path": "modules/site-config/internal/initialization_defaults.go",
+      "path": "modules/site-config/internal/initialization_service.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+      },
+      "blocker": "仅ReadInitializationStatus完成；InitializeSite/ResumeInitialization/AbortInitialization待后续权威文件提交与恢复工作包"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_defaults.go",
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
@@ -175,10 +175,10 @@
       "state": "implemented",
       "implementationCommit": "ecdab0db53460b78d451f00bbb2016047b6fa547",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "RecoverAnnouncementJournal已实现；本机无Go，待格式化、编译和运行恢复校验"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
@@ -305,40 +305,40 @@
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "已接入active迁移与公告journal恢复；仍缺全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "Ready现含active schema/epoch/journal校验；本机未安装Go，待构建验证"
+      "blocker": null
     },
     {
       "path": "modules/site-config/go.mod",
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "已声明modernc.org/sqlite v1.59.0；本机未安装Go，依赖解析待具备Go工具链后执行"
+      "blocker": null
     },
     {
       "path": "modules/site-config/go.sum",
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "锁定项按identity同版本依赖图补齐；本机未安装Go，尚未执行go mod tidy核对"
+      "blocker": null
     },
     {
       "path": "modules/site-config/Dockerfile",
@@ -412,11 +412,11 @@
     },
     {
       "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     }
@@ -472,10 +472,10 @@
       "state": "implemented",
       "implementationCommit": "663bf0741a5af3f6e911f05d7e499babd32c98f6",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，未完成编译与运行验证"
+      "blocker": null
     },
     {
       "id": "site-config.UpdateHome",
@@ -516,76 +516,76 @@
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.OpenRuntimeStore",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.OpenActiveStore",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "active迁移与epoch校验已实现；本机未安装Go，尚未执行gofmt、build、vet"
+      "blocker": null
     },
     {
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "Ready schema/journal指纹校验已实现；本机未安装Go，尚未执行gofmt、build、vet"
+      "blocker": null
     },
     {
       "id": "site-config.TransitionRuntimeState",
       "path": "modules/site-config/internal/runtime_transition.go",
       "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.ValidateRuntimeTransition",
       "path": "modules/site-config/internal/runtime_transition.go",
       "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.RegisterActivation",
       "path": "modules/site-config/internal/runtime_transition.go",
       "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.CheckWriteEpoch",
@@ -593,10 +593,10 @@
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.All",
@@ -604,10 +604,10 @@
       "state": "implemented",
       "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.InitializeSite",
@@ -623,11 +623,11 @@
     {
       "id": "site-config.ReadInitializationStatus",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
@@ -656,22 +656,22 @@
     {
       "id": "site-config.PrepareDefaultConfig",
       "path": "modules/site-config/internal/initialization_defaults.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
     {
       "id": "site-config.PersistInitializationDecision",
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     },
@@ -714,10 +714,10 @@
       "state": "implemented",
       "implementationCommit": "ecdab0db53460b78d451f00bbb2016047b6fa547",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "已实现COMMITTED核对、PREPARED隔离和journal指纹；本机无Go，待格式化、编译和运行恢复校验"
+      "blocker": null
     },
     {
       "id": "site-config.ResolveConfigOperation",
@@ -923,10 +923,10 @@
       "state": "blocked",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "active区业务DB/schema迁移与公告journal恢复已接入；仍缺全部OpenAPI x-handler绑定、换向后RegisterActivation回执、RelayOutbox后台循环；本机未安装Go，无法完成本次构建验证"
+      "blocker": "active迁移与公告journal已接入；仍缺全部OpenAPI业务x-handler、换向后RegisterActivation回执与RelayOutbox后台装配；编译已通过，不代表完整装配完成"
     },
     {
       "id": "site-config.Serve",
@@ -934,10 +934,10 @@
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.Shutdown",
@@ -945,10 +945,10 @@
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.Health",
@@ -956,10 +956,10 @@
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.Ready",
@@ -967,19 +967,19 @@
       "state": "implemented",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+      "blocker": null
     },
     {
       "id": "site-config.ReadInitializationRecord",
       "path": "modules/site-config/internal/initialization_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "02dfb5bb8c46d51b4506bfd42a049a85422ec0ff",
       "verification": {
-        "state": "not_run",
-        "evidence": "本域build/vet/gofmt已通过；全仓make build与结构复核进行中"
+        "state": "passed",
+        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
       },
       "blocker": null
     }
