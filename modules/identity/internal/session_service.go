@@ -48,10 +48,6 @@ type ReadSessionsResult struct {
 
 // SessionPageCursor 是受签名保护的私有分页位置；不能直接作为网络参数使用。
 type SessionPageCursor struct {
-	Scope     string              `json:"scope"`
-	SiteID    platform.Identifier `json:"siteId"`
-	AccountID platform.Identifier `json:"accountId"`
-	DataEpoch platform.Identifier `json:"dataEpoch"`
 	IssuedAt  platform.Timestamp  `json:"issuedAt"`
 	SessionID platform.Identifier `json:"sessionId"`
 }
@@ -76,16 +72,15 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 	if limit == 0 {
 		limit = 20
 	}
-	cursor := SessionPageCursor{
-		Scope: "identity.sessions", SiteID: op.Actor.SiteID,
-		AccountID: op.Actor.SubjectID, DataEpoch: op.DataEpoch,
-	}
+	// Identifier不含竖线，分隔后的作用域无歧义，并在平台信封中一并签名。
+	scope := "identity.sessions|" + op.Actor.SiteID + "|" + op.Actor.SubjectID + "|" + op.DataEpoch
+	cursor := SessionPageCursor{}
 	key, signed := ctx.Value(sessionCursorKey{}).(platform.SigningKey)
 	if input.Page.Cursor != "" {
 		if !signed {
 			return ReadSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话游标签名器尚未装配")
 		}
-		raw, err := serviceauth.VerifyCursor(key, cursor.Scope, input.Page.Cursor)
+		raw, err := serviceauth.VerifyCursor(key, scope, input.Page.Cursor)
 		if err != nil {
 			return ReadSessionsResult{}, err
 		}
@@ -93,10 +88,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 		if err := json.Unmarshal(raw, &position); err != nil {
 			return ReadSessionsResult{}, platform.NewError(platform.CodeValidation, false, "会话游标载荷不合法")
 		}
-		if position.Scope != cursor.Scope || position.SiteID != cursor.SiteID ||
-			position.AccountID != cursor.AccountID || position.DataEpoch != cursor.DataEpoch {
-			return ReadSessionsResult{}, platform.NewError(platform.CodeValidation, false, "会话游标作用域不一致")
-		}
+
 		cursor = position
 	}
 	rows, err := store.db.QueryContext(ctx, `
@@ -106,7 +98,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
         FROM sessions WHERE account_id = ? AND site_id = ?
             AND (issued_at > ? OR (issued_at = ? AND session_id > ?))
         ORDER BY issued_at, session_id LIMIT ?`,
-		cursor.AccountID, cursor.SiteID, cursor.IssuedAt, cursor.IssuedAt, cursor.SessionID, limit+1)
+		op.Actor.SubjectID, op.Actor.SiteID, cursor.IssuedAt, cursor.IssuedAt, cursor.SessionID, limit+1)
 	if err != nil {
 		return ReadSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话列表不可读")
 	}
@@ -140,7 +132,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 		last := result.Sessions[len(result.Sessions)-1]
 		cursor.IssuedAt, cursor.SessionID = last.IssuedAt, last.SessionID
 		raw, _ := json.Marshal(cursor)
-		result.PageInfo.NextCursor, err = serviceauth.SignCursor(key, cursor.Scope, raw)
+		result.PageInfo.NextCursor, err = serviceauth.SignCursor(key, scope, raw)
 		if err != nil {
 			return ReadSessionsResult{}, err
 		}

@@ -2,12 +2,12 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "d933fc22ad34e08a69df1d81253f19279b49e3ca2741b5a1e81edfb80b95a999",
+  "contractSha256": "c826a60604f641e3db128e9d9d220a542d98dfc8e96c8ccf391f05ccb9548636",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-01（自身会话分页与账户全部会话撤销）",
   "branch": "codex/identity-session-r1",
   "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": null,
+  "deliveryCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
   "deployment": "not_started",
   "files": [
     {
@@ -544,7 +544,7 @@
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
       "verification": {
         "state": "not_run",
         "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
@@ -577,7 +577,7 @@
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
       "verification": {
         "state": "not_run",
         "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"
@@ -895,7 +895,7 @@
     {
       "id": "identity.WithSessionCursorKey",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "b716d5a2fa613d0cfbb11815761e3d4f09034f0c",
       "verification": {
         "state": "not_run",
         "evidence": "本域-mod=readonly build/vet/gofmt通过；全量make build被content可空字段适配编译错误阻断，等待集成复核"

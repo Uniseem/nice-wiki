@@ -1,7 +1,7 @@
 # 本轮交接（R1-01 自身会话分页与账户全部会话撤销，2026-10-15）
 
-- 分支 `codex/identity-session-r1`，基线 `00dd199239aba487bceb5227aac52f27ce949d74`；独占 `modules/identity/`。公共依赖由集成会话提供：nullable生成修复 `7e5aa58`、平台游标签名 `1daa621`，本分支仅cherry-pick既有提交，未自行修改公共代码。
-- `ReadSessions` 固定查询当前admin主体的site/account，按issuedAt/sessionId升序键集分页，默认20、最多100；平台 `SignCursor/VerifyCursor` 负责签名，载荷绑定identity.sessions/site/account/dataEpoch。只返回明确列出的会话元数据，revokedAt保留null，不返回secret/摘要/IP；`WithSessionCursorKey`由后续HTTP装配注入可信SigningKey。
+- 分支 `codex/identity-session-r1`，基线 `00dd199239aba487bceb5227aac52f27ce949d74`；独占 `modules/identity/`。公共依赖由集成会话提供：nullable生成修复 `7e5aa58`、平台游标签名 `1daa621`，本分支仅cherry-pick既有提交，未自行修改公共代码。源码提交 `b716d5a2fa613d0cfbb11815761e3d4f09034f0c`。
+- `ReadSessions` 固定查询当前admin主体的site/account，按issuedAt/sessionId升序键集分页，默认20、最多100；平台 `SignCursor/VerifyCursor` 负责签名，签名scope绑定identity.sessions/site/account/dataEpoch，载荷仅含排序位置。只返回明确列出的会话元数据，revokedAt保留null，不返回secret/摘要/IP；`WithSessionCursorKey`由后续HTTP装配注入可信SigningKey。
 - `RevokeAllSessions` 对自有事务核验superadmin，对嵌入调用只接受进程内`WithIdentityTransaction`句柄；按站点/账户读取当前权威版本，原子写revokedAt、提升session.revision、追加平台outbox。自有事务将动作/caller/epoch/请求摘要和完整计数回执一并提交，幂等重放返回原计数，不撤销首次提交后新建的会话；外层私有事务拥有最终回执与提交/回滚。
 - `PublishIdentityEvent`已审计全部实际调用方：此前没有外部事务调用方，本轮新增RevokeAllSessions。外部事务分支只入outbox，不再抢占外层operationId回执；自有事务保留原事件输入摘要、queued结果哈希及同eventId去重模式，未改变该模式的请求语义。
 - `0002_session_revocation.sql`只追加operation_receipts.result_json与自身列表索引，不改写旧会话，不预埋未确认的家族/authEpoch/签发字段。旧回执缺完整结果时不得猜测恢复。

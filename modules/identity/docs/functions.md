@@ -797,7 +797,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 **步骤**
 
 1. 主体必须是持有account.self的admin；查询条件固定为op.actor.subjectId与siteId，不接受其他账户参数
-2. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；游标须由平台签名器验签并绑定identity.sessions作用域、accountId、siteId及dataEpoch
+2. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；平台签名scope由identity.sessions、siteId、accountId、dataEpoch以Identifier不含的竖线分隔构成，载荷只含排序位置；验证相同scope后才解码
 3. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
 
 **错误**
@@ -967,6 +967,8 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `CONFLICT`：同一operationId绑定的调用方、代次或请求摘要不同（不可重试）
+- `INTEGRITY_ERROR`：完整结果回执缺失、哈希不一致或撤销数量超出合同（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：superadmin或身份私有状态迁移
