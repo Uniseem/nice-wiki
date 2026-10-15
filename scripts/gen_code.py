@@ -328,8 +328,11 @@ def downgrade_to_30(spec):
                     node.pop(key)
                     if len(non_null) == 1:
                         entry = non_null[0]
-                        if list(entry) == ["$ref"]:
-                            node["allOf"] = [entry]
+                        if "$ref" in entry:
+                            node["allOf"] = [{"$ref": entry["$ref"]}]
+                            for name, value in entry.items():
+                                if name != "$ref":
+                                    node.setdefault(name, value)
                         else:
                             for name, value in entry.items():
                                 node.setdefault(name, value)

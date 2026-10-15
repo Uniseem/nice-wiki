@@ -607,7 +607,7 @@ export interface components {
             type: string;
             /** @description 公共 ObjectRef 合同，遵守其字段和空值规则 */
             inputRef: components["schemas"]["ObjectRef"];
-            /** @description dedupeKey；UTF-8；不得为 null */
+            /** @description dedupeKey；UTF-8非空；同owner与dataEpoch内唯一；不得为 null */
             dedupeKey: string;
         };
         /** @description 分页结果状态；没有下一页时nextCursor省略 */
