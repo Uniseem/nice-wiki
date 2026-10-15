@@ -14,6 +14,7 @@
 - portal ephemeral本轮返回UNSUPPORTED_CAPABILITY，安全投影和逐资源权限尚待根收口，不给portal静态consume条目、不广播原payload。ListDeliveries、完整HTTP/后台/control屏障、定时和实际owner恢复适配仍分别未完成，不能把此包当整站ready。
 - 已按公共最终签名补NewEventHandlers四个真实绑定，交NewServiceHandler；Subscribe成功后由apivalidate.ServeEventStream输出，此后不写Problem。其余operation未实现，未伪造全表或启动ready。
 - 合成VPS首轮14模块make build通过；make check发现本域载荷参数类型登记和响应helper签名两项，已调整为[]byte与requestId标量。旧hash空分支补生成目录唯一producer及信封ID/修订/时间基本核对，防旧数据错配生产者后投递；等待本轮VPS重跑，未沿用旧证据标verified。
+- 第二轮P1收口仅补RelayOutbox必需WriteWindow：每次取完整LeaseRuntimeView，保留SafePointRequested与BarrierDeadline；无截止、provider失败、维护无安全请求全部失败关闭。所有SQL/网络步骤前后的窗口重查和受限IO上下文由平台循环统一执行，不在本域复制机制。用户明确第二轮结束推送后停止，本包不扩owner/ephemeral或第三轮。
 - 检查：本轮源码冻结后交集成会话在VPS统一docs/gen/gofmt/build/check；本地只读写源文件与Git元数据，未编译/格式/生成/运行SQL或临时业务程序。未新增测试、样例、fixture或mock，未运行真实接口、服务、模型、部署或push。
 
 ### 本包下一步（一项）

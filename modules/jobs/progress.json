@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "89bf617386ab98ed2c241cdb5c0e3b40228cc905030d2d07134fa374ebbb7276",
+  "contractSha256": "3f3b8414efc0cf372ce12923ff297dc4f0e636cc571884a31eae03ca3e3f624d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第二轮事件投递（Codex）",
   "branch": "codex/jobs-event-delivery-r1",
@@ -126,7 +126,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "evidence": "第二轮末尾P1收口：按根必需WriteWindow签名装配完整SafePoint/control截止，provider失败与维护无窗口失败关闭；源码待最终VPS复跑，保持in_progress"
       },
       "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
     },
@@ -1483,7 +1483,7 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "evidence": "第二轮末尾P1收口：按根必需WriteWindow签名装配完整SafePoint/control截止，provider失败与维护无窗口失败关闭；源码待最终VPS复跑，保持in_progress"
       },
       "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
     },

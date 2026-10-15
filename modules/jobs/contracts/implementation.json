@@ -3606,7 +3606,8 @@
           "steps": [
             "核jobs后台来源、本域Store/runtime与窄发布客户端已装配",
             "复用outbox.NewStore(db)，以WithOperationContext(ctx,op)和运行权威调用platform.RunRelay；batch=100、poll=1000ms",
-            "原事件ID与payload保持，平台NewEventPublisher按每event建立稳定操作键并签名self jobs:publishEvent，确认durable后平台标relayed；不复制循环、租约、重试或隔离机制"
+            "原事件ID与payload保持，平台NewEventPublisher按每event建立稳定操作键并签名self jobs:publishEvent，确认durable后平台标relayed；不复制循环、租约、重试或隔离机制",
+            "Runtime与必需WriteWindow均直接重读本域LeaseRuntimeView；provider错误透传，SafePointRequested必须有BarrierDeadline并原样返回；维护无safe请求明确LOCKED，正常running返回零time.Time。领取、发布前后及回执/重试/隔离/旧代丢弃的窗口重查和受限IO ctx全部由platform.RunRelay负责，不丢弃本域截止或把未知权威当running"
           ],
           "errors": [
             {
