@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 53 个函数：约束 15 个，参考 38 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 64 个函数：约束 15 个，参考 49 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -491,6 +491,11 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 2. 保持 Content-Range、ETag 与内容长度
 3. 分块复制并在断开时取消读取
 4. 关闭上游Body后释放ForwardRequest的请求取消句柄，SSE和大响应仍受同一请求截止及浏览器取消控制
+5. 固定四个identity认证响应在64KiB总界内读取，严格解码受信内部DTO并核对cookie字段/期限，在写任何响应头前完成safe body与cookie构造
+6. 认证非200只输出已登记code/status/retryable/requestId及固定安全错误说明，不透传原始detail/未知字段，不设或清cookie；畸形/截断/超限响应失败关闭
+7. 认证成功只回安全session和按操作允许的account/nextRoute；csrfToken仅供浏览器内存；丢弃上游Content-Length/ETag/Location并设置实际JSON长度及no-store
+8. 仅当前权威session撤销成功才清两枚同属性cookie；撤其他设备和失败不清
+9. 在WriteHeader前标记ResponseStarted，部分写/取消后上层不追加第二个Problem
 
 **错误**
 
@@ -501,7 +506,7 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：固定缓冲；一个 reader 与 writer；禁止响应开始后切状态
 - 幂等：流不可重放
-- 依赖：`portal.MapUpstreamFailure`
+- 依赖：`portal.MapUpstreamFailure`、`portal.authenticationOperation`、`portal.adaptAuthenticationResponse`、`portal.isCurrentSessionRevocation`、`portal.adaptSessionRevocation`
 
 ## portal.MapUpstreamFailure
 
@@ -576,6 +581,10 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 5. RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计
 6. 账户权限写请求检查CSRF；anonymous凭证登录/刷新和公开请求仍要求固定部署Origin但不要求有效access，避免过期令牌阻断refresh
 7. 用户proof只用专用委托密钥，服务HTTP断言仍使用服务密钥，两个用途不互换
+8. 仅静态identity POST四操作适配认证；浏览器刷新严格空对象，从nw_refresh构造内部秘密正文后重算bytes/hash，匿名refresh不签用户proof
+9. 登录/首次注册只用platform.PrivateNetworkScopes从真实socket及受信CIDR代理链派生当前+前一UTC日网络HMAC，更新受信op后由服务断言签入LoginNetworkScopes；不记录地址或接受浏览器scope
+10. 认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie
+11. 当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie
 
 **错误**
 
@@ -589,7 +598,271 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 - 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
 - 并发：每请求独立；上游取消随客户端断开传播
 - 幂等：幂等由上游operationId保证；入口不重放写请求
-- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`
+
+## portal.authenticationOperation
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：识别固定四个identity敏感认证operation
+
+```go
+func authenticationOperation(route ResolvedRoute) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅owner=identity、POST且operationId为createSession/registerFirstSuperadmin/refreshSession/changePassword时返回该操作；不按用户路径片段猜测
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：无
+
+## portal.prepareAuthenticationRequest
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：从HttpOnly刷新cookie建立内部请求
+
+```go
+func prepareAuthenticationRequest(runtime *ProxyRuntime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 浏览器Content-Type为application/json且严格空对象，拒未知字段/null/尾随JSON
+2. nw_refresh必须唯一且32..4096字节；不从浏览器正文或可信头读取secret
+3. 只在内存编码identity.RefreshSessionInput，由调用方按实际新正文重算bytes/hash
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.decodeAuthenticationJSON`
+
+## portal.adaptAuthenticationResponse
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：把内部敏感认证DTO转换为安全浏览器JSON与cookie
+
+```go
+func adaptAuthenticationResponse(response *http.Response, operation string) ([]byte, []*http.Cookie, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 响应体总界64KiB，非200只映射标准Problem且不改cookie
+2. 200必须JSON；固定operation各自校验tokens/currentSessionTokens/account/nextRoute的组合，未知字段或尾随内容失败关闭
+3. nextRoute只准固定后台路径；构造cookie后只序列化安全session和允许的account/nextRoute，不输出access/refresh
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.decodeAuthenticationJSON`、`portal.authenticationCookies`、`portal.authenticationProblem`
+
+## portal.decodeAuthenticationJSON
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：敏感wire边界有界DTO解码
+
+```go
+func decodeAuthenticationJSON(raw []byte, target any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只解码已受总字节上限约束的正文，DisallowUnknownFields并要求尾随EOF，不回显敏感取值
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：无
+
+## portal.authenticationCookies
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：构造两枚同源敏感会话cookie
+
+```go
+func authenticationCookies(tokens identitySessionTokens) ([]*http.Cookie, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 要求内部token/CSRF/会话与访问期限材料完整、auth同session且同访问期限
+2. nw_sid与nw_refresh均host-only Path=/ Secure HttpOnly SameSite=Strict，完整序列化不超过4096字节且由net/http校验cookie
+3. access Expires使用identity权威expiresAt；refresh为浏览器session cookie，不延长或推测服务端绝对期限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：无
+
+## portal.authenticationProblem
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：隔离认证失败中的内部原始字段
+
+```go
+func authenticationProblem(response *http.Response, raw []byte) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 要求application/problem+json与有效code/status/requestId
+2. 仅保留已登记code/status/retryable/requestId并写固定安全说明；不透传原始detail/title/issues，CONFLICT提示重新登录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.decodeAuthenticationJSON`
+
+## portal.isCurrentSessionRevocation
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：精确识别当前设备撤销
+
+```go
+func isCurrentSessionRevocation(route ResolvedRoute, currentSessionID Identifier) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受identity DELETE revokeSession，静态参数sessionId等于ResolveAuthContext权威sessionId；其他设备不清cookie
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：无
+
+## portal.adaptSessionRevocation
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：当前设备撤销成功后清除两枚cookie
+
+```go
+func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 64KiB总界读取；非200安全Problem且不清cookie
+2. 仅JSON 200 revoked=true权威回执构造两枚同属性cookie删除值，MaxAge=-1且Expires过去；先构造再写头
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.decodeAuthenticationJSON`、`portal.authenticationProblem`
 
 ## portal.LoadBootstrap
 
@@ -1963,6 +2236,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 装配IdentityAuthResolver与CSRFVerifier；可信Origin只来自platform.ServiceConfig.publicBaseURL，不从请求Host反推
 8. 分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭
+9. 完整本域handler覆盖未齐时NewApplication明确DEPENDENCY_UNAVAILABLE，禁止用默认503占位handler或固定Ready成功冒充完整服务；TrustedProxyCIDRs只从受信ServiceConfig注入
+10. 入口公开基址必须经platform.NormalizePublicURL校验；https为默认，显式AllowLocalHTTP只开放loopback本地HTTP；cookie仍为Secure
 
 **错误**
 
@@ -1974,7 +2249,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`portal.NewApplication`、`platform.NormalizePublicURL`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## portal.Serve
@@ -2131,6 +2406,7 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
 3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
 4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
+5. 完整handler或初始化/恢复权威尚未装配时返回DEPENDENCY_UNAVAILABLE，不把常量Initialized/JournalRecovered/SafePoint当事实
 
 **错误**
 
@@ -2142,6 +2418,106 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
+
+## portal.NewApplication
+
+- 级别：参考
+- 文件：`modules/portal/internal/transport/server.go`
+- 作用：完整本域HTTP覆盖未齐时拒绝构造应用
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 注入受信配置/服务与专用委托密钥/epoch/权威客户端；TrustedProxyCIDRs不从浏览器取
+2. registerLocalRoutes按静态required清单核真实非nil处理器，缺任何本域handler返回DEPENDENCY_UNAVAILABLE；不注册默认503占位
+3. 只有本域完整覆盖后才挂静态代理catchall并返回Application
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.registerLocalRoutes`、`portal.proxyHandler`
+
+## portal.registerLocalRoutes
+
+- 级别：参考
+- 文件：`modules/portal/internal/transport/server.go`
+- 作用：校验并注册实际本域处理器
+
+```go
+func (a *Application) registerLocalRoutes(mux *http.ServeMux) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实际非nil handler map与九项静态required路径核齐才注册并标记覆盖完成；缺失则失败关闭，无默认占位成功
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.Health`、`portal.Ready`
+
+## portal.proxyHandler
+
+- 级别：参考
+- 文件：`modules/portal/internal/transport/server.go`
+- 作用：从真实HTTP请求建立受信portal运行时
+
+```go
+func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取有限正文/查询及入口标识，受信epoch与30秒deadline由进程建立
+2. Origin白名单只取固定部署PublicBaseURL；注入真实socket请求与受信TrustedProxyCIDRs
+3. 调用ProxyRequest并只在响应尚未开始时写Problem，已写出的cookie/body不再追加第二个错误响应
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`portal.ProxyRequest`
 
 ## portal.mountModuleUI
 

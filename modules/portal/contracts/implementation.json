@@ -938,7 +938,12 @@
             "校验状态/头白名单",
             "保持 Content-Range、ETag 与内容长度",
             "分块复制并在断开时取消读取",
-            "关闭上游Body后释放ForwardRequest的请求取消句柄，SSE和大响应仍受同一请求截止及浏览器取消控制"
+            "关闭上游Body后释放ForwardRequest的请求取消句柄，SSE和大响应仍受同一请求截止及浏览器取消控制",
+            "固定四个identity认证响应在64KiB总界内读取，严格解码受信内部DTO并核对cookie字段/期限，在写任何响应头前完成safe body与cookie构造",
+            "认证非200只输出已登记code/status/retryable/requestId及固定安全错误说明，不透传原始detail/未知字段，不设或清cookie；畸形/截断/超限响应失败关闭",
+            "认证成功只回安全session和按操作允许的account/nextRoute；csrfToken仅供浏览器内存；丢弃上游Content-Length/ETag/Location并设置实际JSON长度及no-store",
+            "仅当前权威session撤销成功才清两枚同属性cookie；撤其他设备和失败不清",
+            "在WriteHeader前标记ResponseStarted，部分写/取消后上层不追加第二个Problem"
           ],
           "errors": [
             {
@@ -959,7 +964,11 @@
           "concurrency": "固定缓冲；一个 reader 与 writer；禁止响应开始后切状态",
           "idempotency": "流不可重放",
           "dependencies": [
-            "portal.MapUpstreamFailure"
+            "portal.MapUpstreamFailure",
+            "portal.authenticationOperation",
+            "portal.adaptAuthenticationResponse",
+            "portal.isCurrentSessionRevocation",
+            "portal.adaptSessionRevocation"
           ],
           "resources": [],
           "contract": "reference"
@@ -1077,7 +1086,11 @@
             "ForwardRequest以本服务断言与委托证明转发；StreamResponse有背压地回传（SSE与Range透传），失败经MapUpstreamFailure映射",
             "RedactRequest生成最小访问字段；管理与安全相关路由经EmitAccessAudit登记审计",
             "账户权限写请求检查CSRF；anonymous凭证登录/刷新和公开请求仍要求固定部署Origin但不要求有效access，避免过期令牌阻断refresh",
-            "用户proof只用专用委托密钥，服务HTTP断言仍使用服务密钥，两个用途不互换"
+            "用户proof只用专用委托密钥，服务HTTP断言仍使用服务密钥，两个用途不互换",
+            "仅静态identity POST四操作适配认证；浏览器刷新严格空对象，从nw_refresh构造内部秘密正文后重算bytes/hash，匿名refresh不签用户proof",
+            "登录/首次注册只用platform.PrivateNetworkScopes从真实socket及受信CIDR代理链派生当前+前一UTC日网络HMAC，更新受信op后由服务断言签入LoginNetworkScopes；不记录地址或接受浏览器scope",
+            "认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie",
+            "当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie"
           ],
           "errors": [
             {
@@ -1130,10 +1143,184 @@
             "portal.ForwardRequest",
             "portal.StreamResponse",
             "portal.RedactRequest",
-            "portal.EmitAccessAudit"
+            "portal.EmitAccessAudit",
+            "platform.PrivateNetworkScopes",
+            "portal.authenticationOperation",
+            "portal.prepareAuthenticationRequest"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "portal.authenticationOperation",
+          "name": "authenticationOperation",
+          "signature": "func authenticationOperation(route ResolvedRoute) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "识别固定四个identity敏感认证operation",
+          "steps": [
+            "仅owner=identity、POST且operationId为createSession/registerFirstSuperadmin/refreshSession/changePassword时返回该操作；不按用户路径片段猜测"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.prepareAuthenticationRequest",
+          "name": "prepareAuthenticationRequest",
+          "signature": "func prepareAuthenticationRequest(runtime *ProxyRuntime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从HttpOnly刷新cookie建立内部请求",
+          "steps": [
+            "浏览器Content-Type为application/json且严格空对象，拒未知字段/null/尾随JSON",
+            "nw_refresh必须唯一且32..4096字节；不从浏览器正文或可信头读取secret",
+            "只在内存编码identity.RefreshSessionInput，由调用方按实际新正文重算bytes/hash"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.decodeAuthenticationJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.adaptAuthenticationResponse",
+          "name": "adaptAuthenticationResponse",
+          "signature": "func adaptAuthenticationResponse(response *http.Response, operation string) ([]byte, []*http.Cookie, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把内部敏感认证DTO转换为安全浏览器JSON与cookie",
+          "steps": [
+            "响应体总界64KiB，非200只映射标准Problem且不改cookie",
+            "200必须JSON；固定operation各自校验tokens/currentSessionTokens/account/nextRoute的组合，未知字段或尾随内容失败关闭",
+            "nextRoute只准固定后台路径；构造cookie后只序列化安全session和允许的account/nextRoute，不输出access/refresh"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.decodeAuthenticationJSON",
+            "portal.authenticationCookies",
+            "portal.authenticationProblem"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.decodeAuthenticationJSON",
+          "name": "decodeAuthenticationJSON",
+          "signature": "func decodeAuthenticationJSON(raw []byte, target any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "敏感wire边界有界DTO解码",
+          "steps": [
+            "只解码已受总字节上限约束的正文，DisallowUnknownFields并要求尾随EOF，不回显敏感取值"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.authenticationCookies",
+          "name": "authenticationCookies",
+          "signature": "func authenticationCookies(tokens identitySessionTokens) ([]*http.Cookie, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "构造两枚同源敏感会话cookie",
+          "steps": [
+            "要求内部token/CSRF/会话与访问期限材料完整、auth同session且同访问期限",
+            "nw_sid与nw_refresh均host-only Path=/ Secure HttpOnly SameSite=Strict，完整序列化不超过4096字节且由net/http校验cookie",
+            "access Expires使用identity权威expiresAt；refresh为浏览器session cookie，不延长或推测服务端绝对期限"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.authenticationProblem",
+          "name": "authenticationProblem",
+          "signature": "func authenticationProblem(response *http.Response, raw []byte) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "隔离认证失败中的内部原始字段",
+          "steps": [
+            "要求application/problem+json与有效code/status/requestId",
+            "仅保留已登记code/status/retryable/requestId并写固定安全说明；不透传原始detail/title/issues，CONFLICT提示重新登录"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.decodeAuthenticationJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.isCurrentSessionRevocation",
+          "name": "isCurrentSessionRevocation",
+          "signature": "func isCurrentSessionRevocation(route ResolvedRoute, currentSessionID Identifier) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "精确识别当前设备撤销",
+          "steps": [
+            "只接受identity DELETE revokeSession，静态参数sessionId等于ResolveAuthContext权威sessionId；其他设备不清cookie"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.adaptSessionRevocation",
+          "name": "adaptSessionRevocation",
+          "signature": "func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "当前设备撤销成功后清除两枚cookie",
+          "steps": [
+            "64KiB总界读取；非200安全Problem且不清cookie",
+            "仅JSON 200 revoked=true权威回执构造两枚同属性cookie删除值，MaxAge=-1且Expires过去；先构造再写头"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.decodeAuthenticationJSON",
+            "portal.authenticationProblem"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3597,7 +3784,9 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "装配IdentityAuthResolver与CSRFVerifier；可信Origin只来自platform.ServiceConfig.publicBaseURL，不从请求Host反推",
-            "分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭"
+            "分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭",
+            "完整本域handler覆盖未齐时NewApplication明确DEPENDENCY_UNAVAILABLE，禁止用默认503占位handler或固定Ready成功冒充完整服务；TrustedProxyCIDRs只从受信ServiceConfig注入",
+            "入口公开基址必须经platform.NormalizePublicURL校验；https为默认，显式AllowLocalHTTP只开放loopback本地HTTP；cookie仍为Secure"
           ],
           "errors": [
             {
@@ -3633,7 +3822,9 @@
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "portal.NewApplication",
+            "platform.NormalizePublicURL"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3875,7 +4066,8 @@
             "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
             "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
             "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
-            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
+            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现",
+            "完整handler或初始化/恢复权威尚未装配时返回DEPENDENCY_UNAVAILABLE，不把常量Initialized/JournalRecovered/SafePoint当事实"
           ],
           "errors": [
             {
@@ -3897,6 +4089,75 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "portal.NewApplication",
+          "name": "NewApplication",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "完整本域HTTP覆盖未齐时拒绝构造应用",
+          "steps": [
+            "注入受信配置/服务与专用委托密钥/epoch/权威客户端；TrustedProxyCIDRs不从浏览器取",
+            "registerLocalRoutes按静态required清单核真实非nil处理器，缺任何本域handler返回DEPENDENCY_UNAVAILABLE；不注册默认503占位",
+            "只有本域完整覆盖后才挂静态代理catchall并返回Application"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.registerLocalRoutes",
+            "portal.proxyHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.registerLocalRoutes",
+          "name": "registerLocalRoutes",
+          "signature": "func (a *Application) registerLocalRoutes(mux *http.ServeMux) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "校验并注册实际本域处理器",
+          "steps": [
+            "实际非nil handler map与九项静态required路径核齐才注册并标记覆盖完成；缺失则失败关闭，无默认占位成功"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.Health",
+            "portal.Ready"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.proxyHandler",
+          "name": "proxyHandler",
+          "signature": "func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从真实HTTP请求建立受信portal运行时",
+          "steps": [
+            "读取有限正文/查询及入口标识，受信epoch与30秒deadline由进程建立",
+            "Origin白名单只取固定部署PublicBaseURL；注入真实socket请求与受信TrustedProxyCIDRs",
+            "调用ProxyRequest并只在响应尚未开始时写Problem，已写出的cookie/body不再追加第二个错误响应"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "portal.ProxyRequest"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4048,8 +4309,9 @@
     {
       "path": "modules/portal/web/src/gen/api.gen.ts",
       "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
-      "functions": []
+      "purpose": "make gen由openapi-typescript生成浏览器DTO；本域OpenAPI的x-browser-auth-adapters替换identity四认证操作的浏览器输入/输出，内部identity Go契约和真实路由归属保持生产方；生成目录不手改",
+      "functions": [],
+      "sourceGeneration": "仅浏览器spec副本合入四个identity操作，requestSchema/responseSchema以portal/contracts/openapi.json为基准解析；refresh严格空对象，成功session无access/refresh原值；真实routes.json不添加重复路由"
     }
   ],
   "jobTypes": [],

@@ -20,3 +20,11 @@
 | GET `/readyz` | `ready` | `portal.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 <!-- openapi:end -->
 
+
+## 代理后的浏览器认证协议
+
+四个内部identity操作仍由identity OpenAPI拥有；portal不新建重复method/path。portal OpenAPI的`x-browser-auth-adapters`登记浏览器适配来源，浏览器生成阶段以其requestSchema/responseSchema替换内部敏感DTO；内部Go服务/客户端与真实routes目录保留生产方契约。生成目录只由统一VPS的make gen写入。
+
+浏览器refreshSession仅接受application/json空对象，HttpOnly nw_refresh在入口内存中转为内部RefreshSessionInput。服务断言绑定改写后的实际正文hash，匿名刷新不要求有效access或用户proof，仍要求固定部署Origin。登录/首次注册同时签入公共派生的网络scope；浏览器自造身份、XFF或scope头不转发给identity。
+
+认证200结果只输出安全session及该操作允许的account/nextRoute；访问/刷新秘密仅进入Cookie。认证非200只保留已登记code/status/retryable/requestId与固定安全说明，不转发内部原始detail/未知字段，不改旧cookie。未知字段、截断、超限、错误媒体类型或缺少关键cookie材料在任何响应写出前失败关闭。当前设备DELETE revokeSession成功的清cookie规则见OpenAPI的`x-browser-session-revocation`。

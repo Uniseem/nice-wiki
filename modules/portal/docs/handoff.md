@@ -1,5 +1,16 @@
 # 主系统会话交接
 
+## 持续实施第三轮浏览器认证边界（2026-10-15，VPS已通过待提交）
+
+- 独占modules/portal/；分支codex/portal-auth-boundary-r1，基线9acad1ab56532521222f592af0d4b3a849792db5；公共原提交918dd6369ea7a33bf9296949c8b5441a08d1e88f已cherry-pick为9303d36，未改公共源码。没有新增实际文件。
+- 固定identity createSession/registerFirstSuperadmin/refreshSession/changePassword四操作：内部tokens/currentSessionTokens不进入浏览器JSON；nw_sid/nw_refresh均host-only Path=/ Secure HttpOnly SameSite=Strict，access期限使用identity expiresAt，refresh为浏览器session cookie。csrfToken仅安全session响应给浏览器内存，不另设可读cookie；内部SessionCookies.csrfCookie按既有可选双提交分支改为非required。
+- refresh只接受JSON空对象，仅从唯一nw_refresh生成内部正文并重算真实bytes/hash；匿名刷新不要求有效access/proof，固定部署Origin仍必须。登录/首次注册调用公共PrivateNetworkScopes，从真实RemoteAddr及受信TrustedProxyCIDRs代理后缀派生当前+上一UTC日HMAC并签入受信op；不信任任意XFF，不记录原地址。
+- 敏感响应64KiB总界，成功DTO/字段/期限/cookie先完成构造再写头；失败只保标准Problem决定和固定安全说明，不设/清旧cookie，敏感回执CONFLICT要求重新登录。当前session revoke只用ResolveAuthContext权威SessionID与路由参数相等且200 revoked=true后清cookie；撤其他设备和任何失败不清。
+- 修正既存缺口：NewApplication改为返回(*Application,error)，静态九项required本域路由与实际非nil handler map未齐即DEPENDENCY_UNAVAILABLE；不注册默认503占位。Ready缺初始化/恢复权威继续明确失败，不固定返回Initialized/JournalRecovered=true。BuildApplication/Ready仍blocked，不宣称整站登录已可运行。
+- 浏览器OpenAPI分层：x-browser-auth-adapters登记四操作的requestSchema/responseSchema，VPS生成器只替换浏览器spec副本；内部identity Go契约与真实routes归属不变。api.gen.ts不手改，根负责公共生成器。
+- 本轮VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt与完整make check全通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传，四操作浏览器TS安全shape已复读。源码尚待本域提交与真实SHA回填。没有本机Go/gofmt/gen/vet/类型检查/测试，也没有新测试/mock/fixture/临时业务程序、真实接口、模型、服务启动、部署或push；所有业务验收未执行。完整ProxyRequest尚缺准入/审计、Serve尚缺runtime watcher及恢复退出，和BuildApplication/Ready一起保持blocked。
+- 后续下一项：已登记internal/audit_redaction.go的RedactRequest纯函数。先读本域requirements/data及implementation的RedactRequest合同，按静态路由生成最小访问审计字段并剥除cookie/authorization/敏感query，不调用外部服务；完成源码与实际合同后由根统一VPS检查。本轮只记录此接续项，不开展下一工作包。
+
 ## 持续实施第一轮最终集成事实（2026-10-15）
 
 - 权威access/CSRF、专用委托、固定Origin和代理修复已通过；BuildApplication仍因本域端点、准入和恢复装配blocked。

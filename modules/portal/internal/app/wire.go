@@ -24,6 +24,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
 	}
+	publicBaseURL, err := lifecycle.NormalizePublicURL(config.PublicBaseURL, config.AllowLocalHTTP)
+	if err != nil {
+		return nil, err
+	}
+	config.PublicBaseURL = publicBaseURL
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
@@ -68,7 +73,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		csrfVerifier = portal.CSRFVerifier{Client: client}
 		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
-	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch), nil
+	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch)
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存

@@ -154,3 +154,16 @@
 | releaseBarrierRequest | 释放入口屏障请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
+
+## 浏览器认证边界（本轮待VPS）
+
+identity内部SessionTokens只在portal本次响应内存出现；本域不持久化会话、秘密、原始地址或敏感响应。四个签发操作的浏览器结果以OpenAPI的`x-browser-auth-adapters`为机器来源，字段为安全`session`及各操作允许的`account`、`nextRoute`。`session`只含sessionId、auth、mustChangePassword、expiresAt、csrfToken，accessToken与refreshToken不会进入浏览器JSON。CSRF只供当前页面内存与X-CSRF-Token，不写可读cookie或本地持久状态。
+
+| Cookie | 属性 | 生命周期权威 |
+|---|---|---|
+| nw_sid | host-only、Path=/、Secure、HttpOnly、SameSite=Strict | Expires使用identity本次expiresAt |
+| nw_refresh | host-only、Path=/、Secure、HttpOnly、SameSite=Strict | 浏览器session cookie；identity仍核服务端绝对期限 |
+
+认证响应总界64KiB，cookie完整序列化每枚不超过4096字节。读取上游成功DTO、构造安全JSON与校验cookie全部在写头之前完成；认证成功/失败均no-store。失败不设置或清除旧cookie；敏感成功回执的CONFLICT要求重新登录。当前设备的权威撤销成功才以同属性MaxAge=-1和过去Expires删除两枚cookie；撤其他设备不清当前会话。
+
+登录/首次注册的LoginNetworkScopes只由公共PrivateNetworkScopes从真实socket RemoteAddr和受信代理后缀派生，包含当前及上一UTC日HMAC。TrustedProxyCIDRs默认空，未受信socket完全忽略XFF；受信socket缺失、损坏或超界代理链失败关闭。原始地址仅公共函数调用期间驻留内存，不进入断言、日志或JSON。摘要按日变化只用于traffic-guard网络限速，不提供跨日持久身份。

@@ -3,9 +3,12 @@ package internal
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +28,11 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		return ProxyRequestResult{}, err
 	}
 	route := routeResult.Route
+	authentication := authenticationOperation(route)
+	if authentication != "" || (route.Definition.Owner == "identity" && route.Definition.UpstreamOperationID == "revokeSession") {
+		runtime.Writer.Header().Set("Cache-Control", "no-store")
+		runtime.Writer.Header().Set("Pragma", "no-cache")
+	}
 	gate, err := CheckEntranceGate(ctx, op, CheckEntranceGateInput{Route: route, RuntimeRevision: 0})
 	if err != nil {
 		return ProxyRequestResult{}, err
@@ -74,7 +82,29 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		}
 	}
 
+	if authentication == "refreshSession" {
+		if err := prepareAuthenticationRequest(runtime); err != nil {
+			return ProxyRequestResult{}, err
+		}
+		// 刷新由HttpOnly cookie构造内部正文，断言必须绑定改写后的真实字节。
+		validated.Envelope.BodyBytes = int64(len(runtime.Body))
+		validated.Envelope.BodyDigest = platform.HashBytes(runtime.Body)
+		if validated.Envelope.BodyBytes > bodyLimit {
+			return ProxyRequestResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "内部认证请求超出路由上限")
+		}
+	}
+	if authentication == "createSession" || authentication == "registerFirstSuperadmin" {
+		scopes, err := serviceauth.PrivateNetworkScopes(runtime.SigningKey, runtime.Request.RemoteAddr,
+			strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs, time.Now())
+		if err != nil {
+			return ProxyRequestResult{}, err
+		}
+		op.LoginNetworkScopes = scopes
+		ctx = platform.WithOperationContext(ctx, op)
+	}
+
 	var proof InternalProof
+	var currentSessionID Identifier
 	if route.Definition.Permission.Permission != "anonymous" {
 		required := route.Definition.Permission
 		required.Action = route.Definition.Owner + ":" + route.Definition.UpstreamOperationID
@@ -88,6 +118,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		if _, err := AuthorizeRoute(AuthorizeRouteInput{Auth: authResult.Auth, Route: route}); err != nil {
 			return ProxyRequestResult{}, err
 		}
+		currentSessionID = authResult.Auth.SessionID
 		proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
 			Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
 			ExpiresAt: proofExpiry(op, authResult.Auth),
@@ -109,7 +140,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 	if err != nil {
 		return ProxyRequestResult{}, err
 	}
-	if _, err := StreamResponse(ctx, op, StreamResponseInput{Upstream: forwarded.Response, WriterHandle: platform.NewIdentifier()}); err != nil {
+	if _, err := StreamResponse(ctx, op, StreamResponseInput{Upstream: forwarded.Response, WriterHandle: platform.NewIdentifier(), Route: route, CurrentSessionID: currentSessionID}); err != nil {
 		return ProxyRequestResult{}, err
 	}
 	return ProxyRequestResult{Status: forwarded.Response.Status, Owner: route.Definition.Owner}, nil
@@ -152,6 +183,10 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 		request.Header.Set(platform.HeaderPortalProof, input.Proof.Token)
 	}
 	request.Header.Set("Accept", runtime.Request.Header.Get("Accept"))
+	if authenticationOperation(input.Route) != "" {
+		request.Header.Set("Accept", "application/json")
+		request.Header.Set("Content-Type", "application/json")
+	}
 	if runtime.SigningKey.KeyID == "" {
 		cancel()
 		return ForwardRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口服务密钥未装配")
@@ -190,6 +225,42 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 	response := input.Upstream.Response
 	defer input.Upstream.Cancel()
 	defer response.Body.Close()
+	operation := authenticationOperation(input.Route)
+	currentRevocation := isCurrentSessionRevocation(input.Route, input.CurrentSessionID)
+	if operation != "" || currentRevocation {
+		var body []byte
+		var cookies []*http.Cookie
+		var err error
+		if currentRevocation {
+			body, cookies, err = adaptSessionRevocation(response)
+		} else {
+			body, cookies, err = adaptAuthenticationResponse(response, operation)
+		}
+		if err != nil {
+			return StreamResponseResult{}, err
+		}
+		// 敏感结果完成解码和cookie构造后才写头；不沿用内部body的长度或缓存水位。
+		runtime.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if response.StatusCode != http.StatusOK {
+			runtime.Writer.Header().Set("Content-Type", "application/problem+json")
+		}
+		runtime.Writer.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		runtime.Writer.Header().Set("Cache-Control", "no-store")
+		runtime.Writer.Header().Set("Pragma", "no-cache")
+		runtime.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+		if retryAfter := response.Header.Get("Retry-After"); retryAfter != "" {
+			runtime.Writer.Header().Set("Retry-After", retryAfter)
+		}
+		for _, cookie := range cookies {
+			http.SetCookie(runtime.Writer, cookie)
+		}
+		runtime.ResponseStarted = true
+		runtime.Writer.WriteHeader(response.StatusCode)
+		if _, err := runtime.Writer.Write(body); err != nil {
+			return StreamResponseResult{}, platform.NewError(platform.CodeCancelled, false, "认证响应未能完整送达")
+		}
+		return StreamResponseResult{Accepted: true}, nil
+	}
 	for _, entry := range input.Upstream.Headers.Entries {
 		if !responseHeaderAllowed(entry.Name) {
 			continue
@@ -201,6 +272,7 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 	if strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		runtime.Writer.Header().Set("X-Accel-Buffering", "no")
 	}
+	runtime.ResponseStarted = true
 	runtime.Writer.WriteHeader(response.StatusCode)
 	if runtime.Request.Method == http.MethodHead {
 		return StreamResponseResult{Accepted: true}, nil
@@ -284,4 +356,190 @@ func proofExpiry(op OperationContext, auth AuthContext) Timestamp {
 		expiry = sessionExpiry
 	}
 	return Timestamp(expiry.UTC().Format(time.RFC3339Nano))
+}
+
+// authenticationOperation 只选择已登记的identity认证操作，不从路径片段猜用途。
+func authenticationOperation(route ResolvedRoute) string {
+	if route.Definition.Owner != "identity" || route.Definition.Method != http.MethodPost {
+		return ""
+	}
+	switch route.Definition.UpstreamOperationID {
+	case "createSession", "registerFirstSuperadmin", "refreshSession", "changePassword":
+		return route.Definition.UpstreamOperationID
+	default:
+		return ""
+	}
+}
+
+// prepareAuthenticationRequest 保持口令请求原字节；刷新秘密只允许来自HttpOnly cookie。
+func prepareAuthenticationRequest(runtime *ProxyRuntime) error {
+	mediaType, _, err := mime.ParseMediaType(runtime.Request.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return platform.NewError(platform.CodeValidation, false, "浏览器刷新请求必须为JSON")
+	}
+	var empty struct{}
+	trimmed := bytes.TrimSpace(runtime.Body)
+	if len(trimmed) == 0 || trimmed[0] != '{' || decodeAuthenticationJSON(trimmed, &empty) != nil {
+		return platform.NewError(platform.CodeValidation, false, "浏览器刷新请求必须为空对象")
+	}
+	var refresh string
+	var count int
+	for _, cookie := range runtime.Request.Cookies() {
+		if cookie.Name == "nw_refresh" {
+			refresh = cookie.Value
+			count++
+		}
+	}
+	if count != 1 || len(refresh) < 32 || len(refresh) > 4096 {
+		return platform.NewError(platform.CodeUnauthenticated, false, "会话刷新凭据缺失或不明确")
+	}
+	runtime.Body, _ = json.Marshal(struct {
+		RefreshToken string `json:"refreshToken"`
+	}{RefreshToken: refresh})
+	return nil
+}
+
+const maxAuthenticationResponseBytes = 64 << 10
+
+// adaptAuthenticationResponse 隔离内部秘密DTO，只构造明确白名单中的浏览器字段。
+func adaptAuthenticationResponse(response *http.Response, operation string) ([]byte, []*http.Cookie, error) {
+	raw, err := io.ReadAll(io.LimitReader(response.Body, maxAuthenticationResponseBytes+1))
+	if err != nil || len(raw) > maxAuthenticationResponseBytes {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "身份响应不完整或超出上限")
+	}
+	if response.StatusCode != http.StatusOK {
+		body, err := authenticationProblem(response, raw)
+		return body, nil, err
+	}
+	mediaType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "身份成功响应媒体类型不符")
+	}
+	var result identityAuthenticationResult
+	if decodeAuthenticationJSON(raw, &result) != nil {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "身份成功响应不符合认证协议")
+	}
+	tokens := result.Tokens
+	switch operation {
+	case "createSession":
+		if tokens == nil || result.CurrentSessionTokens != nil || result.Account != nil || result.NextRoute == nil {
+			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "登录成功响应字段不符")
+		}
+	case "registerFirstSuperadmin":
+		if tokens == nil || result.CurrentSessionTokens != nil || result.Account == nil || result.NextRoute == nil {
+			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "注册成功响应字段不符")
+		}
+	case "refreshSession":
+		if tokens == nil || result.CurrentSessionTokens != nil || result.Account != nil || result.NextRoute != nil {
+			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "刷新成功响应字段不符")
+		}
+	case "changePassword":
+		if tokens != nil || result.CurrentSessionTokens == nil || result.Account == nil || result.NextRoute != nil {
+			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "改密成功响应字段不符")
+		}
+		tokens = result.CurrentSessionTokens
+	}
+	if result.NextRoute != nil && *result.NextRoute != "/admin/me" && *result.NextRoute != "/admin/setup" && *result.NextRoute != "/admin" {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "身份返回路由不在白名单")
+	}
+	cookies, err := authenticationCookies(*tokens)
+	if err != nil {
+		return nil, nil, err
+	}
+	browser := browserAuthenticationResult{
+		Session: BrowserSession{SessionID: tokens.SessionID, Auth: *tokens.Auth,
+			MustChangePassword: *tokens.MustChangePassword, ExpiresAt: tokens.ExpiresAt, CSRFToken: tokens.CSRFToken},
+		Account: result.Account, NextRoute: result.NextRoute,
+	}
+	body, _ := json.Marshal(browser)
+	return body, cookies, nil
+}
+
+// decodeAuthenticationJSON 只在敏感wire边界解码一次，拒绝未知字段与尾随JSON。
+func decodeAuthenticationJSON(raw []byte, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return platform.NewError(platform.CodeIntegrityError, false, "认证JSON包含尾随内容")
+	}
+	return nil
+}
+
+// authenticationCookies 不把refresh期限猜成访问期限或固定七天，服务端仍核绝对期限。
+func authenticationCookies(tokens identitySessionTokens) ([]*http.Cookie, error) {
+	expires, err := platform.ParseTimestamp(tokens.ExpiresAt)
+	if err != nil || !expires.After(time.Now()) || tokens.SessionID == "" || tokens.AccessToken == "" ||
+		len(tokens.RefreshToken) < 32 || tokens.CSRFToken == "" || len(tokens.CSRFToken) > 2048 ||
+		tokens.Auth == nil || tokens.MustChangePassword == nil || tokens.Auth.SessionID != tokens.SessionID ||
+		tokens.Auth.ExpiresAt != tokens.ExpiresAt {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份会话cookie材料不完整")
+	}
+	cookies := []*http.Cookie{
+		{Name: "nw_sid", Value: tokens.AccessToken, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Expires: expires},
+		{Name: "nw_refresh", Value: tokens.RefreshToken, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode},
+	}
+	for _, cookie := range cookies {
+		if cookie.Valid() != nil || len(cookie.String()) > 4096 {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "身份会话cookie不符合浏览器协议")
+		}
+	}
+	return cookies, nil
+}
+
+// authenticationProblem 保留已知错误决定，拒绝把内部原始detail或未知字段转给浏览器。
+func authenticationProblem(response *http.Response, raw []byte) ([]byte, error) {
+	var upstream platform.Problem
+	mediaType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/problem+json" || decodeAuthenticationJSON(raw, &upstream) != nil || upstream.Status != response.StatusCode ||
+		platform.ProblemHTTPStatus[upstream.Code] != response.StatusCode || !platform.ValidIdentifier(upstream.RequestID) {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份失败响应不符合Problem协议")
+	}
+	detail := "认证操作未能完成，请按错误码处理。"
+	if upstream.Code == platform.CodeConflict {
+		detail = "认证操作已提交或发生冲突，请重新登录。"
+	}
+	body, _ := json.Marshal(platform.Problem{Type: "about:blank", Title: "认证操作未能完成", Status: upstream.Status,
+		Code: upstream.Code, Detail: detail, RequestID: upstream.RequestID, Retryable: upstream.Retryable})
+	return body, nil
+}
+
+// isCurrentSessionRevocation 只按权威会话与静态路由参数决定是否清本设备cookie。
+func isCurrentSessionRevocation(route ResolvedRoute, currentSessionID Identifier) bool {
+	if route.Definition.Owner != "identity" || route.Definition.Method != http.MethodDelete ||
+		route.Definition.UpstreamOperationID != "revokeSession" || currentSessionID == "" {
+		return false
+	}
+	for _, parameter := range route.Parameters {
+		if parameter.Name == "sessionId" {
+			return parameter.Value == currentSessionID
+		}
+	}
+	return false
+}
+
+// adaptSessionRevocation 只有当前设备撤销的权威成功回执才删除两枚同属性cookie。
+func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, error) {
+	raw, err := io.ReadAll(io.LimitReader(response.Body, maxAuthenticationResponseBytes+1))
+	if err != nil || len(raw) > maxAuthenticationResponseBytes {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "会话撤销响应不完整或超出上限")
+	}
+	if response.StatusCode != http.StatusOK {
+		body, err := authenticationProblem(response, raw)
+		return body, nil, err
+	}
+	mediaType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	var result struct {
+		Revoked *bool `json:"revoked"`
+	}
+	if err != nil || mediaType != "application/json" || decodeAuthenticationJSON(raw, &result) != nil || result.Revoked == nil || !*result.Revoked {
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "会话撤销成功回执不符")
+	}
+	cookies := []*http.Cookie{
+		{Name: "nw_sid", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0).UTC()},
+		{Name: "nw_refresh", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0).UTC()},
+	}
+	return []byte(`{"revoked":true}`), cookies, nil
 }

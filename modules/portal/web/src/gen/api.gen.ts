@@ -162,6 +162,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 账号名口令登录
+         * @description 浏览器认证协议：敏感凭据由portal适配为cookie，结果仅含安全session。
+         */
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 首个注册账户原子成为唯一超管
+         * @description 浏览器认证协议：敏感凭据由portal适配为cookie，结果仅含安全session。
+         */
+        post: operations["registerFirstSuperadmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions:refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 内部透明轮换session
+         * @description 浏览器认证协议：敏感凭据由portal适配为cookie，结果仅含安全session。
+         */
+        post: operations["refreshSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/self/password:change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 改口令并结束其他设备登录
+         * @description 浏览器认证协议：敏感凭据由portal适配为cookie，结果仅含安全session。
+         */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -427,6 +507,120 @@ export interface components {
             journalRecovered: boolean;
             /** @description 恢复/备份协调实际安全点，不能仅等任务调度暂停 */
             safePoint: boolean;
+        };
+        /** @description Identifier */
+        types_Identifier: components["schemas"]["Identifier"];
+        /** @description AuthContext */
+        types_AuthContext: components["schemas"]["AuthContext"];
+        /** @description Timestamp */
+        types_Timestamp: components["schemas"]["Timestamp"];
+        /** @description 浏览器可见的安全会话摘要；没有access/refresh秘密，CSRF仅内存使用 */
+        BrowserSession: {
+            sessionId: components["schemas"]["types_Identifier"];
+            auth: components["schemas"]["types_AuthContext"];
+            /** @description 初始口令只显示改密页 */
+            mustChangePassword: boolean;
+            expiresAt: components["schemas"]["types_Timestamp"];
+            /** @description 当前会话绑定CSRF secret，仅内存用于X-CSRF-Token，禁止日志/持久化 */
+            csrfToken: string;
+        };
+        /** @description 浏览器登录结果；内部tokens完全剥离 */
+        BrowserCreateSessionResult: {
+            session: components["schemas"]["BrowserSession"];
+            /**
+             * @description 固定后台路由
+             * @enum {string}
+             */
+            nextRoute: "/admin/me" | "/admin/setup" | "/admin";
+        };
+        /** @description 创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号 */
+        AccountName: string;
+        /** @description 账号名口令登录的输入 */
+        CreateSessionInput: {
+            /** @description AccountName */
+            accountName: components["schemas"]["AccountName"];
+            /** @description 口令，UI仅这两字段 */
+            password: string;
+        };
+        /**
+         * @description 已确认10项功能，默认全部勾选
+         * @enum {string}
+         */
+        FunctionPermission: "edit_documents" | "publish_documents" | "manage_translations" | "manage_languages" | "manage_resources" | "manage_qa" | "manage_ai" | "manage_memory" | "manage_site" | "view_stats";
+        /** @description 无重复，首次创建省略时默认10项全部true；不按文档范围授权 */
+        PermissionSelection: components["schemas"]["FunctionPermission"][];
+        /** @description 账户元数据；删除后署名保留，不返hash */
+        Account: {
+            /** @description 账户 */
+            accountId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description AccountName */
+            accountName: components["schemas"]["AccountName"];
+            /** @description 全站唯一；首次注册，永不能删除或停用 */
+            isSuperadmin: boolean;
+            /** @description PermissionSelection */
+            permissions: components["schemas"]["PermissionSelection"];
+            /** @description 初始/重置口令登录仅允许改密 */
+            mustChangePassword: boolean;
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            status: "active" | "disabled" | "deleted";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 立即撤销水位 */
+            permissionRevision: components["schemas"]["Revision"];
+            /** @description 创建 */
+            createdAt: components["schemas"]["Timestamp"];
+            /** @description 修改 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 浏览器首次注册结果；内部tokens完全剥离 */
+        BrowserRegisterFirstSuperadminResult: {
+            /** @description 身份服务权威账户安全字段 */
+            account: components["schemas"]["Account"];
+            session: components["schemas"]["BrowserSession"];
+            /**
+             * @description 固定后台路由
+             * @enum {string}
+             */
+            nextRoute: "/admin/me" | "/admin/setup" | "/admin";
+        };
+        /** @description 敏感口令，至少8位；不强制大小写符号组合；不trim；禁止日志 */
+        Password: string;
+        /** @description 首个注册账户原子成为唯一超管的输入 */
+        RegisterFirstSuperadminInput: {
+            /** @description AccountName */
+            accountName: components["schemas"]["AccountName"];
+            /** @description Password */
+            password: components["schemas"]["Password"];
+            /** @description 首次注册确认口令，UI新口令输入两遍 */
+            passwordConfirmation: components["schemas"]["Password"];
+        };
+        /** @description 浏览器刷新结果；不返回内部tokens */
+        BrowserRefreshSessionResult: {
+            session: components["schemas"]["BrowserSession"];
+        };
+        /** @description 浏览器刷新仅接受空对象，raw refresh只取HttpOnly cookie */
+        BrowserRefreshSessionInput: Record<string, never>;
+        /** @description 浏览器改密结果；不返回currentSessionTokens */
+        BrowserChangePasswordResult: {
+            /** @description 身份服务权威账户安全字段 */
+            account: components["schemas"]["Account"];
+            session: components["schemas"]["BrowserSession"];
+        };
+        /** @description 改口令并结束其他设备登录的输入 */
+        ChangePasswordInput: {
+            /** @description 旧口令 */
+            oldPassword: string;
+            /** @description Password */
+            newPassword: components["schemas"]["Password"];
+            /** @description Password */
+            confirmation: components["schemas"]["Password"];
+            /** @description CAS */
+            expectedCredentialRevision: components["schemas"]["Revision"];
         };
     };
     responses: never;
@@ -786,6 +980,327 @@ export interface operations {
                 };
             };
             /** @description 关键依赖或epoch/journal未ready */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSessionInput"];
+            };
+        };
+        responses: {
+            /** @description 账号名口令登录的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserCreateSessionResult"];
+                };
+            };
+            /** @description VALIDATION：输入业务前置不满足 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体/服务/网络作用域不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：CAS或幂等决定冲突，敏感成功结果需重新登录 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：控制决定、回执或权威完整性损坏 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率、并发或容量上限已达，返回 retryAfter */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    registerFirstSuperadmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterFirstSuperadminInput"];
+            };
+        };
+        responses: {
+            /** @description 首个注册账户原子成为唯一超管的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserRegisterFirstSuperadminResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：账号口令或当前会话失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体/服务/网络作用域不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：控制决定、回执或权威完整性损坏 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率、并发或容量上限已达，返回 retryAfter */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    refreshSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserRefreshSessionInput"];
+            };
+        };
+        responses: {
+            /** @description 内部透明轮换session的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserRefreshSessionResult"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：仅允许portal刷新入口 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：会话轮换版本变化 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：会话权威损坏 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordInput"];
+            };
+        };
+        responses: {
+            /** @description 改口令并结束其他设备登录的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserChangePasswordResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：控制决定、回执或权威完整性损坏 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
             503: {
                 headers: {
                     [name: string]: unknown;

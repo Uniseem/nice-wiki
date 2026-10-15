@@ -410,8 +410,10 @@ type ForwardRequestInput struct {
 }
 type ForwardRequestResult struct{ Response UpstreamResponse }
 type StreamResponseInput struct {
-	Upstream     UpstreamResponse
-	WriterHandle string
+	Upstream         UpstreamResponse
+	WriterHandle     string
+	Route            ResolvedRoute
+	CurrentSessionID Identifier
 }
 type StreamResponseResult struct{ Accepted bool }
 type MapUpstreamFailureInput struct {
@@ -509,6 +511,8 @@ type ProxyRuntime struct {
 	Identity          IdentityVerifier
 	Gate              *Gate
 	ConfiguredOrigins []string
+	TrustedProxyCIDRs []string
+	ResponseStarted   bool
 }
 
 func WithProxyRuntime(ctx context.Context, runtime *ProxyRuntime) context.Context {
@@ -550,4 +554,51 @@ func WithPortalSigner(ctx context.Context, key platform.SigningKey) context.Cont
 func portalSignerFromContext(ctx context.Context) (platform.SigningKey, bool) {
 	key, ok := ctx.Value(signerKey{}).(platform.SigningKey)
 	return key, ok && key.KeyID != "" && key.PrivateKeyRef != ""
+}
+
+// BrowserSession 不包含access/refresh；CSRF仅供当前浏览器内存与请求头使用。
+type BrowserSession struct {
+	SessionID          Identifier  `json:"sessionId"`
+	Auth               AuthContext `json:"auth"`
+	MustChangePassword bool        `json:"mustChangePassword"`
+	ExpiresAt          Timestamp   `json:"expiresAt"`
+	CSRFToken          string      `json:"csrfToken"`
+}
+
+// 内部敏感wire DTO只从identity成功响应读取，不持久化或写入浏览器body。
+type identitySessionTokens struct {
+	SessionID          Identifier   `json:"sessionId"`
+	AccessToken        string       `json:"accessToken"`
+	RefreshToken       string       `json:"refreshToken"`
+	CSRFToken          string       `json:"csrfToken"`
+	Auth               *AuthContext `json:"auth"`
+	MustChangePassword *bool        `json:"mustChangePassword"`
+	ExpiresAt          Timestamp    `json:"expiresAt"`
+}
+
+type identityBrowserAccount struct {
+	AccountID          Identifier `json:"accountId"`
+	SiteID             Identifier `json:"siteId"`
+	AccountName        string     `json:"accountName"`
+	IsSuperadmin       bool       `json:"isSuperadmin"`
+	Permissions        []string   `json:"permissions"`
+	MustChangePassword bool       `json:"mustChangePassword"`
+	Status             string     `json:"status"`
+	Revision           Revision   `json:"revision"`
+	PermissionRevision Revision   `json:"permissionRevision"`
+	CreatedAt          Timestamp  `json:"createdAt"`
+	UpdatedAt          Timestamp  `json:"updatedAt"`
+}
+
+type identityAuthenticationResult struct {
+	Tokens               *identitySessionTokens  `json:"tokens"`
+	CurrentSessionTokens *identitySessionTokens  `json:"currentSessionTokens"`
+	Account              *identityBrowserAccount `json:"account"`
+	NextRoute            *string                 `json:"nextRoute"`
+}
+
+type browserAuthenticationResult struct {
+	Session   BrowserSession          `json:"session"`
+	Account   *identityBrowserAccount `json:"account,omitempty"`
+	NextRoute *string                 `json:"nextRoute,omitempty"`
 }

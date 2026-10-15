@@ -479,18 +479,17 @@
           "type": "string",
           "description": "HttpOnly sid 原值，禁止日志",
           "minLength": 1,
-          "maxLength": 2048
+          "maxLength": 4096
         },
         "csrfCookie": {
           "type": "string",
-          "description": "会话绑定 CSRF token",
+          "description": "仅当独立CSRF cookie存在时做双提交；本轮不设置此cookie，CSRF经identity核验",
           "minLength": 1,
           "maxLength": 2048
         }
       },
       "required": [
-        "sessionToken",
-        "csrfCookie"
+        "sessionToken"
       ],
       "x-internal": true
     },
@@ -2195,11 +2194,20 @@
           "description": "内部 response writer",
           "minLength": 1,
           "maxLength": 128
+        },
+        "route": {
+          "$ref": "#/$defs/ResolvedRoute",
+          "description": "受信静态路由；只对四个identity认证operation执行cookie适配"
+        },
+        "currentSessionId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "仅来自ResolveAuthContext的当前权威会话；匿名为缺省，不由浏览器指定"
         }
       },
       "required": [
         "upstream",
-        "writerHandle"
+        "writerHandle",
+        "route"
       ]
     },
     "StreamResponseResult": {
@@ -3649,6 +3657,128 @@
       "type": "object",
       "x-internal": true,
       "description": "由本域生成identity客户端装配的accessToken权威授权解析器"
+    },
+    "BrowserSession": {
+      "type": "object",
+      "description": "浏览器可见的安全会话摘要；没有access/refresh秘密，CSRF仅内存使用",
+      "additionalProperties": false,
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthContext"
+        },
+        "mustChangePassword": {
+          "type": "boolean",
+          "description": "初始口令只显示改密页"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "csrfToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "当前会话绑定CSRF secret，仅内存用于X-CSRF-Token，禁止日志/持久化"
+        }
+      },
+      "required": [
+        "sessionId",
+        "auth",
+        "mustChangePassword",
+        "expiresAt",
+        "csrfToken"
+      ]
+    },
+    "BrowserCreateSessionResult": {
+      "type": "object",
+      "description": "浏览器登录结果；内部tokens完全剥离",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/BrowserSession"
+        },
+        "nextRoute": {
+          "type": "string",
+          "enum": [
+            "/admin/me",
+            "/admin/setup",
+            "/admin"
+          ],
+          "description": "固定后台路由"
+        }
+      },
+      "required": [
+        "session",
+        "nextRoute"
+      ]
+    },
+    "BrowserRegisterFirstSuperadminResult": {
+      "type": "object",
+      "description": "浏览器首次注册结果；内部tokens完全剥离",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "../../identity/contracts/types.json#/$defs/Account",
+          "description": "身份服务权威账户安全字段"
+        },
+        "session": {
+          "$ref": "#/$defs/BrowserSession"
+        },
+        "nextRoute": {
+          "type": "string",
+          "enum": [
+            "/admin/me",
+            "/admin/setup",
+            "/admin"
+          ],
+          "description": "固定后台路由"
+        }
+      },
+      "required": [
+        "account",
+        "session",
+        "nextRoute"
+      ]
+    },
+    "BrowserRefreshSessionInput": {
+      "type": "object",
+      "description": "浏览器刷新仅接受空对象，raw refresh只取HttpOnly cookie",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "BrowserRefreshSessionResult": {
+      "type": "object",
+      "description": "浏览器刷新结果；不返回内部tokens",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/BrowserSession"
+        }
+      },
+      "required": [
+        "session"
+      ]
+    },
+    "BrowserChangePasswordResult": {
+      "type": "object",
+      "description": "浏览器改密结果；不返回currentSessionTokens",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "../../identity/contracts/types.json#/$defs/Account",
+          "description": "身份服务权威账户安全字段"
+        },
+        "session": {
+          "$ref": "#/$defs/BrowserSession"
+        }
+      },
+      "required": [
+        "account",
+        "session"
+      ]
     }
   }
 }

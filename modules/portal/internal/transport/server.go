@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,70 +31,79 @@ const (
 )
 
 type Application struct {
-	config        platform.ServiceConfig
-	anchors       platform.TrustAnchors
-	signingKey    platform.SigningKey
-	delegationKey platform.SigningKey
-	runtime       portal.RuntimeReader
-	identity      portal.IdentityVerifier
-	authResolver  portal.AuthResolver
-	registry      portal.RouteRegistry
-	openedEpoch   platform.Identifier
-	gate          *portal.Gate
-	state         atomic.Int32
-	serveStarted  atomic.Bool
-	shutdownOnce  sync.Once
-	shutdownErr   error
-	httpServer    *http.Server
+	config             platform.ServiceConfig
+	anchors            platform.TrustAnchors
+	signingKey         platform.SigningKey
+	delegationKey      platform.SigningKey
+	runtime            portal.RuntimeReader
+	identity           portal.IdentityVerifier
+	authResolver       portal.AuthResolver
+	registry           portal.RouteRegistry
+	openedEpoch        platform.Identifier
+	localHandlersReady bool
+	gate               *portal.Gate
+	state              atomic.Int32
+	serveStarted       atomic.Bool
+	shutdownOnce       sync.Once
+	shutdownErr        error
+	httpServer         *http.Server
 }
 
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) *Application {
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error) {
 	application := &Application{
 		config: config, anchors: anchors, signingKey: signingKey, delegationKey: delegationKey, runtime: runtime,
 		identity: identity, authResolver: authResolver, registry: registry, openedEpoch: openedEpoch, gate: portal.NewGate(),
 	}
 	mux := http.NewServeMux()
-	application.registerLocalRoutes(mux)
+	if err := application.registerLocalRoutes(mux); err != nil {
+		return nil, err
+	}
 	mux.HandleFunc("/", application.proxyHandler)
 	application.httpServer = &http.Server{
 		Addr: config.Listen, Handler: mux,
 		ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10,
 	}
-	return application
+	return application, nil
 }
 
 func (a *Application) Serve(ctx context.Context) error { return Serve(ctx, a) }
 
 func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
 
-func (a *Application) registerLocalRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		status, err := Health(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, status)
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		status, err := Ready(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, status)
-	})
-	// 这些本域接口先完成固定入口和错误边界；跨域权威读取接入后再
-	// 放行，避免把缺失身份/偏好/屏障状态伪装成空成功值。
-	for _, pattern := range []string{
-		"POST /v1/barriers", "DELETE /v1/barriers/{barrierId}",
-		"GET /v1/bootstrap", "GET /v1/events", "GET /v1/preferences",
-		"PUT /v1/preferences", "GET /v1/readiness",
-	} {
-		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			writeProblem(w, platform.NewError(platform.CodeDependencyUnavailable, true, "portal业务依赖尚未装配"))
-		})
+// registerLocalRoutes 先核对完整覆盖；不把默认503占位当作已实现handler。
+func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
+	handlers := map[string]http.Handler{
+		"GET /healthz": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			status, err := Health(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, status)
+		}),
+		"GET /readyz": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			status, err := Ready(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, status)
+		}),
 	}
+	required := []string{
+		"GET /healthz", "GET /readyz", "POST /v1/barriers", "DELETE /v1/barriers/{barrierId}",
+		"GET /v1/bootstrap", "GET /v1/events", "GET /v1/preferences", "PUT /v1/preferences", "GET /v1/readiness",
+	}
+	for _, pattern := range required {
+		if handlers[pattern] == nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "portal完整本域HTTP处理器尚未装配")
+		}
+	}
+	for _, pattern := range required {
+		mux.Handle(pattern, handlers[pattern])
+	}
+	a.localHandlersReady = true
+	return nil
 }
 
 func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +144,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
-		ConfiguredOrigins: origins,
+		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,
 	}
 	ctx := portal.WithProxyRuntime(r.Context(), runtime)
 	ctx = portal.WithAuthResolver(ctx, a.authResolver)
@@ -144,7 +152,9 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		Method: r.Method, RawPath: r.URL.EscapedPath(), ContentLength: r.ContentLength,
 	})
 	if err != nil {
-		writeProblem(w, err)
+		if !runtime.ResponseStarted {
+			writeProblem(w, err)
+		}
 		return
 	}
 	if result.Status == 0 {
@@ -190,8 +200,8 @@ func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
 }
 
 func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) {
-	if app.state.Load() == stateClosed {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
+	if app.state.Load() == stateClosed || !app.localHandlersReady {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口处理器未齐或进程已关闭")
 	}
 	if app.runtime == nil {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态依赖未装配")
@@ -203,19 +213,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
 	}
-	activeEpoch := string(app.openedEpoch)
-	if activeEpoch == "" {
-		activeEpoch = string(view.DataEpoch)
-	}
-	health, err := Health(ctx, app)
-	if err != nil {
-		return gen.ServiceReadiness{}, err
-	}
-	return gen.ServiceReadiness{
-		Health: health, ActiveDataEpoch: &activeEpoch, Maintenance: view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
-		Initialized:           true, JournalRecovered: true, SafePoint: true,
-	}, nil
+	// RuntimeView只含epoch与维护阶段，不能证明初始化或本域恢复回执。
+	// 对应权威装配尚未完成时不返回固定true的业务就绪声明。
+	return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口初始化与恢复就绪权威尚未装配")
 }
 
 func headerMap(headers http.Header) portal.HeaderMap {
@@ -235,18 +235,4 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
-}
-
-// requestScheme 返回浏览器看到的入口协议。HTTPS 只在 Caddy 终止（ADR0005），
-// portal 只监听内部网络，Caddy 会覆盖客户端自带的 X-Forwarded-Proto；因此
-// 无本地 TLS 时以该头为准，只接受 http/https，其余一律按 http 处理。
-func requestScheme(r *http.Request) string {
-	if r.TLS != nil {
-		return "https"
-	}
-	proto := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0]))
-	if proto == "https" {
-		return "https"
-	}
-	return "http"
 }

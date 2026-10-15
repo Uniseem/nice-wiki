@@ -3,7 +3,7 @@
   "info": {
     "title": "主系统服务契约",
     "version": "1.0.0",
-    "description": "设计阶段；未实现、未调用真实接口、未验证业务验收"
+    "description": "R1实施中的入口契约；业务验收与部署未执行，完整应用缺失handler时失败关闭。"
   },
   "servers": [
     {
@@ -517,7 +517,80 @@
         "in": "header",
         "name": "X-CSRF-Token",
         "description": "写操作必需；portal经identity核对会话绑定"
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nw_refresh",
+        "description": "仅portal读取的host-only Path=/ Secure HttpOnly SameSite=Strict刷新秘密；浏览器JSON不接受或返回raw secret"
       }
     }
+  },
+  "x-browser-auth-adapters": {
+    "owner": "identity",
+    "method": "POST",
+    "operations": {
+      "createSession": {
+        "path": "/v1/sessions",
+        "requestSchema": "../../identity/contracts/types.json#/$defs/CreateSessionInput",
+        "responseSchema": "./types.json#/$defs/BrowserCreateSessionResult",
+        "tokenField": "tokens",
+        "loginNetworkScopes": true
+      },
+      "registerFirstSuperadmin": {
+        "path": "/v1/registration",
+        "requestSchema": "../../identity/contracts/types.json#/$defs/RegisterFirstSuperadminInput",
+        "responseSchema": "./types.json#/$defs/BrowserRegisterFirstSuperadminResult",
+        "tokenField": "tokens",
+        "loginNetworkScopes": true
+      },
+      "refreshSession": {
+        "path": "/v1/sessions:refresh",
+        "requestSchema": "./types.json#/$defs/BrowserRefreshSessionInput",
+        "responseSchema": "./types.json#/$defs/BrowserRefreshSessionResult",
+        "tokenField": "tokens",
+        "requestAdapter": "仅从nw_refresh读取秘密构造identity.RefreshSessionInput；重算实际正文hash；浏览器正文严格空对象"
+      },
+      "changePassword": {
+        "path": "/v1/self/password:change",
+        "requestSchema": "../../identity/contracts/types.json#/$defs/ChangePasswordInput",
+        "responseSchema": "./types.json#/$defs/BrowserChangePasswordResult",
+        "tokenField": "currentSessionTokens"
+      }
+    },
+    "cookies": {
+      "access": {
+        "name": "nw_sid",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Strict",
+        "path": "/",
+        "hostOnly": true,
+        "expires": "identity SessionTokens.expiresAt"
+      },
+      "refresh": {
+        "name": "nw_refresh",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Strict",
+        "path": "/",
+        "hostOnly": true,
+        "expires": "浏览器session cookie；绝对期限仅由identity权威核对"
+      }
+    },
+    "successStatus": 200,
+    "responseBodyLimitBytes": 65536,
+    "failurePolicy": "固定操作以外不设置认证cookie；认证响应一律no-store。非200只输出标准Problem安全字段，不设/清cookie；敏感成功回执CONFLICT要求重新登录，不盲重放。成功DTO/媒体类型/期限/字段错误时在任何body或cookie写出前INTEGRITY_ERROR。",
+    "csrf": "仅安全session.csrfToken回浏览器内存；后续写请求使用X-CSRF-Token，不设置可读cookie，不持久化raw token。",
+    "networkScopes": "仅createSession/registerFirstSuperadmin调用platform.PrivateNetworkScopes，从真实socket RemoteAddr和仅受信CIDR的XFF生成当前及上一UTC日HMAC并签入OperationContext；浏览器头不能指定scope。"
+  },
+  "x-browser-session-revocation": {
+    "owner": "identity",
+    "operationId": "revokeSession",
+    "method": "DELETE",
+    "path": "/v1/sessions/{sessionId}",
+    "rule": "仅当已权威校验AuthContext.sessionId等于静态路由参数sessionId且上游200 revoked=true才删除nw_sid/nw_refresh；撤销其他设备及任何失败均不清当前cookie",
+    "cookieDeletion": "保持host-only Path=/ Secure HttpOnly SameSite=Strict，MaxAge=-1且Expires过去",
+    "responseBodyLimitBytes": 65536
   }
 }

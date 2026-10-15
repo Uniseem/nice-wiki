@@ -9,3 +9,9 @@
 超时的写请求必须使用同 operationId 获取原结果。依赖失败不可假定权限、可见性或引用为空。日志记录 requestId、operationId、状态与安全字段，不记录正文、密码、token、原始文件路径或用户 IP。备份导出经只读 ObjectRef API；导出内容与 staging 根由本服务拥有。
 
 快照协议各阶段在 API/函数中登记；portal 仅 gate 屏障。stage/discard 均需 data-protection 服务证明、superadmin 委托及维护状态；只要有域未登记切换回执，site-config 不能退出维护。
+
+## 受信入口部署参数
+
+portal公开基址由PublicBaseURL/NW_PUBLIC_BASE_URL提供，并经公共NormalizePublicURL规范化；Origin不从Host或X-Forwarded-Proto猜测。默认HTTPS，只有显式AllowLocalHTTP且loopback可接受本地HTTP；Cookie始终Secure，不因HTTP降级。
+
+TrustedProxyCIDRs/NW_TRUSTED_PROXY_CIDRS（逗号分隔）只能来自受信部署配置，默认空数组。仅真实socket peer命中配置CIDR才遍历X-Forwarded-For，从右向左越过受信代理；首个不受信peer左侧完全忽略，实际遍历后缀拒绝非法地址、zone、超过16跳或4096字节。域内只调用公共PrivateNetworkScopes，不复制IP/HMAC算法。完整本域处理器尚未绑定时进程装配直接返回DEPENDENCY_UNAVAILABLE，Ready也不固定声明初始化和恢复成功。
