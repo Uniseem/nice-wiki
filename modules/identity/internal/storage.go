@@ -14,6 +14,7 @@ import (
 	_ "modernc.org/sqlite" // 纯Go驱动，注册"sqlite"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/modules/identity/migrations"
 )
 
@@ -48,6 +49,12 @@ type journalEntry struct {
 // OpenDatabase 打开active区业务库（WAL、foreign_keys、busy_timeout=3000ms）
 // 与control区决定日志。control区不随业务恢复替换。
 func OpenDatabase(dataRoot string) (*Store, error) {
+	if err := lifecycle.ValidatePrivatePath(dataRoot, "directory", true); err != nil {
+		return nil, err
+	}
+	if err := lifecycle.ValidatePrivatePath(filepath.Join(dataRoot, "control"), "directory", false); err != nil {
+		return nil, err
+	}
 	path := filepath.Join(dataRoot, "active", databaseName)
 	dsn := "file:" + path +
 		"?_pragma=journal_mode(WAL)" +
@@ -262,12 +269,35 @@ func appendJournalLine(file *os.File, mu *sync.Mutex, entry journalEntry) error 
 
 // openIdentityControl 只打开不随恢复替换的bootstrap权威，不与active库宣称跨库原子。
 func openIdentityControl(dataRoot string) (*sql.DB, error) {
-	path := filepath.Join(dataRoot, "control", "control.db")
+	controlRoot := filepath.Join(dataRoot, "control")
+	if err := lifecycle.ValidatePrivatePath(controlRoot, "directory", false); err != nil {
+		return nil, err
+	}
+	for _, name := range []string{"control.db", "control.db-wal", "control.db-shm"} {
+		if err := lifecycle.ValidatePrivatePath(filepath.Join(controlRoot, name), "regular-file", true); err != nil {
+			return nil, err
+		}
+	}
+	path := filepath.Join(controlRoot, "control.db")
 	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(3000)")
 	if err != nil {
 		return nil, identityDBError()
 	}
 	db.SetMaxOpenConns(1)
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, identityDBError()
+	}
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", false); err != nil {
+		db.Close()
+		return nil, err
+	}
+	for _, name := range []string{"control.db-wal", "control.db-shm"} {
+		if err := lifecycle.ValidatePrivatePath(filepath.Join(controlRoot, name), "regular-file", true); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
 	var exists int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='control_schema'`).Scan(&exists); err != nil {
 		db.Close()

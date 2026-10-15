@@ -4643,7 +4643,8 @@
           "steps": [
             "按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化",
             "以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄",
-            "独立打开control/control.db并核control schema=1；不可逆bootstrap claim不随active恢复替换，未知控制schema隔离启动"
+            "独立打开control/control.db并核control schema=1；不可逆bootstrap claim不随active恢复替换，未知控制schema隔离启动",
+            "任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接"
           ],
           "errors": [
             {
@@ -4669,7 +4670,8 @@
           "concurrency": "单连接串行；决定日志append串行加锁",
           "idempotency": "迁移按已应用记录跳过；恢复按日志末行状态判定",
           "dependencies": [
-            "identity.openIdentityControl"
+            "identity.openIdentityControl",
+            "platform.ValidatePrivatePath"
           ],
           "resources": [],
           "contract": "reference"
@@ -4764,7 +4766,8 @@
           "outputs": [],
           "purpose": "打开独立control库并初始化或核对受支持schema1",
           "steps": [
-            "打开独立control库并初始化或核对受支持schema1"
+            "打开独立control库并初始化或核对受支持schema1",
+            "sql.Open前以公共ValidatePrivatePath核control目录链、control.db及WAL/SHM正规文件（首次可缺），Ping建立DB后再核正规文件；拒绝链接/特殊或多硬链接，不自建路径校验机制"
           ],
           "errors": [],
           "sideEffects": [],
@@ -4773,7 +4776,8 @@
           "idempotency": "按外层操作回执或决定水位，纯读取无副作用",
           "dependencies": [
             "identity.ControlSchema",
-            "identity.identityDBError"
+            "identity.identityDBError",
+            "platform.ValidatePrivatePath"
           ],
           "resources": [],
           "contract": "reference"
@@ -4986,7 +4990,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理"
+            "先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理",
+            "任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接"
           ],
           "errors": [
             {
@@ -5034,7 +5039,8 @@
             "identity.WithRegistrationRuntime",
             "platform.CanonicalPublicOrigin",
             "platform.NewServiceHandler",
-            "identity.NewApplication"
+            "identity.NewApplication",
+            "platform.ValidatePrivatePath"
           ],
           "resources": [
             "本域implementation全部x-handler",

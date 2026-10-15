@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "5bd5f0d28113e9c8fb50f2f9b6f1b4675d4780c74dba04981e720fa5b64c6868",
+  "contractSha256": "02a4e9d752ea75d86322779585549d38766b924ba2edf57710bfa9a46dc9f5cd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-01（完整登录/首次注册/账号创建与改密）",
   "branch": "codex/identity-login-accounts-r1",
@@ -173,7 +173,7 @@
     {
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
@@ -213,7 +213,7 @@
     {
       "path": "modules/identity/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": "第二轮公共HTTP装配，未本机编译或测试"
@@ -1267,12 +1267,12 @@
       "id": "identity.openIdentityControl",
       "path": "modules/identity/internal/storage.go",
       "state": "in_progress",
-      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "evidence": "按第二轮已报告P2加公共路径校验，DB建立前后失败关闭；未本机编译或测试"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": "待根ValidatePrivatePath公共提交与VPS最终检查"
     },
     {
       "id": "identity.AppendDecision",

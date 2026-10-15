@@ -102,7 +102,15 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 // ensureDataLayout 建立 active/control/restore 三区；control 区不随业务
 // 恢复替换，restore 供 ADR0003 换目录协议使用。
 func ensureDataLayout(dataRoot string) error {
+	if err := lifecycle.ValidatePrivatePath(dataRoot, "directory", true); err != nil {
+		return err
+	}
 	for _, name := range [...]string{"active", "control", "restore"} {
+		if name == "control" {
+			if err := lifecycle.ValidatePrivatePath(filepath.Join(dataRoot, name), "directory", true); err != nil {
+				return err
+			}
+		}
 		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
 		}

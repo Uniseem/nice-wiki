@@ -2891,6 +2891,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 1. 按DSN设置WAL、foreign_keys=ON、busy_timeout=3000ms并打开active/identity.db；单连接串行化
 2. 以0600追加模式打开control/identity-journal.jsonl；任一失败关闭已打开句柄
 3. 独立打开control/control.db并核control schema=1；不可逆bootstrap claim不随active恢复替换，未知控制schema隔离启动
+4. 任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接
 
 **错误**
 
@@ -2901,7 +2902,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 - 授权：permission：service；rule：进程启动装配，不对外暴露
 - 并发：单连接串行；决定日志append串行加锁
 - 幂等：迁移按已应用记录跳过；恢复按日志末行状态判定
-- 依赖：`identity.openIdentityControl`
+- 依赖：`identity.openIdentityControl`、`platform.ValidatePrivatePath`
 
 ## identity.RunMigrations
 
@@ -2993,6 +2994,7 @@ func openIdentityControl(dataRoot string) (*sql.DB, error)
 **步骤**
 
 1. 打开独立control库并初始化或核对受支持schema1
+2. sql.Open前以公共ValidatePrivatePath核control目录链、control.db及WAL/SHM正规文件（首次可缺），Ping建立DB后再核正规文件；拒绝链接/特殊或多硬链接，不自建路径校验机制
 
 **错误**
 
@@ -3002,7 +3004,7 @@ func openIdentityControl(dataRoot string) (*sql.DB, error)
 - 授权：本域受信用例/装配或启动恢复私有助手
 - 并发：信任外层事务或本域账号互斥；不作为HTTP独立入口
 - 幂等：按外层操作回执或决定水位，纯读取无副作用
-- 依赖：`identity.ControlSchema`、`identity.identityDBError`
+- 依赖：`identity.ControlSchema`、`identity.identityDBError`、`platform.ValidatePrivatePath`
 
 ## identity.AppendDecision
 
@@ -3203,6 +3205,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 8. 先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理
+9. 任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接
 
 **错误**
 
@@ -3214,7 +3217,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`platform.ValidatePrivatePath`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## identity.Serve
