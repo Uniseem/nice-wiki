@@ -1,4 +1,4 @@
-# 当前工作包：会话签发、刷新与即时授权（2026-10-15，待VPS复核）
+# 当前工作包：会话签发、刷新与即时授权（2026-10-15，VPS编译与结构复核通过）
 
 - 分支`codex/identity-session-complete-r1`；基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，只拥有modules/identity。接续前代理相同工作包未提交撤销代码与追加迁移后逐项审阅；本轮源码提交`59070a0645a744e67426f511fcddd2040e46816f`，仅本域20文件；源码提交后工作树清洁，台账记录随后单独提交以引用准确SHA。
 - IssueSessionTokens仅接受本域事务，由platform统一生成独立随机secret和专用Ed25519签名；固定issuer/audience/type，绑定会话/凭据/权限/认证/数据版本，15分钟访问且不超过首次签发后7天。原始cookie不入普通回执或日志，族、摘要与会话访问期限同事务。
@@ -7,14 +7,14 @@
 - 受限初始口令AuthContext仅含account.self；还必须由可信静态action精确选择identity:changePassword、identity:revokeSession或identity:readSelf，缺失或其他动作失败关闭，不能扩充grants。ReadSessions拒绝受限主体，受限登出只能撤销当前设备。
 - VerifySessionCSRF限定portal与固定公开Origin，验签access与CSRF独立secret摘要同一会话；可选sessionId若提供必须匹配。RevokeSession完整安全回执、撤销和outbox同事务，先查回执允许原结果重放。RevokeSessionFamily只允许私有事务；RevokeOtherSessions只允许改密事务，撤销其他族/session并CAS更新保留设备凭据水位。
 - RevokeAllSessions同步撤销refresh族。InvalidateRestoredSessions将control决定NewAuthEpoch同事务写auth_state并全撤session/族；done重放核对认证代次一致。追加0003迁移不为旧会话生成可用凭据。
-- 统一复核追加任务入口粗能力：MapFunctionGrants只读gen.JobManagementGrants，派生grants含任一登记项即追加job.manage，不新增用户开关；jobs按持久owner/type二次核验具体权限。受限初始口令/非active仍由sessionAuthContext清空或收窄grants。该追加依赖根目录和生成器同步，等待VPS最终检查。
+- 统一复核追加任务入口粗能力：MapFunctionGrants只读gen.JobManagementGrants，派生grants含任一登记项即追加job.manage，不新增用户开关；jobs按持久owner/type二次核验具体权限。受限初始口令/非active仍由sessionAuthContext清空或收窄grants。追加源码`2ee5c9395297238ab63c921b688d28e221b26b01`，根目录和生成器已同步，VPS最终检查通过。
 - 本域契约：AuthorizationRequest新增accessToken与委托互斥来源、可选静态action；CSRF必需accessToken、sessionId可选；IdentityChanged.reason增加session；HTTP错误补完整性/CAS实际分支；登记运行配置和一致快照助手。没有新增业务端点。
 - 公共协议由集成会话提供：platform.SessionAccessClaims/SessionSecrets、serviceauth.SignSessionAccess/VerifySessionAccess/GenerateSessionSecrets、公开Origin配置、AuthContext.SessionRevision与严格委托版本传递。本域未修改公共代码。根framework需登记实际出现的authorization_service.go、csrf_service.go和0003_session_tokens.sql。
-- VPS首轮14模块make build（readonly build/vet/gofmt）与gen/docs已通过，make check仅公共可达性/framework登记待集成修正；本域修改依赖与刷新权限CAS后仍待VPS最终复跑，条目保持in_progress，不以源码存在当完成。未新增测试、样例、fixture或临时验证程序，未运行真实认证服务/接口/模型，未部署或push。业务验收未执行。
+- VPS最终快照make docs/gen、14模块make build（readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；交付函数和完整文件转verified，含未完成注册/登录/outbox循环的文件仍in_progress，行为验收未执行，不以源码存在当完成。未新增测试、样例、fixture或临时验证程序，未运行真实认证服务/接口/模型，未部署或push。业务验收未执行。
 
 ## 下一步（一项）
 
-先由集成会话在VPS运行make gen/docs/build/check并逐项审查本轮会话事务，修复真实问题后再按证据升级台账。后续CreateSession仍须先收口traffic-guard可信来源、失败保护和初始化下一路由，不猜协议直接开放登录。
+本轮VPS检查已通过，由集成会话统一合并并映射实际主分支SHA。下一工作包先收口CreateSession的traffic-guard可信来源、失败保护和初始化下一路由，再实现登录完整写事务与固定handler装配；不猜协议直接开放登录。
 
 ---
 

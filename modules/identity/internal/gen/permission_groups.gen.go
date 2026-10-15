@@ -79,3 +79,15 @@ var SuperadminOnlyGrants = []string{
 	"system.manage",
 	"superadmin",
 }
+
+// JobManagementGrants 派生入口粗能力；任务服务仍按持久类型核业务权限。
+var JobManagementGrants = []string{
+	"system.manage",
+	"backup.manage",
+	"knowledge.manage",
+	"localization.manage",
+	"media.manage",
+	"memory.manage",
+	"content.publish",
+	"qa.manage",
+}

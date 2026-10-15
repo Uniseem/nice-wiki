@@ -7,7 +7,7 @@
   "assignedSession": "R1-01（会话签发刷新、CSRF与即时授权）",
   "branch": "codex/identity-session-complete-r1",
   "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
-  "deliveryCommit": "59070a0645a744e67426f511fcddd2040e46816f",
+  "deliveryCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
   "deployment": "not_started",
   "files": [
     {
@@ -15,10 +15,10 @@
       "state": "in_progress",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": "RegisterFirstSuperadmin仅完成输入和依赖前置，仍缺唯一超管/凭据/索引/会话的完整写事务"
     },
     {
       "path": "modules/identity/internal/account_service.go",
@@ -42,13 +42,13 @@
     },
     {
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
       "verification": {
-        "state": "not_run",
-        "evidence": "统一复核新增job.manage入口能力派生，待根生成目录更新及VPS最终编译"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "等待根jobManagementGrants生成和VPS make gen/docs/build/check"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/credential_service.go",
@@ -65,40 +65,40 @@
       "state": "in_progress",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": "CreateSession仍缺登录风控、密码核对后的会话创建事务与初始化下一路由；已交付签发/刷新/会话列表及助手通过VPS现阶段检查"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/preference_service.go",
@@ -135,20 +135,20 @@
       "state": "in_progress",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": "PublishIdentityEvent本轮变更通过VPS检查；RelayOutbox jobs客户端与循环仍未实现"
     },
     {
       "path": "modules/identity/internal/restore_security.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/barrier_service.go",
@@ -342,13 +342,13 @@
     },
     {
       "path": "modules/identity/migrations/0003_session_tokens.sql",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     }
   ],
   "functions": [
@@ -465,13 +465,13 @@
     {
       "id": "identity.MapFunctionGrants",
       "path": "modules/identity/internal/permission_mapping.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "2ee5c9395297238ab63c921b688d28e221b26b01",
       "verification": {
-        "state": "not_run",
-        "evidence": "统一复核新增job.manage入口能力派生，待根生成目录更新及VPS最终编译"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "等待根jobManagementGrants生成和VPS make gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.HashPassword",
@@ -531,101 +531,101 @@
     {
       "id": "identity.IssueSessionTokens",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RefreshSession",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RevokeSession",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RevokeSessionFamily",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RevokeOtherSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.VerifySessionCSRF",
       "path": "modules/identity/internal/csrf_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.CheckAuthorization",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.ReadPreferences",
@@ -707,13 +707,13 @@
     {
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RelayOutbox",
@@ -729,13 +729,13 @@
     {
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.AcquireBarrier",
@@ -916,69 +916,69 @@
     {
       "id": "identity.WithSessionRuntime",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.sessionRuntimeFromContext",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.readSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.validateSessionSnapshot",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.sessionAuthContext",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.verifySessionAccess",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "59070a0645a744e67426f511fcddd2040e46816f",
       "verification": {
-        "state": "not_run",
-        "evidence": "VPS首轮14模块make build（readonly build/vet/gofmt）、make gen/docs通过；统一复核后补刷新权限CAS和委托版本，最终VPS复跑待集成会话，不把首轮结果冒充最终验证"
+        "state": "passed",
+        "evidence": "集成会话隔离VPS最终快照：make docs/gen成功；14个Go模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（850文件/943函数/372操作/2186类型）。未新增或运行业务测试、未执行SQL行为验收、真实接口/模型、服务或部署；仅编译与契约/结构检查，不代表业务验收。"
       },
-      "blocker": "本轮源码已提交，待集成会话最终VPS make gen/docs/build/check与统一复核"
+      "blocker": null
     }
   ],
-  "rule": "本轮源码未编译，修改条目保持in_progress；平台协议和VPS已有检查通过后由集成会话审查并升级，不把编译视为业务验收。"
+  "rule": "本轮交付函数和完整文件依据隔离VPS编译/生成/完整结构检查转verified；含未实现注册、登录或outbox循环的文件仍in_progress。完整HTTP/后台装配、业务验收和部署未完成，主分支提交映射由集成会话合并后更新。"
 }

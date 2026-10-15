@@ -464,7 +464,7 @@ func MapFunctionGrants(input MapFunctionGrantsInput) (MapFunctionGrantsResult, e
 
 1. 严格读取根contracts/permission-groups.json固定10组映射：默认10项全选、authenticatedBaseGrants固定portal.use/account.self/site.read
 2. manage_translations→localization.manage，与manage_languages→localization.languages分开；edit包含preview/upload/read，publish包含publish/history/trash；子账号不得获得superadminOnly任何grant
-3. job.manage不是自由功能开关：仅服务委托且owner业务对象权限已通过时派生，禁止越域/系统任务；resourceId只审计不创建文档scope；唯一superadmin按账户标识获取全部登记管理权限
+3. job.manage不增加用户开关：从根jobManagementGrants生成目录取能力集合，当前派生grants含任一项时追加job.manage，仅供portal入口粗预检；jobs必须按持久owner/type重新核具体业务权限，不允许任意任务或系统任务越权；唯一superadmin按账户标识获取登记管理权限
 
 **错误**
 
@@ -475,6 +475,7 @@ func MapFunctionGrants(input MapFunctionGrantsInput) (MapFunctionGrantsResult, e
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
 - 依赖：无
+- 其他依赖说明：根contracts/permission-groups.json的jobManagementGrants，经make gen生成gen.JobManagementGrants；本域不维护第二份任务权限目录
 
 ## identity.HashPassword
 
