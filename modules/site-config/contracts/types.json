@@ -967,10 +967,16 @@
         "config": {
           "$ref": "#/$defs/SiteConfig",
           "description": "SiteConfig"
+        },
+        "allowLocalHTTP": {
+          "type": "boolean",
+          "description": "仅本域受信部署能力注入；不是HTTP字段，默认false",
+          "default": false
         }
       },
       "required": [
-        "config"
+        "config",
+        "allowLocalHTTP"
       ]
     },
     "ValidateSiteConfigResult": {
@@ -995,10 +1001,16 @@
         "url": {
           "$ref": "#/$defs/SafeURL",
           "description": "SafeURL"
+        },
+        "allowLocalHTTP": {
+          "type": "boolean",
+          "description": "仅本域受信部署能力注入；不是HTTP字段，默认false",
+          "default": false
         }
       },
       "required": [
-        "url"
+        "url",
+        "allowLocalHTTP"
       ]
     },
     "NormalizeBaseURLResult": {
@@ -1808,23 +1820,20 @@
     },
     "ReadConfigObjectResult": {
       "type": "object",
-      "description": "经协议读取本域正文或快照对象的结果",
+      "x-internal": true,
+      "description": "本域对象读取结果；HTTP根据ObjectRef输出原始字节与绑定头，消费关闭Reader",
       "additionalProperties": false,
       "properties": {
         "object": {
-          "$ref": "#/$defs/ObjectRef",
-          "description": "ObjectRef"
+          "$ref": "#/$defs/ObjectRef"
         },
-        "bodyHandle": {
-          "type": "string",
-          "description": "内部只读流句柄",
-          "minLength": 1,
-          "maxLength": 128
+        "reader": {
+          "$ref": "#/$defs/ConfigObjectStream"
         }
       },
       "required": [
         "object",
-        "bodyHandle"
+        "reader"
       ]
     },
     "ReleaseBarrierInput": {
@@ -3025,6 +3034,11 @@
         "schemaVersion",
         "config"
       ]
+    },
+    "ConfigObjectStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "io.ReadCloser，只在本域HTTP适配进程内流转；HTTP消费并关闭，不发送内存句柄"
     }
   }
 }

@@ -308,6 +308,26 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威文件/COMMITTED/SQL或原始材料不一致",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：活动epoch或expectedRevision已变化",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         }
       },
@@ -356,7 +376,7 @@
             }
           },
           "409": {
-            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变",
+            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变；CONFLICT：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；LOCKED：维护或恢复屏障拒绝新写入",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -367,6 +387,26 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：权威文件/COMMITTED/SQL或原始材料不一致",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：站点未完成初始化或对象未提交",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -988,8 +1028,8 @@
     "/v1/objects/{objectId}": {
       "get": {
         "operationId": "readConfigObject",
-        "summary": "经协议读取本域正文或快照对象",
-        "description": "调用函数 site-config.ReadConfigObject；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "summary": "读取已提交的本域不可变对象原始字节",
+        "description": "严格核对objectId/version/expectedHash；HTTP返回原始对象流，内部Reader消费后关闭，不序列化进程句柄。本轮支持已提交settings对象。",
         "x-handler": "site-config.ReadConfigObject",
         "x-permission": "service",
         "security": [
@@ -1011,33 +1051,73 @@
           {
             "in": "query",
             "name": "version",
-            "required": false,
+            "required": true,
             "schema": {
-              "type": "string",
-              "description": "version",
-              "minLength": 0,
-              "maxLength": 2048
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
             }
           },
           {
             "in": "query",
             "name": "expectedHash",
-            "required": false,
+            "required": true,
             "schema": {
-              "type": "string",
-              "description": "expectedHash",
-              "minLength": 0,
-              "maxLength": 2048
+              "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "经协议读取本域正文或快照对象的成功回执",
+            "description": "已验证不可变对象的原始字节；所有对象头均绑定同一ObjectRef",
+            "headers": {
+              "ETag": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "pattern": "^\"[0-9a-f]{64}\"$"
+                },
+                "description": "双引号包围的完整SHA256"
+              },
+              "Content-Length": {
+                "required": true,
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "ObjectRef.byteSize"
+              },
+              "Content-Type": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "description": "ObjectRef.mediaType"
+              },
+              "X-Object-Id": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "description": "ObjectRef.objectId"
+              },
+              "X-Object-Version": {
+                "required": true,
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "description": "ObjectRef.version"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "types.json#/$defs/ReadConfigObjectResult"
+                  "$ref": "types.json#/$defs/ConfigDocument"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -1064,6 +1144,26 @@
           },
           "422": {
             "description": "INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：活动epoch或expectedRevision已变化",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：本域权威存储不可用",
             "content": {
               "application/problem+json": {
                 "schema": {

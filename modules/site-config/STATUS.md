@@ -1,5 +1,18 @@
 # 站点配置与初始化当前进度
 
+## 持续实施第二轮（2026-10-15）
+
+- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，仅拥有 `modules/site-config/`；新源码均 in_progress，等待统一 VPS 门槛。
+- 已写一般设置的 ReadSiteConfig/UpdateSiteConfig、纯 ValidateSiteConfig/NormalizeBaseURL、ReadConfigObject 原始对象流；复用既有文件 IO、COMMITTED/CAS/回执与平台 outbox，不复制公共身份/签名机制。
+- 一般设置候选材料只供未完成操作恢复，保存首次 updatedAt；正式读取与成功重试均读不可变文件。新增 0004 只追加迁移保存候选材料并约束对象 ID/站点修订唯一。
+- NormalizeBaseURL 依赖根提供的 lifecycle.NormalizePublicURL（统一 IDNA/URL/显式 loopback HTTP 能力）；公共 HTTP 工厂冻结后再接线，不自造入口机制。
+- ReadConfigObject 限当前真实已提交 settings；返回进程内 Reader，HTTP 直接消费关闭并输出绑定元数据，不发送 bodyHandle。
+- Home 组保留下一紧密组：按钮禁用/解析 URL/AI 可用性协议及 media pin 崩溃续办尚未收口；完整 HTTP、RelayOutbox、恢复回执与快照/屏障继续未完成。
+- 本轮未在本机格式化、生成、编译、vet、lint、类型检查或测试；未新增测试/样例/fixture/临时验证程序，未运行服务、真实接口、模型、部署或 push。
+
+---
+
+
 最新统一集成事实（2026-10-15）：初始化与settings权威提交、恢复和文件IO通过；配置编辑、完整HTTP/后台仍未完成。
 VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：a0d6adf、0e8cc9f、c2d734b，逐项以progress.json为准。未执行业务验收或部署。
 以下旧说明作为历史记录，当前状态以前述事实和台账为准。

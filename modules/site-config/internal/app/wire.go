@@ -70,7 +70,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
-	activeStore.ConfigureInitialization(config.PublicBaseURL)
+	activeStore.ConfigureInitialization(config.PublicBaseURL,config.AllowLocalHTTP)
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",

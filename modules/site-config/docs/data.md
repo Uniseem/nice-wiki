@@ -145,3 +145,16 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 
 
 配置持久 IO 自身承担文件权威边界：从文件系统根目录使用 `os.Root` 能力句柄逐段 `Lstat` 并打开下一目录，拒绝父路径中的符号链接、特殊文件和非目录。后续文件创建、Link、Rename 和读取都相对已核对的目录句柄进行，不重新跟随绝对父路径。读取前后核对同一正规文件，末级 `O_NOFOLLOW` 拒绝链接、`O_NONBLOCK` 避免文件被替成 FIFO 后阻塞；既有不可变文件复用也经过该边界。正文、head、PREPARED、COMMITTED 和隔离标记的规范 JSON 均以入口既有总界 16 MiB 为上限，读取使用有界 reader 防止损坏或并发增长无限占用内存；类型、目录身份或大小异常失败关闭。
+
+
+## 一般设置操作与已提交读取
+
+一般设置只改变公开地址、SEO、资源上限和安全参数；品牌、首页、页脚、公告、基准语言和 initialized 不在该输入中。`ReadSiteConfig` 要求 site.read/superadmin，或已登记内部服务主体；携用户委托的服务调用仍按该用户的站点和权限判断，不能借服务名绕过授权。读取在本域文件提交锁和只读事务内，把 initialized/epoch/配置水位、正式索引、COMMITTED、原始回执、head 与权威文件视为同一边界。任何未补齐决定或水位不一致失败关闭。
+
+`0004_config_operations.sql` 追加 `config_operation_materials`，保存一般设置 operation 的种类、完整候选 ConfigDocument 规范 JSON、SHA256 与修订号；同事务建立原始 actor/site/epoch/requestHash 回执和稳定 revisionId。业务摘要包含 kind=settings 与规范公开地址后的完整输入（含 expectedRevision），材料保留首次 updatedAt。候选 JSON 仅供未完成操作继续写文件，不能作为正式配置读取。只在明确 COMMITTED 后由文件决定恢复 SQL 水位和 outbox；未 COMMITTED 的普通候选须同 operation 重试，不在启动时从数据库推定发布。
+
+配置对象 ID 与站点内 revision 在追加迁移中建立唯一索引，拒绝歧义历史。已完成 operation 的重试根据原始回执读取原修订文件；即使后来已有更高配置水位，也不改写最新 head。未完成操作复用原候选材料与既有 PREPARED/COMMITTED；跨进程仍由 SQLite 写锁和文件决定占有目标水位。
+
+URL/IDNA 规范化只调用平台 `lifecycle.NormalizePublicURL`；本域保存由进程配置注入的 allowLocalHTTP 能力，HTTP 请求不能自造该字段。ValidateSiteConfig 只做模板占位符、规范语言、链接安全、ID 唯一和公告作用域/时间窗等纯语义，入口或持久 IO 已完成的结构校验不重复执行。普通设置不重查未改变的 media/content 引用；改变引用的用例另行承担实时授权和 pin 恢复。
+
+`ReadConfigObject` 本轮仅支持正式索引中已提交的 settings 对象；公告/快照生产方未完成时不制造通用成功。按 objectId/version/expectedHash 精确读取并验证，同样复用既有正规文件、目录能力与 16 MiB 上限。返回的 io.ReadCloser 只在服务进程内流转，HTTP 输出原始对象字节，ETag（带引号 SHA256）、Content-Length/Type、对象 ID/版本头与同一 ObjectRef 绑定；不存在跨进程 bodyHandle 协议或全局句柄表。HTTP 适配负责消费并关闭该流。

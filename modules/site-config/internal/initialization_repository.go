@@ -121,7 +121,7 @@ func PersistInitializationDecision(ctx context.Context, op platform.OperationCon
 		VALUES(?,?,?,?,?,?,?,?)`, *next.OperationId, *next.SiteId, input.Decision, requestHash, string(stateJSON), preparedValue, hashValue, next.UpdatedAt.Format(time.RFC3339Nano)); err != nil {
 		return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化初始化决定失败")
 	}
-	revisionID := initializationRevisionID(op.DataEpoch, *next.SiteId, *next.OperationId)
+	revisionID := configRevisionID(op.DataEpoch, *next.SiteId, *next.OperationId)
 	operationState := "in_progress"
 	if input.Decision == "abort" {
 		operationState = "committed"

@@ -1,5 +1,22 @@
 # 站点配置与初始化会话交接
 
+## 持续实施第二轮：一般设置与原始对象读取（2026-10-15）
+
+- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，独占本域；旧初始化分支保留。源码及合同已写，尚未运行本轮 VPS 门槛，进度 in_progress。
+- 完成源码：ReadSiteConfig、UpdateSiteConfig、ValidateSiteConfig、NormalizeBaseURL、ReadConfigObject；ConfigureInitialization 扩受信 allowLocalHTTP；CommitConfigHead 补已完成原始回执优先返回，避免同操作并发晚到后错误覆盖/拒绝旧成功。
+- 普通配置候选材料和原始 actor/site/epoch/hash 同事务保存，固定首次 updatedAt 和 revisionId。只从真实 COMMITTED 权威文件返回正式/原始结果；未提交普通候选不在启动自动发布。新迁移对对象 ID/站点修订建立唯一索引。
+- 对象协议：version/hash 必填且严格类型；HTTP 返回原始对象字节，绑定 ETag/Content-Length/Type/对象 ID/版本，Reader 仅本进程使用并关闭，不造内存句柄表。当前仅支持已真实提交 settings，其他对象类型不存在完成索引时 NOT_FOUND。
+- 根裁决的公共前置：lifecycle.NormalizePublicURL(raw,allowLocalHTTP)，根负责 Go 官方 IDNA 依赖、许可和 VPS mod/sum；本域不修改 libs/根文件或手写依赖和生成物。公共 HTTP 身份/操作上下文/schema 工厂接口冻结后再接线。
+- 新增实际文件 4 个需根 framework 登记：internal/config_service.go、internal/config_validator.go、internal/object_reader.go、internal/migrations/active/0004_config_operations.sql。未新增测试、样例、fixture 或临时业务验证程序；所有格式/生成/编译/vet/检查只交根统一 VPS 执行。
+- Home 组明确留待下一紧密组，不写假完成函数：ReadPublicHome 缺按钮 disabled/解析 URL 与 AI 可用性权威表达；UpdateHome 需持久 media pinId/确认阶段及 COMMITTED 后崩溃续办。不能删按钮冒充禁用，不能省略恢复路径。
+
+### 下一步（一项）
+
+合入根已冻结的公共 URL/HTTP 入口基线，接入本轮已实现配置读取/修改/对象流和初始化用例 HTTP handler；复用平台身份、操作上下文和严格 schema，不重复实现；统一 VPS 编译/结构检查通过后交集成逐函数复核。行为验收、真实接口调用和部署继续未授权。
+
+---
+
+
 ## 持续实施第一轮最终集成事实（2026-10-15）
 
 - 初始化与settings权威提交、恢复和文件IO通过；配置编辑、完整HTTP/后台仍未完成。

@@ -31,3 +31,8 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 | `site-config.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
 | `site-config.RecoverConfigJournal` | 启动时（入口开放前） | 启动前恢复settings权威文件提交决定 |
 <!-- flows:end -->
+
+
+一般设置：同站点管理会话 → 规范 URL/稳定请求摘要 → 解析原始 operation 回执 → 首次持久候选配置与固定时钟 → 复用不可变文件/PREPARED → COMMITTED/CAS/head/SQL/outbox → 返回正式配置。成功重试返回原修订；未完成重试不重造时钟；新的维护期写入拒绝，旧成功回执仍可读取。普通候选不是持久发布决定，启动时不能自动发布。
+
+本轮未推进 Home：公开按钮禁用状态与目标 URL 尚无精确返回字段，AI 可用性来源未收口；media acquire→本域 COMMITTED→confirm 的 pinId 与崩溃续办需作为下一紧密组整体设计。不能删按钮代替禁用，也不能只调用成功路径的 pin 接口。

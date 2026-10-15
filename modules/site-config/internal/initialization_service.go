@@ -47,9 +47,10 @@ func ReadInitializationStatus(ctx context.Context, op platform.OperationContext,
 
 // ConfigureInitialization 仅接收进程配置边界已校验的部署公开地址。
 // 空地址允许既有读取启动，新的初始化在使用时失败关闭。
-func (s *ActiveStore) ConfigureInitialization(publicBaseURL string) {
+func (s *ActiveStore) ConfigureInitialization(publicBaseURL string, allowLocalHTTP bool) {
 	s.stateMu.Lock()
 	s.publicBaseURL = publicBaseURL
+ s.allowLocalHTTP = allowLocalHTTP
 	s.stateMu.Unlock()
 }
 
@@ -247,7 +248,7 @@ func initializationRequestHash(name, language string) (string, error) {
 		BaseLanguage string `json:"baseLanguage"`
 	}{"initialize", name, language})
 }
-func initializationRevisionID(epoch, siteID, operationID string) string {
+func configRevisionID(epoch, siteID, operationID string) string {
 	return platform.HashBytes([]byte(epoch + "\x00" + siteID + "\x00" + operationID))
 }
 
