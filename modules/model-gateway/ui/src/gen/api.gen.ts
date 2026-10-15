@@ -4087,8 +4087,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共入口或IO取消/截止失败关闭 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共失败关闭错误 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共入口或IO取消/截止失败关闭 */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

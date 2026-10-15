@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 67 个函数：约束 37 个，参考 30 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 78 个函数：约束 37 个，参考 41 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -54,6 +54,228 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.OpenDatabase`、`model-gateway.InstallStore`
+
+## model-gateway.OpenDatabase
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：打开私有active库并执行严格只追加迁移
+
+```go
+func OpenDatabase(dataDirectory string) (*Store, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `dataDirectory` | `string` | 私有部署目录 | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `Store` | 本域句柄 | 错误时不使用结果；不暴露私有配置原值 |
+| `err` | `error` | 错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 仅建立本域active/control/restore目录，WAL/外键/单连接
+2. 校验全部已应用迁移版本再逐事务执行未应用迁移
+3. 失败关闭数据库，不安装未知句柄
+
+**错误**
+
+- `VALIDATION`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（可重试）
+- `INTEGRITY_ERROR`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+
+- 副作用：建立本域目录并打开SQLite，执行只追加迁移和平台outbox建表
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：启动时单连接迁移；错误逆序关闭资源
+- 幂等：已应用编号/名称不重复迁移，未知版本拒绝
+- 依赖：`model-gateway.runMigrations`
+
+## model-gateway.CurrentStore
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：读取进程已安装Store
+
+```go
+func CurrentStore() *Store
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `Store` | 当前安装句柄或nil | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 只在进程RWMutex内取指针，不持锁执行查询
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：进程RWMutex仅取当前Store指针，无SQL或网络
+- 幂等：无写入，可重复
+- 依赖：无
+
+## model-gateway.InstallStore
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：安装既有本域Store供业务读取
+
+```go
+func InstallStore(store *Store)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `Store` | 可信启动已打开的本域库 | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅启动装配设置当前Store；不读主密钥、不写runtime_meta代次、不宣称服务ready
+
+**错误**
+
+- 无
+
+- 副作用：更新进程内当前Store指针
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：仅可信启动装配持进程写锁设置指针，不持锁执行IO
+- 幂等：重复安装同指针不改持久数据；不证明服务ready
+- 依赖：无
+
+## model-gateway.Store.BeginTx
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：在未关闭Store开始事务
+
+```go
+func (s *Store) BeginTx(ctx context.Context) (*sql.Tx, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消和截止 | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `tx` | `SQLTransaction` | 本域事务 | 错误时不使用结果；不暴露私有配置原值 |
+| `err` | `error` | 错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 核Store未关闭后调用已有SQL连接BeginTx；上下文贯穿
+
+**错误**
+
+- `VALIDATION`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（可重试）
+- `CANCELLED`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `DEADLINE_EXCEEDED`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+
+- 副作用：建立本域SQL事务
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：先短读锁核关闭状态，再SQL BeginTx；ctx贯穿查询
+- 幂等：无业务写入；事务由调用方结束
+- 依赖：无
+
+## model-gateway.Store.Close
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：关闭并撤销当前安装Store
+
+```go
+func (s *Store) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 关闭错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 幂等标关闭；只撤销同一指针，再关闭数据库
+
+**错误**
+
+- `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+
+- 副作用：幂等关闭数据库并撤销同一已安装指针
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：Store写锁标关闭后释放，进程写锁仅撤销同指针，然后关闭SQL连接
+- 幂等：重复关闭不重复撤销或关闭资源
+- 依赖：无
+
+## model-gateway.runMigrations
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：执行唯一embed来源只追加迁移
+
+```go
+func (s *Store) runMigrations() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 迁移错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 调用All核编号连续，读取全部已应用版本/名称并拒绝未知
+2. 每个未应用迁移单独事务执行和登记；初始runtime_meta保留未知空代次
+3. 唯一调用平台outbox.EnsureSchema；不创建默认配置或种子凭据
+
+**错误**
+
+- `INTEGRITY_ERROR`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+- `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
+
+- 副作用：事务执行未应用SQL迁移、迁移回执与初始空代次单例；平台outbox表
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：仅可信启动单连接执行迁移，版本未知先拒绝；无网络IO
+- 幂等：编号/名称匹配已应用项跳过，未应用项事务提交
 - 依赖：`model-gateway.All`
 
 ## model-gateway.ValidateProvider
@@ -437,7 +659,7 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 **步骤**
 
 1. 五档按能力校验
-2. orderedModelIds保留管理员顺序且去重最多16个
+2. orderedModelIds保留管理员顺序且去重，配置数组按公开schema最多256个；执行路由先过滤本地eligible再取至多16个候选
 3. 视觉未设可用fast中支持vision模型，rerank未设可用fast
 4. CAS保存，仅superadmin可分配。
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
@@ -537,10 +759,10 @@ func ResolveRoute(ctx context.Context, op OperationContext, input ResolveRouteIn
 
 **步骤**
 
-1. 固定档位/任务覆盖版本
-2. 按orderedModelIds剔除disabled并保留顺序
+1. 固定档位/任务覆盖版本：覆盖模型替换orderedModelIds首项，保留第二项起有序备用并去重；空列表覆盖模型可成唯一候选，不把被替换主模型另加备用
+2. 按完整合法有序配置先剔除模型停用、目标能力不匹配（QA链为chat）、供应方停用或当前凭据引用未配置项；保留可用候选原顺序，再最多取16个，不在过滤前截断
 3. embedding必须同一公共space，空间变化新索引而非混用
-4. 返回最多16个候选，已派发attempt各自独立计费。
+4. 返回过滤后至多16个有序候选，不改变备用顺序或新增已被覆盖的原主模型；已派发attempt各自独立计费
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
@@ -2598,11 +2820,13 @@ func ReadTaskAvailability(ctx context.Context, op OperationContext, input ReadTa
 
 **步骤**
 
-1. 固定qa纯服务caller，只允许qa.preflight/qa.inspect/qa.answer范围；不要求付费costClass、也不创建执行授权
-2. 当前epoch与本域只读一致快照读取任务分配、qa类别档位、模型启用、供应方启用与credentialVersion及密钥引用是否具备
-3. 任务分配/档位不存在明确not_configured；已配但无启用且chat能力匹配候选、供应方/凭据停用明确unavailable；存在可用配置候选为available
-4. 单任务覆盖与有序档位候选沿既有路由规则；未知表/损坏/存储失败503/422，不能返回空数组或false充当已知未配置
-5. 不读取或返回秘密正文、供应方地址、模型ID、预算/余额，不检查价格是否齐全，不出网、不探测、不调模型、不预留费用
+1. 仅接受已验证callerService=qa且actor.kind=service；请求任务固定qa.preflight/qa.inspect/qa.answer，不要求此免费操作op.costClass=qa，不授予执行权限
+2. 通过已安装privateStore开始一次只读SQL快照；runtime_meta代次空或缺失为DEPENDENCY_UNAVAILABLE，异代为VERSION_MISMATCH，不沿用允许空水位的通用CheckDataEpoch
+3. 按请求顺序逐项读同代task_assignments及cost_class=qa、tier匹配的唯一profiles；缺任务分配或QA档位才返回not_configured，不从根默认值猜已配置
+4. 有overrideModelId时替换orderedModelIds首项，保留第二项起备用顺序并去重；原列表空时覆盖模型为唯一候选，不把被替换主模型加回备用；公开配置最多256项，完整配置先作本地eligible过滤，不先截断为16项
+5. 候选仅核模型启用/chat能力、供应方启用、当前credentialVersion同代凭据存在及AES-GCM材料长度；附加头只核已持久名称与引用数组结构一致，不取秘密正文、密文、主密钥或供应方地址
+6. 已配置但无可用候选返回unavailable，有候选元数据具备返回available；坏JSON/私有引用矛盾为INTEGRITY_ERROR，查询或缺表未知为DEPENDENCY_UNAVAILABLE，所读引用行异代失败关闭，不用false掩盖未知
+7. 所有任务共享当前快照，无写入、费用/额度/价格读取或供应方HTTP；结果仅taskId/available/reason，no-store，不返回模型或供应方ID、URL、凭据引用、预算/余额，不保证可解密或在线
 
 **错误**
 
@@ -2612,12 +2836,229 @@ func ReadTaskAvailability(ctx context.Context, op OperationContext, input ReadTa
 - `VERSION_MISMATCH`：当前dataEpoch不匹配（不可重试）
 - `INTEGRITY_ERROR`：私有权威数据损坏（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖或存储未知（可重试）
+- `CANCELLED`：查询上下文已取消（不可重试）
+- `DEADLINE_EXCEEDED`：入口原截止已到（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方qa；不授予模型调用或管理写入权限
 - 并发：当前权威快照一致读取；不持锁执行跨服务IO
 - 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readAvailabilityTask`
+- 其他依赖说明：同一privateStore只读SQL快照：runtime_meta/task_assignments/profiles/models/providers/credentials；仅本域私有表
+
+## model-gateway.beginAvailabilitySnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：建立严格当前代次只读快照
+
+```go
+func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *PrivateStore) (*availabilitySnapshot, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原入口取消/截止 | 可信本域装配或已通过入口的只读链路使用 |
+| `op` | `OperationContext` | 可信QA调用及当前代次 | 可信本域装配或已通过入口的只读链路使用 |
+| `store` | `PrivateStore` | 当前安装的本域Store | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `snapshot` | `availabilitySnapshot` | 一次只读事务与代次 | 错误时不使用结果；不暴露私有配置原值 |
+| `err` | `error` | 公共错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 调用既有Store.BeginTx，不写任何业务字段
+2. 同事务读取runtime_meta singleton，空/缺失为503，异代409；失败回滚
+3. 返回句柄由上层defer Rollback结束，三任务共用
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：数据库或查询未知（可重试）
+- `INTEGRITY_ERROR`：私有配置损坏（不可重试）
+- `VERSION_MISMATCH`：快照代次不匹配（不可重试）
+- `CANCELLED`：查询已取消（不可重试）
+- `DEADLINE_EXCEEDED`：查询已到原截止（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：一次短SQL快照；不持本域锁执行网络IO
+- 幂等：只读每次读取当前快照，不创建费用或操作回执
+- 依赖：`model-gateway.Store.BeginTx`、`model-gateway.availabilityReadError`
+
+## model-gateway.readAvailabilityTask
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：从同一快照判定一个QA任务配置
+
+```go
+func readAvailabilityTask(ctx context.Context, snapshot *availabilitySnapshot, taskID string) (TaskAvailability, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原查询上下文 | 可信本域装配或已通过入口的只读链路使用 |
+| `snapshot` | `availabilitySnapshot` | 严格代次事务 | 可信本域装配或已通过入口的只读链路使用 |
+| `taskID` | `string` | 入口已校验固定任务ID | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `TaskAvailability` | 单项安全投影 | 错误时不使用结果；不暴露私有配置原值 |
+| `err` | `error` | 公共错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 读取同代assignment，缺行not_configured
+2. 读取当前epoch/cost_class=qa/tier唯一profile，缺行not_configured；只读候选JSON，不读费用字段
+3. 解析最多256个有序唯一Identifier，坏JSON/null/重复/越界为422
+4. 覆盖只替换首项，保留原第二项起备用并去重；空档位列表可仅覆盖
+5. 按顺序核所有候选元数据，任何未知失败关闭；至少一个可用为available，否则unavailable
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：数据库或查询未知（可重试）
+- `INTEGRITY_ERROR`：私有配置损坏（不可重试）
+- `VERSION_MISMATCH`：快照代次不匹配（不可重试）
+- `CANCELLED`：查询已取消（不可重试）
+- `DEADLINE_EXCEEDED`：查询已到原截止（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：一次短SQL快照；不持本域锁执行网络IO
+- 幂等：只读每次读取当前快照，不创建费用或操作回执
+- 依赖：`model-gateway.readAvailabilityCandidate`、`model-gateway.availabilityReadError`
+
+## model-gateway.readAvailabilityCandidate
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：只读取候选配置存在性与能力
+
+```go
+func readAvailabilityCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原查询上下文 | 可信本域装配或已通过入口的只读链路使用 |
+| `snapshot` | `availabilitySnapshot` | 当前快照 | 可信本域装配或已通过入口的只读链路使用 |
+| `modelID` | `string` | 仅内部候选引用 | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `available` | `bool` | 元数据配置具备 | 错误时不使用结果；不暴露私有配置原值 |
+| `err` | `error` | 公共错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 模型缺失/停用或无chat能力为false，所读模型/provider异代失败；坏能力JSON为422
+2. provider引用缺失为完整性错误；停用或credentialVersion=0为false
+3. 只核附加头名/secret refs数组结构及等长，不新建secret refs存储模型
+4. credential按provider/version读取epoch和nonce/ciphertext长度，缺行false，异代409，长度矛盾422；不取密文/主密钥/URL
+5. 不查价格、预算、余额，不做任何HTTP探测
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：数据库或查询未知（可重试）
+- `INTEGRITY_ERROR`：私有配置损坏（不可重试）
+- `VERSION_MISMATCH`：快照代次不匹配（不可重试）
+- `CANCELLED`：查询已取消（不可重试）
+- `DEADLINE_EXCEEDED`：查询已到原截止（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：一次短SQL快照；不持本域锁执行网络IO
+- 幂等：只读每次读取当前快照，不创建费用或操作回执
+- 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.availabilityReadError
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：保留取消/截止并将其他查询未知映射503
+
+```go
+func availabilityReadError(err error) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | SQL或既有Store错误 | 可信本域装配或已通过入口的只读链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 脱敏公共错误 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 保留context取消与截止或既有相应公共错误
+2. 其他数据库错误只输出固定503，不携SQL、表值、路径或驱动原文
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：读取未知（可重试）
+- `CANCELLED`：已取消（不可重试）
+- `DEADLINE_EXCEEDED`：已到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：纯错误投影，无锁或IO
+- 幂等：只读每次读取当前快照，不创建费用或操作回执
 - 依赖：无
+
+## model-gateway.NewTaskAvailabilityHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：创建免费配置读取真实HTTP映射
+
+```go
+func NewTaskAvailabilityHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `AvailabilityHandlers` | 单项真实HTTP映射 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 只映射readTaskAvailability，取平台可信OperationContext
+2. 绑定已由统一入口校验的JSON并调用真实ReadTaskAvailability
+3. 所有响应no-store，公共Problem失败关闭；成功只写安全JSON，不挂半成品服务
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 并发：只创建映射；每个请求从平台上下文进入绑定并独立只读快照
+- 幂等：只读每次读取当前快照，不创建费用或操作回执
+- 依赖：`model-gateway.ReadTaskAvailability`
 
 ## model-gateway.RefreshModelCatalog
 
@@ -3014,9 +3455,10 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
-5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
-6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+4. 本轮只读映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不为免费读取调用需主密钥LoadRuntime、不覆写未知runtime_meta代次；NewTaskAvailabilityHandlers交公共NewServiceHandler，固定caller qa、当前Runtime及OpenedDataEpoch，全表其他handler缺失仍拒绝启动
+5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 
 **错误**
 
@@ -3028,7 +3470,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

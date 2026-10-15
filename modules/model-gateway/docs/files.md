@@ -2,11 +2,11 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 55 个：手写 36、UI 3、生成 5、配置 10、迁移 1。函数 67 个：约束 37，参考 30。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 56 个：手写 36、UI 3、生成 5、配置 10、迁移 2。函数 78 个：约束 37，参考 41。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/model-gateway/internal/runtime/bootstrap.go` | 手写 | 启动并验证本服务私有持久化与密钥引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.LoadRuntime`（参考） |
+| `modules/model-gateway/internal/runtime/bootstrap.go` | 手写 | 启动并验证本服务私有持久化与密钥引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.LoadRuntime`（参考）、`model-gateway.OpenDatabase`（参考）、`model-gateway.CurrentStore`（参考）、`model-gateway.InstallStore`（参考）、`model-gateway.Store.BeginTx`（参考）、`model-gateway.Store.Close`（参考）、`model-gateway.runMigrations`（参考） |
 | `modules/model-gateway/internal/catalog/provider.go` | 手写 | 验证供应方配置所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ValidateProvider`（参考）、`model-gateway.PutProvider`、`model-gateway.SetProviderEnabled`（参考） |
 | `modules/model-gateway/internal/security/credential.go` | 手写 | 加密存储密钥所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutCredential`、`model-gateway.RotateCredential` |
 | `modules/model-gateway/internal/catalog/model.go` | 手写 | 保存不可变模型身份版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutModel`、`model-gateway.ValidateModel`（参考） |
@@ -33,7 +33,7 @@
 | `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireBarrier`、`model-gateway.ReleaseBarrier`、`model-gateway.ExportSnapshot`、`model-gateway.StageSnapshot`、`model-gateway.DiscardSnapshot` |
 | `modules/model-gateway/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.LoadAdminOverview`（参考） |
 | `modules/model-gateway/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.SubmitPrimaryEdit`（参考） |
-| `modules/model-gateway/internal/catalog/task.go` | 手写 | 超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutTaskAssignment`、`model-gateway.ReadTaskAssignments`、`model-gateway.ReadTaskAvailability` |
+| `modules/model-gateway/internal/catalog/task.go` | 手写 | 超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutTaskAssignment`、`model-gateway.ReadTaskAssignments`、`model-gateway.ReadTaskAvailability`、`model-gateway.beginAvailabilitySnapshot`（参考）、`model-gateway.readAvailabilityTask`（参考）、`model-gateway.readAvailabilityCandidate`（参考）、`model-gateway.availabilityReadError`（参考）、`model-gateway.NewTaskAvailabilityHandlers`（参考） |
 | `modules/model-gateway/internal/catalog/refresh.go` | 手写 | 刷新公开模型目录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RefreshModelCatalog` |
 | `modules/model-gateway/internal/admin/probe.go` | 手写 | 显式测试连接所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateConnectionProbe` |
 | `modules/model-gateway/internal/invocation/fallback.go` | 手写 | 费用安全保留备用与格式重试所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateFallbackAttempt`（参考） |
@@ -61,3 +61,4 @@
 | `modules/model-gateway/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/model-gateway/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/model-gateway/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/model-gateway/migrations/002_task_availability.sql` | 迁移 | 只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。 | 无 |

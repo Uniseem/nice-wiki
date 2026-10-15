@@ -3770,6 +3770,26 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "公共入口或IO取消/截止失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "公共入口或IO取消/截止失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {

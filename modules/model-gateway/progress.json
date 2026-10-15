@@ -2,23 +2,23 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "d66eaea8285fd300d3e8f182d1d8020d7f12d7eab3de63143942ef56502b4fa5",
+  "contractSha256": "03b43e07e491c341c7fdde3b79a46182971adcaef73fae36244c492132a1d784",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-12（模型网关目录与私有存储最小切片）",
-  "branch": "main",
-  "baseCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
-  "deliveryCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
+  "assignedSession": "第六轮QA免费任务配置可用性读取",
+  "branch": "codex/model-task-availability-r1",
+  "baseCommit": "cbe93952464bc9bd4a159e4d870c1b191855bc3a",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "implemented",
-      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "未接入BuildApplication完整装配；本机无Go工具链，尚未编译验证"
+      "blocker": "本轮只实现只读切片；同文件其余合同职责与全量启动仍未齐，待VPS检查"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
@@ -282,13 +282,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮只实现只读切片；同文件其余合同职责与全量启动仍未齐，待VPS检查"
     },
     {
       "path": "modules/model-gateway/internal/catalog/refresh.go",
@@ -392,13 +392,13 @@
     },
     {
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "只读映射与Store注入已实际接线；完整handler、epoch初始化/恢复回执及后台未齐，本轮待VPS"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -559,6 +559,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/migrations/002_task_availability.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "追加迁移待VPS统一检查；无SQL业务验证"
     }
   ],
   "functions": [
@@ -1225,13 +1235,13 @@
     {
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实私有库与免费只读映射已接公共完整工厂；其余handler、epoch初始化/恢复回执、模型费用与后台未齐，完整服务仍拒绝启动，本轮待VPS"
     },
     {
       "id": "model-gateway.Serve",
@@ -1290,14 +1300,136 @@
     },
     {
       "id": "model-gateway.ReadTaskAvailability",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "第四轮首页所需生产方只读协议；仅契约，业务未实现。"
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check",
+      "path": "modules/model-gateway/internal/catalog/task.go"
+    },
+    {
+      "id": "model-gateway.beginAvailabilitySnapshot",
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.readAvailabilityTask",
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.readAvailabilityCandidate",
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.availabilityReadError",
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.NewTaskAvailabilityHandlers",
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.OpenDatabase",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.CurrentStore",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.InstallStore",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.Store.BeginTx",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.Store.Close",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "model-gateway.runMigrations",
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码/合同准备中，待集成会话统一VPS生成/readonly build/vet/gofmt/check"
     }
   ],
-  "rule": "本次仅实现LoadRuntime、ValidateProvider、PutProvider、ValidateModel、PutModel及其私有SQLite迁移；未实现真实模型调用、连接探测、密钥加密/轮换、费用预留/结算、完整HTTP handler和后台循环。Go/gofmt/make不可用，未编译或运行行为验收。"
+  "rule": "本轮仅实现ReadTaskAvailability及紧密只读快照/候选/HTTP映射、必要只追加schema和Store注入；真实模型/探测/费用变更、配置写路径、主密钥处理与完整启动不列完成。所有格式/生成/编译/check由集成会话VPS执行，未检in_progress；本包后按用户要求停止，不开启后包或自行push。"
 }

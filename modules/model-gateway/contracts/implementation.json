@@ -191,6 +191,289 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
+            "model-gateway.OpenDatabase",
+            "model-gateway.InstallStore"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.OpenDatabase",
+          "name": "OpenDatabase",
+          "signature": "func OpenDatabase(dataDirectory string) (*Store, error)",
+          "inputs": [
+            {
+              "name": "dataDirectory",
+              "type": "string",
+              "description": "私有部署目录",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "store",
+              "type": "Store",
+              "description": "本域句柄",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "打开私有active库并执行严格只追加迁移",
+          "steps": [
+            "仅建立本域active/control/restore目录，WAL/外键/单连接",
+            "校验全部已应用迁移版本再逐事务执行未应用迁移",
+            "失败关闭数据库，不安装未知句柄"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立本域目录并打开SQLite，执行只追加迁移和平台outbox建表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "启动时单连接迁移；错误逆序关闭资源",
+          "idempotency": "已应用编号/名称不重复迁移，未知版本拒绝",
+          "dependencies": [
+            "model-gateway.runMigrations"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.CurrentStore",
+          "name": "CurrentStore",
+          "signature": "func CurrentStore() *Store",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "store",
+              "type": "Store",
+              "description": "当前安装句柄或nil",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "读取进程已安装Store",
+          "steps": [
+            "只在进程RWMutex内取指针，不持锁执行查询"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "进程RWMutex仅取当前Store指针，无SQL或网络",
+          "idempotency": "无写入，可重复",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.InstallStore",
+          "name": "InstallStore",
+          "signature": "func InstallStore(store *Store)",
+          "inputs": [
+            {
+              "name": "store",
+              "type": "Store",
+              "description": "可信启动已打开的本域库",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [],
+          "purpose": "安装既有本域Store供业务读取",
+          "steps": [
+            "仅启动装配设置当前Store；不读主密钥、不写runtime_meta代次、不宣称服务ready"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "更新进程内当前Store指针"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "仅可信启动装配持进程写锁设置指针，不持锁执行IO",
+          "idempotency": "重复安装同指针不改持久数据；不证明服务ready",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.Store.BeginTx",
+          "name": "Store.BeginTx",
+          "signature": "func (s *Store) BeginTx(ctx context.Context) (*sql.Tx, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消和截止",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域事务",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "在未关闭Store开始事务",
+          "steps": [
+            "核Store未关闭后调用已有SQL连接BeginTx；上下文贯穿"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立本域SQL事务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "先短读锁核关闭状态，再SQL BeginTx；ctx贯穿查询",
+          "idempotency": "无业务写入；事务由调用方结束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.Store.Close",
+          "name": "Store.Close",
+          "signature": "func (s *Store) Close() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "关闭错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "关闭并撤销当前安装Store",
+          "steps": [
+            "幂等标关闭；只撤销同一指针，再关闭数据库"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "幂等关闭数据库并撤销同一已安装指针"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "Store写锁标关闭后释放，进程写锁仅撤销同指针，然后关闭SQL连接",
+          "idempotency": "重复关闭不重复撤销或关闭资源",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.runMigrations",
+          "name": "runMigrations",
+          "signature": "func (s *Store) runMigrations() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "迁移错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "执行唯一embed来源只追加迁移",
+          "steps": [
+            "调用All核编号连续，读取全部已应用版本/名称并拒绝未知",
+            "每个未应用迁移单独事务执行和登记；初始runtime_meta保留未知空代次",
+            "唯一调用平台outbox.EnsureSchema；不创建默认配置或种子凭据"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "既有私有存储装配/IO或迁移失败，输出脱敏公共错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "事务执行未应用SQL迁移、迁移回执与初始空代次单例；平台outbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "仅可信启动单连接执行迁移，版本未知先拒绝；无网络IO",
+          "idempotency": "编号/名称匹配已应用项跳过，未应用项事务提交",
+          "dependencies": [
             "model-gateway.All"
           ],
           "resources": [],
@@ -1028,7 +1311,7 @@
           "purpose": "管理AI档位与费用限制",
           "steps": [
             "1 五档按能力校验",
-            "2 orderedModelIds保留管理员顺序且去重最多16个",
+            "2 orderedModelIds保留管理员顺序且去重，配置数组按公开schema最多256个；执行路由先过滤本地eligible再取至多16个候选",
             "3 视觉未设可用fast中支持vision模型，rerank未设可用fast",
             "4 CAS保存，仅superadmin可分配。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
@@ -1252,10 +1535,10 @@
           ],
           "purpose": "确定不可变调用路线",
           "steps": [
-            "1 固定档位/任务覆盖版本",
-            "2 按orderedModelIds剔除disabled并保留顺序",
+            "固定档位/任务覆盖版本：覆盖模型替换orderedModelIds首项，保留第二项起有序备用并去重；空列表覆盖模型可成唯一候选，不把被替换主模型另加备用",
+            "按完整合法有序配置先剔除模型停用、目标能力不匹配（QA链为chat）、供应方停用或当前凭据引用未配置项；保留可用候选原顺序，再最多取16个，不在过滤前截断",
             "3 embedding必须同一公共space，空间变化新索引而非混用",
-            "4 返回最多16个候选，已派发attempt各自独立计费。",
+            "返回过滤后至多16个有序候选，不改变备用顺序或新增已被覆盖的原主模型；已派发attempt各自独立计费",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -5719,11 +6002,13 @@
           ],
           "purpose": "免费读取QA任务配置能力",
           "steps": [
-            "固定qa纯服务caller，只允许qa.preflight/qa.inspect/qa.answer范围；不要求付费costClass、也不创建执行授权",
-            "当前epoch与本域只读一致快照读取任务分配、qa类别档位、模型启用、供应方启用与credentialVersion及密钥引用是否具备",
-            "任务分配/档位不存在明确not_configured；已配但无启用且chat能力匹配候选、供应方/凭据停用明确unavailable；存在可用配置候选为available",
-            "单任务覆盖与有序档位候选沿既有路由规则；未知表/损坏/存储失败503/422，不能返回空数组或false充当已知未配置",
-            "不读取或返回秘密正文、供应方地址、模型ID、预算/余额，不检查价格是否齐全，不出网、不探测、不调模型、不预留费用"
+            "仅接受已验证callerService=qa且actor.kind=service；请求任务固定qa.preflight/qa.inspect/qa.answer，不要求此免费操作op.costClass=qa，不授予执行权限",
+            "通过已安装privateStore开始一次只读SQL快照；runtime_meta代次空或缺失为DEPENDENCY_UNAVAILABLE，异代为VERSION_MISMATCH，不沿用允许空水位的通用CheckDataEpoch",
+            "按请求顺序逐项读同代task_assignments及cost_class=qa、tier匹配的唯一profiles；缺任务分配或QA档位才返回not_configured，不从根默认值猜已配置",
+            "有overrideModelId时替换orderedModelIds首项，保留第二项起备用顺序并去重；原列表空时覆盖模型为唯一候选，不把被替换主模型加回备用；公开配置最多256项，完整配置先作本地eligible过滤，不先截断为16项",
+            "候选仅核模型启用/chat能力、供应方启用、当前credentialVersion同代凭据存在及AES-GCM材料长度；附加头只核已持久名称与引用数组结构一致，不取秘密正文、密文、主密钥或供应方地址",
+            "已配置但无可用候选返回unavailable，有候选元数据具备返回available；坏JSON/私有引用矛盾为INTEGRITY_ERROR，查询或缺表未知为DEPENDENCY_UNAVAILABLE，所读引用行异代失败关闭，不用false掩盖未知",
+            "所有任务共享当前快照，无写入、费用/额度/价格读取或供应方HTTP；结果仅taskId/available/reason，no-store，不返回模型或供应方ID、URL、凭据引用、预算/余额，不保证可解密或在线"
           ],
           "errors": [
             {
@@ -5755,6 +6040,16 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖或存储未知",
               "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "查询上下文已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "入口原截止已到",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -5764,9 +6059,359 @@
           },
           "concurrency": "当前权威快照一致读取；不持锁执行跨服务IO",
           "idempotency": "无写入或费用副作用；每次读当前权威，no-store，不创建后台任务",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot",
+            "model-gateway.readAvailabilityTask"
+          ],
+          "resources": [
+            "同一privateStore只读SQL快照：runtime_meta/task_assignments/profiles/models/providers/credentials；仅本域私有表"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.beginAvailabilitySnapshot",
+          "name": "beginAvailabilitySnapshot",
+          "signature": "func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *PrivateStore) (*availabilitySnapshot, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原入口取消/截止",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信QA调用及当前代次",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "store",
+              "type": "PrivateStore",
+              "description": "当前安装的本域Store",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "snapshot",
+              "type": "availabilitySnapshot",
+              "description": "一次只读事务与代次",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "建立严格当前代次只读快照",
+          "steps": [
+            "调用既有Store.BeginTx，不写任何业务字段",
+            "同事务读取runtime_meta singleton，空/缺失为503，异代409；失败回滚",
+            "返回句柄由上层defer Rollback结束，三任务共用"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "数据库或查询未知",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有配置损坏",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "快照代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "查询已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "查询已到原截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "一次短SQL快照；不持本域锁执行网络IO",
+          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "dependencies": [
+            "model-gateway.Store.BeginTx",
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readAvailabilityTask",
+          "name": "readAvailabilityTask",
+          "signature": "func readAvailabilityTask(ctx context.Context, snapshot *availabilitySnapshot, taskID string) (TaskAvailability, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原查询上下文",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "snapshot",
+              "type": "availabilitySnapshot",
+              "description": "严格代次事务",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "taskID",
+              "type": "string",
+              "description": "入口已校验固定任务ID",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "TaskAvailability",
+              "description": "单项安全投影",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "从同一快照判定一个QA任务配置",
+          "steps": [
+            "读取同代assignment，缺行not_configured",
+            "读取当前epoch/cost_class=qa/tier唯一profile，缺行not_configured；只读候选JSON，不读费用字段",
+            "解析最多256个有序唯一Identifier，坏JSON/null/重复/越界为422",
+            "覆盖只替换首项，保留原第二项起备用并去重；空档位列表可仅覆盖",
+            "按顺序核所有候选元数据，任何未知失败关闭；至少一个可用为available，否则unavailable"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "数据库或查询未知",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有配置损坏",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "快照代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "查询已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "查询已到原截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "一次短SQL快照；不持本域锁执行网络IO",
+          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "dependencies": [
+            "model-gateway.readAvailabilityCandidate",
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readAvailabilityCandidate",
+          "name": "readAvailabilityCandidate",
+          "signature": "func readAvailabilityCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原查询上下文",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "snapshot",
+              "type": "availabilitySnapshot",
+              "description": "当前快照",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "modelID",
+              "type": "string",
+              "description": "仅内部候选引用",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "available",
+              "type": "bool",
+              "description": "元数据配置具备",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "只读取候选配置存在性与能力",
+          "steps": [
+            "模型缺失/停用或无chat能力为false，所读模型/provider异代失败；坏能力JSON为422",
+            "provider引用缺失为完整性错误；停用或credentialVersion=0为false",
+            "只核附加头名/secret refs数组结构及等长，不新建secret refs存储模型",
+            "credential按provider/version读取epoch和nonce/ciphertext长度，缺行false，异代409，长度矛盾422；不取密文/主密钥/URL",
+            "不查价格、预算、余额，不做任何HTTP探测"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "数据库或查询未知",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有配置损坏",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "快照代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "查询已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "查询已到原截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "一次短SQL快照；不持本域锁执行网络IO",
+          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "dependencies": [
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.availabilityReadError",
+          "name": "availabilityReadError",
+          "signature": "func availabilityReadError(err error) error",
+          "inputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "SQL或既有Store错误",
+              "constraints": "可信本域装配或已通过入口的只读链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "脱敏公共错误",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "保留取消/截止并将其他查询未知映射503",
+          "steps": [
+            "保留context取消与截止或既有相应公共错误",
+            "其他数据库错误只输出固定503，不携SQL、表值、路径或驱动原文"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "读取未知",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "已到截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "纯错误投影，无锁或IO",
+          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
           "dependencies": [],
           "resources": [],
-          "contract": "binding"
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.NewTaskAvailabilityHandlers",
+          "name": "NewTaskAvailabilityHandlers",
+          "signature": "func NewTaskAvailabilityHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "AvailabilityHandlers",
+              "description": "单项真实HTTP映射",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "创建免费配置读取真实HTTP映射",
+          "steps": [
+            "只映射readTaskAvailability，取平台可信OperationContext",
+            "绑定已由统一入口校验的JSON并调用真实ReadTaskAvailability",
+            "所有响应no-store，公共Problem失败关闭；成功只写安全JSON，不挂半成品服务"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+          },
+          "concurrency": "只创建映射；每个请求从平台上下文进入绑定并独立只读快照",
+          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "dependencies": [
+            "model-gateway.ReadTaskAvailability"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6581,6 +7226,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
+            "本轮只读映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不为免费读取调用需主密钥LoadRuntime、不覆写未知runtime_meta代次；NewTaskAvailabilityHandlers交公共NewServiceHandler，固定caller qa、当前Runtime及OpenedDataEpoch，全表其他handler缺失仍拒绝启动",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
@@ -6622,7 +7268,12 @@
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "model-gateway.OpenDatabase",
+            "model-gateway.InstallStore",
+            "model-gateway.Store.Close",
+            "model-gateway.NewTaskAvailabilityHandlers",
+            "platform.NewServiceHandler"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7024,6 +7675,12 @@
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/migrations/002_task_availability.sql",
+      "kind": "migration",
+      "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。",
       "functions": []
     }
   ],

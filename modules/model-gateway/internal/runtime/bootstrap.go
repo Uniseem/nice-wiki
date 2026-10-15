@@ -77,7 +77,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 	if err != nil {
 		return LoadRuntimeResult{}, err
 	}
-	installStore(store)
+	InstallStore(store)
 	return LoadRuntimeResult{Ready: true, CatalogVersion: store.catalogVersion}, nil
 }
 
@@ -124,7 +124,8 @@ func CurrentStore() *Store {
 	return activeStore.store
 }
 
-func installStore(store *Store) {
+// InstallStore 仅供可信启动装配安装已打开的本域库；不读取主密钥或写代次。
+func InstallStore(store *Store) {
 	activeStore.Lock()
 	activeStore.store = store
 	activeStore.Unlock()

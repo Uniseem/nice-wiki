@@ -4268,6 +4268,36 @@
       "required": [
         "tasks"
       ]
+    },
+    "Store": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*runtime.Store",
+      "description": "本域已打开私有Store，仅受信装配"
+    },
+    "PrivateStore": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*runtime.Store",
+      "description": "catalog内Store别名，不是HTTP值"
+    },
+    "SQLTransaction": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*sql.Tx",
+      "description": "本域事务句柄，不是HTTP值"
+    },
+    "availabilitySnapshot": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*availabilitySnapshot",
+      "description": "同一SQL只读事务及当前dataEpoch"
+    },
+    "AvailabilityHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "仅readTaskAvailability真实映射，须交公共完整工厂"
     }
   }
 }

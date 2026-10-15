@@ -9,8 +9,12 @@ import (
 	"path/filepath"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/gen"
+	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/transport"
 )
 
@@ -20,9 +24,8 @@ const ModuleSlug = "model-gateway"
 // BuildApplication 按服务启动合同校验配置、建立本域目录、加载服务身份
 // 信任锚与签名密钥、读取运行权威并执行恢复换目录前置流程。
 //
-// 本工作包不创建业务数据库、不恢复业务journal、不绑定未实现的业务
-// handler，也不启动模型或费用任务；缺少这些依赖时明确返回
-// DEPENDENCY_UNAVAILABLE，不把匿名空服务当成业务可用。
+// 本包只装配私有库和免费任务配置读取映射，不读取主密钥、不启动模型或费用任务。
+// 其余handler、恢复回执和后台未齐时，公共完整工厂仍拒绝启动。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -30,7 +33,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
-	if _, err := loadTrustAnchors(config.TrustAnchorRef); err != nil {
+	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
+	if err != nil {
 		return nil, err
 	}
 	key, err := loadSigningKey(config.SigningKeyRef)
@@ -54,9 +58,31 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域后续工作包")
 	}
 
-	// 业务存储、OpenAPI x-handler、journal恢复、后台任务和 activation
-	// 回执尚未实现。保留启动失败语义，避免开放只含健康路由的半成品。
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "model-gateway业务处理器与私有持久化尚未实现")
+	store, err := gatewayruntime.OpenDatabase(config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	gatewayruntime.InstallStore(store)
+	defer store.Close()
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
+	}
+	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self:    ModuleSlug,
+		Anchors: anchors,
+		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
+		},
+		OpenedDataEpoch: runtimeView.DataEpoch,
+		AllowedCallers: map[string][]string{
+			"readTaskAvailability": {"qa"},
+		},
+	}, catalog.NewTaskAvailabilityHandlers())
+	if err != nil {
+		return nil, err
+	}
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、恢复回执及后台循环尚未实现")
 }
 
 // NewRuntimeClient 为进程模板构造 site-config 运行权威客户端；只通过

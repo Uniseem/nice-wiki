@@ -37,7 +37,7 @@
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `model-gateway.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `model-gateway.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/admin/catalog` | `readAdminCatalog` | `model-gateway.ReadAdminCatalog` | `model.manage` | `—` → 200 `ReadAdminCatalogResult` | 读取渠道、模型、档位与任务分配 | `FORBIDDEN` |
-| POST `/v1/task-availability:read` | `readTaskAvailability` | `model-gateway.ReadTaskAvailability` | `service` | `ReadTaskAvailabilityInput` → 200 `ReadTaskAvailabilityResult` | 免费读取QA任务配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503` |
+| POST `/v1/task-availability:read` | `readTaskAvailability` | `model-gateway.ReadTaskAvailability` | `service` | `ReadTaskAvailabilityInput` → 200 `ReadTaskAvailabilityResult` | 免费读取QA任务配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 500`、`HTTP 504` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。
@@ -45,3 +45,7 @@
 SSE：id严格递增，重连从Last-Event-ID排他续读；15秒comment heartbeat；终态completed/error/cancelled后关闭。读流不重启业务；超过保留期410，不自动补跑模型。
 
 控制API：superadmin委托和service身份双验证；备份恢复只用barrier/export/stage/discard，切换在进程重启时完成（ADR0003）。
+
+## 免费配置读取边界
+
+readTaskAvailability仅允许QA纯服务与固定三任务，不接受浏览器委托或管理入口扩大范围。响应按请求顺序逐项，仅taskId/available/reason，Cache-Control为no-store；严格代次、存储未知或损坏分别失败关闭。available是配置元数据具备，不证明供应方在线、凭据可解密、费用额度或执行授权；缺价格不阻断。
