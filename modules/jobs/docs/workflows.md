@@ -68,3 +68,6 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 终局与过期恢复：owner以workerId/fence写回已经持久的完成或安全失败；jobs只存引用并原子释放lease、写状态与回执。无结果任务可完成；已取消模型的费用仍由owner/gateway收敛，CANCELLED只在cancel-requested且有效租约下确认。完成先提交则取消返回已有succeeded。
 
 过期先失效持久fence并隔离orphan，不直接假定未收费。受信OwnerRecoveryChecker返回completed时复用已有持久结果，safeToRetry证明无未决收费且保留根/checkpoint时才有限重排；pending/unknown/不可达继续orphan。实际owner版本化适配仍待装配，不能用健康检查或空返回假装确认。历史根未知不生成新付费根。
+
+
+任务管理最终授权按持久owner/type匹配jobTypes的managementPermission，入口job.manage只表示可进入队列界面，不能代替领域功能授权。授权HTTP请求不持有进程Store锁或SQLite事务，随后读/取消仍在当前epoch事务内核对同一任务作用域。取消已持久但owner尚未看到心跳时，临时失败也不能重排；先orphan等待可信安全确认。

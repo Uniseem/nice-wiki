@@ -1,5 +1,7 @@
 # 任务与事件当前进度
 
+统一复核追加修复（2026-10-15，VPS通过、待最终集成）：管理终点从持久任务owner/type映射具体managementPermission后请求identity，job.manage仅作入口粗能力；外部授权请求不持有Store锁，事务内复核任务作用域。持久cancel_requested优先于临时失败重试：未明确安全的失败进入orphan，CANCELLED确认后才终止；claim/start/requeue/heartbeat共同保留取消意图。本轮隔离VPS make docs/gen及14模块make build（只读依赖build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）；源码提交后回填SHA记implemented，verified等待根最终集成。
+
 更新：2026-10-15。R1-03终局与回收包源码及VPS编译门槛已完成，源码提交`5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef`，交付条目记implemented；完整结构检查待集成收口。分支`codex/jobs-execution-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，独占`modules/jobs/`。
 
 - 新增CompleteJob、FailJob、RequestCancel、ConfirmCancelled、ReadJob、固定重试与到期重排；结果/状态/租约/outbox/操作与终局回执同事务，worker/owner/epoch/fence及control截止限制保持。已付费引用合并保留；无结果任务不生成空ObjectRef。

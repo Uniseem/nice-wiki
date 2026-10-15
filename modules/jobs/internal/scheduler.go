@@ -99,9 +99,10 @@ func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeas
 	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
 		return nil, 0, nil
 	}
-	rows, err := work.tx.QueryContext(ctx, `SELECT j.job_id,j.owner,j.state,j.revision,j.attempt,j.fencing_counter,COALESCE(l.worker_id,''),l.expires_at,COALESCE(l.fencing_token,j.fencing_counter),j.root_operation_id
+	rows, err := work.tx.QueryContext(ctx, `SELECT j.job_id,j.owner,j.state,j.revision,j.attempt,j.fencing_counter,COALESCE(l.worker_id,''),l.expires_at,COALESCE(l.fencing_token,j.fencing_counter),j.root_operation_id,j.cancel_requested
 		FROM jobs j LEFT JOIN leases l ON l.job_id=j.job_id WHERE j.data_epoch=?
 		AND ((j.root_operation_id='' AND j.state IN ('queued','leased','running','retry-wait','cancel-requested'))
+		OR (j.cancel_requested=1 AND j.state IN ('queued','retry-wait'))
 		OR (j.state IN ('leased','running','cancel-requested') AND julianday(l.expires_at)<=julianday(?)))
 		ORDER BY COALESCE(julianday(l.expires_at),0),j.job_id LIMIT 100`, in.DataEpoch, in.Now.Format(time.RFC3339Nano))
 	if err != nil {
@@ -118,11 +119,11 @@ func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeas
 		var expires sql.NullString
 		var rootOperationID string
 		var token int64
-		if err := rows.Scan(&item.job.id, &item.job.owner, &item.job.state, &item.job.revision, &item.job.attempt, &item.job.fence, &item.worker, &expires, &token, &rootOperationID); err != nil {
+		if err := rows.Scan(&item.job.id, &item.job.owner, &item.job.state, &item.job.revision, &item.job.attempt, &item.job.fence, &item.worker, &expires, &token, &rootOperationID, &item.job.cancelRequested); err != nil {
 			_ = rows.Close()
 			return nil, 0, mapQueueDBError(err)
 		}
-		due := rootOperationID == ""
+		due := rootOperationID == "" || (item.job.cancelRequested && (item.job.state == "queued" || item.job.state == "retry-wait"))
 		if expires.Valid {
 			expiry, err := time.Parse(time.RFC3339Nano, expires.String)
 			if err != nil {
@@ -284,7 +285,7 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
 		return RequeueDueResult{}, nil
 	}
-	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,owner,revision,not_before FROM jobs WHERE data_epoch=? AND state='retry-wait'
+	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,owner,revision,not_before FROM jobs WHERE data_epoch=? AND state='retry-wait' AND cancel_requested=0
 		AND julianday(not_before)<=julianday(?) ORDER BY julianday(not_before),job_id LIMIT ?`, in.DataEpoch, in.Now.Format(time.RFC3339Nano), min(in.BatchSize, 100))
 	if err != nil {
 		return RequeueDueResult{}, mapQueueDBError(err)
@@ -312,7 +313,7 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 	}
 	_ = rows.Close()
 	for _, job := range jobs {
-		updated, err := work.tx.ExecContext(ctx, `UPDATE jobs SET state='queued',revision=revision+1,updated_at=? WHERE job_id=? AND data_epoch=? AND state='retry-wait' AND revision=?`, work.now.Format(time.RFC3339Nano), job.id, job.epoch, job.revision)
+		updated, err := work.tx.ExecContext(ctx, `UPDATE jobs SET state='queued',revision=revision+1,updated_at=? WHERE job_id=? AND data_epoch=? AND state='retry-wait' AND cancel_requested=0 AND revision=?`, work.now.Format(time.RFC3339Nano), job.id, job.epoch, job.revision)
 		if err != nil {
 			return RequeueDueResult{}, mapQueueDBError(err)
 		}

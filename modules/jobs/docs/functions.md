@@ -121,10 +121,11 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 **步骤**
 
 1. 同事务核对本service所属owner、当前epoch、worker、持久fence与未过期租约；只接受running/cancel-requested
-2. 固定公共错误码分类；DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED仅attempt1..4可retry-wait，其他错误dead-letter
+2. 固定公共错误码分类；持久cancel_requested优先：CANCELLED为owner已确认安全取消；其他错误先orphan并释放lease、登记恢复引用，不能因临时失败重新排队；未请求取消才按原有限退避
 3. CANCELLED只在cancel-requested且owner确认模型已停止或结算进入持久可恢复状态时由ConfirmCancelled完成
 4. 合并保留已有paidResultRefs；CAS目标状态、notBefore、最后安全错误码，释放lease、写状态outbox与回执一起提交
 5. 同failure operationId同输入重放原结果，异输入CONFLICT；不记录原始错误或正文
+6. 主动报告失败并进入orphan时交还当前lease，保留fencing_counter用于原操作只读回执；旧worker因无lease/非活动状态失去执行权，不能恢复或重新领取取消任务
 
 **错误**
 
@@ -259,6 +260,7 @@ func StartJob(ctx context.Context, op OperationContext, in StartJobInput) (Start
 2. 验活跃lease/fence
 3. CAS leased→running
 4. 写状态事件
+5. 已持久cancel_requested拒绝开始；不能在owner心跳尚未读取取消前启动新任务执行
 
 **错误**
 
@@ -308,6 +310,7 @@ func HeartbeatJob(ctx context.Context, op OperationContext, in HeartbeatJobInput
 3. 同owner/epoch/operationId按inputHash读取回执；同输入保留原expiry，不再次续租或追加进度；新的屏障截止更早时返回min(原expiry,当前deadline)作为有效执行权截止；同键不同输入返回CONFLICT
 4. 可选progress在已验租约的同一事务调用AppendProgress；续租、进度、outbox与回执一起提交，任一失败全部回滚
 5. 返回当前cancelRequested/safePointRequested，重复回执不能掩盖后发生的取消或屏障
+6. cancelRequested取jobs.cancel_requested持久标志，即使其他状态字段尚未收敛也不能丢取消意图
 
 **错误**
 
@@ -471,6 +474,7 @@ func (work *leaseOperation) readLease(ctx context.Context, op OperationContext, 
 **步骤**
 
 1. 在同事务核owner、epoch、worker、fence、活动状态与精确expiry
+2. 读取持久cancel_requested标志，心跳直接返回此标志，不仅依赖可变state字符串
 
 **错误**
 
@@ -511,6 +515,7 @@ func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInpu
 1. 按owner/epoch/queued及SQLite毫秒时间预筛到期候选超集，再由Go精确过滤未来notBefore
 2. 按notBefore/createdAt/jobId有界插入，只保留最早10个引用；不把全量队列加载到内存
 3. 回传持久rootOperationId；缺失根操作的历史未终局任务不参与领取，由回收事务隔离orphan并写outbox
+4. cancel_requested=1的任务不参与领取，取消不能被调度状态覆盖
 
 **错误**
 
@@ -993,8 +998,9 @@ func ClassifyFailure(ctx context.Context, op OperationContext, in ClassifyFailur
 **步骤**
 
 1. 只接受公共errors.json登记码，未知码VALIDATION
-2. CANCELLED必须有cancelRequested才返回cancelled，否则VALIDATION
-3. DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED且attempt<5可重试；其余及耗尽为dead-letter
+2. CANCELLED必须有持久cancelRequested才返回cancelled，否则VALIDATION
+3. 已持久请求取消但未报告CANCELLED的失败一律orphan，不把未明安全状态伪造cancelled或重排
+4. 未请求取消时，DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED且attempt<5可重试；其余及耗尽为dead-letter
 
 **错误**
 
@@ -1078,6 +1084,7 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 1. 仅jobs后台可信服务上下文，维护或control屏障期间不调度
 2. 选当前epoch精确notBefore到期的retry-wait，每批min(batchSize,100)
 3. revision CAS queued并写状态outbox，不增加attempt、不改rootOperationId/inputRef/paidRefs
+4. 只重排cancel_requested=0；历史带取消标志的queued/retry-wait由回收隔离，不重新执行
 
 **错误**
 
@@ -1118,7 +1125,7 @@ func ReapExpiredLeases(ctx context.Context, op OperationContext, in ReapExpiredL
 **步骤**
 
 1. 仅jobs后台可信服务上下文；维护或control屏障期间暂停active回收写入
-2. 每批最多100个当前epoch精确到期的活动租约或历史缺根未终局任务，CAS state为orphan、job.fencing_counter与revision各增1，删除旧租约、保留worker/旧fence恢复引用、写状态outbox同事务提交
+2. 每批最多100个当前epoch精确到期的活动租约或历史缺根未终局任务，CAS state为orphan、job.fencing_counter与revision各增1，删除旧租约、保留worker/旧fence恢复引用、写状态outbox同事务提交；历史queued/retry-wait带取消标记同样隔离，不能再执行
 3. 保留相同job/inputRef/rootOperationId和全部paidResultRefs；orphan不被Claim领取，旧worker旧fence不能写回
 4. 事务外调用受信OwnerRecoveryChecker：completed确认持久结果并提供可选resultRef/paidRefs；safeToRetry确认无未决付费且checkpoint/根operation可复用；pending/unknown或不可达保持orphan
 5. 重新获取当前epoch/control权威并CAS同orphan/fence：completed复用结果为succeeded；safeToRetry按attempt1..4有限退避或耗尽dead-letter，已有cancel请求则确认cancelled；状态/refs/outbox同事务提交
@@ -1207,6 +1214,7 @@ func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeas
 **步骤**
 
 1. 同事务隔离最多100个过期租约或根未知历史任务、递增持久fence/写outbox，并轮转读取最多100个orphan安全引用后提交
+2. 历史queued/retry-wait若cancel_requested=1，也以同事务fence失效/orphan/outbox隔离，等待owner确认安全结束
 
 **错误**
 
@@ -1285,7 +1293,7 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 
 **步骤**
 
-1. 调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围
+1. 从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch
 2. 核对当前epoch并读任务；queued/retry-wait立即cancelled，leased/running写cancel-requested，终局与既有cancel-requested原样返回；orphan只持久cancelRequested意图并等待owner安全确认，不伪造cancelled
 3. 与完成以同事务revision CAS竞争；同operationId保存输入hash及原响应
 4. 状态变更、outbox与回执同事务提交；不代替owner调用模型取消
@@ -1299,7 +1307,7 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：写cancel状态/outbox
-- 授权：permission：job.manage；rule：job.manage
+- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type
 - 并发：CAS与完成竞争，完成先提交则返回succeeded
 - 幂等：operationId幂等
 - 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.receipt`、`jobs.saveReceipt`、`jobs.enqueueState`
@@ -1374,7 +1382,7 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 
 **步骤**
 
-1. 调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围
+1. 从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch
 2. 核对当前epoch，在同一SQLite快照读取任务状态、revision及已持久结果引用
 3. 不打开正文，不返回任务输入或原始错误
 
@@ -1387,7 +1395,7 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：无
-- 授权：permission：job.manage；rule：job.manage+所属资源权限
+- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type
 - 并发：SQLite快照读
 - 幂等：GET幂等
 - 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`
@@ -1396,10 +1404,10 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 
 - 级别：参考
 - 文件：`modules/jobs/internal/query.go`
-- 作用：使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应
+- 作用：按持久任务类型映射具体功能权限，事务外请求最新identity授权并返回作用域
 
 ```go
-func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) error
+func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) (jobRecord, error)
 ```
 
 **输入**
@@ -1414,11 +1422,15 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+| `job` | `jobRecord` | 已获具体功能权限授权的持久owner/type/epoch作用域 | 仅本域内部；调用方进事务后仍核对任务身份与epoch |
+| `err` | `error` | 权限、任务、代次或依赖失败 | 成功nil，失败不返回半结果 |
 
 **步骤**
 
-1. 使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应
+1. 在Store进程读锁内按jobId从私有库读取owner/type/epoch，核本次op.dataEpoch；不采用客户端owner/type
+2. 从gen.JobTypes按持久owner/type精确匹配managementPermission，缺映射失败关闭；job.manage仅入口粗能力，不作为最终业务授权
+3. 读取客户端引用后释放Store锁，再调用identity按可信actor请求具体managementPermission；网络调用不持有Store锁或SQLite事务
+4. 成功返回已授权持久作用域，由ReadJob/RequestCancel在后续事务重核owner/type/epoch；未知响应/拒绝/不可达不授权
 
 **错误**
 
@@ -1426,7 +1438,7 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 
 - 副作用：无
 - 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
-- 并发：复用调用方短事务，不嵌套事务
+- 并发：Store锁仅覆盖本域短读及客户端取值，外部identity调用不持有Store锁或SQLite事务
 - 幂等：由调用方事务及回执保证
 - 依赖：`identity:checkAuthorization`
 

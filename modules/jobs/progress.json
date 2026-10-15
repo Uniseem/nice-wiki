@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "5bf4cd655e89b45a9f349ba996b7589db59d4b37fea0293043ac3d772528d4c5",
+  "contractSha256": "159b85b08a9179223db811acc3d51bc9d77094c9f47b15178c6f457d1586de67",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-03 任务终局与过期租约恢复（Codex）",
   "branch": "codex/jobs-execution-complete-r1",
@@ -22,73 +22,73 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/leases.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/results.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/retry.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/scheduler.go",
       "state": "in_progress",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "TickSchedules尚未实现；实际OwnerRecoveryChecker版本化适配及完整BuildApplication接线未接通。已交付回收/重排源码通过VPS编译门槛，完整make check待集成收口"
+      "blocker": "待本次源码SHA回填与根最终集成；实际owner恢复适配、完整装配和业务验收仍未完成"
     },
     {
       "path": "modules/jobs/internal/cancellation.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/query.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "path": "modules/jobs/internal/progress.go",
@@ -557,13 +557,13 @@
     {
       "id": "jobs.FailJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.ClaimJob",
@@ -579,24 +579,24 @@
     {
       "id": "jobs.StartJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "verified",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": null
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.HeartbeatJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "verified",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": null
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.CheckLease",
@@ -623,13 +623,13 @@
     {
       "id": "jobs.ClassifyFailure",
       "path": "modules/jobs/internal/retry.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.ComputeRetryAt",
@@ -645,24 +645,24 @@
     {
       "id": "jobs.RequeueDue",
       "path": "modules/jobs/internal/scheduler.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；实际owner恢复适配、完整装配和业务验收仍未完成"
     },
     {
       "id": "jobs.ReapExpiredLeases",
       "path": "modules/jobs/internal/scheduler.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "实际OwnerRecoveryChecker版本化适配尚未接通，缺适配只隔离orphan；完整make check待集成公共登记"
+      "blocker": "待本次源码SHA回填与根最终集成；实际owner恢复适配、完整装配和业务验收仍未完成"
     },
     {
       "id": "jobs.TickSchedules",
@@ -678,13 +678,13 @@
     {
       "id": "jobs.RequestCancel",
       "path": "modules/jobs/internal/cancellation.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.ConfirmCancelled",
@@ -700,13 +700,13 @@
     {
       "id": "jobs.ReadJob",
       "path": "modules/jobs/internal/query.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.AppendProgress",
@@ -1117,24 +1117,24 @@
     },
     {
       "id": "jobs.readLease",
-      "state": "verified",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": null,
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行",
       "path": "modules/jobs/internal/leases.go"
     },
     {
       "id": "jobs.claimCandidates",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行",
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行",
       "path": "modules/jobs/internal/leases.go"
     },
     {
@@ -1195,13 +1195,13 @@
     {
       "id": "jobs.readJobRecord",
       "path": "modules/jobs/internal/results.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     },
     {
       "id": "jobs.terminalReplay",
@@ -1250,13 +1250,13 @@
     {
       "id": "jobs.collectOrphans",
       "path": "modules/jobs/internal/scheduler.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "实际OwnerRecoveryChecker版本化适配尚未接通，缺适配只隔离orphan；完整make check待集成公共登记"
+      "blocker": "待本次源码SHA回填与根最终集成；实际owner恢复适配、完整装配和业务验收仍未完成"
     },
     {
       "id": "jobs.reconcileOrphan",
@@ -1272,14 +1272,14 @@
     {
       "id": "jobs.authorizeJobManagement",
       "path": "modules/jobs/internal/query.go",
-      "state": "implemented",
-      "implementationCommit": "5eabae7a7e9d7f1fbd74ea3bf74b3015a4d233ef",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
-        "evidence": "隔离VPS统一首轮：make docs/gen成功；14个Go模块make build（-mod=readonly build、vet、gofmt）通过，BUILD_STATUS=0。make check仅公共可达性与新增文件framework登记待集成收口；未新增/运行业务测试、SQL程序、真实接口/模型、服务或部署。"
+        "evidence": "隔离VPS统一复核：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）全部通过，make check完整通过（850文件/943函数/372操作/2186类型）。回写本域managementPermission生成目录、gofmt和函数文档后静态核对；未新增/运行业务测试、SQL验证程序、真实接口/模型、服务或部署。根最终集成检查另记。"
       },
-      "blocker": "完整make check待集成公共登记；业务验收未执行"
+      "blocker": "待本次源码SHA回填与根最终集成；业务验收未执行"
     }
   ],
-  "rule": "本包源码提交5eabae7a7e9d，14模块VPS make build已通过，交付函数与完整文件记implemented；scheduler剩余TickSchedules故文件保持in_progress。完整make check待公共登记收口，真实owner适配、HTTP/后台装配、业务验收和部署分开记录。"
+  "rule": "本轮具体功能权限和持久取消意图修复已通过VPS完整build/check，源码提交后回填SHA记implemented；verified待根最终集成。scheduler仍有TickSchedules未实现，owner恢复适配、HTTP/后台装配、行为验收和部署分开记录。"
 }

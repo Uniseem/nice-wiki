@@ -20,7 +20,8 @@ type ReadJobResult = gen.ReadJobResult
 
 // ReadJob 在最新功能授权下读取同一代次的安全状态及已有结果引用。
 func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJobResult, error) {
-	if err := authorizeJobManagement(ctx, op, in.JobID); err != nil {
+	authorized, err := authorizeJobManagement(ctx, op, in.JobID)
+	if err != nil {
 		return ReadJobResult{}, err
 	}
 	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
@@ -31,6 +32,9 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 	job, err := work.readJobRecord(ctx, in.JobID, in.DataEpoch)
 	if err != nil {
 		return ReadJobResult{}, err
+	}
+	if job.owner != authorized.owner || job.jobType != authorized.jobType || job.epoch != authorized.epoch {
+		return ReadJobResult{}, platform.NewError(platform.CodeConflict, false, "任务授权作用域已变化")
 	}
 	result := ReadJobResult{State: job.state, Revision: int(job.revision), ResultRefs: []string{}}
 	var primary string
@@ -55,15 +59,38 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 	return result, nil
 }
 
-func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) error {
+func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) (jobRecord, error) {
 	store := currentStore()
 	if store == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储尚未装配")
+		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储尚未装配")
 	}
 	store.mu.RLock()
-	defer store.mu.RUnlock()
 	if store.closed || store.identity == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权尚未装配")
+		store.mu.RUnlock()
+		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权尚未装配")
+	}
+	job := jobRecord{id: jobID}
+	err := store.db.QueryRowContext(ctx, `SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch)
+	client := store.identity
+	store.mu.RUnlock()
+	if errors.Is(err, sql.ErrNoRows) {
+		return jobRecord{}, platform.NewError(platform.CodeNotFound, false, "任务不存在")
+	}
+	if err != nil {
+		return jobRecord{}, mapQueueDBError(err)
+	}
+	if job.epoch != op.DataEpoch {
+		return jobRecord{}, epochMismatch()
+	}
+	permission := ""
+	for _, entry := range gen.JobTypes {
+		if entry.Owner == job.owner && entry.Type == job.jobType {
+			permission = entry.ManagementPermission
+			break
+		}
+	}
+	if permission == "" {
+		return jobRecord{}, platform.NewError(platform.CodeIntegrityError, false, "任务类型缺少具体管理权限")
 	}
 	var sessionID *string
 	if op.Actor.SessionID != "" {
@@ -76,19 +103,19 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 		Permission                 string  `json:"permission"`
 		ResourceID                 string  `json:"resourceId"`
 		ExpectedPermissionRevision *int64  `json:"expectedPermissionRevision"`
-	}{op.Actor.SubjectID, sessionID, op.Actor.SiteID, "job.manage", jobID, nil}
-	raw, err := store.identity.CheckAuthorization(platform.WithOperationContext(ctx, op), body)
+	}{op.Actor.SubjectID, sessionID, op.Actor.SiteID, permission, jobID, nil}
+	raw, err := client.CheckAuthorization(platform.WithOperationContext(ctx, op), body)
 	if err != nil {
-		return err
+		return jobRecord{}, err
 	}
 	var decision struct {
 		Authorized *bool `json:"authorized"`
 	}
 	if err := json.Unmarshal(raw, &decision); err != nil || decision.Authorized == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权响应不可用")
+		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权响应不可用")
 	}
 	if !*decision.Authorized {
-		return platform.NewError(platform.CodeForbidden, false, "没有任务管理权限")
+		return jobRecord{}, platform.NewError(platform.CodeForbidden, false, "没有该任务所属功能的管理权限")
 	}
-	return nil
+	return job, nil
 }

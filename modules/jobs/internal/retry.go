@@ -40,6 +40,9 @@ func ClassifyFailure(ctx context.Context, op OperationContext, in ClassifyFailur
 		}
 		return ClassifyFailureResult{TerminalState: "cancelled"}, nil
 	}
+	if in.CancelRequested {
+		return ClassifyFailureResult{TerminalState: "orphan"}, nil
+	}
 	if (in.ErrorCode == platform.CodeDependencyUnavailable || in.ErrorCode == platform.CodeDeadlineExceeded) && in.Attempt < 5 {
 		return ClassifyFailureResult{Retryable: true, TerminalState: "retry-wait"}, nil
 	}

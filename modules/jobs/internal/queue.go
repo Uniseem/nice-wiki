@@ -443,7 +443,7 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 	if lease.state != "running" && lease.state != "cancel-requested" {
 		return FailJobResult{}, leaseLost()
 	}
-	failure, err := ClassifyFailure(ctx, op, ClassifyFailureInput{ErrorCode: in.ErrorCode, Attempt: job.attempt, CancelRequested: lease.state == "cancel-requested"})
+	failure, err := ClassifyFailure(ctx, op, ClassifyFailureInput{ErrorCode: in.ErrorCode, Attempt: job.attempt, CancelRequested: job.cancelRequested})
 	if err != nil {
 		return FailJobResult{}, err
 	}
@@ -466,6 +466,12 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 		}
 		if err := work.finishJob(ctx, job, result.State, result.RetryAt, in.ErrorCode); err != nil {
 			return FailJobResult{}, err
+		}
+		if result.State == "orphan" {
+			if _, err := work.tx.ExecContext(ctx, `INSERT INTO job_orphans(job_id,expired_fence,worker_id,next_check_at) VALUES(?,?,?,?)`,
+				job.id, in.FencingToken, in.WorkerID, work.now.Format(time.RFC3339Nano)); err != nil {
+				return FailJobResult{}, mapQueueDBError(err)
+			}
 		}
 	}
 	if err := work.saveTerminal(ctx, op, leaseInput, "fail", request, result); err != nil {

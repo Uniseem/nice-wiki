@@ -36,3 +36,6 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 终局与恢复实施补充（R1-03）：`job_outcomes(job_id,fencing_token,operation_kind,worker_id,request_hash,result_json)`保存原终局，`lease_operations`扩展complete/fail/cancel种类；两类回执与结果、lease释放、状态outbox同事务。`job_results.result_ref`保存ObjectRef JSON，无主结果用空串；paid_result_refs_json仅合并保留引用，不因取消、失败或重试清空。终局不伪造retryAt。
 
 `job_orphans(job_id,expired_fence,worker_id,next_check_at)`只记录已失效执行权的恢复引用和轮转检查时间；旧fence不能复活。owner确认调用在事务外，应用结果时重新核当前epoch/control并CAS。历史root_operation_id未知留空，不猜operation_id就是付费根；Claim排除空根，回收事务按orphan隔离并写outbox。迁移只改结构，不做无事件的业务状态迁移。
+
+
+取消意图实施补充：`cancel_requested`是持久权威，不能因临时失败改为retry-wait而丢失。取消后未报告安全CANCELLED的失败进入orphan并交还lease，既有付费引用保留；只有owner确认completed或安全结束才收敛。后台不得重新领取、开始或重排带取消标志的任务。

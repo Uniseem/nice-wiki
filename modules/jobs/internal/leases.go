@@ -148,6 +148,9 @@ func StartJob(ctx context.Context, op OperationContext, in StartJobInput) (Start
 	if err != nil {
 		return StartJobResult{}, err
 	}
+	if lease.cancelRequested {
+		return StartJobResult{}, platform.NewError(platform.CodeLocked, false, "任务已请求取消，不能开始执行")
+	}
 	if lease.state == "running" {
 		return StartJobResult{State: "running"}, nil
 	}
@@ -216,7 +219,7 @@ func HeartbeatJob(ctx context.Context, op OperationContext, in HeartbeatJobInput
 		}
 	}
 	// 标志按当前状态返回，避免旧回执掩盖后来发生的取消或屏障。
-	result.CancelRequested = lease.state == "cancel-requested"
+	result.CancelRequested = lease.cancelRequested
 	result.SafePointRequested = work.runtime.SafePointRequested
 	if err := work.tx.Commit(); err != nil {
 		return HeartbeatJobResult{}, mapQueueDBError(err)
@@ -280,9 +283,10 @@ func (work *leaseOperation) close() {
 }
 
 type leaseRecord struct {
-	state     string
-	revision  int64
-	expiresAt string
+	state           string
+	revision        int64
+	expiresAt       string
+	cancelRequested bool
 }
 
 func (work *leaseOperation) readLease(ctx context.Context, op OperationContext, in StartJobInput) (leaseRecord, error) {
@@ -295,9 +299,9 @@ func (work *leaseOperation) readLease(ctx context.Context, op OperationContext, 
 	var worker sql.NullString
 	var token sql.NullInt64
 	var expires sql.NullString
-	err := work.tx.QueryRowContext(ctx, `SELECT j.owner,j.data_epoch,j.state,j.revision,j.fencing_counter,l.worker_id,l.fencing_token,l.expires_at
+	err := work.tx.QueryRowContext(ctx, `SELECT j.owner,j.data_epoch,j.state,j.revision,j.fencing_counter,j.cancel_requested,l.worker_id,l.fencing_token,l.expires_at
 		FROM jobs j LEFT JOIN leases l ON l.job_id=j.job_id WHERE j.job_id=?`, in.JobID).
-		Scan(&owner, &epoch, &lease.state, &lease.revision, &currentFence, &worker, &token, &expires)
+		Scan(&owner, &epoch, &lease.state, &lease.revision, &currentFence, &lease.cancelRequested, &worker, &token, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
 		return leaseRecord{}, leaseLost()
 	}
@@ -334,7 +338,7 @@ type claimCandidate struct {
 
 func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInput) ([]claimCandidate, error) {
 	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,operation_id,root_operation_id,type,immutable_input_ref,attempt,fencing_counter,
-		revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued' AND root_operation_id<>''
+		revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued' AND root_operation_id<>'' AND cancel_requested=0
 		AND julianday(not_before)<=julianday(?)`, in.Owner, in.DataEpoch, work.now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, mapQueueDBError(err)

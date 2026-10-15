@@ -25,6 +25,7 @@ type CompleteJobResult = gen.CompleteJobResult
 type jobRecord struct {
 	id              string
 	owner           string
+	jobType         string
 	epoch           string
 	state           string
 	revision        int64
@@ -82,8 +83,8 @@ func CompleteJob(ctx context.Context, op OperationContext, in CompleteJobInput) 
 
 func (work *leaseOperation) readJobRecord(ctx context.Context, jobID string, epoch platform.Identifier) (jobRecord, error) {
 	job := jobRecord{id: jobID}
-	err := work.tx.QueryRowContext(ctx, `SELECT owner,data_epoch,state,revision,attempt,fencing_counter,cancel_requested FROM jobs WHERE job_id=?`, jobID).
-		Scan(&job.owner, &job.epoch, &job.state, &job.revision, &job.attempt, &job.fence, &job.cancelRequested)
+	err := work.tx.QueryRowContext(ctx, `SELECT owner,type,data_epoch,state,revision,attempt,fencing_counter,cancel_requested FROM jobs WHERE job_id=?`, jobID).
+		Scan(&job.owner, &job.jobType, &job.epoch, &job.state, &job.revision, &job.attempt, &job.fence, &job.cancelRequested)
 	if errors.Is(err, sql.ErrNoRows) {
 		return jobRecord{}, platform.NewError(platform.CodeNotFound, false, "任务不存在")
 	}

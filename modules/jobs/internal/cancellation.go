@@ -29,7 +29,8 @@ type ConfirmCancelledResult struct{ State string }
 
 // RequestCancel 只记录取消意图；owner负责停止模型、结算及确认持久安全点。
 func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInput) (RequestCancelResult, error) {
-	if err := authorizeJobManagement(ctx, op, in.JobID); err != nil {
+	authorized, err := authorizeJobManagement(ctx, op, in.JobID)
+	if err != nil {
 		return RequestCancelResult{}, err
 	}
 	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
@@ -40,6 +41,9 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 	job, err := work.readJobRecord(ctx, in.JobID, in.DataEpoch)
 	if err != nil {
 		return RequestCancelResult{}, err
+	}
+	if job.owner != authorized.owner || job.jobType != authorized.jobType || job.epoch != authorized.epoch {
+		return RequestCancelResult{}, platform.NewError(platform.CodeConflict, false, "任务授权作用域已变化")
 	}
 	request, _ := json.Marshal(in)
 	prior, err := work.receipt(ctx, op, "cancel", request)
