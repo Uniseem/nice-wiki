@@ -263,6 +263,9 @@
         "x-permission": "site.read",
         "security": [
           {
+            "serviceAssertion": []
+          },
+          {
             "serviceAssertion": [],
             "userDelegation": []
           }
@@ -1031,10 +1034,14 @@
         "summary": "读取已提交的本域不可变对象原始字节",
         "description": "严格核对objectId/version/expectedHash；HTTP返回原始对象流，内部Reader消费后关闭，不序列化进程句柄。本轮支持已提交settings对象。",
         "x-handler": "site-config.ReadConfigObject",
-        "x-permission": "service",
+        "x-permission": "site.read",
         "security": [
           {
             "serviceAssertion": []
+          },
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [

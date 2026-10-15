@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "d197328f9efea4cf47f59a9bdab66784e7f3de15324d77095d6480c9cd65d8e7",
+  "contractSha256": "517dce5b4b0e39623a7170168fd11459b6a02a3af157af49abbe343d3aafc34d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-02（一般设置权威读写与对象读取）",
   "branch": "codex/site-config-settings-r1",
@@ -312,11 +312,11 @@
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": "第二轮接已实现HTTP适配和平台统一入口；缺其余真实handler时完整装配仍失败，待VPS"
       },
       "blocker": null
     },
@@ -943,10 +943,10 @@
       "state": "blocked",
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "第二轮公共URL/HTTP工厂与identity授权接线待VPS；已绑定真实config/init/runtime适配，缺其余真实handler时平台工厂拒绝启动"
       },
-      "blocker": "本组配置恢复/初始化继续与可信配置接线已实现并过VPS编译；仍缺全量HTTP x-handler、RelayOutbox后台循环、恢复换目录回执与快照/屏障完整装配，不能宣称完整BuildApplication已完成"
+      "blocker": "Home/品牌/页脚/公告/历史/资源引用、快照/屏障等handler和RelayOutbox/恢复回执仍未完成；全部OpenAPI要求真实绑定，完整BuildApplication继续失败关闭，待后续紧密组"
     },
     {
       "id": "site-config.Serve",

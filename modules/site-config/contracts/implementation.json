@@ -4384,7 +4384,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功"
           ],
           "errors": [
             {
@@ -4428,14 +4429,15 @@
             "site-config.RecoverConfigJournal",
             "site-config.ResumeInitialization",
             "site-config.ReadInitializationStatus",
+            "identity:checkAuthorization",
             "platform.NewServiceHandler",
-            "platform.NewIdentityAuthorizer",
-            "identity:checkAuthorization"
+            "platform.NewIdentityAuthorizer"
           ],
           "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
-            "site-config.readRuntimeState（本域site-config读取自身权威）"
+            "site-config.readRuntimeState（本域site-config读取自身权威）",
+            "已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked"
           ],
           "contract": "binding"
         }

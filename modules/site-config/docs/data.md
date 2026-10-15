@@ -158,3 +158,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 URL/IDNA 规范化只调用平台 `lifecycle.NormalizePublicURL`；本域保存由进程配置注入的 allowLocalHTTP 能力，HTTP 请求不能自造该字段。ValidateSiteConfig 只做模板占位符、规范语言、链接安全、ID 唯一和公告作用域/时间窗等纯语义，入口或持久 IO 已完成的结构校验不重复执行。普通设置不重查未改变的 media/content 引用；改变引用的用例另行承担实时授权和 pin 恢复。
 
 `ReadConfigObject` 本轮仅支持正式索引中已提交的 settings 对象；公告/快照生产方未完成时不制造通用成功。按 objectId/version/expectedHash 精确读取并验证，同样复用既有正规文件、目录能力与 16 MiB 上限。返回的 io.ReadCloser 只在服务进程内流转，HTTP 输出原始对象字节，ETag（带引号 SHA256）、Content-Length/Type、对象 ID/版本头与同一 ObjectRef 绑定；不存在跨进程 bodyHandle 协议或全局句柄表。HTTP 适配负责消费并关闭该流。
+
+
+HTTP 入站由平台工厂统一验证服务断言/原始委托、固定 caller、opened dataEpoch、期限、当前 identity 权威和严格请求 schema；本域适配只转换 JSON/路径/查询或输出对象流。纯 service actor 只在合同登记的读取操作和 caller 子白名单放行；携用户委托的 portal 请求仍走当前用户授权。运行状态读/迁移/回执和安全初始化状态属维护控制白名单，其他本轮业务按默认维护门禁。所有登记接口必须绑定真实 handler，缺失时完整服务启动失败，不用空成功或通用占位 handler 冒充交付。

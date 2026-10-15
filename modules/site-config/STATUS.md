@@ -8,6 +8,7 @@
 - NormalizeBaseURL 依赖根提供的 lifecycle.NormalizePublicURL（统一 IDNA/URL/显式 loopback HTTP 能力）；公共 HTTP 工厂冻结后再接线，不自造入口机制。
 - ReadConfigObject 限当前真实已提交 settings；返回进程内 Reader，HTTP 直接消费关闭并输出绑定元数据，不发送 bodyHandle。
 - Home 组保留下一紧密组：按钮禁用/解析 URL/AI 可用性协议及 media pin 崩溃续办尚未收口；完整 HTTP、RelayOutbox、恢复回执与快照/屏障继续未完成。
+- 已写真实 HTTP 协议适配：config 读写/原始对象流、初始化状态/三用例、runtime 读/迁移/activation 与健康/就绪；统一工厂建立身份/epoch/期限/schema，并使用平台 identity 权威授权回调。缺 Home/品牌/公告/历史/快照/屏障等真实 handler 时工厂拒绝启动，完整 BuildApplication 仍 blocked。
 - 本轮未在本机格式化、生成、编译、vet、lint、类型检查或测试；未新增测试/样例/fixture/临时验证程序，未运行服务、真实接口、模型、部署或 push。
 
 ---

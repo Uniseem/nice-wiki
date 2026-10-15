@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+ "nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	siteconfig "nice-wiki/modules/site-config/internal"
@@ -42,7 +43,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	if _, err := loadSigningKey(config.SigningKeyRef); err != nil {
+	key,err := loadSigningKey(config.SigningKeyRef)
+ if err != nil {
 		return nil, err
 	}
 	runtimeAuthority, err := NewRuntimeClient(config)
@@ -103,7 +105,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			return nil, err
 		}
 	}
-	return transport.NewApplication(config, anchors, runtimeAuthority, activeStore, view.DataEpoch), nil
+    identityBase := config.Dependencies["identity"]
+    if identityBase == "" { _=activeStore.Close();_=closeRuntime(runtimeAuthority);return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"身份权威地址未配置") }
+    identity := gen.NewIdentityClient(identityBase,ModuleSlug,key)
+    application,err := transport.NewApplication(config,anchors,runtimeAuthority,activeStore,view.DataEpoch,apivalidate.NewIdentityAuthorizer(identity))
+    if err != nil { _=activeStore.Close();_=closeRuntime(runtimeAuthority);return nil,err }
+    return application,nil
 }
 
 // NewRuntimeClient 构造本域运行权威读取器（platform.SiteConfigClient），
