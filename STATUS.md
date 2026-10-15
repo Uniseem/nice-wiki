@@ -1,19 +1,17 @@
-# 当前状态（2026-10-15，R1持续实施第一轮统一复核）
+# 当前状态（2026-10-15，第二轮收尾并准备推送）
 
-阶段：R1实施中；identity、site-config、jobs三个独立worktree交付已逐个统一复核并顺序集成，最小业务链路、行为验收和部署仍未完成。
+阶段：R1实施中；两轮各三个独立worktree工作包已统一复核。用户要求第二轮结束后push并停止持续目标，不开展第三轮。完整业务链、行为验收与部署仍未完成。
 
 ## 最新事实
 
-- identity完成access签发、refresh单次轮换与复用撤销、独立CSRF、当前会话/权限/认证代次权威核验、自身会话与族撤销；权限变更后refresh同事务更新版本。完整注册、登录、账号管理与HTTP装配仍未完成。
-- site-config完成Initialize/Resume/Abort、settings权威对象和PREPARED/COMMITTED/head提交、CAS、原始回执、配置事件outbox与启动恢复；文件IO逐段拒绝链接、只读正规文件并有16MiB上限。配置编辑、首页/公告和完整HTTP仍未完成。
-- jobs完成终局、有限重试、安全取消、任务读取、过期租约orphan隔离/核实恢复框架；保留原费用根、付费结果与单调fence。未知owner结果不自动重跑；真实owner恢复API适配、事件/定时/屏障与完整启动仍未完成。
-- 公共和portal复核修正：真实sessionRevision、专用委托密钥、固定配置Origin、静态action、二跳委托、任务具体权限目录、worker独立控制幂等键与取消竞争；代理流上下文保留到响应关闭，禁止自动重定向，IPv6/默认端口同源匹配。
-- 最新机器台账：850文件、943函数、372HTTP操作、2186类型；已实现或验证204函数（123 verified），in_progress 9、blocked 15、planned 715。函数条目比例不等同产品完成率；portal完整装配从旧记录implemented纠正为blocked。
-- 三模块顺序合入后的每一步均在独立VPS源码镜像运行make docs/gen、14个Go模块make build（readonly build/vet/gofmt）及完整make check通过；最终生成回传零变化。linux/amd64 go1.25.5、GOMAXPROCS=8；未新增测试、未运行业务测试、SQL行为验收、真实接口/模型、服务、镜像或部署。
-- 根结构补登14个实际文件；台账引用已映射集成分支实际提交。VPS只同步无凭据源码，不同步本机.git、私有配置、环境、密钥或运行数据。编译与测试全部VPS，未本机回退。
-- 当前持续实施授权没有追加push；原有未跟踪HTML未改动、未提交。旧归档与远端不变；本轮待推送记录见docs/push-log/_pending.md。目标保持全部代码初步完成，未以这一轮交付替代整体完成。
-
-下一轮：三个并行工作包继续identity完整登录/注册与口令事务、site-config配置读取编辑与校验、jobs事件存储投递与确认；集成会话负责公共HTTP装配与owner恢复协议收口，完成后统一复核。
+- identity新增完整登录/首次注册/子账号创建/改密/自身资料用例和真实认证HTTP映射；control bootstrap claim不可逆，敏感操作使用私有HMAC回执，口令和token不写普通回执；索引16MiB读写统一、control库拒链接/特殊文件及不安全目录链。会话组承接第一轮。完整Application/main仍blocked，部分账号管理、恢复及后台循环未完成。
+- site-config新增一般设置权威读取/编辑、纯配置与URL校验、不可变对象原始流及真实HTTP适配；候选材料固定首次时钟/输入，旧成功优先只读回放，维护期先返回旧成功、所有新候选/文件IO前拒写。Home/品牌/公告/历史/快照/屏障等未完成，完整启动仍blocked。
+- jobs新增严格事件目录/schema、持久接收/去重、durable订阅/租约、确认水位、到期重投/死信重放、真实事件HTTP映射和outbox薄装配；旧记录核唯一producer。ephemeral明确不支持，未向粗权限广播原payload。完整启动、屏障、定时、列表及实际owner恢复适配仍未完成。
+- 公共机制新增私有输入HMAC、IDNA公开URL/Origin、统一服务HTTP入口/当前identity核权、严格载荷校验/SSE pump、窄EventPublisher和事件权威生成目录；复核补outbox未知权威/安全点门禁、私有路径校验、客户端查询/SSE协议及帧预算。guard登录begin/outcome目前只有合同/生成代码；portal受信peer网络派生和敏感token cookie适配仍未实现，不能宣称登录全链可用。
+- 最新机器台账：855文件、1012函数、374HTTP操作、2211类型；287函数已实现或验证（208 verified、79 implemented），in_progress 6、blocked 16、planned 703。函数条目比例不等于产品完成率，仍无行为accepted。
+- 三域逐个合入后的实际集成树均在隔离VPS检查；最终make docs/gen、14个现有Go模块make build（readonly build/vet/gofmt）及完整make check通过。生成冲突由唯一契约重新生成；最终格式/依赖均由VPS工具产生。linux/amd64 go1.25.5、GOMAXPROCS=8。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务、镜像或部署。
+- 两轮共补26个实际文件；本轮12个。台账已映射实际集成提交，部分文件/入口按缺口保留in_progress/blocked。仅同步无凭据源码，不同步本机.git、私有配置、环境、密钥或运行数据。
+- 本次普通推送main已获明确授权，按push-log记录与核对；old不重复推送。用户原有未跟踪HTML保持未修改、未提交。推送后停止持续运行，后续实施须新的用户请求。
 
 ## 历史实施记录
 

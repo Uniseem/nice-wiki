@@ -1,5 +1,13 @@
 # 本轮交接：完整登录注册与账号口令事务（2026-10-15，VPS现阶段检查通过）
 
+## 第二轮最终集成与停止范围
+
+- 登录/首次注册/子账号/改密/自身资料与认证HTTP核心通过；全域启动和未完成管理/恢复/后台仍blocked/in_progress。
+- 实际main集成后的VPS make docs/gen、14模块readonly build/vet/gofmt及完整make check通过，统计855文件/1012函数/374操作/2211类型；台账SHA已映射主线提交。
+- 用户要求第二轮结束push并停止持续目标，不做第三轮；后续实施需要新的请求。历史“下一步”仅作将来交接，不能当继续授权。
+- 未新增或运行业务测试、真实接口/模型、服务、镜像或部署；检查不等于行为验收。
+
+
 - 独占modules/identity，分支codex/identity-login-accounts-r1，从精确468986fc34e1c90b6b5ca575539fdd2b9748cd06新建，保留上一轮分支。本轮源码提交`491f3e049b98f01b85ee4e9bf69b6b3c147fadc9`（28文件，仅本域）；VPS格式/生成与依赖文件已回传，最终检查待根，准确SHA台账随后单独提交。状态以progress.json及实际Git为准。
 - CreateSession：只接受portal签名LoginNetworkScopes，平台HMAC规范账号名，真实调用guard beginLoginAttempt/finishLoginAttempt；错密码/未知/停用统一拒绝，依赖失败或未知不发会话。authenticated核验事实在提交前确认，发送后不改报aborted。私有回执不重发secret，重新核权威凭据/状态后同事务签发。
 - RegisterFirstSuperadmin：独立control.db不可逆reserved决定保存原op/caller/actor/HMAC/keyId/dataEpoch及固定账户/站点，只有全部匹配且同原epoch可续未决；active写唯一超管/凭据/会话/安全回执/outbox。active已提交安全回执可补记committed；恢复空库不重开注册，不宣称跨库原子。

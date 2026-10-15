@@ -1,5 +1,8 @@
 # platform 状态
 
+第二轮已实现公共机制通过最终VPS gen/docs、14模块build/vet/gofmt及完整check，函数台账已更新实际提交与证据；调用方未完成的完整启动、guard/peer/cookie和owner机制不因此变成可用。用户要求第二轮后停止，无第三轮。
+
+
 最新统一集成事实（2026-10-15）：会话签名、委托、可信配置和worker控制/结果链已通过统一复核；调用服务完整装配仍未完成。
 VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：dad2dce，逐项以progress.json为准。未执行业务验收或部署。
 以下旧说明作为历史记录，当前状态以前述事实和台账为准。

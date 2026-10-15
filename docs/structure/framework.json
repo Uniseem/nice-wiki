@@ -3422,6 +3422,36 @@
       "path": "modules/site-config/internal/migrations/active/0004_config_operations.sql",
       "kind": "migration",
       "purpose": "一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威"
+    },
+    {
+      "path": "modules/jobs/internal/event_validation.go",
+      "kind": "source",
+      "purpose": "验证跨域事件；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/event_store.go",
+      "kind": "source",
+      "purpose": "持久接收事件；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/event_delivery.go",
+      "kind": "source",
+      "purpose": "至少一次投递；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/http_event_subscription.go",
+      "kind": "source",
+      "purpose": "已登记消费者订阅事件SSE；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/migrations/0005_event_deliveries.sql",
+      "kind": "migration",
+      "purpose": "只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递"
+    },
+    {
+      "path": "modules/jobs/internal/http_events.go",
+      "kind": "source",
+      "purpose": "已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application"
     }
   ]
 }
