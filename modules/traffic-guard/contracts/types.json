@@ -3490,6 +3490,102 @@
         "items",
         "pageInfo"
       ]
+    },
+    "BeginLoginAttemptInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅identity受信适配器调用；账号/网络只传私有HMAC，不传账号名或原IP",
+      "properties": {
+        "requestId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原登录操作ID，与Idempotency-Key及op.OperationID一致"
+        },
+        "accountKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "identity私钥域分离账号HMAC"
+        },
+        "networkKeys": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+            "description": "portal签名传来的当前/前一日网络HMAC"
+          }
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "login",
+            "bootstrap"
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "accountKey",
+        "networkKeys",
+        "action"
+      ]
+    },
+    "BeginLoginAttemptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "持久尝试ID"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "30秒核验保留期限，不因幂等重放延长"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "持久修订"
+        }
+      },
+      "required": [
+        "attemptId",
+        "expiresAt",
+        "revision"
+      ]
+    },
+    "FinishLoginAttemptInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "authenticated",
+            "rejected",
+            "aborted"
+          ],
+          "description": "authenticated只说明口令核对且账户允许，不承诺session事务已提交；后续存储失败不得改写此事实"
+        }
+      },
+      "required": [
+        "outcome"
+      ]
+    },
+    "FinishLoginAttemptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "const": true
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原尝试ID"
+        }
+      },
+      "required": [
+        "accepted",
+        "attemptId"
+      ]
     }
   }
 }

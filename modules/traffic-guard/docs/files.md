@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 52 个：约束 30，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 54 个：约束 32，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -16,7 +16,7 @@
 | `modules/traffic-guard/internal/bucket_store.go` | 手写 | 原子扣频率令牌；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeBuckets`（参考） |
 | `modules/traffic-guard/internal/permit_store.go` | 手写 | 创建持久并发租约；同文件职责限本域以下登记函数 | `traffic-guard.AcquireConcurrency`（参考）、`traffic-guard.RenewPermit`、`traffic-guard.ReleasePermit` |
 | `modules/traffic-guard/internal/permit_sign.go` | 手写 | 签名准入凭证；同文件职责限本域以下登记函数 | `traffic-guard.SignPermit`（参考）、`traffic-guard.ValidatePermit`（参考） |
-| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考） |
+| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考）、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt` |
 | `modules/traffic-guard/internal/http_admission.go` | 手写 | 准入 HTTP；同文件职责限本域以下登记函数 | `traffic-guard.HandleAdmission` |
 | `modules/traffic-guard/internal/sweeper.go` | 手写 | 回收过期并发；同文件职责限本域以下登记函数 | `traffic-guard.ExpireLeases`（参考）、`traffic-guard.ExpireBans`（参考） |
 | `modules/traffic-guard/internal/challenge.go` | 手写 | 签发挑战；同文件职责限本域以下登记函数 | `traffic-guard.IssueChallenge`、`traffic-guard.VerifyChallenge` |

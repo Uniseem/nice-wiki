@@ -2955,7 +2955,9 @@
           },
           "concurrency": "纯校验+runtime读取",
           "idempotency": "同event同结果",
-          "dependencies": [],
+          "dependencies": [
+            "platform.NewPayloadValidator"
+          ],
           "resources": [
             "各域contracts/events.json"
           ],
@@ -4581,7 +4583,8 @@
           "idempotency": "eventSeq重放至少一次，consumer inbox/eventId去重后ack",
           "dependencies": [
             "jobs.ValidateEnvelope",
-            "jobs.AcknowledgeEvent"
+            "jobs.AcknowledgeEvent",
+            "platform.ServeEventStream"
           ],
           "resources": [],
           "contract": "binding"
@@ -4782,7 +4785,9 @@
             "jobs.All",
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
-            "jobs.InstallStore"
+            "jobs.InstallStore",
+            "platform.NewServiceHandler",
+            "platform.NewEventPublisher"
           ],
           "resources": [
             "本域implementation全部x-handler",

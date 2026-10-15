@@ -1,5 +1,13 @@
 # platform 交接（R1-00）
 
+## 持续实施第二轮进行中
+
+- 新增PrivateOperationDigest、NewPayloadValidator、ServeEventStream、NormalizePublicURL、NewServiceHandler和窄EventPublisher适配；事件schema/生产方/订阅/具体权限目录由gen生成。
+- HTTP入口完整handler与固定caller策略在启动核对；一次服务身份/委托/epoch/期限与严格schema，用户权限回调当前identity权威，健康/就绪匿名。
+- 登录网络作用域只允许portal→identity服务签名声明，Go op内部不序列化；受信peer派生与guard begin/outcome接口仍在本轮公共收口，不得用浏览器头兜底。
+- 公共快照已在VPS完成make docs/gen、14模块build/vet/gofmt与完整make check（850文件/955函数/374操作/2199类型）；mod/sum均由VPS Go生成，生成回传零变化。调用方工作树仍待合成复核，条目保持in_progress；未执行业务验收，不push。
+
+
 ## 持续实施第一轮最终集成事实（2026-10-15）
 
 - 会话签名、委托、可信配置和worker控制/结果链已通过统一复核；调用服务完整装配仍未完成。

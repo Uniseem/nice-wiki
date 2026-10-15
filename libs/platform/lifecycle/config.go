@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/net/idna"
+
 	"nice-wiki/libs/platform"
 )
 
@@ -48,10 +50,83 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 		return platform.ServiceConfig{}, err
 	}
 	applyFlags(flags, &config)
+	if config.PublicBaseURL != "" {
+		config.PublicBaseURL, err = NormalizePublicURL(config.PublicBaseURL, config.AllowLocalHTTP)
+		if err != nil {
+			return platform.ServiceConfig{}, err
+		}
+	}
 	if err := validateConfig(config); err != nil {
 		return platform.ServiceConfig{}, err
 	}
 	return config, nil
+}
+
+// NormalizePublicURL 规范受信部署地址：IDNA Lookup、HTTPS与显式本地HTTP。
+// 保留部署basePath，拒绝带凭据、查询、片段、控制字符或路径穿越的地址。
+func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error) {
+	invalid := func() (string, error) {
+		return "", platform.NewError(platform.CodeValidation, false, "公开地址不合法")
+	}
+	if strings.ContainsAny(raw, "\x00\r\n\t\\") {
+		return invalid()
+	}
+	u, err := url.Parse(raw)
+	if err != nil || !u.IsAbs() || u.Opaque != "" || u.Hostname() == "" || u.User != nil || u.ForceQuery || u.RawQuery != "" || u.Fragment != "" || strings.Contains(raw, "#") {
+		return invalid()
+	}
+	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
+	local := host == "localhost"
+	ip := net.ParseIP(host)
+	if ip != nil {
+		host = ip.String()
+		local = ip.IsLoopback()
+	} else {
+		host, err = idna.Lookup.ToASCII(host)
+		if err != nil || host == "" || len(host) > 253 {
+			return invalid()
+		}
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	if u.Scheme != "https" && !(u.Scheme == "http" && allowLocalHTTP && local) {
+		return invalid()
+	}
+	port := u.Port()
+	if port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return invalid()
+		}
+		port = strconv.Itoa(n)
+		if (u.Scheme == "https" && n == 443) || (u.Scheme == "http" && n == 80) {
+			port = ""
+		}
+	}
+	if port != "" {
+		u.Host = net.JoinHostPort(host, port)
+	} else if ip != nil && ip.To4() == nil {
+		u.Host = "[" + host + "]"
+	} else {
+		u.Host = host
+	}
+	for _, segment := range strings.Split(u.EscapedPath(), "/") {
+		decoded, err := url.PathUnescape(segment)
+		if err != nil || decoded == "." || decoded == ".." || strings.ContainsAny(decoded, "/\\\x00\r\n") {
+			return invalid()
+		}
+	}
+	u.Path = strings.TrimRight(u.Path, "/")
+	u.RawPath = strings.TrimRight(u.RawPath, "/")
+	return u.String(), nil
+}
+
+// CanonicalPublicOrigin 从已经通过部署边界校验的规范地址提取Origin。
+func CanonicalPublicOrigin(publicBaseURL string) (string, error) {
+	u, err := url.Parse(publicBaseURL)
+	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.User != nil {
+		return "", platform.NewError(platform.CodeValidation, false, "可信公开地址缺少Origin")
+	}
+	return u.Scheme + "://" + u.Host, nil
 }
 
 type flagSet struct {
@@ -201,25 +276,7 @@ func validateConfig(config platform.ServiceConfig) error {
 			return platform.NewError(platform.CodeValidation, false, "依赖地址不得包含URL凭证")
 		}
 	}
-	if config.PublicBaseURL != "" {
-		address, err := url.Parse(config.PublicBaseURL)
-		if err != nil || address.Hostname() == "" || address.User != nil || address.RawQuery != "" || address.Fragment != "" || address.Opaque != "" {
-			return platform.NewError(platform.CodeValidation, false, "部署公共地址不合法")
-		}
-		local := address.Hostname() == "localhost"
-		if ip := net.ParseIP(address.Hostname()); ip != nil {
-			local = ip.IsLoopback()
-		}
-		if address.Scheme != "https" && !(address.Scheme == "http" && config.AllowLocalHTTP && local) {
-			return platform.NewError(platform.CodeValidation, false, "部署公共地址必须为HTTPS，本地HTTP须显式允许")
-		}
-		if port := address.Port(); port != "" {
-			number, err := strconv.Atoi(port)
-			if err != nil || number < 1 || number > 65535 {
-				return platform.NewError(platform.CodeValidation, false, "部署公共地址端口不合法")
-			}
-		}
-	}
+
 	return nil
 }
 

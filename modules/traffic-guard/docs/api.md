@@ -31,6 +31,8 @@
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `traffic-guard.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `traffic-guard.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/risk-events` | `listRiskEvents` | `traffic-guard.ListRiskEvents` | `guard.manage` | `—` → 200 `ListRiskEventsResult` | 查看可疑事件 | `FORBIDDEN` |
+| POST `/v1/login-attempts` | `beginLoginAttempt` | `traffic-guard.BeginLoginAttempt` | `service` | `BeginLoginAttemptInput` → 200 `BeginLoginAttemptResult` | 登录失败保护受信准入 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/login-attempts/{attemptId}:finish` | `finishLoginAttempt` | `traffic-guard.FinishLoginAttempt` | `service` | `FinishLoginAttemptInput` → 200 `FinishLoginAttemptResult` | 登录失败保护受信核验结果 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

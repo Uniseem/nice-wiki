@@ -163,7 +163,10 @@
         "deadline",
         "dataEpoch"
       ],
-      "description": "服务间可信操作元数据；与身份、根操作、截止、取消和当前数据代次绑定"
+      "description": "服务间可信操作元数据；与身份、根操作、截止、取消和当前数据代次绑定",
+      "x-go-internal-fields": {
+        "loginNetworkScopes": "[]Hash，json:-；只从已验签portal服务断言获取，不采用浏览器正文或头"
+      }
     },
     "ErrorCode": {
       "type": "string",

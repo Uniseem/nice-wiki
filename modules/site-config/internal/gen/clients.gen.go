@@ -211,6 +211,18 @@ func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreI
 	return c.do(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
 }
 
+// IdentityClient 调用identity服务（自动附服务断言）。
+type IdentityClient struct{ *producerClient }
+
+func NewIdentityClient(baseURL, issuer string, key platform.SigningKey) *IdentityClient {
+	return &IdentityClient{newProducerClient("identity", baseURL, issuer, key)}
+}
+
+// CheckAuthorization POST /v1/authorizations/check（identity:checkAuthorization）。
+func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
+}
+
 // JobsClient 调用jobs服务（自动附服务断言）。
 type JobsClient struct{ *producerClient }
 

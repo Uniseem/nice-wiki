@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 27 个函数：约束 19 个，参考 8 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 37 个函数：约束 19 个，参考 18 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -44,7 +44,7 @@ func SignAssertion(key SigningKey, claims AssertionClaims) (string, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：纯函数，可并发
 - 幂等：每次生成新jti
-- 依赖：无
+- 依赖：`platform.validLoginScopes`
 
 ## platform.VerifyAssertion
 
@@ -87,6 +87,47 @@ func VerifyAssertion(anchors TrustAnchors, token string, expect AssertionExpecta
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：重放缓存加锁
 - 幂等：jti唯一
+- 依赖：`platform.validLoginScopes`
+
+## platform.validLoginScopes
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：限制私有登录网络来源
+
+```go
+func validLoginScopes(claims AssertionClaims) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `AssertionClaims` | 已解码或待签服务声明 | 可信启动配置或入口校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `valid` | `bool` | 登录网络作用域合法来源 | 错误时结果无效 |
+
+**步骤**
+
+1. 仅portal至identity的服务断言允许1..2个合法HMAC hash；无作用域为普通服务请求
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：路由/权威依赖未装配（可重试）
+- `VALIDATION`：入口配置或请求不合法（不可重试）
+- `UNAUTHENTICATED`：服务或用户身份无效（不可重试）
+- `FORBIDDEN`：调用范围不允许（不可重试）
+- `LOCKED`：维护门禁阻止业务（可重试）
+- `VERSION_MISMATCH`：数据代次不一致（不可重试）
+
+- 副作用：按函数职责访问底层IO，不输出秘密
+- 授权：入口验证服务身份与用户即时授权，策略只来自本域合同装配
+- 并发：只读启动配置，单请求上下文隔离
+- 幂等：以可信Idempotency-Key建立operationId，不改已有费用rootOperationId
 - 依赖：无
 
 ## platform.VerifyDelegation
@@ -413,6 +454,48 @@ func validSessionClaims(claims SessionAccessClaims) bool
 - 幂等：相同声明在相同时间水位下结果一致
 - 依赖：无
 
+## platform.PrivateOperationDigest
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：避免低熵秘密幂等摘要被离线猜测
+
+```go
+func PrivateOperationDigest(key SigningKey, scope string, payload []byte) (Hash, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 私有签名密钥引用 | 受信装配或调用边界 |
+| `scope` | `string` | 业务动作/格式版本域分离 | 受信装配或调用边界 |
+| `payload` | `[]byte` | 仅内存含秘密规范输入 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `digest` | `Hash` | 私有HMAC摘要 | 错误时结果无效 |
+| `error` | `error` | 安全失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 从Ed25519 seed以固定域分离派生HMAC key；再次域分离和scope长度编码后HMAC payload
+2. 调用方保存digest_key_id并保留旧key过渡；无原key明确拒重放，不保存或返回raw payload/摘要
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
 ## platform.BuildOperationContext
 
 - 级别：约束
@@ -446,6 +529,7 @@ func BuildOperationContext(r *http.Request, anchors TrustAnchors, self string, r
 3. dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH
 4. 浏览器自报的身份、费用类别、网络作用域一律忽略
 5. 先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文
+6. 从已验签portal→identity断言复制Go私有LoginNetworkScopes，不从浏览器字段/header取；已过期/非法deadline明确拒绝，不能重置为默认30秒
 
 **错误**
 
@@ -544,7 +628,7 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 - 作用：outbox转发循环的通用实现
 
 ```go
-func RunRelay(ctx context.Context, store OutboxStore, client JobsClient, config RelayConfig) error
+func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, config RelayConfig) error
 ```
 
 **输入**
@@ -553,7 +637,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client JobsClient, config 
 |---|---|---|---|
 | `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
 | `store` | `OutboxStore` | 本域outbox访问 | 同一数据库 |
-| `client` | `JobsClient` | jobs客户端 | 带服务断言 |
+| `client` | `EventPublisher` | jobs客户端 | 带服务断言 |
 | `config` | `RelayConfig` | 批量与轮询参数 | batchLimit≤100 |
 
 **输出**
@@ -577,6 +661,83 @@ func RunRelay(ctx context.Context, store OutboxStore, client JobsClient, config 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：行级租约防多实例重复
 - 幂等：eventId固定
+- 依赖：`jobs:publishEvent`
+
+## platform.NewEventPublisher
+
+- 级别：参考
+- 文件：`libs/platform/outbox/relay.go`
+- 作用：适配生成客户端的真实publishEvent协议
+
+```go
+func NewEventPublisher(client PublishClient) EventPublisher
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `PublishClient` | 版本化raw Jobs客户端 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `publisher` | `EventPublisher` | 只提供事件发布端口 | 错误时结果无效 |
+
+**步骤**
+
+1. 封装event、eventId幂等键，只有accepted=true且eventId一致才转发成功
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：`platform.PublishEvent`
+
+## platform.PublishEvent
+
+- 级别：参考
+- 文件：`libs/platform/outbox/relay.go`
+- 作用：typed事件发布适配
+
+```go
+func (p eventPublisher) PublishEvent(ctx context.Context, event EventEnvelope) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信调用链 | 受信装配或调用边界 |
+| `event` | `EventEnvelope` | 业务提交outbox信封 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 调用生成客户端并验证持久接收回执，不要求虚构租约方法
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
 - 依赖：`jobs:publishEvent`
 
 ## platform.ClaimInbox
@@ -830,6 +991,86 @@ func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动时调用一次
 - 幂等：纯函数
+- 依赖：`platform.NormalizePublicURL`
+
+## platform.NormalizePublicURL
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/config.go`
+- 作用：统一公开地址与国际域名规范
+
+```go
+func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `raw` | `string` | 受信部署URL | 受信装配或调用边界 |
+| `allowLocalHTTP` | `bool` | 受信loopback HTTP开关 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `url` | `string` | IDNA主机/有效端口/尾斜杠规范地址 | 错误时结果无效 |
+| `error` | `error` | 安全失败 | 错误时结果无效 |
+
+**步骤**
+
+1. IDNA Lookup规范域名，IPv6和默认端口统一；仅HTTPS或显式loopback HTTP
+2. 拒credential/query/fragment/控制字符和路径穿越，保留basePath
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
+## platform.CanonicalPublicOrigin
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/config.go`
+- 作用：CanonicalPublicOrigin公共适配
+
+```go
+func CanonicalPublicOrigin(publicBaseURL string) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `publicBaseURL` | `string` | 已边界校验规范的部署地址 | 受信装配来源 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `origin` | `string` | 规范scheme://Host | 失败结果无效 |
+| `error` | `error` | 安全失败 | 失败结果无效 |
+
+**步骤**
+
+1. 从受信规范URL去basePath提取Origin，不从Host请求头猜测，不重复引入另一套IDNA策略
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
 - 依赖：无
 
 ## platform.ReadRuntime
@@ -990,6 +1231,176 @@ func NewRequestValidator(spec *openapi3.T) (func(http.Handler) http.Handler, err
 - 并发：中间件无共享可变状态，可并发
 - 幂等：纯校验
 - 依赖：无
+
+## platform.NewPayloadValidator
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：复用统一schema机制核事件载荷
+
+```go
+func NewPayloadValidator(document []byte, schemaName string) (PayloadValidator, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `document` | `[]byte` | 内嵌自包含OpenAPI载荷规格 | 受信装配或调用边界 |
+| `schemaName` | `string` | 登记组件名 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `validate` | `PayloadValidator` | 严格载荷schema校验 | 错误时结果无效 |
+| `error` | `error` | 安全失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 启动解析自包含规格，禁止联网外部引用，schema缺失失败关闭
+2. 每次JSON解码并VisitJSON，错误不回显原值
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
+## platform.ServeEventStream
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：统一SSE事件流与心跳背压
+
+```go
+func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream EventStream) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 请求取消 | 受信装配或调用边界 |
+| `w` | `http.ResponseWriter` | SSE响应 | 受信装配或调用边界 |
+| `stream` | `EventStream` | 本域事件流 | 受信装配或调用边界 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 流结束或安全IO失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 每次最多一条待写事件，使用LastID输出id，15秒注释心跳并flush
+2. 取消/结束关闭底层流归还资源；响应开始后不再写JSON Problem
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：无
+
+## platform.NewServiceHandler
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：统一身份/上下文/schema/epoch/维护HTTP入口
+
+```go
+func NewServiceHandler(spec OpenAPIDocument, config ServiceBoundaryConfig, handlers HTTPHandlers) (HTTPHandler, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `spec` | `OpenAPIDocument` | 本域嵌入OpenAPI | 可信启动配置或入口校验 |
+| `config` | `ServiceBoundaryConfig` | 固定服务来源/运行状态/授权/体积策略 | 可信启动配置或入口校验 |
+| `handlers` | `HTTPHandlers` | 完整operationId到处理器 | 可信启动配置或入口校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handler` | `HTTPHandler` | 已组装入口 | 错误时结果无效 |
+| `error` | `error` | 安全失败 | 错误时结果无效 |
+
+**步骤**
+
+1. 启动拒缺handler/允许调用方或授权回调，不以空handler假成功；health/ready匿名
+2. 请求体有界，先验服务断言/原委托、数据epoch和固定caller白名单，再设一次截止与调用链ctx
+3. 普通业务受维护门禁；管理操作只由固定MaintenanceOperations放行，函数内部仍履行自身屏障
+4. 合法Idempotency-Key作为operationId；原root保留；注入原PortalProof供下游原样传递
+5. 一次严格schema验证后交本域适配；用户权限由Authorize当前权威回调确认
+6. 仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：路由/权威依赖未装配（可重试）
+- `VALIDATION`：入口配置或请求不合法（不可重试）
+- `UNAUTHENTICATED`：服务或用户身份无效（不可重试）
+- `FORBIDDEN`：调用范围不允许（不可重试）
+- `LOCKED`：维护门禁阻止业务（可重试）
+- `VERSION_MISMATCH`：数据代次不一致（不可重试）
+
+- 副作用：按函数职责访问底层IO，不输出秘密
+- 授权：入口验证服务身份与用户即时授权，策略只来自本域合同装配
+- 并发：只读启动配置，单请求上下文隔离
+- 幂等：以可信Idempotency-Key建立operationId，不改已有费用rootOperationId
+- 依赖：`platform.NewRequestValidator`、`platform.BuildOperationContext`、`platform.WriteProblem`
+
+## platform.NewIdentityAuthorizer
+
+- 级别：参考
+- 文件：`libs/platform/apivalidate/validator.go`
+- 作用：NewIdentityAuthorizer公共适配
+
+```go
+func NewIdentityAuthorizer(client AuthorizationClient) Authorizer
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `AuthorizationClient` | 版本化identity客户端 | 受信装配来源 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `authorize` | `Authorizer` | 即时核权回调 | 失败结果无效 |
+
+**步骤**
+
+1. 发送可信op主体/站点/session/权限版本，静态action和null资源，调用identity:checkAuthorization
+2. 核authorized必须存在且为true；透传公共身份错误，不创建会话/权限影子状态
+
+**错误**
+
+- `VALIDATION`：输入不符合边界（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：基础依赖不可用（可重试）
+- `INTEGRITY_ERROR`：持久规格或载荷损坏（不可重试）
+
+- 副作用：无
+- 授权：平台受信调用
+- 并发：无共享可写业务状态，可并发
+- 幂等：纯转换或按调用上下文执行，不改变业务费用根
+- 依赖：`identity:checkAuthorization`
 
 ## platform.ApplyRestoreSwap
 

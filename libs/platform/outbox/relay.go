@@ -2,6 +2,7 @@ package outbox
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -23,7 +24,7 @@ const (
 // 确认后标relayed；失败按1/2/4秒退避（上限60秒）；同eventId异hash
 // 或信封非法标quarantined；屏障draining时继续转发直到空；
 // 恢复换入后丢弃旧dataEpoch行。ctx取消即退出。
-func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.JobsClient, config platform.RelayConfig) error {
+func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) error {
 	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit {
 		return platform.NewError(platform.CodeValidation, false, "batchLimit必须在1到100之间")
 	}
@@ -70,8 +71,47 @@ func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.J
 	}
 }
 
+// PublishClient 与生成的原始Jobs客户端同形，不要求虚假的租约方法。
+type PublishClient interface {
+	PublishEvent(context.Context, any, string) (json.RawMessage, error)
+}
+
+type eventPublisher struct{ client PublishClient }
+
+// NewEventPublisher 只适配版本化publishEvent，使用eventId作为请求幂等键。
+func NewEventPublisher(client PublishClient) platform.EventPublisher {
+	return eventPublisher{client: client}
+}
+
+func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEnvelope) error {
+	op, ok := platform.OperationContextFrom(ctx)
+	if !ok {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "事件转发缺少可信操作上下文")
+	}
+	if op.RootOperationID == "" || op.RootOperationID == op.OperationID {
+		op.RootOperationID = event.EventID
+	}
+	op.OperationID = event.EventID
+	op.DataEpoch = event.DataEpoch
+	ctx = platform.WithOperationContext(ctx, op)
+	raw, err := p.client.PublishEvent(ctx, struct {
+		Event platform.EventEnvelope `json:"event"`
+	}{event}, event.EventID)
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Accepted bool   `json:"accepted"`
+		EventID  string `json:"eventId"`
+	}
+	if json.Unmarshal(raw, &result) != nil || !result.Accepted || result.EventID != event.EventID {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "事件接收回执与请求不一致")
+	}
+	return nil
+}
+
 // relayBatch 转发一批已领取行；返回值只表达批次级中断。
-func relayBatch(ctx context.Context, store platform.OutboxStore, client platform.JobsClient, rows []platform.OutboxRow, runtime platform.RuntimeView) error {
+func relayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, rows []platform.OutboxRow, runtime platform.RuntimeView) error {
 	var relayed []platform.Identifier
 	for _, row := range rows {
 		if ctx.Err() != nil {

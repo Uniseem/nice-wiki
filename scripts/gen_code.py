@@ -233,13 +233,13 @@ def walk(node):
             yield from walk(item)
 
 
-def bundle_spec(spec_path):
+def bundle_spec(spec_path, initial=None):
     """把外部$ref递归解析进components/schemas，返回自包含规格。
 
     引用相对其所在文件解析；同名不同内容按来源文件名加前缀。
     """
     spec_path = Path(spec_path).resolve()
-    spec = load(spec_path)
+    spec = load(spec_path) if initial is None else json.loads(json.dumps(initial, ensure_ascii=False))
     schemas = spec.setdefault("components", {}).setdefault("schemas", {})
     file_defs = {}
     final_names = {}
@@ -616,6 +616,26 @@ def gen_go_registries(modules):
                 f"\t{{Type: {go_string(job['type'])}, Owner: {go_string(job['owner'])}, "
                 f"Executor: {go_string(job['executor'])}, Schedule: {go_string(job.get('schedule') or '')}, "
                 f"ManagementPermission: {go_string(job['managementPermission'])}}},\n")
+        lines.append("}\n\n")
+        lines.append("// EventTypeEntry 来自唯一producer与订阅合同；Document自包含，不联网解析schema。\n")
+        lines.append("type EventTypeEntry struct {\n Name string\n Version int\n Producer string\n ManagementPermission string\n Consumers []string\n SchemaName string\n Document []byte\n}\n\n")
+        groups = load(ROOT / "contracts/permission-groups.json")
+        subscriptions = load(roots["jobs"] / "config/event-subscriptions.json")["subscriptions"]
+        event_rows = []
+        for module in modules:
+            source = ROOT / module["root"] / "contracts/events.json"
+            for event in load(source)["events"]:
+                if event["direction"] != "publish":
+                    continue
+                schema_doc = {"openapi":"3.1.0","info":{"title":"事件载荷","version":"1"},"paths":{},"components":{"schemas":{"Payload":event["payloadSchema"]}}}
+                schema_doc = downgrade_to_30(bundle_spec(source, schema_doc))
+                consumers = sorted({row["consumer"] for row in subscriptions if row["event"] == event["name"] and row["version"] == event["version"]})
+                event_rows.append((event["name"], event["version"], module["slug"], consumers, schema_doc))
+        lines.append("var EventTypes = []EventTypeEntry{\n")
+        for name,version,producer,consumers,document in sorted(event_rows, key=lambda row:(row[0],row[1])):
+            permission = groups["eventManagementPermissions"][producer]
+            payload = json.dumps(document,ensure_ascii=False,separators=(",",":"),sort_keys=True)
+            lines.append(f"{{Name:{go_string(name)},Version:{version},Producer:{go_string(producer)},ManagementPermission:{go_string(permission)},Consumers:{go_string_list(consumers)},SchemaName:\"Payload\",Document:[]byte({go_string(payload)})}},\n")
         lines.append("}\n")
         out = roots["jobs"] / "internal/gen/job_types.gen.go"
         out.write_text("".join(lines), encoding="utf-8")

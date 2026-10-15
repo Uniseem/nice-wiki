@@ -233,8 +233,10 @@
           "dependencies": [
             "identity.HashPassword",
             "identity.IssueSessionTokens",
-            "traffic-guard:createAdmission",
-            "identity.ResolveIdentityOperation"
+            "identity.ResolveIdentityOperation",
+            "platform.PrivateOperationDigest",
+            "traffic-guard:beginLoginAttempt",
+            "traffic-guard:finishLoginAttempt"
           ],
           "resources": [],
           "contract": "binding"
@@ -352,7 +354,8 @@
             "identity.HashPassword",
             "identity.MapFunctionGrants",
             "identity.WriteAccountIndex",
-            "identity.ResolveIdentityOperation"
+            "identity.ResolveIdentityOperation",
+            "platform.PrivateOperationDigest"
           ],
           "resources": [],
           "contract": "binding"
@@ -1335,7 +1338,8 @@
             "identity.HashPassword",
             "identity.RevokeOtherSessions",
             "identity.IssueSessionTokens",
-            "identity.ResolveIdentityOperation"
+            "identity.ResolveIdentityOperation",
+            "platform.PrivateOperationDigest"
           ],
           "resources": [],
           "contract": "binding"
@@ -1433,8 +1437,10 @@
           "dependencies": [
             "identity.VerifyPassword",
             "identity.IssueSessionTokens",
-            "traffic-guard:createAdmission",
-            "site-config:readInitializationStatus"
+            "site-config:readInitializationStatus",
+            "platform.PrivateOperationDigest",
+            "traffic-guard:beginLoginAttempt",
+            "traffic-guard:finishLoginAttempt"
           ],
           "resources": [],
           "contract": "binding"
@@ -4237,7 +4243,9 @@
             "identity.RecoverJournal",
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
-            "identity.WithSessionRuntime"
+            "identity.WithSessionRuntime",
+            "platform.NewServiceHandler",
+            "platform.CanonicalPublicOrigin"
           ],
           "resources": [
             "本域implementation全部x-handler",

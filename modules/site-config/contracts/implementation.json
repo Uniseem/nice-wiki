@@ -385,7 +385,9 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": [],
+          "dependencies": [
+            "platform.NormalizePublicURL"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -4386,7 +4388,10 @@
             "site-config.ConfigureInitialization",
             "site-config.RecoverConfigJournal",
             "site-config.ResumeInitialization",
-            "site-config.ReadInitializationStatus"
+            "site-config.ReadInitializationStatus",
+            "platform.NewServiceHandler",
+            "platform.NewIdentityAuthorizer",
+            "identity:checkAuthorization"
           ],
           "resources": [
             "本域implementation全部x-handler",

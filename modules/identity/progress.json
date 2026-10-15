@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "c6e6c4f8a967aab7834e23acfbe5fdb1916d315d529e83a4e6cf54de5bf14e42",
+  "contractSha256": "0fb081cf0e3e7d14c1846ab8f6625cd40301314d5d4b6f40811b3293b974f4f4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第一轮统一复核",
   "branch": "main",

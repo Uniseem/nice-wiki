@@ -75,6 +75,25 @@
     "media.manage",
     "memory.manage",
     "content.publish",
-    "qa.manage"
-  ]
+    "qa.manage",
+    "account.manage",
+    "site.manage",
+    "model.manage",
+    "guard.manage"
+  ],
+  "eventManagementPermissions": {
+    "identity": "account.manage",
+    "site-config": "site.manage",
+    "content": "content.publish",
+    "media": "media.manage",
+    "model-gateway": "model.manage",
+    "knowledge": "knowledge.manage",
+    "qa": "qa.manage",
+    "localization": "localization.manage",
+    "memory": "memory.manage",
+    "traffic-guard": "guard.manage",
+    "jobs": "system.manage",
+    "analytics": "system.manage",
+    "data-protection": "backup.manage"
+  }
 }

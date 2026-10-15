@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "159b85b08a9179223db811acc3d51bc9d77094c9f47b15178c6f457d1586de67",
+  "contractSha256": "9bf7993b0e6451d739161b74b8999f3b2f90831befb286da234eee65d68da66a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第一轮统一复核",
   "branch": "main",

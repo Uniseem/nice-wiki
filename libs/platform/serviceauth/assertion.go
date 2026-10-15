@@ -88,6 +88,8 @@ func SignAssertion(key platform.SigningKey, claims platform.AssertionClaims) (st
 		return "", platform.NewError(platform.CodeValidation, false, "断言过期时间不合法")
 	}
 	switch {
+	case !validLoginScopes(claims):
+		return "", platform.NewError(platform.CodeValidation, false, "登录网络作用域来源不合法")
 	case claims.Issuer == "" || claims.Audience == "" || claims.Method == "" || claims.Path == "":
 		return "", platform.NewError(platform.CodeValidation, false, "断言声明不完整")
 	case !platform.ValidHash(claims.BodyHash):
@@ -174,6 +176,9 @@ func VerifyAssertion(anchors platform.TrustAnchors, token string, expect platfor
 }
 
 func checkAssertionClaims(claims platform.AssertionClaims, expect platform.AssertionExpectation) error {
+	if !validLoginScopes(claims) {
+		return platform.NewError(platform.CodeUnauthenticated, false, "登录网络作用域来源不合法")
+	}
 	issuedAt, err := platform.ParseTimestamp(claims.IssuedAt)
 	if err != nil || claims.Audience == "" {
 		return platform.NewError(platform.CodeUnauthenticated, false, "断言声明不完整")
@@ -193,6 +198,21 @@ func checkAssertionClaims(claims platform.AssertionClaims, expect platform.Asser
 		return platform.NewError(platform.CodeUnauthenticated, false, "断言与请求不符")
 	}
 	return nil
+}
+
+func validLoginScopes(claims platform.AssertionClaims) bool {
+	if len(claims.LoginNetworkScopes) == 0 {
+		return true
+	}
+	if claims.Issuer != "portal" || claims.Audience != "identity" || len(claims.LoginNetworkScopes) > 2 {
+		return false
+	}
+	for _, scope := range claims.LoginNetworkScopes {
+		if !platform.ValidHash(scope) {
+			return false
+		}
+	}
+	return true
 }
 
 var replayMu sync.Mutex
@@ -246,6 +266,9 @@ func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience 
 		IssuedAt:  platform.Timestamp(now.Format(time.RFC3339Nano)),
 		ExpiresAt: platform.Timestamp(now.Add(AssertionTTL).Format(time.RFC3339Nano)),
 		JTI:       platform.NewIdentifier(),
+	}
+	if op, ok := platform.OperationContextFrom(ctx); ok && issuer == "portal" && audience == "identity" {
+		claims.LoginNetworkScopes = append([]platform.Hash(nil), op.LoginNetworkScopes...)
 	}
 	token, err := SignAssertion(key, claims)
 	if err != nil {

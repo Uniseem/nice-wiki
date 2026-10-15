@@ -90,4 +90,8 @@ var JobManagementGrants = []string{
 	"memory.manage",
 	"content.publish",
 	"qa.manage",
+	"account.manage",
+	"site.manage",
+	"model.manage",
+	"guard.manage",
 }

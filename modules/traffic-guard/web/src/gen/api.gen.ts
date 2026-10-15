@@ -406,6 +406,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/login-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 登录失败保护受信准入
+         * @description 仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭
+         */
+        post: operations["beginLoginAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/login-attempts/{attemptId}:finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 登录失败保护受信核验结果
+         * @description 仅identity服务；不接收密码/账号原名/原IP；未知风控状态失败关闭
+         */
+        post: operations["finishLoginAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -884,6 +924,37 @@ export interface components {
             }[];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
+        };
+        BeginLoginAttemptResult: {
+            /** @description 持久尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+            /** @description 30秒核验保留期限，不因幂等重放延长 */
+            expiresAt: components["schemas"]["Timestamp"];
+            /** @description 持久修订 */
+            revision: components["schemas"]["Revision"];
+        };
+        /** @description 仅identity受信适配器调用；账号/网络只传私有HMAC，不传账号名或原IP */
+        BeginLoginAttemptInput: {
+            /** @description 原登录操作ID，与Idempotency-Key及op.OperationID一致 */
+            requestId: components["schemas"]["Identifier"];
+            /** @description identity私钥域分离账号HMAC */
+            accountKey: components["schemas"]["Hash"];
+            networkKeys: components["schemas"]["Hash"][];
+            /** @enum {string} */
+            action: "login" | "bootstrap";
+        };
+        FinishLoginAttemptResult: {
+            /** @constant */
+            accepted: true;
+            /** @description 原尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+        };
+        FinishLoginAttemptInput: {
+            /**
+             * @description authenticated只说明口令核对且账户允许，不承诺session事务已提交；后续存储失败不得改写此事实
+             * @enum {string}
+             */
+            outcome: "authenticated" | "rejected" | "aborted";
         };
     };
     responses: never;
@@ -1893,6 +1964,186 @@ export interface operations {
             };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    beginLoginAttempt: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeginLoginAttemptInput"];
+            };
+        };
+        responses: {
+            /** @description 持久登录保护结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeginLoginAttemptResult"];
+                };
+            };
+            /** @description VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finishLoginAttempt: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["schemas"]["Identifier"];
+            };
+            path: {
+                attemptId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishLoginAttemptInput"];
+            };
+        };
+        responses: {
+            /** @description 持久登录保护结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinishLoginAttemptResult"];
+                };
+            };
+            /** @description VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "1f6d9a7a4cd1f6efd9baaf8376f036f49a2f33a47a3086b06cde81a36a50e750",
+  "contractSha256": "1a5f073bdba9419188b094b99a273a64b643eed4e183e15441b37b3b24c9ffcd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-13（traffic-guard私有策略库启动恢复审计）",
   "branch": "codex/analytics-r1-storage-contract-audit",
@@ -1106,6 +1106,28 @@
     {
       "id": "traffic-guard.ListRiskEvents",
       "path": "modules/traffic-guard/internal/queries.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "traffic-guard.BeginLoginAttempt",
+      "path": "modules/traffic-guard/internal/admission.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "traffic-guard.FinishLoginAttempt",
+      "path": "modules/traffic-guard/internal/admission.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

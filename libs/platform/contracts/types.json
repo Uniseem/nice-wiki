@@ -69,6 +69,15 @@
         "jti": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "一次性ID"
+        },
+        "loginNetworkScopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+          },
+          "description": "只允许portal→identity断言携带受信peer派生网络HMAC，当前/前一日跨窗口，不取浏览器字段"
         }
       },
       "required": [
@@ -698,6 +707,51 @@
         "refreshToken",
         "csrfToken"
       ]
+    },
+    "PayloadValidator": {
+      "type": "object",
+      "x-internal": true,
+      "description": "func(json.RawMessage) error，严格载荷校验，不回显原文"
+    },
+    "PublishClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "生成Jobs客户端PublishEvent(context.Context,any,string)(json.RawMessage,error)"
+    },
+    "EventPublisher": {
+      "type": "object",
+      "x-internal": true,
+      "description": "PublishEvent(context.Context,EventEnvelope) error窄端口，outbox不要求任务租约方法"
+    },
+    "ServiceBoundaryConfig": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Go内部入口策略：Self/Anchors/Runtime/OpenedDataEpoch/AllowedCallers/MaintenanceOperations/MaxBodyBytes/OperationBodyLimits/Authorize(context.Context,OperationContext,permission,action)error，启动只读；无HTTP序列化；ServiceActorCallers为按operation精确的纯service主体子白名单，不能用来绕过用户委托授权"
+    },
+    "HTTPHandlers": {
+      "type": "object",
+      "x-internal": true,
+      "description": "map[string]http.Handler，完整operationId处理器"
+    },
+    "HTTPHandler": {
+      "type": "object",
+      "x-internal": true,
+      "description": "http.Handler，Go内部HTTP路由"
+    },
+    "Authorizer": {
+      "type": "object",
+      "x-internal": true,
+      "description": "func(context.Context,OperationContext,permission,action string) error，当前用户即时授权"
+    },
+    "AuthorizationClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "生成identity.CheckAuthorization(context.Context,any)(json.RawMessage,error)端口"
+    },
+    "EventStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Next(context.Context)(EventEnvelope,error)、LastID()string、Close()error的增量流；取消须解除等待，Close归还订阅槽，不返回原业务秘密"
     }
   }
 }

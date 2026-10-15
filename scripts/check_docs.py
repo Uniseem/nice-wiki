@@ -255,6 +255,13 @@ def check_wiring(modules, shared=()):
             fail(slug, 'implementation缺jobTypes或backgroundTasks清单')
             continue
         worker = slug + '.RunWorker'
+        for event in load_json(folder / 'contracts/events.json').get('events', []):
+            if event.get('direction') == 'publish':
+                permission = load_json(ROOT / 'contracts/permission-groups.json').get('eventManagementPermissions', {}).get(slug)
+                if permission not in management:
+                    fail(slug, '事件生产方缺少已登记的具体管理权限')
+                else:
+                    used_management.add(permission)
         for job in job_types:
             permission = job.get("managementPermission")
             if permission not in management:
@@ -276,7 +283,7 @@ def check_wiring(modules, shared=()):
         if any(j.get('schedule') for j in job_types) and 'jobs:createSchedule' not in build.get('dependencies', []):
             fail(slug, '有系统定时任务但BuildApplication未登记jobs:createSchedule')
     if used_management != management:
-        fail("任务管理权限", "jobManagementGrants必须与全部任务类型使用的具体管理权限一致")
+        fail("任务管理权限", "jobManagementGrants必须与任务类型及事件生产方的具体管理权限集合一致")
     for fn in functions.values():
         callers.update(d for d in fn.get('dependencies', []) if ':' in d)
     seen, stack = set(), list(roots)

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "8f9ed24e4e85ba8029ccd82208ed8d33614e3bf5ddf558549e0a4c646bb8a60c",
+  "contractSha256": "f8542b35b0ac42c57efc19cbe149a50f92944a8ac4e83557592c3bbecf53d25f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第一轮统一复核",
   "branch": "main",

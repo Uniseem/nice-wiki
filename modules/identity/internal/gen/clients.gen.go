@@ -238,10 +238,18 @@ func NewTrafficGuardClient(baseURL, issuer string, key platform.SigningKey) *Tra
 	return &TrafficGuardClient{newProducerClient("traffic-guard", baseURL, issuer, key)}
 }
 
-// CreateAdmission POST /v1/admissions（traffic-guard:createAdmission）。
-func (c *TrafficGuardClient) CreateAdmission(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
+// BeginLoginAttempt POST /v1/login-attempts（traffic-guard:beginLoginAttempt）。
+func (c *TrafficGuardClient) BeginLoginAttempt(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
 	if idempotencyKey == "" {
 		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
 	}
-	return c.do(ctx, http.MethodPost, "/v1/admissions", body, idempotencyKey)
+	return c.do(ctx, http.MethodPost, "/v1/login-attempts", body, idempotencyKey)
+}
+
+// FinishLoginAttempt POST /v1/login-attempts/{attemptId}:finish（traffic-guard:finishLoginAttempt）。
+func (c *TrafficGuardClient) FinishLoginAttempt(ctx context.Context, attemptId string, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/login-attempts/"+url.PathEscape(attemptId)+":finish", body, idempotencyKey)
 }

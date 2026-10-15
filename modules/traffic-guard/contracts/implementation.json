@@ -1366,6 +1366,212 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.BeginLoginAttempt",
+          "name": "BeginLoginAttempt",
+          "signature": "func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAttemptInput) (BeginLoginAttemptResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "请求IO取消",
+              "constraints": [
+                "原样传下游"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经入口认证的identity服务上下文",
+              "constraints": [
+                "来源及epoch不取正文"
+              ]
+            },
+            {
+              "name": "in",
+              "type": "BeginLoginAttemptInput",
+              "description": "已严格校验输入",
+              "constraints": [
+                "不含原IP或秘密"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "BeginLoginAttemptResult",
+              "description": "完整持久结果",
+              "constraints": [
+                "失败无结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不回显原值"
+              ]
+            }
+          ],
+          "purpose": "账号及网络登录失败保护BeginLoginAttempt",
+          "steps": [
+            "只允许identity服务和当前dataEpoch，networkKeys必须来自identity已验portal声明的适配，不接受原IP/账号名",
+            "按requestId+caller+epoch+规范HMAC输入摘要幂等；重放返回原attempt及原expiresAt，不额外占用或延长",
+            "同一SQLite事务按accountKey与两个networkKeys检查15分钟失败窗口/临时锁，账号5次或网络20次失败锁15分钟；成功核验只清账号计数，不清共享网络失败",
+            "每账号最多1个在途核验、每网络最多8个；持久保留attempt 30秒，过期只释放保留不当失败，未知权威失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "非identity调用",
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "when": "当前失败/并发临时锁定",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同请求异输入或不允许的终局",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "尝试不存在",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储或运行权威未知",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本域SQLite保留、计数及回执事务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只允许已认证identity服务，严格epoch"
+          },
+          "concurrency": "SQLite写事务串行计数/CAS，不持锁执行密码核对",
+          "idempotency": "原request/attempt和输入摘要绑定，终局不得改写",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ],
+          "resources": [
+            "本域私有登录尝试/失败/回执持久表"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.FinishLoginAttempt",
+          "name": "FinishLoginAttempt",
+          "signature": "func FinishLoginAttempt(ctx context.Context, op OperationContext, attemptId Identifier, in FinishLoginAttemptInput) (FinishLoginAttemptResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "请求IO取消",
+              "constraints": [
+                "原样传下游"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经入口认证的identity服务上下文",
+              "constraints": [
+                "来源及epoch不取正文"
+              ]
+            },
+            {
+              "name": "attemptId",
+              "type": "Identifier",
+              "description": "已校验路径尝试ID",
+              "constraints": [
+                "只认本域持久原尝试"
+              ]
+            },
+            {
+              "name": "in",
+              "type": "FinishLoginAttemptInput",
+              "description": "已严格校验输入",
+              "constraints": [
+                "不含原IP或秘密"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "FinishLoginAttemptResult",
+              "description": "完整持久结果",
+              "constraints": [
+                "失败无结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "公共安全错误",
+              "constraints": [
+                "不回显原值"
+              ]
+            }
+          ],
+          "purpose": "账号及网络登录失败保护FinishLoginAttempt",
+          "steps": [
+            "只允许identity，读取同epoch本域持久attempt；同终局outcome重放返回原回执，异outcome冲突，不重复累计或清除",
+            "authenticated表示口令核验且账户active，只清账号失败计数并释放保留；后续session提交失败不改写结果",
+            "rejected对账号/网络同事务增加失败计数并按阈值设置锁定；aborted只释放保留、不清失败",
+            "过期未决attempt拒authenticated，终局回执与计数/释放同事务；不记录秘密或原始身份网络信息"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "非identity调用",
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "when": "当前失败/并发临时锁定",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同请求异输入或不允许的终局",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "尝试不存在",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有存储或运行权威未知",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本域SQLite保留、计数及回执事务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只允许已认证identity服务，严格epoch"
+          },
+          "concurrency": "SQLite写事务串行计数/CAS，不持锁执行密码核对",
+          "idempotency": "原request/attempt和输入摘要绑定，终局不得改写",
+          "dependencies": [
+            "site-config:readRuntimeState"
+          ],
+          "resources": [
+            "本域私有登录尝试/失败/回执持久表"
+          ],
+          "contract": "binding"
         }
       ]
     },

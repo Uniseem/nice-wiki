@@ -89,7 +89,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 - 授权：anonymous；无需初始化码，部署后立即注册或先不暴露端口
 - 并发：bootstrapClaim+isSuperadmin唯一约束同事务，首注册至多一个
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`traffic-guard:createAdmission`、`identity.ResolveIdentityOperation`
+- 依赖：`identity.HashPassword`、`identity.IssueSessionTokens`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`、`traffic-guard:beginLoginAttempt`、`traffic-guard:finishLoginAttempt`
 
 ## identity.CreateAccount
 
@@ -135,7 +135,7 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 - 授权：账户管理仅唯一superadmin；自身操作account.self；权限按功能全站，不按文档scope
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.ResolveIdentityOperation`
+- 依赖：`identity.NormalizeAccountName`、`identity.HashPassword`、`identity.MapFunctionGrants`、`identity.WriteAccountIndex`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`
 
 ## identity.ReadSelf
 
@@ -642,7 +642,7 @@ func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswo
 - 授权：account.self；mustChangePassword会话也可调用
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.ResolveIdentityOperation`
+- 依赖：`identity.VerifyPassword`、`identity.ValidatePasswordChange`、`identity.HashPassword`、`identity.RevokeOtherSessions`、`identity.IssueSessionTokens`、`identity.ResolveIdentityOperation`、`platform.PrivateOperationDigest`
 
 ## identity.CreateSession
 
@@ -685,7 +685,7 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 - 授权：anonymous + 同Origin；只显示账号名和口令，不新增MFA/邮箱
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`traffic-guard:createAdmission`、`site-config:readInitializationStatus`
+- 依赖：`identity.VerifyPassword`、`identity.IssueSessionTokens`、`site-config:readInitializationStatus`、`platform.PrivateOperationDigest`、`traffic-guard:beginLoginAttempt`、`traffic-guard:finishLoginAttempt`
 
 ## identity.IssueSessionTokens
 
@@ -2192,7 +2192,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`platform.NewServiceHandler`、`platform.CanonicalPublicOrigin`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## identity.Serve

@@ -1573,7 +1573,7 @@ func ValidateEnvelope(ctx context.Context, op OperationContext, in ValidateEnvel
 - 授权：permission：service；rule：service生产方
 - 并发：纯校验+runtime读取
 - 幂等：同event同结果
-- 依赖：无
+- 依赖：`platform.NewPayloadValidator`
 - 其他依赖说明：各域contracts/events.json
 
 ## jobs.PublishEvent
@@ -2430,7 +2430,7 @@ func SubscribeEvents(ctx context.Context, op OperationContext, in SubscribeEvent
 - 授权：permission：service；rule：service注册consumer
 - 并发：每consumer最多2流；epoch变化立即关闭旧流
 - 幂等：eventSeq重放至少一次，consumer inbox/eventId去重后ack
-- 依赖：`jobs.ValidateEnvelope`、`jobs.AcknowledgeEvent`
+- 依赖：`jobs.ValidateEnvelope`、`jobs.AcknowledgeEvent`、`platform.ServeEventStream`
 
 ## jobs.All
 
@@ -2543,7 +2543,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`platform.NewServiceHandler`、`platform.NewEventPublisher`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve

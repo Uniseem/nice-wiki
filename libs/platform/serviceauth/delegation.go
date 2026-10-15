@@ -2,8 +2,11 @@ package serviceauth
 
 import (
 	"crypto/ed25519"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
@@ -11,6 +14,32 @@ import (
 
 	"nice-wiki/libs/platform"
 )
+
+// PrivateOperationDigest 为含秘密的幂等输入生成不可公开猜测的私有摘要。
+// 调用方保存keyId并在轮换过渡期保留旧key；不保存payload或原始秘密。
+func PrivateOperationDigest(key platform.SigningKey, scope string, payload []byte) (platform.Hash, error) {
+	if scope == "" || len(scope) > 128 {
+		return "", platform.NewError(platform.CodeValidation, false, "私有操作摘要作用域不合法")
+	}
+	privateKey, err := LoadSigningKey(key)
+	if err != nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "私有操作摘要密钥不可用")
+	}
+	seed := privateKey.Seed()
+	defer clear(seed)
+	derive := hmac.New(sha256.New, seed)
+	derive.Write([]byte("nice-wiki/private-operation-key/v1"))
+	secret := derive.Sum(nil)
+	defer clear(secret)
+	digest := hmac.New(sha256.New, secret)
+	digest.Write([]byte("nice-wiki/private-operation-input/v1"))
+	var size [4]byte
+	binary.BigEndian.PutUint32(size[:], uint32(len(scope)))
+	digest.Write(size[:])
+	digest.Write([]byte(scope))
+	digest.Write(payload)
+	return platform.Hash(hex.EncodeToString(digest.Sum(nil))), nil
+}
 
 // SignDelegation 签名机制由平台统一实现，portal只负责准备已授权声明。
 func SignDelegation(key platform.SigningKey, claims platform.DelegationClaims) (string, error) {

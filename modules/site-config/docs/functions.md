@@ -171,7 +171,7 @@ func NormalizeBaseURL(input NormalizeBaseURLInput) (NormalizeBaseURLResult, erro
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：无
+- 依赖：`platform.NormalizePublicURL`
 
 ## site-config.ValidateLanguageTag
 
@@ -2101,7 +2101,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## site-config.Serve

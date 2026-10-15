@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -48,9 +49,13 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 		RequestID:     requestID(r),
 		OperationID:   operationID(r),
 		CallerService: claims.Issuer,
-		Deadline:      deadline(r),
 		DataEpoch:     runtime.DataEpoch,
 	}
+	op.Deadline, err = deadline(r)
+	if err != nil {
+		return platform.OperationContext{}, err
+	}
+	op.LoginNetworkScopes = append([]platform.Hash(nil), claims.LoginNetworkScopes...)
 	if root := r.Header.Get(platform.HeaderRootOperationID); platform.ValidIdentifier(root) {
 		op.RootOperationID = root
 	} else {
@@ -90,6 +95,10 @@ func hashRequestBody(r *http.Request) (platform.Hash, error) {
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		var limit *http.MaxBytesError
+		if errors.As(err, &limit) {
+			return "", platform.NewError(platform.CodeBudgetExceeded, false, "请求体超过接口上限")
+		}
 		return "", platform.NewError(platform.CodeInternal, false, "读取请求正文失败")
 	}
 	r.Body.Close()
@@ -112,13 +121,18 @@ func operationID(r *http.Request) platform.Identifier {
 	return platform.NewIdentifier()
 }
 
-func deadline(r *http.Request) platform.Timestamp {
+func deadline(r *http.Request) (platform.Timestamp, error) {
 	if raw := r.Header.Get(platform.HeaderDeadline); raw != "" {
-		if parsed, err := platform.ParseTimestamp(platform.Timestamp(raw)); err == nil && parsed.After(time.Now()) {
-			return platform.Timestamp(parsed.Format(time.RFC3339Nano))
+		parsed, err := platform.ParseTimestamp(platform.Timestamp(raw))
+		if err != nil {
+			return "", platform.NewError(platform.CodeValidation, false, "请求截止不合法")
 		}
+		if !parsed.After(time.Now()) {
+			return "", platform.NewError(platform.CodeDeadlineExceeded, false, "请求已超过截止")
+		}
+		return platform.Timestamp(parsed.Format(time.RFC3339Nano)), nil
 	}
-	return platform.Timestamp(time.Now().Add(defaultDeadline).UTC().Format(time.RFC3339Nano))
+	return platform.Timestamp(time.Now().Add(defaultDeadline).UTC().Format(time.RFC3339Nano)), nil
 }
 
 // serviceActor 无用户委托时的服务主体；权限由调用方业务函数核实。

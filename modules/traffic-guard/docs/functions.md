@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 52 个函数：约束 30 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 54 个函数：约束 32 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -693,6 +693,101 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 - 并发：每站点事务；没有费用预占
 - 幂等：requestId+inputHash 幂等，不同 body 冲突
 - 依赖：`site-config:readRuntimeState`、`traffic-guard.ComputeRisk`、`traffic-guard.ConsumeBuckets`、`traffic-guard.AcquireConcurrency`、`traffic-guard.SignPermit`
+
+## traffic-guard.BeginLoginAttempt
+
+- 级别：约束
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：账号及网络登录失败保护BeginLoginAttempt
+
+```go
+func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAttemptInput) (BeginLoginAttemptResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 请求IO取消 | 原样传下游 |
+| `op` | `OperationContext` | 经入口认证的identity服务上下文 | 来源及epoch不取正文 |
+| `in` | `BeginLoginAttemptInput` | 已严格校验输入 | 不含原IP或秘密 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `BeginLoginAttemptResult` | 完整持久结果 | 失败无结果 |
+| `error` | `Error` | 公共安全错误 | 不回显原值 |
+
+**步骤**
+
+1. 只允许identity服务和当前dataEpoch，networkKeys必须来自identity已验portal声明的适配，不接受原IP/账号名
+2. 按requestId+caller+epoch+规范HMAC输入摘要幂等；重放返回原attempt及原expiresAt，不额外占用或延长
+3. 同一SQLite事务按accountKey与两个networkKeys检查15分钟失败窗口/临时锁，账号5次或网络20次失败锁15分钟；成功核验只清账号计数，不清共享网络失败
+4. 每账号最多1个在途核验、每网络最多8个；持久保留attempt 30秒，过期只释放保留不当失败，未知权威失败关闭
+
+**错误**
+
+- `FORBIDDEN`：非identity调用（不可重试）
+- `RATE_LIMITED`：当前失败/并发临时锁定（不可重试）
+- `CONFLICT`：同请求异输入或不允许的终局（不可重试）
+- `NOT_FOUND`：尝试不存在（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有存储或运行权威未知（可重试）
+
+- 副作用：本域SQLite保留、计数及回执事务
+- 授权：permission：service；rule：只允许已认证identity服务，严格epoch
+- 并发：SQLite写事务串行计数/CAS，不持锁执行密码核对
+- 幂等：原request/attempt和输入摘要绑定，终局不得改写
+- 依赖：`site-config:readRuntimeState`
+- 其他依赖说明：本域私有登录尝试/失败/回执持久表
+
+## traffic-guard.FinishLoginAttempt
+
+- 级别：约束
+- 文件：`modules/traffic-guard/internal/admission.go`
+- 作用：账号及网络登录失败保护FinishLoginAttempt
+
+```go
+func FinishLoginAttempt(ctx context.Context, op OperationContext, attemptId Identifier, in FinishLoginAttemptInput) (FinishLoginAttemptResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 请求IO取消 | 原样传下游 |
+| `op` | `OperationContext` | 经入口认证的identity服务上下文 | 来源及epoch不取正文 |
+| `attemptId` | `Identifier` | 已校验路径尝试ID | 只认本域持久原尝试 |
+| `in` | `FinishLoginAttemptInput` | 已严格校验输入 | 不含原IP或秘密 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `FinishLoginAttemptResult` | 完整持久结果 | 失败无结果 |
+| `error` | `Error` | 公共安全错误 | 不回显原值 |
+
+**步骤**
+
+1. 只允许identity，读取同epoch本域持久attempt；同终局outcome重放返回原回执，异outcome冲突，不重复累计或清除
+2. authenticated表示口令核验且账户active，只清账号失败计数并释放保留；后续session提交失败不改写结果
+3. rejected对账号/网络同事务增加失败计数并按阈值设置锁定；aborted只释放保留、不清失败
+4. 过期未决attempt拒authenticated，终局回执与计数/释放同事务；不记录秘密或原始身份网络信息
+
+**错误**
+
+- `FORBIDDEN`：非identity调用（不可重试）
+- `RATE_LIMITED`：当前失败/并发临时锁定（不可重试）
+- `CONFLICT`：同请求异输入或不允许的终局（不可重试）
+- `NOT_FOUND`：尝试不存在（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有存储或运行权威未知（可重试）
+
+- 副作用：本域SQLite保留、计数及回执事务
+- 授权：permission：service；rule：只允许已认证identity服务，严格epoch
+- 并发：SQLite写事务串行计数/CAS，不持锁执行密码核对
+- 幂等：原request/attempt和输入摘要绑定，终局不得改写
+- 依赖：`site-config:readRuntimeState`
+- 其他依赖说明：本域私有登录尝试/失败/回执持久表
 
 ## traffic-guard.HandleAdmission
 

@@ -3,20 +3,271 @@
 package apivalidate
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/opctx"
 	"nice-wiki/libs/platform/problem"
 )
 
 // maxIssues 限制一次返回的字段问题数量。
 const maxIssues = 20
+
+// NewIdentityAuthorizer 只适配版本化即时授权，不复制会话或权限权威。
+func NewIdentityAuthorizer(client platform.AuthorizationClient) func(context.Context, platform.OperationContext, string, string) error {
+	return func(ctx context.Context, op platform.OperationContext, permission, action string) error {
+		raw, err := client.CheckAuthorization(platform.WithOperationContext(ctx, op), map[string]any{
+			"subjectId": op.Actor.SubjectID, "sessionId": op.Actor.SessionID, "siteId": op.Actor.SiteID,
+			"permission": permission, "action": action, "resourceId": nil, "expectedPermissionRevision": op.Actor.PermissionRevision,
+		})
+		if err != nil {
+			return err
+		}
+		var result struct {
+			Authorized *bool `json:"authorized"`
+		}
+		if json.Unmarshal(raw, &result) != nil || result.Authorized == nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "用户授权响应不可读")
+		}
+		if !*result.Authorized {
+			return platform.NewError(platform.CodeForbidden, false, "当前账户无此操作权限")
+		}
+		return nil
+	}
+}
+
+// NewServiceHandler 装配完整版本化接口；不完整handler/调用方策略在启动时失败。
+// 健康与就绪保持匿名，其余接口均先验服务身份，再一次校验请求schema。
+func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, handlers map[string]http.Handler) (http.Handler, error) {
+	if spec == nil || config.Self == "" || config.Runtime == nil || config.MaxBodyBytes < 0 {
+		return nil, platform.NewError(platform.CodeValidation, false, "服务入口配置不完整")
+	}
+	validate, err := NewRequestValidator(spec)
+	if err != nil {
+		return nil, err
+	}
+	router, err := legacyrouter.NewRouter(spec, openapi3.DisableExamplesValidation(), openapi3.DisableSchemaDefaultsValidation())
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "服务入口路由不可读")
+	}
+	for _, item := range spec.Paths.Map() {
+		for _, operation := range item.Operations() {
+			id := operation.OperationID
+			if id == "" || handlers[id] == nil {
+				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "存在未绑定的接口处理函数")
+			}
+			if id == "health" || id == "ready" {
+				continue
+			}
+			if len(config.AllowedCallers[id]) == 0 {
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少固定调用服务策略")
+			}
+			permission, _ := operation.Extensions["x-permission"].(string)
+			if permission != "anonymous" && permission != "service" && config.Authorize == nil {
+				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "用户权威授权回调未装配")
+			}
+		}
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		route, params, err := router.FindRoute(r)
+		if err != nil {
+			_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeNotFound, false, "接口路径不存在"), platform.NewIdentifier()))
+			return
+		}
+		id := route.Operation.OperationID
+		for name, value := range params {
+			r.SetPathValue(name, value)
+		}
+		handler := handlers[id]
+		if id == "health" || id == "ready" {
+			validate(handler).ServeHTTP(w, r)
+			return
+		}
+		limit := config.MaxBodyBytes
+		if limit == 0 {
+			limit = 16 << 20
+		}
+		if declared := config.OperationBodyLimits[id]; declared > 0 {
+			limit = declared
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		view, err := config.Runtime(r.Context())
+		if err != nil {
+			_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
+			return
+		}
+		if config.OpenedDataEpoch != "" && view.DataEpoch != config.OpenedDataEpoch {
+			_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeVersionMismatch, false, "进程数据代次已变化，等待重启"), platform.NewIdentifier()))
+			return
+		}
+		op, err := opctx.BuildOperationContext(r, config.Anchors, config.Self, view)
+		if key := r.Header.Get("Idempotency-Key"); err == nil && key != "" {
+			if !platform.ValidIdentifier(key) {
+				err = platform.NewError(platform.CodeValidation, false, "请求幂等键不合法")
+			} else {
+				op.OperationID = key
+				if r.Header.Get(platform.HeaderRootOperationID) == "" {
+					op.RootOperationID = key
+				}
+			}
+		}
+		if err == nil && !slices.Contains(config.AllowedCallers[id], op.CallerService) {
+			err = platform.NewError(platform.CodeForbidden, false, "该服务不允许调用此接口")
+		}
+		if err == nil && (view.Maintenance || view.Phase != platform.PhaseRunning) && !config.MaintenanceOperations[id] {
+			err = platform.NewError(platform.CodeLocked, true, "当前维护阶段不开放该接口")
+		}
+		if err != nil {
+			requestID := op.RequestID
+			if requestID == "" {
+				requestID = platform.NewIdentifier()
+			}
+			_ = problem.WriteProblem(w, problem.FromError(err, requestID))
+			return
+		}
+		deadline, _ := platform.ParseTimestamp(op.Deadline)
+		ctx, cancel := context.WithDeadline(r.Context(), deadline)
+		defer cancel()
+		ctx = platform.WithOperationContext(ctx, op)
+		if proof := r.Header.Get(platform.HeaderPortalProof); proof != "" {
+			ctx = platform.WithPortalProof(ctx, proof)
+		}
+		permission, _ := route.Operation.Extensions["x-permission"].(string)
+		if permission != "anonymous" && permission != "service" {
+			serviceAllowed := op.Actor.Kind == "service" && slices.Contains(config.ServiceActorCallers[id], op.CallerService)
+			if !serviceAllowed {
+				if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || op.Actor.SessionRevision < 1 {
+					err = platform.NewError(platform.CodeUnauthenticated, false, "此接口要求当前后台会话")
+				} else {
+					err = config.Authorize(ctx, op, permission, config.Self+":"+id)
+				}
+			}
+			if err != nil {
+				requestID := op.RequestID
+				if requestID == "" {
+					requestID = platform.NewIdentifier()
+				}
+				_ = problem.WriteProblem(w, problem.FromError(err, requestID))
+				return
+			}
+		}
+		validate(handler).ServeHTTP(w, r.WithContext(ctx))
+	}), nil
+}
+
+// ServeEventStream 将单条增量事件写入SSE；读取、写入与心跳共享请求取消。
+// 返回时流已经关闭；响应开始后调用方只记录错误码，不再写JSON错误。
+func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream platform.EventStream) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer func() { cancel(); _ = stream.Close() }()
+	type eventResult struct {
+		event platform.EventEnvelope
+		id    string
+		err   error
+	}
+	next := make(chan eventResult)
+	go func() {
+		for {
+			event, err := stream.Next(ctx)
+			result := eventResult{event: event, id: stream.LastID(), err: err}
+			select {
+			case next <- result:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	controller := http.NewResponseController(w)
+	if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "事件响应不支持写截止")
+	}
+	if err := controller.Flush(); err != nil {
+		return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
+	}
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接写截止不可用")
+			}
+			if _, err := io.WriteString(w, ": heartbeat\n\n"); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
+			}
+			if err := controller.Flush(); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
+			}
+		case result := <-next:
+			if errors.Is(result.err, io.EOF) {
+				return nil
+			}
+			if result.err != nil {
+				return result.err
+			}
+			if len(result.id) > 4096 || strings.ContainsAny(result.id, "\r\n") {
+				return platform.NewError(platform.CodeIntegrityError, false, "事件游标不合法")
+			}
+			raw, err := json.Marshal(result.event)
+			if err != nil {
+				return platform.NewError(platform.CodeIntegrityError, false, "事件无法编码")
+			}
+			if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接写截止不可用")
+			}
+			if _, err := fmt.Fprintf(w, "id: %s\nevent: message\ndata: %s\n\n", result.id, raw); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
+			}
+			if err := controller.Flush(); err != nil {
+				return platform.NewError(platform.CodeCancelled, false, "事件连接已断开")
+			}
+		}
+	}
+}
+
+// NewPayloadValidator 复用内嵌自包含规格校验持久消息载荷；不会联网取引用。
+// schema错误在启动时失败，载荷错误只返回安全说明，不回显取值。
+func NewPayloadValidator(document []byte, schemaName string) (func(json.RawMessage) error, error) {
+	loader := openapi3.NewLoader()
+	spec, err := loader.LoadFromData(document)
+	if err != nil || spec.Components == nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "消息载荷规格不可读")
+	}
+	ref := spec.Components.Schemas[schemaName]
+	if ref == nil || ref.Value == nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "消息载荷schema未登记")
+	}
+	if err := ref.Value.Validate(context.Background()); err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "消息载荷schema不合法")
+	}
+	return func(raw json.RawMessage) error {
+		var value any
+		if json.Unmarshal(raw, &value) != nil || ref.Value.VisitJSON(value) != nil {
+			return platform.NewError(platform.CodeValidation, false, "消息载荷不符合登记schema")
+		}
+		return nil
+	}, nil
+}
 
 // NewRequestValidator 用本域生成代码 gen.GetSwagger() 返回的规格构建请求校验中间件。
 // 路径、查询、请求头参数与请求体按规格校验（additionalProperties:false 拒绝未知字段，

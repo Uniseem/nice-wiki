@@ -2,10 +2,10 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "2f3599634fb05eae2e0876c16baa7afa5501d55fa1c01d91a4593fd878061700",
+  "contractSha256": "2de962ea5422367e5257336b00fba41fe760c435c885c71396a5d2d1432305f6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1持续实施第一轮统一复核",
-  "branch": "main",
+  "assignedSession": "R1持续实施第二轮",
+  "branch": "codex/continuous-r1-cycle02",
   "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
   "deliveryCommit": "dad2dceed69c8ada97fb9aa28b1a7bf83967ed0b",
   "deployment": "not_started",
@@ -498,6 +498,116 @@
         "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.PrivateOperationDigest",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.NewEventPublisher",
+      "path": "libs/platform/outbox/relay.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.PublishEvent",
+      "path": "libs/platform/outbox/relay.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.NormalizePublicURL",
+      "path": "libs/platform/lifecycle/config.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.NewPayloadValidator",
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.ServeEventStream",
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "持续实施第二轮公共机制，等待VPS及调用方集成"
+    },
+    {
+      "id": "platform.validLoginScopes",
+      "path": "libs/platform/serviceauth/assertion.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮公共入口/来源机制等待VPS编译与调用方集成"
+    },
+    {
+      "id": "platform.NewServiceHandler",
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮公共入口/来源机制等待VPS编译与调用方集成"
+    },
+    {
+      "id": "platform.CanonicalPublicOrigin",
+      "path": "libs/platform/lifecycle/config.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮公共机制等待VPS"
+    },
+    {
+      "id": "platform.NewIdentityAuthorizer",
+      "path": "libs/platform/apivalidate/validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第二轮公共机制等待VPS"
     }
   ],
   "rule": "公共机制本轮已实现并通过VPS现阶段检查；各调用服务的完整HTTP/后台装配与行为验收仍待后续。"

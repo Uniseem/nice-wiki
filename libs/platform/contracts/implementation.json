@@ -106,7 +106,9 @@
           },
           "concurrency": "纯函数，可并发",
           "idempotency": "每次生成新jti",
-          "dependencies": [],
+          "dependencies": [
+            "platform.validLoginScopes"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -186,9 +188,81 @@
           },
           "concurrency": "重放缓存加锁",
           "idempotency": "jti唯一",
-          "dependencies": [],
+          "dependencies": [
+            "platform.validLoginScopes"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.validLoginScopes",
+          "name": "validLoginScopes",
+          "signature": "func validLoginScopes(claims AssertionClaims) bool",
+          "inputs": [
+            {
+              "name": "claims",
+              "type": "AssertionClaims",
+              "description": "已解码或待签服务声明",
+              "constraints": [
+                "可信启动配置或入口校验"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "valid",
+              "type": "bool",
+              "description": "登录网络作用域合法来源",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "限制私有登录网络来源",
+          "steps": [
+            "仅portal至identity的服务断言允许1..2个合法HMAC hash；无作用域为普通服务请求"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "路由/权威依赖未装配",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "入口配置或请求不合法",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "服务或用户身份无效",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "调用范围不允许",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护门禁阻止业务",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "数据代次不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "按函数职责访问底层IO，不输出秘密"
+          ],
+          "authorization": "入口验证服务身份与用户即时授权，策略只来自本域合同装配",
+          "concurrency": "只读启动配置，单请求上下文隔离",
+          "idempotency": "以可信Idempotency-Key建立operationId，不改已有费用rootOperationId",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -738,6 +812,84 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.PrivateOperationDigest",
+          "name": "PrivateOperationDigest",
+          "signature": "func PrivateOperationDigest(key SigningKey, scope string, payload []byte) (Hash, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "私有签名密钥引用",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "scope",
+              "type": "string",
+              "description": "业务动作/格式版本域分离",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "payload",
+              "type": "[]byte",
+              "description": "仅内存含秘密规范输入",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "digest",
+              "type": "Hash",
+              "description": "私有HMAC摘要",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "避免低熵秘密幂等摘要被离线猜测",
+          "steps": [
+            "从Ed25519 seed以固定域分离派生HMAC key；再次域分离和scope长度编码后HMAC payload",
+            "调用方保存digest_key_id并保留旧key过渡；无原key明确拒重放，不保存或返回raw payload/摘要"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -808,7 +960,8 @@
             "读取X-Operation-Id、X-Root-Operation-Id、X-Cost-Class（只接受可信调用方传递）、截止与取消标识",
             "dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH",
             "浏览器自报的身份、费用类别、网络作用域一律忽略",
-            "先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文"
+            "先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文",
+            "从已验签portal→identity断言复制Go私有LoginNetworkScopes，不从浏览器字段/header取；已过期/非法deadline明确拒绝，不能重置为默认30秒"
           ],
           "errors": [
             {
@@ -975,7 +1128,7 @@
         {
           "id": "platform.RunRelay",
           "name": "RunRelay",
-          "signature": "func RunRelay(ctx context.Context, store OutboxStore, client JobsClient, config RelayConfig) error",
+          "signature": "func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, config RelayConfig) error",
           "inputs": [
             {
               "name": "ctx",
@@ -995,7 +1148,7 @@
             },
             {
               "name": "client",
-              "type": "JobsClient",
+              "type": "EventPublisher",
               "description": "jobs客户端",
               "constraints": [
                 "带服务断言"
@@ -1049,6 +1202,124 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.NewEventPublisher",
+          "name": "NewEventPublisher",
+          "signature": "func NewEventPublisher(client PublishClient) EventPublisher",
+          "inputs": [
+            {
+              "name": "client",
+              "type": "PublishClient",
+              "description": "版本化raw Jobs客户端",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "publisher",
+              "type": "EventPublisher",
+              "description": "只提供事件发布端口",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "适配生成客户端的真实publishEvent协议",
+          "steps": [
+            "封装event、eventId幂等键，只有accepted=true且eventId一致才转发成功"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [
+            "platform.PublishEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.PublishEvent",
+          "name": "PublishEvent",
+          "signature": "func (p eventPublisher) PublishEvent(ctx context.Context, event EventEnvelope) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信调用链",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "event",
+              "type": "EventEnvelope",
+              "description": "业务提交outbox信封",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "typed事件发布适配",
+          "steps": [
+            "调用生成客户端并验证持久接收回执，不要求虚构租约方法"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [
+            "jobs:publishEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1519,9 +1790,142 @@
           },
           "concurrency": "启动时调用一次",
           "idempotency": "纯函数",
-          "dependencies": [],
+          "dependencies": [
+            "platform.NormalizePublicURL"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.NormalizePublicURL",
+          "name": "NormalizePublicURL",
+          "signature": "func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error)",
+          "inputs": [
+            {
+              "name": "raw",
+              "type": "string",
+              "description": "受信部署URL",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "allowLocalHTTP",
+              "type": "bool",
+              "description": "受信loopback HTTP开关",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "url",
+              "type": "string",
+              "description": "IDNA主机/有效端口/尾斜杠规范地址",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "统一公开地址与国际域名规范",
+          "steps": [
+            "IDNA Lookup规范域名，IPv6和默认端口统一；仅HTTPS或显式loopback HTTP",
+            "拒credential/query/fragment/控制字符和路径穿越，保留basePath"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CanonicalPublicOrigin",
+          "name": "CanonicalPublicOrigin",
+          "signature": "func CanonicalPublicOrigin(publicBaseURL string) (string, error)",
+          "inputs": [
+            {
+              "name": "publicBaseURL",
+              "type": "string",
+              "description": "已边界校验规范的部署地址",
+              "constraints": [
+                "受信装配来源"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "origin",
+              "type": "string",
+              "description": "规范scheme://Host",
+              "constraints": [
+                "失败结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "失败结果无效"
+              ]
+            }
+          ],
+          "purpose": "CanonicalPublicOrigin公共适配",
+          "steps": [
+            "从受信规范URL去basePath提取Origin，不从Host请求头猜测，不重复引入另一套IDNA策略"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1801,6 +2205,305 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.NewPayloadValidator",
+          "name": "NewPayloadValidator",
+          "signature": "func NewPayloadValidator(document []byte, schemaName string) (PayloadValidator, error)",
+          "inputs": [
+            {
+              "name": "document",
+              "type": "[]byte",
+              "description": "内嵌自包含OpenAPI载荷规格",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "schemaName",
+              "type": "string",
+              "description": "登记组件名",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "validate",
+              "type": "PayloadValidator",
+              "description": "严格载荷schema校验",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "复用统一schema机制核事件载荷",
+          "steps": [
+            "启动解析自包含规格，禁止联网外部引用，schema缺失失败关闭",
+            "每次JSON解码并VisitJSON，错误不回显原值"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ServeEventStream",
+          "name": "ServeEventStream",
+          "signature": "func ServeEventStream(ctx context.Context, w http.ResponseWriter, stream EventStream) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "请求取消",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "w",
+              "type": "http.ResponseWriter",
+              "description": "SSE响应",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            },
+            {
+              "name": "stream",
+              "type": "EventStream",
+              "description": "本域事件流",
+              "constraints": [
+                "受信装配或调用边界"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "流结束或安全IO失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "统一SSE事件流与心跳背压",
+          "steps": [
+            "每次最多一条待写事件，使用LastID输出id，15秒注释心跳并flush",
+            "取消/结束关闭底层流归还资源；响应开始后不再写JSON Problem"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.NewServiceHandler",
+          "name": "NewServiceHandler",
+          "signature": "func NewServiceHandler(spec OpenAPIDocument, config ServiceBoundaryConfig, handlers HTTPHandlers) (HTTPHandler, error)",
+          "inputs": [
+            {
+              "name": "spec",
+              "type": "OpenAPIDocument",
+              "description": "本域嵌入OpenAPI",
+              "constraints": [
+                "可信启动配置或入口校验"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "ServiceBoundaryConfig",
+              "description": "固定服务来源/运行状态/授权/体积策略",
+              "constraints": [
+                "可信启动配置或入口校验"
+              ]
+            },
+            {
+              "name": "handlers",
+              "type": "HTTPHandlers",
+              "description": "完整operationId到处理器",
+              "constraints": [
+                "可信启动配置或入口校验"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "handler",
+              "type": "HTTPHandler",
+              "description": "已组装入口",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全失败",
+              "constraints": [
+                "错误时结果无效"
+              ]
+            }
+          ],
+          "purpose": "统一身份/上下文/schema/epoch/维护HTTP入口",
+          "steps": [
+            "启动拒缺handler/允许调用方或授权回调，不以空handler假成功；health/ready匿名",
+            "请求体有界，先验服务断言/原委托、数据epoch和固定caller白名单，再设一次截止与调用链ctx",
+            "普通业务受维护门禁；管理操作只由固定MaintenanceOperations放行，函数内部仍履行自身屏障",
+            "合法Idempotency-Key作为operationId；原root保留；注入原PortalProof供下游原样传递",
+            "一次严格schema验证后交本域适配；用户权限由Authorize当前权威回调确认",
+            "仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "路由/权威依赖未装配",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "入口配置或请求不合法",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "服务或用户身份无效",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "调用范围不允许",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护门禁阻止业务",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "数据代次不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "按函数职责访问底层IO，不输出秘密"
+          ],
+          "authorization": "入口验证服务身份与用户即时授权，策略只来自本域合同装配",
+          "concurrency": "只读启动配置，单请求上下文隔离",
+          "idempotency": "以可信Idempotency-Key建立operationId，不改已有费用rootOperationId",
+          "dependencies": [
+            "platform.NewRequestValidator",
+            "platform.BuildOperationContext",
+            "platform.WriteProblem"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.NewIdentityAuthorizer",
+          "name": "NewIdentityAuthorizer",
+          "signature": "func NewIdentityAuthorizer(client AuthorizationClient) Authorizer",
+          "inputs": [
+            {
+              "name": "client",
+              "type": "AuthorizationClient",
+              "description": "版本化identity客户端",
+              "constraints": [
+                "受信装配来源"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "authorize",
+              "type": "Authorizer",
+              "description": "即时核权回调",
+              "constraints": [
+                "失败结果无效"
+              ]
+            }
+          ],
+          "purpose": "NewIdentityAuthorizer公共适配",
+          "steps": [
+            "发送可信op主体/站点/session/权限版本，静态action和null资源，调用identity:checkAuthorization",
+            "核authorized必须存在且为true；透传公共身份错误，不创建会话/权限影子状态"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "输入不符合边界",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "基础依赖不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久规格或载荷损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "平台受信调用",
+          "concurrency": "无共享可写业务状态，可并发",
+          "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
+          "dependencies": [
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

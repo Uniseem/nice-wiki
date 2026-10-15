@@ -23,3 +23,5 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
 快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
+
+登录失败保护新增版本化合同目前仅设计：由identity提交账号私有HMAC与portal签名来源的当前/前一日网络HMAC，私有表保留attempt、保留到期、计数窗口/锁定和终局回执；不持久原账号名、原IP或口令。账号5次/网络20次失败在15分钟窗口锁15分钟，账号在途1、网络8、attempt30秒；成功只清账号计数，不清共享网络失败。实现与追加迁移尚待后续，不能以API存在当可用。

@@ -126,15 +126,16 @@ type AuthContext struct {
 
 // OperationContext 服务间可信操作元数据。
 type OperationContext struct {
-	RequestID       Identifier  `json:"requestId"`
-	OperationID     Identifier  `json:"operationId"`
-	RootOperationID Identifier  `json:"rootOperationId"`
-	CallerService   string      `json:"callerService"`
-	Actor           AuthContext `json:"actor"`
-	Deadline        Timestamp   `json:"deadline"`
-	DataEpoch       Identifier  `json:"dataEpoch"`
-	CostClass       string      `json:"costClass,omitempty"`
-	CancellationID  Identifier  `json:"cancellationId,omitempty"`
+	RequestID          Identifier  `json:"requestId"`
+	OperationID        Identifier  `json:"operationId"`
+	RootOperationID    Identifier  `json:"rootOperationId"`
+	CallerService      string      `json:"callerService"`
+	Actor              AuthContext `json:"actor"`
+	Deadline           Timestamp   `json:"deadline"`
+	DataEpoch          Identifier  `json:"dataEpoch"`
+	CostClass          string      `json:"costClass,omitempty"`
+	CancellationID     Identifier  `json:"cancellationId,omitempty"`
+	LoginNetworkScopes []Hash      `json:"-"`
 }
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
@@ -183,14 +184,15 @@ type SessionSecrets struct {
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
 type AssertionClaims struct {
-	Issuer    string     `json:"iss"`
-	Audience  string     `json:"aud"`
-	Method    string     `json:"method"`
-	Path      string     `json:"path"`
-	BodyHash  Hash       `json:"bodyHash"`
-	IssuedAt  Timestamp  `json:"issuedAt"`
-	ExpiresAt Timestamp  `json:"expiresAt"`
-	JTI       Identifier `json:"jti"`
+	Issuer             string     `json:"iss"`
+	Audience           string     `json:"aud"`
+	Method             string     `json:"method"`
+	Path               string     `json:"path"`
+	BodyHash           Hash       `json:"bodyHash"`
+	IssuedAt           Timestamp  `json:"issuedAt"`
+	ExpiresAt          Timestamp  `json:"expiresAt"`
+	JTI                Identifier `json:"jti"`
+	LoginNetworkScopes []Hash     `json:"loginNetworkScopes,omitempty"`
 }
 
 // AssertionExpectation 验证断言时的期望值。
@@ -303,6 +305,24 @@ type WorkerConfig struct {
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	// OperationContext从本域持久任务读取获准主体与预算，不凭任务ID猜测授权。
 	OperationContext func(context.Context, ClaimedJob) (OperationContext, error) `json:"-"`
+}
+
+// ServiceBoundaryConfig 只由服务启动时从合同装配，不接受请求自报策略。
+type ServiceBoundaryConfig struct {
+	Self                  string
+	Anchors               TrustAnchors
+	Runtime               func(context.Context) (RuntimeView, error)
+	OpenedDataEpoch       Identifier
+	AllowedCallers        map[string][]string
+	ServiceActorCallers   map[string][]string
+	MaintenanceOperations map[string]bool
+	MaxBodyBytes          int64
+	OperationBodyLimits   map[string]int64
+	Authorize             func(context.Context, OperationContext, string, string) error
+}
+
+type AuthorizationClient interface {
+	CheckAuthorization(context.Context, any) (json.RawMessage, error)
 }
 
 // AssetRef media资源引用；经media受控读取。
@@ -604,6 +624,11 @@ type ModelEventStream interface {
 	Next(ctx context.Context) (StreamEvent, error)
 	LastID() string
 	Close() error
+}
+
+// EventPublisher 只暴露outbox转发所需的持久事件接收端口。
+type EventPublisher interface {
+	PublishEvent(ctx context.Context, envelope EventEnvelope) error
 }
 
 // JobsClient jobs服务的调用接口；实现自动附服务断言。
