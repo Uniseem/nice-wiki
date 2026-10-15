@@ -9,7 +9,7 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| GET `/v1/jobs` | `listJobs` | `jobs.ListJobs` | `job.manage` | `—` → 200 `ListJobsResult` | 查看任务队列 | `FORBIDDEN` |
+| GET `/v1/jobs` | `listJobs` | `jobs.ListJobs` | `job.manage` | `—` → 200 `ListJobsResult` | 查看任务队列 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL` |
 | POST `/v1/jobs` | `createJob` | `jobs.CreateJob` | `service` | `CreateJobRequestBody` → 202 `CreateJobResult` | 持久提交任务 | `CONFLICT` |
 | POST `/v1/jobs:claim` | `claimJob` | `jobs.ClaimJob` | `service` | `ClaimJobRequestBody` → 200 `ClaimJobResult` | 领取待执行任务 | `VERSION_MISMATCH` |
 | POST `/v1/jobs/{jobId}:heartbeat` | `heartbeatJob` | `jobs.HeartbeatJob` | `service` | `HeartbeatJobRequestBody` → 200 `HeartbeatJobResult` | 维持租约 | `STALE_RESULT` |
@@ -35,8 +35,8 @@
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `jobs.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `jobs.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | POST `/v1/deliveries/{deliveryId}:replay` | `replayDelivery` | `jobs.ReplayDelivery` | `job.manage` | `ReplayDeliveryRequestBody` → 200 `ReplayDeliveryResult` | 重放死信投递 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
-| POST `/v1/jobs/{jobId}:retry` | `retryJob` | `jobs.RetryJob` | `job.manage` | `RetryJobInput` → 200 `RetryJobResult` | 重试失败任务 | `FORBIDDEN` |
-| GET `/v1/deliveries` | `listDeliveries` | `jobs.ListDeliveries` | `job.manage` | `—` → 200 `ListDeliveriesResult` | 查看死信投递 | `FORBIDDEN` |
+| POST `/v1/jobs/{jobId}:retry` | `retryJob` | `jobs.RetryJob` | `job.manage` | `RetryJobInput` → 200 `RetryJobResult` | 重试失败任务 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL`、`NOT_FOUND` |
+| GET `/v1/deliveries` | `listDeliveries` | `jobs.ListDeliveries` | `job.manage` | `—` → 200 `ListDeliveriesResult` | 查看死信投递 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

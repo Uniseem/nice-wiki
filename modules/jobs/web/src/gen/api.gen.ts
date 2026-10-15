@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 查看任务队列
-         * @description 查看任务队列
+         * @description job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。failed兼容筛选当前返回空；active包含orphan供观察，orphan不可人工retry。
          */
         get: operations["listJobs"];
         put?: never;
@@ -497,7 +497,7 @@ export interface paths {
         put?: never;
         /**
          * 重试失败任务
-         * @description 重试失败任务
+         * @description job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。仅当前dead-letter；未知owner确认失败关闭；completed复用结果为succeeded，safeToRetry才保留原根和付费阶段重排；同op只回原回执。
          */
         post: operations["retryJob"];
         delete?: never;
@@ -515,7 +515,7 @@ export interface paths {
         };
         /**
          * 查看死信投递
-         * @description 查看死信投递
+         * @description job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。
          */
         get: operations["listDeliveries"];
         put?: never;
@@ -610,6 +610,34 @@ export interface components {
             /** @description dedupeKey；UTF-8非空；同owner与dataEpoch内唯一；不得为 null */
             dedupeKey: string;
         };
+        /** @description 安全阶段及计数，不含正文或输出 */
+        JobProgressSummary: {
+            /** @description 进度序号 */
+            seq: components["schemas"]["Revision"];
+            phase: string;
+            completedUnits: number;
+            totalUnits: number;
+        };
+        /** @description 经具体业务权限过滤的任务安全摘要，不含inputRef、正文或原始错误 */
+        JobSummary: {
+            /** @description 持久任务ID */
+            jobId: components["schemas"]["Identifier"];
+            /** @description 原操作ID */
+            operationId: components["schemas"]["Identifier"];
+            /** @description 原付费根，历史未知为null，不猜测或传空串 */
+            rootOperationId: components["schemas"]["Identifier"] | null;
+            owner: string;
+            type: string;
+            /** @enum {unknown} */
+            state: "queued" | "leased" | "running" | "retry-wait" | "dead-letter" | "cancel-requested" | "cancelled" | "succeeded" | "orphan";
+            /** @description 任务修订 */
+            revision: components["schemas"]["Revision"];
+            attempt: number;
+            /** @description 安全公共错误码，无错误为空 */
+            lastErrorCode: string;
+            /** @description 无进度则省略 */
+            progress?: components["schemas"]["JobProgressSummary"];
+        };
         /** @description 分页结果状态；没有下一页时nextCursor省略 */
         PageInfo: {
             /** @description 下一页签名游标，无下一页则省略 */
@@ -620,7 +648,7 @@ export interface components {
         /** @description 任务列表 */
         ListJobsResult: {
             /** @description 任务 */
-            items: components["schemas"]["AcceptedJob"][];
+            items: components["schemas"]["JobSummary"][];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
         };
@@ -1056,29 +1084,34 @@ export interface components {
         ReplayDeliveryRequestBody: Record<string, never>;
         /** @description 重试结果 */
         RetryJobResult: {
-            /** @description 重新排队的任务 */
-            job: components["schemas"]["AcceptedJob"];
+            /** @description 原操作回执的真实queued或复用完成后的succeeded摘要 */
+            job: components["schemas"]["JobSummary"];
         };
-        /** @description 重试失败任务 */
+        /** @description 人工处理当前dead-letter失败终局；不接受orphan、未知费用或取消任务；身份和epoch取可信op */
         RetryJobInput: {
             /** @description 任务 */
             jobId: components["schemas"]["Identifier"];
         };
+        /** @description 投递 */
+        DeliverySummary: {
+            /** @description 投递 */
+            deliveryId: components["schemas"]["Identifier"];
+            /** @description 事件 */
+            eventType: string;
+            /** @description 消费方 */
+            consumer: string;
+            /** @description 尝试次数 */
+            attempts: number;
+            /** @description 最后错误码 */
+            lastErrorCode: string;
+            /** @description 持久事件唯一生产方 */
+            producer: string;
+            eventVersion: number;
+        };
         /** @description 死信投递列表 */
         ListDeliveriesResult: {
             /** @description 投递 */
-            items: {
-                /** @description 投递 */
-                deliveryId: components["schemas"]["Identifier"];
-                /** @description 事件 */
-                eventType: string;
-                /** @description 消费方 */
-                consumer: string;
-                /** @description 尝试次数 */
-                attempts: number;
-                /** @description 最后错误码 */
-                lastErrorCode: string;
-            }[];
+            items: components["schemas"]["DeliverySummary"][];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
         };
@@ -1118,8 +1151,62 @@ export interface operations {
                     "application/json": components["schemas"]["ListJobsResult"];
                 };
             };
+            /** @description VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description LOCKED：维护或安全点暂停新的管理写入 */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTERNAL */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2439,7 +2526,9 @@ export interface operations {
     retryJob: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": components["schemas"]["Identifier"];
+            };
             path: {
                 /** @description 任务 */
                 jobId: string;
@@ -2461,8 +2550,71 @@ export interface operations {
                     "application/json": components["schemas"]["RetryJobResult"];
                 };
             };
+            /** @description VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description LOCKED：维护或安全点暂停新的管理写入 */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTERNAL */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2475,6 +2627,8 @@ export interface operations {
     listDeliveries: {
         parameters: {
             query?: {
+                /** @description 仅缩窄生产方，不替代授权 */
+                producer?: string;
                 /** @description 上一页返回的签名游标 */
                 cursor?: string;
                 /** @description 每页条数 */
@@ -2495,8 +2649,62 @@ export interface operations {
                     "application/json": components["schemas"]["ListDeliveriesResult"];
                 };
             };
+            /** @description VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description LOCKED：维护或安全点暂停新的管理写入 */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTERNAL */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

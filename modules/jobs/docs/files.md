@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 54 个：手写 27、UI 4、生成 8、配置 10、迁移 5。函数 87 个：约束 34，参考 53。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 55 个：手写 27、UI 4、生成 8、配置 10、迁移 6。函数 101 个：约束 34，参考 67。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -13,7 +13,7 @@
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
 | `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
 | `modules/jobs/internal/cancellation.go` | 手写 | 请求取消任务；同文件职责限本域以下登记函数 | `jobs.RequestCancel`、`jobs.ConfirmCancelled`（参考） |
-| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考） |
+| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考）、`jobs.jobManagementPermission`（参考） |
 | `modules/jobs/internal/progress.go` | 手写 | 持久进度安全点；同文件职责限本域以下登记函数 | `jobs.AppendProgress`（参考） |
 | `modules/jobs/internal/http_progress.go` | 手写 | 任务进度SSE；同文件职责限本域以下登记函数 | `jobs.StreamProgress` |
 | `modules/jobs/internal/event_validation.go` | 手写 | 验证跨域事件；同文件职责限本域以下登记函数 | `jobs.ValidateEnvelope`（参考）、`jobs.findEventDefinition`（参考）、`jobs.validateEventPayload`（参考）、`jobs.consumerHasEvent`（参考） |
@@ -54,9 +54,10 @@
 | `modules/jobs/internal/gen/job_types.gen.go` | 生成 | make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改；追加全部events.json的唯一生产者/版本/管理权限/消费者与内嵌payload规格EventTypes，生成目录不手改 | 无 |
 | `modules/jobs/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/jobs/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
-| `modules/jobs/internal/queries.go` | 手写 | 查看任务队列 | `jobs.ListJobs`、`jobs.RetryJob`、`jobs.ListDeliveries` |
+| `modules/jobs/internal/queries.go` | 手写 | 查看任务队列 | `jobs.ListJobs`、`jobs.RetryJob`、`jobs.ListDeliveries`、`jobs.WithManagementKey`（参考）、`jobs.managementPage`（参考）、`jobs.finishManagementPage`（参考）、`jobs.listJobBatch`（参考）、`jobs.listDeliveryBatch`（参考）、`jobs.filterManagementBatch`（参考）、`jobs.inspectManualRetry`（参考）、`jobs.applyManualRetry`（参考）、`jobs.readRetryReceipt`（参考）、`jobs.retryRequestHash`（参考）、`jobs.preserveRetryResults`（参考）、`jobs.readJobSummary`（参考） |
 | `modules/jobs/migrations/0002_leases.sql` | 迁移 | 只追加租约持久fence计数、领取/心跳幂等回执与进度checkpoint唯一键 | 无 |
 | `modules/jobs/migrations/0003_terminal_jobs.sql` | 迁移 | 只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造 | 无 |
 | `modules/jobs/migrations/0004_orphan_jobs.sql` | 迁移 | 只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用 | 无 |
 | `modules/jobs/migrations/0005_event_deliveries.sql` | 迁移 | 只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递 | 无 |
-| `modules/jobs/internal/http_events.go` | 手写 | 已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application | `jobs.NewEventHandlers`（参考）、`jobs.writeEventResponse`（参考） |
+| `modules/jobs/internal/http_events.go` | 手写 | 已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application | `jobs.NewEventHandlers`（参考）、`jobs.writeEventResponse`（参考）、`jobs.NewManagementHandlers`（参考） |
+| `modules/jobs/migrations/0006_job_management.sql` | 迁移 | 仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态 | 无 |

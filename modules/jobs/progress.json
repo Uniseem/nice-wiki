@@ -2,12 +2,12 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "3f3b8414efc0cf372ce12923ff297dc4f0e636cc571884a31eae03ca3e3f624d",
+  "contractSha256": "cb0a8c0671f149b36b61390bb04490362610713b8970c68c239ed46054613cf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第二轮统一复核后按用户要求停止继续",
-  "branch": "main",
-  "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": "ccc3456388515d170a5f59063452f1027bdd5287",
+  "assignedSession": "持续实施第四轮jobs管理查询与人工重试",
+  "branch": "codex/jobs-management-r1",
+  "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -82,13 +82,13 @@
     },
     {
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "8d7030fb5e8c4ccdf68c619d7b07a4fa08239e01",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "第四轮源码待统一VPS make docs/gen/build/check"
     },
     {
       "path": "modules/jobs/internal/progress.go",
@@ -492,13 +492,13 @@
     },
     {
       "path": "modules/jobs/internal/queries.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第四轮源码待统一VPS make docs/gen/build/check"
     },
     {
       "path": "modules/jobs/migrations/0002_leases.sql",
@@ -542,13 +542,23 @@
     },
     {
       "path": "modules/jobs/internal/http_events.go",
-      "state": "verified",
-      "implementationCommit": "8d7030fb5e8c4ccdf68c619d7b07a4fa08239e01",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "第四轮源码待统一VPS make docs/gen/build/check"
+    },
+    {
+      "path": "modules/jobs/migrations/0006_job_management.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第四轮源码待统一VPS make docs/gen/build/check"
     }
   ],
   "functions": [
@@ -1072,35 +1082,35 @@
     {
       "id": "jobs.ListJobs",
       "path": "modules/jobs/internal/queries.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
     },
     {
       "id": "jobs.RetryJob",
       "path": "modules/jobs/internal/queries.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
     },
     {
       "id": "jobs.ListDeliveries",
       "path": "modules/jobs/internal/queries.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
     },
     {
       "id": "jobs.InstallStore",
@@ -1292,13 +1302,13 @@
     {
       "id": "jobs.authorizeJobManagement",
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "8d7030fb5e8c4ccdf68c619d7b07a4fa08239e01",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
     },
     {
       "id": "jobs.authorizePermission",
@@ -1508,7 +1518,161 @@
         "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
       },
       "blocker": null
+    },
+    {
+      "id": "jobs.jobManagementPermission",
+      "path": "modules/jobs/internal/query.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.WithManagementKey",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.managementPage",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.finishManagementPage",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.listJobBatch",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.listDeliveryBatch",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.filterManagementBatch",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.inspectManualRetry",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.applyManualRetry",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.readRetryReceipt",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.retryRequestHash",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.preserveRetryResults",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.readJobSummary",
+      "path": "modules/jobs/internal/queries.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
+    },
+    {
+      "id": "jobs.NewManagementHandlers",
+      "path": "modules/jobs/internal/http_events.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "待VPS统一生成、只读build/vet/gofmt与完整check"
     }
   ],
-  "rule": "第二轮已交付函数与完整文件按最终合成VPS build/check证据记verified，精确源码引用0e0a061（核心）及5df9b3c（含b146b4e安全窗口的最终event_store）。verified仅对应已有编译/结构检查，业务验收和部署未执行。完整启动、control屏障、定时、ListDeliveries、ephemeral和实际owner适配保留未完成；用户要求第二轮推送后停止，不启第三轮。"
+  "rule": "第四轮管理组：三绑定、签名分页/权限过滤和人工retry参考助手源码已准备，VPS前全部in_progress；0006仅追加retry回执。完整启动、control屏障、owner实际适配、定时/ephemeral等仍未完成；业务验收未执行，不新增测试或真实接口调用，不push。"
 }

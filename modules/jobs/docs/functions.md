@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 87 个函数：约束 34 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 101 个函数：约束 34 个，参考 67 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1440,7 +1440,7 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 - 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
 - 并发：Store锁仅覆盖本域短读及客户端取值，外部identity调用不持有Store锁或SQLite事务
 - 幂等：由调用方事务及回执保证
-- 依赖：`jobs.authorizePermission`
+- 依赖：`jobs.authorizePermission`、`jobs.jobManagementPermission`
 
 ## jobs.authorizePermission
 
@@ -1481,6 +1481,49 @@ func authorizePermission(ctx context.Context, op OperationContext, client *gen.I
 - 并发：复用调用方短事务；网络不持有Store锁或SQLite事务
 - 幂等：按登记持久主键、CAS和操作回执
 - 依赖：`identity:checkAuthorization`
+
+## jobs.jobManagementPermission
+
+- 级别：参考
+- 文件：`modules/jobs/internal/query.go`
+- 作用：从生成目录精确匹配持久任务owner/type的具体权限
+
+```go
+func jobManagementPermission(owner string, jobType string) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `owner` | `string` | 持久owner | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `jobType` | `string` | 持久type | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `permission` | `string` | 生成目录具体管理权限 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 从生成目录精确匹配持久任务owner/type的具体权限
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：无
 
 ## jobs.AppendProgress
 
@@ -3223,6 +3266,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE
 
 **错误**
 
@@ -3234,7 +3278,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve
@@ -3467,19 +3511,29 @@ func ListJobs(ctx context.Context, op OperationContext, input ListJobsInput) (Li
 
 **步骤**
 
-1. job.manage
-2. 按状态与owner分页读取任务，含进度摘要与最后错误码
-3. 不返回任务输入正文
+1. 按jobId正序批读当前epoch安全元数据，active含queued/leased/running/retry-wait/cancel-requested/orphan；failed无当前生产分支而返回空；不读任务输入正文
+2. 按持久owner/type匹配生成目录具体管理权限，锁外逐条identity核权，仅FORBIDDEN过滤；失效会话或未知权威整体失败
+3. 持续批读至limit+1个有权条目或穷尽，仅有权条目决定hasMore与最后返回ID，不泄露无权位置/数量；返回安全进度和公共错误码
+4. 平台SignCursor/VerifyCursor作用域摘要绑定查询类型、actor/site/session及修订、caller/epoch、owner/state/limit；每页重新核权，签名不替代权限
 
 **错误**
 
-- `FORBIDDEN`：权限不足（不可重试）
+- `FORBIDDEN`：非当前后台主体或具体功能权限不足（不可重试）
+- `VALIDATION`：分页游标或路径正文绑定无效（不可重试）
+- `VERSION_MISMATCH`：旧代次（不可重试）
+- `CONFLICT`：状态/CAS或幂等输入变化（不可重试）
+- `INTEGRITY_ERROR`：目录、结果引用或回执矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、runtime、identity、签名器或owner确认未知（可重试）
+- `INTERNAL`：私有SQL或outbox提交失败（可重试）
+- `LOCKED`：数据库占用或维护/安全点暂停（可重试）
+- `CANCELLED`：上下文取消（可重试）
+- `DEADLINE_EXCEEDED`：IO超时（可重试）
 
 - 副作用：无
-- 授权：permission：job.manage；rule：后台管理员按登记权限
-- 并发：只读快照或CAS
-- 幂等：读取幂等；写入按operationId
-- 依赖：无
+- 授权：permission：job.manage；rule：入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄
+- 并发：SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS
+- 幂等：读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执
+- 依赖：`jobs.managementPage`、`jobs.listJobBatch`、`jobs.filterManagementBatch`、`jobs.finishManagementPage`
 
 ## jobs.RetryJob
 
@@ -3508,20 +3562,32 @@ func RetryJob(ctx context.Context, op OperationContext, input RetryJobInput) (Re
 
 **步骤**
 
-1. job.manage；只接受failed或dead-letter且当前epoch的任务
-2. 保留rootOperationId与已付费结果引用，重新排队并重置attempt计数
-3. 写job-state事件
+1. 锁外按持久任务owner/type/epoch核当前具体权限；事务先查caller/epoch/operation绑定actor/site/job的原回执，同op只回原结果，后续状态变化不再check owner或重排
+2. 新操作仅当前dead-letter失败终局；orphan、活动、成功、取消意图或残存租约拒绝；读取原inputRef/root与revision/fence后关闭事务请求owner，根未知只可复用completed，不能safeToRetry
+3. nil/不可达/pending/unknown失败关闭；completed复用已持久结果，safeToRetry才表示无未决费用且能沿同根复用付费阶段；不调用模型或执行领域算法
+4. owner返回后重新核当前runtime/control、原owner/type/epoch/state/revision/fence；并发同op先回原回执；维护/安全点暂停新写入
+5. 完整旧ObjectRef与owner新ref任一字段矛盾完整性失败，不静默覆盖；paid IDs去重合并保留，root/input/operation/已有进度不清空
+6. safeToRetry原子CAS到queued且attempt=0并提升持久fence，completed收敛succeeded；结果/状态outbox/人工回执同事务，返回真实JobSummary
 
 **错误**
 
-- `FORBIDDEN`：权限不足（不可重试）
-- `VERSION_MISMATCH`：非当前epoch或状态不允许（不可重试）
+- `FORBIDDEN`：非当前后台主体或具体功能权限不足（不可重试）
+- `VALIDATION`：分页游标或路径正文绑定无效（不可重试）
+- `VERSION_MISMATCH`：旧代次（不可重试）
+- `CONFLICT`：状态/CAS或幂等输入变化（不可重试）
+- `INTEGRITY_ERROR`：目录、结果引用或回执矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、runtime、identity、签名器或owner确认未知（可重试）
+- `NOT_FOUND`：任务不存在（不可重试）
+- `LOCKED`：维护/屏障期间暂停新的人工处理写入（可重试）
+- `INTERNAL`：私有SQL或outbox提交失败（可重试）
+- `CANCELLED`：上下文取消（可重试）
+- `DEADLINE_EXCEEDED`：IO超时（可重试）
 
-- 副作用：写任务状态
-- 授权：permission：job.manage；rule：后台管理员按登记权限
-- 并发：只读快照或CAS
-- 幂等：读取幂等；写入按operationId
-- 依赖：无
+- 副作用：CAS任务状态/持久fence；结果合并、状态outbox和人工retry回执同事务
+- 授权：permission：job.manage；rule：入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄
+- 并发：SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS
+- 幂等：读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执
+- 依赖：`jobs.authorizeJobManagement`、`jobs.inspectManualRetry`、`jobs.applyManualRetry`
 
 ## jobs.ListDeliveries
 
@@ -3550,17 +3616,554 @@ func ListDeliveries(ctx context.Context, op OperationContext, input ListDeliveri
 
 **步骤**
 
-1. job.manage
-2. 分页读取dead-letter投递与最后错误码
+1. 只批读当前epoch dead-letter的投递ID、事件类型版本、producer/consumer、attempt和安全错误码，不读或返回原payload
+2. 按持久producer/type/version匹配生成唯一事件目录，锁外请求该具体管理权限；producer参数只缩窄，未知目录失败关闭
+3. 权限过滤后计算hasMore和游标；平台签名绑定当前主体/epoch/producer/limit，每页重新核权
 
 **错误**
 
-- `FORBIDDEN`：权限不足（不可重试）
+- `FORBIDDEN`：非当前后台主体或具体功能权限不足（不可重试）
+- `VALIDATION`：分页游标或路径正文绑定无效（不可重试）
+- `VERSION_MISMATCH`：旧代次（不可重试）
+- `CONFLICT`：状态/CAS或幂等输入变化（不可重试）
+- `INTEGRITY_ERROR`：目录、结果引用或回执矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、runtime、identity、签名器或owner确认未知（可重试）
+- `INTERNAL`：私有SQL或outbox提交失败（可重试）
+- `LOCKED`：数据库占用或维护/安全点暂停（可重试）
+- `CANCELLED`：上下文取消（可重试）
+- `DEADLINE_EXCEEDED`：IO超时（可重试）
 
 - 副作用：无
-- 授权：permission：job.manage；rule：后台管理员按登记权限
-- 并发：只读快照或CAS
-- 幂等：读取幂等；写入按operationId
+- 授权：permission：job.manage；rule：入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄
+- 并发：SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS
+- 幂等：读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执
+- 依赖：`jobs.managementPage`、`jobs.listDeliveryBatch`、`jobs.filterManagementBatch`、`jobs.finishManagementPage`
+
+## jobs.WithManagementKey
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：可信装配注入本服务游标签名密钥
+
+```go
+func WithManagementKey(ctx context.Context, key SigningKey) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `key` | `SigningKey` | 启动配置游标签名密钥引用 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 包含可信签名配置的上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 可信装配注入本服务游标签名密钥
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：无
+
+## jobs.managementPage
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：验证后台主体及签名游标并建立完整查询作用域
+
+```go
+func managementPage(ctx context.Context, op OperationContext, kind string, filters string, page ManagementPageRequest) (managementCursor, string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `kind` | `string` | 列表类型 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `filters` | `string` | 规范查询筛选JSON | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `page` | `ManagementPageRequest` | 分页输入 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `position` | `managementCursor` | 已验签位置 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `scope` | `string` | 绑定主体和查询的摘要作用域 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 验证后台主体及签名游标并建立完整查询作用域
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`platform.VerifyCursor`
+
+## jobs.finishManagementPage
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：只按有权条目计算hasMore并签最后返回ID
+
+```go
+func finishManagementPage(ctx context.Context, scope string, items []managementItem, limit int) (ManagementPageInfo, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `scope` | `string` | 已绑定的查询作用域 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `items` | `[]managementItem` | 已经当前权限过滤的安全条目 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `limit` | `int` | 规范分页上限 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `pageInfo` | `ManagementPageInfo` | 仅依据有权条目的后续页信息 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 只按有权条目计算hasMore并签最后返回ID
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`platform.SignCursor`
+
+## jobs.listJobBatch
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：批读当前epoch安全任务与最后进度
+
+```go
+func listJobBatch(ctx context.Context, op OperationContext, input ListJobsInput, after string) ([]managementItem, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `input` | `ListJobsInput` | 筛选 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `after` | `string` | 上一批最后扫描ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `items` | `[]managementItem` | 最多100条安全元数据 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 批读当前epoch安全任务与最后进度
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.beginLeaseOperation`、`jobs.jobManagementPermission`、`jobs.readJobSummary`
+
+## jobs.listDeliveryBatch
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：批读当前epoch死信元数据，核唯一producer目录
+
+```go
+func listDeliveryBatch(ctx context.Context, op OperationContext, input ListDeliveriesInput, after string) ([]managementItem, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `input` | `ListDeliveriesInput` | 筛选 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `after` | `string` | 上一批最后扫描ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `items` | `[]managementItem` | 最多100条安全元数据 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 批读当前epoch死信元数据，核唯一producer目录
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.beginLeaseOperation`、`jobs.findEventDefinition`
+
+## jobs.filterManagementBatch
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：无事务锁下逐条请求具体业务权限，仅过滤FORBIDDEN
+
+```go
+func filterManagementBatch(ctx context.Context, op OperationContext, batch []managementItem, needed int) ([]managementItem, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `batch` | `[]managementItem` | 持久目录确定权限的安全批次 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `needed` | `int` | 本页尚需有权条目数量 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `items` | `[]managementItem` | 当前具体权限允许的前缀 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 调用前SQL批次已关闭；逐条向identity请求持久目录产生的具体业务权限，仅FORBIDDEN跳过；到本页所需limit+1个有权条目即停止，其他权威错误整体失败
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.authorizePermission`
+
+## jobs.inspectManualRetry
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：重放原操作或收集dead-letter安全owner确认原料
+
+```go
+func inspectManualRetry(ctx context.Context, op OperationContext, input RetryJobInput, authorized jobRecord) (retryCandidate, *RetryJobResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `input` | `RetryJobInput` | 原任务ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `authorized` | `jobRecord` | 当前权限已核的持久作用域 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `candidate` | `retryCandidate` | 用于锁外owner确认的持久原料 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `prior` | `*RetryJobResult` | 已有原操作回执或nil | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 重放原操作或收集dead-letter安全owner确认原料
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.readRetryReceipt`、`jobs.requireEventWrite`
+
+## jobs.applyManualRetry
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：owner确认后重核作用域和CAS，原子保存结果、状态、outbox和回执
+
+```go
+func applyManualRetry(ctx context.Context, op OperationContext, input RetryJobInput, candidate retryCandidate, recovery OwnerRecoveryResult) (RetryJobResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `input` | `RetryJobInput` | 原任务ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `candidate` | `retryCandidate` | 原确认快照 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `recovery` | `OwnerRecoveryResult` | 受信owner持久确认 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `RetryJobResult` | 原子提交后的真实摘要 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. owner确认后重核作用域和CAS，原子保存结果、状态、outbox和回执
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：任务状态/fence、结果与paid引用合并、状态outbox、原操作回执同事务
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.readRetryReceipt`、`jobs.preserveRetryResults`、`jobs.readJobSummary`、`jobs.retryRequestHash`、`jobs.requireEventWrite`、`jobs.enqueueState`
+
+## jobs.readRetryReceipt
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：按actor/site/job摘要读取人工操作回执
+
+```go
+func readRetryReceipt(ctx context.Context, op OperationContext, work *leaseOperation, input RetryJobInput) (*RetryJobResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `work` | `*leaseOperation` | 当前短事务 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `input` | `RetryJobInput` | 原任务ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `prior` | `*RetryJobResult` | 原操作结果或nil | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 按actor/site/job摘要读取人工操作回执
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.retryRequestHash`
+
+## jobs.retryRequestHash
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：对可信主体/site和jobID求稳定输入摘要
+
+```go
+func retryRequestHash(input RetryJobInput, subjectID string, siteID string) string
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `input` | `RetryJobInput` | 原任务ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `subjectID` | `string` | 可信主体 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `siteID` | `string` | 可信站点 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `hash` | `string` | 规范操作输入摘要 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 对可信主体/site和jobID求稳定输入摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：无
+
+## jobs.preserveRetryResults
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：完整结果任何矛盾失败关闭，既有paid ID合并保留
+
+```go
+func preserveRetryResults(ctx context.Context, work *leaseOperation, job jobRecord, recovery OwnerRecoveryResult) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `work` | `*leaseOperation` | 当前短事务 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `job` | `jobRecord` | 原任务作用域 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `recovery` | `OwnerRecoveryResult` | owner持久引用 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 完整结果任何矛盾失败关闭，既有paid ID合并保留
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：只在无矛盾时合并保留完整ObjectRef和paid IDs
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.mergePaidResults`
+
+## jobs.readJobSummary
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queries.go`
+- 作用：读取当前事务安全任务摘要及最后进度
+
+```go
+func readJobSummary(ctx context.Context, work *leaseOperation, jobID string) (JobSummary, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止原样传IO | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `work` | `*leaseOperation` | 当前短事务 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `jobID` | `string` | 当前任务ID | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `job` | `JobSummary` | 安全任务和最后进度摘要 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `error` | `error` | 安全公共失败，结果无效 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 读取当前epoch任务安全字段与最后进度；root未知映射null，绝不补猜或输出空Identifier，不读取inputRef或任何正文
+
+**错误**
+
+- `VALIDATION`：游标或输入绑定不可用（不可重试）
+- `FORBIDDEN`：当前权限或主体不允许（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：操作或状态/CAS变化（不可重试）
+- `INTEGRITY_ERROR`：持久数据或结果引用矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：依赖或私有IO不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
 - 依赖：无
 
 ## jobs.NewEventHandlers
@@ -3639,3 +4242,39 @@ func writeEventResponse(w http.ResponseWriter, requestID Identifier, result any,
 - 幂等：只序列化已有结果，不增加业务副作用
 - 依赖：无
 - 其他依赖说明：platform.problem
+
+## jobs.NewManagementHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_events.go`
+- 作用：提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝
+
+```go
+func NewManagementHandlers(key SigningKey) map[string]http.Handler
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信服务签名配置 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | 三个真实管理操作映射 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+
+**步骤**
+
+1. 提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
+- 并发：短SQL，网络核权不持事务/锁
+- 幂等：遵循入口原回执或签名游标规则
+- 依赖：`jobs.WithManagementKey`、`jobs.ListJobs`、`jobs.ListDeliveries`、`jobs.RetryJob`、`jobs.writeEventResponse`

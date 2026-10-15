@@ -9,8 +9,11 @@ import (
 	"path/filepath"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	jobs "nice-wiki/modules/jobs/internal"
+	"nice-wiki/modules/jobs/internal/gen"
 	"nice-wiki/modules/jobs/internal/transport"
 )
 
@@ -20,7 +23,7 @@ const ModuleSlug = "jobs"
 // BuildApplication 验证本域启动前置条件，建立 active/control/restore
 // 目录布局，加载服务身份材料，读取运行权威并执行恢复换目录。
 //
-// 任务租约、事件投递、死信、定时和屏障函数尚未实现，不能以空 handler
+// 任务/事件核心与管理切片已有实现，其余handler及控制/后台装配未齐，不能以空 handler
 // 冒充完整路由。因此在完成平台前置装配后按合同返回
 // DEPENDENCY_UNAVAILABLE，交由进程守护重试。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
@@ -59,8 +62,34 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域屏障函数，尚未实现")
 	}
 
-	// OpenAPI x-handler 与 implementation.json backgroundTasks 尚未落地。
-	// 不创建不完整Application，避免暴露只有健康路由的假成功服务。
+	// 实际建立已完成管理映射，并由统一工厂核完整规格；缺其他handler
+	// 仍拒绝启动，不能把已完成切片裸挂成可用服务。
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
+	}
+	identityBase := config.Dependencies["identity"]
+	if identityBase == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理缺少identity地址")
+	}
+	identity := gen.NewIdentityClient(identityBase, ModuleSlug, key)
+	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self:    ModuleSlug,
+		Anchors: anchors,
+		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
+		},
+		OpenedDataEpoch: view.DataEpoch,
+		AllowedCallers: map[string][]string{
+			"listJobs":       {"portal"},
+			"listDeliveries": {"portal"},
+			"retryJob":       {"portal"},
+		},
+		Authorize: apivalidate.NewIdentityAuthorizer(identity),
+	}, jobs.NewManagementHandlers(key))
+	if err != nil {
+		return nil, err
+	}
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "jobs任务、事件、死信、定时和屏障处理尚未装配")
 }
 

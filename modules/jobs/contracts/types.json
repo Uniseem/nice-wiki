@@ -3279,7 +3279,7 @@
             "dead-letter",
             "all"
           ],
-          "description": "状态"
+          "description": "active含queued/leased/running/retry-wait/cancel-requested/orphan；all含全部持久态；failed当前无生产分支，兼容筛选返回空"
         },
         "owner": {
           "type": "string",
@@ -3302,7 +3302,7 @@
           "maxItems": 100,
           "description": "任务",
           "items": {
-            "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob"
+            "$ref": "#/$defs/JobSummary"
           }
         },
         "pageInfo": {
@@ -3318,7 +3318,7 @@
     "RetryJobInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "重试失败任务",
+      "description": "人工处理当前dead-letter失败终局；不接受orphan、未知费用或取消任务；身份和epoch取可信op",
       "properties": {
         "jobId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -3335,8 +3335,8 @@
       "description": "重试结果",
       "properties": {
         "job": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob",
-          "description": "重新排队的任务"
+          "$ref": "#/$defs/JobSummary",
+          "description": "原操作回执的真实queued或复用完成后的succeeded摘要"
         }
       },
       "required": [
@@ -3351,6 +3351,11 @@
         "page": {
           "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
           "description": "分页请求"
+        },
+        "producer": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "可选缩窄生产方，不代替实际事件具体权限"
         }
       },
       "required": [
@@ -3367,43 +3372,7 @@
           "maxItems": 100,
           "description": "投递",
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "description": "投递",
-            "properties": {
-              "deliveryId": {
-                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-                "description": "投递"
-              },
-              "eventType": {
-                "type": "string",
-                "maxLength": 128,
-                "description": "事件"
-              },
-              "consumer": {
-                "type": "string",
-                "maxLength": 64,
-                "description": "消费方"
-              },
-              "attempts": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9223372036854775807,
-                "description": "尝试次数"
-              },
-              "lastErrorCode": {
-                "type": "string",
-                "maxLength": 64,
-                "description": "最后错误码"
-              }
-            },
-            "required": [
-              "deliveryId",
-              "eventType",
-              "consumer",
-              "attempts",
-              "lastErrorCode"
-            ]
+            "$ref": "#/$defs/DeliverySummary"
           }
         },
         "pageInfo": {
@@ -3678,6 +3647,202 @@
       "x-internal": true,
       "x-go-type": "http.ResponseWriter",
       "description": "HTTP标准库输出句柄"
+    },
+    "JobProgressSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "安全阶段及计数，不含正文或输出",
+      "properties": {
+        "seq": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "进度序号"
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+        },
+        "completedUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "totalUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "seq",
+        "phase",
+        "completedUnits",
+        "totalUnits"
+      ]
+    },
+    "JobSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "经具体业务权限过滤的任务安全摘要，不含inputRef、正文或原始错误",
+      "properties": {
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "持久任务ID"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原操作ID"
+        },
+        "rootOperationId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "原付费根，历史未知为null，不猜测或传空串"
+        },
+        "owner": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "leased",
+            "running",
+            "retry-wait",
+            "dead-letter",
+            "cancel-requested",
+            "cancelled",
+            "succeeded",
+            "orphan"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "任务修订"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "lastErrorCode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "安全公共错误码，无错误为空"
+        },
+        "progress": {
+          "$ref": "#/$defs/JobProgressSummary",
+          "description": "无进度则省略"
+        }
+      },
+      "required": [
+        "jobId",
+        "operationId",
+        "owner",
+        "type",
+        "state",
+        "revision",
+        "attempt",
+        "lastErrorCode",
+        "rootOperationId"
+      ]
+    },
+    "DeliverySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "投递",
+      "properties": {
+        "deliveryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "投递"
+        },
+        "eventType": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "事件"
+        },
+        "consumer": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "消费方"
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "尝试次数"
+        },
+        "lastErrorCode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "最后错误码"
+        },
+        "producer": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "持久事件唯一生产方"
+        },
+        "eventVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "deliveryId",
+        "eventType",
+        "consumer",
+        "attempts",
+        "lastErrorCode",
+        "producer",
+        "eventVersion"
+      ]
+    },
+    "managementCursor": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "managementCursor",
+      "description": "仅本域管理查询或重试内部使用"
+    },
+    "managementItem": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "managementItem",
+      "description": "仅本域管理查询或重试内部使用"
+    },
+    "retryCandidate": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "retryCandidate",
+      "description": "仅本域管理查询或重试内部使用"
+    },
+    "ManagementPageInfo": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "ManagementPageInfo",
+      "description": "仅本域管理查询或重试内部使用"
+    },
+    "ManagementPageRequest": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "ManagementPageRequest",
+      "description": "仅本域管理查询或重试内部使用"
+    },
+    "SigningKey": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.SigningKey",
+      "description": "本服务私钥配置引用，不序列化进HTTP或数据库"
     }
   }
 }

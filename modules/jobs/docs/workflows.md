@@ -40,6 +40,10 @@ lease fencingToken 单调增加；计数保存在job记录且不随lease释放�
 
 AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner的工作流登记其函数ID。jobs只校验目录，不能嵌入领域算法或发影子execute-task请求。
 
+管理列表：当前后台身份与入口job.manage粗能力→当前epoch安全元数据→释放SQL事务→按持久目录具体权限逐资源核权→只用有权条目形成分页和签名游标。job状态或权限可跨页变化，每页重新核权；游标不承诺跨请求冻结快照，也不代替权限。
+
+人工重试：当前具体业务权限→原操作回执优先→当前dead-letter快照→释放锁后owner持久确认→重核当前epoch/control与revision/fence→completed复用到succeeded或safeToRetry沿已知原根排队→结果、fence、outbox、原回执同事务。orphan/取消意图、未知费用不重排；原结果矛盾不覆盖。完整启动与owner适配仍未完成。
+
 <!-- flows:start -->
 ## 入口与后台流程
 

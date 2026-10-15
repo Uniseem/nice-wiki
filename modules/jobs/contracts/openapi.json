@@ -83,7 +83,7 @@
       "get": {
         "operationId": "listJobs",
         "summary": "查看任务队列",
-        "description": "查看任务队列",
+        "description": "job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。failed兼容筛选当前返回空；active包含orphan供观察，orphan不可人工retry。",
         "x-handler": "jobs.ListJobs",
         "x-permission": "job.manage",
         "responses": {
@@ -99,6 +99,66 @@
           },
           "403": {
             "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT / VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：维护或安全点暂停新的管理写入",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -140,7 +200,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "maxLength": 512
+              "maxLength": 4096
             },
             "description": "上一页返回的签名游标"
           },
@@ -2244,7 +2304,7 @@
       "post": {
         "operationId": "retryJob",
         "summary": "重试失败任务",
-        "description": "重试失败任务",
+        "description": "job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。仅当前dead-letter；未知owner确认失败关闭；completed复用结果为succeeded，safeToRetry才保留原根和付费阶段重排；同op只回原回执。",
         "x-handler": "jobs.RetryJob",
         "x-permission": "job.manage",
         "responses": {
@@ -2267,6 +2327,76 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT / VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：维护或安全点暂停新的管理写入",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -2280,6 +2410,15 @@
               "maxLength": 128
             },
             "description": "任务"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "稳定人工重试操作键"
+            }
           }
         ],
         "security": [
@@ -2304,7 +2443,7 @@
       "get": {
         "operationId": "listDeliveries",
         "summary": "查看死信投递",
-        "description": "查看死信投递",
+        "description": "job.manage仅入口粗能力；按持久任务owner/type或事件producer/version目录经identity核当前具体业务管理权限，不返回任务输入正文或原事件payload。",
         "x-handler": "jobs.ListDeliveries",
         "x-permission": "job.manage",
         "responses": {
@@ -2327,16 +2466,86 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT / VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：维护或安全点暂停新的管理写入",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
+          {
+            "in": "query",
+            "name": "producer",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "仅缩窄生产方，不替代授权"
+          },
           {
             "in": "query",
             "name": "cursor",
             "required": false,
             "schema": {
               "type": "string",
-              "maxLength": 512
+              "maxLength": 4096
             },
             "description": "上一页返回的签名游标"
           },

@@ -82,15 +82,9 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 	if job.epoch != op.DataEpoch {
 		return jobRecord{}, epochMismatch()
 	}
-	permission := ""
-	for _, entry := range gen.JobTypes {
-		if entry.Owner == job.owner && entry.Type == job.jobType {
-			permission = entry.ManagementPermission
-			break
-		}
-	}
-	if permission == "" {
-		return jobRecord{}, platform.NewError(platform.CodeIntegrityError, false, "任务类型缺少具体管理权限")
+	permission, err := jobManagementPermission(job.owner, job.jobType)
+	if err != nil {
+		return jobRecord{}, err
 	}
 	if err := authorizePermission(ctx, op, client, permission, jobID); err != nil {
 		return jobRecord{}, err
@@ -125,4 +119,14 @@ func authorizePermission(ctx context.Context, op OperationContext, client *gen.I
 		return platform.NewError(platform.CodeForbidden, false, "没有该任务所属功能的管理权限")
 	}
 	return nil
+}
+
+// jobManagementPermission只用持久owner/type配对，不信任用户筛选作授权来源。
+func jobManagementPermission(owner string, jobType string) (string, error) {
+	for _, entry := range gen.JobTypes {
+		if entry.Owner == owner && entry.Type == jobType && entry.ManagementPermission != "" {
+			return entry.ManagementPermission, nil
+		}
+	}
+	return "", platform.NewError(platform.CodeIntegrityError, false, "任务类型缺少具体管理权限")
 }

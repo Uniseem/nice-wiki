@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -61,4 +62,34 @@ func writeEventResponse(w http.ResponseWriter, requestID platform.Identifier, re
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+// NewManagementHandlers 只交统一完整ServiceHandler；不自行验签或重做schema。
+func NewManagementHandlers(key platform.SigningKey) map[string]http.Handler {
+	return map[string]http.Handler{
+		"listJobs": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			input := ListJobsInput{Page: ManagementPageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}, State: r.URL.Query().Get("state"), Owner: r.URL.Query().Get("owner")}
+			result, err := ListJobs(WithManagementKey(r.Context(), key), op, input)
+			writeEventResponse(w, op.RequestID, result, err, http.StatusOK)
+		}),
+		"listDeliveries": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			input := ListDeliveriesInput{Page: ManagementPageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}, Producer: r.URL.Query().Get("producer")}
+			result, err := ListDeliveries(WithManagementKey(r.Context(), key), op, input)
+			writeEventResponse(w, op.RequestID, result, err, http.StatusOK)
+		}),
+		"retryJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input RetryJobInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil || input.JobID != r.PathValue("jobId") {
+				writeEventResponse(w, op.RequestID, nil, platform.NewError(platform.CodeValidation, false, "任务重试路径与正文不一致"), 0)
+				return
+			}
+			result, err := RetryJob(r.Context(), op, input)
+			writeEventResponse(w, op.RequestID, result, err, http.StatusOK)
+		}),
+	}
 }

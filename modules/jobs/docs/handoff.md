@@ -1,5 +1,18 @@
 # 任务与事件会话交接
 
+## 第四轮任务管理组（待VPS）
+
+更新：2026-10-15。持续实施第四轮任务管理组，基线`de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1`，分支`codex/jobs-management-r1`；独占本域，旧停止要求已被本轮持续授权撤销。源码/合同已准备，全部新条目in_progress，等待集成会话统一VPS docs/gen/build/check，业务验收未执行。
+
+- 已实现ListJobs/ListDeliveries安全摘要、当前具体业务权限过滤、稳定ID分页及平台签名游标；游标4096上限与平台一致，绑定actor/site/session及修订、caller/epoch和完整筛选。owner/producer只缩窄，hasMore和游标只看有权条目，不读任务输入正文或原事件payload。
+- 新增本域JobSummary替代错误的AcceptedJob恒queued；状态为真实持久值，rootOperationId未知为null。当前最终失败持久态为dead-letter；兼容failed筛选返回空，不增加无生产分支的状态。
+- RetryJob先回原操作回执，不因后来已执行而再次owner确认/排队；首次操作仅dead-letter，锁外owner completed复用结果收敛succeeded，safeToRetry才保留已知原根和已有阶段重排。unknown/pending/nil、orphan、取消意图失败关闭。完整ObjectRef矛盾拒绝，paid ID合并保留，fence提升、revision CAS、结果/outbox/回执同事务。
+- 新实际路径：`internal/queries.go`（既有登记）、`migrations/0006_job_management.sql`（本轮批准只追加retry回执）；复用query.go权限和http_events.go映射，BuildApplication实际调用公共完整工厂，其他handler/store/control/owner适配未齐仍blocked。
+- 完整启动、真实owner恢复API适配、control屏障/后台/定时、ephemeral安全投影仍未完成；本轮不伪装可用服务。未本机运行Go/gofmt/gen/测试或临时验证，未新增测试/样例/fixture/mock，未运行真实接口、模型、服务、部署或push。
+
+当前源码冻结前已完成本域合同与台账同步；生成目录及functions/files/api生成段交集成会话VPS刷新。源码SHA与证据待回传后提交回填。历史第二轮停止条款已被用户本轮重新授权覆盖，不作为当前阻塞。
+
+
 ## 第二轮最终集成与停止范围
 
 - 事件目录/schema/接收/投递/确认/重放和真实HTTP核心通过；完整启动/屏障/定时/ephemeral/实际owner适配仍未完成。

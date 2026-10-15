@@ -2691,7 +2691,8 @@
           "concurrency": "Store锁仅覆盖本域短读及客户端取值，外部identity调用不持有Store锁或SQLite事务",
           "idempotency": "由调用方事务及回执保证",
           "dependencies": [
-            "jobs.authorizePermission"
+            "jobs.authorizePermission",
+            "jobs.jobManagementPermission"
           ],
           "resources": [],
           "contract": "reference"
@@ -2755,6 +2756,85 @@
           "dependencies": [
             "identity:checkAuthorization"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.jobManagementPermission",
+          "name": "jobManagementPermission",
+          "signature": "func jobManagementPermission(owner string, jobType string) (string, error)",
+          "inputs": [
+            {
+              "name": "owner",
+              "type": "string",
+              "description": "持久owner",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "jobType",
+              "type": "string",
+              "description": "持久type",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "permission",
+              "type": "string",
+              "description": "生成目录具体管理权限",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "从生成目录精确匹配持久任务owner/type的具体权限",
+          "steps": [
+            "从生成目录精确匹配持久任务owner/type的具体权限"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -5853,7 +5933,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE"
           ],
           "errors": [
             {
@@ -5898,7 +5979,10 @@
             "platform.NewRequestValidator",
             "jobs.InstallStore",
             "jobs.RelayOutbox",
-            "jobs.NewEventHandlers"
+            "jobs.NewEventHandlers",
+            "jobs.NewManagementHandlers",
+            "platform.NewServiceHandler",
+            "platform.NewIdentityAuthorizer"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6377,25 +6461,76 @@
           ],
           "purpose": "查看任务队列",
           "steps": [
-            "job.manage",
-            "按状态与owner分页读取任务，含进度摘要与最后错误码",
-            "不返回任务输入正文"
+            "按jobId正序批读当前epoch安全元数据，active含queued/leased/running/retry-wait/cancel-requested/orphan；failed无当前生产分支而返回空；不读任务输入正文",
+            "按持久owner/type匹配生成目录具体管理权限，锁外逐条identity核权，仅FORBIDDEN过滤；失效会话或未知权威整体失败",
+            "持续批读至limit+1个有权条目或穷尽，仅有权条目决定hasMore与最后返回ID，不泄露无权位置/数量；返回安全进度和公共错误码",
+            "平台SignCursor/VerifyCursor作用域摘要绑定查询类型、actor/site/session及修订、caller/epoch、owner/state/limit；每页重新核权，签名不替代权限"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "权限不足",
+              "when": "非当前后台主体或具体功能权限不足",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "分页游标或路径正文绑定无效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "旧代次",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态/CAS或幂等输入变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "目录、结果引用或回执矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、runtime、identity、签名器或owner确认未知",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有SQL或outbox提交失败",
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "数据库占用或维护/安全点暂停",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "上下文取消",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO超时",
+              "retryable": true
             }
           ],
           "sideEffects": [],
           "authorization": {
             "permission": "job.manage",
-            "rule": "后台管理员按登记权限"
+            "rule": "入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄"
           },
-          "concurrency": "只读快照或CAS",
-          "idempotency": "读取幂等；写入按operationId",
-          "dependencies": [],
+          "concurrency": "SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS",
+          "idempotency": "读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执",
+          "dependencies": [
+            "jobs.managementPage",
+            "jobs.listJobBatch",
+            "jobs.filterManagementBatch",
+            "jobs.finishManagementPage"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -6451,32 +6586,84 @@
           ],
           "purpose": "人工重试失败或死信任务",
           "steps": [
-            "job.manage；只接受failed或dead-letter且当前epoch的任务",
-            "保留rootOperationId与已付费结果引用，重新排队并重置attempt计数",
-            "写job-state事件"
+            "锁外按持久任务owner/type/epoch核当前具体权限；事务先查caller/epoch/operation绑定actor/site/job的原回执，同op只回原结果，后续状态变化不再check owner或重排",
+            "新操作仅当前dead-letter失败终局；orphan、活动、成功、取消意图或残存租约拒绝；读取原inputRef/root与revision/fence后关闭事务请求owner，根未知只可复用completed，不能safeToRetry",
+            "nil/不可达/pending/unknown失败关闭；completed复用已持久结果，safeToRetry才表示无未决费用且能沿同根复用付费阶段；不调用模型或执行领域算法",
+            "owner返回后重新核当前runtime/control、原owner/type/epoch/state/revision/fence；并发同op先回原回执；维护/安全点暂停新写入",
+            "完整旧ObjectRef与owner新ref任一字段矛盾完整性失败，不静默覆盖；paid IDs去重合并保留，root/input/operation/已有进度不清空",
+            "safeToRetry原子CAS到queued且attempt=0并提升持久fence，completed收敛succeeded；结果/状态outbox/人工回执同事务，返回真实JobSummary"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "权限不足",
+              "when": "非当前后台主体或具体功能权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "分页游标或路径正文绑定无效",
               "retryable": false
             },
             {
               "code": "VERSION_MISMATCH",
-              "when": "非当前epoch或状态不允许",
+              "when": "旧代次",
               "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态/CAS或幂等输入变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "目录、结果引用或回执矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、runtime、identity、签名器或owner确认未知",
+              "retryable": true
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "任务不存在",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护/屏障期间暂停新的人工处理写入",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有SQL或outbox提交失败",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "上下文取消",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO超时",
+              "retryable": true
             }
           ],
           "sideEffects": [
-            "写任务状态"
+            "CAS任务状态/持久fence；结果合并、状态outbox和人工retry回执同事务"
           ],
           "authorization": {
             "permission": "job.manage",
-            "rule": "后台管理员按登记权限"
+            "rule": "入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄"
           },
-          "concurrency": "只读快照或CAS",
-          "idempotency": "读取幂等；写入按operationId",
-          "dependencies": [],
+          "concurrency": "SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS",
+          "idempotency": "读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执",
+          "dependencies": [
+            "jobs.authorizeJobManagement",
+            "jobs.inspectManualRetry",
+            "jobs.applyManualRetry"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -6532,26 +6719,1124 @@
           ],
           "purpose": "查看死信投递",
           "steps": [
-            "job.manage",
-            "分页读取dead-letter投递与最后错误码"
+            "只批读当前epoch dead-letter的投递ID、事件类型版本、producer/consumer、attempt和安全错误码，不读或返回原payload",
+            "按持久producer/type/version匹配生成唯一事件目录，锁外请求该具体管理权限；producer参数只缩窄，未知目录失败关闭",
+            "权限过滤后计算hasMore和游标；平台签名绑定当前主体/epoch/producer/limit，每页重新核权"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "权限不足",
+              "when": "非当前后台主体或具体功能权限不足",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "分页游标或路径正文绑定无效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "旧代次",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态/CAS或幂等输入变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "目录、结果引用或回执矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、runtime、identity、签名器或owner确认未知",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有SQL或outbox提交失败",
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "数据库占用或维护/安全点暂停",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "上下文取消",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO超时",
+              "retryable": true
             }
           ],
           "sideEffects": [],
           "authorization": {
             "permission": "job.manage",
-            "rule": "后台管理员按登记权限"
+            "rule": "入口job.manage仅粗能力；按持久任务owner/type或事件producer/version目录向identity核当前具体权限；筛选参数仅缩窄"
           },
-          "concurrency": "只读快照或CAS",
-          "idempotency": "读取幂等；写入按operationId",
-          "dependencies": [],
+          "concurrency": "SQL短快照后释放事务/进程锁再请求identity或owner；写回重核epoch、作用域与revision/fence CAS",
+          "idempotency": "读取游标绑定主体/site/session/epoch/filters；人工操作按caller/epoch/operation及actor/site/input摘要回原回执",
+          "dependencies": [
+            "jobs.managementPage",
+            "jobs.listDeliveryBatch",
+            "jobs.filterManagementBatch",
+            "jobs.finishManagementPage"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.WithManagementKey",
+          "name": "WithManagementKey",
+          "signature": "func WithManagementKey(ctx context.Context, key SigningKey) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "启动配置游标签名密钥引用",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "包含可信签名配置的上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "可信装配注入本服务游标签名密钥",
+          "steps": [
+            "可信装配注入本服务游标签名密钥"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.managementPage",
+          "name": "managementPage",
+          "signature": "func managementPage(ctx context.Context, op OperationContext, kind string, filters string, page ManagementPageRequest) (managementCursor, string, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "列表类型",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "filters",
+              "type": "string",
+              "description": "规范查询筛选JSON",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "page",
+              "type": "ManagementPageRequest",
+              "description": "分页输入",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "position",
+              "type": "managementCursor",
+              "description": "已验签位置",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "scope",
+              "type": "string",
+              "description": "绑定主体和查询的摘要作用域",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "验证后台主体及签名游标并建立完整查询作用域",
+          "steps": [
+            "验证后台主体及签名游标并建立完整查询作用域"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "platform.VerifyCursor"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.finishManagementPage",
+          "name": "finishManagementPage",
+          "signature": "func finishManagementPage(ctx context.Context, scope string, items []managementItem, limit int) (ManagementPageInfo, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "scope",
+              "type": "string",
+              "description": "已绑定的查询作用域",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "items",
+              "type": "[]managementItem",
+              "description": "已经当前权限过滤的安全条目",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "description": "规范分页上限",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "pageInfo",
+              "type": "ManagementPageInfo",
+              "description": "仅依据有权条目的后续页信息",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "只按有权条目计算hasMore并签最后返回ID",
+          "steps": [
+            "只按有权条目计算hasMore并签最后返回ID"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "platform.SignCursor"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.listJobBatch",
+          "name": "listJobBatch",
+          "signature": "func listJobBatch(ctx context.Context, op OperationContext, input ListJobsInput, after string) ([]managementItem, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "input",
+              "type": "ListJobsInput",
+              "description": "筛选",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "after",
+              "type": "string",
+              "description": "上一批最后扫描ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "items",
+              "type": "[]managementItem",
+              "description": "最多100条安全元数据",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "批读当前epoch安全任务与最后进度",
+          "steps": [
+            "批读当前epoch安全任务与最后进度"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.jobManagementPermission",
+            "jobs.readJobSummary"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.listDeliveryBatch",
+          "name": "listDeliveryBatch",
+          "signature": "func listDeliveryBatch(ctx context.Context, op OperationContext, input ListDeliveriesInput, after string) ([]managementItem, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "input",
+              "type": "ListDeliveriesInput",
+              "description": "筛选",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "after",
+              "type": "string",
+              "description": "上一批最后扫描ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "items",
+              "type": "[]managementItem",
+              "description": "最多100条安全元数据",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "批读当前epoch死信元数据，核唯一producer目录",
+          "steps": [
+            "批读当前epoch死信元数据，核唯一producer目录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.findEventDefinition"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.filterManagementBatch",
+          "name": "filterManagementBatch",
+          "signature": "func filterManagementBatch(ctx context.Context, op OperationContext, batch []managementItem, needed int) ([]managementItem, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "batch",
+              "type": "[]managementItem",
+              "description": "持久目录确定权限的安全批次",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "needed",
+              "type": "int",
+              "description": "本页尚需有权条目数量",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "items",
+              "type": "[]managementItem",
+              "description": "当前具体权限允许的前缀",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "无事务锁下逐条请求具体业务权限，仅过滤FORBIDDEN",
+          "steps": [
+            "调用前SQL批次已关闭；逐条向identity请求持久目录产生的具体业务权限，仅FORBIDDEN跳过；到本页所需limit+1个有权条目即停止，其他权威错误整体失败"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.authorizePermission"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.inspectManualRetry",
+          "name": "inspectManualRetry",
+          "signature": "func inspectManualRetry(ctx context.Context, op OperationContext, input RetryJobInput, authorized jobRecord) (retryCandidate, *RetryJobResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "input",
+              "type": "RetryJobInput",
+              "description": "原任务ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "authorized",
+              "type": "jobRecord",
+              "description": "当前权限已核的持久作用域",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "candidate",
+              "type": "retryCandidate",
+              "description": "用于锁外owner确认的持久原料",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "prior",
+              "type": "*RetryJobResult",
+              "description": "已有原操作回执或nil",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "重放原操作或收集dead-letter安全owner确认原料",
+          "steps": [
+            "重放原操作或收集dead-letter安全owner确认原料"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.readRetryReceipt",
+            "jobs.requireEventWrite"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.applyManualRetry",
+          "name": "applyManualRetry",
+          "signature": "func applyManualRetry(ctx context.Context, op OperationContext, input RetryJobInput, candidate retryCandidate, recovery OwnerRecoveryResult) (RetryJobResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "input",
+              "type": "RetryJobInput",
+              "description": "原任务ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "candidate",
+              "type": "retryCandidate",
+              "description": "原确认快照",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "recovery",
+              "type": "OwnerRecoveryResult",
+              "description": "受信owner持久确认",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RetryJobResult",
+              "description": "原子提交后的真实摘要",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "owner确认后重核作用域和CAS，原子保存结果、状态、outbox和回执",
+          "steps": [
+            "owner确认后重核作用域和CAS，原子保存结果、状态、outbox和回执"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "任务状态/fence、结果与paid引用合并、状态outbox、原操作回执同事务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.readRetryReceipt",
+            "jobs.preserveRetryResults",
+            "jobs.readJobSummary",
+            "jobs.retryRequestHash",
+            "jobs.requireEventWrite",
+            "jobs.enqueueState"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.readRetryReceipt",
+          "name": "readRetryReceipt",
+          "signature": "func readRetryReceipt(ctx context.Context, op OperationContext, work *leaseOperation, input RetryJobInput) (*RetryJobResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "work",
+              "type": "*leaseOperation",
+              "description": "当前短事务",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "input",
+              "type": "RetryJobInput",
+              "description": "原任务ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "prior",
+              "type": "*RetryJobResult",
+              "description": "原操作结果或nil",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "按actor/site/job摘要读取人工操作回执",
+          "steps": [
+            "按actor/site/job摘要读取人工操作回执"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.retryRequestHash"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.retryRequestHash",
+          "name": "retryRequestHash",
+          "signature": "func retryRequestHash(input RetryJobInput, subjectID string, siteID string) string",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "RetryJobInput",
+              "description": "原任务ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "subjectID",
+              "type": "string",
+              "description": "可信主体",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "siteID",
+              "type": "string",
+              "description": "可信站点",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "hash",
+              "type": "string",
+              "description": "规范操作输入摘要",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "对可信主体/site和jobID求稳定输入摘要",
+          "steps": [
+            "对可信主体/site和jobID求稳定输入摘要"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.preserveRetryResults",
+          "name": "preserveRetryResults",
+          "signature": "func preserveRetryResults(ctx context.Context, work *leaseOperation, job jobRecord, recovery OwnerRecoveryResult) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "work",
+              "type": "*leaseOperation",
+              "description": "当前短事务",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "job",
+              "type": "jobRecord",
+              "description": "原任务作用域",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "recovery",
+              "type": "OwnerRecoveryResult",
+              "description": "owner持久引用",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "完整结果任何矛盾失败关闭，既有paid ID合并保留",
+          "steps": [
+            "完整结果任何矛盾失败关闭，既有paid ID合并保留"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "只在无矛盾时合并保留完整ObjectRef和paid IDs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.mergePaidResults"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.readJobSummary",
+          "name": "readJobSummary",
+          "signature": "func readJobSummary(ctx context.Context, work *leaseOperation, jobID string) (JobSummary, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止原样传IO",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "work",
+              "type": "*leaseOperation",
+              "description": "当前短事务",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "当前任务ID",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "job",
+              "type": "JobSummary",
+              "description": "安全任务和最后进度摘要",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共失败，结果无效",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "读取当前事务安全任务摘要及最后进度",
+          "steps": [
+            "读取当前epoch任务安全字段与最后进度；root未知映射null，绝不补猜或输出空Identifier，不读取inputRef或任何正文"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "游标或输入绑定不可用",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "当前权限或主体不允许",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "操作或状态/CAS变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久数据或结果引用矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "依赖或私有IO不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6683,8 +7968,56 @@
             "platform.problem"
           ],
           "contract": "reference"
+        },
+        {
+          "id": "jobs.NewManagementHandlers",
+          "name": "NewManagementHandlers",
+          "signature": "func NewManagementHandlers(key SigningKey) map[string]http.Handler",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "可信服务签名配置",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "三个真实管理操作映射",
+              "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
+            }
+          ],
+          "purpose": "提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝",
+          "steps": [
+            "提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "经已认证管理绑定链路或可信装配调用"
+          },
+          "concurrency": "短SQL，网络核权不持事务/锁",
+          "idempotency": "遵循入口原回执或签名游标规则",
+          "dependencies": [
+            "jobs.WithManagementKey",
+            "jobs.ListJobs",
+            "jobs.ListDeliveries",
+            "jobs.RetryJob",
+            "jobs.writeEventResponse"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
+    },
+    {
+      "path": "modules/jobs/migrations/0006_job_management.sql",
+      "kind": "migration",
+      "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态",
+      "functions": []
     }
   ],
   "jobTypes": [],

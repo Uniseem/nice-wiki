@@ -44,3 +44,9 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 事件投递实施补充（第二轮）：events追加producer/type/version/subject与规范完整envelope_hash，event_sequence单行保持不可复用的接收seq。deliveries追加稳定delivery_id、lease_expires_at、revision和last_error_code；queued首次发出后才有确认租约，超时可退避重排或死信，绝不自动覆盖ack。consumer_offsets按consumer/epoch保存连续确认水位，event_operations按caller/epoch/种类/operation保存安全成功回执及输入hash，不保存输入正文。
 
 订阅目录和payload规格均由所有域events.json生成的EventTypes提供，不从请求动态注册。唯一生产者、消费者范围和具体重放权限均取该目录；正文actor/epoch不构成授权真相。旧delivering缺租约无法证明安全时返回完整性错误，不造时间；旧事件原文及元数据、全部投递均保留。
+
+管理查询与人工重试（第四轮）：ListJobs只读取安全JobSummary和最后进度，ListDeliveries只读死信元数据，不读取原输入或事件payload。task owner/type及event producer/name/version匹配生成目录后，在事务和进程锁外向identity请求当前具体管理权限；仅FORBIDDEN过滤，当前会话失效或权威未知整体失败。稳定ID正序批读，权限过滤后再计limit/hasMore，游标只保存最后返回的有权ID，scope绑定主体/session/site及修订、caller、epoch和完整筛选的SHA256，签名复用平台。
+
+`0006_job_management.sql`仅追加`job_management_operations(caller,data_epoch,operation_id,request_hash,result_json,created_at)`，主键caller/epoch/operation。摘要绑定可信actor/site和jobId，result_json只存原安全JobSummary，不存输入正文；原jobs及关联表不重建、不丢数据。当前失败终局只有dead-letter，failed筛选为兼容空结果，不新增failed持久态。
+
+人工Retry先在当前具体权限下查原回执，同op不重新确认或排队后来已执行任务。新请求只处理当前未取消dead-letter；读取原revision/fence/input/root后释放事务，owner确认在锁外执行，回来重核epoch/作用域及CAS。completed可复用结果到succeeded，即使历史root未知也不猜ID；safeToRetry必须原根已知且owner证明无未决费用。原完整ObjectRef与新ref任何字段矛盾失败关闭，paid ID去重合并；原root/input/operation和安全进度保留。状态/fence、结果、outbox和回执同事务；root未知在摘要输出null。真实owner版本化适配尚待接通，nil/pending/unknown不可假成功。
