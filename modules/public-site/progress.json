@@ -7,7 +7,7 @@
   "assignedSession": "第四轮支援：首页公开链接解析纯合同",
   "branch": "codex/public-site-link-contract-r1",
   "baseCommit": "b56430efe56b724d6efdbe8bf3ae39f15fc6803c",
-  "deliveryCommit": "f9aa83fd199efd17593cf349938ef4c823336cfe",
+  "deliveryCommit": "ce438b4fe38d1c93a4da2a797391d1b99f39833c",
   "deployment": "not_started",
   "files": [
     {

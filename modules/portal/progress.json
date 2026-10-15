@@ -549,22 +549,22 @@
     {
       "id": "portal.BuildCapabilities",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "in_progress",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "state": "verified",
+      "implementationCommit": "bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb",
       "verification": {
-        "state": "not_run",
-        "evidence": "第四轮改用公共只读目录，待VPS编译与检查。"
+        "state": "passed",
+        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
       },
       "blocker": null
     },
     {
       "id": "portal.BuildNavigation",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "in_progress",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "state": "verified",
+      "implementationCommit": "bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb",
       "verification": {
-        "state": "not_run",
-        "evidence": "第四轮改用公共只读目录，待VPS编译与检查。"
+        "state": "passed",
+        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
       },
       "blocker": null
     },

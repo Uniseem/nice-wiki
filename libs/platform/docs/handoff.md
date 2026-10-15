@@ -4,7 +4,7 @@
 
 新增CanonicalJSON、NewWriteContext、RunRecoveryLoop；outbox安全写窗口复用公共实现，清理与领取分别重取窗口。进程模板支持可选BackgroundApplication及统一取消/Drain/后台等待/关闭资源，恢复哨兵统一返回75。输入域保留每次RPC后的epoch/屏障核对，不由循环发起付费重算；公开地址边界拒绝解码后连续斜杠，避免生成协议相对链接。
 
-2026-10-15冻结合成快照已在隔离VPS通过make docs/gen、14个现有Go模块readonly build/vet/gofmt与完整make check（858文件/1105函数/379操作/2253类型）。快照含jobs实际管理代码、首页和公开链接合同，不含尚未完成的Home Go；待实际逐项集成后回填源码SHA及最终证据。不称行为验收，不push。
+2026-10-15冻结合成快照已在隔离VPS通过make docs/gen、14个现有Go模块readonly build/vet/gofmt与完整make check（858文件/1105函数/379操作/2253类型）。快照含jobs实际管理代码、首页和公开链接合同，不含尚未完成的Home Go；公共源码实际提交9ff93ae；其独立实际集成树857文件/1091函数/379操作/2244类型通过同样检查，随后jobs实际树858/1105/379/2253再次通过，生成均零变化，相关完整公共条目已回填该源码与证据。不称行为验收，不push。
 
 
 ## 第三轮恢复实施（2026-10-15）

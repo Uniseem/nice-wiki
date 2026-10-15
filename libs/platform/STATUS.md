@@ -1,5 +1,7 @@
 # platform 状态
 
+第四轮公共CanonicalJSON、有界写窗口/恢复循环与后台安全关闭已完成，源码9ff93ae。公共源和jobs分别集成后实际树均通过VPS docs/gen、14模块readonly build/vet/gofmt及完整check，最终858文件/1105函数/379操作/2253类型，生成零变化；调用方Home Go仍待完整检查，不称行为验收或部署。逐项以progress.json为准。下述早期过程记录保留溯源。
+
 第二轮已实现公共机制通过最终VPS gen/docs、14模块build/vet/gofmt及完整check，函数台账已更新实际提交与证据；调用方未完成的完整启动、guard/peer/cookie和owner机制不因此变成可用。第二轮后已按要求停止；用户随后授权继续，第三轮可信代理来源、每日网络HMAC及浏览器认证类型合成已在冻结合成快照通过VPS docs/gen、14模块build/vet/gofmt与完整check，等待逐模块集成复核。
 
 

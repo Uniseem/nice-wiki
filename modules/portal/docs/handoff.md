@@ -1,6 +1,6 @@
 # 主系统会话交接
 
-## 第四轮公共偏好目录消费（进行中）
+## 第四轮公共偏好目录消费（已有检查通过）
 
 公共PortalPreferences/UILocale/AdminRouteKey统一浏览器与identity形状，导航和能力消费permission-groups生成数据，修正原guard/site路径及zh标签不匹配。仅源码调整，待VPS，不把本域其余blocked改为已完成。
 
