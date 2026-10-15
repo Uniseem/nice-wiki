@@ -7,7 +7,7 @@
   "assignedSession": "持续实施第三轮traffic-guard登录保护",
   "branch": "codex/traffic-login-protection-r1",
   "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": null,
+  "deliveryCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
+      "blocker": "本轮打开代次、可信注入、迁移/journal/关闭助手已verified；GetPolicy/UpdatePolicy仍blocked，待下一策略读写工作包"
     },
     {
       "path": "modules/traffic-guard/internal/subject.go",
@@ -112,23 +112,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
+      "blocker": "本轮Begin/Finish及私有助手已verified；同文件其余EvaluateAdmission仍planned，不能把文件全职责标完成"
     },
     {
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
+      "blocker": "本轮NewLoginHandlers/writeLoginResponse已verified；同文件HandleAdmission仍planned，完整路由尚未完成"
     },
     {
       "path": "modules/traffic-guard/internal/sweeper.go",
@@ -363,12 +363,12 @@
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "已接入本域策略库打开、迁移与journal恢复；完整x-handler、identity授权客户端、activation回执和后台函数未实现，不能返回半成品Application"
+      "blocker": "已实际构造登录HTTP映射并调用公共完整入口工厂；其他handler、当前用户授权、activation/屏障及后台未齐，按合同拒绝启动"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
@@ -392,13 +392,13 @@
     },
     {
       "path": "modules/traffic-guard/go.sum",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "本机缺少Go工具链，不能运行go mod tidy/download生成锁文件；未手写伪造go.sum"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/Dockerfile",
@@ -492,43 +492,43 @@
     },
     {
       "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "基线已有生成物但本次make gen未能执行；本机缺少make/Go，不能将其标为本次生成已验证"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/gen/clients.gen.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "基线已有生成物但本次make gen未能执行；本机缺少make/Go，不能将其标为本次生成已验证"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/gen/oapi-codegen.yaml",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "make gen未执行；配置来源仍为合同生成入口"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "make gen未执行；本机缺少make，不能将基线生成物标为本次已验证"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/queries.go",
@@ -542,13 +542,13 @@
     },
     {
       "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "本轮源码待VPS统一make build/docs/gen/check；文件其他未实现职责保持原台账"
+      "blocker": null
     }
   ],
   "functions": [
@@ -1051,12 +1051,12 @@
       "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "已真实校验策略库迁移/journal恢复；完整OpenAPI绑定、identity授权客户端、activation回执和后台循环尚未实现，按合同返回DEPENDENCY_UNAVAILABLE"
+      "blocker": "本轮真实登录handler及完整入口门禁已接通；其余handler、identity当前授权、activation/屏障和后台未齐，完整Application仍拒绝启动"
     },
     {
       "id": "traffic-guard.Serve",
@@ -1127,190 +1127,190 @@
     {
       "id": "traffic-guard.BeginLoginAttempt",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.FinishLoginAttempt",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.OpenPolicyStore",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.WithPolicyStore",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.RunMigrations",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.RecoverJournal",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.Close",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readPolicyJournal",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.beginLoginTransaction",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.loginTransaction.close",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.loginInputHash",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.checkLoginScope",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.loadLoginAttempt",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.recordLoginFailure",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.loginDBError",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.NewLoginHandlers",
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     },
     {
       "id": "traffic-guard.writeLoginResponse",
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "4867a47d4a3765f6ff53568601763c2139a07942",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
       },
-      "blocker": "待VPS统一make build/docs/gen/check，尚不标implemented/verified"
+      "blocker": null
     }
   ],
-  "rule": "持续实施第三轮只实现登录失败保护核心、可信私有存储与真实两项HTTP映射；本轮全部in_progress待VPS。完整服务/策略管理/屏障/恢复/保留清理等原缺口不抹去，业务验收未执行；不新增测试、不调用真实服务/模型、不部署或push。"
+  "rule": "持续实施第三轮源码4867a47d4a3765f6ff53568601763c2139a07942：完整新17函数及追加迁移/生成产物已verified，证据为VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过。源码文件含其他planned/blocked职责者保持blocked，整体启动和业务验收未完成。下一项直接按策略读写工作包收口GET站点来源/缺策略错误并实现GetPolicy/UpdatePolicy、identity授权、幂等回执与policy-changed outbox；本轮交付后冻结，不开始后包、不push。"
 }

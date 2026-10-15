@@ -1,11 +1,12 @@
 # 流量风控当前进度
 
-更新：2026-10-15。本轮：持续实施第三轮登录失败保护；源码/合同已准备，状态in_progress（待VPS make build及docs/gen/check），业务验收未执行。
+更新：2026-10-15。本轮：持续实施第三轮登录失败保护已交付；完整17函数及追加迁移/生成产物verified，完整服务启动仍blocked，业务验收未执行。
 
 - 基线：`9acad1ab56532521222f592af0d4b3a849792db5`；分支：`codex/traffic-login-protection-r1`。独占本域，未更改根/平台/其他模块。
 - 已写BeginLoginAttempt/FinishLoginAttempt、可信PolicyStore注入/打开代次绑定、两个真实HTTP映射和只追加0002迁移。规则见[data](docs/data.md)；并发和终局均短事务，不持锁核验口令。
 - login/bootstrap共享滚动15分钟失败窗（账号5/网络20）、固定15分钟锁及并发（账号1/网络8）；30秒预留，过期仅禁首次authenticated，late rejected按Finish受信时间计失败；同终局重放不重复计数或续锁。
 - 完整BuildApplication、GetPolicy/UpdatePolicy、控制屏障/恢复/后台与匿名保留清理仍blocked或planned；本组HTTP映射必须由统一ServiceHandler装配，不能裸挂或伪装完整服务。
+- 源码提交：`4867a47d4a3765f6ff53568601763c2139a07942`。2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。
 - 全部生成/格式/编译/vet/检查由根会话统一在VPS执行；本机仅阅读和差异检查。未新增测试、样例、fixture、mock或临时验证程序，未运行真实接口、模型、服务、部署或push。
 
 ## 前序交付历史
