@@ -49,3 +49,6 @@
 ## 第四轮首页跨域只读协议
 
 acquire顶层显式site/object/revision/version/operation/digest且refs允许空；统一CanonicalJSON摘要，重放不续期；COMMITTED旧版本只补history，当前水位不倒退；源未知/404/pending/到期均不能release。三个引用生产方函数仍planned，无实际业务实现或数据迁移。
+
+
+第四轮恢复分支补充：Release以完整来源材料和可空pinId调用。媒体只在回源明确同材料aborted/rejected后，按源互斥及对象稳定锁序，同事务封存来源与释放pending pin；本地无pin也持久封存，晚到Acquire不得再落pin。网络404/未知不是无pin证明，源已提交/current/history均不释放。此协议仍planned，不宣称媒体业务实现。修订后的契约、生成物与实际集成树已在VPS通过docs/gen、14现有模块readonly build/vet/gofmt与完整check（858/1105/379/2253），生成回传无冲突；未执行业务验收。

@@ -3821,12 +3821,19 @@
     },
     "ReleaseResourceReferencesInput": {
       "type": "object",
-      "description": "仅明确源未提交才释放pin的输入",
+      "description": "仅同材料明确aborted/rejected后按源封存；pinId未知时null，不必先重新acquire",
       "additionalProperties": false,
       "properties": {
         "pinId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "未提交pin"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "已知原pin，未知时显式null；媒体按完整source材料找到原pin或持久确认无pin"
         },
         "reason": {
           "type": "string",
@@ -3835,21 +3842,46 @@
             "source_aborted",
             "source_rejected"
           ]
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "来源操作"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceObjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "referenceDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
         }
       },
       "required": [
+        "sourceOperationId",
+        "siteId",
+        "sourceObjectId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "referenceDigest",
         "pinId",
         "reason"
       ]
     },
     "ReleaseResourceReferencesResult": {
       "type": "object",
-      "description": "仅明确源未提交才释放pin的结果",
+      "description": "源已持久封存；原pending pin已释放或事务证明没有pin，后续和在途acquire均不能创建",
       "additionalProperties": false,
       "properties": {
         "released": {
           "type": "boolean",
-          "description": "释放"
+          "description": "true仅在封存和原pin处理同事务持久完成后返回"
         }
       },
       "required": [

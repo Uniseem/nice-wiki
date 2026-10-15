@@ -681,8 +681,8 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 
 1. 固定注册content/site-config已认证服务；siteId与每个asset权威站点匹配，顶层sourceObjectId/sourceRevisionId/sourceVersion逐一匹配完整references元素，sourceService取caller不取冒名字段
 2. 完整引用数组按referenceId、assetId、asset.version、asset.sha256排序，空集合固定[]；用platform.CanonicalJSON编码后SHA256等于referenceDigest；输入pending_pin/confirmed=false/expiresAt=null，媒体自己确定pin到期
-3. 按caller/dataEpoch/sourceOperationId唯一持久幂等并绑定所有顶层源字段及digest；重复同输入返回原pinId/原expiresAt，不续期，异输入冲突
-4. 按assetId稳定顺序取得对象mutex和同事务deletionFence，核asset版本/hash/ready，取消delete_pending计划或增fence，创建至少24小时pending pin
+3. 按caller/dataEpoch/sourceOperationId先取源互斥，核已绑定所有顶层源字段和digest；明确sealed终止来源返回CONFLICT且不创建pin；未封存的相同成功返回原pinId/原expiresAt不续期，异材料冲突
+4. 保持源互斥后按assetId稳定顺序取得对象mutex，在写事务内再核来源未sealed及deletionFence，核asset版本/hash/ready，取消delete_pending计划或增fence，创建至少24小时pending pin；与Release同源锁/CAS序列化，不能晚于封存落pin
 5. 即使references为空也生成绑定源身份的pin，以后confirm推进该对象完整集合并保留旧history；不以空数组跳过提交协议
 
 **错误**
@@ -691,12 +691,12 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `CONFLICT`：同源操作不同输入摘要或源身份（不可重试）
+- `CONFLICT`：同源操作不同材料，或来源已经明确终止封存（不可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service:content/site-config
-- 并发：与最终delete同assetmutex/fence
-- 幂等：sourceOperationId+refdigest复用pin
+- 并发：源caller/epoch/sourceOperationId互斥先于assetId稳定顺序mutex；Acquire/Confirm/Release同序，最终delete只取asset锁/fence
+- 幂等：同源完整材料未sealed时回原pin；sealed检查先于任何旧成功快路径，终止后不再创建或返回可提交pin
 - 依赖：`platform.CanonicalJSON`
 
 ## media.ConfirmResourceReferences
@@ -730,6 +730,7 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 2. 读取注册源最小持久决定，必须当前epoch且COMMITTED、材料一致；未知/404/pending保留pin并失败关闭
 3. 同事务将该sourceObjectId的新完整集合确认，旧current保留history；较低sourceVersion的已提交pin只补history，不回退current水位，不以STALE丢历史
 4. 空集合也推进source水位并将旧current转history；同pin重复确认完整原回执，不重复generation；确认取消delete_pending并增referenceGeneration
+5. 与Acquire/Release使用同源互斥及asset稳定顺序；来源已sealed却被证明COMMITTED属于完整性矛盾，失败关闭，不复活来源
 
 **错误**
 
@@ -748,7 +749,7 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 
 - 级别：约束
 - 文件：`modules/media/internal/reference_service.go`
-- 作用：仅明确源未提交才释放pin
+- 作用：明确源未提交后释放或确认无pin并持久封存来源
 
 ```go
 func ReleaseResourceReferences(ctx context.Context, op OperationContext, input ReleaseResourceReferencesInput) (ReleaseResourceReferencesResult, error)
@@ -771,10 +772,12 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 
 **步骤**
 
-1. 核caller/source和持久pin归属，confirmed/history引用不能release冒充abort
-2. 按固定源API读取持久决定，只有同epoch/material的明确aborted或rejected可释放；COMMITTED、404、pending、超时、依赖或完整性未知均保留
-3. 确认源拒绝/终止与原因一致后本地事务移除未确认pin并增generation，幂等回执防重复
-4. 到期不跳过源决定核对；旧已提交版本须历史确认，不因current更高或expiry自动删除ready文件
+1. 核固定content/site-config纯服务和完整site/object/revision/version/operation/digest材料；已知pinId必须属于同材料，pinId为null只表示调用方未知，不是无pin证据
+2. 不持本地源/对象/SQL写锁，按固定源API读取持久决定；必须同epoch与所有源材料且reason对应明确aborted/rejected，COMMITTED、404、pending、超时、依赖或完整性未知均保留且不得封存
+3. 回源后重新核当前epoch/维护写窗口；先取caller/epoch/sourceOperationId源互斥，再取已存pin的assetId稳定顺序mutex，事务内核既有来源绑定；确认current/history或COMMITTED矛盾失败关闭，不得删除或降级；nullable pinId仅是已知原pin的一致性提示，不参与授权，也不作为无pin推断
+4. 在同事务持久sealed终止来源和完整材料、释放该来源pending pin并增generation；若在同源锁/CAS下确实没有pin也持久sealed，返回released=true；不查当前asset存在/ready来证明无pin，不需要重新acquire；保留来源材料与已知原pinId的终局回执，不删除封存依据
+5. Acquire和Release同源锁且写前重查sealed，覆盖从未有pin、远端成功本域未收到pin、与释放并发的在途acquire；只有封存/释放事务成功才回成功，重复同来源/同材料只回原安全结果，异材料冲突
+6. 到期不跳过源决定核对；旧已提交版本须历史确认，不因current更高或expiry自动删除ready文件
 
 **错误**
 
@@ -784,8 +787,8 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service对应source
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：released重复成功
+- 并发：回源RPC不持写锁；源caller/epoch/sourceOperationId互斥先于assetId稳定顺序，封存与pin释放同事务并阻止迟到acquire
+- 幂等：同源完整材料+终止reason持久封存并重复成功，pinId可null；异材料冲突，无pin也不能省略来源核验
 - 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
 
 ## media.ApplyReferenceEvent
@@ -818,6 +821,7 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 1. 验证producer与payloadschema/epoch
 2. eventId去重，sourceVersion低于当前只ack不覆写
 3. 事务应用完整snapshot与history分类，增generation并取消冲突清理计划
+4. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
 
 **错误**
 
