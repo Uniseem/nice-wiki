@@ -3317,6 +3317,11 @@
       "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
       "kind": "migration",
       "purpose": "初始化不可变决定与当前状态的追加迁移"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0005.md",
+      "kind": "documentation",
+      "purpose": "三个工作包并行交付与统一复核的推送记录"
     }
   ]
 }

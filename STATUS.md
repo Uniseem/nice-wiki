@@ -11,7 +11,7 @@
 - 最新机器台账：846文件、920函数、372HTTP操作、2172类型；函数已实现或验证159个（66个verified）、in_progress 9个、blocked 14个、planned 738个。函数条目比例不等同产品完成率。
 - 隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：14个Go模块make build（-mod=readonly build/vet/gofmt）和make check完整通过；源码排除私有配置、凭据、数据与本机.git，VPS独立建立临时Git元数据，以既有代用身份检查暂存内容。make docs无漂移、make gen重复无漂移已在本轮早期核对。未新增测试、未运行业务测试、服务进程、真实接口、模型或部署。
 - 用户本轮追加：所有编译和测试均在VPS执行，已同步根/15域AGENTS与实施/合并规则；VPS不可用则blocked，未经当次授权不回退本机。本轮追加前已执行过本机检查，此事实保留于交接。
-- 本轮提交仅本地，未push；原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
+- 本次用户已授权普通推送main，当前待执行并核对远端；实际结果见docs/push-log/2026-10-15-0005.md。原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
 
 ## 历史实施记录
 
@@ -47,4 +47,4 @@
 
 - 编译门槛与公共机制（2026-10-15，用户确认）：根与15域AGENTS改为R1实施阶段规则，Go代码记implemented前须`make build`（14个Go模块-mod=readonly build/vet/gofmt）通过，优先VPS、不可用时本机运行，go.sum只由go命令生成；make check新增go.sum存在与格式检查；合并流程要求集成会话编译并逐个审查逻辑。libs/platform新增`lifecycle.NewSiteConfigClient`（10域改用，删除各自适配）与`apivalidate.NewRequestValidator`（kin-openapi入口请求校验，待HTTP绑定时装配）。台账844文件、907函数。
 
-下一步：收口identity.IssueSessionTokens与portal会话解析的issuer/audience、refresh单次轮换和auth epoch权威来源，先同步合同再实现签发。本轮未授权push或部署。
+下一步：收口identity.IssueSessionTokens与portal会话解析的issuer/audience、refresh单次轮换和auth epoch权威来源，先同步合同再实现签发。本轮main推送已获当次授权；部署仍未授权。
