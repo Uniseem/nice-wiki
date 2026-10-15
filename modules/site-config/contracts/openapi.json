@@ -495,6 +495,46 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "NOT_FOUND：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "LOCKED：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "DEADLINE_EXCEEDED：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -513,11 +553,21 @@
       "get": {
         "operationId": "readPublicHome",
         "summary": "读取可公开的首页配置",
-        "description": "调用函数 site-config.ReadPublicHome；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "读取COMMITTED权威公开投影；保留不可见按钮并禁用，文档经public-site解析当前语言URL及锚点，QA仅免费能力判断；不返回安全/配额或私有hero target。",
         "x-handler": "site-config.ReadPublicHome",
         "x-permission": "anonymous",
         "security": [],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "./types.json#/$defs/LanguageTag"
+            },
+            "description": "缺省baseLanguage；不会从Host或浏览器身份猜测"
+          }
+        ],
         "responses": {
           "200": {
             "description": "读取可公开的首页配置的成功回执",
@@ -541,6 +591,46 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：按权威前置与安全窗口失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：按权威前置与安全窗口失败关闭",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1857,6 +1947,92 @@
             "application/json": {
               "schema": {
                 "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotDiscardRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reference-decisions/{sourceOperationId}": {
+      "get": {
+        "operationId": "readHomeReferenceDecision",
+        "summary": "媒体核对首页资源来源持久决定",
+        "x-handler": "site-config.ReadHomeReferenceDecision",
+        "x-permission": "service",
+        "description": "仅media纯服务；COMMITTED权威文件优先，404/pending/超时不表示可释放；不返回私有配置或用户信息。",
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sourceOperationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./types.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "安全来源决定",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadHomeReferenceDecisionResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "仅媒体纯服务可读",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "来源操作不存在，不能视为未提交",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "活动dataEpoch不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "持久材料或COMMITTED损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "未知权威或私有存储不可用",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
               }
             }
           }

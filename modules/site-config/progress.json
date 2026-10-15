@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "f39fac0b89b924d976d9df140055221d9480fdde574597615b14618205b45bb5",
+  "contractSha256": "ff321991900a782a9a62409ffb5d2ba080f23a5dc7ec543a57d8639fbc48b7cb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第二轮统一复核后按用户要求停止继续",
-  "branch": "main",
-  "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+  "assignedSession": "第四轮首页权威与媒体pin恢复",
+  "branch": "codex/site-config-home-r1",
+  "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -22,11 +22,11 @@
     },
     {
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "verified",
-      "implementationCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -42,21 +42,21 @@
     },
     {
       "path": "modules/site-config/internal/home_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -182,11 +182,11 @@
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
-      "state": "verified",
-      "implementationCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/site-config/internal/config_files.go",
-      "state": "verified",
-      "implementationCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -313,10 +313,10 @@
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "48a778cc529af12a002af6768e5552272ec09b29",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -439,6 +439,16 @@
         "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -500,33 +510,33 @@
     {
       "id": "site-config.UpdateHome",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ReadPublicHome",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ValidateHomeLinks",
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
       },
       "blocker": null
     },
@@ -1024,7 +1034,392 @@
         "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
       },
       "blocker": null
+    },
+    {
+      "id": "site-config.validateHomeStructure",
+      "path": "modules/site-config/internal/home_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.decodeHomeTarget",
+      "path": "modules/site-config/internal/home_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.validateConfigWebLink",
+      "path": "modules/site-config/internal/config_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.ReadHomeReferenceDecision",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.RecoverHomeReferences",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.readConfigAtWatermark",
+      "path": "modules/site-config/internal/config_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.loadPublicHomeConfig",
+      "path": "modules/site-config/internal/config_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.ConfigureHome",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeDependencies",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeSourceObjectID",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeReferenceMaterial",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.saveHomeReferenceIntent",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.readHomeReferenceIntent",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.validateHomePin",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.committedHomeReference",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.verifyHomeCommittedReference",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.checkHomeConfigCommit",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.markHomeConfigCommitted",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeReferenceContext",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.persistHomePin",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.acquireHomePin",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.decideHomeTermination",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.settleHomeReference",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.compareHomeInput",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeTerminatedError",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.finishHomeFailure",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeServiceContext",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.resolveHomeDocument",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.safeHomeRelativeHref",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.disablePublicHomeButton",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.readHomeQACapability",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.RecoverHomeReferenceState",
+      "path": "modules/site-config/internal/home_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.BackgroundTasks",
+      "path": "modules/site-config/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.Drain",
+      "path": "modules/site-config/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.homeRecoveryOperation",
+      "path": "modules/site-config/internal/transport/server.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-15 根protocol-only合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt、完整make check通过（858文件/1105函数/379操作/2253类型）。该快照仅取本域合同/记录，未纳入本轮Home Go或0005迁移，不构成首页源码编译或业务验收证据。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "本轮一般设置权威读写、纯语义校验、原始对象流及已完成回执维护边界经隔离VPS全仓编译/生成/结构检查和统一复核后记verified，仅对应检查范围。完整BuildApplication和部分HTTP/后台文件仍blocked/in_progress。用户要求第二轮后停止，不自动第三轮，不以停止代替产品完成或行为验收。"
+  "rule": "第四轮合同-only快照已过protocol检查；Home Go和0005迁移未纳入该VPS快照，所有本轮源码保持in_progress，尚未证明编译或业务验收。"
 }

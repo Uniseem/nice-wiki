@@ -1057,7 +1057,7 @@
     },
     "UpdateHomeInput": {
       "type": "object",
-      "description": "配置首页介绍、卡片和精选文档的输入",
+      "description": "更新仅一屏hero的首页配置输入",
       "additionalProperties": false,
       "properties": {
         "home": {
@@ -1081,7 +1081,7 @@
     },
     "UpdateHomeResult": {
       "type": "object",
-      "description": "配置首页介绍、卡片和精选文档的结果",
+      "description": "首页权威提交结果",
       "additionalProperties": false,
       "properties": {
         "config": {
@@ -1097,7 +1097,12 @@
       "type": "object",
       "description": "读取可公开的首页配置的输入",
       "additionalProperties": false,
-      "properties": {},
+      "properties": {
+        "language": {
+          "$ref": "#/$defs/LanguageTag",
+          "description": "可选请求语言，缺省站点baseLanguage"
+        }
+      },
       "required": []
     },
     "ReadPublicHomeResult": {
@@ -1116,19 +1121,41 @@
           "description": "LanguageTag"
         },
         "home": {
-          "$ref": "#/$defs/HomeConfig",
-          "description": "HomeConfig"
+          "$ref": "#/$defs/PublicHome"
         },
         "configRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "水位"
+        },
+        "language": {
+          "$ref": "#/$defs/LanguageTag"
+        },
+        "branding": {
+          "$ref": "#/$defs/PublicBranding"
+        },
+        "footer": {
+          "$ref": "#/$defs/FooterConfig"
+        },
+        "banner": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Announcement"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
         "siteName",
         "baseLanguage",
         "home",
-        "configRevision"
+        "configRevision",
+        "language",
+        "branding",
+        "footer",
+        "banner"
       ]
     },
     "ValidateHomeLinksInput": {
@@ -1139,10 +1166,18 @@
         "home": {
           "$ref": "#/$defs/HomeConfig",
           "description": "HomeConfig"
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "language": {
+          "$ref": "#/$defs/LanguageTag"
         }
       },
       "required": [
-        "home"
+        "home",
+        "siteId",
+        "language"
       ]
     },
     "ValidateHomeLinksResult": {
@@ -3039,6 +3074,259 @@
       "type": "object",
       "x-internal": true,
       "description": "io.ReadCloser，只在本域HTTP适配进程内流转；HTTP消费并关闭，不发送内存句柄"
+    },
+    "ReadHomeReferenceDecisionInput": {
+      "type": "object",
+      "description": "媒体专用来源决定查询，只接受不透明操作ID",
+      "additionalProperties": false,
+      "properties": {
+        "sourceOperationId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "sourceOperationId"
+      ]
+    },
+    "ReadHomeReferenceDecisionResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ReferenceSourceDecision",
+      "description": "媒体专用安全来源决定公共schema；COMMITTED权威优先"
+    },
+    "RecoverHomeReferencesInput": {
+      "type": "object",
+      "description": "本域受控启动和周期资源引用收敛输入",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RecoverHomeReferencesResult": {
+      "type": "object",
+      "description": "单次有界收敛结果，不把待重试当已完成",
+      "additionalProperties": false,
+      "properties": {
+        "completedCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "pendingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "completedCount",
+        "pendingCount"
+      ]
+    },
+    "PublicHeroButton": {
+      "type": "object",
+      "description": "保持原0–3按钮及样式，不向公众暴露私有document target",
+      "additionalProperties": false,
+      "properties": {
+        "buttonId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "document",
+            "qa",
+            "external"
+          ]
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "disabledReason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "target_unavailable",
+                "anchor_missing",
+                "language_unavailable",
+                "ai_not_configured",
+                "dependency_unavailable"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "href": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "公开安全地址；文档/QA为含部署basePath及请求语言的同源根相对URL，外链保留安全原值，HTML输出点统一转义"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "publication": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "buttonId",
+        "text",
+        "style",
+        "kind",
+        "disabled",
+        "disabledReason",
+        "href",
+        "publication"
+      ]
+    },
+    "PublicHome": {
+      "type": "object",
+      "description": "仅一屏hero的公开投影；按钮已解析或明确禁用，不含原私有target",
+      "additionalProperties": false,
+      "properties": {
+        "mainTitle": {
+          "type": "string",
+          "description": "默认站点名，翻译",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "副标题，翻译",
+          "minLength": 0,
+          "maxLength": 1000
+        },
+        "backgroundText": {
+          "type": "string",
+          "description": "默认Welcome To",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "translateBackgroundText": {
+          "type": "boolean",
+          "description": "默认false，后台可开翻译"
+        },
+        "buttons": {
+          "type": "array",
+          "description": "0–3按钮",
+          "items": {
+            "$ref": "#/$defs/PublicHeroButton"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "background": {
+          "$ref": "#/$defs/HeroBackground",
+          "description": "HeroBackground"
+        },
+        "overlayPercent": {
+          "type": "integer",
+          "description": "遮罩0–100%",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "textColor": {
+          "type": "string",
+          "description": "文字",
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "CAS"
+        }
+      },
+      "required": [
+        "mainTitle",
+        "subtitle",
+        "backgroundText",
+        "translateBackgroundText",
+        "buttons",
+        "background",
+        "overlayPercent",
+        "textColor",
+        "revision"
+      ]
+    },
+    "PublicBranding": {
+      "type": "object",
+      "description": "公开品牌允许字段，不含私有安全/配额配置",
+      "additionalProperties": false,
+      "properties": {
+        "logo": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "favicon": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "themeColor": {
+          "type": "string",
+          "description": "#RRGGBB",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "default": "#2563EB"
+        },
+        "defaultShareImage": {
+          "anyOf": [
+            {
+              "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        }
+      },
+      "required": [
+        "logo",
+        "favicon",
+        "themeColor",
+        "defaultShareImage"
+      ]
     }
   }
 }

@@ -30,6 +30,7 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 | `site-config.RecoverAnnouncementJournal` | 启动时（入口开放前） | 恢复正文文件与提交日志 |
 | `site-config.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
 | `site-config.RecoverConfigJournal` | 启动时（入口开放前） | 启动前恢复settings权威文件提交决定 |
+| `site-config.RecoverHomeReferences` | 启动前及受信后台周期；每次最多100项，复用公共调度与写窗口 | 按明确决定有界收敛首页媒体pin |
 <!-- flows:end -->
 
 

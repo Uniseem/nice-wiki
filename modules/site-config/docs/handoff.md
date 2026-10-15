@@ -1,5 +1,15 @@
 # 站点配置与初始化会话交接
 
+## 第四轮首页权威与引用恢复（2026-10-15，实施中）
+
+- 独占modules/site-config/；分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1。旧第二轮停止说明是历史，本轮用户已重新持续授权。
+- 本轮紧密组：UpdateHome/ReadPublicHome/ValidateHomeLinks，及获批RecoverHomeReferences/ReadHomeReferenceDecision与追加0005_home_reference_decisions.sql。纯验证复用既有外链规则，一屏hero保留0–3按钮、视频poster、稳定按钮ID与完整AssetVersionRef，不增卡片或精选。
+- 持久来源sourceObjectId固定HashBytes("site-config.home.v1|"+siteId)，sourceRevisionId为实际不可变config revisionId，sourceVersion为全局config.revision；referenceId=home.background/home.poster。完整refs排序后经公共CanonicalJSON与HashBytes，空集固定[]仍走同一个acquire/COMMITTED/confirm协议。
+- config候选与acquire intent同事务；COMMITTED前同configMu/SQLite写锁核未持久终止；COMMITTED后同SQL水位/回执/outbox事务记confirm_pending。源决定GET仅media纯服务；COMMITTED正规文件/哈希优先，404/pending/未知不得视为可release。无COMMITTED才可持久abort，防迟到提交复活；未知pinId以同sourceOp/digest找回，不猜测释放成功。
+- 业务COMMITTED成功不受后续confirm网络结果改写；原成功只读返回原正式对象。不可反悔文件决定但SQL未完的原op专门补完，不能因新可见性/ready/pin期限重查而回退。后台通过公共循环按安全窗口继续确认或释放，域内不自造timer。
+- 跨域字段与通用循环尚待根最终冻结，公开Home/文档URL/QA能力仍在实施；本轮所有改动in_progress，完整Application的其余handler、后台与恢复链继续blocked，不把部分源码当完整业务就绪。
+- 新实际文件仅home_service.go、home_validator.go与0005_home_reference_decisions.sql，需根统一登记。没有新库、测试/mock/fixture/样例或临时验证程序，没有本机Go/gofmt/gen/vet/类型检查/测试，没有服务/真实接口/模型/部署/push。本轮protocol-only快照已通过VPS docs/gen、14模块readonly build/vet/gofmt及完整make check（858文件/1105函数/379操作/2253类型）；没有取本域Home Go/0005迁移，不代表首页源码通过。先交付本域合同-only提交，Go/迁移保持未提交in_progress，公共基线回传后再冻结完整源码交统一VPS。
+
 ## 第二轮最终集成与停止范围
 
 - 一般设置权威读写、校验、对象原始流及HTTP核心通过；Home等及完整启动仍未完成。

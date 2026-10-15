@@ -14,8 +14,8 @@
 | DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `site-config.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | GET `/v1/config` | `readSiteConfig` | `site-config.ReadSiteConfig` | `site.read` | `—` → 200 `ReadSiteConfigResult` | 读取后台站点配置 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 | PUT `/v1/config` | `updateSiteConfig` | `site-config.UpdateSiteConfig` | `site.manage` | `UpdateSiteConfigInput` → 200 `UpdateSiteConfigResult` | 更新站点常规配置 | `VALIDATION`、`FORBIDDEN`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`NOT_FOUND` |
-| PUT `/v1/home` | `updateHome` | `site-config.UpdateHome` | `site.manage` | `UpdateHomeInput` → 200 `UpdateHomeResult` | 配置首页介绍、卡片和精选文档 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
-| GET `/v1/home/public` | `readPublicHome` | `site-config.ReadPublicHome` | `anonymous` | `—` → 200 `ReadPublicHomeResult` | 读取可公开的首页配置 | `NOT_FOUND`、`DEPENDENCY_UNAVAILABLE` |
+| PUT `/v1/home` | `updateHome` | `site-config.UpdateHome` | `site.manage` | `UpdateHomeInput` → 200 `UpdateHomeResult` | 配置首页介绍、卡片和精选文档 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`NOT_FOUND`、`INTEGRITY_ERROR`、`LOCKED`、`DEADLINE_EXCEEDED` |
+| GET `/v1/home/public` | `readPublicHome` | `site-config.ReadPublicHome` | `anonymous` | `—` → 200 `ReadPublicHomeResult` | 读取可公开的首页配置 | `NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR` |
 | GET `/v1/runtime-state` | `readRuntimeState` | `site-config.ReadRuntimeState` | `service` | `—` → 200 `ReadRuntimeStateResult` | 读取独立控制库权威运行状态 | `INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/runtime-state:transition` | `transitionRuntimeState` | `site-config.TransitionRuntimeState` | `service` | `RuntimeTransition` → 200 `TransitionRuntimeStateResult` | 按CAS切换epoch与维护阶段 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/runtime-state/activations` | `registerActivation` | `site-config.RegisterActivation` | `service` | `RegisterActivationInput` → 200 `RegisterActivationResult` | 登记域恢复切换/换回回执 | `FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR` |
@@ -34,5 +34,6 @@
 | GET `/readyz` | `ready` | `site-config.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `site-config.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `site-config.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| GET `/v1/reference-decisions/{sourceOperationId}` | `readHomeReferenceDecision` | `site-config.ReadHomeReferenceDecision` | `service` | `—` → 200 `ReadHomeReferenceDecisionResult` | 媒体核对首页资源来源持久决定 | `HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 422`、`HTTP 503` |
 <!-- openapi:end -->
 

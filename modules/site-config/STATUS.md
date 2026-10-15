@@ -1,5 +1,14 @@
 # 站点配置与初始化当前进度
 
+## 第四轮首页权威组（2026-10-15，实施中）
+
+- 分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/。
+- 本轮目标为UpdateHome、ReadPublicHome、ValidateHomeLinks与同组媒体pin恢复；已落纯hero规则、固定候选/完整引用intent、媒体专用安全来源决定API和COMMITTED优先的获取/确认/释放状态机，尚在实现，不声明已完成。
+- 新实际路径为已登记home_service.go/home_validator.go，及获批只追加迁移0005_home_reference_decisions.sql；公共规范JSON、通用恢复循环、媒体pin、公开文档链接与QA免费能力协议由根统一收口，生成目录不手改。
+- 本轮合同快照已通过统一VPS docs/gen、14模块readonly build/vet/gofmt及make check（858文件/1105函数/379操作/2253类型）；该快照未取Home Go与0005迁移，不能视为其编译证据。先交付合同-only提交，实际Go/迁移保留未提交并继续in_progress，待公共基线后统一检查。没有本机Go/gofmt/gen/vet/类型检查/测试。未新增测试/mock/fixture/临时验证程序，未运行服务/真实接口/模型/部署/push。完整Application其余handler仍blocked，所有行为验收未执行。
+
+以下为历史记录，旧停止指令已被本轮持续授权撤销；逐项状态以progress.json为准。
+
 ## 第二轮最终集成与停止范围
 
 - 一般设置权威读写、校验、对象原始流及HTTP核心通过；Home等及完整启动仍未完成。

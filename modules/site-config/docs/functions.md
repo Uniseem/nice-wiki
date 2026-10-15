@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 53 个函数：约束 30 个，参考 23 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 88 个函数：约束 32 个，参考 56 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -102,6 +102,70 @@ func UpdateSiteConfig(ctx context.Context, op OperationContext, input UpdateSite
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`site-config.CheckWriteEpoch`、`site-config.ValidateSiteConfig`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`、`site-config.ResolveConfigOperation`
 
+## site-config.readConfigAtWatermark
+
+- 级别：参考
+- 文件：`modules/site-config/internal/config_service.go`
+- 作用：共用head/COMMITTED/SQL一致的正规权威文件读取，不修改调用方水位授权
+
+```go
+func (s *ActiveStore) readConfigAtWatermark(ctx context.Context, op OperationContext, tx *sql.Tx, siteID string, revision gen.Revision, revisionID string) (gen.SiteConfig, configJournalRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 共用head/COMMITTED/SQL一致的正规权威文件读取，不修改调用方水位授权
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.loadPublicHomeConfig
+
+- 级别：参考
+- 文件：`modules/site-config/internal/config_service.go`
+- 作用：独立公开首页只读水位入口，仅portal/public-site，既有私有readConfigWatermark授权原封保留
+
+```go
+func (s *ActiveStore) loadPublicHomeConfig(ctx context.Context, op OperationContext) (gen.SiteConfig, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 独立公开首页只读水位入口，仅portal/public-site，既有私有readConfigWatermark授权原封保留
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.readConfigAtWatermark`
+
 ## site-config.ValidateSiteConfig
 
 - 级别：参考
@@ -139,7 +203,7 @@ func ValidateSiteConfig(input ValidateSiteConfigInput) (ValidateSiteConfigResult
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：`site-config.NormalizeBaseURL`、`site-config.ValidateLanguageTag`
+- 依赖：`site-config.NormalizeBaseURL`、`site-config.ValidateLanguageTag`、`site-config.validateHomeStructure`
 
 ## site-config.NormalizeBaseURL
 
@@ -178,6 +242,38 @@ func NormalizeBaseURL(input NormalizeBaseURLInput) (NormalizeBaseURLResult, erro
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
 - 依赖：`platform.NormalizePublicURL`
+
+## site-config.validateConfigWebLink
+
+- 级别：参考
+- 文件：`modules/site-config/internal/config_validator.go`
+- 作用：共享配置外链纯规则，拒绝脚本协议与凭据和控制字符
+
+```go
+func validateConfigWebLink(raw string, allowMail bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 允许http/https完整主机；按钮可显式允许mailto，禁止userinfo与控制字符，不访问网络
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：由调用链建立
+- 并发：纯函数
+- 幂等：确定性
+- 依赖：无
 
 ## site-config.ValidateLanguageTag
 
@@ -222,7 +318,7 @@ func ValidateLanguageTag(input ValidateLanguageTagInput) (ValidateLanguageTagRes
 
 - 级别：约束
 - 文件：`modules/site-config/internal/home_service.go`
-- 作用：配置首页介绍、卡片和精选文档
+- 作用：更新仅一屏hero的首页配置
 
 ```go
 func UpdateHome(ctx context.Context, op OperationContext, input UpdateHomeInput) (UpdateHomeResult, error)
@@ -245,9 +341,12 @@ func UpdateHome(ctx context.Context, op OperationContext, input UpdateHomeInput)
 
 **步骤**
 
-1. 校验一屏hero全部属性、0–3按钮目标、背景种类/遮罩/文字颜色
-2. 验证ready资源并获取引用pin；视频必须poster且浏览器muted/autoplay/loop/playsinline，reduced-motion只poster
-3. CAS写不可变config文件和home revision，confirm pins、发翻译/历史镜像事件；失败release未提交pin
+1. 同站点site.manage；以原严格输入CanonicalJSON+kind生成稳定业务摘要；原成功只读原正式对象，维护仍可读且不重查当前依赖
+2. 新/未完成先CheckWriteEpoch；config及home双CAS，验证纯hero语义、公开文档目标、ready且完整版本匹配的资源
+3. 固定候选与排序完整refs/acquire intent同事务；空集合也走pin，未知pinId按sourceOperationId/digest找回同一原pin，不延长expiry
+4. 持久pin后复用WriteConfigRevision/CommitConfigHead，COMMITTED前与终止共享SQL写锁，阻止已abort的迟到commit
+5. home confirm_pending与config SQL水位/原回执/平台outbox同事务；COMMITTED成功即保存，外部confirm网络结果不改报未提交
+6. 已有COMMITTED但SQL未完的原操作只补原决定，不能被新可见性/ready/expiry策略拒绝；明确未提交才持久终止并由后台release
 
 **错误**
 
@@ -261,7 +360,7 @@ func UpdateHome(ctx context.Context, op OperationContext, input UpdateHomeInput)
 - 授权：site.manage；读取site.read，写入校验actor/siteId与活动dataEpoch
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ValidateHomeLinks`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`、`site-config.ResolveConfigOperation`
+- 依赖：`site-config.ValidateHomeLinks`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`、`site-config.ResolveConfigOperation`、`platform.CanonicalJSON`、`site-config.CheckWriteEpoch`、`site-config.WriteConfigRevision`、`site-config.CommitConfigHead`、`site-config.compareHomeInput`、`site-config.readHomeReferenceIntent`、`site-config.committedHomeReference`、`site-config.homeTerminatedError`、`site-config.acquireHomePin`、`site-config.finishHomeFailure`、`site-config.saveHomeReferenceIntent`
 
 ## site-config.ReadPublicHome
 
@@ -290,9 +389,11 @@ func ReadPublicHome(ctx context.Context, op OperationContext, input ReadPublicHo
 
 **步骤**
 
-1. initialized=true读取权威HomeConfig及公开站点品牌/footer/banner摘要
-2. 站内按钮存docId解析当前语言；不可见目标禁用，AI未配置禁用问问AI但hero正常
-3. public-site直接Go模板输出全屏hero，背景图预加载，减少动态效果仅视频poster，不返回private配置
+1. initialized=true读取head/COMMITTED/SQL一致权威；language缺省baseLanguage并规范BCP47
+2. 显式公开siteName/baseLanguage/language/configRevision、PublicHome、四个branding字段及既有FooterConfig，banner仅enabled且当前窗口，其他null；不返回security/limits或原hero私有target
+3. 按稳定buttonId保留全部0–3按钮，document调用public-site.resolvePublishedLink，目标/锚点/语言不可用明确disabled且href/publication为null；依赖未知只禁用该按钮
+4. qa调用免费readPublicCapability，不探测模型；无配置/未知明确禁用，available才按可信publicBaseURL.basePath及请求language构造/ask
+5. 外链沿既有安全规则，href不提前HTML转义；public-site模板输出点统一转义并保留视频poster/reduced-motion语义
 
 **错误**
 
@@ -303,7 +404,899 @@ func ReadPublicHome(ctx context.Context, op OperationContext, input ReadPublicHo
 - 授权：anonymous 或 service:public-site
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content:validatePublications`
+- 依赖：`public-site:resolvePublishedLink`、`qa:readPublicCapability`、`site-config.ValidateLanguageTag`、`site-config.validateHomeStructure`、`site-config.loadPublicHomeConfig`、`site-config.homeDependencies`、`site-config.decodeHomeTarget`、`site-config.resolveHomeDocument`、`site-config.disablePublicHomeButton`、`site-config.readHomeQACapability`、`site-config.validateConfigWebLink`
+
+## site-config.ReadHomeReferenceDecision
+
+- 级别：约束
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：媒体读取首页引用来源决定
+
+```go
+func ReadHomeReferenceDecision(ctx context.Context, op OperationContext, input ReadHomeReferenceDecisionInput) (ReadHomeReferenceDecisionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消和期限 | 只传下游IO |
+| `op` | `OperationContext` | 入口或受信后台建立的上下文 | 当前活动dataEpoch，非浏览器自造 |
+| `input` | `ReadHomeReferenceDecisionInput` | 已校验输入 | 边界严格schema一次 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadHomeReferenceDecisionResult` | 成功结果 | 无error才有效 |
+| `error` | `Error` | 安全标准错误 | 不含私有配置/地址/secret |
+
+**步骤**
+
+1. 仅media纯服务，核已打开active与op当前epoch
+2. 固定intent源object/revision/version/digest先校验，COMMITTED文件若存在必须完整核对并优先报告committed
+3. 无COMMITTED时只从持久aborted/rejected终局报告；其他报告pending，不存在404/未知关闭
+
+**错误**
+
+- `FORBIDDEN`：调用方不允许（不可重试）
+- `NOT_FOUND`：来源操作不存在（不可重试）
+- `VERSION_MISMATCH`：非活动epoch（不可重试）
+- `INTEGRITY_ERROR`：决定或材料不一致（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威不可用（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅media纯服务
+- 并发：与CommitConfigHead共享configMu及SQLite写锁；COMMITTED不可回退
+- 幂等：固定sourceOperationId/完整引用digest与源修订；同决定幂等，未知保留
+- 依赖：`site-config.readHomeReferenceIntent`、`site-config.committedHomeReference`
+
+## site-config.RecoverHomeReferences
+
+- 级别：约束
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：按明确决定有界收敛首页媒体pin
+
+```go
+func RecoverHomeReferences(ctx context.Context, op OperationContext, input RecoverHomeReferencesInput) (RecoverHomeReferencesResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消和期限 | 只传下游IO |
+| `op` | `OperationContext` | 入口或受信后台建立的上下文 | 当前活动dataEpoch，非浏览器自造 |
+| `input` | `RecoverHomeReferencesInput` | 已校验输入 | 边界严格schema一次 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `RecoverHomeReferencesResult` | 成功结果 | 无error才有效 |
+| `error` | `Error` | 安全标准错误 | 不含私有配置/地址/secret |
+
+**步骤**
+
+1. 受信启动/周期单次最多100项，COMMITTED优先；普通候选绝不自动发布
+2. 未提交且无COMMITTED只在共享写锁下持久终止，防迟到commit；未知/损坏不release
+3. 未知pinId用相同sourceOperationId/digest找回原pin；明确终止才release，COMMITTED只confirm
+4. confirm低源版本仅收敛history，当前水位不倒退；确认/释放阶段和完成态均持久，不隐藏成功后临时RPC
+5. 每次远端调用及本域状态写前后核epoch/安全窗口；维护不新acquire，依赖失败保留待续办
+
+**错误**
+
+- `FORBIDDEN`：调用方不允许（不可重试）
+- `NOT_FOUND`：来源操作不存在（不可重试）
+- `VERSION_MISMATCH`：非活动epoch（不可重试）
+- `INTEGRITY_ERROR`：决定或材料不一致（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威不可用（可重试）
+
+- 副作用：持久资源pin收敛决定/回执，跨域调用media
+- 授权：permission：service；rule：仅site-config受控启动/后台；调用前后按当前epoch与安全写窗口关闭
+- 并发：与CommitConfigHead共享configMu及SQLite写锁；COMMITTED不可回退
+- 幂等：固定sourceOperationId/完整引用digest与源修订；同决定幂等，未知保留
+- 依赖：`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`、`site-config.CheckWriteEpoch`、`site-config.decideHomeTermination`、`site-config.settleHomeReference`
+
+## site-config.ConfigureHome
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：仅从受信启动注入媒体/公开链接/免费QA客户端
+
+```go
+func (s *ActiveStore) ConfigureHome(runtime HomeRuntime)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅从受信启动注入媒体/公开链接/免费QA客户端
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.homeDependencies
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：读取进程持有的受信首页依赖
+
+```go
+func (s *ActiveStore) homeDependencies() HomeRuntime
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取进程持有的受信首页依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.homeSourceObjectID
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：固定HashBytes(site-config.home.v1|siteId)的64hex来源标识
+
+```go
+func homeSourceObjectID(siteID string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定HashBytes(site-config.home.v1|siteId)的64hex来源标识
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.homeReferenceMaterial
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：完整AssetReference按referenceId/asset/version/hash排序并公共CanonicalJSON计算digest；空集固定[]
+
+```go
+func homeReferenceMaterial(config gen.SiteConfig, revisionID string) ([]homeResourceReference, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整AssetReference按referenceId/asset/version/hash排序并公共CanonicalJSON计算digest；空集固定[]
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.validateHomeStructure`、`site-config.homeSourceObjectID`、`platform.CanonicalJSON`
+
+## site-config.saveHomeReferenceIntent
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：同候选SQL事务保存固定来源与acquire intent，不能在RPC之后补写
+
+```go
+func saveHomeReferenceIntent(ctx context.Context, op OperationContext, tx *sql.Tx, config gen.SiteConfig, revisionID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同候选SQL事务保存固定来源与acquire intent，不能在RPC之后补写
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeReferenceMaterial`、`platform.CanonicalJSON`
+
+## site-config.readHomeReferenceIntent
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：有界读取本域refs/pin材料并核hash、source、候选kind及pin完整性
+
+```go
+func (s *ActiveStore) readHomeReferenceIntent(ctx context.Context, q ReadTransaction, operationID string) (homeReferenceIntent, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界读取本域refs/pin材料并核hash、source、候选kind及pin完整性
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.validateHomePin`、`site-config.homeSourceObjectID`、`platform.CanonicalJSON`
+
+## site-config.validateHomePin
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：核媒体pin绑定的完整资源版本集合、pin身份与期限材料
+
+```go
+func validateHomePin(intent homeReferenceIntent, pin homeReferencePin) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核媒体pin绑定的完整资源版本集合、pin身份与期限材料
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.committedHomeReference
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：经集中正规文件枚举判断明确COMMITTED是否存在，IO未知绝不当不存在
+
+```go
+func (s *ActiveStore) committedHomeReference(ctx context.Context, intent homeReferenceIntent) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 经集中正规文件枚举判断明确COMMITTED是否存在，IO未知绝不当不存在
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.verifyHomeCommittedReference`
+
+## site-config.verifyHomeCommittedReference
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：读取既有权威文件并核COMMITTED原始主体/op/hash/epoch/精确版本与完整引用digest
+
+```go
+func (s *ActiveStore) verifyHomeCommittedReference(ctx context.Context, intent homeReferenceIntent) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取既有权威文件并核COMMITTED原始主体/op/hash/epoch/精确版本与完整引用digest
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeReferenceMaterial`
+
+## site-config.checkHomeConfigCommit
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：共享写锁下拒绝终止来源迟到commit；明确COMMITTED优先且不再受新pin expiry阻断
+
+```go
+func (s *ActiveStore) checkHomeConfigCommit(ctx context.Context, tx *sql.Tx, record configJournalRecord, config gen.SiteConfig) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 共享写锁下拒绝终止来源迟到commit；明确COMMITTED优先且不再受新pin expiry阻断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.readHomeReferenceIntent`、`site-config.committedHomeReference`、`site-config.homeReferenceMaterial`
+
+## site-config.markHomeConfigCommitted
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：与config水位/receipt/outbox同事务保存confirm_pending，不回退confirmed
+
+```go
+func markHomeConfigCommitted(ctx context.Context, tx *sql.Tx, operationID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与config水位/receipt/outbox同事务保存confirm_pending，不回退confirmed
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.homeReferenceContext
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：为acquire/confirm/release分别派生稳定operationId，保原root/source并清用户proof
+
+```go
+func homeReferenceContext(ctx context.Context, op OperationContext, intent homeReferenceIntent, phase string) (context.Context, OperationContext)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 为acquire/confirm/release分别派生稳定operationId，保原root/source并清用户proof
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeServiceContext`
+
+## site-config.persistHomePin
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：RPC成功后核安全窗口再CAS持久原pin，未知保留且不倒退已收敛阶段
+
+```go
+func (s *ActiveStore) persistHomePin(ctx context.Context, op OperationContext, intent homeReferenceIntent, pin homeReferencePin) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. RPC成功后核安全窗口再CAS持久原pin，未知保留且不倒退已收敛阶段
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.validateHomePin`、`site-config.CheckWriteEpoch`、`platform.CanonicalJSON`
+
+## site-config.acquireHomePin
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：同sourceOperation/digest获取或找回原pin，不续expiry，完整空集合也发同协议
+
+```go
+func (s *ActiveStore) acquireHomePin(ctx context.Context, op OperationContext, intent homeReferenceIntent) (homeReferenceIntent, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同sourceOperation/digest获取或找回原pin，不续expiry，完整空集合也发同协议
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeDependencies`、`site-config.homeReferenceContext`、`site-config.validateHomePin`、`site-config.persistHomePin`、`site-config.CheckWriteEpoch`、`media:acquireResourceReferences`
+
+## site-config.decideHomeTermination
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：同configMu/SQL写锁先查COMMITTED，未提交才持久aborted；未知不release
+
+```go
+func (s *ActiveStore) decideHomeTermination(ctx context.Context, op OperationContext, operationID, code string) (homeReferenceIntent, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同configMu/SQL写锁先查COMMITTED，未提交才持久aborted；未知不release
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.readHomeReferenceIntent`、`site-config.committedHomeReference`、`site-config.markHomeConfigCommitted`、`site-config.CheckWriteEpoch`
+
+## site-config.settleHomeReference
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：按持久决定确认或释放，RPC前后重查epoch窗口；成功回执CAS落盘，旧版本confirm只收敛history
+
+```go
+func (s *ActiveStore) settleHomeReference(ctx context.Context, op OperationContext, intent homeReferenceIntent) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按持久决定确认或释放，RPC前后重查epoch窗口；成功回执CAS落盘，旧版本confirm只收敛history
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.acquireHomePin`、`site-config.homeDependencies`、`site-config.homeReferenceContext`、`site-config.CheckWriteEpoch`、`media:confirmResourceReferences`、`media:releaseResourceReferences`
+
+## site-config.compareHomeInput
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：未完成重试核原Home字段与双水位，不重造候选时钟
+
+```go
+func compareHomeInput(config gen.SiteConfig, input gen.UpdateHomeInput) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 未完成重试核原Home字段与双水位，不重造候选时钟
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`platform.CanonicalJSON`
+
+## site-config.homeTerminatedError
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：只回放持久终局安全失败码，损坏回执不以默认错误掩盖
+
+```go
+func homeTerminatedError(intent homeReferenceIntent) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只回放持久终局安全失败码，损坏回执不以默认错误掩盖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.finishHomeFailure
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：失败只在安全写窗口持久终止；已有COMMITTED只能补完不可改报未提交
+
+```go
+func (s *ActiveStore) finishHomeFailure(ctx context.Context, op OperationContext, cause error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 失败只在安全写窗口持久终止；已有COMMITTED只能补完不可改报未提交
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.decideHomeTermination`、`site-config.homeTerminatedError`
+
+## site-config.homeServiceContext
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：仅为已登记依赖装配本站纯服务主体并清可选用户proof
+
+```go
+func homeServiceContext(ctx context.Context, op OperationContext, siteID string) (context.Context, OperationContext)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅为已登记依赖装配本站纯服务主体并清可选用户proof
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.resolveHomeDocument
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：只读公开URL/当前ref/锚点权威，要求同源根相对href且不泄露不可见文档
+
+```go
+func resolveHomeDocument(ctx context.Context, op OperationContext, runtime HomeRuntime, siteID, language string, target homeLinkValue) (homeResolvedDocument, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读公开URL/当前ref/锚点权威，要求同源根相对href且不泄露不可见文档
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeServiceContext`、`site-config.safeHomeRelativeHref`、`public-site:resolvePublishedLink`
+
+## site-config.safeHomeRelativeHref
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：消费公开URL边界拒绝scheme/host/双斜线/反斜线/控制字符，保留原值交HTML输出点转义
+
+```go
+func safeHomeRelativeHref(raw string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 消费公开URL边界拒绝scheme/host/双斜线/反斜线/控制字符，保留原值交HTML输出点转义
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.disablePublicHomeButton
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：保留按钮和说明，同时把href/publication置null
+
+```go
+func disablePublicHomeButton(button *PublicHeroButton, reason string)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留按钮和说明，同时把href/publication置null
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.readHomeQACapability
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：只读QA免费能力；未配置或未知禁用按钮，不探测/调用模型
+
+```go
+func readHomeQACapability(ctx context.Context, op OperationContext, runtime HomeRuntime, siteID string) (bool, string)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读QA免费能力；未配置或未知禁用按钮，不探测/调用模型
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.homeServiceContext`、`qa:readPublicCapability`
+
+## site-config.RecoverHomeReferenceState
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：构造期只验证全部本地首页intent/pin/COMMITTED与active epoch，不发远端RPC；外部收敛留给公共后台
+
+```go
+func (s *ActiveStore) RecoverHomeReferenceState(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 构造期只验证全部本地首页intent/pin/COMMITTED与active epoch，不发远端RPC；外部收敛留给公共后台
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`site-config.readHomeReferenceIntent`、`site-config.verifyHomeCommittedReference`
 
 ## site-config.ValidateHomeLinks
 
@@ -332,9 +1325,10 @@ func ValidateHomeLinks(ctx context.Context, op OperationContext, input ValidateH
 
 **步骤**
 
-1. buttons最多3且ID不重复；document/qa/external判别字段严格校验
-2. 站内docId查询当前发布引用；外链允许http/https/mailto并拒绝javascript/userinfo
-3. 背景image/animation/video资源类型匹配，video有poster，遮罩0–100与textColor枚举
+1. 复用validateHomeStructure纯语义；siteId/language来自本域当前候选，不重新从HTTP解析
+2. document经public-site.resolvePublishedLink核当前公开引用及锚点，写入不接受不可见或未知目标
+3. 媒体readAsset按指定version核完整AssetVersionRef、siteId与ready，image/animation/video/poster实际种类相符，不自动压缩或转码
+4. 仅返回精确document refs和ready assetIds，不获取pin或付费结果
 
 **错误**
 
@@ -347,7 +1341,73 @@ func ValidateHomeLinks(ctx context.Context, op OperationContext, input ValidateH
 - 授权：site.manage
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读校验
-- 依赖：`content:readPublishedRevision`、`media:readAsset`
+- 依赖：`public-site:resolvePublishedLink`、`media:readAsset`、`site-config.validateHomeStructure`、`site-config.homeDependencies`、`site-config.resolveHomeDocument`、`site-config.homeServiceContext`
+
+## site-config.validateHomeStructure
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_validator.go`
+- 作用：复用已校验hero结构提取稳定按钮目标与精确资源用途，纯语义不访问网络
+
+```go
+func validateHomeStructure(home gen.HomeConfig) ([]homeDocumentTarget, []homeAssetUse, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 检查稳定buttonId不重复，外链复用既有安全协议/凭据/控制字符规则
+2. 提取documentId/blockId目标，不猜公开路径或可见性
+3. image/animation/video与poster检查声明MIME种类，视频封面只接受图像，资源完整版本引用不降成assetId
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用链由UpdateHome建立site.manage；聚合纯校验信任已严格校验结构
+- 并发：纯函数，不查ctx/权限/epoch或远端
+- 幂等：确定性提取
+- 依赖：`site-config.validateConfigWebLink`、`site-config.decodeHomeTarget`
+
+## site-config.decodeHomeTarget
+
+- 级别：参考
+- 文件：`modules/site-config/internal/home_validator.go`
+- 作用：转换已校验的首页按钮判别联合体
+
+```go
+func decodeHomeTarget(target gen.LinkTarget) (homeLinkValue, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只转换判别字段，不重做结构schema/身份/权限/epoch校验，不猜公开URL
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：由入口与调用链建立
+- 并发：纯函数
+- 幂等：确定性
+- 依赖：无
 
 ## site-config.ReadRuntimeState
 
@@ -1858,7 +2918,7 @@ func CommitConfigHead(ctx context.Context, op OperationContext, input CommitConf
 - 授权：私有config提交
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：原始actor/site/op/业务hash与COMMITTED决定固定；同键同内容补完或返回原配置，异内容CONFLICT/INTEGRITY_ERROR
-- 依赖：`site-config.WriteConfigRevision`、`site-config.PublishConfigEvent`、`site-config.CheckWriteEpoch`
+- 依赖：`site-config.WriteConfigRevision`、`site-config.PublishConfigEvent`、`site-config.CheckWriteEpoch`、`site-config.checkHomeConfigCommit`、`site-config.markHomeConfigCommitted`
 
 ## site-config.RecoverConfigJournal
 
@@ -2112,7 +3172,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.RecoverHomeReferences`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked
 
 ## site-config.Serve
@@ -2196,7 +3256,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：无
+- 依赖：`site-config.Drain`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## site-config.Health
@@ -2279,3 +3339,99 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：`site-config.ValidateActiveReady`
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
+
+## site-config.BackgroundTasks
+
+- 级别：参考
+- 文件：`modules/site-config/internal/transport/server.go`
+- 作用：只返回已装配后台闭包，统一模板完整构造成功后启动，取消Drain后等后台退出再关库
+
+```go
+func (a *Application) BackgroundTasks() []platform.BackgroundTask
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只返回已装配后台闭包，统一模板完整构造成功后启动，取消Drain后等后台退出再关库
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：`platform.RunRecoveryLoop`、`site-config.RecoverHomeReferences`、`site-config.homeRecoveryOperation`
+
+## site-config.Drain
+
+- 级别：参考
+- 文件：`modules/site-config/internal/transport/server.go`
+- 作用：只停止新HTTP并等待在途请求，不关闭DB；共享30秒退出预算
+
+```go
+func (a *Application) Drain(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只停止新HTTP并等待在途请求，不关闭DB；共享30秒退出预算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
+
+## site-config.homeRecoveryOperation
+
+- 级别：参考
+- 文件：`modules/site-config/internal/transport/server.go`
+- 作用：为受信后台构造当前打开epoch与不超过ctx/30秒的工作上下文
+
+```go
+func (a *Application) homeRecoveryOperation(ctx context.Context) (OperationContext, time.Time)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 为受信后台构造当前打开epoch与不超过ctx/30秒的工作上下文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
+- 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
+- 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
+- 依赖：无
