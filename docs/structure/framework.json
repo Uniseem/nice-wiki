@@ -3472,6 +3472,11 @@
       "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
       "kind": "migration",
       "purpose": "只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变"
+    },
+    {
+      "path": "modules/identity/internal/preference_service.go",
+      "kind": "source",
+      "purpose": "在当前本人授权快照读写后台偏好与完整安全回执"
     }
   ]
 }
