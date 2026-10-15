@@ -1,6 +1,6 @@
 # 重建计划
 
-更新于2026-10-16。本轮jobs进度流、content正文文件/块规则、media上传基础和已启动model-gateway免费任务能力读取已统一复核。861文件、1182函数、379HTTP操作、2269类型；472函数已实现或验证（408 verified、64 implemented），planned 680、in_progress 7、blocked 23，函数台账约39.9%（472/1182）。各实际集成树仅在VPS通过docs/gen、14模块readonly build/vet/gofmt与完整check，最终生成零变化。用户明确本轮后停止持续目标再push，因此不自动进入后包；剩余planned/partial/blocked照实交接，R1整体、业务验收及部署未完成。普通推送main按当次授权执行，结果见push-log/2026-10-16-0001.md。
+更新于2026-10-16。本轮jobs进度流、content正文文件/块规则、media上传基础和已启动model-gateway免费任务能力读取已统一复核。861文件、1182函数、379HTTP操作、2269类型；472函数已实现或验证（408 verified、64 implemented），planned 680、in_progress 7、blocked 23，函数台账约39.9%（472/1182）。各实际集成树仅在VPS通过docs/gen、14模块readonly build/vet/gofmt与完整check，最终生成零变化。用户明确本轮后停止持续目标再push，因此不自动进入后包；剩余planned/partial/blocked照实交接，R1整体、业务验收及部署未完成。main已按当次授权普通推送并核对，持续目标已暂停，结果见push-log/2026-10-16-0001.md。
 
 | 任务 | 内容 | 验收 | 状态 |
 |---|---|---|---|
