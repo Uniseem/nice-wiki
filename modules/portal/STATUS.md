@@ -4,7 +4,7 @@
 
 本轮已通过统一VPS与人工复读的源码：固定四个identity认证操作的敏感DTO到Secure HttpOnly SameSite=Strict cookie、安全浏览器session JSON、refresh空输入转内部cookie请求并重算hash、真实peer当前及上一UTC日HMAC签入LoginNetworkScopes、当前设备权威撤销成功才清cookie。补正既存装配假成功：缺真实本域handler时NewApplication失败关闭，Ready不返回固定初始化/恢复成功。
 
-本轮统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8的make docs/gen、14模块readonly build/vet/gofmt和完整make check均通过（856文件/1047函数/374操作/2222类型），0并发冲突，产物已回传。源码尚待本域提交与真实SHA回填；没有本机格式、生成、编译、vet、类型检查或测试。BuildApplication/Ready及完整ProxyRequest/Serve的剩余绑定继续blocked，不能把本轮认证适配片段当整站可运行。未新增实际文件、测试、fixture或验证程序，未运行服务/真实接口/模型、部署或push。后文为历史记录，逐项以progress.json为准。
+本轮统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8的make docs/gen、14模块readonly build/vet/gofmt和完整make check均通过（856文件/1047函数/374操作/2222类型），0并发冲突，产物已回传。源码交付提交为df96a3d6b35a6a49d5d9b901559386c3074573b4，已完成参考函数及生成物按真实SHA标verified；没有本机格式、生成、编译、vet、类型检查或测试。BuildApplication/Ready及完整ProxyRequest/Serve的剩余绑定继续blocked，不能把本轮认证适配片段当整站可运行。未新增实际文件、测试、fixture或验证程序，未运行服务/真实接口/模型、部署或push。后文为历史记录，逐项以progress.json为准。
 
 最新统一集成事实（2026-10-15）：权威access/CSRF、专用委托、固定Origin和代理修复已通过；BuildApplication仍因本域端点、准入和恢复装配blocked。
 VPS顺序集成后make docs/gen、14模块make build和完整make check通过；生成最终零变化。主线实际源码提交：dad2dce，逐项以progress.json为准。未执行业务验收或部署。
