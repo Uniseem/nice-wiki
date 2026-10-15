@@ -1,19 +1,18 @@
-# 当前状态（2026-10-15，第四轮统一复核完成）
+# 当前状态（2026-10-16，本轮收尾与停止范围）
 
-阶段：R1持续实施。第四轮自身偏好、首页权威与引用恢复、任务管理已顺序集成，公共SSE传输也已检查。第五轮继续三个独占工作树：content正文文件与块规则、jobs进度SSE、media顺序上传块与资源读取；尚未计入已完成。所有编译、生成和检查仅VPS，完整业务行为验收及部署未开始。
+阶段：R1分批实施，整体尚未完成。用户最新要求当前轮完成后停止持续目标，再普通push并报告百分比；已启动工作包均已交付，不再自动派发或实施后包。当前只收口台账、隐私审计和推送记录，后续业务须用户重新要求继续。
 
 ## 最新事实
 
-- identity自身偏好读写完成，当前本人权限、嵌套revision CAS和旧成功只读回放；公共界面语言与后台路由/权限目录由唯一来源生成，portal导航按同一目录消费。
-- site-config首页复用不可变配置与COMMITTED权威链；完整源材料先持久、媒体pin后提交，旧成功不重校当前资源/配额。公开投影只返回安全字段，当前文档/锚点与免费QA能力未知时禁用单个按钮。来源最小决定、明确终止及恢复与正式提交同锁，COMMITTED始终优先，确认失败保留持久pending。
-- jobs任务列表、事件死信列表与人工重试完成；先按持久owner/type核当前具体权限再分页，有权条目计算hasMore，游标签主体/epoch/过滤。owner费用/完整结果未知拒绝重排，原根/完整结果与付费结果集合保留；旧人工回执不再次改任务。
-- 跨域首页只读链接、公开路径、QA能力和引用源决定合同已收口；public-site/媒体引用/QA能力生产方仍planned，不把契约和生成物当实际业务。引用终止按完整source材料与nullable pinId释放，明确源终止后媒体须原子sealed来源，覆盖未获pin及迟到acquire；未知/404/COMMITTED永不释放。
-- 公共CanonicalJSON、有界写窗口/恢复循环、BackgroundApplication安全退出完成；后台取消/Drain/等待后再关资源。JSON SSE统一单条背压、15秒心跳、30秒或更早请求写截止，取消唤醒阻塞写，回调停止后才返回。既有EventEnvelope流薄适配同一pump，不延长用户委托。
-- 最新机器台账：858文件、1109函数、379HTTP操作、2256类型；390函数已实现或验证（321 verified、69 implemented），planned 693、in_progress 7、blocked 19。按函数台账约35.2%；数量比例不等于产品可用率，无业务accepted。
-- 公共源、jobs和site-config逐项合入后，实际集成树均在隔离VPS通过make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）和完整make check；最终88210ba生成回传零变化。public-site/data-protection仍无实际Go module，不能称十五域完整服务可启动。
-- 本轮新增实际6文件（identity偏好1、jobs管理与追加迁移2、site-config首页与追加迁移3），framework已登记。全部检查仅VPS；未新增测试或临时业务验证程序，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署。私有配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮没有push授权，不push。
-
-下一步：按已派发第五轮三项继续，不把当前检查当完整业务验收或整站可用。
+- 最新机器台账：861文件、1182函数、379HTTP操作、2269类型；472函数已实现或验证（408 verified、64 implemented），planned 680、in_progress 7、blocked 23。函数台账完成率为39.9%（472/1182）；这是已实现或验证条目比例，不是产品可用率，无业务accepted。
+- jobs完成当前具体业务权限核验的任务进度SSE、三种游标别名一致性、每主体流上限和7天持久重放时间；未知/损坏旧时间不猜测补齐，IO取消及写截止复用公共JSON SSE。
+- content完成正文规范化/块哈希、树/行内/表格/分栏语义、不可变正文准备及精确COMMITTED读回；准备原材料与旧结果稳定、历史退役ID留给head/ledger提交事务。真实私有准备/提交适配器与完整保存HTTP链仍未实现，不冒充可运行。
+- media完成有界顺序chunk、SHA/长度与原结果、PREPARED→文件fsync→SQL offset/revision CAS及COMMITTED；启动按SQL水位核前缀/截尾，未知Commit保留文件。Begin回执补齐actor/site/epoch与原快照，旧未知原结果拒绝猜测；ReadAsset读取真实ready安全元数据与精确版本。私有路径复用公共拒链接/硬链接，配额读取使用已登记的media纯服务，Complete/pin业务和完整入口仍未完成。
+- model-gateway完成QA三任务免费配置可用性读取，单次严格epoch快照，缺配置/已配置但不可用/未知分别表达；覆盖替换主项、保留有序备用。只读候选/凭据存在性，不取密文/主密钥，不探测或调用供应方，不产生费用。配置写入、权威epoch初始化、付费与完整服务机制仍未实现。
+- 第三/四轮已交付账号/会话/偏好、portal认证边界、guard登录保护、首页权威/pin恢复调用链及公共来源、路由目录、安全恢复/关闭/SSE；跨域公开链接/媒体引用生产方与QA公开能力仍按planned记录，不以契约/生成物代替真实业务。
+- 本轮新增12个实际文件（jobs2、content5、model-gateway2、media3），framework已登记。按jobs→content→model-gateway→media逐项合入后，各实际集成树均通过隔离VPS make docs/gen、14个现有Go模块make build（readonly build/vet/gofmt）与完整make check；最终6c44451生成回传零变化。public-site/data-protection仍无实际Go module。
+- 全部生成、格式、编译、vet与检查仅VPS；未新增测试/fixture/临时业务验证程序，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。
+- 本次普通push main已获授权，old仅核对保持不变；推送前后实际状态见[推送记录](docs/push-log/2026-10-16-0001.md)。后续不自动推进，不能把本轮停止记作R1全部完成。
 
 ## 历史实施记录
 

@@ -7,7 +7,7 @@
   "assignedSession": "持续实施第五轮任务进度SSE",
   "branch": "codex/jobs-progress-stream-r1",
   "baseCommit": "7a147fc0ded784d16792d5d82e9b8277efd4be6c",
-  "deliveryCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+  "deliveryCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
   "deployment": "not_started",
   "files": [
     {
@@ -23,10 +23,10 @@
     {
       "path": "modules/jobs/internal/queue.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -93,20 +93,20 @@
     {
       "path": "modules/jobs/internal/progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -293,7 +293,7 @@
     {
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
@@ -443,20 +443,20 @@
     {
       "path": "modules/jobs/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/jobs/internal/gen/clients.gen.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -483,10 +483,10 @@
     {
       "path": "modules/jobs/web/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -563,10 +563,10 @@
     {
       "path": "modules/jobs/migrations/0007_progress_retention.sql",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     }
@@ -752,10 +752,10 @@
       "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -763,10 +763,10 @@
       "id": "jobs.StreamProgress",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1027,7 +1027,7 @@
       "id": "jobs.BuildApplication",
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
@@ -1687,10 +1687,10 @@
       "id": "jobs.OpenDatabase",
       "path": "modules/jobs/internal/queue.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1698,10 +1698,10 @@
       "id": "jobs.runMigrations",
       "path": "modules/jobs/internal/queue.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1709,10 +1709,10 @@
       "id": "jobs.Store.Close",
       "path": "modules/jobs/internal/queue.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1720,10 +1720,10 @@
       "id": "jobs.progressStream.Next",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1731,10 +1731,10 @@
       "id": "jobs.progressStream.Close",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1742,10 +1742,10 @@
       "id": "jobs.readProgressFrame",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1753,10 +1753,10 @@
       "id": "jobs.NewProgressHandlers",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1764,10 +1764,10 @@
       "id": "jobs.bindProgressCursor",
       "path": "modules/jobs/internal/http_progress.go",
       "state": "verified",
-      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
+      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     }

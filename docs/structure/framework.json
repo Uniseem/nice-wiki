@@ -3562,6 +3562,11 @@
       "path": "modules/media/migrations/0002_upload_chunks.sql",
       "kind": "migration",
       "purpose": "只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次"
+    },
+    {
+      "path": "docs/push-log/2026-10-16-0001.md",
+      "kind": "documentation",
+      "purpose": "本轮代码交付、VPS统一复核、停止目标与普通推送记录"
     }
   ]
 }

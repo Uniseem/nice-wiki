@@ -1,5 +1,7 @@
 # 第五轮交接：正文文件核心（2026-10-16，已交付）
 
+本轮统一集成实际源码a6cd2bc，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。
+
 - 精确基线9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，分支codex/content-revision-files-r1，初始clean，仅拥有modules/content。上一public-site源f9aa83fd199efd17593cf349938ef4c823336cfe/记录95676374b480e14d74a7b7251ffb2151bc1cc6f0已保留，无用户内容reset。
 - 本项源码交付02ede7bdfd70b263511a1f82343c602a3c73143c，7个完整核心文件、35个本包完成函数及VPS生成客户端按准确SHA记verified。没有真实私有DB adapter，不能从源码/窄接口推定保存链可运行；未执行行为验收。
 - 根已裁定参考Write输入追加expectedHead(nullable)/expectedDraftVersion，上游提供已核CAS快照；author仅op，ObjectRef固定revisionId/version1。已有WithDraftCommitStore注入扩展窄接口，保存scope+规范摘要+首次Draft/Journal，preparing/MarkPrepared不推进head；读回资格/隔离必须真实持久，缺adapter失败关闭。

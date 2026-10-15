@@ -1,5 +1,7 @@
 # 资源媒体会话交接
 
+本轮统一集成实际源码5b29add，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。
+
 ## 第五轮上传分块与资源读取（2026-10-16，已交付冻结）
 
 - 源码 `4fcbde766790d125e44e16bedf2f19e53856392e`；codex/media-chunks-read-r1，基线5894bfb368bfb79331709b3e0f0e5e6ed92bf098，独占modules/media/；主线实际SHA由根统一映射。原site-config分支保留。
