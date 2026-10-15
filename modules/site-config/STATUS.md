@@ -5,6 +5,7 @@
 - 本轮源码提交 `5b6bc4e39fd72457d302031e0f369cece55ae1c5`；格式/生成/台账补交付随本轮收口提交，尚未 push。
 - 基线 `325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，分支 `codex/site-config-initialization-complete-r1`，独占 `modules/site-config/`。
 - 已写 InitializeSite/ResumeInitialization/AbortInitialization：唯一超管会话与 site 作用域、稳定业务摘要、原始结果回执、不可反悔决定、blocked 后幂等补完；不调用 AI、identity owner 准备或真实接口。
+- 本轮追加修复检查：隔离 VPS `make check` 完整通过（850 文件/942 函数/372 操作/2186 类型）；`make build` 在配置 IO 错误包装的非恒定格式串 vet 失败，已修正常量格式参数，等待复跑，不记本轮 build 通过。
 - 逐函数复核追加：配置 IO 使用 os.Root 目录能力逐段 Lstat，拒绝链接/特殊文件，正规文件打开前后身份核对，正文与 journal/head 的 JSON 上限 16 MiB；该追加修复待 VPS 复跑。
 - 已写 WriteConfigRevision/CommitConfigHead/RecoverConfigJournal：schemaVersion=1 权威文件、不可变 PREPARED/COMMITTED、排他 Link、head Rename、逐级 fsync、SQLite 写锁/CAS、崩溃回放、孤儿隔离、SQL 与文件水位核对。
 - `0003_config_commit.sql` 只追加 config_operations；配置水位/回执和平台 outbox 同事务，不复制公共 outbox 表或转发机制。RelayOutbox 循环仍待 HTTP/后台装配工作包。

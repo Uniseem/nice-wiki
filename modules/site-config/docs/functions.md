@@ -1786,9 +1786,10 @@ func WriteConfigRevision(ctx context.Context, op OperationContext, input WriteCo
 
 **步骤**
 
-1. 输入属于本域私有受信配置；持久对象采用ConfigDocument(schemaVersion=1,config)规范JSON；按生成SiteConfig schema及文件hash/version校验；未知schema失败关闭
-2. active/settings/<siteId>/<revisionId>.json同FS临时写fsync后Link排他发布，再fsync父目录；已有同revision同字节复用、异内容INTEGRITY_ERROR；head与journal通过临时写fsync/rename/fsyncparent发布
-3. 独立原子journal/config/<revisionId>.prepared.json保存PREPARED及ObjectRef；未有COMMITTED与已完成SQL水位不得公开；不包含secret/账号/可信代理key
+1. 配置持久IO是独立权威边界：从文件系统根通过os.Root逐段Lstat取得目录能力，拒绝目录链链接/非目录；读取或复用既有对象/journal/head仅接受正规文件，O_NOFOLLOW/O_NONBLOCK打开并前后核文件身份；配置及journal规范JSON读写均≤16MiB，LimitReader阻止并发增长越界
+2. 输入属于本域私有受信配置；持久对象采用ConfigDocument(schemaVersion=1,config)规范JSON；按生成SiteConfig schema及文件hash/version校验；未知schema失败关闭
+3. active/settings/<siteId>/<revisionId>.json同FS临时写fsync后Link排他发布，再fsync父目录；已有同revision同字节复用、异内容INTEGRITY_ERROR；head与journal通过临时写fsync/rename/fsyncparent发布
+4. 独立原子journal/config/<revisionId>.prepared.json保存PREPARED及ObjectRef；未有COMMITTED与已完成SQL水位不得公开；不包含secret/账号/可信代理key
 
 **错误**
 
@@ -1831,6 +1832,7 @@ func CommitConfigHead(ctx context.Context, op OperationContext, input CommitConf
 1. 先取得active SQLite写锁再做跨进程CAS；已持久COMMITTED决定先于SQL占有目标修订，禁止另一revisionId抢占同水位；核对PREPARED、权威对象hash/schema、原始请求actor/site/epoch/hash回执及expectedRevision；CheckWriteEpoch拒绝新维护期提交
 2. 先持久不可变COMMITTED文件决定（含CAS、原始请求及变更组），再原子更新settings/site/head.json；随后同一SQLite FULL事务写索引/水位/回执/platform outbox，初始化阶段变为config_committed；文件决定已落盘后任何中断只允许补完，不能退回或改摘要
 3. SQL事务完成不直接等同初始化完成；Resume另事务写completed与initialized=true。读取端必须核对head、COMMITTED和已完成权威水位；启动RecoverConfigJournal补完文件决定，不声称SQL原子覆盖文件系统
+4. head与journal读写统一使用已核对目录能力，拒绝symlink/特殊文件；同修订EEXIST复用必须重新有界读取正规文件核字节，不直接ReadFile跟随链接
 
 **错误**
 
@@ -1878,6 +1880,7 @@ func RecoverConfigJournal(ctx context.Context, op OperationContext, input Recove
 1. 只接受本域受控启动；按修订排序严格读取原子COMMITTED文件决定，要求epoch一致、修订连续且PREPARED/正文hash/schema/原始回执一致
 2. 逐条幂等补完SQL索引/水位/回执/outbox，再发布最后COMMITTED head；不得从SQL准备JSON制造配置文件；已提交决定缺权威文件失败关闭
 3. 孤儿PREPARED写私有quarantine/config标记，不公开；仍有初始化commit决定的准备材料保留供Resume；完成后深度核对head与权威SQL水位再标恢复就绪
+4. 枚举journal前核父目录链与config目录能力，匹配记录不得为symlink/特殊文件；正文、head、journal读取上限16MiB，使用同一正规文件IO边界，任何不符失败关闭
 
 **错误**
 

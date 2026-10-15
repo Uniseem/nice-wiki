@@ -11,6 +11,7 @@
 - 新增实际文件：internal/config_files.go、operation_repository.go、outbox_repository.go（均已有未来结构），以及 internal/migrations/active/0003_config_commit.sql（新增迁移合同）。上述 4 个新增实际文件均需集成会话登记根 framework。新增合同入口 RecoverConfigJournal、参考 ConfigureInitialization，Resume 依赖改为真实配置链路。
 - 检查：集成会话隔离 VPS `make build` 通过全部 14 个 Go 模块 readonly build/vet/gofmt（BUILD_STATUS=0），`make docs/gen` 成功并回传本域产物；`make check` 仅余公共函数可达性与新增实际文件登记，本域 4 个由集成会话登记。源码记 implemented，完整 verified 等最终逐函数复核；本轮不在本机编译、格式、lint、类型检查、测试或生成校验。未新增测试/样例/fixture/临时验证程序，未运行真实接口/模型/服务/联调/镜像/部署/push。
 - 集成逐函数复核追加修复：settings 文件 IO 集中使用 os.Root 能力逐段 Lstat，父目录链拒绝链接/非目录，正规文件 NOFOLLOW/NONBLOCK 有界读取并核打开前后身份；正文、head、journal、不可变复用和隔离标记均限 16 MiB。该追加修复暂 in_progress，等待隔离 VPS 重新 docs/gen/build/check，不新增测试。
+- 追加修复检查：隔离 VPS make check 完整通过（850 文件/942 函数/372 操作/2186 类型），make build 在 configIOError 非恒定格式串 vet 失败；本次改为常量格式参数并提交 VPS 回传的 gofmt/functions 文档，等待重新编译，不将该轮 build 记通过。
 - 剩余装配：全量 x-handler、RelayOutbox、恢复换目录回执、快照与屏障仍未完成，不能把本组源文件或结构检查当作完整站点行为验收。
 
 ### 下一步（一项）

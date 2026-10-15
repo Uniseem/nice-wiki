@@ -266,7 +266,7 @@
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
         "state": "not_run",
-        "evidence": "集成复核追加配置IO边界修复：目录能力逐段Lstat、正规文件/链接拒绝与16MiB有界读写；待隔离VPS重新docs/gen/build/check。上一源码5b6bc4e已通过VPS全仓make build，不作为此追加修复证据。"
+        "evidence": "2026-10-15 隔离VPS：make check完整通过（850文件/942函数/372操作/2186类型）；本轮make build在site-config vet发现configIOError使用非恒定格式串而失败，已将参数改为常量格式%s、detail另传并等待VPS复跑。VPS gofmt与函数文档已回传；本轮build不能记通过，未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -868,7 +868,7 @@
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
         "state": "not_run",
-        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
+        "evidence": "2026-10-15 隔离VPS：make check完整通过（850文件/942函数/372操作/2186类型）；本轮make build在site-config vet发现configIOError使用非恒定格式串而失败，已将参数改为常量格式%s、detail另传并等待VPS复跑。VPS gofmt与函数文档已回传；本轮build不能记通过，未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -879,7 +879,7 @@
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
         "state": "not_run",
-        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
+        "evidence": "2026-10-15 隔离VPS：make check完整通过（850文件/942函数/372操作/2186类型）；本轮make build在site-config vet发现configIOError使用非恒定格式串而失败，已将参数改为常量格式%s、detail另传并等待VPS复跑。VPS gofmt与函数文档已回传；本轮build不能记通过，未新增测试或运行真实接口。"
       },
       "blocker": null
     },
@@ -1011,7 +1011,7 @@
       "implementationCommit": "5b6bc4e39fd72457d302031e0f369cece55ae1c5",
       "verification": {
         "state": "not_run",
-        "evidence": "新增正规文件、目录链与大小上限IO边界，待隔离VPS复跑编译/格式/生成；未新增测试"
+        "evidence": "2026-10-15 隔离VPS：make check完整通过（850文件/942函数/372操作/2186类型）；本轮make build在site-config vet发现configIOError使用非恒定格式串而失败，已将参数改为常量格式%s、detail另传并等待VPS复跑。VPS gofmt与函数文档已回传；本轮build不能记通过，未新增测试或运行真实接口。"
       },
       "blocker": null
     }
