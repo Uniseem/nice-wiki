@@ -7,7 +7,7 @@
   "assignedSession": "持续实施第五轮任务进度SSE",
   "branch": "codex/jobs-progress-stream-r1",
   "baseCommit": "7a147fc0ded784d16792d5d82e9b8277efd4be6c",
-  "deliveryCommit": null,
+  "deliveryCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/leases.go",
@@ -92,23 +92,23 @@
     },
     {
       "path": "modules/jobs/internal/progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/event_validation.go",
@@ -293,12 +293,12 @@
     {
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "已真实装配管理映射并交公共完整工厂核表；其余handler、Store/runtime-control/owner适配及后台未齐，完整Application继续拒绝启动"
+      "blocker": "已真实打开/关闭数据库并装配管理和进度映射，交公共完整工厂核表；其余handler、Store/runtime-control/owner适配及后台未齐，完整Application继续拒绝启动"
     },
     {
       "path": "modules/jobs/internal/transport/server.go",
@@ -443,20 +443,20 @@
     {
       "path": "modules/jobs/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
       "blocker": null
     },
     {
       "path": "modules/jobs/internal/gen/clients.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
       "blocker": null
     },
@@ -483,10 +483,10 @@
     {
       "path": "modules/jobs/web/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
       "blocker": null
     },
@@ -562,13 +562,13 @@
     },
     {
       "path": "modules/jobs/migrations/0007_progress_retention.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
+      "blocker": null
     }
   ],
   "functions": [
@@ -751,24 +751,24 @@
     {
       "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.StreamProgress",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.ValidateEnvelope",
@@ -1027,12 +1027,12 @@
       "id": "jobs.BuildApplication",
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "管理真实映射与当前identity粗授权已接工厂；其余handler及私有Store/control/owner后台未完整，不能返回可用Application"
+      "blocker": "已真实打开/关闭数据库并装配管理和进度映射，交公共完整工厂核表；其余handler、Store/runtime-control/owner适配及后台未齐，完整Application继续拒绝启动"
     },
     {
       "id": "jobs.Serve",
@@ -1686,90 +1686,90 @@
     {
       "id": "jobs.OpenDatabase",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.runMigrations",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.Store.Close",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.progressStream.Next",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.progressStream.Close",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.readProgressFrame",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.NewProgressHandlers",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     },
     {
       "id": "jobs.bindProgressCursor",
       "path": "modules/jobs/internal/http_progress.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "adcc1e85ff6b5f5d949927933f0497af608670d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。"
       },
-      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+      "blocker": null
     }
   ],
   "rule": "第五轮StreamProgress源码/合同已准备，当前权限与epoch逐批复核、直接ProgressEvent JSON、三游标别名一致性、10/actor、64行内存上限、可信7天范围；依赖根公共JSON SSE pump，VPS前新条目in_progress。完整启动、owner实际适配/control/定时/ephemeral仍未完成，不新增测试、不运行真实接口，不push。"

@@ -1,8 +1,8 @@
 # 任务与事件会话交接
 
-## 第五轮任务进度流（待VPS）
+## 第五轮任务进度流（已交付）
 
-更新：2026-10-15。持续实施第五轮StreamProgress，分支`codex/jobs-progress-stream-r1`，基线`7a147fc0ded784d16792d5d82e9b8277efd4be6c`；独占本域，原管理交付分支保留。源码/合同已准备，全部本轮条目in_progress，等待集成会话VPS生成/编译/结构检查；业务验收未执行。
+更新：2026-10-15。持续实施第五轮StreamProgress，分支`codex/jobs-progress-stream-r1`，基线`7a147fc0ded784d16792d5d82e9b8277efd4be6c`；独占本域，原管理交付分支保留。源码、合同与VPS生成产物已交付，本轮完整10项函数及对应完整文件verified；完整服务仍blocked，业务验收未执行。
 
 - StreamProgress输出直接ProgressEvent JSON，SSE event固定progress、id为seq十进制；内部JSONEventStream句柄，公共ServeJSONEventStream负责15秒注释心跳、单帧背压、30秒写截止与关闭，本域不复制pump。
 - 每次打开/继续读取从持久job owner/type/epoch核当前具体业务权限，网络核权无Store/SQL锁；每批最多64行，内存上限64，无额外异步队列，actor/site最多10流且取消/断连幂等归还。
@@ -10,8 +10,11 @@
 - 0007只追加nullable created_at，旧行按同job/seq/epoch及安全payload全部持久来源唯一一致时刻回填；缺失/矛盾保留NULL失败关闭。AppendProgress行和outbox使用同一次platform.Now；读取RFC3339Nano后按实际时刻比较，不做可变小数TEXT边界比较。
 - OpenDatabase先核已应用版本合法，再唯一EnsureSchema并执行迁移，fresh库可回填outbox；BuildApplication实际打开/关闭库并组合管理+进度映射交完整工厂。其他handler、完整Store/control/owner后台、定时与ephemeral仍未齐，整体启动继续blocked。
 - 新实际路径仅`internal/http_progress.go`（已有登记）和批准的`migrations/0007_progress_retention.sql`。未本机Go/gofmt/gen/vet/测试或SQL临时验证，未新增测试/mock/fixture/样例，未运行真实业务API/模型/服务/部署或push。
+- 源码提交：`adcc1e85ff6b5f5d949927933f0497af608670d8`。2026-10-15 第五轮集成会话VPS合成快照：完整make build（14个现有Go模块-mod=readonly build/vet/gofmt）通过；最后CONFLICT合同补登记后make docs/gen和完整make check通过（859文件/1117函数/379操作/2261类型）。Go/迁移未再变，生成与格式回传无冲突；只代表本阶段源码/格式/结构检查，未执行SQL业务验证、业务测试、真实接口/模型、服务、部署或push。
 
-本轮依赖根稳定公共JSON SSE API，VPS组合由root取公共源、从本树取jobs全域；生成目录未手改。源码冻结后等待根回传产物与证据，再提交源码及台账。7天为读取重放范围，本包不物理删除progress；将来Purge必须保存单任务seq水位，不能删除全部后由MAX(seq)复用旧序号。
+本轮依赖根稳定公共JSON SSE API，VPS组合由root取公共源、从本树取jobs全域；生成目录未手改，最终产物已回传并纳入上列源码提交，台账精确引用该SHA。完整10项为StreamProgress、progressStream.Next、progressStream.Close、readProgressFrame、NewProgressHandlers、bindProgressCursor、AppendProgress、OpenDatabase、runMigrations、Store.Close；BuildApplication继续blocked。7天为读取重放范围，本包不物理删除progress；将来Purge必须保存单任务seq水位，不能删除全部后由MAX(seq)复用旧序号。
+
+本包冻结，不继续扩jobs范围。下一项持续实施工作包为model-gateway免费任务可用性读取，由集成会话另行分派；本域完整handler、Store/runtime-control、实际owner适配、后台/定时及ephemeral继续按各自合同接续，不列为本轮完成。
 
 
 ## 第四轮任务管理组（已交付）
