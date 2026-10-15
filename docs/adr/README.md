@@ -7,5 +7,6 @@
 | 0003 | [恢复改为暂存后重启换目录](0003-restore-by-restart.md) |
 | 0004 | [流程接线完整性、服务身份与入口准入](0004-wiring-and-service-identity.md) |
 | 0005 | [工程选型、平台公共库与单机部署](0005-engineering-and-deployment.md) |
+| 0006 | [实现尺度：边界一次校验，内部信任输入，默认不写测试](0006-implementation-scope.md) |
 
 旧决策随old归档，不自动当作新架构依据。新决策必须写状态、来源、选择、代价与影响。

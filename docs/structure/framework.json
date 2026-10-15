@@ -159,6 +159,11 @@
       "purpose": "全局0005工程选型与部署决策记录"
     },
     {
+      "path": "docs/adr/0006-implementation-scope.md",
+      "kind": "documentation",
+      "purpose": "ADR0006实现尺度：边界一次校验、内部信任输入、默认不写测试"
+    },
+    {
       "path": "docs/adr/README.md",
       "kind": "documentation",
       "purpose": "全局README设计/手册/状态记录"
