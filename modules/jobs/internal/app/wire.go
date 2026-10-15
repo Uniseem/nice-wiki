@@ -73,6 +73,15 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理缺少identity地址")
 	}
 	identity := gen.NewIdentityClient(identityBase, ModuleSlug, key)
+	store, err := jobs.OpenDatabase(config.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer store.Close()
+	handlers := jobs.NewManagementHandlers(key)
+	for id, handler := range jobs.NewProgressHandlers() {
+		handlers[id] = handler
+	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -84,9 +93,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"listJobs":       {"portal"},
 			"listDeliveries": {"portal"},
 			"retryJob":       {"portal"},
+			"streamProgress": {"portal"},
 		},
 		Authorize: apivalidate.NewIdentityAuthorizer(identity),
-	}, jobs.NewManagementHandlers(key))
+	}, handlers)
 	if err != nil {
 		return nil, err
 	}

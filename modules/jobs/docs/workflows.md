@@ -44,6 +44,8 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 
 人工重试：当前具体业务权限→原操作回执优先→当前dead-letter快照→释放锁后owner持久确认→重核当前epoch/control与revision/fence→completed复用到succeeded或safeToRetry沿已知原根排队→结果、fence、outbox、原回执同事务。orphan/取消意图、未知费用不重排；原结果矛盾不覆盖。完整启动与owner适配仍未完成。
 
+进度流：统一入口核服务/当前会话/epoch及三个游标别名结构→绑定处统一数值（冲突400）→持久job具体权限→续接/保留范围预检→actor/site连接槽→每批当前权限/epoch与最多64行读取→直接progress JSON帧。无数据释放事务再等，公共pump统一心跳/背压/写截止；取消、断连、权限失效或epoch变化关闭，重新开流重新核权。原用户请求deadline不延长。终局追平仅EOF，不造完成进度或返回空数组冒充live流。
+
 <!-- flows:start -->
 ## 入口与后台流程
 

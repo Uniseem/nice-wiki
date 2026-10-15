@@ -8,7 +8,7 @@
 
 - `lease_operations(owner, data_epoch, operation_kind, operation_id, request_hash, result_json; PK owner/data_epoch/operation_kind/operation_id)`
 
-- `progress(job_id, seq, phase, completed_units, total_units, safe_message_code, checkpoint_key, input_hash; PK job_id/seq，非空checkpoint_key按job唯一)`
+- `progress(job_id, seq, phase, completed_units, total_units, safe_message_code, checkpoint_key, input_hash, created_at; PK job_id/seq，非空checkpoint_key按job唯一)`
 
 - `job_results(job_id PK, result_ref, paid_result_refs_json, result_hash)`
 
@@ -50,3 +50,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 `0006_job_management.sql`仅追加`job_management_operations(caller,data_epoch,operation_id,request_hash,result_json,created_at)`，主键caller/epoch/operation。摘要绑定可信actor/site和jobId，result_json只存原安全JobSummary，不存输入正文；原jobs及关联表不重建、不丢数据。当前失败终局只有dead-letter，failed筛选为兼容空结果，不新增failed持久态。
 
 人工Retry先在当前具体权限下查原回执，同op不重新确认或排队后来已执行任务。新请求只处理当前未取消dead-letter；读取原revision/fence/input/root后释放事务，owner确认在锁外执行，回来重核epoch/作用域及CAS。completed可复用结果到succeeded，即使历史root未知也不猜ID；safeToRetry必须原根已知且owner证明无未决费用。原完整ObjectRef与新ref任何字段矛盾失败关闭，paid ID去重合并；原root/input/operation和安全进度保留。状态/fence、结果、outbox和回执同事务；root未知在摘要输出null。真实owner版本化适配尚待接通，nil/pending/unknown不可假成功。
+
+进度SSE（第五轮）：`0007_progress_retention.sql`只追加nullable created_at。旧时刻从nw_outbox/events中同job/seq/epoch且安全payload吻合的来源核对；任何对应来源不完整或互相矛盾均保持NULL，不挑一个好值、不借task创建时间猜测。新progress与outbox使用同一服务时间。RFC3339Nano解析后精确比较7天窗口，未知时刻不对外重放。
+
+进度本身是持久权威，不由通用事件的全局eventSeq替代。当前只限制SSE可读范围，不物理删除历史；未来清理必须另存job进度seq水位，不能因MAX(seq)归零复用游标。首次0只取当前保留项；正游标必须可连续续接且不超过已登记水位。每批最多64行、每帧重新核当前业务权限和epoch，权限IO及空闲等待无SQL/进程锁。只投影jobId/seq/phase/计数，不读输入或结果正文/原始错误。actor/site配额仅内存10连接，Close幂等取消读取并归还。

@@ -499,6 +499,163 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "jobs.OpenDatabase",
+          "name": "OpenDatabase",
+          "signature": "func OpenDatabase(dataRoot string) (*Store, error)",
+          "inputs": [
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域绝对数据根",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "store",
+              "type": "*Store",
+              "description": "已完成全部已知迁移的私有库",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "打开私有库并执行全部已知追加迁移，随后完整装配前不可用",
+          "steps": [
+            "打开私有库并执行全部已知追加迁移，随后完整装配前不可用"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根不合法",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "业务库打开/迁移失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库或已应用迁移未知",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "打开WAL/外键/单连接业务库并应用已知迁移，失败关闭"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [
+            "jobs.runMigrations"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.runMigrations",
+          "name": "runMigrations",
+          "signature": "func (s *Store) runMigrations() error",
+          "inputs": [
+            {
+              "name": "s",
+              "type": "*Store",
+              "description": "已打开私有库",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "先核全部已应用迁移版本，再唯一EnsureSchema并按embed追加迁移",
+          "steps": [
+            "先核全部已应用迁移版本，再唯一EnsureSchema并按embed追加迁移"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "迁移集、版本或SQL源不合法",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "迁移事务IO失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "先拒绝未知已应用版本；唯一调用platform outbox.EnsureSchema后执行embed迁移与版本登记事务"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [
+            "jobs.All"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.Store.Close",
+          "name": "Store.Close",
+          "signature": "func (s *Store) Close() error",
+          "inputs": [
+            {
+              "name": "s",
+              "type": "*Store",
+              "description": "本域私有库",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "关闭私有库并撤销安装句柄，重复关闭幂等",
+          "steps": [
+            "关闭私有库并撤销安装句柄，重复关闭幂等"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "when": "业务库关闭失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "撤销当前安装并关闭数据库，重复安全"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2894,7 +3051,8 @@
             "信任调用方同事务有效租约检查与入口安全phase代码、非负计数校验；验证completed≤total的业务关系",
             "按jobId/checkpointKey和inputHash查重；同输入返回原seq，异输入CONFLICT",
             "同job同phase completed不能低于历史最大值；新phase允许从0开始",
-            "分配单调seq，同事务保存progress与jobs.job-progress.v1 outbox；调用方统一提交"
+            "分配单调seq，同事务保存progress与jobs.job-progress.v1 outbox；调用方统一提交",
+            "同一次platform.Now写progress.created_at与对应outbox.occurredAt，不伪造legacy发生时间"
           ],
           "errors": [
             {
@@ -2979,48 +3137,411 @@
           ],
           "purpose": "任务进度SSE",
           "steps": [
-            "校验job.manage",
-            "重放seq>lastId保留7天",
-            "15s heartbeat",
-            "epoch变化关闭流返回重新连接提示"
+            "仅当前后台主体；从持久job owner/type/epoch匹配生成ManagementPermission并在锁外identity核当前权限，不使用正文actor或入口job.manage代替",
+            "打开即核任务作用域、epoch和afterSequence范围；0首次只读当前7天保留项，正游标不得跳未来水位或缺失/过期进度；旧created_at只从唯一一致持久源时间回填，未知/矛盾失败关闭",
+            "按actor/site全连接最多10个，归还幂等；每次Next重新核当前具体任务权限和epoch后短事务最多64行读取，只输出jobId/seq/phase/计数，不读取输入、结果正文或原始错误",
+            "直接返回platform.JSONEventStream，SSEFrame.Event固定progress，ID为seq十进制，Data仅ProgressEvent；公共ServeJSONEventStream负责15秒心跳/单帧背压/30秒写截止",
+            "无数据不持SQL/进程锁等待；终局且已追平返回EOF；慢client按公共写截止断开，seq可精确续接；权限/epoch/原请求ctx截止/取消或断连关闭并归还槽，不延长原委托，不在响应开始后写Problem"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "when": "当前具体权限不足",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "当前会话失效",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "任务不存在",
+              "retryable": false
             },
             {
               "code": "VALIDATION",
-              "condition": "CURSOR_EXPIRED：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "when": "游标冲突、超水位、缺失或过期",
+              "retryable": false
             },
             {
               "code": "VERSION_MISMATCH",
-              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
-              "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "when": "数据代次或作用域变化",
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "when": "当前actor已10流",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "进度时刻或安全材料损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威或私有存储未知",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "当前任务授权scope在核权与读取之间改变",
+              "retryable": false
             }
           ],
-          "sideEffects": [],
+          "sideEffects": [
+            "仅本进程连接配额和流句柄，不写业务progress或投递确认"
+          ],
           "authorization": {
             "permission": "job.manage",
-            "rule": "job.manage"
+            "rule": "打开及每次继续读取从持久任务目录取得当前具体业务管理权限，经identity即时核权；job.manage仅入口粗能力"
           },
-          "concurrency": "每actor最多10流；慢客户端缓冲64条关闭可重放",
-          "idempotency": "Last-Event-ID精确续接",
+          "concurrency": "actor/site最多10流；域内每次最多64行内存，公共单帧背压，无额外异步队列；SQL/进程锁外核权与等待",
+          "idempotency": "三个游标别名同时提供须相等；只读seq精确重放，流不确认/修改progress，不编造事件",
           "dependencies": [
-            "jobs.ReadJob"
+            "jobs.authorizeJobManagement",
+            "jobs.readProgressFrame",
+            "jobs.progressStream.Close",
+            "jobs.progressStream.Next"
           ],
           "resources": [
             "私有progress表"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.progressStream.Next",
+          "name": "progressStream.Next",
+          "signature": "func (stream *progressStream) Next(ctx context.Context) (SSEFrame, error)",
+          "inputs": [
+            {
+              "name": "stream",
+              "type": "*progressStream",
+              "description": "单连接句柄",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原请求取消与更早截止",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "frame",
+              "type": "SSEFrame",
+              "description": "安全ProgressEvent JSON及十进制seq",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "每批当前具体权限/epoch复核，最多64行扫描后输出单条安全JSON，空闲无锁等待",
+          "steps": [
+            "串行按调用ctx读取，并由Close取消在途IO；每个最多64行批次重核具体权限/epoch",
+            "只更新本连接读取位置，不修改progress或确认水位；无数据在事务外等1秒，追平终局返回EOF",
+            "权限/epoch/原截止/取消/关闭即归还槽；单帧背压与慢client断开交平台，不造进度或关闭后的Problem"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "当前具体任务权限不足",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "目标任务不存在",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "进度游标缺失/过期/超水位",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "任务授权作用域变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "进度时刻或源材料不可证明",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "授权或运行权威未知",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [
+            "jobs.readProgressFrame",
+            "jobs.progressStream.Close"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.progressStream.Close",
+          "name": "progressStream.Close",
+          "signature": "func (stream *progressStream) Close() error",
+          "inputs": [
+            {
+              "name": "stream",
+              "type": "*progressStream",
+              "description": "单连接句柄",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "关闭流、取消在途读取并只归还一次actor槽",
+          "steps": [
+            "关闭流、取消在途读取并只归还一次actor槽"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "幂等取消本连接读取并归还一次actor/site连接计数"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.readProgressFrame",
+          "name": "readProgressFrame",
+          "signature": "func readProgressFrame(ctx context.Context, op OperationContext, jobID string, after int64, initial bool) (progressRead, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原请求取消与更早截止",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信主体与epoch",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "目标任务",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "after",
+              "type": "int64",
+              "description": "上次已读进度位置",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "initial",
+              "type": "bool",
+              "description": "首次可跳已过期历史",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "snapshot",
+              "type": "progressRead",
+              "description": "一次最多64行安全读取的单帧/扫描位置",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "锁外核当前任务权限，事务核scope/epoch并扫描最多64行段，7天窗口精确复核",
+          "steps": [
+            "读取前在Store锁外按持久owner/type向identity核当前具体权限；随后短事务重新核scope与epoch",
+            "MAX(seq)为当前已登记水位，正游标不能跳未来；最多64行按seq读取，RFC3339Nano解析后按实际时刻与当前7天截止比较，不做TEXT日期边界比较",
+            "初始0跳已知过期项，未知/矛盾created_at完整性失败；正游标遇缺失seq或过期段返回VALIDATION，不跳过未能续接的段",
+            "只返回第一条安全ProgressEvent；当前批次全过期且尚有后续时释放事务再回Next重核权限取下一批，无SQL锁内网络或等待"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "当前具体任务权限不足",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "目标任务不存在",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "进度游标缺失/过期/超水位",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "代次变化",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "任务授权作用域变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "进度时刻或源材料不可证明",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "授权或运行权威未知",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [
+            "jobs.authorizeJobManagement",
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.NewProgressHandlers",
+          "name": "NewProgressHandlers",
+          "signature": "func NewProgressHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "仅streamProgress真实处理器",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "只把已实现进度SSE交公共完整入口，不造心跳/写截止",
+          "steps": [
+            "只把已实现进度SSE交公共完整入口，不造心跳/写截止"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [
+            "jobs.bindProgressCursor",
+            "jobs.StreamProgress",
+            "jobs.writeEventResponse",
+            "platform.ServeJSONEventStream"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.bindProgressCursor",
+          "name": "bindProgressCursor",
+          "signature": "func bindProgressCursor(r *http.Request) (int64, error)",
+          "inputs": [
+            {
+              "name": "r",
+              "type": "http.Request",
+              "description": "已严格验证结构的HTTP请求",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "after",
+              "type": "int64",
+              "description": "统一的续接位置",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，响应开始后仅结束流",
+              "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
+            }
+          ],
+          "purpose": "统一afterSequence、兼容lastEventId及Last-Event-ID；不同值或int64溢出400",
+          "steps": [
+            "统一afterSequence、兼容lastEventId及Last-Event-ID；不同值或int64溢出400"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "别名不相等、溢出或非法序号",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信装配或已授权进度流内部"
+          },
+          "concurrency": "短事务；网络核权/等待不持数据库锁",
+          "idempotency": "只读原进度；配额幂等归还",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5934,7 +6455,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE"
+            "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE",
+            "私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked"
           ],
           "errors": [
             {
@@ -5982,7 +6504,10 @@
             "jobs.NewEventHandlers",
             "jobs.NewManagementHandlers",
             "platform.NewServiceHandler",
-            "platform.NewIdentityAuthorizer"
+            "platform.NewIdentityAuthorizer",
+            "jobs.NewProgressHandlers",
+            "jobs.OpenDatabase",
+            "jobs.Store.Close"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8017,6 +8542,12 @@
       "path": "modules/jobs/migrations/0006_job_management.sql",
       "kind": "migration",
       "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/migrations/0007_progress_retention.sql",
+      "kind": "migration",
+      "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间",
       "functions": []
     }
   ],

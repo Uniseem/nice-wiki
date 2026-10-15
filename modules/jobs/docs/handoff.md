@@ -1,5 +1,19 @@
 # 任务与事件会话交接
 
+## 第五轮任务进度流（待VPS）
+
+更新：2026-10-15。持续实施第五轮StreamProgress，分支`codex/jobs-progress-stream-r1`，基线`7a147fc0ded784d16792d5d82e9b8277efd4be6c`；独占本域，原管理交付分支保留。源码/合同已准备，全部本轮条目in_progress，等待集成会话VPS生成/编译/结构检查；业务验收未执行。
+
+- StreamProgress输出直接ProgressEvent JSON，SSE event固定progress、id为seq十进制；内部JSONEventStream句柄，公共ServeJSONEventStream负责15秒注释心跳、单帧背压、30秒写截止与关闭，本域不复制pump。
+- 每次打开/继续读取从持久job owner/type/epoch核当前具体业务权限，网络核权无Store/SQL锁；每批最多64行，内存上限64，无额外异步队列，actor/site最多10流且取消/断连幂等归还。
+- 推荐afterSequence，兼容lastEventId和Last-Event-ID，显式同给必须数值一致、超int64或冲突400；全部缺省0。0首次读取当前7天可重放项；正序号不越未来/缺失/过期段。保留原HTTP ctx/deadline不延长委托，流开始后权限/epoch/截止变化只关闭，不追加Problem；追平终局返回EOF。
+- 0007只追加nullable created_at，旧行按同job/seq/epoch及安全payload全部持久来源唯一一致时刻回填；缺失/矛盾保留NULL失败关闭。AppendProgress行和outbox使用同一次platform.Now；读取RFC3339Nano后按实际时刻比较，不做可变小数TEXT边界比较。
+- OpenDatabase先核已应用版本合法，再唯一EnsureSchema并执行迁移，fresh库可回填outbox；BuildApplication实际打开/关闭库并组合管理+进度映射交完整工厂。其他handler、完整Store/control/owner后台、定时与ephemeral仍未齐，整体启动继续blocked。
+- 新实际路径仅`internal/http_progress.go`（已有登记）和批准的`migrations/0007_progress_retention.sql`。未本机Go/gofmt/gen/vet/测试或SQL临时验证，未新增测试/mock/fixture/样例，未运行真实业务API/模型/服务/部署或push。
+
+本轮依赖根稳定公共JSON SSE API，VPS组合由root取公共源、从本树取jobs全域；生成目录未手改。源码冻结后等待根回传产物与证据，再提交源码及台账。7天为读取重放范围，本包不物理删除progress；将来Purge必须保存单任务seq水位，不能删除全部后由MAX(seq)复用旧序号。
+
+
 ## 第四轮任务管理组（已交付）
 
 更新：2026-10-15。持续实施第四轮任务管理组，基线`de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1`，分支`codex/jobs-management-r1`；独占本域，旧停止要求已被本轮持续授权撤销。源码与合同已交付，本轮完整18项（新17函数及既有授权目录复用）verified；完整服务仍blocked，业务验收未执行。

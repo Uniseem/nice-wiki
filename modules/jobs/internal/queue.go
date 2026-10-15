@@ -46,14 +46,16 @@ type CreateJobResult = gen.CreateJobResult
 // Store 是 jobs active 区数据库句柄。单连接保证短写事务串行执行；
 // outbox 与任务状态使用同一个 SQLite 事务。
 type Store struct {
-	db           *sql.DB
-	mu           sync.RWMutex
-	closed       bool
-	leaseRuntime LeaseRuntimeProvider
-	identity     *gen.IdentityClient
-	recovery     OwnerRecoveryChecker
-	eventMu      sync.Mutex
-	eventStreams map[string]int
+	db              *sql.DB
+	mu              sync.RWMutex
+	closed          bool
+	leaseRuntime    LeaseRuntimeProvider
+	identity        *gen.IdentityClient
+	recovery        OwnerRecoveryChecker
+	progressMu      sync.Mutex
+	progressStreams map[string]int
+	eventMu         sync.Mutex
+	eventStreams    map[string]int
 }
 
 var activeQueue struct {
@@ -104,10 +106,6 @@ func OpenDatabase(dataRoot string) (*Store, error) {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "任务数据库不可用")
 	}
 	if err := store.runMigrations(); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -353,6 +351,9 @@ func (s *Store) runMigrations() error {
 		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
 			return platform.NewError(platform.CodeIntegrityError, false, "任务迁移版本未知")
 		}
+	}
+	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
+		return err
 	}
 	for _, migration := range all {
 		if _, ok := applied[migration.Version]; ok {

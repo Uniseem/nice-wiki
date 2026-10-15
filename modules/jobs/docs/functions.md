@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 101 个函数：约束 34 个，参考 67 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 109 个函数：约束 34 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -177,6 +177,118 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 - 授权：permission：service；rule：由调用方已验操作上下文限定所属owner，不重新鉴权
 - 并发：复用调用方串行SQLite事务及资源锁
 - 幂等：由调用方决定事务提交与幂等边界
+- 依赖：无
+
+## jobs.OpenDatabase
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：打开私有库并执行全部已知追加迁移，随后完整装配前不可用
+
+```go
+func OpenDatabase(dataRoot string) (*Store, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `dataRoot` | `string` | 本域绝对数据根 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `*Store` | 已完成全部已知迁移的私有库 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 打开私有库并执行全部已知追加迁移，随后完整装配前不可用
+
+**错误**
+
+- `VALIDATION`：数据根不合法（不可重试）
+- `INTERNAL`：业务库打开/迁移失败（不可重试）
+- `INTEGRITY_ERROR`：业务库或已应用迁移未知（不可重试）
+
+- 副作用：打开WAL/外键/单连接业务库并应用已知迁移，失败关闭
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：`jobs.runMigrations`
+
+## jobs.runMigrations
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：先核全部已应用迁移版本，再唯一EnsureSchema并按embed追加迁移
+
+```go
+func (s *Store) runMigrations() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*Store` | 已打开私有库 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 先核全部已应用迁移版本，再唯一EnsureSchema并按embed追加迁移
+
+**错误**
+
+- `INTEGRITY_ERROR`：迁移集、版本或SQL源不合法（不可重试）
+- `INTERNAL`：迁移事务IO失败（不可重试）
+
+- 副作用：先拒绝未知已应用版本；唯一调用platform outbox.EnsureSchema后执行embed迁移与版本登记事务
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：`jobs.All`
+
+## jobs.Store.Close
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：关闭私有库并撤销安装句柄，重复关闭幂等
+
+```go
+func (s *Store) Close() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*Store` | 本域私有库 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 关闭私有库并撤销安装句柄，重复关闭幂等
+
+**错误**
+
+- `INTERNAL`：业务库关闭失败（不可重试）
+
+- 副作用：撤销当前安装并关闭数据库，重复安全
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
 - 依赖：无
 
 ## jobs.ClaimJob
@@ -1557,6 +1669,7 @@ func AppendProgress(ctx context.Context, op OperationContext, tx *ProgressTransa
 2. 按jobId/checkpointKey和inputHash查重；同输入返回原seq，异输入CONFLICT
 3. 同job同phase completed不能低于历史最大值；新phase允许从0开始
 4. 分配单调seq，同事务保存progress与jobs.job-progress.v1 outbox；调用方统一提交
+5. 同一次platform.Now写progress.created_at与对应outbox.occurredAt，不伪造legacy发生时间
 
 **错误**
 
@@ -1597,23 +1710,236 @@ func StreamProgress(ctx context.Context, op OperationContext, in StreamProgressI
 
 **步骤**
 
-1. 校验job.manage
-2. 重放seq>lastId保留7天
-3. 15s heartbeat
-4. epoch变化关闭流返回重新连接提示
+1. 仅当前后台主体；从持久job owner/type/epoch匹配生成ManagementPermission并在锁外identity核当前权限，不使用正文actor或入口job.manage代替
+2. 打开即核任务作用域、epoch和afterSequence范围；0首次只读当前7天保留项，正游标不得跳未来水位或缺失/过期进度；旧created_at只从唯一一致持久源时间回填，未知/矛盾失败关闭
+3. 按actor/site全连接最多10个，归还幂等；每次Next重新核当前具体任务权限和epoch后短事务最多64行读取，只输出jobId/seq/phase/计数，不读取输入、结果正文或原始错误
+4. 直接返回platform.JSONEventStream，SSEFrame.Event固定progress，ID为seq十进制，Data仅ProgressEvent；公共ServeJSONEventStream负责15秒心跳/单帧背压/30秒写截止
+5. 无数据不持SQL/进程锁等待；终局且已追平返回EOF；慢client按公共写截止断开，seq可精确续接；权限/epoch/原请求ctx截止/取消或断连关闭并归还槽，不延长原委托，不在响应开始后写Problem
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VALIDATION` / HTTP 400：CURSOR_EXPIRED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN`：当前具体权限不足（不可重试）
+- `UNAUTHENTICATED`：当前会话失效（不可重试）
+- `NOT_FOUND`：任务不存在（不可重试）
+- `VALIDATION`：游标冲突、超水位、缺失或过期（不可重试）
+- `VERSION_MISMATCH`：数据代次或作用域变化（不可重试）
+- `RATE_LIMITED`：当前actor已10流（不可重试）
+- `INTEGRITY_ERROR`：进度时刻或安全材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威或私有存储未知（可重试）
+- `INTERNAL`：私有IO失败（可重试）
+- `CONFLICT`：当前任务授权scope在核权与读取之间改变（不可重试）
+
+- 副作用：仅本进程连接配额和流句柄，不写业务progress或投递确认
+- 授权：permission：job.manage；rule：打开及每次继续读取从持久任务目录取得当前具体业务管理权限，经identity即时核权；job.manage仅入口粗能力
+- 并发：actor/site最多10流；域内每次最多64行内存，公共单帧背压，无额外异步队列；SQL/进程锁外核权与等待
+- 幂等：三个游标别名同时提供须相等；只读seq精确重放，流不确认/修改progress，不编造事件
+- 依赖：`jobs.authorizeJobManagement`、`jobs.readProgressFrame`、`jobs.progressStream.Close`、`jobs.progressStream.Next`
+- 其他依赖说明：私有progress表
+
+## jobs.progressStream.Next
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_progress.go`
+- 作用：每批当前具体权限/epoch复核，最多64行扫描后输出单条安全JSON，空闲无锁等待
+
+```go
+func (stream *progressStream) Next(ctx context.Context) (SSEFrame, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `stream` | `*progressStream` | 单连接句柄 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `ctx` | `context.Context` | 原请求取消与更早截止 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `frame` | `SSEFrame` | 安全ProgressEvent JSON及十进制seq | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 串行按调用ctx读取，并由Close取消在途IO；每个最多64行批次重核具体权限/epoch
+2. 只更新本连接读取位置，不修改progress或确认水位；无数据在事务外等1秒，追平终局返回EOF
+3. 权限/epoch/原截止/取消/关闭即归还槽；单帧背压与慢client断开交平台，不造进度或关闭后的Problem
+
+**错误**
+
+- `FORBIDDEN`：当前具体任务权限不足（不可重试）
+- `NOT_FOUND`：目标任务不存在（不可重试）
+- `VALIDATION`：进度游标缺失/过期/超水位（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：任务授权作用域变化（不可重试）
+- `INTEGRITY_ERROR`：进度时刻或源材料不可证明（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：授权或运行权威未知（可重试）
+- `INTERNAL`：私有IO失败（可重试）
 
 - 副作用：无
-- 授权：permission：job.manage；rule：job.manage
-- 并发：每actor最多10流；慢客户端缓冲64条关闭可重放
-- 幂等：Last-Event-ID精确续接
-- 依赖：`jobs.ReadJob`
-- 其他依赖说明：私有progress表
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：`jobs.readProgressFrame`、`jobs.progressStream.Close`
+
+## jobs.progressStream.Close
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_progress.go`
+- 作用：关闭流、取消在途读取并只归还一次actor槽
+
+```go
+func (stream *progressStream) Close() error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `stream` | `*progressStream` | 单连接句柄 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 关闭流、取消在途读取并只归还一次actor槽
+
+**错误**
+
+- 无
+
+- 副作用：幂等取消本连接读取并归还一次actor/site连接计数
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：无
+
+## jobs.readProgressFrame
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_progress.go`
+- 作用：锁外核当前任务权限，事务核scope/epoch并扫描最多64行段，7天窗口精确复核
+
+```go
+func readProgressFrame(ctx context.Context, op OperationContext, jobID string, after int64, initial bool) (progressRead, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原请求取消与更早截止 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `op` | `OperationContext` | 可信主体与epoch | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `jobID` | `string` | 目标任务 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `after` | `int64` | 上次已读进度位置 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `initial` | `bool` | 首次可跳已过期历史 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `snapshot` | `progressRead` | 一次最多64行安全读取的单帧/扫描位置 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 读取前在Store锁外按持久owner/type向identity核当前具体权限；随后短事务重新核scope与epoch
+2. MAX(seq)为当前已登记水位，正游标不能跳未来；最多64行按seq读取，RFC3339Nano解析后按实际时刻与当前7天截止比较，不做TEXT日期边界比较
+3. 初始0跳已知过期项，未知/矛盾created_at完整性失败；正游标遇缺失seq或过期段返回VALIDATION，不跳过未能续接的段
+4. 只返回第一条安全ProgressEvent；当前批次全过期且尚有后续时释放事务再回Next重核权限取下一批，无SQL锁内网络或等待
+
+**错误**
+
+- `FORBIDDEN`：当前具体任务权限不足（不可重试）
+- `NOT_FOUND`：目标任务不存在（不可重试）
+- `VALIDATION`：进度游标缺失/过期/超水位（不可重试）
+- `VERSION_MISMATCH`：代次变化（不可重试）
+- `CONFLICT`：任务授权作用域变化（不可重试）
+- `INTEGRITY_ERROR`：进度时刻或源材料不可证明（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：授权或运行权威未知（可重试）
+- `INTERNAL`：私有IO失败（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`
+
+## jobs.NewProgressHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_progress.go`
+- 作用：只把已实现进度SSE交公共完整入口，不造心跳/写截止
+
+```go
+func NewProgressHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | 仅streamProgress真实处理器 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 只把已实现进度SSE交公共完整入口，不造心跳/写截止
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：`jobs.bindProgressCursor`、`jobs.StreamProgress`、`jobs.writeEventResponse`、`platform.ServeJSONEventStream`
+
+## jobs.bindProgressCursor
+
+- 级别：参考
+- 文件：`modules/jobs/internal/http_progress.go`
+- 作用：统一afterSequence、兼容lastEventId及Last-Event-ID；不同值或int64溢出400
+
+```go
+func bindProgressCursor(r *http.Request) (int64, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `r` | `http.Request` | 已严格验证结构的HTTP请求 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `after` | `int64` | 统一的续接位置 | 仅当前授权链路或可信启动装配，取消原样传IO |
+| `error` | `error` | 失败时结果无效，响应开始后仅结束流 | 仅当前授权链路或可信启动装配，取消原样传IO |
+
+**步骤**
+
+1. 统一afterSequence、兼容lastEventId及Last-Event-ID；不同值或int64溢出400
+
+**错误**
+
+- `VALIDATION`：别名不相等、溢出或非法序号（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：可信装配或已授权进度流内部
+- 并发：短事务；网络核权/等待不持数据库锁
+- 幂等：只读原进度；配额幂等归还
+- 依赖：无
 
 ## jobs.ValidateEnvelope
 
@@ -3267,6 +3593,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE
+8. 私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked
 
 **错误**
 
@@ -3278,7 +3605,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve

@@ -785,7 +785,7 @@
       "get": {
         "operationId": "streamProgress",
         "summary": "任务进度SSE",
-        "description": "SSE Last-Event-ID重放，最多7天",
+        "description": "直接ProgressEvent JSON的SSE；打开及后续每批读取均按持久owner/type当前具体权限和epoch核对。正序号缺失/超过水位/已过7天拒绝；0首次只读当前保留项。流开始后权限/epoch/截止失效只关闭，不追加Problem；客户端重新开流核权。",
         "x-handler": "jobs.StreamProgress",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
@@ -829,6 +829,66 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -837,10 +897,7 @@
             "name": "jobId",
             "required": true,
             "schema": {
-              "type": "string",
-              "description": "jobId；UTF-8；不得为 null",
-              "maxLength": 128,
-              "minLength": 1
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             },
             "description": "路径值由HTTP绑定器填入函数Input，正文不得声明冲突值"
           },
@@ -853,7 +910,8 @@
               "minimum": 0,
               "maximum": 9223372036854775807,
               "description": "lastEventId 非负 int64；不用浮点数"
-            }
+            },
+            "description": "兼容查询别名；与afterSequence及Last-Event-ID同时给出时必须相同，不设单别名默认值"
           },
           {
             "in": "header",
@@ -864,6 +922,29 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "query",
+            "name": "afterSequence",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "description": "推荐续接序号，所有别名缺省统一为0；0首次读取当前7天保留范围"
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 19,
+              "pattern": "^[0-9]+$"
+            },
+            "description": "十进制进度seq，与任一查询别名同时提供须相同；超int64拒绝"
           }
         ],
         "security": [
@@ -871,7 +952,12 @@
             "serviceAssertion": [],
             "userDelegation": []
           }
-        ]
+        ],
+        "x-sse-kind": "json",
+        "x-sse-event": "progress",
+        "x-sse-event-schema": {
+          "$ref": "./types.json#/$defs/ProgressEvent"
+        }
       }
     },
     "/v1/events": {

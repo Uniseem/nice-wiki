@@ -57,8 +57,9 @@ func AppendProgress(ctx context.Context, op OperationContext, tx *ProgressTransa
 		return AppendProgressResult{}, platform.NewError(platform.CodeConflict, false, "同阶段进度不能倒退")
 	}
 	seq++
-	_, err = tx.ExecContext(ctx, `INSERT INTO progress(job_id,seq,phase,completed_units,total_units,safe_message_code,checkpoint_key,input_hash)
-		VALUES(?,?,?,?,?,?,?,?)`, in.JobID, seq, in.Phase, in.CompletedUnits, in.TotalUnits, in.Phase, in.CheckpointKey, hash)
+	at := platform.Now()
+	_, err = tx.ExecContext(ctx, `INSERT INTO progress(job_id,seq,phase,completed_units,total_units,safe_message_code,checkpoint_key,input_hash,created_at)
+		VALUES(?,?,?,?,?,?,?,?,?)`, in.JobID, seq, in.Phase, in.CompletedUnits, in.TotalUnits, in.Phase, in.CheckpointKey, hash, at)
 	if err != nil {
 		return AppendProgressResult{}, mapQueueDBError(err)
 	}
@@ -73,7 +74,7 @@ func AppendProgress(ctx context.Context, op OperationContext, tx *ProgressTransa
 		return AppendProgressResult{}, platform.NewError(platform.CodeInternal, false, "任务进度事件编码失败")
 	}
 	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "jobs.job-progress.v1", EventVersion: 1,
-		Producer: "jobs", SubjectID: in.JobID, Revision: seq, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+		Producer: "jobs", SubjectID: in.JobID, Revision: seq, OccurredAt: at, DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return AppendProgressResult{}, err
 	}
 	return AppendProgressResult{Seq: seq}, nil

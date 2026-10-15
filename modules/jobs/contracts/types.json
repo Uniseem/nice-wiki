@@ -1759,54 +1759,27 @@
     "StreamProgressInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "任务进度SSE输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "内部统一后的进度续接输入；actor/epoch仅取可信op，0表示首次读取当前保留范围",
       "properties": {
         "jobId": {
-          "type": "string",
-          "description": "jobId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
-        "lastEventId": {
+        "afterSequence": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "lastEventId 非负 int64；不用浮点数"
-        },
-        "actor": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
-          "description": "公共 AuthContext 合同，遵守其字段和空值规则"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+          "maximum": 9223372036854775807
         }
       },
       "required": [
         "jobId",
-        "lastEventId",
-        "actor",
-        "dataEpoch"
+        "afterSequence"
       ]
     },
     "StreamProgressResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "任务进度SSE成功结果；失败不返回半成功结果",
-      "properties": {
-        "events": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ProgressEvent",
-            "description": "ProgressEvent领域数据合同"
-          },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
-        }
-      },
-      "required": [
-        "events"
-      ]
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "StreamProgressResult",
+      "description": "受信platform.JSONEventStream句柄，HTTP直接输出ProgressEvent JSON，不序列化有限events数组"
     },
     "ValidateEnvelopeInput": {
       "type": "object",
@@ -3843,6 +3816,36 @@
       "x-internal": true,
       "x-go-type": "platform.SigningKey",
       "description": "本服务私钥配置引用，不序列化进HTTP或数据库"
+    },
+    "JSONEventStream": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.JSONEventStream",
+      "description": "平台JSON SSE增量句柄"
+    },
+    "SSEFrame": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.SSEFrame",
+      "description": "平台单条SSE帧，Data仅ProgressEvent安全JSON"
+    },
+    "progressStream": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "progressStream",
+      "description": "单任务安全进度流及连接配额"
+    },
+    "progressRead": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "progressRead",
+      "description": "最多64行短快照的安全结果与扫描位置"
+    },
+    "progressRow": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "progressRow",
+      "description": "持久安全进度和可信发生时刻"
     }
   }
 }

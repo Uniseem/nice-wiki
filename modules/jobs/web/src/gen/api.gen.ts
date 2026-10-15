@@ -157,7 +157,7 @@ export interface paths {
         };
         /**
          * 任务进度SSE
-         * @description SSE Last-Event-ID重放，最多7天
+         * @description 直接ProgressEvent JSON的SSE；打开及后续每批读取均按持久owner/type当前具体权限和epoch核对。正序号缺失/超过水位/已过7天拒绝；0首次只读当前保留项。流开始后权限/epoch/截止失效只关闭，不追加Problem；客户端重新开流核权。
          */
         get: operations["streamProgress"];
         put?: never;
@@ -787,6 +787,19 @@ export interface components {
             revision: components["schemas"]["Revision"];
             /** @description 有序列表；空列表表示没有可用项 */
             resultRefs: string[];
+        };
+        /** @description 无业务正文的进度检查点 */
+        ProgressEvent: {
+            /** @description 公共 Identifier 合同，遵守其字段和空值规则 */
+            jobId: components["schemas"]["Identifier"];
+            /** @description 公共 Revision 合同，遵守其字段和空值规则 */
+            seq: components["schemas"]["Revision"];
+            /** @description 注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误 */
+            phase: string;
+            /** @description completedUnits 非负 int64；不用浮点数 */
+            completedUnits: number;
+            /** @description totalUnits 非负 int64；不用浮点数 */
+            totalUnits: number;
         };
         /** @description 持久接收事件成功结果；失败不返回半成功结果 */
         PublishEventResult: {
@@ -1584,15 +1597,20 @@ export interface operations {
     streamProgress: {
         parameters: {
             query?: {
+                /** @description 兼容查询别名；与afterSequence及Last-Event-ID同时给出时必须相同，不设单别名默认值 */
                 lastEventId?: number;
+                /** @description 推荐续接序号，所有别名缺省统一为0；0首次读取当前7天保留范围 */
+                afterSequence?: number;
             };
             header?: {
                 /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
                 "X-Request-Id"?: components["schemas"]["Identifier"];
+                /** @description 十进制进度seq，与任一查询别名同时提供须相同；超int64拒绝 */
+                "Last-Event-ID"?: string;
             };
             path: {
                 /** @description 路径值由HTTP绑定器填入函数Input，正文不得声明冲突值 */
-                jobId: string;
+                jobId: components["schemas"]["Identifier"];
             };
             cookie?: never;
         };
@@ -1616,6 +1634,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；FORBIDDEN */
             403: {
                 headers: {
@@ -1625,8 +1652,53 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；VERSION_MISMATCH */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTERNAL */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

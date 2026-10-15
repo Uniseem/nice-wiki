@@ -2,12 +2,12 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "cb0a8c0671f149b36b61390bb04490362610713b8970c68c239ed46054613cf1",
+  "contractSha256": "d4ceb5a7cbb1e61e621ad24fe9025b51e4d0c4a5fc8f564940194dcb23c35064",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续实施第四轮jobs管理查询与人工重试",
-  "branch": "codex/jobs-management-r1",
-  "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
-  "deliveryCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+  "assignedSession": "持续实施第五轮任务进度SSE",
+  "branch": "codex/jobs-progress-stream-r1",
+  "baseCommit": "7a147fc0ded784d16792d5d82e9b8277efd4be6c",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "8d7030fb5e8c4ccdf68c619d7b07a4fa08239e01",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
     },
     {
       "path": "modules/jobs/internal/leases.go",
@@ -92,23 +92,23 @@
     },
     {
       "path": "modules/jobs/internal/progress.go",
-      "state": "verified",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
-      "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/jobs/internal/http_progress.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
+    },
+    {
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
     },
     {
       "path": "modules/jobs/internal/event_validation.go",
@@ -559,6 +559,16 @@
         "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/jobs/migrations/0007_progress_retention.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待根统一VPS docs/gen/build/check，尚不标完成"
     }
   ],
   "functions": [
@@ -741,24 +751,24 @@
     {
       "id": "jobs.AppendProgress",
       "path": "modules/jobs/internal/progress.go",
-      "state": "verified",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
-      "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
-      },
-      "blocker": null
-    },
-    {
-      "id": "jobs.StreamProgress",
-      "path": "modules/jobs/internal/http_progress.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.StreamProgress",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
     },
     {
       "id": "jobs.ValidateEnvelope",
@@ -1672,7 +1682,95 @@
         "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
       },
       "blocker": null
+    },
+    {
+      "id": "jobs.OpenDatabase",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.runMigrations",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.Store.Close",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.progressStream.Next",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.progressStream.Close",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.readProgressFrame",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.NewProgressHandlers",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
+    },
+    {
+      "id": "jobs.bindProgressCursor",
+      "path": "modules/jobs/internal/http_progress.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第五轮源码待VPS统一生成/readonly build/vet/gofmt/check"
     }
   ],
-  "rule": "第四轮源码ab4a738b7ff69ed55d7feed39d9ba081d13b519d：新17函数及既有authorizeJobManagement目录复用共18本轮完整项verified；完整queries/query/http_events/0006与改动生成产物verified。证据为protocol第三次VPS docs/gen、14模块readonly build/vet/gofmt和完整check通过。整体启动、control屏障、owner实际适配、定时/ephemeral仍未完成；业务验收未执行。交付后冻结，不扩包或push。"
+  "rule": "第五轮StreamProgress源码/合同已准备，当前权限与epoch逐批复核、直接ProgressEvent JSON、三游标别名一致性、10/actor、64行内存上限、可信7天范围；依赖根公共JSON SSE pump，VPS前新条目in_progress。完整启动、owner实际适配/control/定时/ephemeral仍未完成，不新增测试、不运行真实接口，不push。"
 }
