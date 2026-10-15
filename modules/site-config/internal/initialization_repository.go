@@ -20,8 +20,8 @@ type PersistInitializationDecisionInput struct {
 	State            gen.InitializationState `json:"state"`
 	Decision         string                  `json:"decision"`
 	ExpectedRevision gen.Revision            `json:"expectedRevision"`
-	RequestHash gen.Hash `json:"requestHash"`
- PreparedConfig   *gen.SiteConfig         `json:"preparedConfig"`
+	RequestHash      gen.Hash                `json:"requestHash"`
+	PreparedConfig   *gen.SiteConfig         `json:"preparedConfig"`
 }
 
 type PersistInitializationDecisionResult struct {
@@ -68,15 +68,17 @@ func PersistInitializationDecision(ctx context.Context, op platform.OperationCon
 	}
 	if state, found, err := readInitializationDecision(ctx, tx, *input.State.OperationId, requestHash); err != nil {
 		return PersistInitializationDecisionResult{}, err
-    } else if found {
-        var actorID,siteID,epoch,originalHash string
-        err := tx.QueryRowContext(ctx,`SELECT actor_id,site_id,data_epoch,request_hash FROM config_operations WHERE operation_id=?`,*state.OperationId).Scan(&actorID,&siteID,&epoch,&originalHash)
-        if err != nil { return PersistInitializationDecisionResult{},platform.NewError(platform.CodeIntegrityError,false,"初始化决定缺少原始身份回执") }
-        if actorID != op.Actor.SubjectID || siteID != *input.State.SiteId || epoch != op.DataEpoch || originalHash != input.RequestHash {
-            return PersistInitializationDecisionResult{},platform.NewError(platform.CodeConflict,false,"初始化operationId被不同请求或主体复用")
-        }
-        return PersistInitializationDecisionResult{State: state}, nil
-    }
+	} else if found {
+		var actorID, siteID, epoch, originalHash string
+		err := tx.QueryRowContext(ctx, `SELECT actor_id,site_id,data_epoch,request_hash FROM config_operations WHERE operation_id=?`, *state.OperationId).Scan(&actorID, &siteID, &epoch, &originalHash)
+		if err != nil {
+			return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeIntegrityError, false, "初始化决定缺少原始身份回执")
+		}
+		if actorID != op.Actor.SubjectID || siteID != *input.State.SiteId || epoch != op.DataEpoch || originalHash != input.RequestHash {
+			return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeConflict, false, "初始化operationId被不同请求或主体复用")
+		}
+		return PersistInitializationDecisionResult{State: state}, nil
+	}
 	if _, err := CheckWriteEpoch(ctx, op, CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
 		return PersistInitializationDecisionResult{}, err
 	}
@@ -119,17 +121,19 @@ func PersistInitializationDecision(ctx context.Context, op platform.OperationCon
 		VALUES(?,?,?,?,?,?,?,?)`, *next.OperationId, *next.SiteId, input.Decision, requestHash, string(stateJSON), preparedValue, hashValue, next.UpdatedAt.Format(time.RFC3339Nano)); err != nil {
 		return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化初始化决定失败")
 	}
-    revisionID := initializationRevisionID(op.DataEpoch, *next.SiteId, *next.OperationId)
-    operationState := "in_progress"
-    if input.Decision == "abort" { operationState = "committed" }
-    if _, err := tx.ExecContext(ctx, `INSERT INTO config_operations(operation_id,actor_id,site_id,data_epoch,request_hash,state,revision_id) VALUES(?,?,?,?,?,?,?)`, *next.OperationId,op.Actor.SubjectID,*next.SiteId,op.DataEpoch,input.RequestHash,operationState,revisionID); err != nil {
-        return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeDependencyUnavailable,true,"持久化初始化原始请求回执失败")
-    }
-    if input.Decision == "abort" {
-        if _,err := tx.ExecContext(ctx,`UPDATE config_operations SET result_state_json=? WHERE operation_id=?`,string(stateJSON),*next.OperationId); err != nil {
-            return PersistInitializationDecisionResult{},platform.NewError(platform.CodeDependencyUnavailable,true,"保存取消初始化回执失败")
-        }
-    }
+	revisionID := initializationRevisionID(op.DataEpoch, *next.SiteId, *next.OperationId)
+	operationState := "in_progress"
+	if input.Decision == "abort" {
+		operationState = "committed"
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO config_operations(operation_id,actor_id,site_id,data_epoch,request_hash,state,revision_id) VALUES(?,?,?,?,?,?,?)`, *next.OperationId, op.Actor.SubjectID, *next.SiteId, op.DataEpoch, input.RequestHash, operationState, revisionID); err != nil {
+		return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化初始化原始请求回执失败")
+	}
+	if input.Decision == "abort" {
+		if _, err := tx.ExecContext(ctx, `UPDATE config_operations SET result_state_json=? WHERE operation_id=?`, string(stateJSON), *next.OperationId); err != nil {
+			return PersistInitializationDecisionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "保存取消初始化回执失败")
+		}
+	}
 	if current.Revision == 0 {
 		_, err = tx.ExecContext(ctx, `INSERT INTO initialization_state(singleton,operation_id,revision,state_json) VALUES(1,?,?,?)`, *next.OperationId, next.Revision, string(stateJSON))
 	} else {

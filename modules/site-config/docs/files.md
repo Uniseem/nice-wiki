@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 41 个：手写 29、生成 3、配置 6、迁移 3。函数 51 个：约束 30，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 42 个：手写 29、生成 3、配置 6、迁移 4。函数 53 个：约束 30，参考 23。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -18,7 +18,7 @@
 | `modules/site-config/internal/migrations/migrations.go` | 手写 | 内嵌本域control.db只追加SQL迁移并校验编号连续 | `site-config.All`（参考） |
 | `modules/site-config/internal/migrations/0001_control.sql` | 迁移 | 初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations | 无 |
 | `modules/site-config/internal/migrations/active/0001_active.sql` | 迁移 | 初始active业务索引表：schema_migrations、site_config_state、config_revision_index与announcement_heads | 无 |
-| `modules/site-config/internal/initialization_service.go` | 手写 | 无需AI完成首站点初始化 | `site-config.InitializeSite`、`site-config.ReadInitializationStatus`、`site-config.ResumeInitialization`、`site-config.AbortInitialization` |
+| `modules/site-config/internal/initialization_service.go` | 手写 | 无需AI完成首站点初始化 | `site-config.InitializeSite`、`site-config.ReadInitializationStatus`、`site-config.ResumeInitialization`、`site-config.AbortInitialization`、`site-config.ConfigureInitialization`（参考） |
 | `modules/site-config/internal/initialization_defaults.go` | 手写 | 确定性生成首次基础配置 | `site-config.PrepareDefaultConfig`（参考） |
 | `modules/site-config/internal/initialization_repository.go` | 手写 | 持久化不可反悔的初始化决定 | `site-config.PersistInitializationDecision`（参考）、`site-config.ReadInitializationRecord`（参考） |
 | `modules/site-config/internal/announcement_validator.go` | 手写 | 校验公告纯文本正文并规范序列化 | `site-config.ValidateAnnouncementBody`（参考） |
@@ -31,7 +31,7 @@
 | `modules/site-config/internal/branding_service.go` | 手写 | 更新站名/logo/图标/主题色/默认分享图 | `site-config.UpdateBranding` |
 | `modules/site-config/internal/footer_service.go` | 手写 | 更新页脚版权/自定义链接/ICP备案/源码链接 | `site-config.UpdateFooter` |
 | `modules/site-config/internal/banner_service.go` | 手写 | 保存单条可关闭公告横幅 | `site-config.UpdateBanner` |
-| `modules/site-config/internal/config_files.go` | 手写 | 写权威版本化站点设置文件 | `site-config.WriteConfigRevision`（参考）、`site-config.CommitConfigHead`（参考） |
+| `modules/site-config/internal/config_files.go` | 手写 | 写权威版本化站点设置文件 | `site-config.WriteConfigRevision`（参考）、`site-config.CommitConfigHead`（参考）、`site-config.RecoverConfigJournal`（参考） |
 | `modules/site-config/internal/config_history.go` | 手写 | 读取可回滚的站点设置历史 | `site-config.ReadConfigHistory`、`site-config.RestoreConfigRevision` |
 | `modules/site-config/internal/resource_reference_reader.go` | 手写 | 向媒体返回站点设置权威资源引用快照 | `site-config.ListResourceReferences` |
 | `modules/site-config/cmd/site-config/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `site-config.main` |
@@ -47,3 +47,4 @@
 | `modules/site-config/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/site-config/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/site-config/internal/migrations/active/0002_initialization.sql` | 迁移 | 初始化不可反悔决定、完整准备配置及SHA256、幂等回执和当前协调状态；不替代settings权威文件 | 无 |
+| `modules/site-config/internal/migrations/active/0003_config_commit.sql` | 迁移 | 只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform | 无 |

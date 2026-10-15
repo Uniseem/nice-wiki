@@ -22,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"nice-wiki/libs/platform"
- "nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/migrations"
 )
@@ -70,12 +70,12 @@ var activeBusinessStore struct {
 // ActiveStore 是 site-config active 区私有数据库与不可变正文目录的句柄。
 // 数据库保存索引、水位及独立持久初始化决定，正文文件仍是权威数据。
 type ActiveStore struct {
-	db         *sql.DB
-	activeRoot string
- configMu sync.Mutex
- initializationMu sync.Mutex
- publicBaseURL string
- configRecovered bool
+	db               *sql.DB
+	activeRoot       string
+	configMu         sync.Mutex
+	initializationMu sync.Mutex
+	publicBaseURL    string
+	configRecovered  bool
 
 	stateMu          sync.RWMutex
 	journalRecovered bool
@@ -175,9 +175,9 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch platform.Id
 		return closeOnError(err)
 	}
 	if err := outbox.EnsureSchema(ctx, db); err != nil {
- return closeOnError(err)
- }
- if err := store.ensureActiveState(ctx, dataEpoch); err != nil {
+		return closeOnError(err)
+	}
+	if err := store.ensureActiveState(ctx, dataEpoch); err != nil {
 		return closeOnError(err)
 	}
 	activeBusinessStore.Lock()
@@ -345,13 +345,15 @@ func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch platfor
 	s.stateMu.RLock()
 	recovered := s.journalRecovered
 	expectedHash := s.journalHash
- configRecovered := s.configRecovered
+	configRecovered := s.configRecovered
 	s.stateMu.RUnlock()
 	if !configRecovered {
- return false, platform.NewError(platform.CodeDependencyUnavailable, true, "配置journal尚未恢复")
- }
- if err := s.verifyConfigHead(ctx); err != nil { return false, err }
- if !recovered {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "配置journal尚未恢复")
+	}
+	if err := s.verifyConfigHead(ctx); err != nil {
+		return false, err
+	}
+	if !recovered {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "公告journal尚未恢复")
 	}
 	currentHash, err := readAnnouncementJournalHash(s.activeRoot)
@@ -436,16 +438,20 @@ func (s *ActiveStore) validateActiveStateWithResult(ctx context.Context, dataEpo
 		!nullableRevisionID.Valid || !platform.ValidIdentifier(nullableRevisionID.String) || revision < 1 {
 		return false, platform.NewError(platform.CodeIntegrityError, false, "已初始化active状态缺少配置引用")
 	}
-    if initialized == 0 {
-        tx,err := s.db.BeginTx(ctx,&sql.TxOptions{ReadOnly:true})
-        if err != nil { return false,platform.NewError(platform.CodeDependencyUnavailable,true,"打开配置中间状态读取事务失败") }
-        state,_,readErr := s.ReadInitializationRecord(ctx,tx)
-        _ = tx.Rollback()
-        if readErr != nil { return false,readErr }
-        if state.Decision != gen.Commit || state.ConfigRevision != gen.Revision(revision) || (state.Phase != gen.InitializationStatePhaseConfigCommitted && state.Phase != gen.InitializationStatePhaseBlocked) {
-            return false,platform.NewError(platform.CodeIntegrityError,false,"未完成初始化的配置水位缺少commit协调状态")
-        }
-    }
+	if initialized == 0 {
+		tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+		if err != nil {
+			return false, platform.NewError(platform.CodeDependencyUnavailable, true, "打开配置中间状态读取事务失败")
+		}
+		state, _, readErr := s.ReadInitializationRecord(ctx, tx)
+		_ = tx.Rollback()
+		if readErr != nil {
+			return false, readErr
+		}
+		if state.Decision != gen.Commit || state.ConfigRevision != gen.Revision(revision) || (state.Phase != gen.InitializationStatePhaseConfigCommitted && state.Phase != gen.InitializationStatePhaseBlocked) {
+			return false, platform.NewError(platform.CodeIntegrityError, false, "未完成初始化的配置水位缺少commit协调状态")
+		}
+	}
 	// 避免数据库仅有状态水位而没有对应权威文件索引。
 	var indexed int
 	if err := s.db.QueryRowContext(ctx, `
