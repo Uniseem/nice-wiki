@@ -514,42 +514,8 @@
       ]
     },
     "PortalPreferences": {
-      "type": "object",
-      "description": "自身UI偏好",
-      "additionalProperties": false,
-      "properties": {
-        "theme": {
-          "type": "string",
-          "description": "后台主题",
-          "enum": [
-            "system",
-            "light",
-            "dark"
-          ]
-        },
-        "locale": {
-          "type": "string",
-          "description": "后台语言tag",
-          "minLength": 2,
-          "maxLength": 35
-        },
-        "defaultRoute": {
-          "type": "string",
-          "description": "已授权后台route key",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "revision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "CAS"
-        }
-      },
-      "required": [
-        "theme",
-        "locale",
-        "defaultRoute",
-        "revision"
-      ]
+      "$ref": "../../../contracts/common.schema.json#/$defs/PortalPreferences",
+      "description": "统一公共后台偏好形状；locale/route允许集与revision语义以根公共schema为准"
     },
     "IdentityChanged": {
       "type": "object",

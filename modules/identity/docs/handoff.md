@@ -1,3 +1,22 @@
+# 第四轮交接：本人后台偏好（2026-10-15，VPS现阶段检查通过）
+
+- 继续根持续实施授权，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，分支codex/identity-preferences-r1，独占modules/identity；接续时工作树干净。
+- ReadPreferences/UpdatePreferences及真实HTTP绑定已通过现阶段检查。当前site/account来自readActorAccount同一事务权威，不接受浏览器主体键，也不把portal前端隐藏菜单当授权；初始口令受限会话不得读写。
+- 无记录返回system/zh-Hans/dashboard/revision0而不写默认；每个新成功保存（同值亦然）CAS加1，输入preferences.revision必须等于expectedRevision，首次只能expected0。
+- 保存先核当前portal.use再核HMAC/keyId完整原成功，重放返回原安全preferences结果，不再CAS或覆盖后来偏好。只有新操作核公共locale/route允许集及当前目标页任一grant；读取不会因后来失权偷偷改持久defaultRoute，返回值本身不授权限。
+- 公共冻结签名：gen.InterfaceLocales []string（zh-Hans/en）；gen.AdminRoutes []gen.AdminRouteEntry{Key,Path,Permissions []string}，Permissions为任一当前grant满足。根统一schema和生成来源，本域不维护第二份表，不混用站点翻译语言。settings规范路径/admin/site，guard为/admin/guard；偏好只接受key，不接受path/query/外链。
+- 新增实际文件仅既有登记internal/preference_service.go；原preferences表已具备account_id外键，不需新迁移。不碰account.revision/credential/permission/session，不写account-index或身份授权事件。
+- 最终VPS证据：2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。
+- 已用ff-only复用原公共提交bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb取得唯一schema；没有自行修改公共或portal，偏好gen产物仅来自根VPS。准确本域源码SHA在源码提交后回填；完整启动仍blocked，偏好完成不等于HTTP/后台全部可用。未本机编译/格式/生成/测试/运行SQL，未push。
+
+## 下一步（一项）
+
+server_recovery.go的ObserveSuperadminResetFile/ApplySuperadminReset紧密组：先读本域operations/workflows、精确函数合同与control恢复约束，收口固定服务器reset文件、当前唯一超管权威、原决定恢复/幂等、凭据提升和全会话撤销。本工作包交付后冻结，等根明确分派再开始，不自行启动。
+
+ADR0006复核：locale/key允许集只在公共严格schema入口校验，私有validatePreferenceSelection只读取同源AdminRoutes核当前目标页grants；无第二次枚举验证。
+
+---
+
 # 第三轮交接：账号管理紧密函数组（2026-10-15，VPS现阶段检查通过）
 
 ## 第三轮实际集成事实（2026-10-15）

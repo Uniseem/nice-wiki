@@ -27,8 +27,8 @@
 | DELETE `/v1/sessions/{sessionId}` | `revokeSession` | `identity.RevokeSession` | `account.self` | `revokeSessionRequest` → 200 `RevokeSessionResult` | 退出当前或指定自身登录 | `UNAUTHENTICATED`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`INTEGRITY_ERROR` |
 | POST `/v1/csrf:verify` | `verifySessionCSRF` | `identity.VerifySessionCSRF` | `service` | `VerifySessionCSRFInput` → 200 `VerifySessionCSRFResult` | portal内部核对CSRF | `UNAUTHENTICATED`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR` |
 | POST `/v1/authorizations/check` | `checkAuthorization` | `identity.CheckAuthorization` | `service` | `AuthorizationRequest` → 200 `AuthorizationDecision` | 按最新账号功能权限授权 | `UNAUTHENTICATED`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR` |
-| GET `/v1/preferences` | `readPreferences` | `identity.ReadPreferences` | `portal.use` | `—` → 200 `ReadPreferencesResult` | 读自身后台偏好 | `UNAUTHENTICATED`、`DEPENDENCY_UNAVAILABLE` |
-| PUT `/v1/preferences` | `updatePreferences` | `identity.UpdatePreferences` | `portal.use` | `UpdatePreferencesInput` → 200 `UpdatePreferencesResult` | 保存自身主题/语言/默认后台页 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/preferences` | `readPreferences` | `identity.ReadPreferences` | `portal.use` | `—` → 200 `ReadPreferencesResult` | 读自身后台偏好 | `UNAUTHENTICATED`、`DEPENDENCY_UNAVAILABLE`、`FORBIDDEN` |
+| PUT `/v1/preferences` | `updatePreferences` | `identity.UpdatePreferences` | `portal.use` | `UpdatePreferencesInput` → 200 `UpdatePreferencesResult` | 保存自身主题/语言/默认后台页 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR` |
 | GET `/healthz` | `health` | `identity.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `identity.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `identity.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |

@@ -3413,7 +3413,7 @@
     {
       "path": "modules/identity/internal/preference_service.go",
       "kind": "handwritten",
-      "purpose": "读自身后台偏好",
+      "purpose": "在当前本人授权快照读写后台偏好与完整安全回执",
       "functions": [
         {
           "id": "identity.ReadPreferences",
@@ -3464,15 +3464,16 @@
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
                 "UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "FORBIDDEN: 受限初始口令会话或当前账户没有portal.use"
               ]
             }
           ],
           "purpose": "读自身后台偏好",
           "steps": [
-            "按当前subjectId/siteId",
-            "无记录明确default system/zh-Hans/dashboard/revision0",
-            "不授权任何业务操作"
+            "在同一只读事务以readActorAccount核当前admin session、site/account、全部认证/权限水位及portal.use；受限初始口令会话拒绝偏好读取",
+            "仅按已核op.actor.subjectId读取私有preferences；无记录返回system/zh-Hans/dashboard/revision0，不插入默认行",
+            "持久偏好按原记录返回；权限变动后不偷偷重写defaultRoute，偏好结果本身不授予业务权限"
           ],
           "errors": [
             {
@@ -3484,14 +3485,25 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "受限初始口令会话或当前账户没有portal.use",
+              "retryable": false
             }
           ],
           "sideEffects": [],
           "authorization": "portal.use",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "只读",
-          "dependencies": [],
-          "resources": [],
+          "concurrency": "单个SQLite只读事务同时核当前本人权限与读取偏好，站点来自当前权威session/account",
+          "idempotency": "只读；缺失默认值不产生持久副作用",
+          "dependencies": [
+            "identity.identityStoreFromContext",
+            "identity.readActorAccount",
+            "identity.readPreferenceRecord"
+          ],
+          "resources": [
+            "contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑"
+          ],
           "contract": "binding"
         },
         {
@@ -3547,15 +3559,18 @@
                 "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
                 "CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
                 "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "INTEGRITY_ERROR: 私有完整安全回执状态、JSON或哈希不一致"
               ]
             }
           ],
           "purpose": "保存自身主题/语言/默认后台页",
           "steps": [
-            "检查允许界面locale/route",
-            "默认页功能必须仍被授权",
-            "CAS私有记录；其他主体键不允许输入"
+            "以私有HMAC绑定caller/dataEpoch/动作与完整请求，单个写事务先核当前本人portal.use和认证/权限水位，不接受其他subject/site键",
+            "先按site/actor/operation查原完整安全回执；同HMAC/keyId回放原结果，不再CAS、提升版本或覆盖后来偏好；异摘要或原key版本不可用冲突",
+            "新写要求preferences.revision等于expectedRevision；允许locale与defaultRoute key已由入口按公共schema一次验证；目标页所需权限以当前权威账户功能及超管标志派生，不信任浏览器或portal前端授权",
+            "无记录仅expectedRevision0可首次写revision1；已有记录须CAS匹配expectedRevision，每个新的成功操作即使值相同也只提升一次偏好revision",
+            "同事务写theme/locale/defaultRoute/单调revision与完整安全preferences回执后提交；不改变account/credential/permission/session水位，不写账号索引或授权撤销事件"
           ],
           "errors": [
             {
@@ -3587,19 +3602,75 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有完整安全回执状态、JSON或哈希不一致",
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "私有事务、receipt和撤销outbox"
+            "同一私有SQLite事务写本人preferences与完整安全operation_receipts；无账号索引、认证变更或outbox副作用"
           ],
           "authorization": "portal.use",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "concurrency": "单个SQLite写事务：当前权威会话/账户授权、原结果回放、偏好CAS和完整回执一致提交；恢复/维护写屏障由入口建立",
+          "idempotency": "site/actor/operation唯一键绑定caller/dataEpoch/动作/HMAC/keyId；同请求返回首次完整安全结果，原成功重放先于当前偏好CAS或目标页新授权检查，不覆盖后来修改",
           "dependencies": [
-            "identity.CheckAuthorization"
+            "identity.identityStoreFromContext",
+            "identity.readActorAccount",
+            "identity.privateIdentityDigest",
+            "identity.readIdentityReceipt",
+            "identity.readPreferenceRecord",
+            "identity.validatePreferenceSelection",
+            "identity.saveIdentityReceipt"
           ],
-          "resources": [],
+          "resources": [
+            "contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑"
+          ],
           "contract": "binding"
+        },
+        {
+          "id": "identity.readPreferenceRecord",
+          "name": "readPreferenceRecord",
+          "signature": "func readPreferenceRecord(ctx context.Context, query sessionQueryer, accountID string) (PortalPreferences, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取已核本人偏好；无记录返回固定默认且found=false",
+          "steps": [
+            "读取已核本人偏好；无记录返回固定默认且found=false"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅本域已核当前本人portal.use的私有用例调用",
+          "concurrency": "与外层用例共用SQLite事务和权威账户快照",
+          "idempotency": "只读纯派生；不扩大任何grants",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.validatePreferenceSelection",
+          "name": "validatePreferenceSelection",
+          "signature": "func validatePreferenceSelection(preferences PortalPreferences, account Account) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从公共后台目录选择默认页所需能力，以当前权威账户派生grants核权",
+          "steps": [
+            "UILocale/AdminRouteKey允许集由公共入口严格schema一次验证；本函数信任结构，不重复枚举校验",
+            "使用当前权威account.permissions/isSuperadmin派生grants，再按gen.AdminRoutes中defaultRoute的Permissions任一能力判断；未授权返回FORBIDDEN，不扩大grants"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅本域已核当前本人portal.use的私有用例调用",
+          "concurrency": "与外层用例共用SQLite事务和权威账户快照",
+          "idempotency": "只读纯派生；不扩大任何grants",
+          "dependencies": [
+            "identity.MapFunctionGrants"
+          ],
+          "resources": [
+            "contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -5593,7 +5664,8 @@
           "purpose": "仅登记真实已完成用例，路径参数由平台入口提供",
           "steps": [
             "仅登记真实已完成用例，路径参数由平台入口提供",
-            "本轮绑定四个账号管理真用例；列表只从已验证query组装page，三个写入accountId固定取平台PathValue，正文不允许覆盖路径身份"
+            "本轮绑定四个账号管理真用例；列表只从已验证query组装page，三个写入accountId固定取平台PathValue，正文不允许覆盖路径身份",
+            "偏好GET/PUT绑定真实本人用例，复用公共入口的portal.use与严格schema，不从浏览器传subject/site键"
           ],
           "errors": [],
           "sideEffects": [],
@@ -5618,7 +5690,9 @@
             "identity.ListAccounts",
             "identity.SetAccountStatus",
             "identity.SetAccountPermissions",
-            "identity.ResetAccountPassword"
+            "identity.ResetAccountPassword",
+            "identity.ReadPreferences",
+            "identity.UpdatePreferences"
           ],
           "resources": [],
           "contract": "reference"

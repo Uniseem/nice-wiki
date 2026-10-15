@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 101 个函数：约束 29 个，参考 72 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 103 个函数：约束 29 个，参考 74 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2384,24 +2384,26 @@ func ReadPreferences(ctx context.Context, op OperationContext, input ReadPrefere
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadPreferencesResult` | 读自身后台偏好的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；FORBIDDEN: 受限初始口令会话或当前账户没有portal.use |
 
 **步骤**
 
-1. 按当前subjectId/siteId
-2. 无记录明确default system/zh-Hans/dashboard/revision0
-3. 不授权任何业务操作
+1. 在同一只读事务以readActorAccount核当前admin session、site/account、全部认证/权限水位及portal.use；受限初始口令会话拒绝偏好读取
+2. 仅按已核op.actor.subjectId读取私有preferences；无记录返回system/zh-Hans/dashboard/revision0，不插入默认行
+3. 持久偏好按原记录返回；权限变动后不偷偷重写defaultRoute，偏好结果本身不授予业务权限
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `FORBIDDEN`：受限初始口令会话或当前账户没有portal.use（不可重试）
 
 - 副作用：无
 - 授权：portal.use
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：只读
-- 依赖：无
+- 并发：单个SQLite只读事务同时核当前本人权限与读取偏好，站点来自当前权威session/account
+- 幂等：只读；缺失默认值不产生持久副作用
+- 依赖：`identity.identityStoreFromContext`、`identity.readActorAccount`、`identity.readPreferenceRecord`
+- 其他依赖说明：contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑
 
 ## identity.UpdatePreferences
 
@@ -2426,13 +2428,15 @@ func UpdatePreferences(ctx context.Context, op OperationContext, input UpdatePre
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `UpdatePreferencesResult` | 保存自身主题/语言/默认后台页的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 私有完整安全回执状态、JSON或哈希不一致 |
 
 **步骤**
 
-1. 检查允许界面locale/route
-2. 默认页功能必须仍被授权
-3. CAS私有记录；其他主体键不允许输入
+1. 以私有HMAC绑定caller/dataEpoch/动作与完整请求，单个写事务先核当前本人portal.use和认证/权限水位，不接受其他subject/site键
+2. 先按site/actor/operation查原完整安全回执；同HMAC/keyId回放原结果，不再CAS、提升版本或覆盖后来偏好；异摘要或原key版本不可用冲突
+3. 新写要求preferences.revision等于expectedRevision；允许locale与defaultRoute key已由入口按公共schema一次验证；目标页所需权限以当前权威账户功能及超管标志派生，不信任浏览器或portal前端授权
+4. 无记录仅expectedRevision0可首次写revision1；已有记录须CAS匹配expectedRevision，每个新的成功操作即使值相同也只提升一次偏好revision
+5. 同事务写theme/locale/defaultRoute/单调revision与完整安全preferences回执后提交；不改变account/credential/permission/session水位，不写账号索引或授权撤销事件
 
 **错误**
 
@@ -2442,12 +2446,80 @@ func UpdatePreferences(ctx context.Context, op OperationContext, input UpdatePre
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：私有完整安全回执状态、JSON或哈希不一致（不可重试）
 
-- 副作用：私有事务、receipt和撤销outbox
+- 副作用：同一私有SQLite事务写本人preferences与完整安全operation_receipts；无账号索引、认证变更或outbox副作用
 - 授权：portal.use
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`identity.CheckAuthorization`
+- 并发：单个SQLite写事务：当前权威会话/账户授权、原结果回放、偏好CAS和完整回执一致提交；恢复/维护写屏障由入口建立
+- 幂等：site/actor/operation唯一键绑定caller/dataEpoch/动作/HMAC/keyId；同请求返回首次完整安全结果，原成功重放先于当前偏好CAS或目标页新授权检查，不覆盖后来修改
+- 依赖：`identity.identityStoreFromContext`、`identity.readActorAccount`、`identity.privateIdentityDigest`、`identity.readIdentityReceipt`、`identity.readPreferenceRecord`、`identity.validatePreferenceSelection`、`identity.saveIdentityReceipt`
+- 其他依赖说明：contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑
+
+## identity.readPreferenceRecord
+
+- 级别：参考
+- 文件：`modules/identity/internal/preference_service.go`
+- 作用：读取已核本人偏好；无记录返回固定默认且found=false
+
+```go
+func readPreferenceRecord(ctx context.Context, query sessionQueryer, accountID string) (PortalPreferences, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取已核本人偏好；无记录返回固定默认且found=false
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域已核当前本人portal.use的私有用例调用
+- 并发：与外层用例共用SQLite事务和权威账户快照
+- 幂等：只读纯派生；不扩大任何grants
+- 依赖：无
+
+## identity.validatePreferenceSelection
+
+- 级别：参考
+- 文件：`modules/identity/internal/preference_service.go`
+- 作用：从公共后台目录选择默认页所需能力，以当前权威账户派生grants核权
+
+```go
+func validatePreferenceSelection(preferences PortalPreferences, account Account) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. UILocale/AdminRouteKey允许集由公共入口严格schema一次验证；本函数信任结构，不重复枚举校验
+2. 使用当前权威account.permissions/isSuperadmin派生grants，再按gen.AdminRoutes中defaultRoute的Permissions任一能力判断；未授权返回FORBIDDEN，不扩大grants
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域已核当前本人portal.use的私有用例调用
+- 并发：与外层用例共用SQLite事务和权威账户快照
+- 幂等：只读纯派生；不扩大任何grants
+- 依赖：`identity.MapFunctionGrants`
+- 其他依赖说明：contracts/common.schema.json的PortalPreferences、UILocale、AdminRouteKey为唯一偏好schema；根permission-groups目录生成gen.InterfaceLocales与gen.AdminRoutes，身份不导入portal私有逻辑
 
 ## identity.ReadServerAccountIndex
 
@@ -3767,6 +3839,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 
 1. 仅登记真实已完成用例，路径参数由平台入口提供
 2. 本轮绑定四个账号管理真用例；列表只从已验证query组装page，三个写入accountId固定取平台PathValue，正文不允许覆盖路径身份
+3. 偏好GET/PUT绑定真实本人用例，复用公共入口的portal.use与严格schema，不从浏览器传subject/site键
 
 **错误**
 
@@ -3776,7 +3849,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`
+- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.ReadPreferences`、`identity.UpdatePreferences`
 
 ## identity.jsonOperation
 

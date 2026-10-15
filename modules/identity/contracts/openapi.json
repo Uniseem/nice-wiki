@@ -1682,7 +1682,7 @@
       "get": {
         "operationId": "readPreferences",
         "summary": "读自身后台偏好",
-        "description": "调用函数 identity.ReadPreferences；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "仅按当前可信会话的本人site/account读取或CAS保存后台偏好；服务边界统一建立schema/服务证明/委托/代次和维护约束。偏好不授予业务权限，初始口令受限会话不可调用。",
         "x-handler": "identity.ReadPreferences",
         "x-permission": "portal.use",
         "security": [
@@ -1722,13 +1722,23 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "FORBIDDEN：受限会话或当前账户没有portal.use",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "operationId": "updatePreferences",
         "summary": "保存自身主题/语言/默认后台页",
-        "description": "调用函数 identity.UpdatePreferences；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "仅按当前可信会话的本人site/account读取或CAS保存后台偏好；服务边界统一建立schema/服务证明/委托/代次和维护约束。偏好不授予业务权限，初始口令受限会话不可调用。",
         "x-handler": "identity.UpdatePreferences",
         "x-permission": "portal.use",
         "security": [
@@ -1780,7 +1790,7 @@
             }
           },
           "409": {
-            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变",
+            "description": "CONFLICT或VERSION_MISMATCH：原操作摘要/密钥版本不同，或偏好CAS版本已变化",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1791,6 +1801,16 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTEGRITY_ERROR：私有完整回执状态或哈希不一致",
             "content": {
               "application/problem+json": {
                 "schema": {

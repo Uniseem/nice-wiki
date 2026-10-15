@@ -131,6 +131,8 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 			input.AccountID = r.PathValue("accountId")
 		}),
 		"readSelf":           jsonOperation(a, identity.ReadSelf),
+		"readPreferences":    jsonOperation(a, identity.ReadPreferences),
+		"updatePreferences":  jsonOperation(a, identity.UpdatePreferences),
 		"changePassword":     jsonOperation(a, identity.ChangePassword),
 		"verifySessionCSRF":  jsonOperation(a, identity.VerifySessionCSRF),
 		"checkAuthorization": jsonOperation(a, identity.CheckAuthorization),
