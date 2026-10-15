@@ -3477,6 +3477,16 @@
       "path": "modules/identity/internal/preference_service.go",
       "kind": "source",
       "purpose": "在当前本人授权快照读写后台偏好与完整安全回执"
+    },
+    {
+      "path": "modules/jobs/internal/queries.go",
+      "kind": "source",
+      "purpose": "查看任务队列"
+    },
+    {
+      "path": "modules/jobs/migrations/0006_job_management.sql",
+      "kind": "migration",
+      "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态"
     }
   ]
 }
