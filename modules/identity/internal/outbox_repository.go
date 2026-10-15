@@ -167,7 +167,7 @@ func validateIdentityChanged(input PublishIdentityEventInput, op OperationContex
 		return platform.NewError(platform.CodeValidation, false, "身份事件时间不合法")
 	}
 	switch event.Reason {
-	case "permissions", "status", "password", "server_reset", "restore":
+	case "permissions", "status", "password", "server_reset", "restore", "session":
 	default:
 		return platform.NewError(platform.CodeValidation, false, "身份事件原因不合法")
 	}

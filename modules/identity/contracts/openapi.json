@@ -1097,6 +1097,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "FORBIDDEN：初始口令会话禁止列表",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -1133,6 +1143,36 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：仅允许portal刷新入口",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：会话轮换版本变化",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：会话权威损坏",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1219,6 +1259,26 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "CONFLICT：幂等摘要或会话版本变化",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：完整回执或会话权威损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -1237,7 +1297,7 @@
       "post": {
         "operationId": "verifySessionCSRF",
         "summary": "portal内部核对CSRF",
-        "description": "调用函数 identity.VerifySessionCSRF；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "仅portal调用；固定公开Origin、签名access与独立CSRF摘要必须属于同一当前会话。",
         "x-handler": "identity.VerifySessionCSRF",
         "x-permission": "service",
         "security": [
@@ -1286,6 +1346,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：会话权威损坏",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -1304,7 +1374,7 @@
       "post": {
         "operationId": "checkAuthorization",
         "summary": "按最新账号功能权限授权",
-        "description": "调用函数 identity.CheckAuthorization；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "仅服务调用：portal accessToken来源与可信用户委托来源互斥；action由静态handler产生，初始口令仅允许改密、当前登出和必要自身资料。",
         "x-handler": "identity.CheckAuthorization",
         "x-permission": "service",
         "security": [
@@ -1346,6 +1416,16 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：会话或功能权威损坏",
             "content": {
               "application/problem+json": {
                 "schema": {

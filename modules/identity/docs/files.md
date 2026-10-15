@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 33 个：手写 21、生成 4、配置 6、迁移 2。函数 51 个：约束 29，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 34 个：手写 21、生成 4、配置 6、迁移 3。函数 57 个：约束 29，参考 28。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -11,10 +11,10 @@
 | `modules/identity/internal/account_validator.go` | 手写 | 规范不可变账号名 | `identity.NormalizeAccountName`（参考）、`identity.AssertSuperadminImmutable`（参考） |
 | `modules/identity/internal/permission_mapping.go` | 手写 | 将已确认功能勾选映射成服务权限 | `identity.MapFunctionGrants`（参考） |
 | `modules/identity/internal/credential_service.go` | 手写 | 生成Argon2id口令哈希 | `identity.HashPassword`（参考）、`identity.VerifyPassword`（参考）、`identity.ValidatePasswordChange`（参考）、`identity.ChangePassword` |
-| `modules/identity/internal/session_service.go` | 手写 | 账号名口令登录 | `identity.CreateSession`、`identity.IssueSessionTokens`（参考）、`identity.RefreshSession`、`identity.ReadSessions`、`identity.WithSessionCursorKey`（参考） |
+| `modules/identity/internal/session_service.go` | 手写 | 账号名口令登录 | `identity.CreateSession`、`identity.IssueSessionTokens`（参考）、`identity.RefreshSession`、`identity.ReadSessions`、`identity.WithSessionCursorKey`（参考）、`identity.WithSessionRuntime`（参考）、`identity.sessionRuntimeFromContext`（参考） |
 | `modules/identity/internal/session_revocation.go` | 手写 | 退出当前或指定自身登录 | `identity.RevokeSession`、`identity.RevokeSessionFamily`（参考）、`identity.RevokeAllSessions`（参考）、`identity.RevokeOtherSessions`（参考） |
 | `modules/identity/internal/csrf_service.go` | 手写 | portal内部核对CSRF | `identity.VerifySessionCSRF` |
-| `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization` |
+| `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization`、`identity.readSessionSnapshot`（参考）、`identity.validateSessionSnapshot`（参考）、`identity.sessionAuthContext`（参考）、`identity.verifySessionAccess`（参考） |
 | `modules/identity/internal/preference_service.go` | 手写 | 读自身后台偏好 | `identity.ReadPreferences`、`identity.UpdatePreferences` |
 | `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考） |
 | `modules/identity/internal/operation_repository.go` | 手写 | 读取幂等回执 | `identity.ResolveIdentityOperation`（参考） |
@@ -39,3 +39,4 @@
 | `modules/identity/internal/gen/permission_groups.gen.go` | 生成 | make gen由根contracts/permission-groups.json生成功能开关到技术权限的固定Go表；MapFunctionGrants只读此表，不手改 | 无 |
 | `modules/identity/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/identity/migrations/0002_session_revocation.sql` | 迁移 | 为自有撤销事务追加完整结果回执列，并建立自身会话键集分页索引；不变更旧会话或预埋未确认签发协议 | 无 |
+| `modules/identity/migrations/0003_session_tokens.sql` | 迁移 | 只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据 | 无 |

@@ -26,7 +26,7 @@ type RegisterFirstSuperadminInput struct {
 }
 
 // SessionTokens 是注册结果需要返回给 cookie adapter 的敏感会话结果。
-// 会话签发尚未在本模块装配前，本文件不会自行生成未签名 token。
+// 由 IssueSessionTokens 签发，敏感字段不进入普通回执、日志或前端状态。
 type SessionTokens struct {
 	SessionID          platform.Identifier  `json:"sessionId"`
 	AccessToken        string               `json:"accessToken"`

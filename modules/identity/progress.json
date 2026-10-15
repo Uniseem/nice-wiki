@@ -2,23 +2,23 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "c826a60604f641e3db128e9d9d220a542d98dfc8e96c8ccf391f05ccb9548636",
+  "contractSha256": "cf11248b4ce11b367fdf89fcf895515b0b9e6d62debbb33da8cdb2ede7fd4bb9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-01（自身会话分页与账户全部会话撤销）",
-  "branch": "codex/identity-session-r1",
-  "baseCommit": "00dd199239aba487bceb5227aac52f27ce949d74",
-  "deliveryCommit": "3cc791b8c7b0dc5f14453060ea455dc2124caec8",
+  "assignedSession": "R1-01（会话签发刷新、CSRF与即时授权）",
+  "branch": "codex/identity-session-complete-r1",
+  "baseCommit": "325f56d7b2f6c5567c16d7e21f66d5a88a97e342",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
       "state": "in_progress",
-      "implementationCommit": "484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "ReadRegistrationState已实现；RegisterFirstSuperadmin仍需会话签发、bootstrapClaim、traffic-guard、幂等回执与outbox同事务接线"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/account_service.go",
@@ -66,9 +66,9 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "ReadSessions/WithSessionCursorKey已完成本域编译；CreateSession/IssueSessionTokens/RefreshSession仍待登录协议与跨域边界确认，待集成复核"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
@@ -76,29 +76,29 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "RevokeAllSessions已完成本域编译；RevokeSession/RevokeSessionFamily/RevokeOtherSessions仍待后续工作包，待集成复核"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/preference_service.go",
@@ -133,22 +133,22 @@
     {
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "PublishIdentityEvent已实现；约束级RelayOutbox仍缺jobs批量确认/计数客户端与BuildApplication后台接线"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/restore_security.go",
-      "state": "implemented",
-      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "InvalidateRestoredSessions需BuildApplication注入已验证restoreId并在换入后调用；Go编译与gofmt尚未运行"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "path": "modules/identity/internal/barrier_service.go",
@@ -339,6 +339,16 @@
         "evidence": null
       },
       "blocker": "本次工作包待提交与统一复核"
+    },
+    {
+      "path": "modules/identity/migrations/0003_session_tokens.sql",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     }
   ],
   "functions": [
@@ -521,101 +531,101 @@
     {
       "id": "identity.IssueSessionTokens",
       "path": "modules/identity/internal/session_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RefreshSession",
       "path": "modules/identity/internal/session_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.ReadSessions",
       "path": "modules/identity/internal/session_service.go",
-      "state": "verified",
-      "implementationCommit": "ac55706f6cd722ae6e67bf1dff1295846920c20b",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RevokeSession",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RevokeSessionFamily",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "verified",
-      "implementationCommit": "3cc791b8c7b0dc5f14453060ea455dc2124caec8",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RevokeOtherSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.VerifySessionCSRF",
       "path": "modules/identity/internal/csrf_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.CheckAuthorization",
       "path": "modules/identity/internal/authorization_service.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": null
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.ReadPreferences",
@@ -697,13 +707,13 @@
     {
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
-      "state": "implemented",
-      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "Go编译与gofmt尚未运行：当前环境无Go工具链；RelayOutbox仍未实现"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.RelayOutbox",
@@ -719,13 +729,13 @@
     {
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
-      "state": "implemented",
-      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
       },
-      "blocker": "需BuildApplication注入已验证restoreId并在换入后调用；Go编译与gofmt尚未运行"
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     },
     {
       "id": "identity.AcquireBarrier",
@@ -902,7 +912,73 @@
       },
       "blocker": null,
       "path": "modules/identity/internal/session_service.go"
+    },
+    {
+      "id": "identity.WithSessionRuntime",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+    },
+    {
+      "id": "identity.sessionRuntimeFromContext",
+      "path": "modules/identity/internal/session_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+    },
+    {
+      "id": "identity.readSessionSnapshot",
+      "path": "modules/identity/internal/authorization_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+    },
+    {
+      "id": "identity.validateSessionSnapshot",
+      "path": "modules/identity/internal/authorization_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+    },
+    {
+      "id": "identity.sessionAuthContext",
+      "path": "modules/identity/internal/authorization_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
+    },
+    {
+      "id": "identity.verifySessionAccess",
+      "path": "modules/identity/internal/authorization_service.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "仅隔离源码准备，未编译/格式/vet；所有编译与测试由集成会话在VPS执行"
+      },
+      "blocker": "待公共平台会话工具提交、VPS make build/gen/docs/check及统一复核"
     }
   ],
-  "rule": "本轮已交付函数与完整文件由集成会话按隔离VPS编译/结构检查证据升级verified；部分实现文件仍in_progress，未完成用例/HTTP/后台装配继续planned或blocked，行为验收未执行。"
+  "rule": "本轮源码未编译，修改条目保持in_progress；平台协议和VPS已有检查通过后由集成会话审查并升级，不把编译视为业务验收。"
 }

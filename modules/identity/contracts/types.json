@@ -313,19 +313,19 @@
         },
         "accessToken": {
           "type": "string",
-          "description": "sid，HttpOnly Secure SameSite=Strict，禁止日志",
+          "description": "identity签发的Ed25519 access JWT，固定issuer/audience，HttpOnly Secure SameSite=Strict，禁止日志",
           "minLength": 1,
           "maxLength": 4096
         },
         "refreshToken": {
           "type": "string",
-          "description": "单次轮换secret，仅cookieadapter使用",
+          "description": "32字节CSPRNG不透明secret，单次轮换，仅cookie adapter使用；只保存SHA256摘要",
           "minLength": 1,
           "maxLength": 4096
         },
         "csrfToken": {
           "type": "string",
-          "description": "会话绑定token",
+          "description": "独立32字节CSPRNG会话绑定secret，只保存SHA256摘要",
           "minLength": 1,
           "maxLength": 2048
         },
@@ -355,7 +355,7 @@
     },
     "AuthorizationRequest": {
       "type": "object",
-      "description": "授权请求；产品按功能、无文档范围",
+      "description": "授权请求；portal固定access解析或原始可信委托两种来源，禁止混用；产品按功能、无文档范围",
       "additionalProperties": false,
       "properties": {
         "subjectId": {
@@ -407,15 +407,72 @@
             }
           ],
           "description": "查最新null"
+        },
+        "accessToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "仅portal内部由cookie取出的identity签名access，禁止日志"
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "可信调用方从静态路由或handler登记得到的模块:operationId，不采用浏览器自报；受限会话缺失即拒绝"
         }
       },
       "required": [
-        "subjectId",
-        "sessionId",
-        "siteId",
-        "permission",
-        "resourceId",
-        "expectedPermissionRevision"
+        "permission"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "accessToken"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "subjectId"
+                ]
+              },
+              {
+                "required": [
+                  "sessionId"
+                ]
+              },
+              {
+                "required": [
+                  "siteId"
+                ]
+              },
+              {
+                "required": [
+                  "resourceId"
+                ]
+              },
+              {
+                "required": [
+                  "expectedPermissionRevision"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "subjectId",
+            "sessionId",
+            "siteId",
+            "resourceId",
+            "expectedPermissionRevision"
+          ],
+          "not": {
+            "required": [
+              "accessToken"
+            ]
+          }
+        }
       ]
     },
     "AuthorizationDecision": {
@@ -523,7 +580,8 @@
             "status",
             "password",
             "server_reset",
-            "restore"
+            "restore",
+            "session"
           ]
         },
         "occurredAt": {
@@ -1484,7 +1542,7 @@
       "properties": {
         "sessionId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "session"
+          "description": "可省略；若提供必须等于access已验签sessionId"
         },
         "csrfToken": {
           "type": "string",
@@ -1497,10 +1555,16 @@
           "description": "Origin",
           "minLength": 1,
           "maxLength": 512
+        },
+        "accessToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "portal从HttpOnly cookie读取的签名access，和CSRF摘要绑定同一当前会话"
         }
       },
       "required": [
-        "sessionId",
+        "accessToken",
         "csrfToken",
         "origin"
       ]

@@ -4,6 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"time"
+
+	"nice-wiki/libs/platform/outbox"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/serviceauth"
@@ -68,6 +72,25 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 	if !ok {
 		return ReadSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话私有存储尚未装配")
 	}
+	readTx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ReadSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话列表快照不可用")
+	}
+	defer readTx.Rollback()
+	snapshot, err := readSessionSnapshot(ctx, readTx, op.Actor.SessionID)
+	if err != nil {
+		return ReadSessionsResult{}, err
+	}
+	if snapshot.Session.AccountID != op.Actor.SubjectID || snapshot.Session.SiteID != op.Actor.SiteID || snapshot.Status != "active" ||
+		op.Actor.SessionRevision <= 0 || snapshot.Session.Revision != op.Actor.SessionRevision {
+		return ReadSessionsResult{}, platform.NewError(platform.CodeUnauthenticated, false, "账户当前会话不匹配")
+	}
+	if err := validateSessionSnapshot(snapshot, op.DataEpoch, true); err != nil {
+		return ReadSessionsResult{}, err
+	}
+	if snapshot.MustChangePassword {
+		return ReadSessionsResult{}, platform.NewError(platform.CodeForbidden, false, "初始口令必须先修改")
+	}
 	limit := input.Page.Limit
 	if limit == 0 {
 		limit = 20
@@ -91,7 +114,7 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 
 		cursor = position
 	}
-	rows, err := store.db.QueryContext(ctx, `
+	rows, err := readTx.QueryContext(ctx, `
         SELECT session_id, account_id, site_id, credential_revision, permission_revision,
             issued_at, expires_at, absolute_expires_at, device_label,
             restricted_to_password_change, revoked_at, revision
@@ -138,4 +161,227 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 		}
 	}
 	return result, nil
+}
+
+// SessionRuntime 由启动装配注入签名引用、公钥表与固定公开Origin。
+type SessionRuntime struct {
+	Key          platform.SigningKey
+	Anchors      platform.TrustAnchors
+	PublicOrigin string
+}
+
+type sessionRuntimeContextKey struct{}
+
+// WithSessionRuntime 只把受信进程配置放入本域上下文，不接受请求自报配置。
+func WithSessionRuntime(ctx context.Context, runtime SessionRuntime) context.Context {
+	return context.WithValue(ctx, sessionRuntimeContextKey{}, runtime)
+}
+
+func sessionRuntimeFromContext(ctx context.Context) (SessionRuntime, error) {
+	runtime, ok := ctx.Value(sessionRuntimeContextKey{}).(SessionRuntime)
+	if !ok {
+		return SessionRuntime{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话运行配置尚未装配")
+	}
+	return runtime, nil
+}
+
+type IssueSessionTokensInput struct {
+	Session Session              `json:"session"`
+	Auth    platform.AuthContext `json:"auth"`
+}
+
+type IssueSessionTokensResult struct {
+	Tokens SessionTokens `json:"tokens"`
+}
+
+// IssueSessionTokens 在外层私有事务内轮换独立秘密，只将摘要写入数据库。
+func IssueSessionTokens(ctx context.Context, op OperationContext, input IssueSessionTokensInput) (IssueSessionTokensResult, error) {
+	tx, ok := identityTransactionFromContext(ctx)
+	if !ok {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeForbidden, false, "会话签发仅允许身份私有事务")
+	}
+	runtime, err := sessionRuntimeFromContext(ctx)
+	if err != nil {
+		return IssueSessionTokensResult{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO auth_state (singleton, auth_epoch) VALUES (1, ?)
+        ON CONFLICT (singleton) DO NOTHING`, platform.NewIdentifier()); err != nil {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "认证代次初始化失败")
+	}
+	var authEpoch platform.Identifier
+	if err := tx.QueryRowContext(ctx, `SELECT auth_epoch FROM auth_state WHERE singleton = 1`).Scan(&authEpoch); err != nil {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "认证代次不可读")
+	}
+	absolute, err := platform.ParseTimestamp(input.Session.AbsoluteExpiresAt)
+	if err != nil {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeIntegrityError, false, "会话绝对期限损坏")
+	}
+	issued, err := platform.ParseTimestamp(input.Session.IssuedAt)
+	if err != nil {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeIntegrityError, false, "会话签发时间损坏")
+	}
+	if cap := issued.Add(7 * 24 * time.Hour); cap.Before(absolute) {
+		absolute = cap
+	}
+	now := time.Now().UTC().Truncate(time.Second)
+	expires := now.Add(15 * time.Minute)
+	if absolute.Before(expires) {
+		expires = absolute.Truncate(time.Second)
+	}
+	if !now.Before(expires) {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeUnauthenticated, false, "会话绝对期限已到")
+	}
+	secrets, err := serviceauth.GenerateSessionSecrets()
+	if err != nil {
+		return IssueSessionTokensResult{}, err
+	}
+	token, err := serviceauth.SignSessionAccess(runtime.Key, platform.SessionAccessClaims{
+		SessionID: input.Session.SessionID, AccountID: input.Session.AccountID, SiteID: input.Session.SiteID,
+		CredentialRevision: input.Session.CredentialRevision, PermissionRevision: input.Session.PermissionRevision,
+		SessionRevision: input.Session.Revision, AuthEpoch: authEpoch, DataEpoch: op.DataEpoch,
+		IssuedAt: now.Unix(), ExpiresAt: expires.Unix(), TokenID: secrets.AccessNonce,
+	})
+	if err != nil {
+		return IssueSessionTokensResult{}, err
+	}
+	var familyID, oldDigest string
+	var familyRevision platform.Revision
+	var revoked sql.NullString
+	err = tx.QueryRowContext(ctx, `SELECT family_id, refresh_digest, revision, revoked_at
+        FROM session_families WHERE session_id = ?`, input.Session.SessionID).
+		Scan(&familyID, &oldDigest, &familyRevision, &revoked)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		if _, err := tx.ExecContext(ctx, `INSERT INTO session_families
+            (family_id, session_id, auth_epoch, data_epoch, refresh_digest, access_digest, csrf_digest, revision)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)`, platform.NewIdentifier(), input.Session.SessionID, authEpoch, op.DataEpoch,
+			platform.HashBytes([]byte(secrets.RefreshToken)), platform.HashBytes([]byte(token)), platform.HashBytes([]byte(secrets.CSRFToken))); err != nil {
+			return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话秘密摘要写入失败")
+		}
+	case err != nil:
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话族不可读")
+	default:
+		if revoked.Valid {
+			return IssueSessionTokensResult{}, platform.NewError(platform.CodeUnauthenticated, false, "会话族已撤销")
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO consumed_refresh_tokens (refresh_digest, family_id, consumed_at)
+            VALUES (?, ?, ?)`, oldDigest, familyID, platform.Now()); err != nil {
+			return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "已消费会话摘要写入失败")
+		}
+		changed, err := tx.ExecContext(ctx, `UPDATE session_families SET refresh_digest = ?, access_digest = ?, csrf_digest = ?,
+            auth_epoch = ?, data_epoch = ?, revision = revision + 1 WHERE family_id = ? AND revision = ? AND revoked_at IS NULL`,
+			platform.HashBytes([]byte(secrets.RefreshToken)), platform.HashBytes([]byte(token)), platform.HashBytes([]byte(secrets.CSRFToken)),
+			authEpoch, op.DataEpoch, familyID, familyRevision)
+		if err != nil {
+			return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话秘密轮换失败")
+		}
+		count, err := changed.RowsAffected()
+		if err != nil || count != 1 {
+			return IssueSessionTokensResult{}, platform.NewError(platform.CodeConflict, false, "会话族版本已变化")
+		}
+	}
+	expiresAt := platform.Timestamp(expires.Format(time.RFC3339Nano))
+	changed, err := tx.ExecContext(ctx, `UPDATE sessions SET expires_at = ? WHERE session_id = ? AND revision = ? AND revoked_at IS NULL`,
+		expiresAt, input.Session.SessionID, input.Session.Revision)
+	if err != nil {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话访问期限写入失败")
+	}
+	count, err := changed.RowsAffected()
+	if err != nil || count != 1 {
+		return IssueSessionTokensResult{}, platform.NewError(platform.CodeConflict, false, "会话版本已变化")
+	}
+	auth := input.Auth
+	auth.ExpiresAt = expiresAt
+	auth.SessionRevision = input.Session.Revision
+	return IssueSessionTokensResult{Tokens: SessionTokens{SessionID: input.Session.SessionID, AccessToken: token,
+		RefreshToken: secrets.RefreshToken, CSRFToken: secrets.CSRFToken, Auth: auth,
+		MustChangePassword: input.Session.RestrictedToPasswordChange, ExpiresAt: expiresAt}}, nil
+}
+
+type RefreshSessionInput struct {
+	RefreshToken string `json:"refreshToken"`
+}
+type RefreshSessionResult struct {
+	Tokens SessionTokens `json:"tokens"`
+}
+
+// RefreshSession 单次消费refresh；重用旧值须先提交族撤销，再返回未认证。
+func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessionInput) (RefreshSessionResult, error) {
+	if op.CallerService != "portal" {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeForbidden, false, "会话刷新仅允许portal")
+	}
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话私有存储尚未装配")
+	}
+	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
+		return RefreshSessionResult{}, err
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话刷新事务不可用")
+	}
+	defer tx.Rollback()
+	digest := platform.HashBytes([]byte(input.RefreshToken))
+	var sessionID string
+	err = tx.QueryRowContext(ctx, `SELECT session_id FROM session_families WHERE refresh_digest = ?`, digest).Scan(&sessionID)
+	if errors.Is(err, sql.ErrNoRows) {
+		var familyID, accountID, siteID string
+		err = tx.QueryRowContext(ctx, `SELECT c.family_id, s.account_id, s.site_id FROM consumed_refresh_tokens c
+            JOIN session_families f ON f.family_id = c.family_id JOIN sessions s ON s.session_id = f.session_id
+            WHERE c.refresh_digest = ?`, digest).Scan(&familyID, &accountID, &siteID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return RefreshSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "会话刷新凭据无效")
+		}
+		if err != nil {
+			return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话刷新摘要不可读")
+		}
+		revokeOp := op
+		revokeOp.Actor = platform.AuthContext{Kind: "service", SubjectID: accountID, SiteID: siteID}
+		if _, err := RevokeSessionFamily(WithIdentityTransaction(ctx, tx), revokeOp,
+			RevokeSessionFamilyInput{FamilyID: familyID, Reason: "refresh_reuse"}); err != nil {
+			return RefreshSessionResult{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "旧会话凭据撤销提交失败")
+		}
+		return RefreshSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "会话刷新凭据已被消费")
+	}
+	if err != nil {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话刷新权威不可读")
+	}
+	snapshot, err := readSessionSnapshot(ctx, tx, sessionID)
+	if err != nil {
+		return RefreshSessionResult{}, err
+	}
+	if err := validateSessionSnapshot(snapshot, op.DataEpoch, false); err != nil {
+		return RefreshSessionResult{}, err
+	}
+	if snapshot.Status != "active" {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "账户不可登录")
+	}
+	auth, err := sessionAuthContext(ctx, tx, snapshot)
+	if err != nil {
+		return RefreshSessionResult{}, err
+	}
+	changed, err := tx.ExecContext(ctx, `UPDATE sessions SET permission_revision = ?, revision = revision + 1 WHERE session_id = ? AND revision = ? AND revoked_at IS NULL`,
+		snapshot.CurrentPermissionRevision, snapshot.Session.SessionID, snapshot.Session.Revision)
+	if err != nil {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话轮换水位写入失败")
+	}
+	count, err := changed.RowsAffected()
+	if err != nil || count != 1 {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeConflict, false, "会话版本已变化")
+	}
+	snapshot.Session.Revision++
+	snapshot.Session.PermissionRevision = snapshot.CurrentPermissionRevision
+	issued, err := IssueSessionTokens(WithIdentityTransaction(ctx, tx), op,
+		IssueSessionTokensInput{Session: snapshot.Session, Auth: auth})
+	if err != nil {
+		return RefreshSessionResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话刷新提交失败")
+	}
+	return RefreshSessionResult{Tokens: issued.Tokens}, nil
 }

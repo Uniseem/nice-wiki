@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 51 个函数：约束 29 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 57 个函数：约束 29 个，参考 28 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -709,23 +709,29 @@ func IssueSessionTokens(ctx context.Context, op OperationContext, input IssueSes
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `IssueSessionTokensResult` | 签发会话和CSRFcookie数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏；CONFLICT: 会话或族CAS版本变化，或幂等键对应不同请求摘要；UNAUTHENTICATED: 会话或族不存在、撤销、到期或授权水位失效；FORBIDDEN: 调用方或本域私有事务不满足该函数边界 |
 
 **步骤**
 
-1. 生成独立access/refresh/CSRFsecret，只存digest
-2. 签名绑定session/credential/permission/auth epoch
-3. 返回cookieadapter敏感值，不保存明文secret响应
+1. 仅接受WithIdentityTransaction传入的本域事务；会话与最新授权快照由外层用例建立
+2. 读取或首次建立auth_state单行认证代次；生成独立access nonce、refresh与CSRFsecret，签名和随机数只调用libs/platform
+3. 固定iss=identity、aud=portal、Ed25519与专用token类型，绑定session/account/site/credentialRevision/permissionRevision/authEpoch/dataEpoch/sessionRevision；访问期限15分钟且不超过绝对7天
+4. 在同一事务建立一对一refresh族或消费旧refresh摘要并CAS轮换，保存access/refresh/CSRF摘要；不保存敏感响应明文
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
+- `CONFLICT`：会话或族CAS版本变化，或幂等键对应不同请求摘要（不可重试）
+- `UNAUTHENTICATED`：会话或族不存在、撤销、到期或授权水位失效（不可重试）
+- `FORBIDDEN`：调用方或本域私有事务不满足该函数边界（不可重试）
 
-- 副作用：CSPRNG与签名
+- 副作用：平台CSPRNG与签名；外部私有事务内追加摘要与轮换水位
 - 授权：identity私有sessiontxn
 - 并发：固定key版本
-- 幂等：私有单次生成；业务外层复用session回执但不重复泄露旧refresh
-- 依赖：无
+- 幂等：外层业务事务单次签发；不持久化明文敏感响应，重复旧refresh撤销族而不回放secret
+- 依赖：`identity.sessionRuntimeFromContext`
+- 其他依赖说明：auth_state认证代次权威；session_families与consumed_refresh_tokens私有摘要表；libs/platform/serviceauth.GenerateSessionSecrets与SignSessionAccess：随机数和签名机制唯一来源
 
 ## identity.RefreshSession
 
@@ -750,24 +756,28 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RefreshSessionResult` | 内部透明轮换session的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏；CONFLICT: 会话或族CAS版本变化，或幂等键对应不同请求摘要；FORBIDDEN: 调用方或本域私有事务不满足该函数边界 |
 
 **步骤**
 
-1. 锁家族digest检查期限/账户active/credentialepoch
-2. 单次消费refresh，旧值复用撤销族
-3. 事务轮换与最新permissionRevision，保留mustChangePassword限制
+1. 只接受portal服务转发的refresh cookie；同Origin与SameSite=Strict由入口建立，打开本域串行写事务
+2. 按refresh SHA256摘要查当前族；若命中已消费摘要，则在同事务撤销该族和session、登记安全outbox，提交后返回UNAUTHENTICATED
+3. 当前族须未撤销且authEpoch/dataEpoch与当前权威一致、session未撤销且未过绝对期限、账户active、credential/permissionRevision未失效
+4. 从本域权限表建立最新AuthContext，保留mustChangePassword限制，session revision CAS加一后调用IssueSessionTokens；提交后仅向cookie adapter返回本次敏感值
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
+- `CONFLICT`：会话或族CAS版本变化，或幂等键对应不同请求摘要（不可重试）
+- `FORBIDDEN`：调用方或本域私有事务不满足该函数边界（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
-- 授权：refresh cookie + SameSite=Strict + Origin
+- 授权：service:portal；refresh cookie + SameSite=Strict + Origin，入口只建立来源与服务身份，不要求有效access
 - 并发：家族行互斥
-- 幂等：单次refresh；并发旧值复用保护，浏览器singleflight
-- 依赖：`identity.IssueSessionTokens`、`identity.RevokeSessionFamily`
+- 幂等：refresh单次消费；并发或重放旧值撤销同族，敏感响应丢失需重新登录，浏览器singleflight
+- 依赖：`identity.IssueSessionTokens`、`identity.RevokeSessionFamily`、`identity.MapFunctionGrants`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`
 
 ## identity.ReadSessions
 
@@ -792,13 +802,14 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadSessionsResult` | 读取自身登录设备的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；DEPENDENCY_UNAVAILABLE: 会话数据库或签名密钥不可用；INTEGRITY_ERROR: 会话记录或分页位置损坏；FORBIDDEN: 初始口令受限会话禁止读取会话列表 |
 
 **步骤**
 
 1. 主体必须是持有account.self的admin；查询条件固定为op.actor.subjectId与siteId，不接受其他账户参数
-2. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；平台签名scope由identity.sessions、siteId、accountId、dataEpoch以Identifier不含的竖线分隔构成，载荷只含排序位置；验证相同scope后才解码
-3. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
+2. 在一致只读事务读取当前session/账户/族/认证代次，确认主体站点、未撤销、访问与绝对期限及最新凭据权限水位；初始口令受限会话拒绝会话列表
+3. 按issuedAt/sessionId升序键集分页，默认20条、最多100条；平台签名scope由identity.sessions、siteId、accountId、dataEpoch以Identifier不含的竖线分隔构成，载荷只含排序位置；验证相同scope后才解码
+4. 显式选择会话元数据列，不返回access/refresh/CSRF secret、摘要或IP；多读一条判定hasMore，无下一页省略nextCursor
 
 **错误**
 
@@ -806,12 +817,13 @@ func ReadSessions(ctx context.Context, op OperationContext, input ReadSessionsIn
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：会话数据库或签名密钥不可用（可重试）
 - `INTEGRITY_ERROR`：会话记录或分页位置损坏（不可重试）
+- `FORBIDDEN`：初始口令受限会话禁止读取会话列表（不可重试）
 
 - 副作用：无
 - 授权：account.self
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`identity.WithSessionCursorKey`、`platform.SignCursor`、`platform.VerifyCursor`
+- 依赖：`identity.WithSessionCursorKey`、`platform.SignCursor`、`platform.VerifyCursor`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
 - 其他依赖说明：libs/platform/serviceauth.SignCursor与VerifyCursor实现签名游标；未装配密钥时只要请求或生成游标即DEPENDENCY_UNAVAILABLE
 
 ## identity.WithSessionCursorKey
@@ -847,6 +859,70 @@ func WithSessionCursorKey(ctx context.Context, key platform.SigningKey) context.
 - 依赖：无
 - 其他依赖说明：libs/platform/serviceauth.SignCursor与VerifyCursor
 
+## identity.WithSessionRuntime
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：注入受信会话签名、公钥表与固定公开Origin
+
+```go
+func WithSessionRuntime(ctx context.Context, runtime SessionRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅启动装配可提供SessionRuntime，不读取请求中的密钥、信任锚或公开Origin
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
+- 依赖：无
+
+## identity.sessionRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/session_service.go`
+- 作用：读取已注入会话运行配置
+
+```go
+func sessionRuntimeFromContext(ctx context.Context) (SessionRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 未装配时DEPENDENCY_UNAVAILABLE，配置来自本域进程上下文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
+- 依赖：`identity.WithSessionRuntime`
+
 ## identity.RevokeSession
 
 - 级别：约束
@@ -870,25 +946,28 @@ func RevokeSession(ctx context.Context, op OperationContext, input RevokeSession
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RevokeSessionResult` | 退出当前或指定自身登录的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏；CONFLICT: 会话或族CAS版本变化，或幂等键对应不同请求摘要 |
 
 **步骤**
 
-1. 验证session归属
-2. 事务revokedAt与族失效水位
-3. 清cookieadapter状态，发安全事件
+1. 要求admin主体持account.self；查询session归属必须匹配actor site/account
+2. 按action/caller/actor/epoch/input摘要读取完整幂等回执；不同摘要CONFLICT，原回执重放不再写入
+3. 回执不存在时在同一事务核验当前session最新权威；初始口令受限主体只可撤销当前设备；调用RevokeSessionFamily，旧迁移目标会话没有族时直接撤销并追加安全事件
+4. 回执与撤销outbox原子提交；返回revoked=true供cookie adapter清除当前设备凭据
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
+- `CONFLICT`：会话或族CAS版本变化，或幂等键对应不同请求摘要（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
 - 授权：account.self
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：无
+- 依赖：`identity.RevokeSessionFamily`、`identity.PublishIdentityEvent`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
 
 ## identity.RevokeSessionFamily
 
@@ -913,23 +992,26 @@ func RevokeSessionFamily(ctx context.Context, op OperationContext, input RevokeS
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RevokeSessionFamilyResult` | 使refresh族全部失效的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏；UNAUTHENTICATED: 会话或族不存在、撤销、到期或授权水位失效；FORBIDDEN: 调用方或本域私有事务不满足该函数边界 |
 
 **步骤**
 
-1. 私有锁族
-2. 将revoked与authEpoch提升
-3. 同步撤销session并outbox
+1. 仅接受本域WithIdentityTransaction句柄；按familyId锁定一对一session与当前账户权威版本
+2. 未撤销族写revokedAt并提升family revision；同步撤销session、提升session revision；authEpoch仅由全站恢复更新
+3. 首次撤销追加identity.authorization.changed安全事件；已撤销返回0，外层事务负责提交
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
+- `UNAUTHENTICATED`：会话或族不存在、撤销、到期或授权水位失效（不可重试）
+- `FORBIDDEN`：调用方或本域私有事务不满足该函数边界（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
-- 授权：私有身份流程
+- 授权：仅本域私有事务，不接受HTTP直接调用
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：已撤销返回既有count
-- 依赖：无
+- 幂等：同族已撤销返回0，不重复提升水位或写outbox
+- 依赖：`identity.PublishIdentityEvent`
 
 ## identity.RevokeAllSessions
 
@@ -959,7 +1041,7 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 **步骤**
 
 1. 外部调用必须是superadmin；账户状态迁移可在由WithIdentityTransaction注入的身份私有事务内调用，事务句柄不从网络输入
-2. 按accountId与当前siteId读取权威账户/凭据版本；同事务将该账户全部未撤销会话写入revokedAt并提升session.revision，不改已撤销行
+2. 按accountId与当前siteId读取权威账户/凭据版本；同事务将该账户全部未撤销refresh族和session写入revokedAt并提升各自revision，不改已撤销行
 3. 在同一事务登记identity.authorization.changed；disabled/deleted映射status、admin_reset映射password，server_reset/restore保持原值；授权读取仍须同步检查sessions.revokedAt与revision
 4. 自有事务的幂等键绑定site/actor/operation、callerService、动作、dataEpoch与请求摘要；完整计数结果及哈希写入operation_receipts.result_json，重放返回原计数且不撤销后来建立的会话；嵌入事务由外层用例统一回执与提交
 
@@ -1000,23 +1082,27 @@ func RevokeOtherSessions(ctx context.Context, op OperationContext, input RevokeO
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RevokeOtherSessionsResult` | 改密后只保留当前设备的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；CONFLICT: 会话或族CAS版本变化，或幂等键对应不同请求摘要；UNAUTHENTICATED: 会话或族不存在、撤销、到期或授权水位失效；FORBIDDEN: 调用方或本域私有事务不满足该函数边界 |
 
 **步骤**
 
-1. 核对keepSession归属与有效性
-2. 撤销所有其他族/session
-3. 当前session CAS到新credentialRevision，由IssueSessionTokens轮换
+1. 仅接受本域改密事务，核对keepSession归属、未撤销与绝对期限；当前credential可为改密前版本
+2. 撤销其他session及其refresh族并提升各自行水位；不提升全站authEpoch
+3. 当前session CAS到新credentialRevision与当前permissionRevision并解除或保留mustChangePassword限制，后续IssueSessionTokens消费旧摘要并签发新值
+4. 外层改密用例统一保存幂等回执、写password事件并提交
 
 **错误**
 
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `CONFLICT`：会话或族CAS版本变化，或幂等键对应不同请求摘要（不可重试）
+- `UNAUTHENTICATED`：会话或族不存在、撤销、到期或授权水位失效（不可重试）
+- `FORBIDDEN`：调用方或本域私有事务不满足该函数边界（不可重试）
 
 - 副作用：私有事务、receipt和撤销outbox
-- 授权：私有改密txn
+- 授权：仅本域改密事务，keepSession须与actor当前session一致
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
+- 幂等：由外层改密用例统一回执，本函数仅在外层事务调用一次
 - 依赖：无
 
 ## identity.VerifySessionCSRF
@@ -1042,25 +1128,26 @@ func VerifySessionCSRF(ctx context.Context, op OperationContext, input VerifySes
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `VerifySessionCSRFResult` | portal内部核对CSRF的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏 |
 
 **步骤**
 
-1. 只接受portal audience
-2. 检查session active、origin与Strictcookie上下文
-3. 常量時間比对CSRF摘要，失败关闭
+1. 只接受已经验明的portal服务调用方；固定Origin由启动配置注入，与输入Origin精确匹配
+2. 平台验签access，并在同一只读事务核对access摘要、session/account/site、session/credential/permission版本、auth/data epoch、未撤销与访问/绝对期限；若输入sessionId存在必须匹配
+3. 只允许active账户；常量时间核对独立CSRF secret的SHA256摘要，不接受cookie与header自比；成功返回当前访问期限
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
 
 - 副作用：无
 - 授权：service:portal
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`
 
 ## identity.CheckAuthorization
 
@@ -1085,25 +1172,156 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `AuthorizationDecision` | 按最新账号功能权限授权的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 本域会话权威、期限、权限登记或完整结果回执损坏 |
 
 **步骤**
 
-1. 验caller/audience和subject/session，确认siteId；备份恢复控制调用按服务身份与superadmin委托校验，无专用许可分支
-2. 普通请求读当前active账户与permissionRevision；初始口令仅改密/登出/必要自身资料
-3. MapFunctionGrants核对功能权限，superadmin-only单独检查；resourceId仅审计不设文档scope
+1. portal accessToken模式只接受固定平台会话验签；subject/site/session可信委托模式要求与op.actor严格相等，两种来源由严格schema互斥
+2. 同一只读事务读取session/账户/族与auth_state，核对access摘要或委托主体、最新凭据/权限/session水位（委托sessionRevision必须为正数且等于当前session revision）、auth/data epoch、撤销和期限；纯服务无账户session不获得账户功能
+3. MapFunctionGrants只读取本域功能表派生grants；active和superadmin-only单独检查，expectedPermissionRevision不匹配即拒绝；resourceId仅审计不设文档scope
+4. 初始口令AuthContext只持account.self；仅当permission为account.self且可信静态action是identity:changePassword、identity:revokeSession、identity:readSelf时允许，缺失或其他动作拒绝；action不扩充grants
 
 **错误**
 
 - `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：本域会话权威、期限、权限登记或完整结果回执损坏（不可重试）
 
 - 副作用：无
 - 授权：service，主体必须来自可信委托
 - 并发：权限一致快照，不能缓存长期允许
 - 幂等：只读
+- 依赖：`identity.MapFunctionGrants`、`identity.sessionRuntimeFromContext`、`identity.verifySessionAccess`、`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`、`identity.sessionAuthContext`
+
+## identity.readSessionSnapshot
+
+- 级别：参考
+- 文件：`modules/identity/internal/authorization_service.go`
+- 作用：读取一致会话权威快照
+
+```go
+func readSessionSnapshot(ctx context.Context, query sessionQueryer, sessionID platform.Identifier) (sessionSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同一事务连接sessions、accounts、credentials、session_families、auth_state；缺失签发族拒绝，不返回秘密
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
+- 依赖：无
+
+## identity.validateSessionSnapshot
+
+- 级别：参考
+- 文件：`modules/identity/internal/authorization_service.go`
+- 作用：按当前权威同步拒绝撤销或陈旧会话
+
+```go
+func validateSessionSnapshot(snapshot sessionSnapshot, dataEpoch platform.Identifier, requireAccess bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 比较撤销、auth/data epoch、凭据权限水位和初始口令限制，检查绝对期限；仅access场景另查访问期限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
+- 依赖：无
+
+## identity.sessionAuthContext
+
+- 级别：参考
+- 文件：`modules/identity/internal/authorization_service.go`
+- 作用：从权威功能表派生单次授权上下文
+
+```go
+func sessionAuthContext(ctx context.Context, query sessionQueryer, snapshot sessionSnapshot) (platform.AuthContext, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取当前账号功能表并调用MapFunctionGrants；受限仅account.self，停用或删除无grants；返回真实sessionRevision供portal签发委托，旧缺版本委托失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
 - 依赖：`identity.MapFunctionGrants`
+
+## identity.verifySessionAccess
+
+- 级别：参考
+- 文件：`modules/identity/internal/authorization_service.go`
+- 作用：联合平台验签和本域摘要水位核对
+
+```go
+func verifySessionAccess(ctx context.Context, query sessionQueryer, runtime SessionRuntime, dataEpoch platform.Identifier, token string) (sessionSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 平台负责固定类型/issuer/audience/Ed25519与期限；本域常量时间核对access摘要并比较claims/current会话、凭据权限版本与认证代次
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域进程私有函数；不作为HTTP入口
+- 并发：信任调用方传入的私有事务和运行配置
+- 幂等：只读或不可变上下文派生
+- 依赖：`identity.readSessionSnapshot`、`identity.validateSessionSnapshot`
+- 其他依赖说明：libs/platform/serviceauth.VerifySessionAccess：固定协议验签唯一来源
 
 ## identity.ReadPreferences
 
@@ -1517,7 +1735,7 @@ func InvalidateRestoredSessions(ctx context.Context, op OperationContext, input 
 **步骤**
 
 1. 仅由identity.BuildApplication在本次启动换入恢复数据后调用一次
-2. 生成新authEpoch并撤销恢复数据中的全部会话；管理员需用备份中的账号重新登录
+2. 生成新authEpoch并写auth_state单行权威；同事务撤销全部session和refresh族并提升水位；管理员需用备份中的账号重新登录
 3. 保留账户密码/flags/超管唯一身份；服务签名密钥在control区，不随恢复替换
 
 **错误**
@@ -1971,7 +2189,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## identity.Serve

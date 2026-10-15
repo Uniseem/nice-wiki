@@ -69,6 +69,13 @@ func InvalidateRestoredSessions(ctx context.Context, op OperationContext, input 
 		if decision.TargetDataEpoch != input.TargetDataEpoch || !platform.ValidIdentifier(decision.NewAuthEpoch) {
 			return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeIntegrityError, false, "恢复会话决定与目标代次不一致")
 		}
+		var activeAuthEpoch string
+		if err := store.db.QueryRowContext(ctx, `SELECT auth_epoch FROM auth_state WHERE singleton = 1`).Scan(&activeAuthEpoch); err != nil {
+			return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeIntegrityError, false, "恢复决定缺少认证代次权威")
+		}
+		if activeAuthEpoch != decision.NewAuthEpoch {
+			return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeIntegrityError, false, "恢复决定与认证代次权威不一致")
+		}
 		return InvalidateRestoredSessionsResult{InvalidatedCount: decision.Invalidated, NewAuthEpoch: decision.NewAuthEpoch}, nil
 	}
 	if state == "open" {
@@ -99,7 +106,16 @@ func InvalidateRestoredSessions(ctx context.Context, op OperationContext, input 
 	if err != nil {
 		return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复会话事务不可用")
 	}
-	result, err := tx.ExecContext(ctx, `UPDATE sessions SET revoked_at = ? WHERE revoked_at IS NULL`, platform.Now())
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO auth_state (singleton, auth_epoch) VALUES (1, ?)
+        ON CONFLICT (singleton) DO UPDATE SET auth_epoch = excluded.auth_epoch`, newAuthEpoch); err != nil {
+		return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复认证代次写入失败")
+	}
+	now := platform.Now()
+	if _, err := tx.ExecContext(ctx, `UPDATE session_families SET revoked_at = ?, revision = revision + 1 WHERE revoked_at IS NULL`, now); err != nil {
+		return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复会话族失效写入失败")
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE sessions SET revoked_at = ?, revision = revision + 1 WHERE revoked_at IS NULL`, now)
 	if err != nil {
 		_ = tx.Rollback()
 		return InvalidateRestoredSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复会话失效写入失败")

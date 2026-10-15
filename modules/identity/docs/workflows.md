@@ -4,6 +4,10 @@
 
 首注册不加初始化码；部署后立即注册或注册完成前不暴露端口。超管创建子账号默认勾选10项功能并设置初始密码；初始口令session不能读后台业务。改密旧口令+两遍新口令，至少8位、不同旧；其他设备立即失效，当前设备换token保持登录。
 
+会话access由identity固定`iss=identity`、`aud=portal`、`typ=NW-SESSION`的Ed25519令牌表示，15分钟访问期、最长7天绝对期限；refresh和CSRF各为独立32字节随机secret，仅保留SHA256摘要。refresh不依赖未过期access；旧refresh再次使用必须先提交族与会话撤销和安全outbox，再返回未认证，不能因返回错误回滚撤销。浏览器刷新须singleflight；敏感响应不进入可重放普通回执，响应丢失后重新登录。
+
+初始口令的单次授权额外检查可信服务从静态路由绑定产生的`action`，仅`identity:changePassword`、`identity:revokeSession`、`identity:readSelf`与`account.self`组合允许；缺失或其他action失败关闭，不允许会话列表或偏好读取。受限登出只撤销当前设备。action不能由浏览器选择，也不能增加原有功能grants；后续HTTP绑定须按实际handler提供固定值。
+
 服务器查control/account-index.json找账号；忘密在identity私有control/reset-superadmin.txt写新口令，watcher核对固定路径/hash与OS权限，凭据提交后删除该文件，mustChangePassword=true。
 
 恢复由data-protection服务身份携带发起恢复的superadmin委托驱动，不签发专用恢复许可（ADR0003）。identity服务签名密钥在control区，不随恢复替换；换入恢复数据后启动流程撤销全部会话，管理员用备份中的账号重新登录。
