@@ -76,6 +76,10 @@ func NewApplication(
 	return application
 }
 
+// Serve 与 Shutdown 实现 platform.Application，供进程模板调用。
+func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a) }
+func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
+
 // Serve 启动单个HTTP监听；ctx取消时进入统一安全关闭流程。
 func Serve(ctx context.Context, app *Application) error {
 	if app == nil || app.httpServer == nil {

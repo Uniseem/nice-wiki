@@ -10,18 +10,29 @@ import (
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
+// ValidateRuntimeTransitionInput 是验证维护与恢复状态迁移矩阵的输入。
+type ValidateRuntimeTransitionInput struct {
+	Current gen.RuntimeState      `json:"current"`
+	Command gen.RuntimeTransition `json:"command"`
+}
+
+// ValidateRuntimeTransitionResult 是迁移矩阵校验结果。
+type ValidateRuntimeTransitionResult struct {
+	Valid bool `json:"valid"`
+}
+
 // ValidateRuntimeTransition 校验 RuntimePhase 的唯一迁移矩阵；它不写控制库。
-func ValidateRuntimeTransition(input gen.ValidateRuntimeTransitionInput) (gen.ValidateRuntimeTransitionResult, error) {
+func ValidateRuntimeTransition(input ValidateRuntimeTransitionInput) (ValidateRuntimeTransitionResult, error) {
 	if err := validateRuntimeStateShape(input.Current); err != nil {
-		return gen.ValidateRuntimeTransitionResult{}, err
+		return ValidateRuntimeTransitionResult{}, err
 	}
 	if input.Command.ExpectedRevision != input.Current.Revision {
-		return gen.ValidateRuntimeTransitionResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态revision已变化")
+		return ValidateRuntimeTransitionResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态revision已变化")
 	}
 	if err := validateTransitionFields(input.Current, input.Command); err != nil {
-		return gen.ValidateRuntimeTransitionResult{}, err
+		return ValidateRuntimeTransitionResult{}, err
 	}
-	return gen.ValidateRuntimeTransitionResult{Valid: true}, nil
+	return ValidateRuntimeTransitionResult{Valid: true}, nil
 }
 
 // TransitionRuntimeState 按 expectedRevision 原子迁移控制库状态。
@@ -57,7 +68,7 @@ func TransitionRuntimeState(ctx context.Context, op platform.OperationContext, i
 	if op.DataEpoch != "" && string(current.DataEpoch) != string(op.DataEpoch) {
 		return gen.TransitionRuntimeStateResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态dataEpoch已变化")
 	}
-	if _, err := ValidateRuntimeTransition(gen.ValidateRuntimeTransitionInput{Current: current, Command: input}); err != nil {
+	if _, err := ValidateRuntimeTransition(ValidateRuntimeTransitionInput{Current: current, Command: input}); err != nil {
 		return gen.TransitionRuntimeStateResult{}, err
 	}
 	next, err := applyTransition(current, input)
@@ -171,7 +182,7 @@ func validateTransitionFields(current gen.RuntimeState, command gen.RuntimeTrans
 		return validateRestoreCommand(current, command)
 	}
 	if current.Phase == gen.RestoreRollingBack && command.Action == gen.CompleteRollback {
-		if !allReceiptsInState(current, gen.RolledBack) {
+		if !switchedReceiptsRolledBack(current) {
 			return platform.NewError(platform.CodeLocked, false, "已换入域rolled-back回执未齐")
 		}
 		return validateRestoreCommand(current, command)
@@ -303,6 +314,19 @@ func allReceiptsInState(state gen.RuntimeState, expected gen.ActivationReceiptSt
 	}
 	for _, module := range state.RequiredModules {
 		if !seen[module] {
+			return false
+		}
+	}
+	return true
+}
+
+// switchedReceiptsRolledBack 判断已换入的域是否全部换回：回执按域覆盖，
+// 换回后的域回执变为 rolled-back，仍为 switched 的域即尚未换回。从未换入
+// 的域在平台换目录协议中不会产生回执（ApplyRestoreSwap 返回 none），不能
+// 要求其提交 rolled-back，否则换回永远无法完成。
+func switchedReceiptsRolledBack(state gen.RuntimeState) bool {
+	for _, receipt := range state.ActivationReceipts {
+		if receipt.State != gen.RolledBack {
 			return false
 		}
 	}

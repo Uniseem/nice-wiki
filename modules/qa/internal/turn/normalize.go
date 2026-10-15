@@ -8,6 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 	"nice-wiki/libs/platform"
 )
@@ -23,9 +24,9 @@ type NormalizeQuestionInput struct {
 
 // NormalizeQuestionResult 是问题规范化结果。
 type NormalizeQuestionResult struct {
-	Normalized   string         `json:"normalized"`
-	QuestionHash platform.Hash   `json:"questionHash"`
-	Anchors      []string       `json:"anchors"`
+	Normalized   string        `json:"normalized"`
+	QuestionHash platform.Hash `json:"questionHash"`
+	Anchors      []string      `json:"anchors"`
 }
 
 const (
@@ -46,6 +47,14 @@ func NormalizeQuestion(ctx context.Context, op OperationContext, input Normalize
 		return NormalizeQuestionResult{}, platform.NewError(platform.CodeValidation, false, "问答输入不合法")
 	}
 
+	// 语言标签按 BCP 47 规范化后参与缓存哈希，避免 zh-cn/zh-CN 等写法
+	// 得到不同的问题哈希；无法解析的标签按输入不合法拒绝。
+	tag, err := language.Parse(strings.TrimSpace(input.Language))
+	if err != nil {
+		return NormalizeQuestionResult{}, platform.NewError(platform.CodeValidation, false, "问答语言不合法")
+	}
+	languageTag := tag.String()
+
 	normalized := normalizeWhitespace(input.Question)
 	normalized = foldNaturalCase(normalized)
 	if err := checkNormalizeContext(ctx, op, startedAt); err != nil {
@@ -57,7 +66,7 @@ func NormalizeQuestion(ctx context.Context, op OperationContext, input Normalize
 
 	return NormalizeQuestionResult{
 		Normalized:   normalized,
-		QuestionHash: platform.HashBytes([]byte(input.Language + "\x00" + normalized)),
+		QuestionHash: platform.HashBytes([]byte(languageTag + "\x00" + normalized)),
 		Anchors:      extractAnchors(normalized),
 	}, nil
 }

@@ -1,5 +1,15 @@
 # 流量风控会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- 迁移改为 go:embed 读取 `0001_domain.sql`，删除内联副本；决定日志读取按条目 ID 聚合，open 后跟 done 不再误判未决。
+- 运行状态适配解开 `state` 外层；补齐 go.sum，gofmt 整理。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+
 ## 本次事实（R1-13 私有策略库启动恢复切片，2026-10-15）
 
 - 实际基线：`588de8fa991340df7dcf019f8c11849f85e1b796`；当前共享工作区分支：`codex/analytics-r1-storage-contract-audit`，分支名与本域不一致；traffic-guard 源码提交：`7aa44567609713b8810b9b8ca9ba61579648d55a`，迁移辅助文件收回提交：`13396bc`；未push、未部署。

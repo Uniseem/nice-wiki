@@ -12,7 +12,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
-	mediaDomain "nice-wiki/modules/media"
+	mediaDomain "nice-wiki/modules/media/internal"
 	"nice-wiki/modules/media/internal/gen"
 	"nice-wiki/modules/media/internal/transport"
 )
@@ -74,8 +74,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	if _, err := mediaDomain.RecoverBlobJournal(ctx, platform.OperationContext{
-		RequestID:   platform.NewIdentifier(),
-		OperationID: platform.NewIdentifier(),
+		RequestID:     platform.NewIdentifier(),
+		OperationID:   platform.NewIdentifier(),
 		CallerService: ModuleSlug,
 		Actor: platform.AuthContext{
 			SubjectID: "system",
@@ -125,11 +125,15 @@ func (r *runtimeAuthority) ReadRuntimeState(ctx context.Context) (platform.Runti
 	if err != nil {
 		return platform.RuntimeView{}, err
 	}
-	var view platform.RuntimeView
-	if err := json.Unmarshal(raw, &view); err != nil || view.DataEpoch == "" || view.Phase == "" {
+	// site-config readRuntimeState 返回 {"state": RuntimeState}；RuntimeState 的
+	// dataEpoch/phase/restoreId/targetDataEpoch/maintenance 字段与 RuntimeView 同名。
+	var response struct {
+		State platform.RuntimeView `json:"state"`
+	}
+	if err := json.Unmarshal(raw, &response); err != nil || response.State.DataEpoch == "" || response.State.Phase == "" {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行状态响应不合法")
 	}
-	return view, nil
+	return response.State, nil
 }
 
 func validateDependencyEndpoints(config platform.ServiceConfig) error {

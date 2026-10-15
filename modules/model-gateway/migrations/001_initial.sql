@@ -110,23 +110,3 @@ CREATE TABLE IF NOT EXISTS barriers (
     data_epoch TEXT NOT NULL,
     deadline TEXT NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS outbox (
-    event_id TEXT PRIMARY KEY,
-    event_type TEXT NOT NULL,
-    event_version INTEGER NOT NULL,
-    producer TEXT NOT NULL,
-    subject_id TEXT NOT NULL,
-    revision INTEGER NOT NULL CHECK (revision >= 0),
-    occurred_at TEXT NOT NULL,
-    data_epoch TEXT NOT NULL,
-    payload_json BLOB NOT NULL,
-    payload_hash TEXT NOT NULL,
-    state TEXT NOT NULL,
-    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
-    next_attempt_at TEXT NOT NULL,
-    lease_until TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_outbox_pending
-    ON outbox (state, next_attempt_at, occurred_at, event_id);

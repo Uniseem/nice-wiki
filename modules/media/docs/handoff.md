@@ -1,5 +1,17 @@
 # 资源媒体会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- 存储改为 ADR0005 规定的私有 SQLite（`active/media.db`）：新增 `migrations/0001_domain.sql`（upload_sessions、upload_receipts、assets、blob_journal）与 go:embed `migrations/migrations.go`，弃用此前整份重写的 `metadata.json`/`blob-journal.jsonl`。
+- 提交顺序改为“PREPARED 日志单独提交 → 写不可变文件 → 单事务写资源元数据+会话完成+COMMITTED”，消除此前 COMMITTED 先于元数据落盘、崩溃后恢复必报 INTEGRITY_ERROR 的窗口；`RecoverBlobJournal` 改读 blob_journal 表。
+- 修正 `internal/app/wire.go` 的错误导入路径；`RecoverBlobJournalInput/Result` 改在本域声明（生成器只产出 OpenAPI 引用的类型）；运行状态适配解开 `state` 外层；平台 nw_outbox/nw_inbox 在同库 EnsureSchema。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 遗留：分块写入、完成校验、引用与 HTTP 路由仍未实现，BuildApplication 仍按合同返回 DEPENDENCY_UNAVAILABLE。
+
 ## 本次事实（媒体私有存储与上传处理，2026-10-15）
 
 - 基线：`3db911390e35a07007d70a1d2f5cc15fe4092667`；分支：`codex/media-upload-storage`；独占范围：`modules/media/`；源码提交：`517719d`。状态、progress 和本交接将在后续台账提交中落地；不 push。
@@ -18,7 +30,7 @@
 
 ## 明确决策与遗留
 
-- 本次不引入第三方存储或 SQLite 依赖；本切片使用本域私有文件元数据和 journal，后续如需迁移必须先修设计/契约并声明 schema 迁移。
+- （已被集成复核取代：按 ADR0005 改为私有 SQLite）原决策：本次不引入第三方存储或 SQLite 依赖，使用本域私有文件元数据和 journal。
 - 本次不实现 chunk writer、complete upload、MIME/scene/payload 校验、reference pin/confirm、HTTP 全量路由、outbox、订阅和 jobs worker；不以 `DEPENDENCY_UNAVAILABLE` 占位函数冒充实现。
 - `BuildApplication` 仍必须在缺少全部约束级 handler 时失败，这是契约要求；集成会话不得把已有启动边界检查当作服务可用。
 

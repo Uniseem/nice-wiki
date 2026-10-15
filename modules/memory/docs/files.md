@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 39、UI 3、生成 5、配置 10、迁移 1。函数 60 个：约束 42，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 60 个：手写 40、UI 3、生成 5、配置 10、迁移 2。函数 62 个：约束 42，参考 20。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -42,7 +42,9 @@
 | `modules/memory/internal/assistant/conversation.go` | 手写 | 保存可连续的记忆助手对话所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AppendAssistantMessage`、`memory.ReadAssistantConversation`、`memory.DeleteAssistantConversation` |
 | `modules/memory/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RunWorker` |
 | `modules/memory/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
-| `modules/memory/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
+| `modules/memory/migrations/001_initial.sql` | 迁移 | schemaVersion1建本域active业务表与唯一约束；nw_outbox/nw_inbox由平台EnsureSchema建立不在此重复；control库迁移见control/0001_control.sql，不属于业务恢复。 | 无 |
+| `modules/memory/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续；另内嵌control区控制库迁移 | `memory.All`（参考）、`memory.Control`（参考） |
+| `modules/memory/migrations/control/0001_control.sql` | 迁移 | control区控制库初始迁移：control_state（屏障与安全点单例）、restore_receipts与schema_migrations；不随恢复换目录替换 | 无 |
 | `modules/memory/cmd/memory/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `memory.main` |
 | `modules/memory/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `memory.BuildApplication` |
 | `modules/memory/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `memory.Serve`、`memory.Shutdown`、`memory.Health`、`memory.Ready` |

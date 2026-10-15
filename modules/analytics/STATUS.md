@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：implementation；本域业务尚未验收、尚未部署。
 
+- 2026-10-15 集成复核修复：site-config 运行状态适配改为解开 `{"state": RuntimeState}` 外层，此前字段全空会被平台按“运行状态不完整”拒绝启动。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 本次复核基线为 `3db911390e35a07007d70a1d2f5cc15fe4092667`，独占分支为 `codex/analytics-r1-storage-contract-audit`；本次无业务代码交付，未 push。
 - 已建立 `cmd/analytics` 入口、应用装配、HTTP 生命周期、匿名 health/ready 路由、独立 Go module、默认配置、镜像和部署 manifest。生成目录未手改。
 - 所有已登记 OpenAPI 路由均绑定到生成 server interface；beacon、审计、访问/费用汇总、导出、屏障和快照业务尚未实现，统一按合同返回 `DEPENDENCY_UNAVAILABLE`，不返回伪造成功结果。

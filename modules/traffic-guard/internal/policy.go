@@ -25,12 +25,12 @@ type ValidatePolicyResult struct {
 }
 
 const (
-	minPolicyRate           = 1
-	maxSubjectRate          = 1000
-	maxBurst                = 100
-	maxSiteRate             = 100000
-	minPolicyConcurrency    = 1
-	maxPolicyConcurrency    = 128
+	minPolicyRate        = 1
+	maxSubjectRate       = 1000
+	maxBurst             = 100
+	maxSiteRate          = 100000
+	minPolicyConcurrency = 1
+	maxPolicyConcurrency = 128
 )
 
 // ValidatePolicy 校验首版准入策略的整数速率、突发量和并发范围。

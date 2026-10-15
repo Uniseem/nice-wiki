@@ -7,7 +7,7 @@
   "assignedSession": "R1-05（正文提交日志恢复）",
   "branch": "codex/content-r1-05-recovery",
   "baseCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
-  "deliveryCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
+  "deliveryCommit": "36a8091453977012a35f39ee3179360a24471d0e",
   "deployment": "not_started",
   "files": [
     {
@@ -133,7 +133,7 @@
     {
       "path": "modules/content/internal/revision_files.go",
       "state": "implemented",
-      "implementationCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
+      "implementationCommit": "a5aecca9b9053532f66f588e79c0a0423daa75aa",
       "verification": {
         "state": "not_run",
         "evidence": "已完成静态 JSON/隐私/差异空白检查；当前环境无 Go/gofmt，未运行编译或恢复行为检查"
@@ -143,7 +143,7 @@
     {
       "path": "modules/content/internal/revision_repository.go",
       "state": "implemented",
-      "implementationCommit": "448ad37fbb2980e0eab87845be100d2e731bc409",
+      "implementationCommit": "36a8091453977012a35f39ee3179360a24471d0e",
       "verification": {
         "state": "not_run",
         "evidence": "已实现CommitDraftJournal事务边界与PREPARED正文核验；git diff --check通过，Go编译/gofmt/行为检查未运行"
@@ -413,7 +413,7 @@
     {
       "path": "modules/content/cmd/content/main.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "未能运行go build/go vet/gofmt：当前环境无Go工具链，VPS不可用"
@@ -423,7 +423,7 @@
     {
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "配置/信任锚/运行权威/恢复入口已接入；未能运行Go构建检查"
@@ -433,7 +433,7 @@
     {
       "path": "modules/content/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "HTTP生命周期与匿名状态路由已写入；未能运行go build/go vet/gofmt"
@@ -443,7 +443,7 @@
     {
       "path": "modules/content/go.mod",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "固定Go工具链与本域直接依赖已登记；未能运行go mod download"
@@ -463,7 +463,7 @@
     {
       "path": "modules/content/Dockerfile",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已核对非root运行层、独占data卷和非敏感配置复制；未运行Docker构建"
@@ -473,7 +473,7 @@
     {
       "path": "modules/content/Makefile",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已登记generate/build/run/verify入口；未运行make verify"
@@ -483,7 +483,7 @@
     {
       "path": "modules/content/config/service.defaults.json",
       "state": "verified",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "passed",
         "evidence": "本地Python JSON解析通过；仅含保留地址、服务身份引用和依赖端点，无密钥原文"
@@ -493,7 +493,7 @@
     {
       "path": "modules/content/deploy/manifest.json",
       "state": "verified",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "passed",
         "evidence": "本地Python JSON解析通过；端口、独占卷、secret引用、依赖端点和healthz/readyz探针与本域清单一致"
@@ -880,7 +880,7 @@
       "id": "content.RecoverPreparedCommits",
       "path": "modules/content/internal/revision_files.go",
       "state": "implemented",
-      "implementationCommit": "f376a3e779cd7cffc0f1f214a99b8b6ea5090055",
+      "implementationCommit": "a5aecca9b9053532f66f588e79c0a0423daa75aa",
       "verification": {
         "state": "not_run",
         "evidence": "已实现启动/safe屏障内journal扫描、COMMITTED正文/hash/head核对、PREPARED receipt规则、正文与文档隔离；未运行Go编译和行为验收"
@@ -891,7 +891,7 @@
       "id": "content.CommitDraftJournal",
       "path": "modules/content/internal/revision_repository.go",
       "state": "implemented",
-      "implementationCommit": "448ad37fbb2980e0eab87845be100d2e731bc409",
+      "implementationCommit": "36a8091453977012a35f39ee3179360a24471d0e",
       "verification": {
         "state": "not_run",
         "evidence": "已实现输入/journal/head/版本/对象一致性、operationId+摘要幂等、fence事务钩子、PREPARED文件SHA/大小/fsync/目录同步和原子提交委托；未运行Go编译与行为验收"
@@ -1331,7 +1331,7 @@
       "id": "content.main",
       "path": "modules/content/cmd/content/main.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "仅装配platform.ServiceSpec与lifecycle.RunService；Go构建未运行"
@@ -1342,7 +1342,7 @@
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已实现配置/信任锚/运行权威/ApplyRestoreSwap前置检查；依赖未实现时显式返回DEPENDENCY_UNAVAILABLE，未伪造联调成功"
@@ -1353,7 +1353,7 @@
       "id": "content.Serve",
       "path": "modules/content/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已实现单监听、ctx取消和HTTP错误映射；Go构建未运行"
@@ -1364,7 +1364,7 @@
       "id": "content.Shutdown",
       "path": "modules/content/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已实现draining、HTTP安全关闭、超时错误与sync.Once；Go构建未运行"
@@ -1375,7 +1375,7 @@
       "id": "content.Health",
       "path": "modules/content/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "仅读取本地生命周期并返回脱敏HealthStatus；Go构建未运行"
@@ -1386,7 +1386,7 @@
       "id": "content.Ready",
       "path": "modules/content/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "f62ea3d7c52bc98ebd73d94c1428ca8794caf751",
+      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "not_run",
         "evidence": "已实现控制区/journal/业务依赖/epoch/runtime门禁字段；Go构建未运行"

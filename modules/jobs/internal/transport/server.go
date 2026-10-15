@@ -33,27 +33,27 @@ const (
 // handlerBindingsComplete 在所有本域 OpenAPI handler 与后台任务落地前
 // 保持false，Ready不会把不完整装配报告成可用。
 type Application struct {
-	config                 platform.ServiceConfig
-	anchors                platform.TrustAnchors
-	runtime                platform.SiteConfigClient
-	openedEpoch            platform.Identifier
+	config                  platform.ServiceConfig
+	anchors                 platform.TrustAnchors
+	runtime                 platform.SiteConfigClient
+	openedEpoch             platform.Identifier
 	handlerBindingsComplete bool
-	state                  atomic.Int32
-	serveStarted           atomic.Bool
-	shutdownOnce           sync.Once
-	shutdownErr            error
-	httpServer             *http.Server
+	state                   atomic.Int32
+	serveStarted            atomic.Bool
+	shutdownOnce            sync.Once
+	shutdownErr             error
+	httpServer              *http.Server
 }
 
 // NewApplication 组装仅包含控制面路由的 HTTP 容器；业务 handler 全部
 // 接入后由 BuildApplication 传入完整绑定状态。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier) *Application {
 	application := &Application{
-		config:       config,
-		anchors:      anchors,
-		runtime:      runtimeAuthority,
-		openedEpoch:  openedEpoch,
-		httpServer:   &http.Server{},
+		config:      config,
+		anchors:     anchors,
+		runtime:     runtimeAuthority,
+		openedEpoch: openedEpoch,
+		httpServer:  &http.Server{},
 	}
 	mux := http.NewServeMux()
 	application.registerHealthRoutes(mux)

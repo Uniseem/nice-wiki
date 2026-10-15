@@ -3,20 +3,24 @@ package chunk
 
 import (
 	"context"
+	"time"
 	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 	"nice-wiki/libs/platform"
 )
 
-const maxNormalizedSourceBytes = 65536
+const (
+	maxNormalizedSourceBytes = 65536
+	normalizeBudget          = 5 * time.Second
+)
 
 // OperationContext 是服务间调用的可信操作上下文。
 type OperationContext = platform.OperationContext
 
 // NormalizeSourceInput 是规范化纯文本的封闭输入。
 type NormalizeSourceInput struct {
-	Source              string `json:"source"`
+	Source               string `json:"source"`
 	PreprocessingVersion string `json:"preprocessingVersion"`
 }
 
@@ -33,7 +37,22 @@ type NormalizeSourceResult struct {
 // norm.Iter 的稳定边界进行，每个输出字节都保留其来源片段的最早原始
 // UTF-8 偏移；因此组合字符和兼容字符折叠时不会丢失引用位置。
 func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSourceInput) (NormalizeSourceResult, error) {
-	_ = op
+	if ctx == nil {
+		return NormalizeSourceResult{}, platform.NewError(platform.CodeValidation, false, "规范化上下文缺失")
+	}
+	// 截止 = min(ctx deadline, op.deadline, 本函数 5000ms)（合同步骤5）。
+	limit := time.Now().Add(normalizeBudget)
+	if op.Deadline != "" {
+		deadline, err := platform.ParseTimestamp(op.Deadline)
+		if err != nil {
+			return NormalizeSourceResult{}, platform.NewError(platform.CodeValidation, false, "规范化截止时间不合法")
+		}
+		if deadline.Before(limit) {
+			limit = deadline
+		}
+	}
+	ctx, cancel := context.WithDeadline(ctx, limit)
+	defer cancel()
 	if err := checkContext(ctx); err != nil {
 		return NormalizeSourceResult{}, err
 	}

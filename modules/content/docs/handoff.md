@@ -1,5 +1,17 @@
 # 文档生命周期会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- `cmd/content` 补 `Application.Serve/Shutdown` 方法，入口恢复可编译；运行状态适配解开 `state` 外层。
+- `RecoverPreparedCommits` 重写恢复判定：已提交修订（COMMITTED 或已有 receipt 的 PREPARED）核对正文与哈希；只有每篇文档最新的已提交修订才要求 head 指向它，历史提交不再被误判为 head 不一致而隔离文档；没有 receipt 的孤儿 PREPARED 只隔离该次提交，不关闭文档（对应合同步骤2/3）。
+- `normalizeDraftCommitError` 去掉恒同分支并修正非常量格式串（go vet）；补齐 go.sum。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 遗留：恢复逻辑仍未经业务验收；`DraftCommitStore`/`RevisionRecoveryState` 的真实事务实现待后续工作包。
+
 ## 本次事实（R1-06 草稿提交事务边界，2026-10-15）
 
 - 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`。分支：当前为 detached HEAD；模块交付源码提交：`448ad37fbb2980e0eab87845be100d2e731bc409`。

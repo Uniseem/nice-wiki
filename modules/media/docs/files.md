@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 45 个：手写 36、生成 3、配置 6。函数 53 个：约束 36，参考 17。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 47 个：手写 37、生成 3、配置 6、迁移 1。函数 54 个：约束 36，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -13,7 +13,7 @@
 | `modules/media/internal/upload_maintenance.go` | 手写 | 仅回收过期未完成临时字节 | `media.ExpireUploadSessions`（参考） |
 | `modules/media/internal/mime_validator.go` | 手写 | 从字节识别类型 | `media.SniffAssetType`（参考） |
 | `modules/media/internal/payload_validator.go` | 手写 | 验证SVG/场景/附件/视频安全交付 | `media.ValidateAssetPayload`（参考） |
-| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储 | `media.CommitAssetBlob`（参考） |
+| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务 | `media.CommitAssetBlob`（参考） |
 | `modules/media/internal/asset_service.go` | 手写 | 读取资源/variants安全元数据 | `media.ReadAsset`、`media.ListAssets` |
 | `modules/media/internal/image_variants.go` | 手写 | 关联浏览器多宽WebP原图 | `media.AttachImageVariants` |
 | `modules/media/internal/drawing_validator.go` | 手写 | 校验Excalidraw场景和提取文字 | `media.ValidateDrawingScene`（参考） |
@@ -33,7 +33,7 @@
 | `modules/media/internal/provider_fetch.go` | 手写 | provider接口抓公开非登录信息 | `media.FetchProviderPublicMetadata`（参考） |
 | `modules/media/internal/provider_embed.go` | 手写 | 生成四平台白名单embed资料 | `media.BuildProviderEmbed`（参考） |
 | `modules/media/internal/cover_import.go` | 手写 | 下载平台封面到本地内容寻址资源 | `media.ImportRemoteCover`（参考） |
-| `modules/media/internal/blob_recovery.go` | 手写 | 恢复blob完成/删除持久日志 | `media.RecoverBlobJournal`（参考） |
+| `modules/media/internal/blob_recovery.go` | 手写 | 恢复blob完成/删除持久日志：读取私有库blob_journal，隔离无COMMITTED的PREPARED产物 | `media.RecoverBlobJournal`（参考） |
 | `modules/media/internal/outbox_repository.go` | 手写 | 原子写最小资源状态outbox | `media.PublishAssetEvent`（参考）、`media.RelayOutbox` |
 | `modules/media/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `media.AcquireBarrier`、`media.ReleaseBarrier` |
 | `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `media.ExportSnapshot`、`media.StageSnapshot`、`media.DiscardSnapshot` |
@@ -51,3 +51,5 @@
 | `modules/media/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/media/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/media/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
+| `modules/media/migrations/0001_domain.sql` | 迁移 | 初始权威表（ADR0005私有SQLite）：upload_sessions、upload_receipts、assets、blob_journal与schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
+| `modules/media/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `media.All`（参考） |

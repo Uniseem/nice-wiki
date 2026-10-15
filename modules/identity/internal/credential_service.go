@@ -56,17 +56,17 @@ type ValidatePasswordChangeResult struct {
 }
 
 const (
-	argonMemoryKiB     = uint32(65536)
-	argonTime          = uint32(3)
-	argonParallelism   = uint8(4)
-	argonHashBytes     = uint32(32)
-	argonSaltBytes     = 16
-	argonMinSaltBytes  = 8
-	argonMaxSaltBytes  = 64
-	argonMaxHashBytes  = 64
-	passwordMaxRunes   = 256
-	passwordMinRunes   = 8
-	verifyMinRunes     = 1
+	argonMemoryKiB      = uint32(65536)
+	argonTime           = uint32(3)
+	argonParallelism    = uint8(4)
+	argonHashBytes      = uint32(32)
+	argonSaltBytes      = 16
+	argonMinSaltBytes   = 8
+	argonMaxSaltBytes   = 64
+	argonMaxHashBytes   = 64
+	passwordMaxRunes    = 256
+	passwordMinRunes    = 8
+	verifyMinRunes      = 1
 	passwordConcurrency = 4
 )
 

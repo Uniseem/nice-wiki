@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-02 实施中；本次完成语言标签纯规则校验，业务验收与部署未开始。
 
+- 2026-10-15 集成复核修复：修复 32 处编译错误：两个工作包重名的 `activeStore` 改为 `currentActiveStore()`，补 `database/sql` 导入，`RecoverAnnouncementJournal*`、`ReadRuntimeStateInput`、`ValidateRuntimeTransition*`、`CheckWriteEpoch*` 改在本域声明；types.json 变更后重跑 make gen。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - R1-02 启动装配组已在基线 `ffe1ae4ccbb7ce33f8fbcec19bc888865fdedf24` 上交付：入口、装配、HTTP 生命周期、配置、镜像与 manifest 已实现；原提交为 `5ea6affabea00bba21a614cd58a3dc4b99fa8cd2`。
 - 本次 active/journal 工作包基线为 `82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`，分支为 `codex/site-config-r1-02-active-storage`，独占范围仍为 `modules/site-config/`。
 - 本次基线为 `ac593c57861d2242f27d07562a2acae535d18c38`，分支为 `codex/site-config-r1-02-runtime-state`。新增独立 `control/control.db`，采用 modernc.org/sqlite v1.59.0、WAL、foreign_keys、busy_timeout=3000ms、单连接与只追加迁移。

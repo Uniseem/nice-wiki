@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -19,51 +20,64 @@ import (
 )
 
 const (
-	announcementJournalName   = "announcement.jsonl"
-	announcementJournalSchema = 1
-	announcementStatePrepared = "PREPARED"
+	announcementJournalName    = "announcement.jsonl"
+	announcementJournalSchema  = 1
+	announcementStatePrepared  = "PREPARED"
 	announcementStateCommitted = "COMMITTED"
 )
 
 // announcementJournalEntry 是 active journal 的内部记录格式。它只保存
 // 不可变对象引用和公告元数据，不保存公告正文，正文仍由 object 引用定位。
 type announcementJournalEntry struct {
-	SchemaVersion       int             `json:"schemaVersion"`
-	State               string          `json:"state"`
-	AnnouncementID      gen.Identifier  `json:"announcementId"`
-	SiteID              gen.Identifier  `json:"siteId"`
-	RevisionID          gen.Identifier  `json:"revisionId"`
-	BodyHash            gen.Hash        `json:"bodyHash"`
-	Object              gen.ObjectRef   `json:"object"`
-	Revision            gen.Revision    `json:"revision"`
-	VisibilityRevision  gen.Revision    `json:"visibilityRevision"`
-	Enabled             bool            `json:"enabled"`
-	StartsAt            *gen.Timestamp  `json:"startsAt"`
-	EndsAt              *gen.Timestamp  `json:"endsAt"`
-	UpdatedAt           gen.Timestamp   `json:"updatedAt"`
+	SchemaVersion      int            `json:"schemaVersion"`
+	State              string         `json:"state"`
+	AnnouncementID     gen.Identifier `json:"announcementId"`
+	SiteID             gen.Identifier `json:"siteId"`
+	RevisionID         gen.Identifier `json:"revisionId"`
+	BodyHash           gen.Hash       `json:"bodyHash"`
+	Object             gen.ObjectRef  `json:"object"`
+	Revision           gen.Revision   `json:"revision"`
+	VisibilityRevision gen.Revision   `json:"visibilityRevision"`
+	Enabled            bool           `json:"enabled"`
+	StartsAt           *gen.Timestamp `json:"startsAt"`
+	EndsAt             *gen.Timestamp `json:"endsAt"`
+	UpdatedAt          gen.Timestamp  `json:"updatedAt"`
+}
+
+// RecoverAnnouncementJournalInput 是恢复公告正文文件与提交日志的输入；恢复参数由
+// 受信启动装配注入，不接受请求字段。
+type RecoverAnnouncementJournalInput struct{}
+
+// RecoverAnnouncementJournalResult 是一次公告journal恢复的统计结果。
+type RecoverAnnouncementJournalResult struct {
+	CommittedCount   int `json:"committedCount"`
+	QuarantinedCount int `json:"quarantinedCount"`
 }
 
 // RecoverAnnouncementJournal 在打开业务入口前恢复公告决定日志。COMMITTED
 // 记录必须同时通过 head、对象文件、大小、hash 和正文 schema 校验；孤儿
 // PREPARED 记录只进入隔离区，绝不推定为已发布。
-func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContext, input gen.RecoverAnnouncementJournalInput) (gen.RecoverAnnouncementJournalResult, error) {
+func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContext, input RecoverAnnouncementJournalInput) (RecoverAnnouncementJournalResult, error) {
 	_ = input
 	if err := checkOperationDeadline(ctx, op); err != nil {
-		return gen.RecoverAnnouncementJournalResult{}, err
+		return RecoverAnnouncementJournalResult{}, err
 	}
-	store := activeStore()
+	store := currentActiveStore()
 	if store == nil {
-		return gen.RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
+		return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
 	}
 	entries, journalHash, err := readAnnouncementJournal(store.activeRoot)
 	if err != nil {
-		return gen.RecoverAnnouncementJournalResult{}, err
+		return RecoverAnnouncementJournalResult{}, err
 	}
 	committed := make(map[string]announcementJournalEntry)
+	// committedHistory 保存每条公告曾提交过的全部修订；被后续修订取代的
+	// PREPARED 只要内容与某次 COMMITTED 一致，就不是孤儿。
+	committedHistory := make(map[string][]announcementJournalEntry)
 	prepared := make([]announcementJournalEntry, 0)
 	for _, entry := range entries {
 		if err := validateAnnouncementJournalEntry(entry); err != nil {
-			return gen.RecoverAnnouncementJournalResult{}, err
+			return RecoverAnnouncementJournalResult{}, err
 		}
 		key := string(entry.AnnouncementID)
 		switch entry.State {
@@ -73,26 +87,30 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 			previous, exists := committed[key]
 			if exists {
 				if entry.Revision < previous.Revision {
-					return gen.RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal修订顺序不合法")
+					return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal修订顺序不合法")
 				}
 				if entry.Revision == previous.Revision && !sameAnnouncementEntry(previous, entry) {
-					return gen.RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal同修订内容不一致")
+					return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal同修订内容不一致")
 				}
 			}
 			committed[key] = entry
+			committedHistory[key] = append(committedHistory[key], entry)
 		}
 	}
 
-	for key, entry := range committed {
+	for _, entry := range committed {
 		if err := validateCommittedAnnouncement(store.activeRoot, entry); err != nil {
-			return gen.RecoverAnnouncementJournalResult{}, err
+			return RecoverAnnouncementJournalResult{}, err
 		}
 		if err := store.upsertAnnouncementHead(ctx, entry); err != nil {
-			return gen.RecoverAnnouncementJournalResult{}, err
+			return RecoverAnnouncementJournalResult{}, err
 		}
-		for i := range prepared {
-			if string(prepared[i].AnnouncementID) == key && sameAnnouncementEntry(prepared[i], entry) {
+	}
+	for i := range prepared {
+		for _, entry := range committedHistory[string(prepared[i].AnnouncementID)] {
+			if sameAnnouncementEntry(prepared[i], entry) {
 				prepared[i].State = "already_committed"
+				break
 			}
 		}
 	}
@@ -106,11 +124,11 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 	}
 	if len(quarantined) > 0 {
 		if err := quarantinePreparedAnnouncements(store.activeRoot, quarantined); err != nil {
-			return gen.RecoverAnnouncementJournalResult{}, err
+			return RecoverAnnouncementJournalResult{}, err
 		}
 	}
 	store.markJournalRecovered(journalHash)
-	return gen.RecoverAnnouncementJournalResult{
+	return RecoverAnnouncementJournalResult{
 		CommittedCount:   len(committed),
 		QuarantinedCount: len(quarantined),
 	}, nil
@@ -203,8 +221,8 @@ func validateAnnouncementJournalEntry(entry announcementJournalEntry) error {
 	return nil
 }
 func validateOptionalTimestamp(value *gen.Timestamp) error {
-	if value == nil || value.IsZero() {
-		return nil
+	if value != nil && value.IsZero() {
+		return platform.NewError(platform.CodeIntegrityError, false, "公告时间窗不合法")
 	}
 	return nil
 }

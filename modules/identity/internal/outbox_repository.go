@@ -57,9 +57,9 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 	}
 
 	var (
-		tx       *sql.Tx
-		ownedTx  bool
-		store    *Store
+		tx          *sql.Tx
+		ownedTx     bool
+		store       *Store
 		requestHash = platform.HashBytes(mustJSON(input))
 		resultHash  = platform.HashBytes([]byte(`{"queued":true}`))
 	)

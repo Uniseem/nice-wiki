@@ -1,9 +1,9 @@
-# 当前状态（2026-10-15，R1并行工作包合并）
+# 当前状态（2026-10-15，R1并行工作包合并与集成复核修复）
 
-阶段：R1实施中；本轮两轮并行业务切片已实现并合入main，结构检查通过，业务编译、行为验收和部署尚未完成。
+阶段：R1实施中；本轮两轮并行业务切片已合入main并经集成复核修复，14个Go模块编译/vet/gofmt与结构检查通过；行为验收和部署尚未完成。
 
 - old归档提交272bddc保存全部旧代码、旧文档及会话记录；旧server/web/api/deploy相对原main的blob未改变。main当前树只保留新框架、许可和产品需求快照，不复用旧业务实现。
-- 站点功能及细节按old产品基线保留；分成15个独立服务加2个共享组件（libs/platform、deploy），当前实际结构检查统计833个文件、898个函数、372个HTTP操作、2161个类型定义（含公共类型引用和内部类型）；约束/参考数量见各域files.md。已实现条目仍须以模块progress.json和检查证据为准，不能视为业务验收通过。
+- 站点功能及细节按old产品基线保留；分成15个独立服务加2个共享组件（libs/platform、deploy），当前实际结构检查统计843个文件、905个函数、372个HTTP操作、2161个类型定义（含公共类型引用和内部类型）；约束/参考数量见各域files.md。已实现条目仍须以模块progress.json和检查证据为准，不能视为业务验收通过。
 - 每域有总索引、架构/数据/API/流程/文件/函数/运维/验收文档、四份机器契约，以及STATUS/progress/handoff。独立启动、健康/就绪、构建部署和UI装配条目已登记。
 - 多会话按独立worktree和模块所有权开发；公共契约由集成会话统一修改。2026-10-15按用户授权并行启动多轮模块工作包，分别记录了基线、独占目录、提交和阻塞；根公共结构登记由本集成会话统一完成。
 - 隔离VPS执行 `make check` 已通过：JSON/引用、文档文件链接、15模块资料、函数/类型/HTTP/权限/依赖、唯一事件生产方与载荷、结构清单、交接台账和隐私。未运行新业务编译、业务测试、E2E、真实模型或部署；检查不证明业务行为正确。
@@ -23,7 +23,8 @@
 - R1-01第二个工作包（identity私有持久化）已实现并合并（分支codex/identity-r1-01-storage，基线bbb1e535c2f1，实现提交28af316bf6a）：internal/storage.go打开active/identity.db（modernc.org/sqlite v1.59.0，WAL/foreign_keys/busy_timeout=3000ms，单连接串行）、migrations/只追加SQL迁移（编号连续校验、事务执行、集外版本拒绝启动）、control区identity-journal.jsonl决定日志（append+fsync、open条目INTEGRITY_ERROR隔离）；0001_domain.sql建accounts/credentials/account_permissions/sessions/preferences/operation_receipts权威表。BuildApplication存储步骤与Ready深度校验（initialized/journalRecovered/activeDataEpoch代次比对）生效。合同同步：implementation.json增3文件4函数并重算台账摘要，framework.json+3，THIRD_PARTY_NOTICES补modernc.org/sqlite。本地与隔离VPS检查通过。
 
 - 2026-10-15两轮并行交付已合并：identity账号/注册/权限/恢复切片，site-config语言标签与运行状态持久化，jobs任务提交，content草稿提交事务，media上传与blob恢复，traffic-guard策略存储，localization/memory/model-gateway私有持久化，knowledge文本规范化，qa问题规范化，以及portal路由/代理/维护门禁。analytics完成契约审计并如实记录阻塞；各域未完成的handler、事件/任务循环、模型调用和业务验收仍按台账标记。
-- 当前台账统计为833文件、898函数：函数已实现或验证126个（其中26个verified），in_progress 9个、blocked 14个、planned 749个；`python scripts/check_docs.py`在本地返回0（372操作、2161类型）。本机没有make、Go、gofmt、Docker，未执行make check、编译、vet、生成、镜像或业务测试；未部署、未改旧运行数据。
-- 集成会话已将本轮新增42个实际文件登记到docs/structure/framework.json，并核对所有模块progress.json、提交记录和隐私扫描；本轮用户已明确授权推送main，推送结果记录见docs/push-log/2026-10-15-0002.md。
+- 2026-10-15集成复核修复（本会话，main工作区）：在本地Go工具链与隔离VPS首次复核云端切片。修复构建层问题：11个模块go.mod/go.sum不完整，jobs/site-config的go.sum校验和抄错，content/model-gateway/media/portal/site-config有编译错误，vet报非常量格式串，34个文件未gofmt。修复逻辑缺陷：9域运行状态响应未解开`state`外层导致无法启动；portal委托期限超10秒致登录请求全失败，同源判断、CSRF自比、转发头透传可信头，端口与ADR0005错位；content恢复误隔离历史提交；memory启动失败后永久锁死；media改为ADR0005私有SQLite，并修复COMMITTED先于元数据落盘；site-config换回永远无法完成；identity账号索引水位冲突；model-gateway/memory自建outbox/inbox绕开平台。jobs任务类型与identity权限映射改由make gen生成Go表；jobs、traffic-guard、localization、memory、model-gateway、media的迁移改为go:embed唯一来源；jobs `dedupeKey`合同收紧为非空。台账中不存在的变基前SHA已映射为main上的实际提交，qa baseCommit补全。
+- 当前台账统计为843文件、905函数：已实现或验证126个（26个verified），in_progress 16个（含本次新增迁移函数，待修复提交后回填SHA），blocked 14个，planned 749个。本地darwin/arm64 go1.27.1与隔离VPS go1.25.5：14个Go模块`-mod=readonly`下build/vet通过、gofmt为空，make docs无漂移、make gen可重复、make check通过（372操作、2161类型）。未新增测试、未运行业务进程、联调、镜像或部署；检查不证明业务行为正确。
+- 已推送历史无法改写的记录问题：云端82个提交中只有3个带AI合著者署名；各模块handoff中的旧短SHA仍是变基前编号，以progress.json为准。
 
-下一步：本轮推送完成后停止；后续如继续开发，应在具备Go/VPS工具链后按各模块handoff复核新增代码，先完成格式/编译/静态检查，再按依赖顺序继续实现。不得把结构检查当作业务验收，也不部署。
+下一步：经用户确认后提交本次修复，随后回填新增文件/函数的提交SHA并按证据转verified；再按各模块handoff的下一项与依赖顺序继续实现。push仍需当次授权；不得把结构检查当作业务验收，也不部署。

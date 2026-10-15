@@ -1,5 +1,15 @@
 # 问答与缓存会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- `NormalizeQuestion` 先按 BCP 47 规范化语言标签再计算问题哈希，无法解析的标签按 VALIDATION 拒绝。
+- go.mod 补 kin-openapi/oapi-codegen runtime 依赖并生成 go.sum；台账 baseCommit 修正为完整 SHA。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+
 ## 本次事实（R1-16 NormalizeQuestion 纯规则切片，2026-10-15）
 
 - 基线：`8ae6fcf6302e2fd41a998faef18be52e2a9714c`；实际分支：`main`；交付代码提交：`4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d`。未 push、未部署。

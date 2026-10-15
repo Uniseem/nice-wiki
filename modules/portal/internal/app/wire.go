@@ -121,8 +121,8 @@ type catalogRoute struct {
 }
 
 type catalogFile struct {
-	Version int             `json:"version"`
-	Routes  []catalogRoute  `json:"routes"`
+	Version int            `json:"version"`
+	Routes  []catalogRoute `json:"routes"`
 }
 
 func loadRouteRegistry() (portal.RouteRegistry, error) {

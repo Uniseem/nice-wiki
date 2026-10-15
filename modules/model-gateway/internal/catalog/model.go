@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -30,14 +31,14 @@ type ValidateModelInput struct {
 }
 
 type ValidateModelResult struct {
-	Valid          bool             `json:"valid"`
-	EmbeddingSpace *EmbeddingSpace  `json:"embeddingSpace,omitempty"`
+	Valid          bool            `json:"valid"`
+	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
 }
 
 type PutModelInput struct {
-	Model          Model  `json:"model"`
-	ExpectedVersion int   `json:"expectedVersion"`
-	IdempotencyKey string `json:"idempotencyKey"`
+	Model           Model  `json:"model"`
+	ExpectedVersion int    `json:"expectedVersion"`
+	IdempotencyKey  string `json:"idempotencyKey"`
 }
 
 type PutModelResult struct {
@@ -45,12 +46,12 @@ type PutModelResult struct {
 }
 
 const (
-	modelFunctionID   = "model-gateway.PutModel"
-	modelEventType    = "model.changed"
-	modelEventVersion = 1
-	maxModelStringRunes = 65536
-	maxCapabilityRunes  = 4096
-	maxCapabilities     = 256
+	modelFunctionID       = "model-gateway.PutModel"
+	modelEventType        = "model.changed"
+	modelEventVersion     = 1
+	maxModelStringRunes   = 65536
+	maxCapabilityRunes    = 4096
+	maxCapabilities       = 256
 	maxEmbeddingDimension = 65536
 )
 
@@ -206,23 +207,27 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 		return rollback(platform.NewError(platform.CodeInternal, true, "保存模型配置失败"))
 	}
 	payload := struct {
-		ModelID   string           `json:"modelId"`
-		Version   int              `json:"version"`
-		Space     *EmbeddingSpace  `json:"space,omitempty"`
-		DataEpoch string           `json:"dataEpoch"`
+		ModelID   string          `json:"modelId"`
+		Version   int             `json:"version"`
+		Space     *EmbeddingSpace `json:"space,omitempty"`
+		DataEpoch string          `json:"dataEpoch"`
 	}{string(model.ModelId), model.Version, validation.EmbeddingSpace, string(op.DataEpoch)}
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "模型事件编码失败"))
 	}
 	now := string(platform.Now())
-	if _, err := tx.ExecContext(operationCtx, `
-		INSERT INTO outbox (
-			event_id, event_type, event_version, producer, subject_id, revision,
-			occurred_at, data_epoch, payload_json, payload_hash, state, attempts, next_attempt_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)`,
-		platform.NewIdentifier(), modelEventType, modelEventVersion, "model-gateway", string(model.ModelId),
-		model.Version, now, string(op.DataEpoch), payloadJSON, platform.HashBytes(payloadJSON), now); err != nil {
+	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{
+		EventID:      platform.NewIdentifier(),
+		EventType:    modelEventType,
+		EventVersion: modelEventVersion,
+		Producer:     "model-gateway",
+		SubjectID:    platform.Identifier(model.ModelId),
+		Revision:     platform.Revision(model.Version),
+		OccurredAt:   platform.Timestamp(now),
+		DataEpoch:    op.DataEpoch,
+		Payload:      payloadJSON,
+	}); err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, true, "保存模型事件失败"))
 	}
 	result := PutModelResult{Model: model}

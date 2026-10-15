@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-15 实施中；本域启动私有持久化与恢复校验已落地，翻译、术语、人工保护、模型调用、任务和事件业务尚未完成、尚未验收、尚未部署。
 
+- 2026-10-15 集成复核修复：迁移改为 `migrations/migrations.go` go:embed 读取 `001_initial.sql`，删除内联 SQL 副本；执行器支持多编号迁移并校验名称。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 基线：`8ae6fcfc6302e2fd41a998faef18be52e2a9714c`；当前分支：`main`；本次提交：`cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148`。
 - 已完成登记的启动与契约生成准备：`cmd/localization` 入口、`BuildApplication`/HTTP 生命周期骨架、独立 `go.mod`、Makefile、非敏感配置、manifest、Dockerfile，以及 Vue/Vite/TypeScript UI 构建基础和 pnpm 锁文件。
 - 本次新增本域私有持久化启动切片：active 区 `localization.db` 使用 SQLite WAL/外键/忙等待，control 区追加 `localization-journal.jsonl`；按固定迁移集建立语言、翻译任务/单元、译文清单、术语、界面字典、语言建议、已批准提议和缓存回答译文表，并初始化平台 inbox/outbox。

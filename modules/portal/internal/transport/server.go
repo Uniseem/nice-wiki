@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,19 +31,19 @@ const (
 )
 
 type Application struct {
-	config      platform.ServiceConfig
-	anchors     platform.TrustAnchors
-	signingKey  platform.SigningKey
-	runtime     portal.RuntimeReader
-	identity    portal.IdentityVerifier
-	registry    portal.RouteRegistry
-	openedEpoch platform.Identifier
-	gate        *portal.Gate
-	state       atomic.Int32
+	config       platform.ServiceConfig
+	anchors      platform.TrustAnchors
+	signingKey   platform.SigningKey
+	runtime      portal.RuntimeReader
+	identity     portal.IdentityVerifier
+	registry     portal.RouteRegistry
+	openedEpoch  platform.Identifier
+	gate         *portal.Gate
+	state        atomic.Int32
 	serveStarted atomic.Bool
 	shutdownOnce sync.Once
-	shutdownErr error
-	httpServer  *http.Server
+	shutdownErr  error
+	httpServer   *http.Server
 }
 
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, registry portal.RouteRegistry, openedEpoch platform.Identifier) *Application {
@@ -124,10 +125,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		Actor: platform.AuthContext{Kind: "anonymous", SiteID: "system", ExpiresAt: platform.Timestamp(deadline)},
 	}
 	headers := headerMap(r.Header)
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
+	scheme := requestScheme(r)
 	runtime := &portal.ProxyRuntime{
 		Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
@@ -209,7 +207,7 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	return gen.ServiceReadiness{
 		Health: health, ActiveDataEpoch: &activeEpoch, Maintenance: view.Maintenance,
 		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
-		Initialized: true, JournalRecovered: true, SafePoint: true,
+		Initialized:           true, JournalRecovered: true, SafePoint: true,
 	}, nil
 }
 
@@ -230,4 +228,18 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
+}
+
+// requestScheme 返回浏览器看到的入口协议。HTTPS 只在 Caddy 终止（ADR0005），
+// portal 只监听内部网络，Caddy 会覆盖客户端自带的 X-Forwarded-Proto；因此
+// 无本地 TLS 时以该头为准，只接受 http/https，其余一律按 http 处理。
+func requestScheme(r *http.Request) string {
+	if r.TLS != nil {
+		return "https"
+	}
+	proto := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0]))
+	if proto == "https" {
+		return "https"
+	}
+	return "http"
 }

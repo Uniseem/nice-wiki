@@ -994,7 +994,7 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "kind": "handwritten",
-      "purpose": "将已验证文件提交不可变内容寻址存储",
+      "purpose": "将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务",
       "functions": [
         {
           "id": "media.CommitAssetBlob",
@@ -3435,7 +3435,7 @@
     {
       "path": "modules/media/internal/blob_recovery.go",
       "kind": "handwritten",
-      "purpose": "恢复blob完成/删除持久日志",
+      "purpose": "恢复blob完成/删除持久日志：读取私有库blob_journal，隔离无COMMITTED的PREPARED产物",
       "functions": [
         {
           "id": "media.RecoverBlobJournal",
@@ -4354,7 +4354,8 @@
             "media.ConsumeEvents",
             "media.RunWorker",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "media.All"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4869,6 +4870,56 @@
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",
       "functions": []
+    },
+    {
+      "path": "modules/media/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "初始权威表（ADR0005私有SQLite）：upload_sessions、upload_receipts、assets、blob_journal与schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记",
+      "functions": []
+    },
+    {
+      "path": "modules/media/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续",
+      "functions": [
+        {
+          "id": "media.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回本域业务库全部内嵌迁移并校验编号连续",
+          "steps": [
+            "go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只读内嵌迁移内容；执行由本域存储装配在事务中完成"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "纯读取，可并发调用",
+          "idempotency": "确定性输出",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [

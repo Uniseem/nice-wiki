@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -31,14 +32,14 @@ type ValidateProviderInput struct {
 }
 
 type ValidateProviderResult struct {
-	Valid            bool   `json:"valid"`
+	Valid             bool   `json:"valid"`
 	NormalizedBaseURL string `json:"normalizedBaseUrl"`
 }
 
 type PutProviderInput struct {
-	Provider       Provider `json:"provider"`
-	ExpectedVersion int     `json:"expectedVersion"`
-	IdempotencyKey string   `json:"idempotencyKey"`
+	Provider        Provider `json:"provider"`
+	ExpectedVersion int      `json:"expectedVersion"`
+	IdempotencyKey  string   `json:"idempotencyKey"`
 }
 
 type PutProviderResult struct {
@@ -46,12 +47,12 @@ type PutProviderResult struct {
 }
 
 const (
-	providerFunctionID = "model-gateway.PutProvider"
-	providerEventType  = "provider.changed"
+	providerFunctionID   = "model-gateway.PutProvider"
+	providerEventType    = "provider.changed"
 	providerEventVersion = 1
-	maxDisplayNameRunes = 65536
-	maxHeaderNameRunes  = 4096
-	maxSecretRefRunes   = 4096
+	maxDisplayNameRunes  = 65536
+	maxHeaderNameRunes   = 4096
+	maxSecretRefRunes    = 4096
 )
 
 // ValidateProvider 只验证渠道元数据和安全URL边界，不执行网络探测。
@@ -130,8 +131,8 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 		return rollback(err)
 	}
 	inputHash, err := hashJSON(struct {
-		Provider       Provider `json:"provider"`
-		ExpectedVersion int     `json:"expectedVersion"`
+		Provider        Provider `json:"provider"`
+		ExpectedVersion int      `json:"expectedVersion"`
 	}{input.Provider, input.ExpectedVersion})
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方输入摘要计算失败"))
@@ -191,15 +192,17 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方事件编码失败"))
 	}
-	eventID := platform.NewIdentifier()
-	payloadHash := platform.HashBytes(payload)
-	if _, err := tx.ExecContext(operationCtx, `
-		INSERT INTO outbox (
-			event_id, event_type, event_version, producer, subject_id, revision,
-			occurred_at, data_epoch, payload_json, payload_hash, state, attempts, next_attempt_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)`,
-		eventID, providerEventType, providerEventVersion, "model-gateway", string(provider.ProviderId),
-		provider.Version, string(platform.Now()), string(op.DataEpoch), payload, payloadHash, string(platform.Now())); err != nil {
+	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{
+		EventID:      platform.NewIdentifier(),
+		EventType:    providerEventType,
+		EventVersion: providerEventVersion,
+		Producer:     "model-gateway",
+		SubjectID:    platform.Identifier(provider.ProviderId),
+		Revision:     platform.Revision(provider.Version),
+		OccurredAt:   platform.Now(),
+		DataEpoch:    op.DataEpoch,
+		Payload:      payload,
+	}); err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, true, "保存供应方事件失败"))
 	}
 	result := PutProviderResult{Provider: provider}

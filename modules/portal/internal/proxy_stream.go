@@ -51,30 +51,33 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 	}
 
 	requestHasSession := cookieValue(runtime.Request, "nw_sid") != ""
-	if requestHasSession || input.Method != http.MethodGet && input.Method != http.MethodHead {
-		origin := runtime.Request.Header.Get("Origin")
-		originCtx := withOrigin(ctx, origin)
+	isWrite := input.Method != http.MethodGet && input.Method != http.MethodHead
+	origin := runtime.Request.Header.Get("Origin")
+	// 写入请求必须带完整且同源的 Origin；带会话的读取请求在浏览器同源 GET
+	// 不发送 Origin 时放行，带了 Origin 就必须同源（会话 cookie 为 SameSite=Strict）。
+	if isWrite || (requestHasSession && origin != "") {
 		if _, err := AssertSameOrigin(AssertSameOriginInput{
 			Origin: origin, Host: runtime.Request.Host, ConfiguredOrigins: runtime.ConfiguredOrigins,
 		}); err != nil {
 			return ProxyRequestResult{}, platform.NewError(platform.CodeForbidden, false, "请求来源不受信任")
 		}
-		if requestHasSession && input.Method != http.MethodGet && input.Method != http.MethodHead {
-			csrf := runtime.Request.Header.Get("X-CSRF-Token")
-			_, err := VerifyCSRF(WithProxyRuntime(originCtx, runtime), op, VerifyCSRFInput{
-				Supplied: csrf,
-				Cookies: SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: csrf},
-			})
-			if err != nil {
-				return ProxyRequestResult{}, err
-			}
+	}
+	if requestHasSession && isWrite {
+		// 合同只定义 X-CSRF-Token 请求头，由 identity 核对其与会话绑定；
+		// 没有可供双提交比对的独立 CSRF cookie，不再拿请求头与自身比较。
+		_, err := VerifyCSRF(WithProxyRuntime(withOrigin(ctx, origin), runtime), op, VerifyCSRFInput{
+			Supplied: runtime.Request.Header.Get("X-CSRF-Token"),
+			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid")},
+		})
+		if err != nil {
+			return ProxyRequestResult{}, err
 		}
 	}
 
 	var proof InternalProof
 	if route.Definition.Permission.Permission != "anonymous" {
 		authResult, authErr := ResolveAuthContext(ctx, op, ResolveAuthContextInput{
-			Cookies: SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
+			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
 			Required: route.Definition.Permission,
 		})
 		if authErr != nil {
@@ -160,10 +163,10 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 		return ForwardRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "拥有服务不可达")
 	}
 	return ForwardRequestResult{Response: UpstreamResponse{
-		Status: response.StatusCode,
-		Headers: headerMapFromHTTP(response.Header),
+		Status:       response.StatusCode,
+		Headers:      headerMapFromHTTP(response.Header),
 		StreamHandle: platform.NewIdentifier(),
-		Response: response,
+		Response:     response,
 	}}, nil
 }
 
@@ -255,13 +258,18 @@ func cookieValue(request *http.Request, name string) string {
 
 func inputAuth(auth AuthContext) AuthContext { return auth }
 
+// maxProofLifetime 是用户委托证明的合同上限（≤10秒）。
+const maxProofLifetime = 10 * time.Second
+
+// proofExpiry 取 now+10秒、操作期限与会话期限三者最早者，保证委托证明
+// 不超过合同上限；入口请求的操作期限通常长于 10 秒，不能直接沿用。
 func proofExpiry(op OperationContext, auth AuthContext) Timestamp {
-	deadline, err := platform.ParseTimestamp(op.Deadline)
-	if err != nil {
-		deadline = time.Now().Add(10 * time.Second)
+	expiry := time.Now().Add(maxProofLifetime)
+	if deadline, err := platform.ParseTimestamp(op.Deadline); err == nil && deadline.Before(expiry) {
+		expiry = deadline
 	}
-	if expiry, err := platform.ParseTimestamp(auth.ExpiresAt); err == nil && expiry.Before(deadline) {
-		deadline = expiry
+	if sessionExpiry, err := platform.ParseTimestamp(auth.ExpiresAt); err == nil && sessionExpiry.Before(expiry) {
+		expiry = sessionExpiry
 	}
-	return Timestamp(deadline.UTC().Format(time.RFC3339Nano))
+	return Timestamp(expiry.UTC().Format(time.RFC3339Nano))
 }

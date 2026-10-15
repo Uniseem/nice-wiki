@@ -2179,6 +2179,11 @@
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
     },
     {
+      "path": "modules/identity/internal/gen/permission_groups.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由根permission-groups.json生成的固定权限映射Go表"
+    },
+    {
       "path": "modules/identity/internal/gen/oapi-codegen.yaml",
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
@@ -2439,6 +2444,11 @@
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
     },
     {
+      "path": "modules/jobs/internal/gen/job_types.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由jobTypes生成的任务类型Go表，与config/job-types.json同源"
+    },
+    {
       "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
@@ -2579,6 +2589,11 @@
       "purpose": "独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
     },
     {
+      "path": "modules/content/go.sum",
+      "kind": "generated",
+      "purpose": "content依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
       "path": "modules/content/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
@@ -2672,6 +2687,11 @@
       "path": "modules/localization/go.mod",
       "kind": "config",
       "purpose": "独立module nice-wiki/modules/localization；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/localization/go.sum",
+      "kind": "generated",
+      "purpose": "localization依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
       "path": "modules/localization/internal/app/wire.go",
@@ -2789,6 +2809,11 @@
       "purpose": "独立module nice-wiki/modules/memory；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
     },
     {
+      "path": "modules/memory/go.sum",
+      "kind": "generated",
+      "purpose": "memory依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
       "path": "modules/memory/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
@@ -2827,6 +2852,11 @@
       "path": "modules/model-gateway/go.mod",
       "kind": "config",
       "purpose": "独立module nice-wiki/modules/model-gateway；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/model-gateway/go.sum",
+      "kind": "generated",
+      "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
       "path": "modules/model-gateway/internal/app/wire.go",
@@ -2897,6 +2927,11 @@
       "path": "modules/traffic-guard/go.mod",
       "kind": "config",
       "purpose": "独立module nice-wiki/modules/traffic-guard；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/traffic-guard/go.sum",
+      "kind": "generated",
+      "purpose": "traffic-guard依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
@@ -2999,9 +3034,19 @@
       "purpose": "任务域初始SQLite表结构与迁移"
     },
     {
+      "path": "modules/jobs/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌jobs只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/knowledge/go.mod",
       "kind": "config",
       "purpose": "知识域独立Go module依赖"
+    },
+    {
+      "path": "modules/knowledge/go.sum",
+      "kind": "generated",
+      "purpose": "knowledge依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
       "path": "modules/knowledge/internal/chunk/normalize.go",
@@ -3019,6 +3064,11 @@
       "purpose": "本地化域初始SQLite表结构与迁移"
     },
     {
+      "path": "modules/localization/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌localization只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/media/internal/blob_recovery.go",
       "kind": "handwritten",
       "purpose": "媒体blob journal恢复与孤儿隔离"
@@ -3029,6 +3079,16 @@
       "purpose": "上传会话、配额、分块前置与不可变资源提交"
     },
     {
+      "path": "modules/media/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "media私有SQLite初始权威表：上传会话、回执、资源与blob日志"
+    },
+    {
+      "path": "modules/media/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌media只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/memory/internal/runtime/bootstrap.go",
       "kind": "handwritten",
       "purpose": "记忆域私有持久化、epoch与启动恢复"
@@ -3037,6 +3097,16 @@
       "path": "modules/memory/migrations/001_initial.sql",
       "kind": "migration",
       "purpose": "记忆域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/memory/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌memory业务库与control库只追加SQL迁移（ADR0005）"
+    },
+    {
+      "path": "modules/memory/migrations/control/0001_control.sql",
+      "kind": "migration",
+      "purpose": "memory control区控制库初始迁移"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -3057,6 +3127,11 @@
       "path": "modules/model-gateway/migrations/001_initial.sql",
       "kind": "migration",
       "purpose": "模型网关域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/model-gateway/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌model-gateway只追加SQL迁移（ADR0005），运行时唯一来源"
     },
     {
       "path": "modules/portal/cmd/portal/main.go",
@@ -3139,6 +3214,11 @@
       "purpose": "问答域独立Go module依赖"
     },
     {
+      "path": "modules/qa/go.sum",
+      "kind": "generated",
+      "purpose": "qa依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
       "path": "modules/qa/internal/turn/normalize.go",
       "kind": "handwritten",
       "purpose": "问题规范化、缓存键与稳定锚点"
@@ -3157,6 +3237,11 @@
       "path": "modules/traffic-guard/migrations/0001_domain.sql",
       "kind": "migration",
       "purpose": "风控域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/traffic-guard/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌traffic-guard只追加SQL迁移（ADR0005），运行时唯一来源"
     },
     {
       "path": "docs/push-log/2026-10-15-0002.md",

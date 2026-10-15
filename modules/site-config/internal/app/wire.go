@@ -78,7 +78,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Deadline:        platform.Timestamp(time.Now().Add(30 * time.Second).UTC().Format(time.RFC3339Nano)),
 		DataEpoch:       view.DataEpoch,
 	}
-	if _, err := siteconfig.RecoverAnnouncementJournal(ctx, startupOperation, gen.RecoverAnnouncementJournalInput{}); err != nil {
+	if _, err := siteconfig.RecoverAnnouncementJournal(ctx, startupOperation, siteconfig.RecoverAnnouncementJournalInput{}); err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err

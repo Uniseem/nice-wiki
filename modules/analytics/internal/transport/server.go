@@ -21,7 +21,6 @@ const (
 	moduleVersion = "1"
 )
 
-
 const (
 	stateReady int32 = iota
 	stateDraining
@@ -30,9 +29,9 @@ const (
 
 // Application 是本域装配完成后的内部容器；不作为HTTP DTO序列化。
 type Application struct {
-	config      platform.ServiceConfig
-	anchors     platform.TrustAnchors
-	runtime     platform.SiteConfigClient
+	config       platform.ServiceConfig
+	anchors      platform.TrustAnchors
+	runtime      platform.SiteConfigClient
 	serveStarted atomic.Bool
 	state        atomic.Int32
 	shutdownOnce sync.Once
@@ -47,7 +46,7 @@ type Application struct {
 // 统一返回DEPENDENCY_UNAVAILABLE，不返回伪造统计或审计结果。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient) *Application {
 	application := &Application{
-		config: config,
+		config:  config,
 		anchors: anchors,
 		runtime: runtime,
 	}
@@ -147,14 +146,14 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "analytics本域存储与journal尚未实现")
 	}
 	return gen.ServiceReadiness{
-		Health:                 health,
+		Health:                health,
 		ActiveDataEpoch:       nil,
 		RuntimeRevision:       0,
 		Maintenance:           view.Maintenance,
 		PublicRequestsAllowed: false,
-		Initialized:            false,
+		Initialized:           false,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:              true,
+		SafePoint:             true,
 	}, nil
 }
 

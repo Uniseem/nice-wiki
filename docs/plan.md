@@ -13,7 +13,7 @@
 | R0-07 | 备份恢复简化（ADR0003） | 用户确认后以“维护→各域暂存→切换决定→各服务重启换目录→全部回执后解除维护”取代在线分阶段提交，保留界面恢复入口 | 规格已修订，make check通过；不等于运行验收 |
 | R0-08 | 流程接线与服务身份（ADR0004） | 除界面外函数全部可达；任务与后台登记；入口准入、模型结果读取与服务断言统一；缺失后台接口补齐 | 规格已修订，make check通过；不等于运行验收 |
 | R0-09 | 工程选型、平台库与部署（ADR0005） | 依赖与许可清单、libs/platform与deploy合同、生成代码统一登记、端口与内存预算 | 规格已建立，make check通过；依赖版本实施时锁定 |
-| R1 | 分域按合同实现业务 | 按下方工作包顺序；约束函数/类型/API与合同一致，参考拆分在交付时同步 | 进行中：R1-00已验证；本轮合并identity、site-config、jobs、content、media、traffic-guard、localization、memory、model-gateway、knowledge、qa、portal切片；Go编译、行为验收和部署待后续 |
+| R1 | 分域按合同实现业务 | 按下方工作包顺序；约束函数/类型/API与合同一致，参考拆分在交付时同步 | 进行中：R1-00已验证；本轮合并identity、site-config、jobs、content、media、traffic-guard、localization、memory、model-gateway、knowledge、qa、portal切片，2026-10-15集成复核后14个Go模块build/vet/gofmt与make check通过；行为验收和部署待后续 |
 | R2 | 分域与集成验收/部署 | 具体运行范围授权且行为通过 | 未开始 |
 
 ## R1 工作包
@@ -41,6 +41,8 @@
 每个包：先读根与模块规格并核对 Git 事实；只做本包所有权内文件；新增或修改测试、真实接口与模型调用、部署均按 AGENTS 另行确认；交付提交同步合同、台账与交接。
 
 2026-10-15并行交付记录：两轮模块工作包均使用独立模块范围；实现提交和台账提交已合入main，根结构登记已补齐。`python scripts/check_docs.py`本地通过；因本机没有make、Go、gofmt、Docker且未读取VPS私有连接信息，未执行make check、编译、vet、生成、镜像或业务验收。各域仍按handoff保留具体blocked/planned事项，不能把启动骨架、纯规则实现或结构检查记为功能验收。
+
+2026-10-15集成复核：在具备Go工具链的环境首次复核云端两轮切片，修复构建层问题（11个模块go.mod/go.sum不完整、jobs与site-config go.sum校验和抄错、content/model-gateway/media/portal/site-config编译错误、vet非常量格式串、34个文件gofmt）与逻辑缺陷（9域运行状态响应未解开state外层、portal委托期限超10秒与同源/CSRF/转发头问题及端口错位、content历史提交被误隔离、memory启动失败永久锁死、media改私有SQLite并修复COMMITTED先于元数据、site-config换回无法完成、identity账号索引水位、model-gateway与memory自建outbox/inbox）。jobs任务类型与identity权限映射改由make gen生成Go表；五域迁移改为go:embed唯一来源；jobs `dedupeKey`合同收紧为非空。台账中不存在的变基前SHA已映射为main实际提交。检查：本地与隔离VPS的build/vet/gofmt、make docs/gen可重复、make check通过；未新增测试、未运行业务进程或部署。
 
 每模块实现先完整读规格；约束函数按合同实现，参考函数可调整并在交付时同步合同（ADR0002），影响对外结构按playbook取得授权。生成工具选型与第三方依赖许可在工程实施前核对并确认，不能静默引入借用项目。存在设计不确定项时标明具体条款，不在实现中让开发者自由猜测。
 

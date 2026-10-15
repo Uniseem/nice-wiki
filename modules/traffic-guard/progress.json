@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "5e01965ea0c39b4708208afaeb2673f8259fab6dcd40c1456d0e8ee25158c1a3",
+  "contractSha256": "0f4c6264610667536575573824c382de45bec907be6fb3250f25efac8852b13f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-13（traffic-guard私有策略库启动恢复审计）",
   "branch": "codex/analytics-r1-storage-contract-audit",
@@ -13,7 +13,7 @@
     {
       "path": "modules/traffic-guard/internal/policy.go",
       "state": "implemented",
-      "implementationCommit": "d597401755cabc77cf31dadf5b9c12260b60b43b",
+      "implementationCommit": "593bdecf6d42781454cdb0e6021a85e170c9751f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -323,7 +323,7 @@
     {
       "path": "modules/traffic-guard/config/defaults.json",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -339,6 +339,16 @@
         "evidence": null
       },
       "blocker": "本机缺少Go工具链，尚未执行迁移/SQLite运行验证"
+    },
+    {
+      "path": "modules/traffic-guard/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
@@ -363,7 +373,7 @@
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -393,7 +403,7 @@
     {
       "path": "modules/traffic-guard/Dockerfile",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -403,7 +413,7 @@
     {
       "path": "modules/traffic-guard/Makefile",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -413,7 +423,7 @@
     {
       "path": "modules/traffic-guard/deploy/manifest.json",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -536,7 +546,7 @@
       "id": "traffic-guard.ValidatePolicy",
       "path": "modules/traffic-guard/internal/policy.go",
       "state": "implemented",
-      "implementationCommit": "d597401755cabc77cf31dadf5b9c12260b60b43b",
+      "implementationCommit": "593bdecf6d42781454cdb0e6021a85e170c9751f",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1006,6 +1016,17 @@
       "blocker": null
     },
     {
+      "id": "traffic-guard.All",
+      "path": "modules/traffic-guard/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "traffic-guard.main",
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
       "state": "blocked",
@@ -1031,7 +1052,7 @@
       "id": "traffic-guard.Serve",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1042,7 +1063,7 @@
       "id": "traffic-guard.Shutdown",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1053,7 +1074,7 @@
       "id": "traffic-guard.Health",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1064,7 +1085,7 @@
       "id": "traffic-guard.Ready",
       "path": "modules/traffic-guard/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "dc3245eacb5630ecad3a76ac82a90692a920f378",
+      "implementationCommit": "db131b3c0f1c25a5a8c6ab33b1f49130351caf21",
       "verification": {
         "state": "not_run",
         "evidence": null

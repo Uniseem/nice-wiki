@@ -8,9 +8,9 @@ import (
 
 // CreateAccountInput 是超管创建子账号的输入。
 type CreateAccountInput struct {
-	AccountName    AccountName        `json:"accountName"`
-	InitialPassword Password           `json:"initialPassword"`
-	Permissions    PermissionSelection `json:"permissions"`
+	AccountName     AccountName         `json:"accountName"`
+	InitialPassword Password            `json:"initialPassword"`
+	Permissions     PermissionSelection `json:"permissions"`
 }
 
 // CreateAccountResult 是创建子账号的结果。

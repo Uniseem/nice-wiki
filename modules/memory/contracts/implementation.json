@@ -190,7 +190,10 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.All",
+            "memory.Control"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -5519,7 +5522,94 @@
     {
       "path": "modules/memory/migrations/001_initial.sql",
       "kind": "migration",
-      "purpose": "未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。",
+      "purpose": "schemaVersion1建本域active业务表与唯一约束；nw_outbox/nw_inbox由平台EnsureSchema建立不在此重复；control库迁移见control/0001_control.sql，不属于业务恢复。",
+      "functions": []
+    },
+    {
+      "path": "modules/memory/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续；另内嵌control区控制库迁移",
+      "functions": [
+        {
+          "id": "memory.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回本域业务库全部内嵌迁移并校验编号连续",
+          "steps": [
+            "go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只读内嵌迁移内容；执行由本域存储装配在事务中完成"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "纯读取，可并发调用",
+          "idempotency": "确定性输出",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.Control",
+          "name": "Control",
+          "signature": "func Control() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回control区控制库全部内嵌迁移并校验编号连续",
+          "steps": [
+            "go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只读内嵌迁移内容；执行由本域存储装配在事务中完成"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "纯读取，可并发调用",
+          "idempotency": "确定性输出",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/memory/migrations/control/0001_control.sql",
+      "kind": "migration",
+      "purpose": "control区控制库初始迁移：control_state（屏障与安全点单例）、restore_receipts与schema_migrations；不随恢复换目录替换",
       "functions": []
     },
     {

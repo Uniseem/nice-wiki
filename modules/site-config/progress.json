@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "839a8190d4794b5bdd3f7d4f51121cbb8070bb83eeabaa0f2c7142bcb174a6ba",
+  "contractSha256": "c4436ed5a3e63676b3f663db0649f3cd8140025373884e344ba04aff71718a6e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-02（语言标签纯规则切片）",
   "branch": "codex/analytics-r1-storage-contract-audit",
@@ -63,27 +63,7 @@
     {
       "path": "modules/site-config/internal/runtime_state_service.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
-    },
-    {
-      "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
-    },
-    {
-      "path": "modules/site-config/internal/write_epoch.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -93,7 +73,7 @@
     {
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -101,9 +81,29 @@
       "blocker": "本次新增active迁移、epoch/索引校验与Ready校验；本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
     },
     {
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+    },
+    {
+      "path": "modules/site-config/internal/write_epoch.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，构建、vet与gofmt待具备Go工具链后执行"
+    },
+    {
       "path": "modules/site-config/internal/migrations/migrations.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -113,7 +113,7 @@
     {
       "path": "modules/site-config/internal/migrations/0001_control.sql",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -123,7 +123,7 @@
     {
       "path": "modules/site-config/internal/migrations/active/0001_active.sql",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -173,7 +173,7 @@
     {
       "path": "modules/site-config/internal/announcement_files.go",
       "state": "implemented",
-      "implementationCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
+      "implementationCommit": "ecdab0db53460b78d451f00bbb2016047b6fa547",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -303,7 +303,7 @@
     {
       "path": "modules/site-config/internal/app/wire.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -313,7 +313,7 @@
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -323,7 +323,7 @@
     {
       "path": "modules/site-config/go.mod",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -333,7 +333,7 @@
     {
       "path": "modules/site-config/go.sum",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -504,51 +504,7 @@
       "id": "site-config.ReadRuntimeState",
       "path": "modules/site-config/internal/runtime_state_service.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
-    },
-    {
-      "id": "site-config.TransitionRuntimeState",
-      "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
-    },
-    {
-      "id": "site-config.ValidateRuntimeTransition",
-      "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
-    },
-    {
-      "id": "site-config.RegisterActivation",
-      "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
-    },
-    {
-      "id": "site-config.CheckWriteEpoch",
-      "path": "modules/site-config/internal/write_epoch.go",
-      "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -559,7 +515,7 @@
       "id": "site-config.OpenRuntimeStore",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -570,7 +526,7 @@
       "id": "site-config.OpenActiveStore",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -581,7 +537,7 @@
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -589,10 +545,54 @@
       "blocker": "Ready schema/journal指纹校验已实现；本机未安装Go，尚未执行gofmt、build、vet"
     },
     {
+      "id": "site-config.TransitionRuntimeState",
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+    },
+    {
+      "id": "site-config.ValidateRuntimeTransition",
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+    },
+    {
+      "id": "site-config.RegisterActivation",
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+    },
+    {
+      "id": "site-config.CheckWriteEpoch",
+      "path": "modules/site-config/internal/write_epoch.go",
+      "state": "implemented",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本机未安装Go，尚未执行gofmt、build、vet；业务验收未授权且未执行"
+    },
+    {
       "id": "site-config.All",
       "path": "modules/site-config/internal/migrations/migrations.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -702,7 +702,7 @@
       "id": "site-config.RecoverAnnouncementJournal",
       "path": "modules/site-config/internal/announcement_files.go",
       "state": "implemented",
-      "implementationCommit": "02b18cb0ed1c97949730ef1c1b6b62047710520d",
+      "implementationCommit": "ecdab0db53460b78d451f00bbb2016047b6fa547",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -911,7 +911,7 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -922,7 +922,7 @@
       "id": "site-config.Serve",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -933,7 +933,7 @@
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -944,7 +944,7 @@
       "id": "site-config.Health",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "34c48128e499ec8a76f182b38771c1d97609c3a5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -955,7 +955,7 @@
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "implemented",
-      "implementationCommit": "d2a7f9100a3de824cecba9d66eeb645fdf0196e5",
+      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "not_run",
         "evidence": null

@@ -11,8 +11,10 @@ import (
 
 func main() {
 	lifecycle.RunService(platform.ServiceSpec{
-		Module:            app.ModuleSlug,
-		BuildApplication:  func(ctx context.Context, config platform.ServiceConfig) (platform.Application, error) { return app.BuildApplication(ctx, config) },
-		RuntimeClient:     app.NewRuntimeClient,
+		Module: app.ModuleSlug,
+		BuildApplication: func(ctx context.Context, config platform.ServiceConfig) (platform.Application, error) {
+			return app.BuildApplication(ctx, config)
+		},
+		RuntimeClient: app.NewRuntimeClient,
 	})
 }

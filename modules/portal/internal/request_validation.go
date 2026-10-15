@@ -9,15 +9,17 @@ import (
 	"nice-wiki/libs/platform"
 )
 
-var hopByHopHeaders = map[string]bool{
-	"connection": true, "keep-alive": true, "proxy-authenticate": true,
-	"proxy-authorization": true, "te": true, "trailer": true,
-	"transfer-encoding": true, "upgrade": true,
-}
-
-var sensitiveHeaders = map[string]bool{
-	"authorization": true, "cookie": true, "set-cookie": true,
-	"x-portal-proof": true, "x-csrf-token": true,
+// forwardableHeaders 是浏览器请求中允许原样转发给拥有服务的业务头白名单。
+// 身份（Authorization/Cookie/X-CSRF-Token）、转发地址（Forwarded/X-Forwarded-*/
+// X-Real-Ip）、hop-by-hop 头与平台可信头（X-Request-Id、X-Operation-Id、
+// X-Cost-Class、X-Deadline、X-Cancellation-Id、X-Data-Epoch、X-Portal-Proof 等）
+// 一律不转发；可信头只由入口按 OperationContext 重新注入。Accept 由
+// ForwardRequest 单独设置，Content-Length 由正文长度决定。
+var forwardableHeaders = map[string]bool{
+	"content-type": true, "accept-language": true,
+	"if-match": true, "if-none-match": true, "if-modified-since": true,
+	"if-unmodified-since": true, "if-range": true, "range": true,
+	"last-event-id": true,
 }
 
 // ValidateEnvelope 对入口请求执行有界检查；正文句柄只允许由入口生成。
@@ -79,13 +81,14 @@ func ValidateEnvelope(ctx context.Context, op OperationContext, input ValidateEn
 	}}, nil
 }
 
-// NormalizeForwardHeaders 删除浏览器不能控制的身份与连接头，只保留
-// 路由允许的业务头；调用方随后再注入服务断言。
+// NormalizeForwardHeaders 只保留业务头白名单，删除浏览器提交的身份、转发
+// 地址、连接与平台可信头，并注入服务器 requestId/operationId；调用方随后
+// 再注入服务断言。路由表当前未登记逐路由允许头，统一使用入口白名单。
 func NormalizeForwardHeaders(input NormalizeForwardHeadersInput) (NormalizeForwardHeadersResult, error) {
 	result := HeaderMap{Entries: make([]HeaderEntry, 0, len(input.Headers.Entries)+4)}
 	for _, entry := range input.Headers.Entries {
 		name := strings.TrimSpace(entry.Name)
-		if name == "" || len(entry.Values) == 0 || hopByHopHeaders[strings.ToLower(name)] || sensitiveHeaders[strings.ToLower(name)] {
+		if name == "" || len(entry.Values) == 0 || !forwardableHeaders[strings.ToLower(name)] {
 			continue
 		}
 		if strings.ContainsAny(name, "\r\n:") {
@@ -104,7 +107,7 @@ func NormalizeForwardHeaders(input NormalizeForwardHeadersInput) (NormalizeForwa
 		HeaderEntry{Name: platform.HeaderRequestID, Values: []string{input.Envelope.RequestID}},
 		HeaderEntry{Name: platform.HeaderOperationID, Values: []string{input.Envelope.OperationID}},
 	)
-	return result, nil
+	return NormalizeForwardHeadersResult{Headers: result}, nil
 }
 
 func headerBytes(headers HeaderMap) int64 {

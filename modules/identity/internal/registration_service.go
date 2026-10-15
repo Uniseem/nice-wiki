@@ -13,28 +13,28 @@ type ReadRegistrationStateInput struct{}
 
 // ReadRegistrationStateResult 是注册状态的脱敏快照。
 type ReadRegistrationStateResult struct {
-	RegistrationOpen bool                    `json:"registrationOpen"`
-	Initialized      bool                    `json:"initialized"`
-	SiteID           *platform.Identifier    `json:"siteId"`
+	RegistrationOpen bool                 `json:"registrationOpen"`
+	Initialized      bool                 `json:"initialized"`
+	SiteID           *platform.Identifier `json:"siteId"`
 }
 
 // RegisterFirstSuperadminInput 是首个注册账户输入。
 type RegisterFirstSuperadminInput struct {
-	AccountName         AccountName `json:"accountName"`
-	Password            Password    `json:"password"`
-	PasswordConfirmation Password   `json:"passwordConfirmation"`
+	AccountName          AccountName `json:"accountName"`
+	Password             Password    `json:"password"`
+	PasswordConfirmation Password    `json:"passwordConfirmation"`
 }
 
 // SessionTokens 是注册结果需要返回给 cookie adapter 的敏感会话结果。
 // 会话签发尚未在本模块装配前，本文件不会自行生成未签名 token。
 type SessionTokens struct {
-	SessionID         platform.Identifier `json:"sessionId"`
-	AccessToken       string              `json:"accessToken"`
-	RefreshToken      string              `json:"refreshToken"`
-	CSRFToken         string              `json:"csrfToken"`
-	Auth              platform.AuthContext `json:"auth"`
-	MustChangePassword bool               `json:"mustChangePassword"`
-	ExpiresAt         platform.Timestamp  `json:"expiresAt"`
+	SessionID          platform.Identifier  `json:"sessionId"`
+	AccessToken        string               `json:"accessToken"`
+	RefreshToken       string               `json:"refreshToken"`
+	CSRFToken          string               `json:"csrfToken"`
+	Auth               platform.AuthContext `json:"auth"`
+	MustChangePassword bool                 `json:"mustChangePassword"`
+	ExpiresAt          platform.Timestamp   `json:"expiresAt"`
 }
 
 // RegisterFirstSuperadminResult 是首个注册账户结果。

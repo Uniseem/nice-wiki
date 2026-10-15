@@ -1,5 +1,16 @@
 # AI 接入会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- `PutProvider`/`PutModel` 事件改经平台 `outbox.EnqueueEvent` 写 nw_outbox，删除自建 outbox 表（迁移与内联副本），平台转发循环才能投递（ADR0005）。
+- 迁移改为 go:embed；`cmd` 补 `Application.Serve/Shutdown` 方法；运行状态适配解开 `state` 外层；补齐 go.sum。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 遗留：迁移文件 `001_initial.sql` 在未部署前删除了 outbox 表定义；一旦发布即只追加。
+
 ## 本次事实
 
 2026-10-15 完成本域最小实施切片，提交 `4eec945320f8cf20bfc6673a8c3c8490385aca2f`。新增 `internal/runtime/bootstrap.go`、`internal/catalog/provider.go`、`internal/catalog/model.go`、`migrations/001_initial.sql`，并为本域 `go.mod` 登记 `modernc.org/sqlite v1.59.0`。

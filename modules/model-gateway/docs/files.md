@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 54 个：手写 35、UI 3、生成 5、配置 10、迁移 1。函数 65 个：约束 36，参考 29。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 55 个：手写 36、UI 3、生成 5、配置 10、迁移 1。函数 66 个：约束 36，参考 30。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -41,7 +41,8 @@
 | `modules/model-gateway/internal/provider/gemini.go` | 手写 | 映射Gemini协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MapGeminiRequest`（参考） |
 | `modules/model-gateway/internal/provider/rerank.go` | 手写 | 解析rerank协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ParseRerankResponse`（参考） |
 | `modules/model-gateway/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
-| `modules/model-gateway/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
+| `modules/model-gateway/migrations/001_initial.sql` | 迁移 | schemaVersion1建本域表与唯一约束；跨服务事件只写平台nw_outbox（EnsureSchema建立），不在此建自有outbox。 | 无 |
+| `modules/model-gateway/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `model-gateway.All`（参考） |
 | `modules/model-gateway/cmd/model-gateway/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `model-gateway.main` |
 | `modules/model-gateway/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `model-gateway.BuildApplication` |
 | `modules/model-gateway/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `model-gateway.Serve`、`model-gateway.Shutdown`、`model-gateway.Health`、`model-gateway.Ready` |

@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -22,10 +21,10 @@ type DraftRevision = gen.DraftRevision
 
 // CommitDraftJournalInput 是草稿head提交的完整声明。
 type CommitDraftJournalInput struct {
-	Draft               DraftRevision `json:"draft"`
-	Journal             CommitJournal `json:"journal"`
-	ExpectedHead        *Identifier   `json:"expectedHead"`
-	ExpectedDraftVersion gen.Revision `json:"expectedDraftVersion"`
+	Draft                DraftRevision `json:"draft"`
+	Journal              CommitJournal `json:"journal"`
+	ExpectedHead         *Identifier   `json:"expectedHead"`
+	ExpectedDraftVersion gen.Revision  `json:"expectedDraftVersion"`
 }
 
 // CommitDraftJournalResult 是成功提交后的共享草稿版本。
@@ -332,8 +331,5 @@ func normalizeDraftCommitError(err error, fallback string) error {
 	if errors.As(err, &platformErr) {
 		return err
 	}
-	if strings.TrimSpace(err.Error()) == "" {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, fallback)
-	}
-	return platform.NewError(platform.CodeDependencyUnavailable, true, fallback)
+	return platform.NewError(platform.CodeDependencyUnavailable, true, "%s", fallback)
 }

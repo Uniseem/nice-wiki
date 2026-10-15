@@ -847,13 +847,17 @@
               "name": "ctx",
               "type": "context.Context",
               "description": "打开控制库的取消与截止传播",
-              "constraints": ["取消或截止立即停止新数据库副作用"]
+              "constraints": [
+                "取消或截止立即停止新数据库副作用"
+              ]
             },
             {
               "name": "dataRoot",
               "type": "string",
               "description": "本域独占数据根",
-              "constraints": ["必须为非空受控路径；不写入日志"]
+              "constraints": [
+                "必须为非空受控路径；不写入日志"
+              ]
             }
           ],
           "outputs": [
@@ -861,13 +865,17 @@
               "name": "store",
               "type": "RuntimeStore",
               "description": "独立control.db句柄",
-              "constraints": ["control.db位于control区，不随active恢复换目录"]
+              "constraints": [
+                "control.db位于control区，不随active恢复换目录"
+              ]
             },
             {
               "name": "error",
               "type": "Error",
               "description": "打开、迁移或初始状态完整性失败",
-              "constraints": ["失败不返回可用句柄；不泄露路径和密钥"]
+              "constraints": [
+                "失败不返回可用句柄；不泄露路径和密钥"
+              ]
             }
           ],
           "purpose": "按ADR0005打开控制库并恢复RuntimeState权威",
@@ -877,14 +885,26 @@
             "首次建库生成持久dataEpoch、running phase、revision=1和14个requiredModules"
           ],
           "errors": [
-            {"code": "DEPENDENCY_UNAVAILABLE", "condition": "控制库不可打开或不可读", "retryable": true},
-            {"code": "INTEGRITY_ERROR", "condition": "迁移集、schema或RuntimeState不一致", "retryable": false}
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "控制库不可打开或不可读",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "迁移集、schema或RuntimeState不一致",
+              "retryable": false
+            }
           ],
-          "sideEffects": ["创建或更新control/control.db"],
+          "sideEffects": [
+            "创建或更新control/control.db"
+          ],
           "authorization": "service启动控制面",
           "concurrency": "一个进程单控制库句柄；SQLite事务串行写入",
           "idempotency": "重复启动读取已有RuntimeState，不重新生成epoch",
-          "dependencies": ["site-config.All"],
+          "dependencies": [
+            "site-config.All"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -893,21 +913,70 @@
           "name": "OpenActiveStore",
           "signature": "func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch Identifier) (*ActiveStore, error)",
           "inputs": [
-            {"name": "ctx", "type": "context.Context", "description": "取消与截止传播", "constraints": ["取消或截止立即停止新数据库副作用"]},
-            {"name": "dataRoot", "type": "string", "description": "本域独占数据根", "constraints": ["必须为非空受控路径；不写入日志"]},
-            {"name": "dataEpoch", "type": "Identifier", "description": "control.db当前活动代次", "constraints": ["必须为合法Identifier；必须与active状态一致"]}
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "取消或截止立即停止新数据库副作用"
+              ]
+            },
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域独占数据根",
+              "constraints": [
+                "必须为非空受控路径；不写入日志"
+              ]
+            },
+            {
+              "name": "dataEpoch",
+              "type": "Identifier",
+              "description": "control.db当前活动代次",
+              "constraints": [
+                "必须为合法Identifier；必须与active状态一致"
+              ]
+            }
           ],
           "outputs": [
-            {"name": "store", "type": "ActiveStore", "description": "active业务库与正文目录句柄", "constraints": ["active数据库与control.db分离；失败不返回可用句柄"]},
-            {"name": "error", "type": "Error", "description": "打开、迁移或active状态完整性失败", "constraints": ["不得把未知schema或epoch当成功"]}
+            {
+              "name": "store",
+              "type": "ActiveStore",
+              "description": "active业务库与正文目录句柄",
+              "constraints": [
+                "active数据库与control.db分离；失败不返回可用句柄"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "打开、迁移或active状态完整性失败",
+              "constraints": [
+                "不得把未知schema或epoch当成功"
+              ]
+            }
           ],
           "purpose": "按ADR0005打开active私有业务库并校验活动epoch",
-          "steps": ["设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接", "执行active目录连续只追加迁移，未知版本拒绝启动", "首次建库只建立未初始化状态，不生成伪配置"],
-          "errors": [
-            {"code": "DEPENDENCY_UNAVAILABLE", "condition": "active数据库或目录不可用", "retryable": true},
-            {"code": "INTEGRITY_ERROR", "condition": "迁移、schema或活动epoch不一致", "retryable": false}
+          "steps": [
+            "设置WAL、foreign_keys=ON、busy_timeout=3000ms并限制单连接",
+            "执行active目录连续只追加迁移，未知版本拒绝启动",
+            "首次建库只建立未初始化状态，不生成伪配置"
           ],
-          "sideEffects": ["创建或更新active/site-config.db及journal/quarantine目录"],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "active数据库或目录不可用",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "迁移、schema或活动epoch不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "创建或更新active/site-config.db及journal/quarantine目录"
+          ],
           "authorization": "service启动控制面",
           "concurrency": "一个进程单active句柄；SQLite事务串行写入",
           "idempotency": "重复启动读取已有active状态，不生成伪站点配置",
@@ -920,18 +989,58 @@
           "name": "ValidateActiveReady",
           "signature": "func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch Identifier) (bool, error)",
           "inputs": [
-            {"name": "ctx", "type": "context.Context", "description": "就绪检查截止传播", "constraints": ["取消或截止立即停止读取"]},
-            {"name": "dataEpoch", "type": "Identifier", "description": "control.db当前活动代次", "constraints": ["必须与active状态一致"]}
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "就绪检查截止传播",
+              "constraints": [
+                "取消或截止立即停止读取"
+              ]
+            },
+            {
+              "name": "dataEpoch",
+              "type": "Identifier",
+              "description": "control.db当前活动代次",
+              "constraints": [
+                "必须与active状态一致"
+              ]
+            }
           ],
           "outputs": [
-            {"name": "initialized", "type": "boolean", "description": "active是否已完成初始化", "constraints": ["仅在schema、epoch、journal均一致时有效"]},
-            {"name": "error", "type": "Error", "description": "schema、epoch、journal或索引失败", "constraints": ["失败必须阻止Ready"]}
+            {
+              "name": "initialized",
+              "type": "boolean",
+              "description": "active是否已完成初始化",
+              "constraints": [
+                "仅在schema、epoch、journal均一致时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "schema、epoch、journal或索引失败",
+              "constraints": [
+                "失败必须阻止Ready"
+              ]
+            }
           ],
           "purpose": "Ready前校验active schema、epoch和公告journal恢复指纹",
-          "steps": ["校验迁移记录完整且与内嵌迁移一致", "校验active状态与control活动epoch一致", "校验journal已恢复且文件指纹未改变"],
+          "steps": [
+            "校验迁移记录完整且与内嵌迁移一致",
+            "校验active状态与control活动epoch一致",
+            "校验journal已恢复且文件指纹未改变"
+          ],
           "errors": [
-            {"code": "DEPENDENCY_UNAVAILABLE", "condition": "active数据库或journal不可读", "retryable": true},
-            {"code": "INTEGRITY_ERROR", "condition": "schema、epoch、journal或索引矛盾", "retryable": false}
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "active数据库或journal不可读",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "schema、epoch、journal或索引矛盾",
+              "retryable": false
+            }
           ],
           "sideEffects": [],
           "authorization": "service启动控制面；由匿名Ready调用",
@@ -1091,9 +1200,9 @@
           "purpose": "验证维护与恢复状态迁移矩阵",
           "steps": [
             "running仅begin_backup/begin_restore；backup_barrier仅complete_backup",
-            "restore_staging仅begin_switch/abort_restore/mark_blocked；begin_switch要求全部有状态域已暂存",
+            "restore_staging仅begin_switch/abort_restore/mark_blocked；begin_switch只由data-protection在StageAllDomains全部暂存完成后发起（暂存完成由data-protection核验，本函数校验restoreId/targetDataEpoch/barrierId一致）",
             "restore_switching可complete_restore/begin_rollback/mark_blocked；restore_blocked可begin_rollback或再次begin_switch；restore_rolling_back仅complete_rollback",
-            "complete_restore要求14个有状态域switched到目标epoch；complete_rollback要求已换入域全部rolled-back；禁止未知、跳阶段或自行关维护"
+            "complete_restore要求14个有状态域switched到目标epoch；complete_rollback要求已换入域全部rolled-back（不得残留switched回执；从未换入的域不产生回执）；禁止未知、跳阶段或自行关维护"
           ],
           "errors": [
             {
@@ -1319,9 +1428,15 @@
           "inputs": [],
           "outputs": [],
           "purpose": "按编号升序返回内嵌控制库迁移",
-          "steps": ["go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错"],
+          "steps": [
+            "go:embed读取NNNN_name.sql；文件名或编号不合法、编号不连续即报错"
+          ],
           "errors": [
-            {"code": "INTEGRITY_ERROR", "condition": "迁移文件名、编号或内容不可读取", "retryable": false}
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "迁移文件名、编号或内容不可读取",
+              "retryable": false
+            }
           ],
           "sideEffects": [],
           "authorization": "内部装配",
@@ -3968,8 +4083,8 @@
           },
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
-      "dependencies": [
-        "site-config.OpenRuntimeStore",
+          "dependencies": [
+            "site-config.OpenRuntimeStore",
             "site-config.OpenActiveStore",
             "site-config.RegisterActivation",
             "site-config.RecoverAnnouncementJournal",

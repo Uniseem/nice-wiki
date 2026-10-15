@@ -6,7 +6,7 @@
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-16（NormalizeQuestion纯规则切片）",
   "branch": "main",
-  "baseCommit": "8ae6fcf6302e2fd41a998faef18be52e2a9714c",
+  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
   "deliveryCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
   "deployment": "not_started",
   "files": [

@@ -1,5 +1,19 @@
 # 主系统会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- 委托证明期限改为 min(now+10s, 操作期限, 会话期限)，此前沿用 30 秒操作期限导致所有需登录请求签发失败。
+- 同源判断：写请求必须带同源 Origin；带会话的读请求未带 Origin 时放行、带了必须同源。入口来源的协议取本地 TLS 或 Caddy 覆盖写入的 X-Forwarded-Proto，修复 TLS 终止后 scheme 恒为 http 导致写请求全拒。
+- CSRF 不再拿请求头与自身比较；权威校验为 identity 核对 X-CSRF-Token 与会话绑定（合同只定义该请求头），仅在另有独立 CSRF cookie 时做双提交比对。CSRF 客户端缺少可信操作上下文时报错，不再伪造上下文。
+- `NormalizeForwardHeaders` 改为业务头白名单，浏览器提交的身份、转发地址、hop-by-hop 与平台可信头（X-Cost-Class、X-Deadline、X-Cancellation-Id、X-Data-Epoch 等）不再透传。
+- `config/service.defaults.json` 与 `deploy/manifest.json` 端口按 ADR0005 端口表更正（监听 8080，依赖 8081/8101–8113）；修正 `NormalizeForwardHeaders` 返回类型编译错误；`BuildInternalProof` 注释改为与设计一致（拥有方/方法由服务断言绑定，nonce 不签名）；补齐 go.sum。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 遗留：合同要求注入 traceparent，平台尚无链路追踪机制，未实现；固定允许 Origin 列表需在平台 ServiceConfig 增加字段，当前以可信代理协议+Host 推导。
+
 ## 本次事实
 
 2026-10-15 在分支 `codex/portal-route-gate`、基线 `dc803f1d92f3b9d528ec92e11e929f544bd6a9a1` 完成本域首片，交付提交为 `282051b7e92b39f601136a4972c3ed25732d5ce3`。独占范围始终为 `modules/portal/`，未改根文件、公共契约、生成物、其他模块，未新增测试或真实接口调用。

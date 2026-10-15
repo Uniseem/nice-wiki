@@ -13,12 +13,12 @@ import (
 // ResolveIdentityOperationInput 是幂等回执查询参数。
 type ResolveIdentityOperationInput struct {
 	OperationID platform.Identifier `json:"operationId"`
-	RequestHash  platform.Hash       `json:"requestHash"`
+	RequestHash platform.Hash       `json:"requestHash"`
 }
 
 // ResolveIdentityOperationResult 是幂等回执的安全摘要。
 type ResolveIdentityOperationResult struct {
-	State      string        `json:"state"`
+	State      string         `json:"state"`
 	ResultHash *platform.Hash `json:"resultHash"`
 }
 

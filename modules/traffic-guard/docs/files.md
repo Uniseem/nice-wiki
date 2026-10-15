@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 52 个：手写 32、UI 4、生成 5、配置 10、迁移 1。函数 51 个：约束 30，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 52 个：约束 30，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -39,6 +39,7 @@
 | `modules/traffic-guard/internal/http_verify.go` | 手写 | QA在线确认准入租约；同文件职责限本域以下登记函数 | `traffic-guard.VerifyAdmissionHTTP` |
 | `modules/traffic-guard/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/traffic-guard/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
+| `modules/traffic-guard/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `traffic-guard.All`（参考） |
 | `modules/traffic-guard/cmd/traffic-guard/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `traffic-guard.main` |
 | `modules/traffic-guard/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `traffic-guard.BuildApplication` |
 | `modules/traffic-guard/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `traffic-guard.Serve`、`traffic-guard.Shutdown`、`traffic-guard.Health`、`traffic-guard.Ready` |

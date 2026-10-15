@@ -1,5 +1,17 @@
 # 任务与事件会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- `ValidateJobSpec` 白名单改读 make gen 生成的 `internal/gen/job_types.gen.go`（与 config/job-types.json 同源）。
+- 迁移改为 `migrations/migrations.go` go:embed 读取 `0001_domain.sql`，删除代码内联的 SQL 副本。
+- 合同收紧：`CreateJobInput`/`CreateJobRequestBody` 的 `dedupeKey` 增加 `minLength: 1`，代码同步拒绝空去重键，避免同 owner 的不同任务因空键互相冲突。
+- 运行状态适配解开 `state` 外层；修正 go.sum 中 `modernc.org/goabi0` 抄错的校验和并补齐依赖。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+
 ## 本次事实（R1-05 CreateJob，2026-10-15）
 
 - 本次工作包按上一会话 handoff 的下一项执行；实际共享工作区分支为 `codex/analytics-r1-storage-contract-audit`，基线：`32afbc58bd24b8d03230c920a3b105374c783acb`。

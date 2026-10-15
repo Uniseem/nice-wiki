@@ -8,19 +8,20 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	_ "modernc.org/sqlite" // 纯Go SQLite驱动，不依赖CGO。
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/outbox"
+	gatewaymigrations "nice-wiki/modules/model-gateway/migrations"
 )
 
 const (
-	databaseName       = "model-gateway.db"
-	migrationVersion   = int64(1)
-	migrationName     = "001_initial.sql"
-	maxMasterKeyBytes  = 32
-	minMasterKeyBytes  = 32
+	databaseName      = "model-gateway.db"
+	maxMasterKeyBytes = 32
+	minMasterKeyBytes = 32
 )
 
 // OperationContext 是服务间可信操作上下文的本域别名。
@@ -35,18 +36,18 @@ type LoadRuntimeInput struct {
 
 // LoadRuntimeResult 是启动持久化检查的脱敏结果。
 type LoadRuntimeResult struct {
-	Ready         bool  `json:"ready"`
+	Ready          bool  `json:"ready"`
 	CatalogVersion int64 `json:"catalogVersion"`
 }
 
 // Store 是本域 active 数据库句柄。所有业务域写入都应在这个数据库内
 // 完成，不能把它作为HTTP DTO或跨域共享。
 type Store struct {
-	db              *sql.DB
-	dataDirectory   string
-	catalogVersion  int64
-	mu              sync.RWMutex
-	closed          bool
+	db             *sql.DB
+	dataDirectory  string
+	catalogVersion int64
+	mu             sync.RWMutex
+	closed         bool
 }
 
 var activeStore struct {
@@ -214,41 +215,69 @@ func (s *Store) Close() error {
 	return nil
 }
 
+// runMigrations 按编号执行 migrations/ 内嵌的只追加迁移（首个迁移自建
+// schema_migrations），并初始化运行水位单例；跨服务事件表由平台建立。
 func (s *Store) runMigrations() error {
-	tx, err := s.db.Begin()
+	all, err := gatewaymigrations.All()
 	if err != nil {
-		return platform.NewError(platform.CodeInternal, true, "开始模型网关迁移失败")
+		return (platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移集不合法"))
 	}
-	rollback := func(cause error) error {
-		_ = tx.Rollback()
-		return cause
+	applied := map[int64]string{}
+	rows, err := s.db.Query(`SELECT version, name FROM schema_migrations`)
+	if err != nil {
+		if !strings.Contains(err.Error(), "no such table") {
+			return (platform.NewError(platform.CodeIntegrityError, false, "读取模型网关迁移记录失败"))
+		}
+	} else {
+		for rows.Next() {
+			var version int64
+			var name string
+			if err := rows.Scan(&version, &name); err != nil {
+				_ = rows.Close()
+				return (platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移记录损坏"))
+			}
+			applied[version] = name
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return (platform.NewError(platform.CodeIntegrityError, false, "读取模型网关迁移记录失败"))
+		}
+		_ = rows.Close()
 	}
-	if _, err := tx.Exec(initialSchemaSQL); err != nil {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "执行模型网关初始迁移失败"))
-	}
-	var version int64
-	var name string
-	err = tx.QueryRow(`SELECT version, name FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version, &name)
-	if errors.Is(err, sql.ErrNoRows) {
-		version = 0
-	} else if err != nil {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "读取模型网关迁移记录失败"))
-	}
-	if version > migrationVersion || (version == migrationVersion && name != migrationName) {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移版本未知"))
-	}
-	if version == 0 {
-		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`, migrationVersion, migrationName, string(platform.Now())); err != nil {
-			return rollback(platform.NewError(platform.CodeInternal, false, "登记模型网关迁移失败"))
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
+			return (platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移版本未知"))
 		}
 	}
-	if _, err := tx.Exec(`INSERT OR IGNORE INTO runtime_meta (singleton, data_epoch, updated_at) VALUES (1, '', ?)`, string(platform.Now())); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, false, "初始化模型网关运行水位失败"))
+	for _, migration := range all {
+		if _, ok := applied[migration.Version]; ok {
+			continue
+		}
+		tx, err := s.db.Begin()
+		if err != nil {
+			return (platform.NewError(platform.CodeInternal, true, "开始模型网关迁移事务失败"))
+		}
+		if _, err := tx.Exec(migration.SQL); err != nil {
+			_ = tx.Rollback()
+			return (platform.NewError(platform.CodeIntegrityError, false, "执行模型网关迁移失败"))
+		}
+		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`,
+			migration.Version, migration.Name, string(platform.Now())); err != nil {
+			_ = tx.Rollback()
+			return (platform.NewError(platform.CodeInternal, false, "登记模型网关迁移失败"))
+		}
+		if err := tx.Commit(); err != nil {
+			return (platform.NewError(platform.CodeInternal, false, "提交模型网关迁移失败"))
+		}
 	}
-	if err := tx.Commit(); err != nil {
-		return platform.NewError(platform.CodeInternal, false, "提交模型网关迁移失败")
+	if _, err := s.db.Exec(`INSERT OR IGNORE INTO runtime_meta (singleton, data_epoch, updated_at) VALUES (1, '', ?)`, string(platform.Now())); err != nil {
+		return platform.NewError(platform.CodeInternal, false, "初始化模型网关运行水位失败")
 	}
-	s.catalogVersion = migrationVersion
+	// 跨服务事件只写平台 nw_outbox，由平台转发循环经 jobs 投递（ADR0005）。
+	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
+		return err
+	}
+	s.catalogVersion = int64(len(all))
 	return nil
 }
 
@@ -294,20 +323,3 @@ func mapDatabaseError(err error) error {
 	}
 	return platform.NewError(platform.CodeInternal, true, "模型网关数据库操作失败")
 }
-
-// initialSchemaSQL 与 migrations/001_initial.sql 保持一致；运行时不依赖
-// 安装包中的源码目录。
-const initialSchemaSQL = `
-CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS runtime_meta (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), data_epoch TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS providers (provider_id TEXT PRIMARY KEY, version INTEGER NOT NULL CHECK (version >= 1), adapter TEXT NOT NULL, base_url TEXT NOT NULL, enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)), credential_version INTEGER NOT NULL CHECK (credential_version >= 0), connect_timeout_ms INTEGER NOT NULL CHECK (connect_timeout_ms >= 0), request_timeout_ms INTEGER NOT NULL CHECK (request_timeout_ms >= 0), display_name TEXT NOT NULL, extra_header_names_json BLOB NOT NULL, extra_header_secret_refs_json BLOB NOT NULL, concurrency_limit INTEGER NOT NULL CHECK (concurrency_limit >= 0), stream_idle_timeout_ms INTEGER NOT NULL CHECK (stream_idle_timeout_ms >= 0), data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS models (model_id TEXT PRIMARY KEY, version INTEGER NOT NULL CHECK (version >= 1), provider_id TEXT NOT NULL REFERENCES providers(provider_id), provider_model_version TEXT NOT NULL, capabilities_json BLOB NOT NULL, dimension INTEGER NOT NULL CHECK (dimension >= 0), preprocessor_version TEXT NOT NULL, max_input_tokens INTEGER NOT NULL CHECK (max_input_tokens >= 0), max_output_tokens INTEGER NOT NULL CHECK (max_output_tokens >= 0), catalog_origin TEXT NOT NULL, manual_override INTEGER NOT NULL CHECK (manual_override IN (0, 1)), enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)), data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS operation_receipts (site_id TEXT NOT NULL, actor_id TEXT NOT NULL, function_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, result_json BLOB NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (site_id, actor_id, function_id, idempotency_key));
-CREATE TABLE IF NOT EXISTS invocations (invocation_id TEXT PRIMARY KEY, request_hash TEXT NOT NULL, root_operation_id TEXT NOT NULL, cost_class TEXT NOT NULL, state TEXT NOT NULL, deadline TEXT NOT NULL, price_snapshot_json BLOB NOT NULL, data_epoch TEXT NOT NULL, updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS reservations (reservation_id TEXT PRIMARY KEY, invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), maximum_micro_usd INTEGER, held_micro_usd INTEGER, state TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0), pricing_known INTEGER NOT NULL CHECK (pricing_known IN (0, 1)), unknown_usage_count INTEGER NOT NULL CHECK (unknown_usage_count >= 0));
-CREATE TABLE IF NOT EXISTS ledger_entries (entry_id TEXT PRIMARY KEY, invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), provider_request_id TEXT NOT NULL, actual_micro_usd INTEGER, input_tokens INTEGER NOT NULL CHECK (input_tokens >= 0), output_tokens INTEGER NOT NULL CHECK (output_tokens >= 0), status TEXT NOT NULL, created_at TEXT NOT NULL, attempt_id TEXT NOT NULL, pricing_known INTEGER NOT NULL CHECK (pricing_known IN (0, 1)), usage_hash TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS stream_events (invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id), sequence INTEGER NOT NULL CHECK (sequence >= 0), event TEXT NOT NULL, payload_json BLOB NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (invocation_id, sequence));
-CREATE TABLE IF NOT EXISTS barriers (barrier_id TEXT PRIMARY KEY, state TEXT NOT NULL, data_epoch TEXT NOT NULL, deadline TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS outbox (event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL, event_version INTEGER NOT NULL, producer TEXT NOT NULL, subject_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), occurred_at TEXT NOT NULL, data_epoch TEXT NOT NULL, payload_json BLOB NOT NULL, payload_hash TEXT NOT NULL, state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0), next_attempt_at TEXT NOT NULL, lease_until TEXT);
-CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (state, next_attempt_at, occurred_at, event_id);
-`

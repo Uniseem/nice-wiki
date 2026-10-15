@@ -30,13 +30,13 @@ const (
 
 // Application 是启动装配后的内部容器，不能作为 HTTP DTO 序列化。
 type Application struct {
-	config             platform.ServiceConfig
-	anchors            platform.TrustAnchors
-	runtime            platform.SiteConfigClient
-	activeDataEpoch    platform.Identifier
-	registeredHandlers []string
-	workerFunctionIDs  []string
-	journalRecovered   bool
+	config              platform.ServiceConfig
+	anchors             platform.TrustAnchors
+	runtime             platform.SiteConfigClient
+	activeDataEpoch     platform.Identifier
+	registeredHandlers  []string
+	workerFunctionIDs   []string
+	journalRecovered    bool
 	restoreControlReady bool
 
 	state        atomic.Int32

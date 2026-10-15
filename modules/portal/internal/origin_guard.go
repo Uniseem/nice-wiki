@@ -27,7 +27,11 @@ func (v CSRFVerifier) VerifySessionCSRF(ctx context.Context, sessionID, csrfToke
 	if sessionID == "" || csrfToken == "" || origin == "" {
 		return false, platform.NewError(platform.CodeValidation, false, "CSRF校验请求不完整")
 	}
-	raw, err := v.Client.VerifySessionCSRF(platform.WithOperationContext(ctx, operationFromContext(ctx)), map[string]string{
+	op, ok := platform.OperationContextFrom(ctx)
+	if !ok {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "CSRF校验缺少可信操作上下文")
+	}
+	raw, err := v.Client.VerifySessionCSRF(platform.WithOperationContext(ctx, op), map[string]string{
 		"sessionId": sessionID,
 		"csrfToken": csrfToken,
 		"origin":    origin,
@@ -42,17 +46,6 @@ func (v CSRFVerifier) VerifySessionCSRF(ctx context.Context, sessionID, csrfToke
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "CSRF校验响应不合法")
 	}
 	return result.Valid, nil
-}
-
-func operationFromContext(ctx context.Context) OperationContext {
-	if op, ok := platform.OperationContextFrom(ctx); ok {
-		return op
-	}
-	return OperationContext{
-		CallerService: "portal", RequestID: platform.NewIdentifier(),
-		OperationID: platform.NewIdentifier(), RootOperationID: platform.NewIdentifier(),
-		DataEpoch: "system", Deadline: platform.Now(),
-	}
 }
 
 // AssertSameOrigin 要求写入请求带完整 Origin，并按规范化的 scheme、host
@@ -81,15 +74,16 @@ func AssertSameOrigin(input AssertSameOriginInput) (AssertSameOriginResult, erro
 	return AssertSameOriginResult{}, platform.NewError(platform.CodeValidation, false, "来源与入口不一致")
 }
 
-// VerifyCSRF 先做常量时间的浏览器 token 对比，再调用 identity 权威校验。
+// VerifyCSRF 校验写请求的 X-CSRF-Token。权威判断是 identity 核对 token 与
+// 会话绑定；只有部署另行提供独立的 CSRF cookie 时才先做常量时间双提交比对。
 func VerifyCSRF(ctx context.Context, op OperationContext, input VerifyCSRFInput) (VerifyCSRFResult, error) {
 	if err := ctx.Err(); err != nil {
 		return VerifyCSRFResult{}, platform.NewError(platform.CodeCancelled, true, "请求已取消")
 	}
-	if input.Supplied == "" || input.Cookies.SessionToken == "" || input.Cookies.CSRFCookie == "" {
+	if input.Supplied == "" || input.Cookies.SessionToken == "" {
 		return VerifyCSRFResult{}, platform.NewError(platform.CodeUnauthenticated, false, "会话或CSRF凭据缺失")
 	}
-	if subtle.ConstantTimeCompare([]byte(input.Supplied), []byte(input.Cookies.CSRFCookie)) != 1 {
+	if input.Cookies.CSRFCookie != "" && subtle.ConstantTimeCompare([]byte(input.Supplied), []byte(input.Cookies.CSRFCookie)) != 1 {
 		return VerifyCSRFResult{}, platform.NewError(platform.CodeUnauthenticated, false, "CSRF校验失败")
 	}
 	origin := originFromContext(ctx)

@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-01 实施中（账号索引、注册前置、权限映射、幂等事件与恢复安全边界已落地）；业务验收与部署未开始。
 
+- 2026-10-15 集成复核修复：运行状态适配解开 `state` 外层。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 本轮并行切片已合并到当前集成分支：账号索引/`accounts` 运维子命令（`138a2b45ae08`）、注册状态与功能权限映射及账号前置校验（`484aa7fb79d5`）、幂等回执查询、身份事件入outbox、恢复后会话失效（`1a6725d3eca0`）。合并时统一了受信 `WithIdentityStore` 上下文，并拒绝覆盖损坏的账号索引文件。
 - `ReadRegistrationState`、`MapFunctionGrants`、`ReadServerAccountIndex`、`WriteAccountIndex`、`ResolveIdentityOperation`、`PublishIdentityEvent`、`InvalidateRestoredSessions` 状态为 implemented；仅完成前置校验的 `RegisterFirstSuperadmin`、`CreateAccount` 与缺少 jobs 客户端接线的 `RelayOutbox` 保持 in_progress。
 - `main` 的 `accounts` 子命令已解除原有 `ReadServerAccountIndex` 阻塞；`BuildApplication` 仍因完整 OpenAPI handler、恢复回执、`restoreId` 注入、`ObserveSuperadminResetFile` 和 `RelayOutbox` 后台循环而 blocked，不能提前开放完整服务。

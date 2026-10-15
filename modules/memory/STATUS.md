@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1 实现中；本域私有持久化与启动恢复已实现，业务 handler、行为验收和部署仍未完成。
 
+- 2026-10-15 集成复核修复：`LoadRuntime` 失败或中断不再留下永久 open 的 journal：失败路径补记 aborted，恢复时按条目 ID 聚合，仅 `runtime.load` 这类无副作用的启动校验在中断后补记 aborted，其余未决决定仍按完整性错误拒绝。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 本次基线为 `5bd7347fc2ada5f79e48038e5cc1a68a61cdf845`，分支为 `codex/memory-persistence`。
 - 已提交 `cb316303da36827d34461aa3ac560bae46241ef1`：实现 `memory.LoadRuntime`、active/control SQLite 打开与初始迁移、`runtime_state` 代数/dataEpoch、control journal 追加与恢复检查、正文对象引用/大小/UTF-8/文件摘要校验、任务映射白名单与条目引用校验、任务预算校验、批准命令状态恢复校验；新增 `modernc.org/sqlite v1.59.0` 依赖。未 push。
 - `migrations/001_initial.sql` 建立条目索引、不可变修订、current 指针、任务映射/预算、上下文快照、助手/提议/命令、收发箱、对话、运行代数及迁移记录；正文仍以 `objects/<entryId>/<version>.md` 为权威文件，未臆造 frontmatter 语法。

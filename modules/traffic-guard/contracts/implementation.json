@@ -3621,6 +3621,50 @@
       "functions": []
     },
     {
+      "path": "modules/traffic-guard/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续",
+      "functions": [
+        {
+          "id": "traffic-guard.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按编号升序返回本域业务库全部内嵌迁移并校验编号连续",
+          "steps": [
+            "go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "condition": "打开/迁移/恢复失败",
+              "httpStatus": 500,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "库损坏、schema未知或存在未完成决定",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只读内嵌迁移内容；执行由本域存储装配在事务中完成"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "进程启动装配，不对外暴露"
+          },
+          "concurrency": "纯读取，可并发调用",
+          "idempotency": "确定性输出",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
       "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
       "kind": "handwritten",
       "purpose": "本域唯一Go可执行入口；不放产品算法",
@@ -3754,7 +3798,8 @@
             "traffic-guard.PublishGuardEvents",
             "traffic-guard.ConsumeEvents",
             "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime"
+            "platform.ReadRuntime",
+            "traffic-guard.All"
           ],
           "resources": [
             "本域implementation全部x-handler",

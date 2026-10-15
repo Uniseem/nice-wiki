@@ -1,5 +1,18 @@
 # 身份权限会话交接
 
+## 集成复核修复（2026-10-15，main）
+
+云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+
+- 运行状态适配解开 `state` 外层。
+- `MapFunctionGrants` 改读 make gen 由根 `contracts/permission-groups.json` 生成的 `internal/gen/permission_groups.gen.go`，不再维护手写副本；唯一超管取全部登记功能组。
+- 账号索引权威水位改为 Σ(revision+1)（账户只做墓碑、revision 只增），新建 revision=1 子账号不再与旧索引同水位冲突；索引文件尚不存在时由权威表首次建立。
+- gofmt 整理 8 个文件。
+
+- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
+- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增文件/函数暂记 `in_progress`，待修复提交后回填 SHA。
+- 遗留：恢复到较旧快照后 control 区账号索引会领先权威表，目前按完整性错误拒绝；换回/恢复流程中如何重建索引需在恢复工作包中确定。
+
 ## 本次事实（R1-01 账号索引、注册前置、幂等与恢复安全边界，2026-10-15）
 
 - 当前集成分支：`codex/analytics-r1-storage-contract-audit`；本轮从 `7aa44567609713b8810b9b8ca9ba61579648d55a` 接续。源码切片提交：账号索引 `138a2b45ae088431e25b0a3694d453f51c49a6f4`、注册/权限前置 `484aa7fb79d5d12e8ff1c5bb2b22ed83946e7d55`、幂等/事件/恢复安全 `1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4`；未 push、未部署。

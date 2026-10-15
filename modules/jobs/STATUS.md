@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-05 `CreateJob` 任务提交持久化已实现；租约、事件投递/死信、完整装配、业务验收与部署未开始。
 
+- 2026-10-15 集成复核修复：`ValidateJobSpec` 白名单改读 make gen 生成的 `internal/gen/job_types.gen.go`（与 config/job-types.json 同源）。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 本次会话按 handoff 下一项实现 `jobs.CreateJob`；实际分支为 `codex/analytics-r1-storage-contract-audit`，基线 `32afbc58bd24b8d03230c920a3b105374c783acb`。
 - 实现提交为 `588de8fa991340df7dcf019f8c11849f85e1b796`（`jobs：实现任务提交持久化`），仅包含 `modules/jobs/` 内的代码、迁移和依赖锁定变更，未 push。
 - `internal/queue.go` 已实现：复用 `ValidateJobSpec` 的 owner/type/ObjectRef/epoch 校验，补充 operationId 与 dedupeKey UTF-8/8192字符约束；按 `(owner, dataEpoch, dedupeKey)` 查询，同 inputHash 复用原任务，不同输入返回 `CONFLICT`。

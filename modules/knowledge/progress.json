@@ -7,7 +7,7 @@
   "assignedSession": "R1-知识域文本规范化",
   "branch": "codex/knowledge-normalize",
   "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
-  "deliveryCommit": "808d734bb802514ba606da2f31937baacbd6d48c",
+  "deliveryCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
   "deployment": "not_started",
   "files": [
     {
@@ -113,7 +113,7 @@
     {
       "path": "modules/knowledge/internal/chunk/normalize.go",
       "state": "implemented",
-      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
+      "implementationCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
       "verification": {
         "state": "not_run",
         "evidence": "已实现 NFKC、CRLF/CR→LF 与规范化 UTF-8 到原文偏移映射；git diff --check 与本域 JSON 解析通过；本机无 Go/gofmt，未编译或行为验收；check_docs 因根结构登记缺口失败"
@@ -483,7 +483,7 @@
     {
       "path": "modules/knowledge/go.mod",
       "state": "implemented",
-      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
+      "implementationCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
       "verification": {
         "state": "not_run",
         "evidence": "声明本域独立 module、platform replace 与已登记 x/text v0.20.0；本域 JSON 解析通过；未执行 go mod tidy/build；check_docs 因根结构登记缺口失败"
@@ -798,7 +798,7 @@
       "id": "knowledge.NormalizeSource",
       "path": "modules/knowledge/internal/chunk/normalize.go",
       "state": "implemented",
-      "implementationCommit": "77fe57291ab9bcc0f53df2d35018e055e61ca12f",
+      "implementationCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
       "verification": {
         "state": "not_run",
         "evidence": "纯规则实现已提交；JSON 与 git diff --check 通过；check_docs 因根结构登记缺口失败；本机无 Go/gofmt，未编译或行为验收"

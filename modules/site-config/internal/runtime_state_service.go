@@ -8,9 +8,12 @@ import (
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
+// ReadRuntimeStateInput 是读取独立控制库权威运行状态的输入；无请求字段。
+type ReadRuntimeStateInput struct{}
+
 // ReadRuntimeState 读取 control.db 当前 revision，并返回经过完整性校验的
 // RuntimeState；未知或不可读状态一律失败，不转成允许状态。
-func ReadRuntimeState(ctx context.Context, op platform.OperationContext, input gen.ReadRuntimeStateInput) (gen.ReadRuntimeStateResult, error) {
+func ReadRuntimeState(ctx context.Context, op platform.OperationContext, input ReadRuntimeStateInput) (gen.ReadRuntimeStateResult, error) {
 	_ = input
 	if err := checkOperationDeadline(ctx, op); err != nil {
 		return gen.ReadRuntimeStateResult{}, err

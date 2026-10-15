@@ -20,14 +20,20 @@ import (
 	_ "modernc.org/sqlite"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/inbox"
+	"nice-wiki/libs/platform/outbox"
+	memorymigrations "nice-wiki/modules/memory/migrations"
 )
 
 const (
-	serviceID         = "memory"
-	databaseName      = "memory.db"
-	controlDatabase   = "control.db"
-	journalName       = "memory-journal.jsonl"
-	initialSchemaName = "001_initial.sql"
+	serviceID       = "memory"
+	databaseName    = "memory.db"
+	controlDatabase = "control.db"
+	journalName     = "memory-journal.jsonl"
+
+	// journalKindRuntimeLoad 是启动只读校验的journal条目；中断时没有业务副作用，
+	// 恢复时补记aborted即可，不应把一次失败的启动变成永久完整性错误。
+	journalKindRuntimeLoad = "runtime.load"
 )
 
 // OperationContext 使用平台的可信操作上下文，避免在本域复制公共协议。
@@ -35,13 +41,13 @@ type OperationContext = platform.OperationContext
 
 // LoadRuntimeInput 是启动恢复所需的封闭输入。
 type LoadRuntimeInput struct {
-	ServiceID    string
+	ServiceID     string
 	DataDirectory string
 }
 
 // LoadRuntimeResult 是启动恢复结果；不暴露路径、正文或控制日志内容。
 type LoadRuntimeResult struct {
-	Ready           bool
+	Ready            bool
 	MemoryGeneration int64
 }
 
@@ -95,7 +101,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 	if err != nil {
 		return LoadRuntimeResult{}, err
 	}
-	journalID, err := store.openJournal("runtime.load", op.DataEpoch)
+	journalID, err := store.openJournal(journalKindRuntimeLoad, op.DataEpoch)
 	if err != nil {
 		_ = store.Close()
 		return LoadRuntimeResult{}, err
@@ -107,21 +113,23 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 		validateBudgets,
 		validateApprovedCommands,
 	}
+	abort := func(cause error) (LoadRuntimeResult, error) {
+		_ = store.abortJournal(journalID)
+		_ = store.Close()
+		return LoadRuntimeResult{}, cause
+	}
 	for _, check := range checks {
 		if err := contextError(deadlineCtx); err != nil {
-			_ = store.Close()
-			return LoadRuntimeResult{}, err
+			return abort(err)
 		}
 		if err := check(deadlineCtx, store, op.Actor.SiteID); err != nil {
-			_ = store.Close()
-			return LoadRuntimeResult{}, err
+			return abort(err)
 		}
 	}
 
 	generation, err := store.loadRuntimeState(deadlineCtx, op.DataEpoch, op.Actor.SiteID)
 	if err != nil {
-		_ = store.Close()
-		return LoadRuntimeResult{}, err
+		return abort(err)
 	}
 	if err := store.completeJournal(journalID); err != nil {
 		_ = store.Close()
@@ -160,10 +168,25 @@ func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Ide
 	if err != nil {
 		return closeOnError(err)
 	}
-	if err := runInitialMigration(ctx, store.db, initialSchemaSQL); err != nil {
+	activeMigrations, err := memorymigrations.All()
+	if err != nil {
+		return closeOnError(platform.NewError(platform.CodeIntegrityError, false, "本域业务库迁移集不合法"))
+	}
+	controlMigrations, err := memorymigrations.Control()
+	if err != nil {
+		return closeOnError(platform.NewError(platform.CodeIntegrityError, false, "本域控制库迁移集不合法"))
+	}
+	if err := runMigrations(ctx, store.db, activeMigrations); err != nil {
 		return closeOnError(err)
 	}
-	if err := runInitialMigration(ctx, store.controlDB, controlSchemaSQL); err != nil {
+	if err := runMigrations(ctx, store.controlDB, controlMigrations); err != nil {
+		return closeOnError(err)
+	}
+	// 跨服务事件只经平台 nw_outbox/nw_inbox（ADR0005），与业务写入同库同事务。
+	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
+		return closeOnError(err)
+	}
+	if err := inbox.EnsureSchema(ctx, store.db); err != nil {
 		return closeOnError(err)
 	}
 	store.journal, err = os.OpenFile(filepath.Join(dataDirectory, "control", journalName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
@@ -190,43 +213,55 @@ func openSQLite(path string, ctx context.Context) (*sql.DB, error) {
 	return db, nil
 }
 
-func runInitialMigration(ctx context.Context, db *sql.DB, schema string) error {
-	tx, err := db.BeginTx(ctx, nil)
+// runMigrations 按编号升序执行内嵌只追加迁移。首个迁移自建 schema_migrations；
+// 已应用版本超出迁移集或名称不符时拒绝启动，每个迁移与登记在同一事务提交。
+func runMigrations(ctx context.Context, db *sql.DB, all []memorymigrations.Migration) error {
+	applied := map[int64]string{}
+	rows, err := db.QueryContext(ctx, `SELECT version, name FROM schema_migrations`)
 	if err != nil {
-		return mapDatabaseError(err, "开始本域迁移失败")
-	}
-	fail := func(code string, retryable bool, message string) error {
-		_ = tx.Rollback()
-		return platform.NewError(code, retryable, message)
-	}
-	if _, err := tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
-		version INTEGER PRIMARY KEY,
-		name TEXT NOT NULL,
-		applied_at TEXT NOT NULL
-	)`); err != nil {
-		return fail(platform.CodeIntegrityError, false, "建立迁移记录失败")
-	}
-	var version int64
-	var name string
-	err = tx.QueryRowContext(ctx, `SELECT version, name FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version, &name)
-	if errors.Is(err, sql.ErrNoRows) {
-		version = 0
-	} else if err != nil {
-		return fail(platform.CodeIntegrityError, false, "读取迁移记录失败")
-	}
-	if version > 1 || (version == 1 && name != initialSchemaName) {
-		return fail(platform.CodeIntegrityError, false, "本域迁移版本未知")
-	}
-	if version == 0 {
-		if _, err := tx.ExecContext(ctx, schema); err != nil {
-			return fail(platform.CodeIntegrityError, false, "执行本域初始迁移失败")
+		if !strings.Contains(err.Error(), "no such table") {
+			return mapDatabaseError(err, "读取迁移记录失败")
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, name, applied_at) VALUES (1, ?, ?)`, initialSchemaName, platform.Now()); err != nil {
-			return fail(platform.CodeInternal, false, "登记本域迁移失败")
+	} else {
+		for rows.Next() {
+			var version int64
+			var name string
+			if err := rows.Scan(&version, &name); err != nil {
+				_ = rows.Close()
+				return platform.NewError(platform.CodeIntegrityError, false, "迁移记录损坏")
+			}
+			applied[version] = name
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return mapDatabaseError(err, "读取迁移记录失败")
+		}
+		_ = rows.Close()
+	}
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
+			return platform.NewError(platform.CodeIntegrityError, false, "本域迁移版本未知")
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return mapDatabaseError(err, "提交本域迁移失败")
+	for _, migration := range all {
+		if _, ok := applied[migration.Version]; ok {
+			continue
+		}
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return mapDatabaseError(err, "开始本域迁移失败")
+		}
+		if _, err := tx.ExecContext(ctx, migration.SQL); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeIntegrityError, false, "执行本域迁移失败")
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`, migration.Version, migration.Name, platform.Now()); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeInternal, false, "登记本域迁移失败")
+		}
+		if err := tx.Commit(); err != nil {
+			return mapDatabaseError(err, "提交本域迁移失败")
+		}
 	}
 	return nil
 }
@@ -277,6 +312,14 @@ func (s *Store) completeJournal(id string) error {
 	return s.appendJournal(journalEntry{ID: id, State: "done", At: platform.Now()})
 }
 
+// abortJournal 记录未完成且无副作用的决定已放弃，避免下次启动误判为未决。
+func (s *Store) abortJournal(id string) error {
+	if !platform.ValidIdentifier(id) {
+		return platform.NewError(platform.CodeValidation, false, "journal标识不合法")
+	}
+	return s.appendJournal(journalEntry{ID: id, State: "aborted", At: platform.Now()})
+}
+
 func (s *Store) appendJournal(entry journalEntry) error {
 	raw, err := json.Marshal(entry)
 	if err != nil {
@@ -304,7 +347,13 @@ func (s *Store) recoverJournal() error {
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "恢复日志不可读")
 	}
-	states := map[string]string{}
+	// 按条目ID聚合：open后跟done/aborted即已结束；最后状态仍为open的才是未决决定。
+	type pending struct {
+		kind  string
+		state string
+	}
+	states := map[string]pending{}
+	order := make([]string, 0)
 	for _, line := range strings.Split(string(raw), "\n") {
 		if line == "" {
 			continue
@@ -313,17 +362,33 @@ func (s *Store) recoverJournal() error {
 		if err := json.Unmarshal([]byte(line), &entry); err != nil || !platform.ValidIdentifier(entry.ID) {
 			return platform.NewError(platform.CodeIntegrityError, false, "恢复日志损坏")
 		}
-		if entry.State != "open" && entry.State != "done" {
+		if entry.State != "open" && entry.State != "done" && entry.State != "aborted" {
 			return platform.NewError(platform.CodeIntegrityError, false, "恢复日志状态未知")
 		}
-		if entry.State == "open" && !platform.ValidIdentifier(entry.DataEpoch) {
+		if entry.State == "open" && (!platform.ValidIdentifier(entry.DataEpoch) || entry.Kind == "") {
 			return platform.NewError(platform.CodeIntegrityError, false, "恢复日志代次缺失")
 		}
-		states[entry.ID] = entry.State
+		current, seen := states[entry.ID]
+		if !seen {
+			order = append(order, entry.ID)
+		}
+		if entry.State == "open" {
+			current.kind = entry.Kind
+		}
+		current.state = entry.State
+		states[entry.ID] = current
 	}
-	for _, state := range states {
-		if state == "open" {
+	for _, id := range order {
+		entry := states[id]
+		if entry.state != "open" {
+			continue
+		}
+		if entry.kind != journalKindRuntimeLoad {
 			return platform.NewError(platform.CodeIntegrityError, false, "恢复日志存在未完成决定")
+		}
+		// 启动只读校验被中断：没有业务副作用，补记aborted后继续本次启动。
+		if err := s.abortJournal(id); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -525,12 +590,12 @@ func contextError(ctx context.Context) error {
 
 func mapDatabaseError(err error, message string) error {
 	if errors.Is(err, context.Canceled) {
-		return platform.NewError(platform.CodeCancelled, false, message)
+		return platform.NewError(platform.CodeCancelled, false, "%s", message)
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return platform.NewError(platform.CodeDeadlineExceeded, false, message)
+		return platform.NewError(platform.CodeDeadlineExceeded, false, "%s", message)
 	}
-	return platform.NewError(platform.CodeInternal, true, message)
+	return platform.NewError(platform.CodeInternal, true, "%s", message)
 }
 
 func validText(value string) bool {
@@ -599,53 +664,3 @@ type journalEntry struct {
 	DataEpoch string `json:"dataEpoch,omitempty"`
 	At        string `json:"at"`
 }
-
-const controlSchemaSQL = `
-CREATE TABLE IF NOT EXISTS control_state (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    barrier_state TEXT NOT NULL CHECK (barrier_state IN ('released', 'draining', 'safe', 'failed')),
-    data_epoch TEXT NOT NULL,
-    safe_point INTEGER NOT NULL CHECK (safe_point IN (0, 1)),
-    updated_at TEXT NOT NULL
-);
-INSERT OR IGNORE INTO control_state (id, barrier_state, data_epoch, safe_point, updated_at)
-VALUES (1, 'released', '', 1, '');
-CREATE TABLE IF NOT EXISTS restore_receipts (
-    restore_id TEXT PRIMARY KEY,
-    snapshot_id TEXT NOT NULL,
-    checksum TEXT NOT NULL,
-    state TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    applied_at TEXT NOT NULL
-);`
-
-const initialSchemaSQL = `
-CREATE TABLE memory_entries (
-    site_id TEXT NOT NULL, entry_id TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0),
-    title TEXT NOT NULL, file_ref TEXT NOT NULL, language TEXT NOT NULL, tags_json TEXT NOT NULL,
-    priority INTEGER NOT NULL CHECK (priority BETWEEN 0 AND 1000), state TEXT NOT NULL CHECK (state IN ('active', 'archived')),
-    updated_at TEXT NOT NULL, body_hash TEXT NOT NULL, description TEXT NOT NULL,
-    maximum_bytes INTEGER NOT NULL CHECK (maximum_bytes BETWEEN 0 AND 9007199254740991),
-    readonly INTEGER NOT NULL CHECK (readonly IN (0, 1)), source TEXT NOT NULL CHECK (source IN ('manual', 'assistant', 'auto')),
-    auto_update_enabled INTEGER NOT NULL CHECK (auto_update_enabled IN (0, 1)), PRIMARY KEY (site_id, entry_id, version));
-CREATE INDEX idx_memory_entries_current ON memory_entries (site_id, entry_id, state, version DESC);
-CREATE INDEX idx_memory_entries_epoch ON memory_entries (site_id, updated_at, entry_id, version);
-CREATE TABLE entry_current (site_id TEXT NOT NULL, entry_id TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0), PRIMARY KEY (site_id, entry_id), FOREIGN KEY (site_id, entry_id, version) REFERENCES memory_entries (site_id, entry_id, version));
-CREATE TABLE entry_revisions (site_id TEXT NOT NULL, entry_id TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0), body_hash TEXT NOT NULL, file_ref TEXT NOT NULL, actor_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (site_id, entry_id, version));
-CREATE TABLE task_mappings (site_id TEXT NOT NULL, mapping_id TEXT NOT NULL, task_id TEXT NOT NULL, entry_id TEXT NOT NULL, order_value INTEGER NOT NULL CHECK (order_value BETWEEN 0 AND 10000), enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)), language TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), PRIMARY KEY (site_id, mapping_id));
-CREATE UNIQUE INDEX idx_task_mappings_identity ON task_mappings (site_id, task_id, entry_id, language);
-CREATE INDEX idx_task_mappings_order ON task_mappings (site_id, task_id, language, enabled, order_value, mapping_id);
-CREATE TABLE task_budgets (site_id TEXT NOT NULL, task_id TEXT NOT NULL, maximum_bytes INTEGER NOT NULL CHECK (maximum_bytes BETWEEN 1024 AND 65536), maximum_entries INTEGER NOT NULL CHECK (maximum_entries BETWEEN 0 AND 64), revision INTEGER NOT NULL CHECK (revision >= 0), PRIMARY KEY (site_id, task_id));
-CREATE TABLE context_snapshots (site_id TEXT NOT NULL, snapshot_id TEXT NOT NULL, task_id TEXT NOT NULL, language TEXT NOT NULL, mapping_revision INTEGER NOT NULL CHECK (mapping_revision >= 0), manifest_hash TEXT NOT NULL, body_hash TEXT NOT NULL, byte_size INTEGER NOT NULL CHECK (byte_size >= 0), created_at TEXT NOT NULL, PRIMARY KEY (site_id, snapshot_id));
-CREATE TABLE assistant_runs (site_id TEXT NOT NULL, run_id TEXT NOT NULL, source_generation INTEGER NOT NULL CHECK (source_generation >= 0), state TEXT NOT NULL CHECK (state IN ('queued', 'running', 'review', 'completed', 'cancelled', 'failed', 'superseded')), invocation_id TEXT, actor_id TEXT NOT NULL, proposal_ids_json TEXT NOT NULL, PRIMARY KEY (site_id, run_id));
-CREATE TABLE proposals (site_id TEXT NOT NULL, proposal_id TEXT NOT NULL, run_id TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('entry_create', 'entry_update', 'entry_archive', 'glossary')), state TEXT NOT NULL CHECK (state IN ('pending', 'approved', 'applying', 'applied', 'rejected', 'conflicted')), payload_hash TEXT NOT NULL, expected_entry_version INTEGER, approved_by TEXT, approval_revision INTEGER NOT NULL CHECK (approval_revision >= 0), PRIMARY KEY (site_id, proposal_id));
-CREATE TABLE proposal_commands (site_id TEXT NOT NULL, command_id TEXT NOT NULL, proposal_id TEXT NOT NULL, payload_hash TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('pending', 'leased', 'applying', 'applied', 'rejected', 'failed')), localization_receipt TEXT, PRIMARY KEY (site_id, command_id), UNIQUE (site_id, proposal_id));
-CREATE TABLE inbox (event_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, state TEXT NOT NULL, received_at TEXT NOT NULL);
-CREATE TABLE outbox (event_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, state TEXT NOT NULL, created_at TEXT NOT NULL);
-CREATE TABLE assistant_conversations (site_id TEXT NOT NULL, conversation_id TEXT NOT NULL, actor_id TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 0), expires_at TEXT NOT NULL, PRIMARY KEY (site_id, conversation_id));
-CREATE TABLE assistant_messages (site_id TEXT NOT NULL, message_id TEXT NOT NULL, conversation_id TEXT NOT NULL, ordinal INTEGER NOT NULL CHECK (ordinal >= 0), role TEXT NOT NULL CHECK (role IN ('user', 'assistant')), body TEXT NOT NULL, run_id TEXT, created_at TEXT NOT NULL, PRIMARY KEY (site_id, message_id), UNIQUE (site_id, conversation_id, ordinal));
-CREATE TABLE runtime_state (id INTEGER PRIMARY KEY CHECK (id = 1), schema_version INTEGER NOT NULL CHECK (schema_version = 1), memory_generation INTEGER NOT NULL CHECK (memory_generation >= 0), data_epoch TEXT NOT NULL, mapping_revision INTEGER NOT NULL CHECK (mapping_revision >= 0), updated_at TEXT NOT NULL);`

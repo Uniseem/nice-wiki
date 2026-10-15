@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 68 个：手写 49、UI 3、生成 5、配置 10、迁移 1。函数 67 个：约束 44，参考 23。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 69 个：手写 50、UI 3、生成 5、配置 10、迁移 1。函数 68 个：约束 44，参考 24。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -52,7 +52,8 @@
 | `modules/localization/internal/cache-answer/read.go` | 手写 | 读取已完成的自动缓存翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadCacheAnswerTranslation` |
 | `modules/localization/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RunWorker` |
 | `modules/localization/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
-| `modules/localization/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
+| `modules/localization/migrations/001_initial.sql` | 迁移 | schemaVersion1建本域表与唯一约束；nw_outbox/nw_inbox由平台EnsureSchema建立不在此重复；control区决定日志独立且不属于业务恢复。 | 无 |
+| `modules/localization/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `localization.All`（参考） |
 | `modules/localization/cmd/localization/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `localization.main` |
 | `modules/localization/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `localization.BuildApplication` |
 | `modules/localization/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `localization.Serve`、`localization.Shutdown`、`localization.Health`、`localization.Ready` |

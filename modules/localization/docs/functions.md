@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 67 个函数：约束 44 个，参考 23 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 68 个函数：约束 44 个，参考 24 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## localization.LoadRuntime
 
@@ -52,7 +52,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`localization.All`
 
 ## localization.NormalizeLanguageTag
 
@@ -2736,6 +2736,39 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:startJob`、`jobs:checkLease`、`localization.ExecuteTranslation`、`localization.TranslateInterfaceCatalog`、`localization.ExecuteCacheAnswerTranslation`、`platform.RunWorkerLoop`
+
+## localization.All
+
+- 级别：参考
+- 文件：`modules/localization/migrations/migrations.go`
+- 作用：按编号升序返回本域业务库全部内嵌迁移并校验编号连续
+
+```go
+func All() ([]Migration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：只读内嵌迁移内容；执行由本域存储装配在事务中完成
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：纯读取，可并发调用
+- 幂等：确定性输出
+- 依赖：无
 
 ## localization.main
 

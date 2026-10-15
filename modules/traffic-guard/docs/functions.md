@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 51 个函数：约束 30 个，参考 21 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 52 个函数：约束 30 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 ## traffic-guard.ValidatePolicy
 
@@ -1860,6 +1860,39 @@ func VerifyAdmissionHTTP(ctx context.Context, op OperationContext, in VerifyAdmi
 - 依赖：`traffic-guard.CheckBan`
 - 其他依赖说明：私有SQLite
 
+## traffic-guard.All
+
+- 级别：参考
+- 文件：`modules/traffic-guard/migrations/migrations.go`
+- 作用：按编号升序返回本域业务库全部内嵌迁移并校验编号连续
+
+```go
+func All() ([]Migration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. go:embed读取NNNN_name.sql（既有NNN_name.sql兼容）；文件名或编号不合法、编号不连续即报错
+
+**错误**
+
+- `INTERNAL` / HTTP 500：打开/迁移/恢复失败（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：库损坏、schema未知或存在未完成决定（不可重试）
+
+- 副作用：只读内嵌迁移内容；执行由本域存储装配在事务中完成
+- 授权：permission：service；rule：进程启动装配，不对外暴露
+- 并发：纯读取，可并发调用
+- 幂等：确定性输出
+- 依赖：无
+
 ## traffic-guard.main
 
 - 级别：约束
@@ -1938,7 +1971,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve

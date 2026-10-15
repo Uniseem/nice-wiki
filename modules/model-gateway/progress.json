@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "a1af42cc8f5668e70dd64ec664bb15771daa93c41e8b08c6069059f63679aa32",
+  "contractSha256": "e49f6b90ea616ca16abe63f8dc8070a5550446df486283e0078aea6277dede70",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-12（模型网关目录与私有存储最小切片）",
   "branch": "main",
@@ -369,6 +369,16 @@
         "evidence": null
       },
       "blocker": "本机无Go/SQLite工具链，尚未执行迁移运行验证"
+    },
+    {
+      "path": "modules/model-gateway/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/cmd/model-gateway/main.go",
@@ -1183,6 +1193,17 @@
       "id": "model-gateway.ParseRerankResponse",
       "path": "modules/model-gateway/internal/provider/rerank.go",
       "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.All",
+      "path": "modules/model-gateway/migrations/migrations.go",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",

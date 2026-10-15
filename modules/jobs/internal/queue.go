@@ -18,13 +18,14 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/jobs/internal/gen"
+	jobsmigrations "nice-wiki/modules/jobs/migrations"
 )
 
 const (
-	databaseName   = "jobs.db"
-	maxDedupeRunes = 8192
-	jobStateQueued = "queued"
-	jobEventType   = "jobs.job-state-changed.v1"
+	databaseName    = "jobs.db"
+	maxDedupeRunes  = 8192
+	jobStateQueued  = "queued"
+	jobEventType    = "jobs.job-state-changed.v1"
 	jobEventVersion = 1
 )
 
@@ -153,7 +154,7 @@ func validateCreateJobInput(ctx context.Context, op OperationContext, in CreateJ
 	if !platform.ValidIdentifier(op.OperationID) {
 		return invalidJob()
 	}
-	if !utf8.ValidString(in.DedupeKey) || utf8.RuneCountInString(in.DedupeKey) > maxDedupeRunes {
+	if !utf8.ValidString(in.DedupeKey) || utf8.RuneCountInString(in.DedupeKey) < 1 || utf8.RuneCountInString(in.DedupeKey) > maxDedupeRunes {
 		return invalidJob()
 	}
 	_, err := ValidateJobSpec(ctx, op, ValidateJobSpecInput{
@@ -297,11 +298,11 @@ func hashCreateJobInput(in CreateJobInput) (platform.Hash, []byte, error) {
 		return "", nil, platform.NewError(platform.CodeValidation, false, "任务引用不可编码")
 	}
 	canonical, err := json.Marshal(struct {
-		Owner     string     `json:"owner"`
-		Type      string     `json:"type"`
-		InputRef  ObjectRef  `json:"inputRef"`
-		DedupeKey string     `json:"dedupeKey"`
-		DataEpoch string     `json:"dataEpoch"`
+		Owner     string    `json:"owner"`
+		Type      string    `json:"type"`
+		InputRef  ObjectRef `json:"inputRef"`
+		DedupeKey string    `json:"dedupeKey"`
+		DataEpoch string    `json:"dataEpoch"`
 	}{in.Owner, in.Type, in.InputRef, in.DedupeKey, in.DataEpoch})
 	if err != nil {
 		return "", nil, platform.NewError(platform.CodeValidation, false, "任务输入不可编码")
@@ -324,136 +325,63 @@ func acceptedJob(jobID, operationID platform.Identifier) CreateJobResult {
 	}}
 }
 
+// runMigrations 按编号升序执行 migrations/ 内嵌的只追加迁移。首个迁移自建
+// schema_migrations；数据库出现迁移集之外或名称不符的版本时拒绝启动。
 func (s *Store) runMigrations() error {
-	tx, err := s.db.Begin()
+	all, err := jobsmigrations.All()
 	if err != nil {
-		return platform.NewError(platform.CodeInternal, true, "开始任务迁移事务失败")
+		return platform.NewError(platform.CodeIntegrityError, false, "任务迁移集不合法")
 	}
-	rollback := func(cause error) error {
-		_ = tx.Rollback()
-		return cause
-	}
-	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
-		version INTEGER PRIMARY KEY,
-		name TEXT NOT NULL,
-		applied_at TEXT NOT NULL
-	)`); err != nil {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "建立任务迁移记录失败"))
-	}
-	var version int64
-	var name string
-	err = tx.QueryRow(`SELECT version, name FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version, &name)
-	if errors.Is(err, sql.ErrNoRows) {
-		version = 0
-	} else if err != nil {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "读取任务迁移记录失败"))
-	}
-	if version > 1 || (version == 1 && name != "0001_domain.sql") {
-		return rollback(platform.NewError(platform.CodeIntegrityError, false, "任务迁移版本未知"))
-	}
-	if version == 0 {
-		if _, err := tx.Exec(domainSchemaSQL); err != nil {
-			return rollback(platform.NewError(platform.CodeIntegrityError, false, "执行任务初始迁移失败"))
+	applied := map[int64]string{}
+	rows, err := s.db.Query(`SELECT version, name FROM schema_migrations`)
+	if err != nil {
+		if !strings.Contains(err.Error(), "no such table") {
+			return platform.NewError(platform.CodeIntegrityError, false, "读取任务迁移记录失败")
 		}
-		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (1, '0001_domain.sql', ?)`, platform.Now()); err != nil {
-			return rollback(platform.NewError(platform.CodeInternal, false, "登记任务迁移失败"))
+	} else {
+		for rows.Next() {
+			var version int64
+			var name string
+			if err := rows.Scan(&version, &name); err != nil {
+				_ = rows.Close()
+				return platform.NewError(platform.CodeIntegrityError, false, "任务迁移记录损坏")
+			}
+			applied[version] = name
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return platform.NewError(platform.CodeIntegrityError, false, "读取任务迁移记录失败")
+		}
+		_ = rows.Close()
+	}
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
+			return platform.NewError(platform.CodeIntegrityError, false, "任务迁移版本未知")
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return platform.NewError(platform.CodeInternal, false, "提交任务迁移失败")
+	for _, migration := range all {
+		if _, ok := applied[migration.Version]; ok {
+			continue
+		}
+		tx, err := s.db.Begin()
+		if err != nil {
+			return platform.NewError(platform.CodeInternal, true, "开始任务迁移事务失败")
+		}
+		if _, err := tx.Exec(migration.SQL); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeIntegrityError, false, "执行任务迁移失败")
+		}
+		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`,
+			migration.Version, migration.Name, platform.Now()); err != nil {
+			_ = tx.Rollback()
+			return platform.NewError(platform.CodeInternal, false, "登记任务迁移失败")
+		}
+		if err := tx.Commit(); err != nil {
+			return platform.NewError(platform.CodeInternal, false, "提交任务迁移失败")
+		}
 	}
 	return nil
 }
-
-// domainSchemaSQL 与 modules/jobs/migrations/0001_domain.sql 保持一致。
-// 运行时将迁移文本内联，避免从安装后的工作目录读取源码文件。
-const domainSchemaSQL = `
-CREATE TABLE IF NOT EXISTS jobs (
-    job_id TEXT PRIMARY KEY,
-    operation_id TEXT NOT NULL,
-    owner TEXT NOT NULL,
-    type TEXT NOT NULL,
-    immutable_input_ref BLOB NOT NULL,
-    input_hash TEXT NOT NULL,
-    dedupe_key TEXT NOT NULL,
-    state TEXT NOT NULL CHECK (state IN ('queued', 'leased', 'running', 'retry-wait', 'dead-letter', 'cancel-requested', 'cancelled', 'succeeded')),
-    attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt >= 0),
-    not_before TEXT NOT NULL,
-    data_epoch TEXT NOT NULL,
-    revision INTEGER NOT NULL CHECK (revision >= 0),
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_owner_epoch_dedupe ON jobs (owner, data_epoch, dedupe_key);
-CREATE INDEX IF NOT EXISTS idx_jobs_claimable ON jobs (state, not_before, created_at, job_id);
-
-CREATE TABLE IF NOT EXISTS leases (
-    job_id TEXT PRIMARY KEY REFERENCES jobs(job_id),
-    worker_id TEXT NOT NULL,
-    fencing_token INTEGER NOT NULL CHECK (fencing_token > 0),
-    expires_at TEXT NOT NULL,
-    last_heartbeat TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS progress (
-    job_id TEXT NOT NULL REFERENCES jobs(job_id),
-    seq INTEGER NOT NULL CHECK (seq >= 0),
-    phase TEXT NOT NULL,
-    completed_units INTEGER NOT NULL CHECK (completed_units >= 0),
-    total_units INTEGER NOT NULL CHECK (total_units >= 0),
-    safe_message_code TEXT NOT NULL,
-    PRIMARY KEY (job_id, seq)
-);
-
-CREATE TABLE IF NOT EXISTS job_results (
-    job_id TEXT PRIMARY KEY REFERENCES jobs(job_id),
-    result_ref TEXT NOT NULL,
-    paid_result_refs_json BLOB NOT NULL,
-    result_hash TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS events (
-    event_id TEXT PRIMARY KEY,
-    event_seq INTEGER NOT NULL UNIQUE,
-    envelope_json BLOB NOT NULL,
-    source_revision INTEGER NOT NULL CHECK (source_revision >= 0),
-    data_epoch TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS deliveries (
-    event_id TEXT NOT NULL REFERENCES events(event_id),
-    consumer_id TEXT NOT NULL,
-    state TEXT NOT NULL,
-    attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt >= 0),
-    retry_at TEXT NOT NULL,
-    PRIMARY KEY (event_id, consumer_id)
-);
-
-CREATE TABLE IF NOT EXISTS schedules (
-    schedule_id TEXT PRIMARY KEY,
-    owner TEXT NOT NULL,
-    cron TEXT NOT NULL,
-    timezone TEXT NOT NULL,
-    revision INTEGER NOT NULL CHECK (revision >= 0),
-    enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
-    next_fire_at TEXT NOT NULL,
-    last_tick TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS barriers (
-    barrier_id TEXT PRIMARY KEY,
-    state TEXT NOT NULL,
-    domain_status_json BLOB NOT NULL,
-    data_epoch TEXT NOT NULL,
-    deadline TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    applied_at TEXT NOT NULL
-);
-`
 
 func mapQueueDBError(err error) error {
 	if err == nil {

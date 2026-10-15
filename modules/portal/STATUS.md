@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1 首片已实现，尚未编译或行为验收。
 
+- 2026-10-15 集成复核修复：委托证明期限改为 min(now+10s, 操作期限, 会话期限)，此前沿用 30 秒操作期限导致所有需登录请求签发失败。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - 本次本地分支：`codex/portal-route-gate`；基线：`dc803f1d92f3b9d528ec92e11e929f544bd6a9a1`。
 - 交付提交：`282051b7e92b39f601136a4972c3ed25732d5ce3`（本地，未 push）。
 - 已实现：静态路由索引/最长匹配、请求预算与可信头、Origin/CSRF 边界、委托 proof 签发、runtime 读取与维护门禁、入口屏障纯状态、HTTP 生命周期、portal 独立 Go module/配置/manifest。

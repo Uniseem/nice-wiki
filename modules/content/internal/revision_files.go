@@ -40,14 +40,14 @@ type Timestamp = platform.Timestamp
 
 // CommitJournal 是正文提交意图。除 state 外的字段在同一 commitId 下不可改变。
 type CommitJournal struct {
-	CommitID    Identifier `json:"commitId"`
-	OperationID Identifier `json:"operationId"`
-	DocumentID  Identifier `json:"documentId"`
-	RevisionID  Identifier `json:"revisionId"`
-	BodyHash    Hash       `json:"bodyHash"`
+	CommitID     Identifier  `json:"commitId"`
+	OperationID  Identifier  `json:"operationId"`
+	DocumentID   Identifier  `json:"documentId"`
+	RevisionID   Identifier  `json:"revisionId"`
+	BodyHash     Hash        `json:"bodyHash"`
 	ExpectedHead *Identifier `json:"expectedHead"`
-	State       string     `json:"state"`
-	CreatedAt   Timestamp  `json:"createdAt"`
+	State        string      `json:"state"`
+	CreatedAt    Timestamp   `json:"createdAt"`
 }
 
 // RecoverPreparedCommitsInput 没有字段；恢复参数由受信启动装配注入。
@@ -84,12 +84,12 @@ type RevisionRecoveryState interface {
 // RevisionRecoveryStore 是启动时注入的正文恢复依赖。
 // ActiveRoot 必须是本域 active 数据根；JournalPath 为空时使用其下的标准路径。
 type RevisionRecoveryStore struct {
-	ActiveRoot string
+	ActiveRoot  string
 	JournalPath string
-	SiteID     Identifier
-	DataEpoch  Identifier
-	Gate       RevisionRecoveryGate
-	State      RevisionRecoveryState
+	SiteID      Identifier
+	DataEpoch   Identifier
+	Gate        RevisionRecoveryGate
+	State       RevisionRecoveryState
 
 	// ExclusiveStartup 只适用于尚未接入外部 safe 屏障的单进程启动阶段。
 	// 正式屏障恢复应提供 Gate；未设置 Gate 且此字段为 false 时拒绝恢复。
@@ -108,9 +108,11 @@ var startupRecoveryGate = make(chan struct{}, 1)
 
 // RecoverPreparedCommits 在独占启动段或 safe 屏障内恢复正文提交 journal。
 //
-// COMMITTED 只做正文、哈希和当前 head 的核对；PREPARED 只有在已有
-// committed receipt 且 head 已经指向该 revision 时才补记 COMMITTED。函数
-// 没有推进 head 的能力，正文缺失、哈希不符或 head 不一致均隔离并关闭文档。
+// 已提交修订（COMMITTED，或 PREPARED 且已有 committed receipt）核对正文与
+// 哈希；只有每篇文档最新的已提交修订才要求当前 head 指向它，校验通过的
+// PREPARED 补记 COMMITTED。函数没有推进 head 的能力：已提交正文缺失、哈希
+// 不符或最新修订与 head 不一致时隔离并关闭文档；没有 receipt 的孤儿
+// PREPARED 只隔离该次提交。
 func RecoverPreparedCommits(ctx context.Context, op OperationContext, input RecoverPreparedCommitsInput) (result RecoverPreparedCommitsResult, retErr error) {
 	if err := checkRecoveryContext(ctx, op); err != nil {
 		return result, err
@@ -157,13 +159,41 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 		return result, platform.NewError(platform.CodeDependencyUnavailable, true, "正文恢复事务状态未装配")
 	}
 
-	integrityFound := false
+	// 第一遍：确定每条提交的有效状态。PREPARED 是否已提交只以私有事务
+	// receipt 为准；同一文档按 journal 顺序最后一个有效提交才是当前 head 的来源。
+	effective := make([]entryRecovery, 0, len(entries))
+	latestCommit := make(map[Identifier]Identifier)
 	for _, entry := range entries {
 		if err := checkRecoveryContext(ctx, op); err != nil {
 			return RecoverPreparedCommitsResult{}, err
 		}
+		item := entryRecovery{journal: entry.journal}
+		switch entry.journal.State {
+		case "committed":
+			item.committed = true
+		case "prepared":
+			hasReceipt, receiptErr := store.State.HasCommittedReceipt(ctx, entry.journal.CommitID)
+			if receiptErr != nil {
+				return RecoverPreparedCommitsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交回执不可读")
+			}
+			item.committed = hasReceipt
+			item.pending = true
+		default:
+			continue
+		}
+		if item.committed {
+			latestCommit[entry.journal.DocumentID] = entry.journal.CommitID
+		}
+		effective = append(effective, item)
+	}
 
-		recovered, quarantined, integrity, err := recoverJournalEntry(ctx, store, siteID, journalPath, entry.journal)
+	integrityFound := false
+	for _, item := range effective {
+		if err := checkRecoveryContext(ctx, op); err != nil {
+			return RecoverPreparedCommitsResult{}, err
+		}
+		isLatest := latestCommit[item.journal.DocumentID] == item.journal.CommitID
+		recovered, quarantined, integrity, err := recoverJournalEntry(ctx, store, siteID, journalPath, item, isLatest)
 		if err != nil {
 			return RecoverPreparedCommitsResult{}, err
 		}
@@ -172,7 +202,6 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 		if integrity {
 			// 继续扫描同一批，尽可能隔离全部损坏文档；绝不返回部分成功。
 			integrityFound = true
-			continue
 		}
 	}
 
@@ -184,6 +213,14 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 
 type journalEntry struct {
 	journal CommitJournal
+}
+
+// entryRecovery 是一条提交在恢复时的有效状态：committed 表示已有 COMMITTED
+// 记录或已提交 receipt；pending 表示 journal 仍停在 PREPARED。
+type entryRecovery struct {
+	journal   CommitJournal
+	committed bool
+	pending   bool
 }
 
 func recoveryStoreFromContext(ctx context.Context) (RevisionRecoveryStore, bool) {
@@ -432,53 +469,38 @@ func validJournalTransition(from, to string) bool {
 	}
 }
 
-func recoverJournalEntry(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journalPath string, journal CommitJournal) (recovered, quarantined int, integrity bool, err error) {
-	switch journal.State {
-	case "aborted", "quarantined":
-		return 0, 0, false, nil
-	case "prepared":
-		hasReceipt, receiptErr := store.State.HasCommittedReceipt(ctx, journal.CommitID)
-		if receiptErr != nil {
-			return 0, 0, false, platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交回执不可读")
+// recoverJournalEntry 恢复单条提交。已提交修订必须正文与哈希一致，且只有
+// 每篇文档最新的已提交修订才要求当前 head 指向它——更早的修订本来就已
+// 被后续提交取代；不一致或缺失时隔离文档并关闭公开（合同步骤2）。没有已
+// 提交 receipt 的 PREPARED 是未完成的孤儿，只隔离该次提交，不推进 head，
+// 也不关闭文档（合同步骤3）。
+func recoverJournalEntry(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journalPath string, item entryRecovery, isLatest bool) (recovered, quarantined int, integrity bool, err error) {
+	journal := item.journal
+	if !item.committed {
+		if err := quarantineCommit(ctx, store, siteID, journalPath, journal, "PREPARED提交没有已提交回执", false); err != nil {
+			return 0, 0, false, err
 		}
-		if !hasReceipt {
-			if err := quarantineCommit(ctx, store, siteID, journalPath, journal, "PREPARED提交没有已提交回执"); err != nil {
-				return 0, 0, false, err
-			}
-			return 0, 1, false, nil
+		return 0, 1, false, nil
+	}
+	valid, reason, checkErr := verifyCommittedBodyAndHead(ctx, store, siteID, journal, isLatest)
+	if checkErr != nil {
+		return 0, 0, false, checkErr
+	}
+	if !valid {
+		if err := quarantineCommit(ctx, store, siteID, journalPath, journal, reason, true); err != nil {
+			return 0, 0, false, err
 		}
-		valid, reason, checkErr := verifyCommittedBodyAndHead(ctx, store, siteID, journal)
-		if checkErr != nil {
-			return 0, 0, false, checkErr
-		}
-		if !valid {
-			if err := quarantineCommit(ctx, store, siteID, journalPath, journal, reason); err != nil {
-				return 0, 0, false, err
-			}
-			return 0, 1, true, nil
-		}
+		return 0, 1, true, nil
+	}
+	if item.pending {
 		if err := appendJournalState(ctx, journalPath, journal, "committed"); err != nil {
 			return 0, 0, false, err
 		}
-		return 1, 0, false, nil
-	case "committed":
-		valid, reason, checkErr := verifyCommittedBodyAndHead(ctx, store, siteID, journal)
-		if checkErr != nil {
-			return 0, 0, false, checkErr
-		}
-		if !valid {
-			if err := quarantineCommit(ctx, store, siteID, journalPath, journal, reason); err != nil {
-				return 0, 0, false, err
-			}
-			return 0, 1, true, nil
-		}
-		return 1, 0, false, nil
-	default:
-		return 0, 0, true, nil
 	}
+	return 1, 0, false, nil
 }
 
-func verifyCommittedBodyAndHead(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journal CommitJournal) (bool, string, error) {
+func verifyCommittedBodyAndHead(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journal CommitJournal, checkHead bool) (bool, string, error) {
 	bodyPath := revisionBodyPath(store.ActiveRoot, siteID, journal.DocumentID, journal.RevisionID)
 	status, actualHash, err := readRevisionHash(bodyPath)
 	if err != nil {
@@ -495,6 +517,9 @@ func verifyCommittedBodyAndHead(ctx context.Context, store RevisionRecoveryStore
 		}
 	}
 
+	if !checkHead {
+		return true, "", nil
+	}
 	currentHead, err := store.State.CurrentHead(ctx, journal.DocumentID)
 	if err != nil {
 		return false, "正文head不可读", platform.NewError(platform.CodeDependencyUnavailable, true, "正文head不可读")
@@ -538,7 +563,9 @@ func readRevisionHash(path string) (status int, hash Hash, err error) {
 	return bodyValid, Hash(hex.EncodeToString(hasher.Sum(nil))), nil
 }
 
-func quarantineCommit(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journalPath string, journal CommitJournal, reason string) error {
+// quarantineCommit 把该次提交的正文移入隔离区并记 quarantined；closeDocument
+// 为 true 时（已提交正文损坏或 head 不一致）同时隔离文档并关闭公开。
+func quarantineCommit(ctx context.Context, store RevisionRecoveryStore, siteID Identifier, journalPath string, journal CommitJournal, reason string, closeDocument bool) error {
 	if store.State == nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文恢复事务状态未装配")
 	}
@@ -552,8 +579,10 @@ func quarantineCommit(ctx context.Context, store RevisionRecoveryStore, siteID I
 	if err := checkContextOnly(ctx); err != nil {
 		return err
 	}
-	if err := store.State.QuarantineDocument(ctx, journal.DocumentID, reason); err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文文档隔离状态不可写")
+	if closeDocument {
+		if err := store.State.QuarantineDocument(ctx, journal.DocumentID, reason); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "正文文档隔离状态不可写")
+		}
 	}
 	if err := appendJournalState(ctx, journalPath, journal, "quarantined"); err != nil {
 		return err

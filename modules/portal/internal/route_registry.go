@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	methodPattern = regexp.MustCompile(`^(GET|HEAD|POST|PUT|PATCH|DELETE)$`)
-	variablePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
+	methodPattern           = regexp.MustCompile(`^(GET|HEAD|POST|PUT|PATCH|DELETE)$`)
+	variablePattern         = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
 	templateVariablePattern = regexp.MustCompile(`\{[A-Za-z][A-Za-z0-9_]{0,63}\}`)
 )
 
@@ -313,142 +313,201 @@ type RouteRegistry struct {
 	ConfigHash  Hash
 }
 
-type CompileRouteRegistryInput struct { Definitions []RouteDefinition }
-type CompileRouteRegistryResult struct { Registry RouteRegistry }
+type CompileRouteRegistryInput struct{ Definitions []RouteDefinition }
+type CompileRouteRegistryResult struct{ Registry RouteRegistry }
 type ResolveRouteInput struct {
-	Registry RouteRegistry
-	Method string
+	Registry    RouteRegistry
+	Method      string
 	EscapedPath string
 }
-type RouteParameter struct { Name, Value string }
+type RouteParameter struct{ Name, Value string }
 type ResolvedRoute struct {
-	Definition RouteDefinition
+	Definition   RouteDefinition
 	RelativePath string
-	Parameters []RouteParameter
+	Parameters   []RouteParameter
 }
-type ResolveRouteResult struct { Route ResolvedRoute }
+type ResolveRouteResult struct{ Route ResolvedRoute }
 
-type HeaderEntry struct { Name string; Values []string }
-type HeaderMap struct { Entries []HeaderEntry }
+type HeaderEntry struct {
+	Name   string
+	Values []string
+}
+type HeaderMap struct{ Entries []HeaderEntry }
 type IncomingRequest struct {
-	Method string
+	Method      string
 	EscapedPath string
-	Headers HeaderMap
-	BodyHandle string
+	Headers     HeaderMap
+	BodyHandle  string
 }
-type RequestLimits struct { BodyBytes, HeaderBytes, QueryBytes int64 }
+type RequestLimits struct{ BodyBytes, HeaderBytes, QueryBytes int64 }
 type ValidatedEnvelope struct {
-	RequestID Identifier
-	OperationID Identifier
+	RequestID        Identifier
+	OperationID      Identifier
 	ExpectedRevision *Revision
-	Headers HeaderMap
-	BodyHandle string
-	BodyDigest Hash
-	BodyBytes int64
+	Headers          HeaderMap
+	BodyHandle       string
+	BodyDigest       Hash
+	BodyBytes        int64
 }
-type ValidateEnvelopeInput struct { Request IncomingRequest; Limits RequestLimits }
-type ValidateEnvelopeResult struct { Envelope ValidatedEnvelope }
-type NormalizeForwardHeadersInput struct { Headers HeaderMap; Envelope ValidatedEnvelope }
-type NormalizeForwardHeadersResult struct { Headers HeaderMap }
-type SessionCookies struct { SessionToken, CSRFCookie string }
+type ValidateEnvelopeInput struct {
+	Request IncomingRequest
+	Limits  RequestLimits
+}
+type ValidateEnvelopeResult struct{ Envelope ValidatedEnvelope }
+type NormalizeForwardHeadersInput struct {
+	Headers  HeaderMap
+	Envelope ValidatedEnvelope
+}
+type NormalizeForwardHeadersResult struct{ Headers HeaderMap }
+type SessionCookies struct{ SessionToken, CSRFCookie string }
 type AssertSameOriginInput struct {
-	Origin string
-	Host string
+	Origin            string
+	Host              string
 	ConfiguredOrigins []string
 }
-type AssertSameOriginResult struct { Accepted bool }
-type VerifyCSRFInput struct { Supplied string; Cookies SessionCookies }
-type VerifyCSRFResult struct { Accepted bool }
-type ResolveAuthContextInput struct { Cookies SessionCookies; Required PermissionRequirement }
-type ResolveAuthContextResult struct { Auth AuthContext }
+type AssertSameOriginResult struct{ Accepted bool }
+type VerifyCSRFInput struct {
+	Supplied string
+	Cookies  SessionCookies
+}
+type VerifyCSRFResult struct{ Accepted bool }
+type ResolveAuthContextInput struct {
+	Cookies  SessionCookies
+	Required PermissionRequirement
+}
+type ResolveAuthContextResult struct{ Auth AuthContext }
 type InternalProof struct {
-	Token string
-	Audience string
-	ExpiresAt Timestamp
+	Token         string
+	Audience      string
+	ExpiresAt     Timestamp
 	RequestDigest Hash
-	Nonce Identifier
+	Nonce         Identifier
 }
 type BuildInternalProofInput struct {
-	Auth AuthContext
-	Route ResolvedRoute
+	Auth          AuthContext
+	Route         ResolvedRoute
 	RequestDigest Hash
-	ExpiresAt Timestamp
+	ExpiresAt     Timestamp
 }
-type BuildInternalProofResult struct { Proof InternalProof }
-type AuthorizeRouteInput struct { Auth AuthContext; Route ResolvedRoute }
-type AuthorizeRouteResult struct { Accepted bool }
+type BuildInternalProofResult struct{ Proof InternalProof }
+type AuthorizeRouteInput struct {
+	Auth  AuthContext
+	Route ResolvedRoute
+}
+type AuthorizeRouteResult struct{ Accepted bool }
 type UpstreamResponse struct {
-	Status int
-	Headers HeaderMap
+	Status       int
+	Headers      HeaderMap
 	StreamHandle string
-	Response *http.Response
+	Response     *http.Response
 }
-type ForwardRequestInput struct { Route ResolvedRoute; Request ValidatedEnvelope; Proof InternalProof }
-type ForwardRequestResult struct { Response UpstreamResponse }
-type StreamResponseInput struct { Upstream UpstreamResponse; WriterHandle string }
-type StreamResponseResult struct { Accepted bool }
-type MapUpstreamFailureInput struct { FailureCode string; RequestID Identifier }
-type MapUpstreamFailureResult struct { Problem platform.Problem }
-type ProxyRequestInput struct { Method string; RawPath string; ContentLength int64 }
-type ProxyRequestResult struct { Status int; Owner string }
+type ForwardRequestInput struct {
+	Route   ResolvedRoute
+	Request ValidatedEnvelope
+	Proof   InternalProof
+}
+type ForwardRequestResult struct{ Response UpstreamResponse }
+type StreamResponseInput struct {
+	Upstream     UpstreamResponse
+	WriterHandle string
+}
+type StreamResponseResult struct{ Accepted bool }
+type MapUpstreamFailureInput struct {
+	FailureCode string
+	RequestID   Identifier
+}
+type MapUpstreamFailureResult struct{ Problem platform.Problem }
+type ProxyRequestInput struct {
+	Method        string
+	RawPath       string
+	ContentLength int64
+}
+type ProxyRequestResult struct {
+	Status int
+	Owner  string
+}
 type ReadRuntimeStateInput struct{}
 type ReadRuntimeStateResult struct {
-	DataEpoch platform.Identifier
+	DataEpoch   platform.Identifier
 	Maintenance bool
-	Revision platform.Revision
+	Revision    platform.Revision
 }
-type CheckEntranceGateInput struct { Route ResolvedRoute; RuntimeRevision platform.Revision }
-type CheckEntranceGateResult struct { Allowed bool; RetryAfterSeconds int }
+type CheckEntranceGateInput struct {
+	Route           ResolvedRoute
+	RuntimeRevision platform.Revision
+}
+type CheckEntranceGateResult struct {
+	Allowed           bool
+	RetryAfterSeconds int
+}
 type BarrierRequest struct {
-	BarrierID Identifier
-	Deadline Timestamp
-	Mode string
+	BarrierID   Identifier
+	Deadline    Timestamp
+	Mode        string
 	OperationID Identifier
 }
 type BarrierStatus struct {
-	BarrierID Identifier
-	DataEpoch Identifier
-	Owner string
+	BarrierID         Identifier
+	DataEpoch         Identifier
+	Owner             string
 	RevisionWatermark Revision
-	State string
+	State             string
 }
-type ReleaseBarrierInput struct { BarrierID Identifier; ExpectedEpoch Identifier }
-type ReleaseBarrierResult struct { Status BarrierStatus }
+type ReleaseBarrierInput struct {
+	BarrierID     Identifier
+	ExpectedEpoch Identifier
+}
+type ReleaseBarrierResult struct{ Status BarrierStatus }
 type SiteFeatureFlags struct {
-	QAEnabled bool
-	LocalizationEnabled bool
+	QAEnabled            bool
+	LocalizationEnabled  bool
 	AnnouncementsEnabled bool
 }
-type Capability struct { Key Identifier; Enabled bool; Reason *string }
+type Capability struct {
+	Key     Identifier
+	Enabled bool
+	Reason  *string
+}
 type NavigationItem struct {
-	Key Identifier
-	Route string
-	Label string
+	Key                Identifier
+	Route              string
+	Label              string
 	RequiredCapability Identifier
 }
-type BuildCapabilitiesInput struct { Grants []string; Flags SiteFeatureFlags }
-type BuildCapabilitiesResult struct { Capabilities []Capability }
-type BuildNavigationInput struct { Capabilities []Capability; Locale string }
-type BuildNavigationResult struct { Navigation []NavigationItem }
+type BuildCapabilitiesInput struct {
+	Grants []string
+	Flags  SiteFeatureFlags
+}
+type BuildCapabilitiesResult struct{ Capabilities []Capability }
+type BuildNavigationInput struct {
+	Capabilities []Capability
+	Locale       string
+}
+type BuildNavigationResult struct{ Navigation []NavigationItem }
 
-type RuntimeReader interface { ReadRuntimeState(context.Context) (platform.RuntimeView, error) }
-type IdentityVerifier interface { VerifySessionCSRF(context.Context, string, string, string) (bool, error) }
+type RuntimeReader interface {
+	ReadRuntimeState(context.Context) (platform.RuntimeView, error)
+}
+type IdentityVerifier interface {
+	VerifySessionCSRF(context.Context, string, string, string) (bool, error)
+}
 type proxyRuntimeKey struct{}
 type ProxyRuntime struct {
-	Registry RouteRegistry
-	Dependencies map[string]string
-	SigningKey platform.SigningKey
-	Issuer string
-	Request *http.Request
-	Body []byte
-	Query string
-	Headers HeaderMap
-	Writer http.ResponseWriter
-	Runtime RuntimeReader
-	Identity IdentityVerifier
-	Gate *Gate
+	Registry          RouteRegistry
+	Dependencies      map[string]string
+	SigningKey        platform.SigningKey
+	Issuer            string
+	Request           *http.Request
+	Body              []byte
+	Query             string
+	Headers           HeaderMap
+	Writer            http.ResponseWriter
+	Runtime           RuntimeReader
+	Identity          IdentityVerifier
+	Gate              *Gate
 	ConfiguredOrigins []string
 }
+
 func WithProxyRuntime(ctx context.Context, runtime *ProxyRuntime) context.Context {
 	return context.WithValue(ctx, proxyRuntimeKey{}, runtime)
 }
@@ -456,16 +515,22 @@ func proxyRuntimeFromContext(ctx context.Context) (*ProxyRuntime, bool) {
 	runtime, ok := ctx.Value(proxyRuntimeKey{}).(*ProxyRuntime)
 	return runtime, ok && runtime != nil
 }
+
 type originKey struct{}
-func withOrigin(ctx context.Context, origin string) context.Context { return context.WithValue(ctx, originKey{}, origin) }
+
+func withOrigin(ctx context.Context, origin string) context.Context {
+	return context.WithValue(ctx, originKey{}, origin)
+}
 func originFromContext(ctx context.Context) string {
 	origin, _ := ctx.Value(originKey{}).(string)
 	return origin
 }
+
 type authResolverKey struct{}
 type AuthResolver interface {
 	Resolve(context.Context, SessionCookies, PermissionRequirement) (AuthContext, error)
 }
+
 func WithAuthResolver(ctx context.Context, resolver AuthResolver) context.Context {
 	return context.WithValue(ctx, authResolverKey{}, resolver)
 }
@@ -473,7 +538,9 @@ func authResolverFromContext(ctx context.Context) (AuthResolver, bool) {
 	resolver, ok := ctx.Value(authResolverKey{}).(AuthResolver)
 	return resolver, ok && resolver != nil
 }
+
 type signerKey struct{}
+
 func WithPortalSigner(ctx context.Context, key platform.SigningKey) context.Context {
 	return context.WithValue(ctx, signerKey{}, key)
 }

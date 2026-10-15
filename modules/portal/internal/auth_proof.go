@@ -32,7 +32,10 @@ func ResolveAuthContext(ctx context.Context, op OperationContext, input ResolveA
 	return ResolveAuthContextResult{Auth: auth}, nil
 }
 
-// BuildInternalProof 签发绑定拥有方、方法、路径和正文摘要的十秒内委托。
+// BuildInternalProof 签发绑定会话主体、路由模板和正文摘要的十秒内用户委托。
+// 拥有方、方法与具体路径由同一请求的服务断言（aud/method/path/bodyHash/jti）
+// 绑定并防重放；委托证明按合同沿调用链原样传递，因此不绑定单一拥有方。
+// Nonce 只作入口审计关联，不在委托载荷中签名。
 func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInternalProofInput) (BuildInternalProofResult, error) {
 	if input.Auth.SubjectID == "" || input.Auth.SiteID == "" || input.Route.Definition.Owner == "" || !platform.ValidHash(input.RequestDigest) {
 		return BuildInternalProofResult{}, platform.NewError(platform.CodeValidation, false, "委托证明输入不完整")
@@ -65,18 +68,18 @@ func BuildInternalProof(ctx context.Context, op OperationContext, input BuildInt
 		SessionVersion: int(input.Auth.PermissionRevision),
 		Route:          input.Route.Definition.PathTemplate,
 		BodyHash:       input.RequestDigest,
-		ExpiresAt:       input.ExpiresAt,
+		ExpiresAt:      input.ExpiresAt,
 	}
 	token, err := signDelegation(key, claims)
 	if err != nil {
 		return BuildInternalProofResult{}, err
 	}
 	return BuildInternalProofResult{Proof: InternalProof{
-		Token:        token,
-		Audience:     input.Route.Definition.Owner,
-		ExpiresAt:    input.ExpiresAt,
+		Token:         token,
+		Audience:      input.Route.Definition.Owner,
+		ExpiresAt:     input.ExpiresAt,
 		RequestDigest: input.RequestDigest,
-		Nonce:        nonce,
+		Nonce:         nonce,
 	}}, nil
 }
 

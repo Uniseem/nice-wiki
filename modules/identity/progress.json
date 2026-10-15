@@ -2,12 +2,12 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "5edab272347ecfb4e0bf2bd9b4f5a57be39fae69c5c2c9ac8fdbcddc1da2eaf1",
+  "contractSha256": "774eb86c486116e3693ca348be1fc175fbd62626441a64247ef6254ee7977474",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-01（账号索引、注册前置、幂等与恢复安全边界）",
   "branch": "codex/analytics-r1-storage-contract-audit",
   "baseCommit": "7aa44567609713b8810b9b8ca9ba61579648d55a",
-  "deliveryCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+  "deliveryCommit": "1ee1458c6174c634b24160d6774d070e9a4d0f2d",
   "deployment": "not_started",
   "files": [
     {
@@ -33,7 +33,7 @@
     {
       "path": "modules/identity/internal/account_validator.go",
       "state": "implemented",
-      "implementationCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
+      "implementationCommit": "75d8b1e8d0be72a77cc46b670ff8dcbb0c6b6bd9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -123,7 +123,7 @@
     {
       "path": "modules/identity/internal/operation_repository.go",
       "state": "implemented",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -133,7 +133,7 @@
     {
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -143,7 +143,7 @@
     {
       "path": "modules/identity/internal/restore_security.go",
       "state": "implemented",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -233,7 +233,7 @@
     {
       "path": "modules/identity/go.mod",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -243,7 +243,7 @@
     {
       "path": "modules/identity/go.sum",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -303,6 +303,16 @@
     {
       "path": "modules/identity/internal/gen/clients.gen.go",
       "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/gen/permission_groups.gen.go",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
@@ -414,7 +424,7 @@
       "id": "identity.NormalizeAccountName",
       "path": "modules/identity/internal/account_validator.go",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "75d8b1e8d0be72a77cc46b670ff8dcbb0c6b6bd9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -425,7 +435,7 @@
       "id": "identity.AssertSuperadminImmutable",
       "path": "modules/identity/internal/account_validator.go",
       "state": "implemented",
-      "implementationCommit": "7a059d4e95f8043808cecc21537afc5a18f38a6a",
+      "implementationCommit": "75d8b1e8d0be72a77cc46b670ff8dcbb0c6b6bd9",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -447,7 +457,7 @@
       "id": "identity.HashPassword",
       "path": "modules/identity/internal/credential_service.go",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -458,7 +468,7 @@
       "id": "identity.VerifyPassword",
       "path": "modules/identity/internal/credential_service.go",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -469,7 +479,7 @@
       "id": "identity.ValidatePasswordChange",
       "path": "modules/identity/internal/credential_service.go",
       "state": "implemented",
-      "implementationCommit": "bdcb9128d3ec5983d54c57f0fddc7abb793e93f4",
+      "implementationCommit": "80574a8ab07f364536cc4522ee9c126e534b0593",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -667,7 +677,7 @@
       "id": "identity.ResolveIdentityOperation",
       "path": "modules/identity/internal/operation_repository.go",
       "state": "implemented",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -678,7 +688,7 @@
       "id": "identity.PublishIdentityEvent",
       "path": "modules/identity/internal/outbox_repository.go",
       "state": "implemented",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -700,7 +710,7 @@
       "id": "identity.InvalidateRestoredSessions",
       "path": "modules/identity/internal/restore_security.go",
       "state": "implemented",
-      "implementationCommit": "1a6725d3eca0ba4674b1bbefa626c97ed14eb0c4",
+      "implementationCommit": "476efea92a07ed8a554e033da00a1e752dbc32eb",
       "verification": {
         "state": "not_run",
         "evidence": null

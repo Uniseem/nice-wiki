@@ -578,9 +578,9 @@ func ValidateRuntimeTransition(input ValidateRuntimeTransitionInput) (ValidateRu
 **步骤**
 
 1. running仅begin_backup/begin_restore；backup_barrier仅complete_backup
-2. restore_staging仅begin_switch/abort_restore/mark_blocked；begin_switch要求全部有状态域已暂存
+2. restore_staging仅begin_switch/abort_restore/mark_blocked；begin_switch只由data-protection在StageAllDomains全部暂存完成后发起（暂存完成由data-protection核验，本函数校验restoreId/targetDataEpoch/barrierId一致）
 3. restore_switching可complete_restore/begin_rollback/mark_blocked；restore_blocked可begin_rollback或再次begin_switch；restore_rolling_back仅complete_rollback
-4. complete_restore要求14个有状态域switched到目标epoch；complete_rollback要求已换入域全部rolled-back；禁止未知、跳阶段或自行关维护
+4. complete_restore要求14个有状态域switched到目标epoch；complete_rollback要求已换入域全部rolled-back（不得残留switched回执；从未换入的域不产生回执）；禁止未知、跳阶段或自行关维护
 
 **错误**
 

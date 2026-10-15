@@ -19,6 +19,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
+	guardmigrations "nice-wiki/modules/traffic-guard/migrations"
 )
 
 const (
@@ -44,40 +45,6 @@ type policyJournalEntry struct {
 	Payload json.RawMessage    `json:"payload,omitempty"`
 	At      platform.Timestamp `json:"at"`
 }
-
-// policyMigration 与已登记的 migrations/0001_domain.sql 保持字节语义一致；
-// 迁移文件是审阅和归档来源，执行时由本包内嵌合同常量避免依赖源码目录。
-type policyMigration struct {
-	Version int64
-	Name    string
-	SQL     string
-}
-
-const policyMigrationSQL = `CREATE TABLE guard_policy (
-    site_id     TEXT PRIMARY KEY,
-    revision    INTEGER NOT NULL CHECK (revision >= 0),
-    policy_json TEXT NOT NULL CHECK (json_valid(policy_json)),
-    data_epoch  TEXT NOT NULL
-);
-
-CREATE TABLE policy_operation_receipts (
-    site_id       TEXT NOT NULL,
-    operation_id  TEXT NOT NULL,
-    input_hash    TEXT NOT NULL,
-    revision      INTEGER NOT NULL CHECK (revision >= 0),
-    data_epoch    TEXT NOT NULL,
-    created_at    TEXT NOT NULL,
-    PRIMARY KEY (site_id, operation_id)
-);
-
-CREATE INDEX idx_policy_receipts_epoch
-    ON policy_operation_receipts (data_epoch, created_at);
-
-CREATE TABLE schema_migrations (
-    version    INTEGER PRIMARY KEY,
-    name       TEXT NOT NULL,
-    applied_at TEXT NOT NULL
-);`
 
 // OpenPolicyStore 打开active区SQLite和control区journal，启用WAL、外键及
 // 3000ms busy timeout；任一资源失败都会关闭已打开句柄。
@@ -126,8 +93,10 @@ func (s *PolicyStore) RunMigrations() error {
 	if s == nil || s.db == nil {
 		return platform.NewError(platform.CodeValidation, false, "本域业务库句柄缺失")
 	}
-	all := []policyMigration{{Version: 1, Name: "0001_domain.sql", SQL: policyMigrationSQL}}
-
+	all, err := guardmigrations.All()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "本域迁移集不合法")
+	}
 	applied := map[int64]string{}
 	rows, err := s.db.Query(`SELECT version, name FROM schema_migrations`)
 	if err != nil {
@@ -135,26 +104,28 @@ func (s *PolicyStore) RunMigrations() error {
 			return platform.NewError(platform.CodeIntegrityError, false, "读取本域迁移记录失败")
 		}
 	} else {
-		defer rows.Close()
 		for rows.Next() {
 			var version int64
 			var name string
 			if err := rows.Scan(&version, &name); err != nil {
+				_ = rows.Close()
 				return platform.NewError(platform.CodeIntegrityError, false, "本域迁移记录损坏")
 			}
 			applied[version] = name
 		}
 		if err := rows.Err(); err != nil {
+			_ = rows.Close()
 			return platform.NewError(platform.CodeIntegrityError, false, "读取本域迁移记录失败")
 		}
+		_ = rows.Close()
 	}
-	for version := range applied {
-		if version < 1 || version > int64(len(all)) {
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
 			return platform.NewError(platform.CodeIntegrityError, false, "本域已应用迁移超出迁移集")
 		}
 	}
 	for _, migration := range all {
-		if applied[migration.Version] != "" {
+		if _, ok := applied[migration.Version]; ok {
 			continue
 		}
 		tx, err := s.db.Begin()
@@ -226,6 +197,8 @@ func (s *PolicyStore) Close() error {
 	return nil
 }
 
+// readPolicyJournal 按条目ID聚合决定日志：同ID后写的done覆盖open，返回每个
+// 决定的最终状态；任何损坏行都按完整性错误拒绝启动。
 func readPolicyJournal(name string) ([]policyJournalEntry, error) {
 	raw, err := os.ReadFile(name)
 	if errors.Is(err, os.ErrNotExist) {
@@ -234,7 +207,8 @@ func readPolicyJournal(name string) ([]policyJournalEntry, error) {
 	if err != nil {
 		return nil, platform.NewError(platform.CodeInternal, false, "读取本域决定日志失败")
 	}
-	var entries []policyJournalEntry
+	latest := map[string]policyJournalEntry{}
+	order := make([]string, 0)
 	for _, line := range strings.Split(string(raw), "\n") {
 		if line == "" {
 			continue
@@ -243,7 +217,14 @@ func readPolicyJournal(name string) ([]policyJournalEntry, error) {
 		if err := json.Unmarshal([]byte(line), &entry); err != nil || entry.ID == "" || entry.State == "" {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "本域决定日志损坏")
 		}
-		entries = append(entries, entry)
+		if _, seen := latest[entry.ID]; !seen {
+			order = append(order, entry.ID)
+		}
+		latest[entry.ID] = entry
+	}
+	entries := make([]policyJournalEntry, 0, len(order))
+	for _, id := range order {
+		entries = append(entries, latest[id])
 	}
 	return entries, nil
 }

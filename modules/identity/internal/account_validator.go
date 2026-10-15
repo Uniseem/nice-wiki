@@ -24,17 +24,17 @@ const (
 // Account 是 AssertSuperadminImmutable 所需的账户元数据。
 // 字段与 types.json 的 Account schema 保持一致；凭据和会话不属于此规则输入。
 type Account struct {
-	AccountID         platform.Identifier `json:"accountId"`
-	SiteID            platform.Identifier `json:"siteId"`
-	AccountName       AccountName         `json:"accountName"`
-	IsSuperadmin      bool                `json:"isSuperadmin"`
-	Permissions       []string            `json:"permissions"`
-	MustChangePassword bool               `json:"mustChangePassword"`
-	Status            AccountStatus       `json:"status"`
-	Revision          platform.Revision   `json:"revision"`
-	PermissionRevision platform.Revision  `json:"permissionRevision"`
-	CreatedAt         platform.Timestamp   `json:"createdAt"`
-	UpdatedAt         platform.Timestamp   `json:"updatedAt"`
+	AccountID          platform.Identifier `json:"accountId"`
+	SiteID             platform.Identifier `json:"siteId"`
+	AccountName        AccountName         `json:"accountName"`
+	IsSuperadmin       bool                `json:"isSuperadmin"`
+	Permissions        []string            `json:"permissions"`
+	MustChangePassword bool                `json:"mustChangePassword"`
+	Status             AccountStatus       `json:"status"`
+	Revision           platform.Revision   `json:"revision"`
+	PermissionRevision platform.Revision   `json:"permissionRevision"`
+	CreatedAt          platform.Timestamp  `json:"createdAt"`
+	UpdatedAt          platform.Timestamp  `json:"updatedAt"`
 }
 
 // NormalizeAccountNameInput 是账号名规范化输入。
@@ -76,7 +76,7 @@ func NormalizeAccountName(input NormalizeAccountNameInput) (NormalizeAccountName
 
 // AssertSuperadminImmutableInput 是保护唯一超管永久有效的输入。
 type AssertSuperadminImmutableInput struct {
-	Account        Account       `json:"account"`
+	Account         Account       `json:"account"`
 	RequestedStatus AccountStatus `json:"requestedStatus"`
 }
 

@@ -2,6 +2,7 @@
 
 更新：2026-10-15。阶段：R1-13 私有策略库启动恢复切片已实现；`GetPolicy`/`UpdatePolicy` 因契约缺口阻塞，业务准入、挑战、频率、并发、封禁尚未实现、验收或部署。
 
+- 2026-10-15 集成复核修复：迁移改为 go:embed 读取 `0001_domain.sql`，删除内联副本；决定日志读取按条目 ID 聚合，open 后跟 done 不再误判未决。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
 - R1-12 基线：`82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29`；实现提交：`d597401755cabc77cf31dadf5b9c12260b60b43b`。
 - R1-13 实际基线：`588de8f`；实际分支：`codex/analytics-r1-storage-contract-audit`（当前共享工作区分支名与本域不一致）；源码提交：`7aa4456`，随后为并行提交竞争补回迁移辅助文件的提交：`8a628a1`。traffic-guard 目录与 `1a6725d` 的本域内容一致；未修改其他模块文件。
 - `internal/policy_store.go` 已实现本域 SQLite 打开（WAL、foreign_keys、busy_timeout=3000ms、单连接）、outbox 公共表初始化、迁移执行、control journal 损坏/未完成条目隔离和资源关闭；`migrations/0001_domain.sql` 已建立 `guard_policy`、幂等回执摘要表、`schema_migrations`。

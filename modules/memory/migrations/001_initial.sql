@@ -1,5 +1,5 @@
 -- memory 域初始权威表；正文只落在 objects/ 下的不可变 Markdown 文件，数据库保存索引。
--- outbox/inbox 的跨服务投递在后续工作包接入 platform 机制；本迁移先保留本域表。
+-- 跨服务事件的 nw_outbox/nw_inbox 由 libs/platform 的 EnsureSchema 在同一业务库建立（ADR0005），不在本迁移重复建表。
 CREATE TABLE memory_entries (
     site_id             TEXT NOT NULL,
     entry_id            TEXT NOT NULL,
@@ -117,20 +117,6 @@ CREATE TABLE proposal_commands (
     localization_receipt TEXT,
     PRIMARY KEY (site_id, command_id),
     UNIQUE (site_id, proposal_id)
-);
-
-CREATE TABLE inbox (
-    event_id    TEXT PRIMARY KEY,
-    payload_hash TEXT NOT NULL,
-    state       TEXT NOT NULL,
-    received_at TEXT NOT NULL
-);
-
-CREATE TABLE outbox (
-    event_id    TEXT PRIMARY KEY,
-    payload_hash TEXT NOT NULL,
-    state       TEXT NOT NULL,
-    created_at  TEXT NOT NULL
 );
 
 CREATE TABLE assistant_conversations (

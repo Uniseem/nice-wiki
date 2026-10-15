@@ -34,44 +34,22 @@ type ValidateJobSpecResult struct {
 	Valid bool
 }
 
-// registeredJobTypes 是 config/job-types.json 当前生成快照中的 owner/type
-// 白名单。任务进入持久队列前必须命中精确配对，不能只校验 owner 或 type
-// 的任一方；配置装配与生成流程后续会把它替换为启动时加载的登记表。
-var registeredJobTypes = map[string]map[string]struct{}{
-	"analytics": {
-		"analytics.aggregate-daily":  {},
-		"analytics.aggregate-hourly": {},
-		"analytics.aggregate-usage":   {},
-		"analytics.reconcile-usage":   {},
-	},
-	"data-protection": {
-		"data-protection.backup":  {},
-		"data-protection.restore": {},
-	},
-	"knowledge": {
-		"knowledge.build": {},
-		"knowledge.extract": {},
-	},
-	"localization": {
-		"localization.cache-answer": {},
-		"localization.document":     {},
-		"localization.ui":           {},
-	},
-	"media": {
-		"media.cleanup": {},
-	},
-	"memory": {
-		"memory.assistant": {},
-		"memory.overview":  {},
-	},
-	"public-site": {
-		"public-site.render-publication": {},
-	},
-	"qa": {
-		"qa.cache-embedding": {},
-		"qa.compact":         {},
-		"qa.turn":            {},
-	},
+// registeredJobTypes 由 make gen 生成的任务类型目录（internal/gen/job_types.gen.go，
+// 与 config/job-types.json 同源）构建。任务进入持久队列前必须命中 owner/type
+// 精确配对，不能只校验 owner 或 type 的任一方。
+var registeredJobTypes = buildJobTypeRegistry(gen.JobTypes)
+
+func buildJobTypeRegistry(entries []gen.JobTypeEntry) map[string]map[string]struct{} {
+	registry := make(map[string]map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		types, ok := registry[entry.Owner]
+		if !ok {
+			types = make(map[string]struct{})
+			registry[entry.Owner] = types
+		}
+		types[entry.Type] = struct{}{}
+	}
+	return registry
 }
 
 // ValidateJobSpec 验证任务入口，不写任务状态、不读写对象内容，也不调用

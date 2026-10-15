@@ -200,7 +200,7 @@ func (s *ActiveStore) Close() error {
 	return nil
 }
 
-func activeStore() *ActiveStore {
+func currentActiveStore() *ActiveStore {
 	activeBusinessStore.RLock()
 	defer activeBusinessStore.RUnlock()
 	return activeBusinessStore.store
@@ -587,8 +587,8 @@ type queryer interface {
 func (s *RuntimeStore) readStateFrom(ctx context.Context, q queryer) (gen.RuntimeState, error) {
 	var (
 		dataEpoch, phase, requiredJSON, updatedAt string
-		targetEpoch, restoreID, barrierID           sql.NullString
-		maintenance, revision                      int64
+		targetEpoch, restoreID, barrierID         sql.NullString
+		maintenance, revision                     int64
 	)
 	err := q.QueryRowContext(ctx, `
         SELECT data_epoch, target_data_epoch, phase, maintenance, restore_id,

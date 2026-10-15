@@ -4222,6 +4222,12 @@
       "functions": []
     },
     {
+      "path": "modules/identity/internal/gen/permission_groups.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由根contracts/permission-groups.json生成功能开关到技术权限的固定Go表；MapFunctionGrants只读此表，不手改",
+      "functions": []
+    },
+    {
       "path": "modules/identity/internal/gen/oapi-codegen.yaml",
       "kind": "config",
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation",

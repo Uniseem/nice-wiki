@@ -69,15 +69,15 @@ type WriteAccountIndexResult struct {
 
 // AccountIndex 是control/account-index.json的脱敏内容。
 type AccountIndex struct {
-	Revision platform.Revision       `json:"revision"`
-	Accounts []AccountIndexEntry     `json:"accounts"`
+	Revision platform.Revision   `json:"revision"`
+	Accounts []AccountIndexEntry `json:"accounts"`
 }
 
 // AccountIndexEntry 是供服务器人工查找的最小账号记录。
 type AccountIndexEntry struct {
 	AccountID    platform.Identifier `json:"accountId"`
 	AccountName  AccountName         `json:"accountName"`
-	IsSuperadmin bool                 `json:"isSuperadmin"`
+	IsSuperadmin bool                `json:"isSuperadmin"`
 	Status       AccountStatus       `json:"status"`
 }
 
@@ -90,20 +90,26 @@ func ReadServerAccountIndex(ctx context.Context, op OperationContext, input Read
 	}
 
 	index, _, err := readAccountIndexFile(state.dataRoot)
+	missing := false
 	if err != nil {
-		return ReadServerAccountIndexResult{}, err
+		// 固定索引文件尚不存在等同于最滞后的索引，由权威表首次建立；
+		// 其他读取失败（损坏、权限不安全等）仍按原错误拒绝。
+		if !isCode(err, platform.CodeDependencyUnavailable) || !accountIndexFileMissing(state.dataRoot) {
+			return ReadServerAccountIndexResult{}, err
+		}
+		missing = true
 	}
 	authority, err := readAccountAuthority(ctx, state.dataRoot)
 	if err != nil {
 		return ReadServerAccountIndexResult{}, err
 	}
-	if accountIndexMatchesAuthority(index, authority) {
+	if !missing && accountIndexMatchesAuthority(index, authority) {
 		return ReadServerAccountIndexResult{Index: index}, nil
 	}
 
-	// 只在索引本身结构完整、但水位落后于权威表时重建；损坏索引在
+	// 只在索引缺失或结构完整但水位落后于权威表时重建；损坏索引在
 	// 上面的读取阶段已经返回INTEGRITY_ERROR，不把未知状态当作允许。
-	if index.Revision > authority.revision {
+	if !missing && index.Revision > authority.revision {
 		return ReadServerAccountIndexResult{}, platform.NewError(platform.CodeIntegrityError, false, "账号索引revision领先权威记录")
 	}
 	rebuilt, err := WriteAccountIndex(ctx, op, WriteAccountIndexInput{
@@ -258,9 +264,10 @@ func readAccountAuthority(ctx context.Context, dataRoot string) (accountAuthorit
 			return accountAuthority{}, platform.NewError(platform.CodeIntegrityError, false, "账号权威记录不合法")
 		}
 		result.accounts = append(result.accounts, account)
-		if account.Revision > result.revision {
-			result.revision = account.Revision
-		}
+		// 账号集合水位取 Σ(revision+1)：账户只做墓碑不物理删除、revision 只增，
+		// 因此新建账户或任一账户状态变化都会严格推高水位；取最大值会让新建的
+		// revision=1 子账号与旧索引同水位却内容不同，被误判为完整性错误。
+		result.revision += account.Revision + 1
 	}
 	if err := rows.Err(); err != nil {
 		return accountAuthority{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账号权威记录读取失败")
@@ -469,6 +476,12 @@ func checkPrivateControlDir(dataRoot string) (string, error) {
 		return "", platform.NewError(platform.CodeIntegrityError, false, "账号索引控制目录不安全")
 	}
 	return controlDir, nil
+}
+
+// accountIndexFileMissing 判断固定索引文件（或其control目录）尚未建立。
+func accountIndexFileMissing(dataRoot string) bool {
+	_, err := os.Lstat(filepath.Join(filepath.Clean(dataRoot), "control", accountIndexFileName))
+	return os.IsNotExist(err)
 }
 
 func isCode(err error, code string) bool {

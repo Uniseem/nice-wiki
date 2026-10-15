@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 48 个：手写 26、UI 4、生成 7、配置 10、迁移 1。函数 50 个：约束 33，参考 17。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 50 个：手写 27、UI 4、生成 8、配置 10、迁移 1。函数 51 个：约束 33，参考 18。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -33,6 +33,7 @@
 | `modules/jobs/internal/http_event_subscription.go` | 手写 | 已登记消费者订阅事件SSE；同文件职责限本域以下登记函数 | `jobs.SubscribeEvents` |
 | `modules/jobs/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/jobs/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
+| `modules/jobs/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `jobs.All`（参考） |
 | `modules/jobs/cmd/jobs/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `jobs.main` |
 | `modules/jobs/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `jobs.BuildApplication` |
 | `modules/jobs/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `jobs.Serve`、`jobs.Shutdown`、`jobs.Health`、`jobs.Ready` |
@@ -51,6 +52,7 @@
 | `modules/jobs/config/job-types.json` | 生成 | 任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建 | 无 |
 | `modules/jobs/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/jobs/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/jobs/internal/gen/job_types.gen.go` | 生成 | make gen由全部模块implementation.json的jobTypes生成任务类型Go表，与config/job-types.json同源；ValidateJobSpec只读此表，不手改 | 无 |
 | `modules/jobs/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/jobs/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/jobs/internal/queries.go` | 手写 | 查看任务队列 | `jobs.ListJobs`、`jobs.RetryJob`、`jobs.ListDeliveries` |

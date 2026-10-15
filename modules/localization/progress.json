@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "02c1a90a759bb421b0d59c1585167e2e5c352f242a3926a4f76a0b5a1082a313",
+  "contractSha256": "6b3dab7c7cbe4e20027ae30a87c94cc4d66cd85960379979cd3575f73cb89aa9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，本域私有持久化与启动恢复）",
   "branch": "main",
@@ -463,7 +463,7 @@
     {
       "path": "modules/localization/deploy/service.config.json",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "passed",
         "evidence": "Python JSON 解析通过；仅含非敏感默认值和外部 secret 引用。"
@@ -481,9 +481,19 @@
       "blocker": "本机无 Go/gofmt，未执行迁移编译验证。"
     },
     {
+      "path": "modules/localization/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "path": "modules/localization/cmd/localization/main.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -493,7 +503,7 @@
     {
       "path": "modules/localization/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -503,7 +513,7 @@
     {
       "path": "modules/localization/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -513,7 +523,7 @@
     {
       "path": "modules/localization/go.mod",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -533,7 +543,7 @@
     {
       "path": "modules/localization/Dockerfile",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -543,7 +553,7 @@
     {
       "path": "modules/localization/Makefile",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "82c83226b120b0376fa4ddfe5fe1b58f3c3e7d29",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -553,7 +563,7 @@
     {
       "path": "modules/localization/deploy/manifest.json",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -563,7 +573,7 @@
     {
       "path": "modules/localization/ui/package.json",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -573,7 +583,7 @@
     {
       "path": "modules/localization/ui/pnpm-lock.yaml",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -583,7 +593,7 @@
     {
       "path": "modules/localization/ui/vite.config.ts",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -593,7 +603,7 @@
     {
       "path": "modules/localization/ui/tsconfig.json",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -603,7 +613,7 @@
     {
       "path": "modules/localization/ui/index.html",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -613,7 +623,7 @@
     {
       "path": "modules/localization/ui/src/main.ts",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "passed",
         "evidence": "pnpm run typecheck 与 pnpm run build 通过；仅为 UI 挂载基础，不含业务页面。"
@@ -1309,10 +1319,21 @@
       "blocker": null
     },
     {
+      "id": "localization.All",
+      "path": "modules/localization/migrations/migrations.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
       "id": "localization.main",
       "path": "modules/localization/cmd/localization/main.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1334,7 +1355,7 @@
       "id": "localization.Serve",
       "path": "modules/localization/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1345,7 +1366,7 @@
       "id": "localization.Shutdown",
       "path": "modules/localization/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1356,7 +1377,7 @@
       "id": "localization.Health",
       "path": "modules/localization/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1367,7 +1388,7 @@
       "id": "localization.Ready",
       "path": "modules/localization/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1378,7 +1399,7 @@
       "id": "localization.mountModuleUI",
       "path": "modules/localization/ui/src/main.ts",
       "state": "implemented",
-      "implementationCommit": "4263e90cef1ca5530f3b963f5f6b8cc1021da850",
+      "implementationCommit": "17a2a6f291bff74262afb06472b4d05eba7ce342",
       "verification": {
         "state": "passed",
         "evidence": "pnpm run typecheck 与 pnpm run build 通过；未进行浏览器行为验收。"
