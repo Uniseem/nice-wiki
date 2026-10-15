@@ -1,15 +1,17 @@
-# 当前工作包：第五轮不可变正文文件核心（2026-10-15，源码待VPS）
+# 当前工作包：第五轮不可变正文文件核心（2026-10-16，已交付）
 
 分支codex/content-revision-files-r1，基线9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，独占modules/content。上一public-site纯契约f9aa83f/9567637已独立交付并保留分支，本轮不再改该域或根。
 
 - 已写WriteRevisionFile/ReadRevisionBody及直接要求的CanonicalizeBody/HashBlock、树/行内/表格/分栏语义源码。准备原材料先持久、复用原结果，fsync/rename不推进head；读取仅可信COMMITTED资格，坏文件真实隔离无fallback。
 - 新增实际路径仅既有登记的internal/{body_canonicalizer,block_validator,table_validator,columns_validator,revision_reader}.go；原revision_files/revision_repository复用并统一16MiB硬限。接口扩展遵守根裁定，无DB adapter假实现，无新迁移或真实HTTP成功占位。
-- 新改条目均in_progress，待根VPS docs/gen/build/check；未本机Go/gofmt/gen/编译/测试，未新增测试/mock/fixture/样例/临时验证程序，未运行真实API/模型/服务，未push或部署。
+- 源码提交02ede7bdfd70b263511a1f82343c602a3c73143c，7个完整核心文件、35个本包完成函数及VPS生成客户端按准确源码SHA记verified；check/gen/build证明编译和结构，不代表业务验收。
+- 最终隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型），覆盖最终同一time.Time与contentInteger修订。
+- 未本机Go/gofmt/gen/编译/测试，未新增测试/mock/fixture/样例/临时验证程序，未运行真实API/模型/服务，未push或部署。本轮交付后停止实施，由根统一集成、复核与推送，不启动后续包。
 - 真实私有DB准备/提交资格/隔离adapter、保存/发布/HTTP/后台仍缺，BuildApplication/main继续blocked；既有fence/稳定ID历史ledger/head/refs/receipt/outbox事务责任未转移到文件准备。
 
 ---
 
-# 文档生命周期当前进度
+# 之前工作包的历史记录
 
 更新：2026-10-15。阶段：R1 实施中；本域业务尚未验收、尚未部署。
 

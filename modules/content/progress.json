@@ -7,7 +7,7 @@
   "assignedSession": "第五轮content不可变正文文件核心",
   "branch": "codex/content-revision-files-r1",
   "baseCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
-  "deliveryCommit": null,
+  "deliveryCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
   "deployment": "not_started",
   "files": [
     {
@@ -82,33 +82,33 @@
     },
     {
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/table_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/columns_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/reference_extractor.go",
@@ -122,43 +122,43 @@
     },
     {
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/revision_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮文件核心源码准备；未本机生成/格式/编译/测试"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS gen/docs/build/check；真实私有DB adapter与完整装配仍缺失"
+      "blocker": null
     },
     {
       "path": "modules/content/internal/publication_metadata.go",
@@ -425,10 +425,10 @@
       "state": "blocked",
       "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
-        "state": "not_run",
-        "evidence": "配置/信任锚/运行权威/恢复入口已接入；未能运行Go构建检查"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
-      "blocker": "本域业务存储、journal恢复、全部OpenAPI x-handler、后台函数与activation回执尚未实现，按合同返回DEPENDENCY_UNAVAILABLE；Go工具链验证环境不可用"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
     },
     {
       "path": "modules/content/internal/transport/server.go",
@@ -582,11 +582,11 @@
     },
     {
       "path": "modules/content/internal/gen/clients.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
       "blocker": null
     },
@@ -791,46 +791,46 @@
     {
       "id": "content.ValidateBlockTree",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.ValidateInline",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.ValidateTableGrid",
       "path": "modules/content/internal/table_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.ValidateColumns",
       "path": "modules/content/internal/columns_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.CollectResourceReferences",
@@ -846,68 +846,68 @@
     {
       "id": "content.CanonicalizeBody",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.HashBlock",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.WriteRevisionFile",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.RecoverPreparedCommits",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮共用硬限/可取消文件IO或ledger职责同步，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待VPS；真实DB adapter/安全屏障及完整启动未装配"
+      "blocker": null
     },
     {
       "id": "content.CommitDraftJournal",
       "path": "modules/content/internal/revision_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮共用硬限/可取消文件IO或ledger职责同步，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待VPS；真实DB adapter/安全屏障及完整启动未装配"
+      "blocker": null
     },
     {
       "id": "content.ReadRevisionBody",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.PreparePublicationMetadata",
@@ -1333,8 +1333,8 @@
       "state": "blocked",
       "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅装配platform.ServiceSpec与lifecycle.RunService；Go构建未运行"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
       "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
     },
@@ -1344,8 +1344,8 @@
       "state": "blocked",
       "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
-        "state": "not_run",
-        "evidence": "已实现配置/信任锚/运行权威/ApplyRestoreSwap前置检查；依赖未实现时显式返回DEPENDENCY_UNAVAILABLE，未伪造联调成功"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
       "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
     },
@@ -1428,278 +1428,278 @@
     {
       "id": "content.visit",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateInlineNodes",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateContentLink",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateContentMath",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.contentInteger",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.contentNumber",
       "path": "modules/content/internal/block_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateTableGridNode",
       "path": "modules/content/internal/table_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateColumnsNode",
       "path": "modules/content/internal/columns_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.hasNestedColumns",
       "path": "modules/content/internal/columns_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.bodyJSONValue",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.canonicalContentValue",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.orderContentMarks",
       "path": "modules/content/internal/body_canonicalizer.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.revisionPreparationDigest",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validatePreparedMaterial",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.newRevisionWriteWindow",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.persistPreparedRevision",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.verifyRevisionMaterialFile",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.quarantineRevisionMaterial",
       "path": "modules/content/internal/revision_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.revisionFileStoreFromContext",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.revisionFileLocation",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.validateCommittedMaterial",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.readImmutableRevision",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.Read",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.decodeStoredBody",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     },
     {
       "id": "content.isolateRevisionRead",
       "path": "modules/content/internal/revision_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "02ede7bdfd70b263511a1f82343c602a3c73143c",
       "verification": {
-        "state": "not_run",
-        "evidence": "第五轮正文核心已写源码，待VPS统一检查；未新增测试或临时验证程序"
+        "state": "passed",
+        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署"
       },
-      "blocker": "待根VPS检查；真正存储adapter/HTTP/业务提交链未装配"
+      "blocker": null
     }
   ],
-  "rule": "第五轮只实现不可变正文文件/读回与直接语义/hash辅助；新改条目in_progress待VPS，准备不推进head；真实DB adapter/HTTP和完整启动仍blocked，未行为验收/部署。"
+  "rule": "第五轮不可变正文文件/读回与直接语义/hash辅助源码经VPS检查并按准确源码SHA记verified；准备不推进head。真实DB adapter/HTTP和完整启动仍blocked；本轮交付后停止实施，不启动后包，未行为验收或部署。"
 }

@@ -1,7 +1,7 @@
-# 第五轮交接：正文文件核心（2026-10-15，源码待VPS）
+# 第五轮交接：正文文件核心（2026-10-16，已交付）
 
 - 精确基线9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，分支codex/content-revision-files-r1，初始clean，仅拥有modules/content。上一public-site源f9aa83fd199efd17593cf349938ef4c823336cfe/记录95676374b480e14d74a7b7251ffb2151bc1cc6f0已保留，无用户内容reset。
-- 本项WriteRevisionFile、ReadRevisionBody和直接语义/hash辅助已写源码，均in_progress待VPS；没有真实私有DB adapter，不能从源码/窄接口推定保存链可运行。
+- 本项源码交付02ede7bdfd70b263511a1f82343c602a3c73143c，7个完整核心文件、35个本包完成函数及VPS生成客户端按准确SHA记verified。没有真实私有DB adapter，不能从源码/窄接口推定保存链可运行；未执行行为验收。
 - 根已裁定参考Write输入追加expectedHead(nullable)/expectedDraftVersion，上游提供已核CAS快照；author仅op，ObjectRef固定revisionId/version1。已有WithDraftCommitStore注入扩展窄接口，保存scope+规范摘要+首次Draft/Journal，preparing/MarkPrepared不推进head；读回资格/隔离必须真实持久，缺adapter失败关闭。
 - 原8字段JSONL不改格式，无隐式迁移；16MiB硬限统一旧64MiB（尚无writer历史数据）。新写当前站点大小仅新操作核，旧材料先回放不因配额下降拒绝，历史读只服硬限，不等价上传大小。
 - 平台机制只调用lifecycle.NewWriteContext/ValidatePrivatePath，不按合同ID误用platform包。每个阶段刷新当前窗口/打开epoch；tmp和目录fsync、目标已有只核原hash且不覆盖，成功准备与业务COMMITTED分离。
@@ -11,9 +11,13 @@
 - 尚planned的SaveDraft/abort媒体协议已按根提醒同步完整source材料+nullable pinId+reason，源持久aborted/rejected后由media封存，pin未知不先Acquire；当前文件核心不实现媒体流程。
 - 全部Go格式/gen/build/vet/check仅根VPS；未新增测试/fixture/mock/样例/临时业务程序，未运行SQL、真实API/模型/服务，未push或部署。生成物不手改，完整BuildApplication/main仍blocked。
 
+## 最终检查与停止边界
+
+2026-10-16隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt与完整make check通过（859文件/1142函数/379操作/2264类型）。最终快照包含同一UTC time.Time生成Draft时间和Journal字符串、RFC3339Nano比较及contentInteger对已受schema限制小整数的转换；生成/格式回传无冲突。未执行行为验收。
+
 ## 下一步（一项）
 
-冻结此源码供根VPS统一docs/gen/build/check，收到结果只修真实缺陷，准确提交源码和证据；之后另行分配真实私有DB adapter与上游保存/提交/HTTP装配，不在本包扩域或把依赖未实做成成功占位。
+根集成会话按本域source/metadata提交顺序合并并复核后，执行本轮已授权推送和总体百分比报告。本域交付后停止并冻结；真实私有DB adapter、上游保存事务及HTTP装配保持缺口，未获新工作包前不开始实施。
 
 ---
 
