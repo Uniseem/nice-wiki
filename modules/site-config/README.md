@@ -2,7 +2,7 @@
 
 保持 D17/D34/D55 的全屏首页、公告横幅、站点品牌页脚与无AI初始化；dataEpoch/maintenance唯一控制权威。
 
-当前为R1持续实施：初始化与一般settings权威读写已交付；本轮推进一屏hero首页、公开按钮解析和媒体pin持久恢复。源码未经过本轮统一VPS门槛，保持in_progress；完整HTTP/后台/恢复装配及所有业务验收仍未完成。
+当前为R1持续实施：初始化、一般settings权威读写和一屏hero首页权威组已交付；首页公开按钮解析与媒体pin持久恢复通过统一VPS docs/gen、14模块readonly build/vet/gofmt及完整结构检查。完整HTTP/后台/恢复装配仍因其余真实handler缺失保持blocked，业务验收、联调与部署未执行。
 
 ## 设计索引
 

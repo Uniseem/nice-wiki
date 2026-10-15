@@ -1,17 +1,19 @@
 # 站点配置与初始化会话交接
 
-## 第四轮首页权威与引用恢复（2026-10-15，完整源码冻结待VPS）
+## 第四轮首页权威与引用恢复（2026-10-15，已交付冻结）
 
-- 独占modules/site-config/；分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1。合同-only提交fa2d1b7b738c25dbd38daebc4149a8c9a2181c67已由根集成6372a32；本轮Go和迁移尚未提交。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及随后冻结的media完整来源封存释放协议，根统一合成，不合公共脏树。
-- UpdateHome/ReadPublicHome/ValidateHomeLinks、RecoverHomeReferences/ReadHomeReferenceDecision和追加0005已写完整源码，保持in_progress待编译。一屏hero保留0–3按钮、视频poster、稳定按钮ID与完整AssetVersionRef；不新增卡片精选、付费任务或自动重算。
-- 固定config候选与完整排序refs/acquire intent同事务，sourceObjectId为HashBytes("site-config.home.v1|"+siteId)，sourceVersion用全局config.revision，实际revisionId固定；空[]同协议。先持久pin才COMMITTED，confirm_pending同正式SQL/回执/outbox事务。原成功只读返回；文件已COMMITTED但SQL未完只补原决定，不重查新可见性/ready/expiry。
-- 终止恢复不再Acquire。无COMMITTED才与提交共锁持久aborted；直接发送完整source、nullable pinId和终局reason给media，回源明确aborted/rejected后原子sealed，无pin亦封存，迟到Acquire不得复活。404/pending/未知/超时不可释放；COMMITTED只confirm已持久pin，缺pin完整性失败。
-- ReadPublicHome独立公开水位与显式安全投影，未改变私有配置授权。保留全部按钮，文档当前URL/ref由public-site权威返回；可见语言必须等于请求语言，不可见href/publication/resolvedLanguage均null；拒绝query/控制空白和非请求锚点。QA能力免费只读，失联/无配置禁用按钮，hero保留。Footer沿既定原形，banner仅当前启用窗口。
-- 构造仅本地RecoverHomeReferenceState；完整handler装配成功后才返回公共BackgroundTasks/RunRecoveryLoop。域内无timer/构造RPC；每RPC前后复用NewWriteContext核安全窗口、原op和active epoch。Drain只排HTTP，等后台结束再Shutdown关库。完整Application其余handler及既存恢复/转发仍blocked，不把本组编译当完整就绪。
-- 新实际文件仅internal/home_service.go、internal/home_validator.go、internal/migrations/active/0005_home_reference_decisions.sql，需根统一登记。返回的两个Go gen来自VPS；生成目录不手改。无新库/测试/mock/fixture/样例/临时验证程序，无本机Go/gofmt/gen/vet/类型检查/测试，无服务/真实接口/模型/部署/push。
-- 已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt与check通过（858/1105/379/2253）未纳入本轮Home Go/0005，不能视为源码证据。当前完整源码冻结交根统一VPS后再提交；不提前标implemented/verified。后续收到产物后只修确证错误、回填真实源码SHA及证据，最终交付后冻结。
+- 源码 `aa96f429e0eecc45cf6a6c51773a8b1892bde648`；合同-only原提交 `fa2d1b7b738c25dbd38daebc4149a8c9a2181c67` 已根集成6372a32。独占modules/site-config/；分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1；主线实际cherry-pick SHA由根统一映射。
+- 完整交付UpdateHome/ReadPublicHome/ValidateHomeLinks，及RecoverHomeReferences/ReadHomeReferenceDecision、RecoverHomeReferenceState和追加0005。一屏hero保留0–3稳定按钮、视频poster与完整AssetVersionRef，不新增卡片精选、付费任务或自动重算。
+- 固定候选与完整排序refs/acquire intent同事务，sourceObjectId为HashBytes("site-config.home.v1|"+siteId)，sourceVersion用全局config.revision，sourceRevisionId为实际不可变修订，空[]同协议。先持久pin再COMMITTED，confirm_pending同正式SQL/原回执/outbox事务；旧成功只读原正式结果，已有文件决定只补原水位，不重查新可见性/ready/expiry。
+- 终止恢复直接Release完整source、nullable pinId与终局reason。无COMMITTED才与提交共锁持久aborted；媒体回源明确aborted/rejected后原子sealed，无pin也封存，迟到Acquire不得复活。终止不重Acquire，不把404/pending/未知/超时当释放证明；COMMITTED只confirm持久pin，缺失完整性失败。
+- ReadPublicHome使用独立公开水位和显式安全投影，不改变私有配置授权。保留全部按钮，文档可见语言必须等于请求语言，发布ref含正revision/schemaVersion，不可见href/publication/resolvedLanguage均null；拒绝query/控制空白和非请求锚点。QA免费只读，无配置/失联禁用按钮，hero仍返回；Footer沿既定原形，banner仅当前启用窗口。
+- 构造只核本地RecoverHomeReferenceState；全部真实handler齐备且Build成功返回后，RunService才启动BackgroundTasks/公共RunRecoveryLoop。域内无timer/构造RPC；每RPC前后复用NewWriteContext核安全窗口、原op及active epoch。Drain只排HTTP，等后台结束再Shutdown关库。完整Application因其他handler及转发/恢复回执未齐仍blocked。
+- 最终统一VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：docs/gen、14模块readonly build/vet/gofmt、完整check通过（858文件/1109函数/379操作/2256类型），纳入全部Home Go/0005/最终修正，0回传冲突；已实现完整函数/文件记verified。没有行为验收、联调或真实服务启动，不扩展结论。
+- 新实际文件3个：internal/home_service.go、internal/home_validator.go、internal/migrations/active/0005_home_reference_decisions.sql，根统一登记。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及后续media封存/SSE，由根合成；gen/docs为VPS回传。无新库/测试/mock/fixture/样例/临时业务验证程序，无本机Go工具、真实接口/模型、服务、部署或push。
 
-- 本轮首次完整Home合成快照已在VPS make docs/gen及14模块readonly build/vet/gofmt通过；make check唯一余后台依赖登记，本次已补BuildApplication→RecoverHomeReferences，仍仅装配闭包，成功返回后由RunService启动。另补公开publication正revision边界，待根完整复跑，尚不标verified。
+### 下一项（一项，按集成调度开始）
+
+推进UpdateBranding品牌权威组：先核机器合同和本轮固定候选/来源决定机制，明确品牌资源的media pin来源与失败封存恢复，再接既有settings不可变提交链；公共协议缺口先交根统一收口，不复制机制。当前本域交付后冻结，不自行展开该包。
 
 ## 第二轮最终集成与停止范围
 

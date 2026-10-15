@@ -1,14 +1,13 @@
 # 站点配置与初始化当前进度
 
-## 第四轮首页权威组（2026-10-15，完整源码冻结待VPS）
+## 第四轮首页权威组（2026-10-15，已交付）
 
-- 分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/；合同-only提交fa2d1b7已交根，后续Go与迁移尚未提交。
-- UpdateHome、ReadPublicHome、ValidateHomeLinks及来源决定/恢复源码齐备；固定候选/完整refs/pin进入既有COMMITTED/CAS/回执/outbox链。终止直接Release完整source及nullable pinId，媒体回源明确终局并sealed，无pin也封存；不重Acquire，不释放未知或COMMITTED。
-- 公开hero保留全部按钮，安全投影区分目标/锚点/语言/AI与依赖不可用；固定可信地址构造QA链接，不暴露私有hero target。公共NewWriteContext/RunRecoveryLoop和后台Drain生命周期复用根实现，构造只核本地journal/决定。
-- 新实际文件为home_service.go、home_validator.go与0005_home_reference_decisions.sql。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及随后冻结的media封存协议，由根统一合成。生成目录不手改。
-- 完整源码已冻结待根统一VPS；所有本轮改变保持in_progress，BuildApplication等其余handler仍blocked。protocol-only快照通过docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253），未取Home Go/0005，不能当其编译证据。无本机Go工具、新测试/fixture/临时验证程序、服务、真实接口/模型、部署或push；业务验收未执行。
-
-- 本轮首次完整Home合成快照已在VPS make docs/gen及14模块readonly build/vet/gofmt通过；make check唯一余后台依赖登记，本次已补BuildApplication→RecoverHomeReferences，仍仅装配闭包，成功返回后由RunService启动。另补公开publication正revision边界，待根完整复跑，尚不标verified。
+- 源码提交 `aa96f429e0eecc45cf6a6c51773a8b1892bde648`；合同-only原提交 `fa2d1b7b738c25dbd38daebc4149a8c9a2181c67` 已由根集成。分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/；主线cherry-pick SHA由根统一映射。
+- 完成UpdateHome、ReadPublicHome、ValidateHomeLinks、ReadHomeReferenceDecision与RecoverHomeReferences：固定候选/完整refs/pin进入既有COMMITTED/CAS/原始回执/outbox链。终止直接Release完整source及nullable pinId，媒体回源明确终局并sealed，无pin亦封存；终止不重Acquire，COMMITTED绝不release，确认只用持久pin。
+- 公开hero保留全部按钮，明确目标/锚点/语言/AI与依赖不可用；当前文档安全根相对URL/发布引用按请求语言消费，固定可信地址构造QA链接，不暴露私有hero target。公共NewWriteContext/RunRecoveryLoop及后台Drain生命周期复用根实现，构造只核本地journal/决定。
+- 最终VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突；明确纳入全部Home Go、0005及最后正revision/后台登记修正。完整函数/文件按范围verified，BuildApplication及全量handler/RelayOutbox/恢复回执仍blocked；不称行为验收或联调通过。
+- 新实际文件为internal/home_service.go、internal/home_validator.go、internal/migrations/active/0005_home_reference_decisions.sql，根统一登记。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及后续冻结的media封存/公共SSE，由根合成；所有生成产物来自VPS。
+- 无本机Go/gofmt/gen/vet/类型检查/测试，无新测试/mock/fixture/样例/临时业务验证程序，无服务、真实接口/模型、部署或push。本轮已冻结，后包等待集成调度。
 
 以下为历史记录，旧停止指令已被本轮持续授权撤销；逐项状态以progress.json为准。
 

@@ -7,26 +7,26 @@
   "assignedSession": "第四轮首页权威与媒体pin恢复",
   "branch": "codex/site-config-home-r1",
   "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
-  "deliveryCommit": null,
+  "deliveryCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -42,21 +42,21 @@
     },
     {
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -142,11 +142,11 @@
     },
     {
       "path": "modules/site-config/internal/initialization_defaults.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -182,11 +182,11 @@
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/site-config/internal/config_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -302,23 +302,23 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": "73fc15052f35575f9df74590e27233b429fd76bb",
+      "state": "blocked",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": null
+      "blocker": "已实现函数通过VPS；全部OpenAPI真实handler/RelayOutbox/恢复回执仍缺，完整应用装配严格失败关闭"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": null
+      "blocker": "已实现函数通过VPS；全部OpenAPI真实handler/RelayOutbox/恢复回执仍缺，完整应用装配严格失败关闭"
     },
     {
       "path": "modules/site-config/go.mod",
@@ -442,11 +442,11 @@
     },
     {
       "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     }
@@ -477,11 +477,11 @@
     {
       "id": "site-config.ValidateSiteConfig",
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -510,33 +510,33 @@
     {
       "id": "site-config.UpdateHome",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ReadPublicHome",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ValidateHomeLinks",
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -576,11 +576,11 @@
     {
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -895,11 +895,11 @@
     {
       "id": "site-config.CommitConfigHead",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -951,54 +951,54 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "73fc15052f35575f9df74590e27233b429fd76bb",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": "已实现config/init/runtime真实HTTP适配并复用平台统一入口/identity授权；Home/品牌/页脚/公告/历史/资源引用、快照/屏障等handler及RelayOutbox/恢复回执仍未完成，完整平台工厂继续失败关闭；按用户最新指令本轮结束不自动启动第三轮"
+      "blocker": "本轮config/init/runtime/Home真实handler和公共后台闭包装配已写；品牌/页脚/公告/历史/资源引用、快照/屏障等handler与RelayOutbox/恢复回执仍未完成，严格平台工厂拒绝完整启动，不能称业务就绪"
     },
     {
       "id": "site-config.Serve",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.Health",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
@@ -1038,399 +1038,399 @@
     {
       "id": "site-config.validateHomeStructure",
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.decodeHomeTarget",
       "path": "modules/site-config/internal/home_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.validateConfigWebLink",
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ReadHomeReferenceDecision",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.RecoverHomeReferences",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.readConfigAtWatermark",
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.loadPublicHomeConfig",
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ConfigureHome",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeDependencies",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeSourceObjectID",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeReferenceMaterial",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.saveHomeReferenceIntent",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.readHomeReferenceIntent",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.validateHomePin",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.committedHomeReference",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.verifyHomeCommittedReference",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.checkHomeConfigCommit",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.markHomeConfigCommitted",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeReferenceContext",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.persistHomePin",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.acquireHomePin",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.decideHomeTermination",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.settleHomeReference",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.compareHomeInput",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeTerminatedError",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.finishHomeFailure",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeServiceContext",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.resolveHomeDocument",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.safeHomeRelativeHref",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.disablePublicHomeButton",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.readHomeQACapability",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.RecoverHomeReferenceState",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.BackgroundTasks",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.Drain",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeRecoveryOperation",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     },
     {
       "id": "site-config.homeWriteContext",
       "path": "modules/site-config/internal/home_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "state": "passed",
+        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
       "blocker": null
     }
   ],
-  "rule": "第四轮完整Home快照已在统一VPS通过docs/gen及14模块readonly build/vet/gofmt；make check只余BuildApplication后台依赖登记，本次已修并补公开publication正revision边界，待根最终完整复跑，本轮改变仍in_progress。"
+  "rule": "第四轮首页完整源码aa96f429e0eecc45cf6a6c51773a8b1892bde648已通过统一VPS docs/gen、14模块readonly build/vet/gofmt、完整check及静态复核；完整函数/文件verified，BuildApplication和全量HTTP等仍blocked。仅对应已有检查，无行为验收/联调/部署。"
 }
