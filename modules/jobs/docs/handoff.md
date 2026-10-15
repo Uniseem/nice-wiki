@@ -1,8 +1,8 @@
 # 任务与事件会话交接
 
-## 持续实施第二轮：事件存储与durable投递（2026-10-15，源码冻结待VPS）
+## 持续实施第二轮：事件存储与durable投递（2026-10-15，最终VPS通过、冻结交付）
 
-- 分支`codex/jobs-event-delivery-r1`，基线`468986fc34e1c90b6b5ca575539fdd2b9748cd06`；开始工作树干净，独占`modules/jobs/`，保留旧终局分支。交付提交待VPS证据后登记，未push。
+- 分支`codex/jobs-event-delivery-r1`，基线`468986fc34e1c90b6b5ca575539fdd2b9748cd06`；开始工作树干净，独占`modules/jobs/`，保留旧终局分支。核心源码`0e0a061c3684a0723a8657c73ef258f9a803804b`，必要写窗口`b146b4effe0d4f7be0dd5827cc9ee6f2fa37be71`，最终格式/生成产物`5df9b3cf0d1d2e1e4b87862053275301fc64bde8`，台账随后单独回填；本代理未push。
 - 新增实际路径：`internal/event_validation.go`、`event_store.go`、`event_delivery.go`、`http_event_subscription.go`、`migrations/0005_event_deliveries.sql`、`internal/http_events.go`。已有query.go抽出authorizePermission供任务与死信共用；queue.go只增加consumer连接槽计数。未改根、平台、其他域或私有运行数据。
 - 根提供生成EventTypes（唯一producer/name/version、managementPermission、consumer列表、内嵌payload规格）与platform.NewPayloadValidator；本域不复制schema验证器、不联网取规格、不手改生成物。信封完整hash覆盖元数据，JSON Number保留大整数精度；稳定eventSeq不因历史清理复用，事件、全部投递和请求回执原子durable后才accepted。
 - durable增量流只接受已登记caller=consumer，每consumer最多2流；Next每次在当前epoch/control短事务领取一条queued为delivering并设30秒确认租约，单事件背压。同producer/subject前序未确认或死信会阻塞后序。Last-Event-ID只作传输续接与合法范围核对，不能跳过持久未确认行；重投可重复旧seq，consumer按inbox提交再ack。平台SSE pump负责15秒注释心跳、id帧和关闭。
@@ -13,13 +13,13 @@
 - 0005只追加事件索引/完整hash、独立全局seq、deliveryId、租约/revision/最后错误、consumer连续水位和event_operations。既有event/delivery不删除；旧信封hash空时按已登记版本校验并只读计算，未知/损坏失败关闭；旧delivering若无可证明expiry明确完整性错误，不猜租约。
 - portal ephemeral本轮返回UNSUPPORTED_CAPABILITY，安全投影和逐资源权限尚待根收口，不给portal静态consume条目、不广播原payload。ListDeliveries、完整HTTP/后台/control屏障、定时和实际owner恢复适配仍分别未完成，不能把此包当整站ready。
 - 已按公共最终签名补NewEventHandlers四个真实绑定，交NewServiceHandler；Subscribe成功后由apivalidate.ServeEventStream输出，此后不写Problem。其余operation未实现，未伪造全表或启动ready。
-- 合成VPS首轮14模块make build通过；make check发现本域载荷参数类型登记和响应helper签名两项，已调整为[]byte与requestId标量。旧hash空分支补生成目录唯一producer及信封ID/修订/时间基本核对，防旧数据错配生产者后投递；等待本轮VPS重跑，未沿用旧证据标verified。
+- 合成VPS首轮发现的载荷参数类型登记和响应helper签名已调整为[]byte与requestId标量；旧hash空分支补唯一producer及信封ID/修订/时间基本核对。上述修复及Relay WriteWindow均纳入最终VPS快照并通过，不沿用修复前旧证据。
 - 第二轮P1收口仅补RelayOutbox必需WriteWindow：每次取完整LeaseRuntimeView，保留SafePointRequested与BarrierDeadline；无截止、provider失败、维护无安全请求全部失败关闭。所有SQL/网络步骤前后的窗口重查和受限IO上下文由平台循环统一执行，不在本域复制机制。用户明确第二轮结束推送后停止，本包不扩owner/ephemeral或第三轮。
-- 检查：本轮源码冻结后交集成会话在VPS统一docs/gen/gofmt/build/check；本地只读写源文件与Git元数据，未编译/格式/生成/运行SQL或临时业务程序。未新增测试、样例、fixture或mock，未运行真实接口、服务、模型、部署或push。
+- 最终检查：隔离VPS make docs/gen、14模块make build（readonly build/vet/gofmt）与完整make check全部通过，统计855文件/1012函数/374操作/2211类型，已回传最终产物；已交付函数和完整文件verified仅限此检查范围。本机未编译/格式/生成/运行SQL或临时业务程序；未新增测试、样例、fixture或mock，未运行真实接口、服务、模型或部署，本代理未push。
 
-### 本包下一步（一项）
+### 本轮后续（一项）
 
-待根统一VPS检查与复核后，将NewEventHandlers真实映射和RelayOutbox接入完整生命周期；先核其余HTTP operation、control屏障与定时缺口，不能补假handler冒充全表ready。完成条件是完整已登记依赖可用并通过VPS build/check，行为验收另行授权。
+仅由集成会话完成第二轮最终合并复核、用户已授权普通推送和清空目标；本代理保持冻结，不自行push，不启动第三轮。整体启动、control屏障/后台/定时、ListDeliveries、ephemeral投影与实际owner恢复适配继续保留未完成，需以后新的明确授权才开展。
 
 以下为第一轮历史记录：
 

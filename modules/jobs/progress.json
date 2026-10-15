@@ -7,7 +7,7 @@
   "assignedSession": "R1持续实施第二轮事件投递（Codex）",
   "branch": "codex/jobs-event-delivery-r1",
   "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": null,
+  "deliveryCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/leases.go",
@@ -82,13 +82,13 @@
     },
     {
       "path": "modules/jobs/internal/query.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/progress.go",
@@ -112,33 +112,33 @@
     },
     {
       "path": "modules/jobs/internal/event_validation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/event_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮末尾P1收口：按根必需WriteWindow签名装配完整SafePoint/control截止，provider失败与维护无窗口失败关闭；源码待最终VPS复跑，保持in_progress"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/event_delivery.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/cron.go",
@@ -242,13 +242,13 @@
     },
     {
       "path": "modules/jobs/internal/http_event_subscription.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/config/defaults.json",
@@ -312,23 +312,23 @@
     },
     {
       "path": "modules/jobs/go.mod",
-      "state": "implemented",
-      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。 本轮依赖产物仅由VPS go命令生成并随核心源码提交，未手写。"
       },
-      "blocker": "本次新增modernc.org/sqlite依赖；Go工具链和隔离VPS不可用，尚未完成依赖编译复核"
+      "blocker": null
     },
     {
       "path": "modules/jobs/go.sum",
-      "state": "implemented",
-      "implementationCommit": "588de8fa991340df7dcf019f8c11849f85e1b796",
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。 本轮依赖产物仅由VPS go命令生成并随核心源码提交，未手写。"
       },
-      "blocker": "锁内容参考同版本site-config依赖图；Go工具链不可用，未能运行go mod tidy核对"
+      "blocker": null
     },
     {
       "path": "modules/jobs/Dockerfile",
@@ -532,23 +532,23 @@
     },
     {
       "path": "modules/jobs/migrations/0005_event_deliveries.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "path": "modules/jobs/internal/http_events.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     }
   ],
   "functions": [
@@ -753,57 +753,57 @@
     {
       "id": "jobs.ValidateEnvelope",
       "path": "modules/jobs/internal/event_validation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.PublishEvent",
       "path": "modules/jobs/internal/event_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.RequeueExpiredDeliveries",
       "path": "modules/jobs/internal/event_delivery.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.AcknowledgeEvent",
       "path": "modules/jobs/internal/event_delivery.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.ReplayDelivery",
       "path": "modules/jobs/internal/event_delivery.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.ValidateCron",
@@ -973,13 +973,13 @@
     {
       "id": "jobs.SubscribeEvents",
       "path": "modules/jobs/internal/http_event_subscription.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.All",
@@ -1292,223 +1292,223 @@
     {
       "id": "jobs.authorizeJobManagement",
       "path": "modules/jobs/internal/query.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.authorizePermission",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/query.go"
     },
     {
       "id": "jobs.findEventDefinition",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_validation.go"
     },
     {
       "id": "jobs.validateEventPayload",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_validation.go"
     },
     {
       "id": "jobs.consumerHasEvent",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_validation.go"
     },
     {
       "id": "jobs.encodeEvent",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_store.go"
     },
     {
       "id": "jobs.readEventRecord",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_store.go"
     },
     {
       "id": "jobs.requireEventWrite",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_store.go"
     },
     {
       "id": "jobs.eventReceipt",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_store.go"
     },
     {
       "id": "jobs.saveEventReceipt",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_store.go"
     },
     {
       "id": "jobs.readDeliveryRecord",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_delivery.go"
     },
     {
       "id": "jobs.advanceConsumerOffset",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_delivery.go"
     },
     {
       "id": "jobs.authorizeDeliveryManagement",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/event_delivery.go"
     },
     {
       "id": "jobs.Next",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/http_event_subscription.go"
     },
     {
       "id": "jobs.LastID",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/http_event_subscription.go"
     },
     {
       "id": "jobs.Close",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/http_event_subscription.go"
     },
     {
       "id": "jobs.nextDelivery",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录",
+      "blocker": null,
       "path": "modules/jobs/internal/http_event_subscription.go"
     },
     {
       "id": "jobs.RelayOutbox",
       "path": "modules/jobs/internal/event_store.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "5df9b3cf0d1d2e1e4b87862053275301fc64bde8",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮末尾P1收口：按根必需WriteWindow签名装配完整SafePoint/control截止，provider失败与维护无窗口失败关闭；源码待最终VPS复跑，保持in_progress"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.NewEventHandlers",
       "path": "modules/jobs/internal/http_events.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     },
     {
       "id": "jobs.writeEventResponse",
       "path": "modules/jobs/internal/http_events.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "0e0a061c3684a0723a8657c73ef258f9a803804b",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮合成隔离VPS首轮14模块make build（readonly build/vet/gofmt）通过并回写gen/docs/go依赖锁；make check暴露的载荷输入类型、响应helper签名已最小修复，旧hash事件生产方/信封完整性同步补齐。当前修复待VPS复跑，未标implemented/verified；未新增或运行业务测试/SQL程序/真实接口/服务/模型。"
+        "state": "passed",
+        "evidence": "第二轮最终合成隔离VPS linux/amd64、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check全部通过（855文件/1012函数/374操作/2211类型）。包含旧事件唯一producer/信封核验、[]byte/标量requestID合同收口与Relay WriteWindow；最终产物已回写。本证据仅编译/生成/结构/隐私范围，未新增或运行业务测试、SQL行为验收、真实接口/服务/模型或部署。"
       },
-      "blocker": "源码和VPS首轮产物已准备，三项最小收口待统一VPS复跑；完整HTTP/ephemeral/owner恢复等分别记录"
+      "blocker": null
     }
   ],
-  "rule": "第二轮核心首轮VPS build通过，复核的三项最小修复仍待重跑；源码提交时保持in_progress，不因生成物存在或旧证据提前升级。"
+  "rule": "第二轮已交付函数与完整文件按最终合成VPS build/check证据记verified，精确源码引用0e0a061（核心）及5df9b3c（含b146b4e安全窗口的最终event_store）。verified仅对应已有编译/结构检查，业务验收和部署未执行。完整启动、control屏障、定时、ListDeliveries、ephemeral和实际owner适配保留未完成；用户要求第二轮推送后停止，不启第三轮。"
 }

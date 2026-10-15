@@ -1,5 +1,10 @@
 # 任务与事件当前进度
 
+第二轮最终交付（2026-10-15）：事件核心、确认水位、死信重放、四个真实HTTP映射及Relay写窗口已通过最终合成VPS `make docs/gen`、14模块只读依赖build/vet/gofmt与完整make check（855文件/1012函数/374操作/2211类型）。核心源码`0e0a061c3684a0723a8657c73ef258f9a803804b`，必要安全窗口`b146b4effe0d4f7be0dd5827cc9ee6f2fa37be71`，最终格式/生成产物`5df9b3cf0d1d2e1e4b87862053275301fc64bde8`；本轮完整交付条目按对应检查证据verified。
+
+整体启动、完整control屏障/后台/定时、ListDeliveries、portal ephemeral安全投影及实际owner恢复适配仍未完成，业务验收与部署未执行。用户要求第二轮收尾后由集成会话普通推送并清空目标，本代理冻结交付、不自行push、不启动第三轮。以下“待VPS”等记录保留为阶段历史，以本段和progress.json为准。
+
+
 持续实施第二轮事件包（2026-10-15）：分支`codex/jobs-event-delivery-r1`，基线`468986fc34e1c90b6b5ca575539fdd2b9748cd06`，独占`modules/jobs/`。事件发布、durable增量订阅、确认/连续水位、到期退避死信与具体功能授权重放源码已准备，待统一VPS生成/编译/结构检查，全部本轮条目in_progress。合成VPS首轮14模块make build已通过并回写生成/格式/依赖产物；载荷参数登记、响应helper签名和旧事件producer完整性三项最小修复等待VPS复跑，未提前升级状态。
 
 - ValidateEnvelope按根生成EventTypes核唯一producer/version/严格payloadSchema，校验器只用platform。PublishEvent规范完整信封hash，事件/consumer投递/稳定seq/操作回执同事务；相同eventId不重建delivery。
