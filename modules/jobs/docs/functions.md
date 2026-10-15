@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 60 个函数：约束 33 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 68 个函数：约束 33 个，参考 35 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -76,9 +76,11 @@ func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (Cre
 **步骤**
 
 1. 验证spec
-2. 事务按owner/epoch/dedupeKey查重复
-3. 同inputHash复用，否则409
-4. 插入queued及outbox
+2. 通过LeaseRuntimeProvider核对当前运行epoch与control屏障；维护或safePointRequested拒绝新任务，不读active旧barriers表
+3. 事务按owner/epoch/dedupeKey查重复
+4. 同inputHash复用，否则409
+5. 插入queued及outbox
+6. 持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根
 
 **错误**
 
@@ -89,7 +91,7 @@ func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (Cre
 - 授权：permission：service；rule：service所属owner
 - 并发：SQLite单事务；barrier draining拒绝新任务
 - 幂等：dedupeKey/inputHash幂等
-- 依赖：`jobs.ValidateJobSpec`
+- 依赖：`jobs.ValidateJobSpec`、`jobs.beginLeaseOperation`
 
 ## jobs.FailJob
 
@@ -118,22 +120,26 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 
 **步骤**
 
-1. 验lease
-2. classify
-3. 事务running→retry-wait/dead-letter/cancelled并释放lease
-4. 只存错误码不存正文
-5. 任务处于cancel-requested且owner报告cancelled时经ConfirmCancelled结束，保留已付费结果引用
+1. 同事务核对本service所属owner、当前epoch、worker、持久fence与未过期租约；只接受running/cancel-requested
+2. 固定公共错误码分类；DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED仅attempt1..4可retry-wait，其他错误dead-letter
+3. CANCELLED只在cancel-requested且owner确认模型已停止或结算进入持久可恢复状态时由ConfirmCancelled完成
+4. 合并保留已有paidResultRefs；CAS目标状态、notBefore、最后安全错误码，释放lease、写状态outbox与回执一起提交
+5. 同failure operationId同输入重放原结果，异输入CONFLICT；不记录原始错误或正文
 
 **错误**
 
 - `STALE_RESULT` / HTTP 409：LEASE_LOST：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_ERROR_CODE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
+- `LOCKED` / HTTP 409：当前屏障已到安全点后不能新增操作回执（不可重试）
 
 - 副作用：写状态/outbox
 - 授权：permission：service；rule：service所属owner
 - 并发：fence CAS
-- 幂等：jobId/fence/failureOperationId幂等
-- 依赖：`jobs.ClassifyFailure`、`jobs.ComputeRetryAt`、`jobs.ConfirmCancelled`
+- 幂等：owner/epoch/failureOperationId绑定规范输入；同job/fence终局回执不能更换worker或结果
+- 依赖：`jobs.ClassifyFailure`、`jobs.ComputeRetryAt`、`jobs.ConfirmCancelled`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.readLease`、`jobs.terminalReplay`、`jobs.saveTerminal`、`jobs.mergePaidResults`、`jobs.finishJob`
 
 ## jobs.InstallStore
 
@@ -142,7 +148,7 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 - 作用：安装本域Store及可信runtime/control屏障读取钩子
 
 ```go
-func InstallStore(store *Store, runtime LeaseRuntimeProvider)
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker)
 ```
 
 **输入**
@@ -151,6 +157,8 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider)
 |---|---|---|---|
 | `store` | `*Store` | 已打开的私有存储 | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `runtime` | `LeaseRuntimeProvider` | 运行权威和control屏障读取 | 仅本域内部使用，信任调用方已完成的边界校验 |
+| `identity` | `*IdentityClient` | 本域生成identity HTTP客户端 | 未装配时管理读写返回DEPENDENCY_UNAVAILABLE |
+| `recovery` | `OwnerRecoveryChecker` | 可信owner恢复确认边界 | 实际owner版本化适配未接通时为空；过期任务保持orphan，不自动重跑 |
 
 **输出**
 
@@ -502,6 +510,7 @@ func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInpu
 
 1. 按owner/epoch/queued及SQLite毫秒时间预筛到期候选超集，再由Go精确过滤未来notBefore
 2. 按notBefore/createdAt/jobId有界插入，只保留最早10个引用；不把全量队列加载到内存
+3. 回传持久rootOperationId；缺失根操作的历史未终局任务不参与领取，由回收事务隔离orphan并写outbox
 
 **错误**
 
@@ -529,7 +538,7 @@ func (work *leaseOperation) receipt(ctx context.Context, op OperationContext, ki
 |---|---|---|---|
 | `ctx` | `context.Context` | IO取消 | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `op` | `OperationContext` | 幂等作用域 | 仅本域内部使用，信任调用方已完成的边界校验 |
-| `kind` | `string` | claim或heartbeat | 仅本域内部使用，信任调用方已完成的边界校验 |
+| `kind` | `string` | claim/heartbeat/complete/fail/cancel | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `request` | `[]byte` | 规范化输入 | 仅本域内部使用，信任调用方已完成的边界校验 |
 
 **输出**
@@ -569,7 +578,7 @@ func (work *leaseOperation) saveReceipt(ctx context.Context, op OperationContext
 |---|---|---|---|
 | `ctx` | `context.Context` | IO取消 | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `op` | `OperationContext` | 幂等作用域 | 仅本域内部使用，信任调用方已完成的边界校验 |
-| `kind` | `string` | claim或heartbeat | 仅本域内部使用，信任调用方已完成的边界校验 |
+| `kind` | `string` | claim/heartbeat/complete/fail/cancel | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `request` | `[]byte` | 规范化输入 | 仅本域内部使用，信任调用方已完成的边界校验 |
 | `result` | `LeaseReceiptResult` | 可编码的领取或心跳结果 | 仅本域内部使用，信任调用方已完成的边界校验 |
 
@@ -732,20 +741,229 @@ func CompleteJob(ctx context.Context, op OperationContext, in CompleteJobInput) 
 
 **步骤**
 
-1. 验lease
-2. owner确认结果已持久且可复用
-3. 事务running/cancel-requested→succeeded并存refs/释放lease/outbox
+1. 同事务核对本service所属owner、当前epoch、worker、持久fence与未过期租约；只接受running/cancel-requested
+2. owner通过可选不可变结果引用确认已持久完成；无结果任务省略resultRef，存在时resultRef.owner须为本owner；不生成空ObjectRef
+3. jobId/fence/worker及规范结果哈希重放相同成功，不同结果CONFLICT；operationId不同输入CONFLICT
+4. CAS running/cancel-requested→succeeded；合并保留已有paidResultRefs、存resultRef、释放lease、写状态outbox与终局/操作回执一起提交
 
 **错误**
 
 - `STALE_RESULT` / HTTP 409：LEASE_LOST：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：RESULT_INVALID：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
+- `LOCKED` / HTTP 409：当前屏障已到安全点后不能新增操作回执（不可重试）
 
 - 副作用：写result/state/lease/outbox
 - 授权：permission：service；rule：service所属owner
 - 并发：结果提交CAS；cancel与完成竞争以事务提交先后为准
 - 幂等：jobId/fence/resultHash幂等，重复不同hash409
-- 依赖：`jobs.CheckLease`
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.readLease`、`jobs.terminalReplay`、`jobs.saveTerminal`、`jobs.mergePaidResults`、`jobs.finishJob`
+
+## jobs.readJobRecord
+
+- 级别：参考
+- 文件：`modules/jobs/internal/results.go`
+- 作用：同事务读取owner/epoch/state/revision/attempt/持久fence，任务不存在NOT_FOUND、旧epoch拒绝
+
+```go
+func (work *leaseOperation) readJobRecord(ctx context.Context, jobID string, epoch Identifier) (jobRecord, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `jobID` | `string` | 任务引用 | 本域内部，信任入口已完成的校验 |
+| `epoch` | `Identifier` | 当前代次 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `job` | `jobRecord` | 状态记录 | 成功有效，失败无半结果 |
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 同事务读取owner/epoch/state/revision/attempt/持久fence，任务不存在NOT_FOUND、旧epoch拒绝
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
+- 依赖：无
+
+## jobs.terminalReplay
+
+- 级别：参考
+- 文件：`modules/jobs/internal/results.go`
+- 作用：核owner及当前fence，按操作键绑定输入，并按job/fence核终局worker/输入hash；命中时解码原响应
+
+```go
+func (work *leaseOperation) terminalReplay(ctx context.Context, op OperationContext, job jobRecord, in StartJobInput, kind string, request []byte, result any) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `op` | `OperationContext` | 可信owner与操作键 | 本域内部，信任入口已完成的校验 |
+| `job` | `jobRecord` | 本事务当前任务 | 本域内部，信任入口已完成的校验 |
+| `in` | `StartJobInput` | worker/fence | 本域内部，信任入口已完成的校验 |
+| `kind` | `string` | 终局类型 | 本域内部，信任入口已完成的校验 |
+| `request` | `[]byte` | 规范输入 | 本域内部，信任入口已完成的校验 |
+| `result` | `LeaseReceiptResult` | 成功回执输出指针 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `found` | `bool` | 是否重放 | 成功有效，失败无半结果 |
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 核owner及当前fence，按操作键绑定输入，并按job/fence核终局worker/输入hash；命中时解码原响应
+2. 新操作键命中同fence原终局时也登记该键并提交回执，不能留下未绑定操作键
+3. 既有操作回执只读重放；新操作键补写前必须核当前维护安全点与屏障截止，缺权威失败关闭、截止后LOCKED，不能在safe水位后修改active回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
+- 依赖：`jobs.receipt`、`jobs.saveReceipt`
+
+## jobs.saveTerminal
+
+- 级别：参考
+- 文件：`modules/jobs/internal/results.go`
+- 作用：在同一事务保存job/fence/worker终局回执及operationId回执
+
+```go
+func (work *leaseOperation) saveTerminal(ctx context.Context, op OperationContext, in StartJobInput, kind string, request []byte, result any) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `op` | `OperationContext` | 操作键 | 本域内部，信任入口已完成的校验 |
+| `in` | `StartJobInput` | worker/fence | 本域内部，信任入口已完成的校验 |
+| `kind` | `string` | 终局类型 | 本域内部，信任入口已完成的校验 |
+| `request` | `[]byte` | 规范输入 | 本域内部，信任入口已完成的校验 |
+| `result` | `LeaseReceiptResult` | 成功结果 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 在同一事务保存job/fence/worker终局回执及operationId回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
+- 依赖：`jobs.saveReceipt`
+
+## jobs.mergePaidResults
+
+- 级别：参考
+- 文件：`modules/jobs/internal/results.go`
+- 作用：读取并去重合并已有付费引用，保留已有主结果；成功时写不可变主结果JSON和哈希，不读取正文
+
+```go
+func (work *leaseOperation) mergePaidResults(ctx context.Context, jobID string, refs []string, result *ObjectRef) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `jobID` | `string` | 任务引用 | 本域内部，信任入口已完成的校验 |
+| `refs` | `[]string` | 已有付费结果引用 | 本域内部，信任入口已完成的校验 |
+| `result` | `*ObjectRef` | 成功结果引用，可空 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 读取并去重合并已有付费引用，保留已有主结果；成功时写不可变主结果JSON和哈希，不读取正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
+- 依赖：无
+
+## jobs.finishJob
+
+- 级别：参考
+- 文件：`modules/jobs/internal/results.go`
+- 作用：按revision/epoch/fence CAS更新状态及安全错误码，释放租约并写同事务状态outbox
+
+```go
+func (work *leaseOperation) finishJob(ctx context.Context, job jobRecord, state string, retryAt *time.Time, errorCode string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `job` | `jobRecord` | 本事务当前任务 | 本域内部，信任入口已完成的校验 |
+| `state` | `string` | 目标状态 | 本域内部，信任入口已完成的校验 |
+| `retryAt` | `*time.Time` | 重试时间，可空 | 本域内部，信任入口已完成的校验 |
+| `errorCode` | `string` | 公共安全错误码 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 按revision/epoch/fence CAS更新状态及安全错误码，释放租约并写同事务状态outbox
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
+- 依赖：`jobs.enqueueState`
 
 ## jobs.ClassifyFailure
 
@@ -774,9 +992,9 @@ func ClassifyFailure(ctx context.Context, op OperationContext, in ClassifyFailur
 
 **步骤**
 
-1. validation/forbidden/integrity/旧epoch不可重试
-2. 依赖不可达/deadline可重试至5attempt
-3. cancel为cancelled
+1. 只接受公共errors.json登记码，未知码VALIDATION
+2. CANCELLED必须有cancelRequested才返回cancelled，否则VALIDATION
+3. DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED且attempt<5可重试；其余及耗尽为dead-letter
 
 **错误**
 
@@ -857,9 +1075,9 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 
 **步骤**
 
-1. 维护期间不调度
-2. 选≤100 retry-wait且notBefore到期
-3. CAS queued，不增加attempt直到领取
+1. 仅jobs后台可信服务上下文，维护或control屏障期间不调度
+2. 选当前epoch精确notBefore到期的retry-wait，每批min(batchSize,100)
+3. revision CAS queued并写状态outbox，不增加attempt、不改rootOperationId/inputRef/paidRefs
 
 **错误**
 
@@ -869,7 +1087,7 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 - 授权：permission：service；rule：service worker
 - 并发：批次事务
 - 幂等：重复tick幂等
-- 依赖：无
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.enqueueState`
 - 其他依赖说明：私有SQLite
 
 ## jobs.ReapExpiredLeases
@@ -899,10 +1117,13 @@ func ReapExpiredLeases(ctx context.Context, op OperationContext, in ReapExpiredL
 
 **步骤**
 
-1. 租约到期事务增fence
-2. 保留相同job/inputRef/rootOperationId与paidResultRefs
-3. 进入retry-wait或耗尽dead-letter
-4. 新owner worker按自身持久阶段与gateway.readInference复用已付费结果，不能生成新付费operation
+1. 仅jobs后台可信服务上下文；维护或control屏障期间暂停active回收写入
+2. 每批最多100个当前epoch精确到期的活动租约或历史缺根未终局任务，CAS state为orphan、job.fencing_counter与revision各增1，删除旧租约、保留worker/旧fence恢复引用、写状态outbox同事务提交
+3. 保留相同job/inputRef/rootOperationId和全部paidResultRefs；orphan不被Claim领取，旧worker旧fence不能写回
+4. 事务外调用受信OwnerRecoveryChecker：completed确认持久结果并提供可选resultRef/paidRefs；safeToRetry确认无未决付费且checkpoint/根operation可复用；pending/unknown或不可达保持orphan
+5. 重新获取当前epoch/control权威并CAS同orphan/fence：completed复用结果为succeeded；safeToRetry按attempt1..4有限退避或耗尽dead-letter，已有cancel请求则确认cancelled；状态/refs/outbox同事务提交
+6. 实际owner版本化适配未接通时只隔离并保持orphan；启动装配仍blocked，不宣称恢复链路可用
+7. 历史任务若缺rootOperationId保持orphan，completed可复用已完成结果；不得猜测旧operationId就是根来自动重试
 
 **错误**
 
@@ -910,9 +1131,9 @@ func ReapExpiredLeases(ctx context.Context, op OperationContext, in ReapExpiredL
 
 - 副作用：写lease/state/outbox
 - 授权：permission：service；rule：service worker
-- 并发：owner不可达只标orphan待确认，不能自动重做付费步骤
+- 并发：短事务隔离旧fence，owner HTTP检查在事务外；恢复结果仅以当前epoch/orphan/fence CAS应用
 - 幂等：jobId/oldFence去重
-- 依赖：`jobs.ClassifyFailure`、`jobs.ComputeRetryAt`
+- 依赖：`jobs.collectOrphans`、`jobs.reconcileOrphan`
 
 ## jobs.TickSchedules
 
@@ -957,6 +1178,86 @@ func TickSchedules(ctx context.Context, op OperationContext, in TickSchedulesInp
 - 幂等：tick dedupeKey幂等
 - 依赖：`jobs.CreateJob`、`jobs.NextFireAt`
 
+## jobs.collectOrphans
+
+- 级别：参考
+- 文件：`modules/jobs/internal/scheduler.go`
+- 作用：同事务隔离最多100个过期租约、递增持久fence/写outbox，并读取最多100个orphan安全引用后提交
+
+```go
+func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeasesInput) ([]orphanCandidate, int, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部使用 |
+| `op` | `OperationContext` | jobs服务上下文 | 仅本域内部使用 |
+| `in` | `ReapExpiredLeasesInput` | 当前代次及tick时间 | 仅本域内部使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `items` | `[]orphanCandidate` | 本批恢复检查引用 | 成功有效，失败无半结果 |
+| `count` | `int` | 本批隔离数量 | 成功有效，失败无半结果 |
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 同事务隔离最多100个过期租约或根未知历史任务、递增持久fence/写outbox，并轮转读取最多100个orphan安全引用后提交
+
+**错误**
+
+- 无
+
+- 副作用：登记步骤中的本域事务变化
+- 授权：permission：service；rule：仅jobs可信后台上下文；owner结果经受信恢复边界确认
+- 并发：短事务CAS，网络调用不持有事务
+- 幂等：job/epoch/fence CAS，重复tick无重复状态事件
+- 依赖：`jobs.beginLeaseOperation`、`jobs.enqueueState`
+
+## jobs.reconcileOrphan
+
+- 级别：参考
+- 文件：`modules/jobs/internal/scheduler.go`
+- 作用：重新核当前epoch/control，按orphan/fence CAS应用owner结果或安全有限重试，保留付费引用，不接受未知状态假成功
+
+```go
+func reconcileOrphan(ctx context.Context, op OperationContext, candidate orphanCandidate, recovery OwnerRecoveryResult) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅本域内部使用 |
+| `op` | `OperationContext` | jobs服务上下文 | 仅本域内部使用 |
+| `candidate` | `orphanCandidate` | 已失效租约恢复引用 | 仅本域内部使用 |
+| `recovery` | `OwnerRecoveryResult` | 可信owner持久确认 | 仅本域内部使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `changed` | `bool` | 是否已收敛状态 | 成功有效，失败无半结果 |
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 重新核当前epoch/control，按orphan/fence CAS应用owner结果或安全有限重试，保留付费引用，不接受未知状态假成功
+
+**错误**
+
+- 无
+
+- 副作用：登记步骤中的本域事务变化
+- 授权：permission：service；rule：仅jobs可信后台上下文；owner结果经受信恢复边界确认
+- 并发：短事务CAS，网络调用不持有事务
+- 幂等：job/epoch/fence CAS，重复tick无重复状态事件
+- 依赖：`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.ClassifyFailure`、`jobs.ComputeRetryAt`、`jobs.mergePaidResults`、`jobs.finishJob`
+
 ## jobs.RequestCancel
 
 - 级别：约束
@@ -984,21 +1285,24 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 
 **步骤**
 
-1. check job.manage与owner资源范围
-2. queued/retry-wait立即cancelled
-3. running写cancel-requested及job-state事件
-4. owner主动heartbeat读cancelRequested并在自身安全点调用gateway.cancelInference，不要求影子cancelTaskAPI
+1. 调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围
+2. 核对当前epoch并读任务；queued/retry-wait立即cancelled，leased/running写cancel-requested，终局与既有cancel-requested原样返回；orphan只持久cancelRequested意图并等待owner安全确认，不伪造cancelled
+3. 与完成以同事务revision CAS竞争；同operationId保存输入hash及原响应
+4. 状态变更、outbox与回执同事务提交；不代替owner调用模型取消
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `NOT_FOUND` / HTTP 404：JOB_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：写cancel状态/outbox
 - 授权：permission：job.manage；rule：job.manage
 - 并发：CAS与完成竞争，完成先提交则返回succeeded
 - 幂等：operationId幂等
-- 依赖：`identity:checkAuthorization`、`jobs.PublishEvent`
+- 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.receipt`、`jobs.saveReceipt`、`jobs.enqueueState`
 
 ## jobs.ConfirmCancelled
 
@@ -1007,7 +1311,7 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 - 作用：owner确认安全取消
 
 ```go
-func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancelledInput) (ConfirmCancelledResult, error)
+func ConfirmCancelled(ctx context.Context, op OperationContext, work *leaseOperation, in ConfirmCancelledInput) (ConfirmCancelledResult, error)
 ```
 
 **输入**
@@ -1016,6 +1320,7 @@ func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancel
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `work` | `*leaseOperation` | FailJob已建立并验证当前租约的事务 | 内部句柄，不嵌套事务，不重新鉴权 |
 | `in` | `ConfirmCancelledInput` | owner确认安全取消；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
@@ -1027,9 +1332,8 @@ func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancel
 
 **步骤**
 
-1. 验lease/fence
-2. owner说明模型已停止或结算进入可恢复状态
-3. 存已有paidResultRefs后cancelled释放
+1. 信任FailJob已验证的当前租约与cancel-requested状态及owner取消确认
+2. 同事务保留paidResultRefs并CAS cancelled、释放lease、写状态outbox；由FailJob写回执及提交
 
 **错误**
 
@@ -1040,7 +1344,7 @@ func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancel
 - 授权：permission：service；rule：service所属owner
 - 并发：不能以超时假设供应方未收费
 - 幂等：jobId/fence幂等
-- 依赖：无
+- 依赖：`jobs.mergePaidResults`、`jobs.finishJob`
 - 其他依赖说明：model-gateway.cancelInference 经owner调用
 
 ## jobs.ReadJob
@@ -1070,19 +1374,60 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 
 **步骤**
 
-1. 身份查权限
-2. 校验epoch
-3. 输出安全状态和引用，不打开正文
+1. 调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围
+2. 核对当前epoch，在同一SQLite快照读取任务状态、revision及已持久结果引用
+3. 不打开正文，不返回任务输入或原始错误
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `NOT_FOUND` / HTTP 404：JOB_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：操作键冲突、旧epoch或可信依赖不可用（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：无
 - 授权：permission：job.manage；rule：job.manage+所属资源权限
 - 并发：SQLite快照读
 - 幂等：GET幂等
+- 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`
+
+## jobs.authorizeJobManagement
+
+- 级别：参考
+- 文件：`modules/jobs/internal/query.go`
+- 作用：使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应
+
+```go
+func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域内部，信任入口已完成的校验 |
+| `op` | `OperationContext` | 可信actor | 本域内部，信任入口已完成的校验 |
+| `jobID` | `string` | 审计资源 | 本域内部，信任入口已完成的校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 失败原因 | 成功有效，失败无半结果 |
+
+**步骤**
+
+1. 使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：调用方负责可信身份；只落实本函数资源核对
+- 并发：复用调用方短事务，不嵌套事务
+- 幂等：由调用方事务及回执保证
 - 依赖：`identity:checkAuthorization`
 
 ## jobs.AppendProgress

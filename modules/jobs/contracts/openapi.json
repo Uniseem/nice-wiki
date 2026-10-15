@@ -353,6 +353,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -437,6 +447,16 @@
           },
           "400": {
             "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -535,6 +555,26 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -620,6 +660,26 @@
           },
           "404": {
             "description": "公共错误；NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE",
             "content": {
               "application/problem+json": {
                 "schema": {

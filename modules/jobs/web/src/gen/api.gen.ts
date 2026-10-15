@@ -657,6 +657,8 @@ export interface components {
             attempt: number;
             /** @description 任务所属数据代次；旧代任务领取后立即失败 */
             dataEpoch: components["schemas"]["Identifier"];
+            /** @description 提交任务时保存的根操作；重试与付费阶段必须复用，不从领取请求重建 */
+            rootOperationId: components["schemas"]["Identifier"];
         };
         /** @description 领取待执行任务成功结果；失败不返回半成功结果 */
         ClaimJobResult: {
@@ -714,24 +716,33 @@ export interface components {
         CompleteJobRequestBody: {
             /** @description fencingToken 非负 int64；不用浮点数 */
             fencingToken: components["schemas"]["Revision"];
-            /** @description 公共 ObjectRef 合同，遵守其字段和空值规则 */
-            resultRef: components["schemas"]["ObjectRef"];
+            /** @description 可选；已有持久结果的不可变引用。无结果任务省略或null，不生成空引用 */
+            resultRef?: components["schemas"]["ObjectRef"] | null;
             /** @description 有序列表；空列表表示没有可用项 */
-            paidResultRefs: string[];
+            paidResultRefs?: string[];
+            /** @description 本次租约的workerId；必须与当前租约持有者相同 */
+            workerId: string;
         };
         /** @description 失败写回成功结果；失败不返回半成功结果 */
         FailJobResult: {
             /** @description state；UTF-8；不得为 null */
             state: string;
-            /** @description RFC3339 UTC 时间；不含 null */
-            retryAt: components["schemas"]["Timestamp"];
+            /** @description 仅retry-wait返回的下次领取时间；终局省略 */
+            retryAt?: components["schemas"]["Timestamp"];
         };
         /** @description 错误分类决定重试或dead-letter；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         FailJobRequestBody: {
             /** @description fencingToken 非负 int64；不用浮点数 */
             fencingToken: components["schemas"]["Revision"];
-            /** @description errorCode；UTF-8；不得为 null */
-            errorCode: string;
+            /**
+             * @description 只接受公共错误码，不传原始错误或正文
+             * @enum {string}
+             */
+            errorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+            /** @description 本次租约的workerId；必须与当前租约持有者相同 */
+            workerId: string;
+            /** @description 可选；owner在持久安全点确认的已有付费结果引用，与已存引用合并保留 */
+            paidResultRefs?: string[];
         };
         /** @description 请求取消任务成功结果；失败不返回半成功结果 */
         RequestCancelResult: {
@@ -1314,6 +1325,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     failJob: {
@@ -1357,6 +1377,15 @@ export interface operations {
             };
             /** @description 公共错误；STALE_RESULT */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1414,6 +1443,24 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     readJob: {
@@ -1451,6 +1498,24 @@ export interface operations {
             };
             /** @description 公共错误；NOT_FOUND */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；CONFLICT、VERSION_MISMATCH或DEPENDENCY_UNAVAILABLE */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

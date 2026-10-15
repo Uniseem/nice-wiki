@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动。
@@ -49,6 +50,8 @@ type Store struct {
 	mu           sync.RWMutex
 	closed       bool
 	leaseRuntime LeaseRuntimeProvider
+	identity     *gen.IdentityClient
+	recovery     OwnerRecoveryChecker
 }
 
 var activeQueue struct {
@@ -58,7 +61,9 @@ var activeQueue struct {
 
 // InstallStore 将启动阶段打开的本域存储安装为当前任务入口使用的存储。
 // 装配完整 handler 前不会调用 CreateJob，因此不会用空存储伪造服务就绪。
-func InstallStore(store *Store, runtime LeaseRuntimeProvider) {
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker) {
+	store.recovery = recovery
+	store.identity = identity
 	store.leaseRuntime = runtime
 	activeQueue.Lock()
 	activeQueue.store = store
@@ -169,36 +174,22 @@ func validateCreateJobInput(ctx context.Context, op OperationContext, in CreateJ
 }
 
 func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJobInput) (CreateJobResult, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if s.closed {
-		return CreateJobResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储已关闭")
-	}
-	if err := contextError(ctx); err != nil {
-		return CreateJobResult{}, err
-	}
-
 	inputHash, inputRefJSON, err := hashCreateJobInput(in)
 	if err != nil {
 		return CreateJobResult{}, err
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
 	if err != nil {
-		return CreateJobResult{}, mapQueueDBError(err)
+		return CreateJobResult{}, err
 	}
+	defer work.close()
+	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
+		return CreateJobResult{}, platform.NewError(platform.CodeLocked, false, "维护或屏障期间停止创建任务")
+	}
+	tx := work.tx
 	rollback := func(cause error) (CreateJobResult, error) {
 		_ = tx.Rollback()
 		return CreateJobResult{}, cause
-	}
-
-	var draining int
-	if err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM barriers WHERE state = 'draining' AND data_epoch = ?`,
-		in.DataEpoch).Scan(&draining); err != nil {
-		return rollback(mapQueueDBError(err))
-	}
-	if draining > 0 {
-		return rollback(platform.NewError(platform.CodeLocked, false, "任务屏障正在排空，暂不接受新任务"))
 	}
 
 	existing, found, err := findByDedupe(ctx, tx, in.Owner, in.DataEpoch, in.DedupeKey)
@@ -221,11 +212,11 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 	now := platform.Now()
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO jobs (
-			job_id, operation_id, owner, type, immutable_input_ref, input_hash,
+			job_id, operation_id, root_operation_id, owner, type, immutable_input_ref, input_hash,
 			dedupe_key, state, attempt, not_before, data_epoch, revision,
 			created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
-		jobID, operationID, in.Owner, in.Type, inputRefJSON, inputHash,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+		jobID, operationID, op.RootOperationID, in.Owner, in.Type, inputRefJSON, inputHash,
 		in.DedupeKey, jobStateQueued, now, in.DataEpoch, jobRevision, now, now); err != nil {
 		if isUniqueConstraint(err) {
 			existing, found, lookupErr := findByDedupe(ctx, tx, in.Owner, in.DataEpoch, in.DedupeKey)
@@ -408,4 +399,80 @@ func isUniqueConstraint(err error) bool {
 func isBusyError(err error) bool {
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "database is locked") || strings.Contains(message, "busy")
+}
+
+// FailJob 在owner已经落到持久安全点后确认失败；不把超时等同没有费用。
+type FailJobInput struct {
+	JobID          platform.Identifier `json:"jobId"`
+	WorkerID       string              `json:"workerId"`
+	FencingToken   int64               `json:"fencingToken"`
+	ErrorCode      string              `json:"errorCode"`
+	PaidResultRefs []string            `json:"paidResultRefs,omitempty"`
+	DataEpoch      platform.Identifier `json:"dataEpoch"`
+}
+
+type FailJobResult struct {
+	State   string     `json:"state"`
+	RetryAt *time.Time `json:"retryAt,omitempty"`
+}
+
+func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJobResult, error) {
+	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
+	if err != nil {
+		return FailJobResult{}, err
+	}
+	defer work.close()
+	job, err := work.readJobRecord(ctx, in.JobID, in.DataEpoch)
+	if err != nil {
+		return FailJobResult{}, err
+	}
+	leaseInput := StartJobInput{JobID: in.JobID, WorkerID: in.WorkerID, FencingToken: in.FencingToken, DataEpoch: in.DataEpoch}
+	request, _ := json.Marshal(in)
+	var result FailJobResult
+	found, err := work.terminalReplay(ctx, op, job, leaseInput, "fail", request, &result)
+	if err != nil {
+		return FailJobResult{}, err
+	}
+	if found {
+		return result, nil
+	}
+	lease, err := work.readLease(ctx, op, leaseInput)
+	if err != nil {
+		return FailJobResult{}, err
+	}
+	if lease.state != "running" && lease.state != "cancel-requested" {
+		return FailJobResult{}, leaseLost()
+	}
+	failure, err := ClassifyFailure(ctx, op, ClassifyFailureInput{ErrorCode: in.ErrorCode, Attempt: job.attempt, CancelRequested: lease.state == "cancel-requested"})
+	if err != nil {
+		return FailJobResult{}, err
+	}
+	result.State = failure.TerminalState
+	if failure.TerminalState == "cancelled" {
+		_, err := ConfirmCancelled(ctx, op, work, ConfirmCancelledInput{JobID: in.JobID, WorkerID: in.WorkerID, FencingToken: in.FencingToken, ResultRefs: in.PaidResultRefs, DataEpoch: in.DataEpoch})
+		if err != nil {
+			return FailJobResult{}, err
+		}
+	} else {
+		if failure.Retryable {
+			retry, err := ComputeRetryAt(ctx, op, ComputeRetryAtInput{JobID: in.JobID, Attempt: job.attempt, Now: work.now})
+			if err != nil {
+				return FailJobResult{}, err
+			}
+			result.RetryAt = &retry.RetryAt
+		}
+		if err := work.mergePaidResults(ctx, in.JobID, in.PaidResultRefs, nil); err != nil {
+			return FailJobResult{}, err
+		}
+		if err := work.finishJob(ctx, job, result.State, result.RetryAt, in.ErrorCode); err != nil {
+			return FailJobResult{}, err
+		}
+	}
+	if err := work.saveTerminal(ctx, op, leaseInput, "fail", request, result); err != nil {
+		return FailJobResult{}, err
+	}
+	if err := work.tx.Commit(); err != nil {
+		return FailJobResult{}, mapQueueDBError(err)
+	}
+	return result, nil
 }

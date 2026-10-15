@@ -333,8 +333,8 @@ type claimCandidate struct {
 }
 
 func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInput) ([]claimCandidate, error) {
-	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,operation_id,type,immutable_input_ref,attempt,fencing_counter,
-		revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued'
+	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,operation_id,root_operation_id,type,immutable_input_ref,attempt,fencing_counter,
+		revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued' AND root_operation_id<>''
 		AND julianday(not_before)<=julianday(?)`, in.Owner, in.DataEpoch, work.now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, mapQueueDBError(err)
@@ -345,7 +345,7 @@ func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInpu
 		var job claimCandidate
 		var input []byte
 		var notBefore, createdAt string
-		if err := rows.Scan(&job.claimed.Job.JobId, &job.claimed.Job.OperationId, &job.claimed.Type, &input, &job.claimed.Attempt,
+		if err := rows.Scan(&job.claimed.Job.JobId, &job.claimed.Job.OperationId, &job.claimed.RootOperationId, &job.claimed.Type, &input, &job.claimed.Attempt,
 			&job.claimed.FencingToken, &job.revision, &notBefore, &createdAt); err != nil {
 			return nil, mapQueueDBError(err)
 		}

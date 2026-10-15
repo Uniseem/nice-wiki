@@ -650,6 +650,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "任务所属数据代次；旧代任务领取后立即失败"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "提交任务时保存的根操作；重试与付费阶段必须复用，不从领取请求重建"
         }
       },
       "required": [
@@ -660,7 +664,8 @@
         "fencingToken",
         "attempt",
         "dataEpoch",
-        "expiresAt"
+        "expiresAt",
+        "rootOperationId"
       ]
     },
     "SafeIssue": {
@@ -1208,8 +1213,16 @@
           "description": "fencingToken 非负 int64；不用浮点数"
         },
         "resultRef": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
-          "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+              "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "可选；已有持久结果的不可变引用。无结果任务省略或null，不生成空引用"
         },
         "paidResultRefs": {
           "type": "array",
@@ -1224,14 +1237,19 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "workerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本次租约的workerId；必须与当前租约持有者相同"
         }
       },
       "required": [
         "jobId",
         "fencingToken",
-        "resultRef",
-        "paidResultRefs",
-        "dataEpoch"
+        "dataEpoch",
+        "workerId"
       ]
     },
     "CompleteJobResult": {
@@ -1262,9 +1280,26 @@
       "properties": {
         "errorCode": {
           "type": "string",
-          "description": "errorCode；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "enum": [
+            "VALIDATION",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
+            "VERSION_MISMATCH",
+            "LOCKED",
+            "UNSUPPORTED_SCHEMA",
+            "UNSUPPORTED_CAPABILITY",
+            "RATE_LIMITED",
+            "BUDGET_EXCEEDED",
+            "CANCELLED",
+            "DEADLINE_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "STALE_RESULT",
+            "INTEGRITY_ERROR",
+            "INTERNAL"
+          ],
+          "description": "只接受公共错误码，不传原始错误或正文"
         },
         "attempt": {
           "type": "integer",
@@ -1362,20 +1397,54 @@
         },
         "errorCode": {
           "type": "string",
-          "description": "errorCode；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "enum": [
+            "VALIDATION",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
+            "VERSION_MISMATCH",
+            "LOCKED",
+            "UNSUPPORTED_SCHEMA",
+            "UNSUPPORTED_CAPABILITY",
+            "RATE_LIMITED",
+            "BUDGET_EXCEEDED",
+            "CANCELLED",
+            "DEADLINE_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "STALE_RESULT",
+            "INTEGRITY_ERROR",
+            "INTERNAL"
+          ],
+          "description": "只接受公共错误码，不传原始错误或正文"
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "workerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本次租约的workerId；必须与当前租约持有者相同"
+        },
+        "paidResultRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "可选；owner在持久安全点确认的已有付费结果引用，与已存引用合并保留"
         }
       },
       "required": [
         "jobId",
         "fencingToken",
         "errorCode",
-        "dataEpoch"
+        "dataEpoch",
+        "workerId"
       ]
     },
     "FailJobResult": {
@@ -1391,12 +1460,11 @@
         },
         "retryAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "RFC3339 UTC 时间；不含 null"
+          "description": "仅retry-wait返回的下次领取时间；终局省略"
         }
       },
       "required": [
-        "state",
-        "retryAt"
+        "state"
       ]
     },
     "RequeueDueInput": {
@@ -1470,7 +1538,7 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "count 非负 int64；不用浮点数"
+          "description": "本次隔离或收敛的任务状态迁移数量"
         }
       },
       "required": [
@@ -1547,13 +1615,20 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "workerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本次租约的workerId；必须与当前租约持有者相同"
         }
       },
       "required": [
         "jobId",
         "fencingToken",
         "resultRefs",
-        "dataEpoch"
+        "dataEpoch",
+        "workerId"
       ]
     },
     "ConfirmCancelledResult": {
@@ -2609,8 +2684,16 @@
           "description": "fencingToken 非负 int64；不用浮点数"
         },
         "resultRef": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
-          "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
+              "description": "公共 ObjectRef 合同，遵守其字段和空值规则"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "可选；已有持久结果的不可变引用。无结果任务省略或null，不生成空引用"
         },
         "paidResultRefs": {
           "type": "array",
@@ -2621,12 +2704,17 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "workerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "本次租约的workerId；必须与当前租约持有者相同"
         }
       },
       "required": [
         "fencingToken",
-        "resultRef",
-        "paidResultRefs"
+        "workerId"
       ]
     },
     "FailJobRequestBody": {
@@ -2640,14 +2728,48 @@
         },
         "errorCode": {
           "type": "string",
-          "description": "errorCode；UTF-8；不得为 null",
+          "enum": [
+            "VALIDATION",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
+            "VERSION_MISMATCH",
+            "LOCKED",
+            "UNSUPPORTED_SCHEMA",
+            "UNSUPPORTED_CAPABILITY",
+            "RATE_LIMITED",
+            "BUDGET_EXCEEDED",
+            "CANCELLED",
+            "DEADLINE_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "STALE_RESULT",
+            "INTEGRITY_ERROR",
+            "INTERNAL"
+          ],
+          "description": "只接受公共错误码，不传原始错误或正文"
+        },
+        "workerId": {
+          "type": "string",
+          "minLength": 1,
           "maxLength": 2048,
-          "minLength": 1
+          "description": "本次租约的workerId；必须与当前租约持有者相同"
+        },
+        "paidResultRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "item；UTF-8；不得为 null",
+            "maxLength": 8192
+          },
+          "maxItems": 10000,
+          "description": "可选；owner在持久安全点确认的已有付费结果引用，与已存引用合并保留"
         }
       },
       "required": [
         "fencingToken",
-        "errorCode"
+        "errorCode",
+        "workerId"
       ]
     },
     "RequestCancelRequestBody": {
@@ -3490,6 +3612,42 @@
       "x-internal": true,
       "x-go-type": "LeaseRuntimeView",
       "description": "可信运行权威RuntimeView，加control屏障safePointRequested与barrierDeadline；未装配或维护缺截止时失败关闭"
+    },
+    "IdentityClient": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*gen.IdentityClient",
+      "description": "本域生成的identity HTTP客户端，仅启动装配注入"
+    },
+    "jobRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "jobRecord",
+      "description": "本域任务状态、终局回执或内部事务结果，不作为HTTP载荷"
+    },
+    "OwnerRecoveryChecker": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "OwnerRecoveryChecker",
+      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+    },
+    "OwnerRecoveryRequest": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "OwnerRecoveryRequest",
+      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+    },
+    "OwnerRecoveryResult": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "OwnerRecoveryResult",
+      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+    },
+    "orphanCandidate": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "orphanCandidate",
+      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
     }
   }
 }

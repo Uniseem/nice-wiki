@@ -13,10 +13,10 @@
 | POST `/v1/jobs` | `createJob` | `jobs.CreateJob` | `service` | `CreateJobRequestBody` → 202 `CreateJobResult` | 持久提交任务 | `CONFLICT` |
 | POST `/v1/jobs:claim` | `claimJob` | `jobs.ClaimJob` | `service` | `ClaimJobRequestBody` → 200 `ClaimJobResult` | 领取待执行任务 | `VERSION_MISMATCH` |
 | POST `/v1/jobs/{jobId}:heartbeat` | `heartbeatJob` | `jobs.HeartbeatJob` | `service` | `HeartbeatJobRequestBody` → 200 `HeartbeatJobResult` | 维持租约 | `STALE_RESULT` |
-| POST `/v1/jobs/{jobId}:complete` | `completeJob` | `jobs.CompleteJob` | `service` | `CompleteJobRequestBody` → 200 `CompleteJobResult` | 提交成功结果 | `STALE_RESULT`、`VALIDATION` |
-| POST `/v1/jobs/{jobId}:fail` | `failJob` | `jobs.FailJob` | `service` | `FailJobRequestBody` → 200 `FailJobResult` | 失败写回 | `STALE_RESULT`、`VALIDATION` |
-| POST `/v1/jobs/{jobId}:cancel` | `cancelJob` | `jobs.RequestCancel` | `job.manage` | `RequestCancelRequestBody` → 200 `RequestCancelResult` | 请求取消任务 | `FORBIDDEN`、`NOT_FOUND` |
-| GET `/v1/jobs/{jobId}` | `readJob` | `jobs.ReadJob` | `job.manage` | `—` → 200 `ReadJobResult` | 读取管理任务状态 | `FORBIDDEN`、`NOT_FOUND` |
+| POST `/v1/jobs/{jobId}:complete` | `completeJob` | `jobs.CompleteJob` | `service` | `CompleteJobRequestBody` → 200 `CompleteJobResult` | 提交成功结果 | `STALE_RESULT`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/jobs/{jobId}:fail` | `failJob` | `jobs.FailJob` | `service` | `FailJobRequestBody` → 200 `FailJobResult` | 失败写回 | `STALE_RESULT`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/jobs/{jobId}:cancel` | `cancelJob` | `jobs.RequestCancel` | `job.manage` | `RequestCancelRequestBody` → 200 `RequestCancelResult` | 请求取消任务 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/jobs/{jobId}` | `readJob` | `jobs.ReadJob` | `job.manage` | `—` → 200 `ReadJobResult` | 读取管理任务状态 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/jobs/{jobId}/progress` | `streamProgress` | `jobs.StreamProgress` | `job.manage` | `—` → 200 `string` | 任务进度SSE | `FORBIDDEN`、`VALIDATION`、`VERSION_MISMATCH` |
 | POST `/v1/events` | `publishEvent` | `jobs.PublishEvent` | `service` | `PublishEventRequestBody` → 202 `PublishEventResult` | 持久接收事件 | `CONFLICT`、`VALIDATION` |
 | POST `/v1/events/{eventId}:ack` | `acknowledgeEvent` | `jobs.AcknowledgeEvent` | `service` | `AcknowledgeEventRequestBody` → 200 `AcknowledgeEventResult` | 消费者确认投递 | `FORBIDDEN`、`NOT_FOUND` |

@@ -1,5 +1,14 @@
 # 任务与事件当前进度
 
+更新：2026-10-15。R1-03终局与回收包源码及VPS编译门槛已完成，待提交SHA与完整结构检查收口。分支`codex/jobs-execution-complete-r1`，基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`，独占`modules/jobs/`。
+
+- 新增CompleteJob、FailJob、RequestCancel、ConfirmCancelled、ReadJob、固定重试与到期重排；结果/状态/租约/outbox/操作与终局回执同事务，worker/owner/epoch/fence及control截止限制保持。已付费引用合并保留；无结果任务不生成空ObjectRef。
+- ReapExpiredLeases先失效旧fence并隔离orphan，再经可信OwnerRecoveryChecker确认completed或safeToRetry，pending/unknown保持orphan；实际owner版本化适配未接通，不能视为恢复业务可用。维护/control屏障期间暂停回收与重排。
+- CreateJob改读可信runtime/control屏障；新增任务保存原rootOperationId并在领取/恢复时复用，历史根未知任务不领取，由回收事务隔离，禁止猜根后自动重跑付费阶段。
+- 新增5个源码与2个只追加迁移；生成物由集成会话在VPS统一刷新；VPS首轮make docs/gen成功、14模块make build通过（只读依赖build/vet/gofmt，BUILD_STATUS=0），make check仅公共可达性与framework新增文件登记待集成收口。未本机编译/格式/vet/运行SQL或临时验证程序，未新增测试/样例，未运行真实接口、模型、服务、部署或push。
+
+以下为已合并历史记录：
+
 最新集成结果：隔离VPS的14模块make build与完整make check通过；本轮已完成条目转verified，实际主分支SHA见progress.json。部分入口/用例仍未实现，业务验收和部署未开始。下列本机与待登记说明保留为交付时历史事实。
 
 更新：2026-10-15。阶段：R1-03租约fencing与可选心跳进度已实现并通过编译门槛；完整HTTP/启动装配、重试回收、事件投递/死信、业务验收与部署尚未完成。

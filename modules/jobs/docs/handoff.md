@@ -1,5 +1,24 @@
 # 任务与事件会话交接
 
+## 本包事实（R1-03终局与租约恢复，2026-10-15）
+
+- 分支`codex/jobs-execution-complete-r1`；基线`325f56d7b2f6c5567c16d7e21f66d5a88a97e342`；开始工作区干净，独占`modules/jobs/`。交付提交待本次源码提交后回填，未push。
+- 新增`internal/results.go`、`retry.go`、`cancellation.go`、`query.go`、`scheduler.go`、`migrations/0003_terminal_jobs.sql`、`0004_orphan_jobs.sql`；修改queue/leases及本域types、OpenAPI、implementation。所有生成目录不手改，由集成会话统一make docs/gen。
+- 既有终局回执只读重放；换新操作键补写回执前同样核当前control屏障截止，safe水位后拒绝active回执写入。
+- Complete/Fail现带workerId；Complete可省略或传null resultRef，无结果任务可完成；Fail可选paidResultRefs，retryAt仅retry-wait存在。成功主结果、已有付费引用、终局状态、租约释放、outbox、操作键及job/fence回执同事务。相同终局可重放，不同worker/fence/结果拒绝。
+- RequestCancel/ReadJob调用本域生成IdentityClient取得最新job.manage功能授权，使用可信op.actor，不信任客户端actor或隐藏菜单。取消与完成以同事务revision CAS竞争；leased/running进入cancel-requested，owner通过有效租约Fail(CANCELLED)确认安全取消；orphan只记取消意图。
+- Reap每批最多100个精确到期租约或根未知的历史未终局任务，递增job持久fence后进入orphan并移除lease、同事务outbox。事务外OwnerRecoveryChecker确认completed复用持久结果、safeToRetry且根已知时按5/30/120/600秒加确定抖动有限重试；pending/unknown/不可达保持orphan。确认结果须重新核当前epoch/control及orphan/fence/revision CAS。
+- 保存可信rootOperationId并随Claim返回，重试不生成新付费根。历史缺根保持未知，不从operationId猜根；允许owner确认已完成后复用结果，安全取消不需要新根。Claim不领取根未知任务。
+- 0001/0002未改写；0003追加根操作、安全错误码、取消标志、扩展操作回执及job_outcomes；0004只追加重建jobs状态CHECK和job_orphans，不在迁移中执行无outbox业务状态变更。FK目标保持同名jobs，迁移事务延期检查至重建结束。
+- InstallStore接收可信runtime/control提供者、生成IdentityClient和OwnerRecoveryChecker。完整BuildApplication、control持久屏障与实际owner恢复版本化适配仍未接通，明确unavailable，不宣称恢复业务已可运行。
+- 检查：集成会话隔离VPS首轮make docs/gen成功，14模块make build（-mod=readonly build/vet/gofmt）通过，BUILD_STATUS=0；make check仅公共可达性与新增文件framework登记待集成收口。源码提交后回填SHA记implemented，完整结构检查尚未标通过。本机只读取与编辑；未编译/格式/vet/运行SQL/临时业务验证，未新增测试、样例、fixture或mock，未调用真实接口/模型、未启动服务或部署。
+
+### 本包下一步（一项）
+
+在实际owner恢复版本化操作确定后装配OwnerRecoveryChecker：先读本域scheduler/恢复合同与根公共协议，逐owner映射持久结果确认及未决付费状态；完成条件是completed/safeToRetry/pending/unknown由版本化权威响应产生，未知失败关闭，BuildApplication仍按其余未完成handler/后台依赖保持blocked。业务验收另行授权，不列补测试。
+
+以下为已合并历史记录：
+
 ## 本轮统一复核结果（2026-10-15）
 
 - 三个模块在独立worktree交付，集成分支逐个审查新增逻辑与合同；最终隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8 的14模块make build和完整make check通过。编译、结构检查不代表业务验收。

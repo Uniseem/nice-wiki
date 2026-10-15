@@ -302,9 +302,11 @@
           "purpose": "持久提交任务",
           "steps": [
             "验证spec",
+            "通过LeaseRuntimeProvider核对当前运行epoch与control屏障；维护或safePointRequested拒绝新任务，不读active旧barriers表",
             "事务按owner/epoch/dedupeKey查重复",
             "同inputHash复用，否则409",
-            "插入queued及outbox"
+            "插入queued及outbox",
+            "持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根"
           ],
           "errors": [
             {
@@ -332,7 +334,8 @@
           "concurrency": "SQLite单事务；barrier draining拒绝新任务",
           "idempotency": "dedupeKey/inputHash幂等",
           "dependencies": [
-            "jobs.ValidateJobSpec"
+            "jobs.ValidateJobSpec",
+            "jobs.beginLeaseOperation"
           ],
           "resources": [],
           "contract": "binding"
@@ -377,11 +380,11 @@
           ],
           "purpose": "失败写回",
           "steps": [
-            "验lease",
-            "classify",
-            "事务running→retry-wait/dead-letter/cancelled并释放lease",
-            "只存错误码不存正文",
-            "任务处于cancel-requested且owner报告cancelled时经ConfirmCancelled结束，保留已付费结果引用"
+            "同事务核对本service所属owner、当前epoch、worker、持久fence与未过期租约；只接受running/cancel-requested",
+            "固定公共错误码分类；DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED仅attempt1..4可retry-wait，其他错误dead-letter",
+            "CANCELLED只在cancel-requested且owner确认模型已停止或结算进入持久可恢复状态时由ConfirmCancelled完成",
+            "合并保留已有paidResultRefs；CAS目标状态、notBefore、最后安全错误码，释放lease、写状态outbox与回执一起提交",
+            "同failure operationId同输入重放原结果，异输入CONFLICT；不记录原始错误或正文"
           ],
           "errors": [
             {
@@ -397,6 +400,30 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "condition": "当前屏障已到安全点后不能新增操作回执",
+              "httpStatus": 409,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -407,11 +434,18 @@
             "rule": "service所属owner"
           },
           "concurrency": "fence CAS",
-          "idempotency": "jobId/fence/failureOperationId幂等",
+          "idempotency": "owner/epoch/failureOperationId绑定规范输入；同job/fence终局回执不能更换worker或结果",
           "dependencies": [
             "jobs.ClassifyFailure",
             "jobs.ComputeRetryAt",
-            "jobs.ConfirmCancelled"
+            "jobs.ConfirmCancelled",
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.readLease",
+            "jobs.terminalReplay",
+            "jobs.saveTerminal",
+            "jobs.mergePaidResults",
+            "jobs.finishJob"
           ],
           "resources": [],
           "contract": "binding"
@@ -419,7 +453,7 @@
         {
           "id": "jobs.InstallStore",
           "name": "InstallStore",
-          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider)",
+          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker)",
           "inputs": [
             {
               "name": "store",
@@ -432,6 +466,18 @@
               "type": "LeaseRuntimeProvider",
               "description": "运行权威和control屏障读取",
               "constraints": "仅本域内部使用，信任调用方已完成的边界校验"
+            },
+            {
+              "name": "identity",
+              "type": "*IdentityClient",
+              "description": "本域生成identity HTTP客户端",
+              "constraints": "未装配时管理读写返回DEPENDENCY_UNAVAILABLE"
+            },
+            {
+              "name": "recovery",
+              "type": "OwnerRecoveryChecker",
+              "description": "可信owner恢复确认边界",
+              "constraints": "实际owner版本化适配未接通时为空；过期任务保持orphan，不自动重跑"
             }
           ],
           "outputs": [],
@@ -1074,7 +1120,8 @@
           "purpose": "有界选择同owner/epoch最早到期的10个queued引用，保持精确时序",
           "steps": [
             "按owner/epoch/queued及SQLite毫秒时间预筛到期候选超集，再由Go精确过滤未来notBefore",
-            "按notBefore/createdAt/jobId有界插入，只保留最早10个引用；不把全量队列加载到内存"
+            "按notBefore/createdAt/jobId有界插入，只保留最早10个引用；不把全量队列加载到内存",
+            "回传持久rootOperationId；缺失根操作的历史未终局任务不参与领取，由回收事务隔离orphan并写outbox"
           ],
           "errors": [],
           "sideEffects": [
@@ -1110,7 +1157,7 @@
             {
               "name": "kind",
               "type": "string",
-              "description": "claim或heartbeat",
+              "description": "claim/heartbeat/complete/fail/cancel",
               "constraints": "仅本域内部使用，信任调用方已完成的边界校验"
             },
             {
@@ -1172,7 +1219,7 @@
             {
               "name": "kind",
               "type": "string",
-              "description": "claim或heartbeat",
+              "description": "claim/heartbeat/complete/fail/cancel",
               "constraints": "仅本域内部使用，信任调用方已完成的边界校验"
             },
             {
@@ -1404,9 +1451,10 @@
           ],
           "purpose": "提交成功结果",
           "steps": [
-            "验lease",
-            "owner确认结果已持久且可复用",
-            "事务running/cancel-requested→succeeded并存refs/释放lease/outbox"
+            "同事务核对本service所属owner、当前epoch、worker、持久fence与未过期租约；只接受running/cancel-requested",
+            "owner通过可选不可变结果引用确认已持久完成；无结果任务省略resultRef，存在时resultRef.owner须为本owner；不生成空ObjectRef",
+            "jobId/fence/worker及规范结果哈希重放相同成功，不同结果CONFLICT；operationId不同输入CONFLICT",
+            "CAS running/cancel-requested→succeeded；合并保留已有paidResultRefs、存resultRef、释放lease、写状态outbox与终局/操作回执一起提交"
           ],
           "errors": [
             {
@@ -1422,6 +1470,30 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 503,
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "condition": "当前屏障已到安全点后不能新增操作回执",
+              "httpStatus": 409,
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -1434,10 +1506,337 @@
           "concurrency": "结果提交CAS；cancel与完成竞争以事务提交先后为准",
           "idempotency": "jobId/fence/resultHash幂等，重复不同hash409",
           "dependencies": [
-            "jobs.CheckLease"
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.readLease",
+            "jobs.terminalReplay",
+            "jobs.saveTerminal",
+            "jobs.mergePaidResults",
+            "jobs.finishJob"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.readJobRecord",
+          "name": "readJobRecord",
+          "signature": "func (work *leaseOperation) readJobRecord(ctx context.Context, jobID string, epoch Identifier) (jobRecord, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "任务引用",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "epoch",
+              "type": "Identifier",
+              "description": "当前代次",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "job",
+              "type": "jobRecord",
+              "description": "状态记录",
+              "constraints": "成功有效，失败无半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "同事务读取owner/epoch/state/revision/attempt/持久fence，任务不存在NOT_FOUND、旧epoch拒绝",
+          "steps": [
+            "同事务读取owner/epoch/state/revision/attempt/持久fence，任务不存在NOT_FOUND、旧epoch拒绝"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.terminalReplay",
+          "name": "terminalReplay",
+          "signature": "func (work *leaseOperation) terminalReplay(ctx context.Context, op OperationContext, job jobRecord, in StartJobInput, kind string, request []byte, result any) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信owner与操作键",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "job",
+              "type": "jobRecord",
+              "description": "本事务当前任务",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "in",
+              "type": "StartJobInput",
+              "description": "worker/fence",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "终局类型",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "request",
+              "type": "[]byte",
+              "description": "规范输入",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "result",
+              "type": "LeaseReceiptResult",
+              "description": "成功回执输出指针",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否重放",
+              "constraints": "成功有效，失败无半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "核owner及当前fence，按操作键绑定输入，并按job/fence核终局worker/输入hash；命中时解码原响应",
+          "steps": [
+            "核owner及当前fence，按操作键绑定输入，并按job/fence核终局worker/输入hash；命中时解码原响应",
+            "新操作键命中同fence原终局时也登记该键并提交回执，不能留下未绑定操作键",
+            "既有操作回执只读重放；新操作键补写前必须核当前维护安全点与屏障截止，缺权威失败关闭、截止后LOCKED，不能在safe水位后修改active回执"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [
+            "jobs.receipt",
+            "jobs.saveReceipt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.saveTerminal",
+          "name": "saveTerminal",
+          "signature": "func (work *leaseOperation) saveTerminal(ctx context.Context, op OperationContext, in StartJobInput, kind string, request []byte, result any) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "操作键",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "in",
+              "type": "StartJobInput",
+              "description": "worker/fence",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "终局类型",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "request",
+              "type": "[]byte",
+              "description": "规范输入",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "result",
+              "type": "LeaseReceiptResult",
+              "description": "成功结果",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "在同一事务保存job/fence/worker终局回执及operationId回执",
+          "steps": [
+            "在同一事务保存job/fence/worker终局回执及operationId回执"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [
+            "jobs.saveReceipt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.mergePaidResults",
+          "name": "mergePaidResults",
+          "signature": "func (work *leaseOperation) mergePaidResults(ctx context.Context, jobID string, refs []string, result *ObjectRef) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "任务引用",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "refs",
+              "type": "[]string",
+              "description": "已有付费结果引用",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "result",
+              "type": "*ObjectRef",
+              "description": "成功结果引用，可空",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "读取并去重合并已有付费引用，保留已有主结果；成功时写不可变主结果JSON和哈希，不读取正文",
+          "steps": [
+            "读取并去重合并已有付费引用，保留已有主结果；成功时写不可变主结果JSON和哈希，不读取正文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.finishJob",
+          "name": "finishJob",
+          "signature": "func (work *leaseOperation) finishJob(ctx context.Context, job jobRecord, state string, retryAt *time.Time, errorCode string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "job",
+              "type": "jobRecord",
+              "description": "本事务当前任务",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "description": "目标状态",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "retryAt",
+              "type": "*time.Time",
+              "description": "重试时间，可空",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "errorCode",
+              "type": "string",
+              "description": "公共安全错误码",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "按revision/epoch/fence CAS更新状态及安全错误码，释放租约并写同事务状态outbox",
+          "steps": [
+            "按revision/epoch/fence CAS更新状态及安全错误码，释放租约并写同事务状态outbox"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [
+            "jobs.enqueueState"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1486,9 +1885,9 @@
           ],
           "purpose": "固定错误重试分类",
           "steps": [
-            "validation/forbidden/integrity/旧epoch不可重试",
-            "依赖不可达/deadline可重试至5attempt",
-            "cancel为cancelled"
+            "只接受公共errors.json登记码，未知码VALIDATION",
+            "CANCELLED必须有cancelRequested才返回cancelled，否则VALIDATION",
+            "DEPENDENCY_UNAVAILABLE/DEADLINE_EXCEEDED且attempt<5可重试；其余及耗尽为dead-letter"
           ],
           "errors": [
             {
@@ -1623,9 +2022,9 @@
           ],
           "purpose": "到期重排",
           "steps": [
-            "维护期间不调度",
-            "选≤100 retry-wait且notBefore到期",
-            "CAS queued，不增加attempt直到领取"
+            "仅jobs后台可信服务上下文，维护或control屏障期间不调度",
+            "选当前epoch精确notBefore到期的retry-wait，每批min(batchSize,100)",
+            "revision CAS queued并写状态outbox，不增加attempt、不改rootOperationId/inputRef/paidRefs"
           ],
           "errors": [
             {
@@ -1645,7 +2044,11 @@
           },
           "concurrency": "批次事务",
           "idempotency": "重复tick幂等",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.enqueueState"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -1691,10 +2094,13 @@
           ],
           "purpose": "处理失联worker",
           "steps": [
-            "租约到期事务增fence",
-            "保留相同job/inputRef/rootOperationId与paidResultRefs",
-            "进入retry-wait或耗尽dead-letter",
-            "新owner worker按自身持久阶段与gateway.readInference复用已付费结果，不能生成新付费operation"
+            "仅jobs后台可信服务上下文；维护或control屏障期间暂停active回收写入",
+            "每批最多100个当前epoch精确到期的活动租约或历史缺根未终局任务，CAS state为orphan、job.fencing_counter与revision各增1，删除旧租约、保留worker/旧fence恢复引用、写状态outbox同事务提交",
+            "保留相同job/inputRef/rootOperationId和全部paidResultRefs；orphan不被Claim领取，旧worker旧fence不能写回",
+            "事务外调用受信OwnerRecoveryChecker：completed确认持久结果并提供可选resultRef/paidRefs；safeToRetry确认无未决付费且checkpoint/根operation可复用；pending/unknown或不可达保持orphan",
+            "重新获取当前epoch/control权威并CAS同orphan/fence：completed复用结果为succeeded；safeToRetry按attempt1..4有限退避或耗尽dead-letter，已有cancel请求则确认cancelled；状态/refs/outbox同事务提交",
+            "实际owner版本化适配未接通时只隔离并保持orphan；启动装配仍blocked，不宣称恢复链路可用",
+            "历史任务若缺rootOperationId保持orphan，completed可复用已完成结果；不得猜测旧operationId就是根来自动重试"
           ],
           "errors": [
             {
@@ -1712,11 +2118,11 @@
             "permission": "service",
             "rule": "service worker"
           },
-          "concurrency": "owner不可达只标orphan待确认，不能自动重做付费步骤",
+          "concurrency": "短事务隔离旧fence，owner HTTP检查在事务外；恢复结果仅以当前epoch/orphan/fence CAS应用",
           "idempotency": "jobId/oldFence去重",
           "dependencies": [
-            "jobs.ClassifyFailure",
-            "jobs.ComputeRetryAt"
+            "jobs.collectOrphans",
+            "jobs.reconcileOrphan"
           ],
           "resources": [],
           "contract": "reference"
@@ -1797,6 +2203,140 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "jobs.collectOrphans",
+          "name": "collectOrphans",
+          "signature": "func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeasesInput) ([]orphanCandidate, int, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "jobs服务上下文",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "in",
+              "type": "ReapExpiredLeasesInput",
+              "description": "当前代次及tick时间",
+              "constraints": "仅本域内部使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "items",
+              "type": "[]orphanCandidate",
+              "description": "本批恢复检查引用",
+              "constraints": "成功有效，失败无半结果"
+            },
+            {
+              "name": "count",
+              "type": "int",
+              "description": "本批隔离数量",
+              "constraints": "成功有效，失败无半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "同事务隔离最多100个过期租约、递增持久fence/写outbox，并读取最多100个orphan安全引用后提交",
+          "steps": [
+            "同事务隔离最多100个过期租约或根未知历史任务、递增持久fence/写outbox，并轮转读取最多100个orphan安全引用后提交"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "登记步骤中的本域事务变化"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅jobs可信后台上下文；owner结果经受信恢复边界确认"
+          },
+          "concurrency": "短事务CAS，网络调用不持有事务",
+          "idempotency": "job/epoch/fence CAS，重复tick无重复状态事件",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.enqueueState"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.reconcileOrphan",
+          "name": "reconcileOrphan",
+          "signature": "func reconcileOrphan(ctx context.Context, op OperationContext, candidate orphanCandidate, recovery OwnerRecoveryResult) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "jobs服务上下文",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "candidate",
+              "type": "orphanCandidate",
+              "description": "已失效租约恢复引用",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "recovery",
+              "type": "OwnerRecoveryResult",
+              "description": "可信owner持久确认",
+              "constraints": "仅本域内部使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "changed",
+              "type": "bool",
+              "description": "是否已收敛状态",
+              "constraints": "成功有效，失败无半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "重新核当前epoch/control，按orphan/fence CAS应用owner结果或安全有限重试，保留付费引用，不接受未知状态假成功",
+          "steps": [
+            "重新核当前epoch/control，按orphan/fence CAS应用owner结果或安全有限重试，保留付费引用，不接受未知状态假成功"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "登记步骤中的本域事务变化"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅jobs可信后台上下文；owner结果经受信恢复边界确认"
+          },
+          "concurrency": "短事务CAS，网络调用不持有事务",
+          "idempotency": "job/epoch/fence CAS，重复tick无重复状态事件",
+          "dependencies": [
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.ClassifyFailure",
+            "jobs.ComputeRetryAt",
+            "jobs.mergePaidResults",
+            "jobs.finishJob"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1845,10 +2385,10 @@
           ],
           "purpose": "请求取消任务",
           "steps": [
-            "check job.manage与owner资源范围",
-            "queued/retry-wait立即cancelled",
-            "running写cancel-requested及job-state事件",
-            "owner主动heartbeat读cancelRequested并在自身安全点调用gateway.cancelInference，不要求影子cancelTaskAPI"
+            "调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围",
+            "核对当前epoch并读任务；queued/retry-wait立即cancelled，leased/running写cancel-requested，终局与既有cancel-requested原样返回；orphan只持久cancelRequested意图并等待owner安全确认，不伪造cancelled",
+            "与完成以同事务revision CAS竞争；同operationId保存输入hash及原响应",
+            "状态变更、outbox与回执同事务提交；不代替owner调用模型取消"
           ],
           "errors": [
             {
@@ -1864,6 +2404,24 @@
               "httpStatus": 404,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 503,
+              "retryable": true
             }
           ],
           "sideEffects": [
@@ -1877,7 +2435,12 @@
           "idempotency": "operationId幂等",
           "dependencies": [
             "identity:checkAuthorization",
-            "jobs.PublishEvent"
+            "jobs.authorizeJobManagement",
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord",
+            "jobs.receipt",
+            "jobs.saveReceipt",
+            "jobs.enqueueState"
           ],
           "resources": [],
           "contract": "binding"
@@ -1885,7 +2448,7 @@
         {
           "id": "jobs.ConfirmCancelled",
           "name": "ConfirmCancelled",
-          "signature": "func ConfirmCancelled(ctx context.Context, op OperationContext, in ConfirmCancelledInput) (ConfirmCancelledResult, error)",
+          "signature": "func ConfirmCancelled(ctx context.Context, op OperationContext, work *leaseOperation, in ConfirmCancelledInput) (ConfirmCancelledResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1898,6 +2461,12 @@
               "type": "OperationContext",
               "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
               "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "work",
+              "type": "*leaseOperation",
+              "description": "FailJob已建立并验证当前租约的事务",
+              "constraints": "内部句柄，不嵌套事务，不重新鉴权"
             },
             {
               "name": "in",
@@ -1922,9 +2491,8 @@
           ],
           "purpose": "owner确认安全取消",
           "steps": [
-            "验lease/fence",
-            "owner说明模型已停止或结算进入可恢复状态",
-            "存已有paidResultRefs后cancelled释放"
+            "信任FailJob已验证的当前租约与cancel-requested状态及owner取消确认",
+            "同事务保留paidResultRefs并CAS cancelled、释放lease、写状态outbox；由FailJob写回执及提交"
           ],
           "errors": [
             {
@@ -1951,7 +2519,10 @@
           },
           "concurrency": "不能以超时假设供应方未收费",
           "idempotency": "jobId/fence幂等",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.mergePaidResults",
+            "jobs.finishJob"
+          ],
           "resources": [
             "model-gateway.cancelInference 经owner调用"
           ],
@@ -2004,9 +2575,9 @@
           ],
           "purpose": "读取管理任务状态",
           "steps": [
-            "身份查权限",
-            "校验epoch",
-            "输出安全状态和引用，不打开正文"
+            "调用identity.checkAuthorization按可信op.actor校验job.manage，resourceId仅为审计；产品无文档范围",
+            "核对当前epoch，在同一SQLite快照读取任务状态、revision及已持久结果引用",
+            "不打开正文，不返回任务输入或原始错误"
           ],
           "errors": [
             {
@@ -2022,6 +2593,24 @@
               "httpStatus": 404,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "操作键冲突、旧epoch或可信依赖不可用",
+              "httpStatus": 503,
+              "retryable": true
             }
           ],
           "sideEffects": [],
@@ -2032,10 +2621,63 @@
           "concurrency": "SQLite快照读",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "identity:checkAuthorization",
+            "jobs.authorizeJobManagement",
+            "jobs.beginLeaseOperation",
+            "jobs.readJobRecord"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.authorizeJobManagement",
+          "name": "authorizeJobManagement",
+          "signature": "func authorizeJobManagement(ctx context.Context, op OperationContext, jobID string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信actor",
+              "constraints": "本域内部，信任入口已完成的校验"
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "审计资源",
+              "constraints": "本域内部，信任入口已完成的校验"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": "成功有效，失败无半结果"
+            }
+          ],
+          "purpose": "使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应",
+          "steps": [
+            "使用已注入本域identity客户端请求job.manage最新授权，拒绝未授权/依赖不可达/无效响应"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "调用方负责可信身份；只落实本函数资源核对"
+          },
+          "concurrency": "复用调用方短事务，不嵌套事务",
+          "idempotency": "由调用方事务及回执保证",
+          "dependencies": [
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4784,6 +5426,18 @@
       "path": "modules/jobs/migrations/0002_leases.sql",
       "kind": "migration",
       "purpose": "只追加租约持久fence计数、领取/心跳幂等回执与进度checkpoint唯一键",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/migrations/0003_terminal_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/migrations/0004_orphan_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用",
       "functions": []
     }
   ],
