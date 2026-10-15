@@ -6,7 +6,7 @@
 
 2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。
 
-已完整实现条目待本轮源码提交生成后回填准确SHA；完整BuildApplication/main仍因偏好、服务器恢复、屏障及后台未齐保持blocked，transport装配文件仍in_progress。旧ResolveIdentityOperation及其DTO真实无调用，已删除；原文件保留受信Store上下文/既有仓库前置并据实登记。无新增/删除文件路径，未本机go/gofmt/生成/编译/测试，未push。
+本轮源码提交`8424db601aaf0ba822d98c79bf52f293451ebf93`（17个本域文件）；四个用例及完整参考函数、账户/撤销/上下文文件与本轮OpenAPI生成物已记verified。完整BuildApplication/main仍因偏好、服务器恢复、屏障及后台未齐保持blocked，transport装配文件仍in_progress。旧ResolveIdentityOperation及其DTO真实无调用，已删除；原文件保留受信Store上下文/既有仓库前置并据实登记。无新增/删除文件路径，未本机go/gofmt/生成/编译/测试，未push。
 
 下一项为既有ReadPreferences/UpdatePreferences及真实HTTP绑定，先核本域最新合同与当前会话授权；本工作包交付后冻结，由根分派再开始。
 

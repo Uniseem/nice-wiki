@@ -7,7 +7,7 @@
   "assignedSession": "第三轮身份账号管理紧密函数组",
   "branch": "codex/identity-management-r1",
   "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": null,
+  "deliveryCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA；未完成入口保持原状态"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/account_validator.go",
@@ -72,13 +72,13 @@
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA；未完成入口保持原状态"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/csrf_service.go",
@@ -122,13 +122,13 @@
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA；未完成入口保持原状态"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/outbox_repository.go",
@@ -205,10 +205,10 @@
       "state": "in_progress",
       "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "accounts子命令已接入；整体启动仍依赖BuildApplication完整handler、恢复回执和后台循环，Go编译与gofmt尚未运行"
+      "blocker": "本轮账号管理已完成；整体仍依赖偏好、屏障/恢复handler与后台装配，不以编译通过当整站可运行"
     },
     {
       "path": "modules/identity/internal/app/wire.go",
@@ -216,19 +216,19 @@
       "implementationCommit": "7ca2a98d640734511532b70548fd2a2141dcd1d2",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "真实认证/账号组已接公共入口；其余handler、后台、恢复回执及风控业务未齐，公共工厂保持失败关闭"
+      "blocker": "本轮账号管理已完成；整体仍依赖偏好、屏障/恢复handler与后台装配，不以编译通过当整站可运行"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA；未完成入口保持原状态"
+      "blocker": "本轮四账号管理真实HTTP映射已完成；仍缺偏好、屏障/恢复等handler及完整后台装配，整体启动不可用"
     },
     {
       "path": "modules/identity/go.mod",
@@ -292,11 +292,11 @@
     },
     {
       "path": "modules/identity/internal/gen/openapi.gen.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
       "blocker": null
     },
@@ -419,46 +419,46 @@
     {
       "id": "identity.ListAccounts",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮账号管理/私有撤销计数合同修订，源码未编译"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.SetAccountStatus",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮账号管理/私有撤销计数合同修订，源码未编译"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.SetAccountPermissions",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮账号管理/私有撤销计数合同修订，源码未编译"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.ResetAccountPassword",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮账号管理/私有撤销计数合同修订，源码未编译"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.NormalizeAccountName",
@@ -606,13 +606,13 @@
     {
       "id": "identity.RevokeAllSessions",
       "path": "modules/identity/internal/session_revocation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮账号管理/私有撤销计数合同修订，源码未编译"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.RevokeOtherSessions",
@@ -852,9 +852,9 @@
       "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
         "state": "passed",
-        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "accounts子命令保留；完整服务仍被BuildApplication缺其余handler/后台与依赖阻塞，不以编译通过当整站可运行"
+      "blocker": "认证与四账号管理真实handler已编译/结构通过；偏好、屏障/恢复handler与后台仍未齐，完整启动继续失败关闭，未做登录全链路行为验收"
     },
     {
       "id": "identity.BuildApplication",
@@ -863,9 +863,9 @@
       "implementationCommit": "7ca2a98d640734511532b70548fd2a2141dcd1d2",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "已实现认证/账号handler及公共边界通过编译/结构检查；其余账号管理、偏好、屏障/恢复handler、后台循环和实际风控业务未齐，工厂拒绝不完整启动；登录全链路未验收"
+      "blocker": "认证与四账号管理真实handler已编译/结构通过；偏好、屏障/恢复handler与后台仍未齐，完整启动继续失败关闭，未做登录全链路行为验收"
     },
     {
       "id": "identity.Serve",
@@ -1333,23 +1333,23 @@
       "id": "identity.operationHandlers",
       "path": "modules/identity/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮账号管理静态HTTP绑定，依赖公共边界已有校验，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check"
+      "blocker": "本轮四账号管理真实HTTP映射已完成；仍缺偏好、屏障与恢复等合同handler，公共工厂拒绝不完整启动"
     },
     {
       "id": "identity.jsonOperation",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮账号管理静态HTTP绑定，依赖公共边界已有校验，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.anonymousIdentityOperation",
@@ -1387,101 +1387,101 @@
     {
       "id": "identity.beginAccountManagement",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.closeAccountManagement",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.requireAccountManagement",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.replayAccountManagement",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.commitAccountManagement",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.readManagedAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三轮隔离源码，未本机编译/格式/生成/测试，待VPS"
+        "state": "passed",
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "待VPS gen/docs/build/check与统一复核"
+      "blocker": null
     },
     {
       "id": "identity.WithIdentityStore",
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA"
+      "blocker": null
     },
     {
       "id": "identity.identityStoreFromContext",
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA"
+      "blocker": null
     },
     {
       "id": "identity.checkIdentityRepositoryContext",
       "path": "modules/identity/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8424db601aaf0ba822d98c79bf52f293451ebf93",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
+        "evidence": "2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。已人工复核权威超管、原成功回放先于CAS、状态/改密会话撤销、权限即时失效与合法刷新、私有敏感回执和提交前16MiB索引边界。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。"
       },
-      "blocker": "最终合成VPS已通过，待本轮源码提交后准确回填SHA"
+      "blocker": null
     }
   ],
   "rule": "用户新授权继续实施，第三轮本域账号管理正在实现；所有新改条目保持in_progress待VPS与统一复核，完整启动/行为验收/部署继续按真实缺口保留。"

@@ -11,7 +11,7 @@
 - 本域无web/UI生成物。内部Go契约仍由identity OpenAPI；portal浏览器生成按portal OpenAPI x-browser-auth-adapters与Browser*合成认证安全副本，源说明已补，不新增目录或生成文件。
 - 仅修改既有登记文件，无新增/删除实际路径。2026-10-15 第三轮最终合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1047函数/374操作/2222类型）。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查通过，不代表行为验收。
 - 旧ResolveIdentityOperation及其DTO真实无调用，由readIdentityReceipt原事务完整安全回放替代，已删源码/合同/台账/两schema。operation_repository.go保留受信Store上下文与仍有真实调用的仓库前置并登记实际图。
-- 准确源码SHA在本轮源码提交后回填；完整BuildApplication/main仍blocked，transport装配文件因缺其余handler/后台保持in_progress。没有本机编译/格式/生成/测试/运行SQL，也没有新增测试、fixture、mock、样例或临时验证程序，未push。
+- 本轮准确源码SHA为`8424db601aaf0ba822d98c79bf52f293451ebf93`（17个本域文件），完整四用例/相关参考助手已转verified；完整BuildApplication/main仍blocked，transport装配文件因缺其余handler/后台保持in_progress。没有本机编译/格式/生成/测试/运行SQL，也没有新增测试、fixture、mock、样例或临时验证程序，未push。
 
 ## 下一步（一项）
 
