@@ -11,7 +11,7 @@
 - 最新机器台账：846文件、920函数、372HTTP操作、2172类型；函数已实现或验证159个（66个verified）、in_progress 9个、blocked 14个、planned 738个。函数条目比例不等同产品完成率。
 - 隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：14个Go模块make build（-mod=readonly build/vet/gofmt）和make check完整通过；源码排除私有配置、凭据、数据与本机.git，VPS独立建立临时Git元数据，以既有代用身份检查暂存内容。make docs无漂移、make gen重复无漂移已在本轮早期核对。未新增测试、未运行业务测试、服务进程、真实接口、模型或部署。
 - 用户本轮追加：所有编译和测试均在VPS执行，已同步根/15域AGENTS与实施/合并规则；VPS不可用则blocked，未经当次授权不回退本机。本轮追加前已执行过本机检查，此事实保留于交接。
-- 本次用户已授权普通推送main，当前待执行并核对远端；实际结果见docs/push-log/2026-10-15-0005.md。原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
+- 本次用户已授权并完成普通推送main，首轮远端核对为b4bda15；结果记录随后同步，详情见docs/push-log/2026-10-15-0005.md。原有未跟踪HTML未纳入提交。后续先收口identity会话签发协议，再按模块最新交接实施。
 
 ## 历史实施记录
 
