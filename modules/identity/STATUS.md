@@ -1,8 +1,9 @@
-# 当前工作包：登录注册与账号口令事务（2026-10-15，待VPS统一复核）
+# 当前工作包：登录注册与账号口令事务（2026-10-15，VPS现阶段检查通过）
 
 分支codex/identity-login-accounts-r1，精确基线468986fc34e1c90b6b5ca575539fdd2b9748cd06，仅本域。源码提交`491f3e049b98f01b85ee4e9bf69b6b3c147fadc9`（28文件），已准备CreateSession、RegisterFirstSuperadmin、CreateAccount、ChangePassword、ReadSelf真实用例源码，使用guard版本化begin/finish准入与账号/网络HMAC，未知依赖失败关闭；新增独立control bootstrap不可逆决定、私有HMAC/keyId回执与账号索引决定恢复。raw token仅首次提交响应，不进入普通回执。
 
-本轮所有源码保持in_progress；集成会话VPS首轮gofmt/gen/docs及go命令生成的依赖文件已回传，最终build/check结论等待根统一复核。未在本机编译、格式、生成、vet、测试或运行SQL；公共依赖以合成快照26138c1为准，模块分支尚未自行合入公共变更。新实际SQL文件仅0004_private_operation_receipts.sql和control/0001_bootstrap.sql。已实现认证组已绑定公共入口，缺其余handler则整体启动失败；其余账号管理、后台循环、行为验收与部署未完成。未新增测试/样例/fixture/临时验证程序，未调用真实接口/模型、未启动服务、未push。
+第二轮最终修复快照在VPS make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（855文件/1012函数/374操作/2211类型），源码补丁`8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a`包含control目录链及SQLite正规文件边界。已完成用例转verified，账号管理/服务器重置等未完成文件保留in_progress，完整BuildApplication/main仍blocked；实际guard业务、portal cookie链和其余handler不能视为已完成或已验收。未本机编译/格式/生成/vet/测试/运行SQL，未新增测试/样例/临时验证程序，未运行真实接口、模型、服务、部署或push。按用户最新要求只收口第二轮，之后由根推送并清空目标，不开展第三轮。
+
 
 ---
 

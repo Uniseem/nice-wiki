@@ -1,4 +1,4 @@
-# 本轮交接：完整登录注册与账号口令事务（2026-10-15，待VPS复核）
+# 本轮交接：完整登录注册与账号口令事务（2026-10-15，VPS现阶段检查通过）
 
 - 独占modules/identity，分支codex/identity-login-accounts-r1，从精确468986fc34e1c90b6b5ca575539fdd2b9748cd06新建，保留上一轮分支。本轮源码提交`491f3e049b98f01b85ee4e9bf69b6b3c147fadc9`（28文件，仅本域）；VPS格式/生成与依赖文件已回传，最终检查待根，准确SHA台账随后单独提交。状态以progress.json及实际Git为准。
 - CreateSession：只接受portal签名LoginNetworkScopes，平台HMAC规范账号名，真实调用guard beginLoginAttempt/finishLoginAttempt；错密码/未知/停用统一拒绝，依赖失败或未知不发会话。authenticated核验事实在提交前确认，发送后不改报aborted。私有回执不重发secret，重新核权威凭据/状态后同事务签发。
@@ -10,7 +10,9 @@
 - 公共依赖：platform.PrivateOperationDigest、OperationContext.LoginNetworkScopes与签名断言传递、guard beginLoginAttempt/finishLoginAttempt合同和生成客户端由根同步；HTTP公共机制已冻结并绑定已实现真实认证组；其余handler缺失时启动失败，不复制边界校验。公共依赖合成提交26138c1由根统一集成，本分支未自行cherry-pick。所有生成物只由VPS make gen/docs刷新；本轮gofmt/gen/docs和go生成的go.mod/go.sum已回传，最终build/check结论仍待根。
 - 统一复核修订：匿名凭证回执/claim固定portal/system主体并清可选用户proof；维护仅核权/CSRF控制链只读白名单；索引统一16MiB且在active不可反悔提交前用共用编码检查，10000账户上限不变。真实认证组已绑定公共HTTP工厂，缺其余handler则整体启动失败。
 - 已报告control路径P2已收口：仅调用根lifecycle.ValidatePrivatePath，目录建立/文件打开前拒绝dataRoot/control链中链接，control.db与WAL/SHM在打开前核正规文件，DB建立后再核；不扩新业务，待VPS最终检查。
-- 检查：仅本地读取、源码编辑和git diff --check；未本机编译/格式/vet/测试/运行SQL，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型、未部署或push。交付条目仍in_progress等待VPS及逐项复核。
+- 最终源码补丁`8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a`已提交control路径修复和VPS生成物；主用例源码`491f3e049b98f01b85ee4e9bf69b6b3c147fadc9`，根统一合并后映射实际main SHA。
+- 最终检查：集成会话修复快照在VPS make docs/gen、14模块readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型），含control路径、匿名scope和16MiB索引修订。完成用例/助手转verified，部分未完文件仍in_progress，BuildApplication/main仍blocked；guard实际业务与portal cookie链的状态以各域台账为准，其他未完成handler/后台仍保留阻塞；这些能力和行为验收不得从本域编译通过推定完成。未本机编译/格式/测试/运行SQL，未新增测试/fixture/样例/临时业务程序，未运行真实服务/接口/模型，未部署或push。
+
 
 ## 下一步（一项）
 

@@ -7,28 +7,28 @@
   "assignedSession": "R1-01（完整登录/首次注册/账号创建与改密）",
   "branch": "codex/identity-login-accounts-r1",
   "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+  "deliveryCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/account_service.go",
       "state": "in_progress",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "本轮CreateAccount/ReadSelf与私有事务助手已提交待VPS最终复核；同文件ListAccounts/状态/权限/密码重置仍未实现"
+      "blocker": "CreateAccount/ReadSelf与私有助手已通过现阶段检查；同文件ListAccounts、状态、权限、密码重置仍未实现"
     },
     {
       "path": "modules/identity/internal/account_validator.go",
@@ -52,23 +52,23 @@
     },
     {
       "path": "modules/identity/internal/credential_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/internal/session_revocation.go",
@@ -115,10 +115,10 @@
       "state": "in_progress",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "本轮索引编码/提交前检查与恢复已提交待VPS最终复核；ObserveSuperadminResetFile/ApplySuperadminReset仍未实现"
+      "blocker": "本轮索引检查与恢复通过现阶段检查；ObserveSuperadminResetFile/ApplySuperadminReset仍未实现"
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
@@ -172,23 +172,23 @@
     },
     {
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/migrations/migrations.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/migrations/0001_domain.sql",
@@ -213,42 +213,42 @@
     {
       "path": "modules/identity/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮公共HTTP装配，未本机编译或测试"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "真实认证组已绑定；其余账户管理/偏好/恢复/屏障handler未完成，公共工厂拒绝整体启动"
+      "blocker": "真实认证/账号组已接公共入口；其余handler、后台、恢复回执及风控业务未齐，公共工厂保持失败关闭"
     },
     {
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮公共HTTP装配，未本机编译或测试"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "真实认证组已绑定；其余账户管理/偏好/恢复/屏障handler未完成，公共工厂拒绝整体启动"
+      "blocker": null
     },
     {
       "path": "modules/identity/go.mod",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共26138c1合成依赖与VPS最终检查"
+      "blocker": null
     },
     {
       "path": "modules/identity/go.sum",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "集成会话VPS go命令生成并回传依赖锁定文件；本轮最终build/check待根复核"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共26138c1合成依赖与VPS最终检查"
+      "blocker": null
     },
     {
       "path": "modules/identity/Dockerfile",
@@ -352,69 +352,69 @@
     },
     {
       "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "path": "modules/identity/migrations/control/0001_bootstrap.sql",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     }
   ],
   "functions": [
     {
       "id": "identity.ReadRegistrationState",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.RegisterFirstSuperadmin",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.CreateAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.ReadSelf",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.ListAccounts",
@@ -529,24 +529,24 @@
     {
       "id": "identity.ChangePassword",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.CreateSession",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.IssueSessionTokens",
@@ -683,13 +683,13 @@
     {
       "id": "identity.WriteAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.ObserveSuperadminResetFile",
@@ -815,13 +815,13 @@
     {
       "id": "identity.OpenDatabase",
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
-      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+      "state": "verified",
+      "implementationCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.RunMigrations",
@@ -837,46 +837,46 @@
     {
       "id": "identity.RecoverJournal",
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.All",
       "path": "modules/identity/migrations/migrations.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.main",
       "path": "modules/identity/cmd/identity/main.go",
-      "state": "in_progress",
+      "state": "blocked",
       "implementationCommit": "138a2b45ae088431e25b0a3694d453f51c49a6f4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "accounts运维子命令已实现；整体服务仍依赖BuildApplication完成全部handler、恢复回执与后台循环，Go编译与gofmt尚未运行"
+      "blocker": "accounts子命令保留；完整服务仍被BuildApplication缺其余handler/后台与依赖阻塞，不以编译通过当整站可运行"
     },
     {
       "id": "identity.BuildApplication",
       "path": "modules/identity/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
+      "implementationCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "本轮真实认证/账号handler和公共入口已装配；其余账号管理/偏好/屏障/恢复handler及后台循环仍未完成，公共工厂拒绝不完整启动"
+      "blocker": "已实现认证/账号handler及公共边界通过编译/结构检查；其余账号管理、偏好、屏障/恢复handler、后台循环和实际风控业务未齐，工厂拒绝不完整启动；登录全链路未验收"
     },
     {
       "id": "identity.Serve",
@@ -1002,399 +1002,399 @@
     {
       "id": "identity.WithRegistrationRuntime",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.registrationRuntimeFromContext",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.ReadInitializationStatus",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.readBootstrapClaim",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.reserveBootstrap",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.markBootstrapCommitted",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.recoverBootstrapClaim",
       "path": "modules/identity/internal/registration_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.readAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.readActorAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.insertAccount",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.selectedPermissionNames",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.privateIdentityDigest",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.readIdentityReceipt",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.saveIdentityReceipt",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.commitAccountWrite",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.syncAccountIndex",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.recoverAccountIndex",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.identityDBError",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.hasGrant",
       "path": "modules/identity/internal/account_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.sensitiveReplayError",
       "path": "modules/identity/internal/credential_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.WithLoginRuntime",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.beginIdentityLogin",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.finishIdentityLogin",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.insertSession",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.openIdentityControl",
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "8f8f515ba9d5bfd3d4d143ed23efd4c5c1fcac4a",
       "verification": {
-        "state": "not_run",
-        "evidence": "按第二轮已报告P2加公共路径校验，DB建立前后失败关闭；未本机编译或测试"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待根ValidatePrivatePath公共提交与VPS最终检查"
+      "blocker": null
     },
     {
       "id": "identity.AppendDecision",
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.CompleteDecision",
       "path": "modules/identity/internal/storage.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.ControlSchema",
       "path": "modules/identity/migrations/migrations.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离源码，未运行本机格式、编译、生成或测试；等待公共guard/HMAC字段与VPS统一检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共登录风控契约/平台字段/生成器同步与VPS make gen/docs/build/check及逐项复核"
+      "blocker": null
     },
     {
       "id": "identity.NewApplication",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.identityContext",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.authorizeOperation",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.operationHandlers",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.jsonOperation",
       "path": "modules/identity/internal/transport/server.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "公共工厂签名已冻结，已绑定真实认证组，缺其余handler则拒绝启动；待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待公共HTTP机制与VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.anonymousIdentityOperation",
       "path": "modules/identity/internal/session_service.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮统一复核明确修订，待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.readAccountAuthorityQuery",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮统一复核明确修订，待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待VPS gen/docs/build/check"
+      "blocker": null
     },
     {
       "id": "identity.encodeAccountIndex",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "491f3e049b98f01b85ee4e9bf69b6b3c147fadc9",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮统一复核明确修订，待VPS检查"
+        "state": "passed",
+        "evidence": "集成会话第二轮最终修复合成快照：VPS make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check全部通过（855文件/1012函数/374操作/2211类型）；包含control路径、固定匿名scope和16MiB提交前索引检查。未本机编译/测试，未执行SQL行为验收、真实登录/接口/模型/服务或部署；仅现阶段编译与结构检查。"
       },
-      "blocker": "待VPS gen/docs/build/check"
+      "blocker": null
     }
   ],
-  "rule": "本轮源码已收到VPS gofmt/gen/docs与go工具生成的依赖文件，最终统一复核结论尚待根；新增用例与改动文件保持in_progress，不以编译/结构检查冒充业务验收。"
+  "rule": "第二轮已完成用例与参考助手按VPS最终编译/生成/完整结构检查转verified；部分文件仍in_progress，BuildApplication/main仍blocked。guard真实业务、portal cookie适配、其余handler及行为验收均不得从本域检查通过推定完成；本轮收口后不启动第三轮。"
 }
