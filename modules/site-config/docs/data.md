@@ -151,7 +151,7 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 
 一般设置只改变公开地址、SEO、资源上限和安全参数；品牌、首页、页脚、公告、基准语言和 initialized 不在该输入中。`ReadSiteConfig` 要求 site.read/superadmin，或已登记内部服务主体；携用户委托的服务调用仍按该用户的站点和权限判断，不能借服务名绕过授权。读取在本域文件提交锁和只读事务内，把 initialized/epoch/配置水位、正式索引、COMMITTED、原始回执、head 与权威文件视为同一边界。任何未补齐决定或水位不一致失败关闭。
 
-`0004_config_operations.sql` 追加 `config_operation_materials`，保存一般设置 operation 的种类、完整候选 ConfigDocument 规范 JSON、SHA256 与修订号；同事务建立原始 actor/site/epoch/requestHash 回执和稳定 revisionId。业务摘要包含 kind=settings 与规范公开地址后的完整输入（含 expectedRevision），材料保留首次 updatedAt。候选 JSON 仅供未完成操作继续写文件，不能作为正式配置读取。只在明确 COMMITTED 后由文件决定恢复 SQL 水位和 outbox；未 COMMITTED 的普通候选须同 operation 重试，不在启动时从数据库推定发布。
+`0004_config_operations.sql` 追加 `config_operation_materials`，保存一般设置 operation 的种类、完整候选 ConfigDocument 规范 JSON、SHA256 与修订号；同事务建立原始 actor/site/epoch/requestHash 回执和稳定 revisionId。业务摘要包含 kind=settings 与原始严格输入的规范 JSON（含 expectedRevision），先读取已成功的原始结果，当前 URL/HTTP 能力策略只应用于新操作和未完成操作，材料保留首次 updatedAt。候选 JSON 仅供未完成操作继续写文件，不能作为正式配置读取。只在明确 COMMITTED 后由文件决定恢复 SQL 水位和 outbox；未 COMMITTED 的普通候选须同 operation 重试，不在启动时从数据库推定发布。
 
 配置对象 ID 与站点内 revision 在追加迁移中建立唯一索引，拒绝歧义历史。已完成 operation 的重试根据原始回执读取原修订文件；即使后来已有更高配置水位，也不改写最新 head。未完成操作复用原候选材料与既有 PREPARED/COMMITTED；跨进程仍由 SQLite 写锁和文件决定占有目标水位。
 

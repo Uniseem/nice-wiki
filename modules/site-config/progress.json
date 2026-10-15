@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "94ad08129226b08f3376e62d79d1b656cbe6d43b15c9fe6707c1a2003b2137a5",
+  "contractSha256": "d197328f9efea4cf47f59a9bdab66784e7f3de15324d77095d6480c9cd65d8e7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-02（一般设置权威读写与对象读取）",
   "branch": "codex/site-config-settings-r1",

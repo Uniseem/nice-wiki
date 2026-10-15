@@ -33,9 +33,6 @@ func UpdateSiteConfig(ctx context.Context, op platform.OperationContext, input g
     store.stateMu.RLock()
     localHTTP := store.allowLocalHTTP
     store.stateMu.RUnlock()
-    normalized,err := NormalizeBaseURL(NormalizeBaseURLInput{URL:input.PublicBaseURL,AllowLocalHTTP:localHTTP})
-    if err != nil { return gen.UpdateSiteConfigResult{},err }
-    input.PublicBaseURL = normalized.Normalized
     requestHash,err := hashInput(struct{Kind string `json:"kind"`;Input gen.UpdateSiteConfigInput `json:"input"`}{"settings",input})
     if err != nil { return gen.UpdateSiteConfigResult{},err }
     receipt,err := ResolveConfigOperation(ctx,op,ResolveConfigOperationInput{OperationId:op.OperationID,RequestHash:requestHash})
@@ -44,9 +41,18 @@ func UpdateSiteConfig(ctx context.Context, op platform.OperationContext, input g
         config,err := store.readConfigOperationResult(ctx,op,requestHash,receipt.ResultRevision)
         return gen.UpdateSiteConfigResult{Config:config},err
     }
+    normalized,err := NormalizeBaseURL(NormalizeBaseURLInput{URL:input.PublicBaseURL,AllowLocalHTTP:localHTTP})
+    if err != nil { return gen.UpdateSiteConfigResult{},err }
+    input.PublicBaseURL = normalized.Normalized
     var candidate configCandidate
     if receipt.State == "in_progress" {
         candidate,err = store.readConfigCandidate(ctx,store.db,op.OperationID,"settings")
+        if err == nil {
+            materialInput := gen.UpdateSiteConfigInput{PublicBaseURL:candidate.Config.PublicBaseURL,TitleTemplate:candidate.Config.TitleTemplate,Description:candidate.Config.Description,
+                IndexingEnabled:candidate.Config.IndexingEnabled,ResourceLimits:candidate.Config.ResourceLimits,SecurityPolicy:candidate.Config.SecurityPolicy,ExpectedRevision:candidate.Config.Revision-1}
+            if materialInput != input { return gen.UpdateSiteConfigResult{},platform.NewError(platform.CodeIntegrityError,false,"配置候选材料与原始设置字段不一致") }
+            if _,err := ValidateSiteConfig(ValidateSiteConfigInput{Config:candidate.Config,AllowLocalHTTP:localHTTP}); err != nil { return gen.UpdateSiteConfigResult{},err }
+        }
     } else {
         current,readErr := store.loadCurrentConfig(ctx,op)
         if readErr != nil { return gen.UpdateSiteConfigResult{},readErr }
