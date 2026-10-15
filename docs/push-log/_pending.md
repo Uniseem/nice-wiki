@@ -1,12 +1,10 @@
 # 待整理会话记录
 
-2026-10-15，第三轮三个独占工作包与公共机制已统一复核，基线9acad1ab56532521222f592af0d4b3a849792db5。用户重新要求继续并希望五个子代理；已说明四总并发槽位实际只能三个子代理，按此执行。所有检查放隔离VPS，未push。
+2026-10-15第四轮已统一复核；从第三轮完成de21a2b继续，源于用户重新授权持续实施。仍使用三个并发子代理和独立worktree，集成会话统一维护公共来源及复核。第五轮正文文件/块规则、任务进度SSE、媒体上传块/资源读取正在实施，尚不计已完成。
 
-- 公共可信来源/HMAC：918dd6369ea7a33bf9296949c8b5441a08d1e88f；浏览器类型生成：db8b5ec。
-- portal实际源码a5dbc2f、台账d602028；身份账号管理实际源码e0bc059、台账b2471da；guard登录保护实际源码7fde172、台账f43f125。各源分支原SHA保留溯源，progress已映射实际集成SHA。
-- guard新增实际3文件admission.go、http_admission.go、0002_login_protection.sql；root framework同步。identity未调用旧回执查询及DTO移除，无实际文件新增/删除。没有新第三方直接依赖，go.sum仅由VPS Go生成。
-- 按portal→identity→guard逐个合入后，实际集成树各通过VPS make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt和完整make check；最终生成回传零变化。856文件、1047函数、374HTTP操作、2222类型；324函数已实现或验证（249 verified、75 implemented），planned 697、in_progress 7、blocked 19。未运行业务验收，整体启动及余项仍blocked/in_progress。
-- 未新增测试或临时业务验证程序，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；私有连接、环境和运行数据未同步。用户HTML原样保留，未暂存提交。
-- 继续下一轮依计划补自身偏好、首页与任务管理；仍三个并发子代理、统一复核。本轮没有新push授权，不主动push。
-
-第四轮已启动：identity自身偏好、site-config首页权威/pin恢复、jobs管理查询/人工重试。当前基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，公共先收口后台页面/语言目录及首页跨域协议；本轮代码未编译前仍in_progress，不计已完成。
+- 第四轮公共偏好目录bd74898；identity偏好实际源码d6a453a、台账ab2c747；公开链接纯合同ce438b4、记录8dbe624；首页合同6372a32。公共恢复与生产方协议9ff93ae、无pin终止sealed修正3907638、JSON SSE公共传输5894bfb。
+- jobs实际源码acd9035、台账f4b97cd；site-config首页实际源码ce37652、台账7addf01。progress已映射实际集成SHA，原分支SHA保留溯源。framework登记本轮6个实际文件；没有新第三方直接依赖。
+- 公共源9ff93ae、jobs实际树857da68及首页最终实际树88210ba均单独在隔离VPS通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整check；最后生成回传零变化。858文件、1109函数、379HTTP操作、2256类型；390函数已实现或验证（321 verified、69 implemented），planned 693、in_progress 7、blocked 19（约35.2%）；条目比例不是业务验收或产品可用率。
+- 统一复核修正了首次acquire失败无pin的恢复终局、COMMITTED优先与迟到commit隔离、公开链接语言/锚点/查询/引用版本、后台装配登记、恢复退出码和IO取消写截止。媒体引用/公开链接/QA可用性生产方仍planned，完整启动、owner适配和UI等仍待实施。
+- 所有生成、格式、编译、vet和检查仅VPS；未新增测试、fixture或临时业务程序，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署。凭据/私有配置/运行数据未同步，用户未跟踪HTML未改未提交。
+- 当前origin/main仍是已授权第二轮推送记录的后续结果；本轮没有新push授权，不主动push，不修改旧实例。持续目标仍active，未把R1全部代码提前记完成。

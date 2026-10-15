@@ -1,8 +1,8 @@
 # platform 交接（R1-00）
 
-## 第五轮JSON SSE传输（进行中）
+## 第五轮JSON SSE传输（已有检查通过）
 
-ProgressEvent保持业务JSON直出；新增SSEFrame/JSONEventStream与ServeJSONEventStream，旧EventEnvelope流薄适配同一公共pump。单条背压、15秒心跳、30秒写截止、data16MiB和取消/关闭集中实现，域端仍负责当前权限/epoch、7天持久续传与每主体流数量。正在VPS检查前保持in_progress，不以此宣称jobs进度已实现。
+ProgressEvent保持业务JSON直出；新增SSEFrame/JSONEventStream与ServeJSONEventStream，旧EventEnvelope流薄适配同一公共pump。单条背压、15秒心跳、30秒写截止、data16MiB和取消/关闭集中实现，域端仍负责当前权限/epoch、7天持久续传与每主体流数量。源码5894bfb，完整Home合成快照和实际集成树88210ba均通过VPS docs/gen、14模块readonly build/vet/gofmt及完整check（858/1109/379/2256），生成零变化；已完成公共条目转verified，不以此宣称尚在开发的jobs进度流已实现。
 
 ## 第四轮持久恢复公共机制（合成快照通过）
 

@@ -7,26 +7,26 @@
   "assignedSession": "第四轮首页权威与媒体pin恢复",
   "branch": "codex/site-config-home-r1",
   "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
-  "deliveryCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+  "deliveryCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/site-config/internal/config_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/config_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -43,20 +43,20 @@
     {
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/home_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -73,10 +73,10 @@
     {
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -143,10 +143,10 @@
     {
       "path": "modules/site-config/internal/initialization_defaults.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -183,10 +183,10 @@
     {
       "path": "modules/site-config/internal/operation_repository.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -263,10 +263,10 @@
     {
       "path": "modules/site-config/internal/config_files.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -303,7 +303,7 @@
     {
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
@@ -313,7 +313,7 @@
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
@@ -443,10 +443,10 @@
     {
       "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     }
@@ -478,10 +478,10 @@
       "id": "site-config.ValidateSiteConfig",
       "path": "modules/site-config/internal/config_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -511,10 +511,10 @@
       "id": "site-config.UpdateHome",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -522,10 +522,10 @@
       "id": "site-config.ReadPublicHome",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -533,10 +533,10 @@
       "id": "site-config.ValidateHomeLinks",
       "path": "modules/site-config/internal/home_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -577,10 +577,10 @@
       "id": "site-config.ValidateActiveReady",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -896,10 +896,10 @@
       "id": "site-config.CommitConfigHead",
       "path": "modules/site-config/internal/config_files.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -951,7 +951,7 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
@@ -973,10 +973,10 @@
       "id": "site-config.Shutdown",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1039,10 +1039,10 @@
       "id": "site-config.validateHomeStructure",
       "path": "modules/site-config/internal/home_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1050,10 +1050,10 @@
       "id": "site-config.decodeHomeTarget",
       "path": "modules/site-config/internal/home_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1061,10 +1061,10 @@
       "id": "site-config.validateConfigWebLink",
       "path": "modules/site-config/internal/config_validator.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1072,10 +1072,10 @@
       "id": "site-config.ReadHomeReferenceDecision",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1083,10 +1083,10 @@
       "id": "site-config.RecoverHomeReferences",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1094,10 +1094,10 @@
       "id": "site-config.readConfigAtWatermark",
       "path": "modules/site-config/internal/config_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1105,10 +1105,10 @@
       "id": "site-config.loadPublicHomeConfig",
       "path": "modules/site-config/internal/config_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1116,10 +1116,10 @@
       "id": "site-config.ConfigureHome",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1127,10 +1127,10 @@
       "id": "site-config.homeDependencies",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1138,10 +1138,10 @@
       "id": "site-config.homeSourceObjectID",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1149,10 +1149,10 @@
       "id": "site-config.homeReferenceMaterial",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1160,10 +1160,10 @@
       "id": "site-config.saveHomeReferenceIntent",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1171,10 +1171,10 @@
       "id": "site-config.readHomeReferenceIntent",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1182,10 +1182,10 @@
       "id": "site-config.validateHomePin",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1193,10 +1193,10 @@
       "id": "site-config.committedHomeReference",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1204,10 +1204,10 @@
       "id": "site-config.verifyHomeCommittedReference",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1215,10 +1215,10 @@
       "id": "site-config.checkHomeConfigCommit",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1226,10 +1226,10 @@
       "id": "site-config.markHomeConfigCommitted",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1237,10 +1237,10 @@
       "id": "site-config.homeReferenceContext",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1248,10 +1248,10 @@
       "id": "site-config.persistHomePin",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1259,10 +1259,10 @@
       "id": "site-config.acquireHomePin",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1270,10 +1270,10 @@
       "id": "site-config.decideHomeTermination",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1281,10 +1281,10 @@
       "id": "site-config.settleHomeReference",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1292,10 +1292,10 @@
       "id": "site-config.compareHomeInput",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1303,10 +1303,10 @@
       "id": "site-config.homeTerminatedError",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1314,10 +1314,10 @@
       "id": "site-config.finishHomeFailure",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1325,10 +1325,10 @@
       "id": "site-config.homeServiceContext",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1336,10 +1336,10 @@
       "id": "site-config.resolveHomeDocument",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1347,10 +1347,10 @@
       "id": "site-config.safeHomeRelativeHref",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1358,10 +1358,10 @@
       "id": "site-config.disablePublicHomeButton",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1369,10 +1369,10 @@
       "id": "site-config.readHomeQACapability",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1380,10 +1380,10 @@
       "id": "site-config.RecoverHomeReferenceState",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1391,10 +1391,10 @@
       "id": "site-config.BackgroundTasks",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1402,10 +1402,10 @@
       "id": "site-config.Drain",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1413,10 +1413,10 @@
       "id": "site-config.homeRecoveryOperation",
       "path": "modules/site-config/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     },
@@ -1424,10 +1424,10 @@
       "id": "site-config.homeWriteContext",
       "path": "modules/site-config/internal/home_service.go",
       "state": "verified",
-      "implementationCommit": "aa96f429e0eecc45cf6a6c51773a8b1892bde648",
+      "implementationCommit": "ce37652611a9b085844853e5e95160699bd5d86f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
     }

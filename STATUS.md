@@ -1,18 +1,19 @@
-# 当前状态（2026-10-15，第三轮统一复核完成）
+# 当前状态（2026-10-15，第四轮统一复核完成）
 
-阶段：R1持续实施。第四轮已按三个独占工作树派发自身偏好、首页和任务管理，尚未合入主线；以下最新事实为已合入的第三轮。用户在第二轮push并停止后重新授权继续；请求五个子代理，但当前四并发槽位包含主代理，实际以三个独立worktree并行、集成会话统一复核。第三轮工作包已顺序集成，完整业务链、行为验收与部署仍未完成。
+阶段：R1持续实施。第四轮自身偏好、首页权威与引用恢复、任务管理已顺序集成，公共SSE传输也已检查。第五轮继续三个独占工作树：content正文文件与块规则、jobs进度SSE、media顺序上传块与资源读取；尚未计入已完成。所有编译、生成和检查仅VPS，完整业务行为验收及部署未开始。
 
 ## 最新事实
 
-- identity完成ListAccounts、SetAccountStatus、SetAccountPermissions、ResetAccountPassword及真实HTTP映射；当前唯一超管权威、CAS、私有HMAC回执、旧成功只回放、权限即时失效、停用/删除/重置撤全会话和索引提交链已复核。撤销Count不再人为限制10000；删除零调用旧回执查询并登记实际Store上下文。整体启动仍blocked，偏好、服务器重置、后台和备份恢复条目待实施。
-- portal完成四认证操作到Secure HttpOnly Strict host-only cookie及安全session JSON，refresh仅接受空对象并从唯一cookie构造内部正文与重新签名；当前权威会话成功登出才清cookie。敏感响应有界、坏结果写头前失败、响应开始后不追加Problem。修复旧装配误返回可用Application和固定Ready成功；本域处理器不齐仍blocked，完整代理准入/审计和runtime watcher未完成。
-- traffic-guard完成Begin/Finish登录保护及追加迁移：login/bootstrap共享滚动15分钟账号/网络失败、固定15分钟锁、账号1/网络8并发及30秒保留；原终局幂等、迟到失败计数、当前epoch隔离。成功只清账号，网络失败保留；只存HMAC。完整启动、策略管理、公开AI准入和屏障等仍未完成。
-- 公共新增trustedProxyCIDRs部署配置和PrivateNetworkScopes；真实socket及受信代理后缀派生当前/前一UTC日网络HMAC，原IP不跨服务。浏览器TS按portal OpenAPI认证适配元数据合成安全session及refresh空输入，内部Go与真实路由保持各自来源。
-- 最新机器台账：856文件、1047函数、374HTTP操作、2222类型；324函数已实现或验证（249 verified、75 implemented），planned 697、in_progress 7、blocked 19。条目比例不等于产品完成率，仍无行为accepted。本轮新增3个实际文件，全部按既有合同职责登记；旧两轮交付事实保留在历史记录。
-- 三域按portal→identity→traffic-guard顺序合入后，各实际集成树均在隔离VPS通过make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）与完整make check，最终生成回传零变化。linux/amd64 go1.25.5、GOMAXPROCS=8。public-site/data-protection仍无实际Go module，不能称十五域完整服务已可启动。
-- 所有编译、格式、生成和检查仅VPS；未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署。凭据、环境和运行数据未同步。第三轮未push，第二轮push授权已执行；用户原有未跟踪HTML未改未提交。
+- identity自身偏好读写完成，当前本人权限、嵌套revision CAS和旧成功只读回放；公共界面语言与后台路由/权限目录由唯一来源生成，portal导航按同一目录消费。
+- site-config首页复用不可变配置与COMMITTED权威链；完整源材料先持久、媒体pin后提交，旧成功不重校当前资源/配额。公开投影只返回安全字段，当前文档/锚点与免费QA能力未知时禁用单个按钮。来源最小决定、明确终止及恢复与正式提交同锁，COMMITTED始终优先，确认失败保留持久pending。
+- jobs任务列表、事件死信列表与人工重试完成；先按持久owner/type核当前具体权限再分页，有权条目计算hasMore，游标签主体/epoch/过滤。owner费用/完整结果未知拒绝重排，原根/完整结果与付费结果集合保留；旧人工回执不再次改任务。
+- 跨域首页只读链接、公开路径、QA能力和引用源决定合同已收口；public-site/媒体引用/QA能力生产方仍planned，不把契约和生成物当实际业务。引用终止按完整source材料与nullable pinId释放，明确源终止后媒体须原子sealed来源，覆盖未获pin及迟到acquire；未知/404/COMMITTED永不释放。
+- 公共CanonicalJSON、有界写窗口/恢复循环、BackgroundApplication安全退出完成；后台取消/Drain/等待后再关资源。JSON SSE统一单条背压、15秒心跳、30秒或更早请求写截止，取消唤醒阻塞写，回调停止后才返回。既有EventEnvelope流薄适配同一pump，不延长用户委托。
+- 最新机器台账：858文件、1109函数、379HTTP操作、2256类型；390函数已实现或验证（321 verified、69 implemented），planned 693、in_progress 7、blocked 19。按函数台账约35.2%；数量比例不等于产品可用率，无业务accepted。
+- 公共源、jobs和site-config逐项合入后，实际集成树均在隔离VPS通过make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）和完整make check；最终88210ba生成回传零变化。public-site/data-protection仍无实际Go module，不能称十五域完整服务可启动。
+- 本轮新增实际6文件（identity偏好1、jobs管理与追加迁移2、site-config首页与追加迁移3），framework已登记。全部检查仅VPS；未新增测试或临时业务验证程序，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署。私有配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮没有push授权，不push。
 
-下一步：按计划进入下一轮三个独占工作包，先补identity自身偏好、site-config首页权威与资源pin恢复、jobs管理查询与人工重试；公共契约缺口由集成会话先收口，不开放未完成服务。
+下一步：按已派发第五轮三项继续，不把当前检查当完整业务验收或整站可用。
 
 ## 历史实施记录
 

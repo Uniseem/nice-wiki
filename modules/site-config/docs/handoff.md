@@ -1,5 +1,7 @@
 # 站点配置与初始化会话交接
 
+集成实际源码ce37652，记录7addf01；root实际树88210ba已在VPS通过docs/gen、14模块readonly build/vet/gofmt与完整check（858/1109/379/2256），生成零变化。progress已映射实际SHA；后文aa96f42/92caa2b保留原分支溯源。
+
 ## 第四轮首页权威与引用恢复（2026-10-15，已交付冻结）
 
 - 源码 `aa96f429e0eecc45cf6a6c51773a8b1892bde648`；合同-only原提交 `fa2d1b7b738c25dbd38daebc4149a8c9a2181c67` 已根集成6372a32。独占modules/site-config/；分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1；主线实际cherry-pick SHA由根统一映射。
