@@ -56,11 +56,11 @@ func UpdateSiteConfig(ctx context.Context, op platform.OperationContext, input g
 		config, err := store.readConfigOperationResult(ctx, op, requestHash, receipt.ResultRevision)
 		return gen.UpdateSiteConfigResult{Config: config}, err
 	}
-    // 维护白名单只为旧成功回执读取开放；任何候选读取/持久化和
-    // PREPARED文件IO之前，新操作与未完成操作先失败关闭。
-    if _,err := CheckWriteEpoch(ctx,op,CheckWriteEpochInput{DataEpoch:op.DataEpoch});err!=nil {
-        return gen.UpdateSiteConfigResult{},err
-    }
+	// 维护白名单只为旧成功回执读取开放；任何候选读取/持久化和
+	// PREPARED文件IO之前，新操作与未完成操作先失败关闭。
+	if _, err := CheckWriteEpoch(ctx, op, CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
+		return gen.UpdateSiteConfigResult{}, err
+	}
 	normalized, err := NormalizeBaseURL(NormalizeBaseURLInput{URL: input.PublicBaseURL, AllowLocalHTTP: localHTTP})
 	if err != nil {
 		return gen.UpdateSiteConfigResult{}, err

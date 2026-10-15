@@ -80,9 +80,10 @@ func UpdateSiteConfig(ctx context.Context, op OperationContext, input UpdateSite
 
 1. 要求同站点已登录admin具site.manage/superadmin；只更新HTTP明确列出的公开地址/SEO/资源上限/安全设置，baseLanguage/siteId/initialized/home/品牌/footer/banner不接受patch
 2. 以kind=settings及原始严格输入（含expectedRevision）的规范JSON计算稳定业务hash，先查actor/site/op回执；已提交重试从原revision权威文件返回原配置，不受新的URL/本地HTTP能力策略影响，不重写head/CAS/outbox
-3. 只有新操作/未完成操作应用当前受信allowLocalHTTP进行NormalizeBaseURL和纯ValidateSiteConfig；读取旧候选时还核对候选字段与本次规范输入一致。候选材料SHA256独立保存规范后的完整配置，不代替原始业务摘要
-4. 首次操作在epoch/initialized/site/expectedRevision事务核对后持久完整候选配置规范JSON/hash、稳定revisionId和原始回执；该JSON仅未提交恢复材料，保留最初updatedAt，同operation重试不重算。跨进程以SQLite写锁和现有文件COMMITTED CAS占有目标水位
-5. 纯ValidateSiteConfig通过后复用WriteConfigRevision/CommitConfigHead；COMMITTED前可失败，落盘后只补完既有对象/head/SQL回执/outbox；返回成功配置必须来自已提交权威对象。草稿和设置保存不触发AI
+3. HTTP维护白名单仅允许到达旧成功回执的只读返回；未命中已完成回执时，任何候选SQL读取/写入和PREPARED文件IO之前先CheckWriteEpoch拒绝维护/错epoch，新操作和未完成操作都不在维护期写候选；Commit内部CAS/epoch门禁继续保留
+4. 只有新操作/未完成操作应用当前受信allowLocalHTTP进行NormalizeBaseURL和纯ValidateSiteConfig；读取旧候选时还核对候选字段与本次规范输入一致。候选材料SHA256独立保存规范后的完整配置，不代替原始业务摘要
+5. 首次操作在epoch/initialized/site/expectedRevision事务核对后持久完整候选配置规范JSON/hash、稳定revisionId和原始回执；该JSON仅未提交恢复材料，保留最初updatedAt，同operation重试不重算。跨进程以SQLite写锁和现有文件COMMITTED CAS占有目标水位
+6. 纯ValidateSiteConfig通过后复用WriteConfigRevision/CommitConfigHead；COMMITTED前可失败，落盘后只补完既有对象/head/SQL回执/outbox；返回成功配置必须来自已提交权威对象。草稿和设置保存不触发AI
 
 **错误**
 

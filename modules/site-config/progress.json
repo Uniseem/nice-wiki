@@ -7,26 +7,26 @@
   "assignedSession": "R1-02（一般设置权威读写与对象读取）",
   "branch": "codex/site-config-settings-r1",
   "baseCommit": "468986fc34e1c90b6b5ca575539fdd2b9748cd06",
-  "deliveryCommit": null,
+  "deliveryCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -132,11 +132,11 @@
     },
     {
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -182,11 +182,11 @@
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
-      "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -195,18 +195,18 @@
       "state": "in_progress",
       "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/object_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/site-config/internal/config_files.go",
-      "state": "in_progress",
-      "implementationCommit": "c2d734bcd2fc26f3d25a2be9b4cd1f9b360fca9d",
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -303,20 +303,20 @@
     {
       "path": "modules/site-config/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "implementationCommit": "315a3ff97ea49126c190eafb878cb68d63ee9de1",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -432,11 +432,11 @@
     },
     {
       "path": "modules/site-config/internal/migrations/active/0004_config_operations.sql",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     }
@@ -445,44 +445,44 @@
     {
       "id": "site-config.ReadSiteConfig",
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "id": "site-config.UpdateSiteConfig",
       "path": "modules/site-config/internal/config_service.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "id": "site-config.ValidateSiteConfig",
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
     {
       "id": "site-config.NormalizeBaseURL",
       "path": "modules/site-config/internal/config_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -775,11 +775,11 @@
     {
       "id": "site-config.ReadConfigObject",
       "path": "modules/site-config/internal/object_reader.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -885,11 +885,11 @@
     {
       "id": "site-config.CommitConfigHead",
       "path": "modules/site-config/internal/config_files.go",
-      "state": "in_progress",
-      "implementationCommit": "c2d734bcd2fc26f3d25a2be9b4cd1f9b360fca9d",
+      "state": "verified",
+      "implementationCommit": "9a21f1b7e0e38f80e8182dbd2758071db29d8705",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -941,12 +941,12 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "implementationCommit": "315a3ff97ea49126c190eafb878cb68d63ee9de1",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮公共URL/HTTP工厂与identity授权接线待VPS；已绑定真实config/init/runtime适配，缺其余真实handler时平台工厂拒绝启动"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
-      "blocker": "Home/品牌/页脚/公告/历史/资源引用、快照/屏障等handler和RelayOutbox/恢复回执仍未完成；全部OpenAPI要求真实绑定，完整BuildApplication继续失败关闭，待后续紧密组"
+      "blocker": "已实现config/init/runtime真实HTTP适配并复用平台统一入口/identity授权；Home/品牌/页脚/公告/历史/资源引用、快照/屏障等handler及RelayOutbox/恢复回执仍未完成，完整平台工厂继续失败关闭；按用户最新指令本轮结束不自动启动第三轮"
     },
     {
       "id": "site-config.Serve",
@@ -1006,11 +1006,11 @@
     {
       "id": "site-config.ConfigureInitialization",
       "path": "modules/site-config/internal/initialization_service.go",
-      "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "verified",
+      "implementationCommit": "948a834b961ae019eef7b2c49034aff55f1e5119",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮隔离VPS合成快照（本域315a3ff+公共26138c1）docs/gen成功，14模块readonly build/vet/gofmt通过；make check余4项均非本域（根Markdown误判/jobs登记），集成会话处理。随后追加维护边界修复：旧已完成回执只读开放，其他操作在任何候选IO前CheckWriteEpoch，等待VPS复跑；本轮未新增测试或运行真实接口。"
+        "state": "passed",
+        "evidence": "2026-10-15 第二轮最终合成快照（本域9a21f1b及根公共基线26138c1/后续统一修复）在隔离VPS：make docs/gen成功，14个Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（855文件/1012函数/374操作/2211类型）；已回写格式/生成物，含维护期旧回执只读重放与候选IO前写门禁。仅静态/编译/结构证据，不代表SQL或HTTP业务行为验收；未在本机执行编译/格式/生成/类型检查/测试，未新增测试、样例、fixture或临时验证程序，未运行服务/真实接口/模型/部署。"
       },
       "blocker": null
     },
@@ -1026,5 +1026,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮已交付的初始化完成、settings权威文件/恢复及原始回执函数，经隔离VPS docs/gen/14模块build/vet/gofmt/完整make check与集成逐函数复核后记verified；仅对应编译和结构范围。部分文件和BuildApplication完整HTTP/后台装配仍in_progress/blocked，行为验收及部署未执行。"
+  "rule": "本轮一般设置权威读写、纯语义校验、原始对象流及已完成回执维护边界经隔离VPS全仓编译/生成/结构检查和统一复核后记verified，仅对应检查范围。完整BuildApplication和部分HTTP/后台文件仍blocked/in_progress。用户要求第二轮后停止，不自动第三轮，不以停止代替产品完成或行为验收。"
 }

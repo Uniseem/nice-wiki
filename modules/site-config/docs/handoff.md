@@ -2,7 +2,7 @@
 
 ## 持续实施第二轮：一般设置与原始对象读取（2026-10-15）
 
-- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，独占本域；旧初始化分支保留。源码及合同已写，尚未运行本轮 VPS 门槛，进度 in_progress。
+- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，独占本域；旧初始化分支保留。源码提交 948a834、39ddb52、315a3ff、9a21f1b；已交付核心经最终隔离 VPS 门槛与统一复核，记 verified。依赖根公共26138c1及后续统一修复，由集成会话合入；本域仅交付自身变更。
 - 完成源码：ReadSiteConfig、UpdateSiteConfig、ValidateSiteConfig、NormalizeBaseURL、ReadConfigObject；ConfigureInitialization 扩受信 allowLocalHTTP；CommitConfigHead 补已完成原始回执优先返回，避免同操作并发晚到后错误覆盖/拒绝旧成功。
 - 普通配置候选材料和原始 actor/site/epoch/hash 同事务保存，固定首次 updatedAt 和 revisionId。只从真实 COMMITTED 权威文件返回正式/原始结果；未提交普通候选不在启动自动发布。新迁移对对象 ID/站点修订建立唯一索引。
 - 对象协议：version/hash 必填且严格类型；HTTP 返回原始对象字节，绑定 ETag/Content-Length/Type/对象 ID/版本，Reader 仅本进程使用并关闭，不造内存句柄表。当前仅支持已真实提交 settings，其他对象类型不存在完成索引时 NOT_FOUND。
@@ -11,12 +11,14 @@
 - 新增实际文件 4 个需根 framework 登记：internal/config_service.go、internal/config_validator.go、internal/object_reader.go、internal/migrations/active/0004_config_operations.sql。未新增测试、样例、fixture 或临时业务验证程序；所有格式/生成/编译/vet/检查只交根统一 VPS 执行。
 - HTTP 适配已按冻结工厂签名接真实已实现的 config/init/runtime 操作；固定 caller、纯 service actor 子白名单和维护控制白名单由本域装配，统一身份/操作上下文/schema/identity 授权机制只用平台。原始对象流设置写截止、绑定元数据、消费关闭，响应开始后不再写 JSON 错误。
 - 全部 OpenAPI 必须绑定真实 handler；当前 Home/品牌/公告/历史/快照/屏障等尚无实现，NewServiceHandler 会拒绝启动，BuildApplication 继续 blocked，不能把部分 HTTP 映射当完整模块就绪。
-- 首轮合成VPS快照315a3ff+公共26138c1的docs/gen和14模块readonly build/vet/gofmt通过，check余4项均非本域。回传生成物/gofmt/modsum后，按交叉复核追加updateSiteConfig维护边界：只读旧成功路径列白名单，其余新/未完成操作在任何候选SQL/文件IO前CheckWriteEpoch，Commit内部CAS门禁不省略；该追加修复尚待VPS复跑。
+- 首轮合成VPS快照315a3ff+公共26138c1的docs/gen和14模块readonly build/vet/gofmt通过，check余4项均非本域。回传生成物/gofmt/modsum后，按交叉复核追加updateSiteConfig维护边界：只读旧成功路径列白名单，其余新/未完成操作在任何候选SQL/文件IO前CheckWriteEpoch，Commit内部CAS门禁不省略；该追加修复已被最终VPS复跑覆盖。
+- 最终VPS：make docs/gen成功、全部14模块readonly build/vet/gofmt及完整make check通过（855文件/1012函数/374操作/2211类型），含候选IO前写门禁和维护只读旧回执；格式/生成物已回写。仅对应检查范围，无SQL/HTTP行为验收、真实接口、模型、服务或部署。
+- 用户最新指令：第二轮完成和本轮获授权推送后停止、清空持续目标，不启动第三轮。本域冻结、不push；剩余Home/完整HTTP/后台/恢复事项不因停止而标完成。
 - Home 组明确留待下一紧密组，不写假完成函数：ReadPublicHome 缺按钮 disabled/解析 URL 与 AI 可用性权威表达；UpdateHome 需持久 media pinId/确认阶段及 COMMITTED 后崩溃续办。不能删按钮冒充禁用，不能省略恢复路径。
 
 ### 下一步（一项）
 
-合入根已冻结的公共 URL/HTTP 入口基线，统一在 VPS 生成并编译本轮真实协议适配及配置用例，交集成逐函数复核；完整装配缺口继续 blocked，下一代码组为完整 Home 协议与 pin 恢复。行为验收、真实接口调用和部署继续未授权。
+交由集成会话合并本轮模块提交并按已授权范围完成推送；本域冻结，不自动开展第三轮，不新增验证范围。后续实现须由用户新的请求重新启动，Home等剩余项保持原状态。本轮编译与结构检查不代表业务验收或全部产品完成。
 
 ---
 

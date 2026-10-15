@@ -2,14 +2,17 @@
 
 ## 持续实施第二轮（2026-10-15）
 
-- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，仅拥有 `modules/site-config/`；新源码均 in_progress，等待统一 VPS 门槛。
+- 基线 `468986fc34e1c90b6b5ca575539fdd2b9748cd06`，分支 `codex/site-config-settings-r1`，仅拥有 `modules/site-config/`；已交付核心函数通过最终统一 VPS 门槛和复核，记 verified（仅对应检查范围）。
 - 已写一般设置的 ReadSiteConfig/UpdateSiteConfig、纯 ValidateSiteConfig/NormalizeBaseURL、ReadConfigObject 原始对象流；复用既有文件 IO、COMMITTED/CAS/回执与平台 outbox，不复制公共身份/签名机制。
 - 一般设置候选材料只供未完成操作恢复，保存首次 updatedAt；正式读取与成功重试均读不可变文件。新增 0004 只追加迁移保存候选材料并约束对象 ID/站点修订唯一。
 - NormalizeBaseURL 依赖根提供的 lifecycle.NormalizePublicURL（统一 IDNA/URL/显式 loopback HTTP 能力）；公共 HTTP 工厂冻结后再接线，不自造入口机制。
 - ReadConfigObject 限当前真实已提交 settings；返回进程内 Reader，HTTP 直接消费关闭并输出绑定元数据，不发送 bodyHandle。
 - Home 组保留下一紧密组：按钮禁用/解析 URL/AI 可用性协议及 media pin 崩溃续办尚未收口；完整 HTTP、RelayOutbox、恢复回执与快照/屏障继续未完成。
 - 已写真实 HTTP 协议适配：config 读写/原始对象流、初始化状态/三用例、runtime 读/迁移/activation 与健康/就绪；统一工厂建立身份/epoch/期限/schema，并使用平台 identity 权威授权回调。缺 Home/品牌/公告/历史/快照/屏障等真实 handler 时工厂拒绝启动，完整 BuildApplication 仍 blocked。
-- VPS 合成快照（315a3ff+公共26138c1）docs/gen及14模块readonly build/vet/gofmt通过；check余4项均非本域。随后按复核补维护边界：updateSiteConfig仅旧成功只读重放可到达，新/未完成操作在任何候选IO前CheckWriteEpoch；该追加修复待VPS复跑，不沿用前轮结果冒充通过。
+- VPS 合成快照（315a3ff+公共26138c1）docs/gen及14模块readonly build/vet/gofmt通过；check余4项均非本域。随后按复核补维护边界：updateSiteConfig仅旧成功只读重放可到达，新/未完成操作在任何候选IO前CheckWriteEpoch；该追加修复已被最终VPS复跑覆盖（见下条最终证据）。
+- 最终证据：隔离 VPS make docs/gen、14模块readonly build/vet/gofmt及完整 make check 全通过（855文件/1012函数/374操作/2211类型），包含维护边界修复；原先“等待VPS/非本域检查失败”为过程历史，已由此最终结果覆盖。
+- 本轮源码提交 948a834、39ddb52、315a3ff、9a21f1b；依赖根公共26138c1及后续统一修复，交付只含本域，真实主线SHA由集成会话映射。
+- 按用户最新指令，本轮收口后停止自动实施，不开展第三轮；本域不push，集成会话统一执行本轮已获授权的推送。Home等剩余项保持planned/blocked，不标全产品完成。
 - 本轮未在本机格式化、生成、编译、vet、lint、类型检查或测试；未新增测试/样例/fixture/临时验证程序，未运行服务、真实接口、模型、部署或 push。
 
 ---
