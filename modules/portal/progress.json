@@ -5,18 +5,18 @@
   "contractSha256": "b1276c5f9185ccf40df8676eae78f61134539076b15668571e839c43a9db4eff",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1持续实施第三轮portal浏览器认证边界",
-  "branch": "codex/portal-auth-boundary-r1",
+  "branch": "main",
   "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+  "deliveryCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/portal/internal/route_registry.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -53,7 +53,7 @@
     {
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "in_progress",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -203,7 +203,7 @@
     {
       "path": "modules/portal/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -213,7 +213,7 @@
     {
       "path": "modules/portal/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -263,10 +263,10 @@
     {
       "path": "modules/portal/config/service.defaults.json",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -353,10 +353,10 @@
     {
       "path": "modules/portal/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -383,10 +383,10 @@
     {
       "path": "modules/portal/web/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     }
@@ -495,10 +495,10 @@
       "id": "portal.ForwardRequest",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -506,10 +506,10 @@
       "id": "portal.StreamResponse",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -528,7 +528,7 @@
       "id": "portal.ProxyRequest",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "blocked",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -902,7 +902,7 @@
       "id": "portal.BuildApplication",
       "path": "modules/portal/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -913,7 +913,7 @@
       "id": "portal.Serve",
       "path": "modules/portal/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -924,10 +924,10 @@
       "id": "portal.Shutdown",
       "path": "modules/portal/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -946,7 +946,7 @@
       "id": "portal.Ready",
       "path": "modules/portal/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
@@ -979,10 +979,10 @@
       "id": "portal.authenticationOperation",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -990,10 +990,10 @@
       "id": "portal.prepareAuthenticationRequest",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1001,10 +1001,10 @@
       "id": "portal.adaptAuthenticationResponse",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1012,10 +1012,10 @@
       "id": "portal.decodeAuthenticationJSON",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1023,10 +1023,10 @@
       "id": "portal.authenticationCookies",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1034,10 +1034,10 @@
       "id": "portal.authenticationProblem",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1045,10 +1045,10 @@
       "id": "portal.isCurrentSessionRevocation",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1056,10 +1056,10 @@
       "id": "portal.adaptSessionRevocation",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1067,10 +1067,10 @@
       "id": "portal.NewApplication",
       "path": "modules/portal/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1078,10 +1078,10 @@
       "id": "portal.registerLocalRoutes",
       "path": "modules/portal/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     },
@@ -1089,14 +1089,14 @@
       "id": "portal.proxyHandler",
       "path": "modules/portal/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "df96a3d6b35a6a49d5d9b901559386c3074573b4",
+      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
     }
   ],
-  "rule": "第三轮已交付源码df96a3d6b35a6a49d5d9b901559386c3074573b4；完整已实现认证适配/参考函数通过统一VPS与人工复读并标verified。完整应用/就绪、ProxyRequest准入审计与Serve恢复监听仍blocked；未执行业务验收或部署，不开展后包。",
+  "rule": "第三轮已交付源码a5dbc2f28c74872a0bf7ef498cd522eb51460326；完整已实现认证适配/参考函数通过统一VPS与人工复读并标verified。完整应用/就绪、ProxyRequest准入审计与Serve恢复监听仍blocked；未执行业务验收或部署，不开展后包。",
   "publicBaselineCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f"
 }

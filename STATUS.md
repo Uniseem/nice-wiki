@@ -1,17 +1,18 @@
-# 当前状态（2026-10-15，第三轮已恢复实施）
+# 当前状态（2026-10-15，第三轮统一复核完成）
 
-阶段：R1实施中；两轮各三个独立worktree工作包已统一复核。第二轮结束后已按要求推送并停止；用户随后明确继续，第三轮以三个并发子代理推进账号管理、portal认证边界和guard登录保护。完整业务链、行为验收与部署仍未完成。
+阶段：R1持续实施。用户在第二轮push并停止后重新授权继续；请求五个子代理，但当前四并发槽位包含主代理，实际以三个独立worktree并行、集成会话统一复核。第三轮工作包已顺序集成，完整业务链、行为验收与部署仍未完成。
 
 ## 最新事实
 
-- identity新增完整登录/首次注册/子账号创建/改密/自身资料用例和真实认证HTTP映射；control bootstrap claim不可逆，敏感操作使用私有HMAC回执，口令和token不写普通回执；索引16MiB读写统一、control库拒链接/特殊文件及不安全目录链。会话组承接第一轮。完整Application/main仍blocked，部分账号管理、恢复及后台循环未完成。
-- site-config新增一般设置权威读取/编辑、纯配置与URL校验、不可变对象原始流及真实HTTP适配；候选材料固定首次时钟/输入，旧成功优先只读回放，维护期先返回旧成功、所有新候选/文件IO前拒写。Home/品牌/公告/历史/快照/屏障等未完成，完整启动仍blocked。
-- jobs新增严格事件目录/schema、持久接收/去重、durable订阅/租约、确认水位、到期重投/死信重放、真实事件HTTP映射和outbox薄装配；旧记录核唯一producer。ephemeral明确不支持，未向粗权限广播原payload。完整启动、屏障、定时、列表及实际owner恢复适配仍未完成。
-- 公共机制新增私有输入HMAC、IDNA公开URL/Origin、统一服务HTTP入口/当前identity核权、严格载荷校验/SSE pump、窄EventPublisher和事件权威生成目录；复核补outbox未知权威/安全点门禁、私有路径校验、客户端查询/SSE协议及帧预算。guard登录begin/outcome目前只有合同/生成代码；portal受信peer网络派生和敏感token cookie适配仍未实现，不能宣称登录全链可用。
-- 最新机器台账：855文件、1012函数、374HTTP操作、2211类型；287函数已实现或验证（208 verified、79 implemented），in_progress 6、blocked 16、planned 703。函数条目比例不等于产品完成率，仍无行为accepted。
-- 三域逐个合入后的实际集成树均在隔离VPS检查；最终make docs/gen、14个现有Go模块make build（readonly build/vet/gofmt）及完整make check通过。生成冲突由唯一契约重新生成；最终格式/依赖均由VPS工具产生。linux/amd64 go1.25.5、GOMAXPROCS=8。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务、镜像或部署。
-- 两轮共补26个实际文件；本轮12个。台账已映射实际集成提交，部分文件/入口按缺口保留in_progress/blocked。仅同步无凭据源码，不同步本机.git、私有配置、环境、密钥或运行数据。
-- 本次已按明确授权普通推送main并核对远端（60a6d38），结果记录随后同步；old不重复推送。用户原有未跟踪HTML保持未修改、未提交。推送后停止持续运行，后续实施须新的用户请求。
+- identity完成ListAccounts、SetAccountStatus、SetAccountPermissions、ResetAccountPassword及真实HTTP映射；当前唯一超管权威、CAS、私有HMAC回执、旧成功只回放、权限即时失效、停用/删除/重置撤全会话和索引提交链已复核。撤销Count不再人为限制10000；删除零调用旧回执查询并登记实际Store上下文。整体启动仍blocked，偏好、服务器重置、后台和备份恢复条目待实施。
+- portal完成四认证操作到Secure HttpOnly Strict host-only cookie及安全session JSON，refresh仅接受空对象并从唯一cookie构造内部正文与重新签名；当前权威会话成功登出才清cookie。敏感响应有界、坏结果写头前失败、响应开始后不追加Problem。修复旧装配误返回可用Application和固定Ready成功；本域处理器不齐仍blocked，完整代理准入/审计和runtime watcher未完成。
+- traffic-guard完成Begin/Finish登录保护及追加迁移：login/bootstrap共享滚动15分钟账号/网络失败、固定15分钟锁、账号1/网络8并发及30秒保留；原终局幂等、迟到失败计数、当前epoch隔离。成功只清账号，网络失败保留；只存HMAC。完整启动、策略管理、公开AI准入和屏障等仍未完成。
+- 公共新增trustedProxyCIDRs部署配置和PrivateNetworkScopes；真实socket及受信代理后缀派生当前/前一UTC日网络HMAC，原IP不跨服务。浏览器TS按portal OpenAPI认证适配元数据合成安全session及refresh空输入，内部Go与真实路由保持各自来源。
+- 最新机器台账：856文件、1047函数、374HTTP操作、2222类型；324函数已实现或验证（249 verified、75 implemented），planned 697、in_progress 7、blocked 19。条目比例不等于产品完成率，仍无行为accepted。本轮新增3个实际文件，全部按既有合同职责登记；旧两轮交付事实保留在历史记录。
+- 三域按portal→identity→traffic-guard顺序合入后，各实际集成树均在隔离VPS通过make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）与完整make check，最终生成回传零变化。linux/amd64 go1.25.5、GOMAXPROCS=8。public-site/data-protection仍无实际Go module，不能称十五域完整服务已可启动。
+- 所有编译、格式、生成和检查仅VPS；未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署。凭据、环境和运行数据未同步。第三轮未push，第二轮push授权已执行；用户原有未跟踪HTML未改未提交。
+
+下一步：按计划进入下一轮三个独占工作包，先补identity自身偏好、site-config首页权威与资源pin恢复、jobs管理查询与人工重试；公共契约缺口由集成会话先收口，不开放未完成服务。
 
 ## 历史实施记录
 

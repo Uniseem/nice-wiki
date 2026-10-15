@@ -1,5 +1,12 @@
 # 主系统会话交接
 
+## 第三轮实际集成事实（2026-10-15）
+
+- 源码已合入主线，实际实现提交a5dbc2f28c74872a0bf7ef498cd522eb51460326；旧工作分支提交仅作为溯源，逐项以progress.json为准。
+- 2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。
+- 整体启动与剩余用例仍按真实缺口保留blocked/in_progress，不push；本轮三项交付完成，后续由集成会话重新分配工作包。
+
+
 ## 持续实施第三轮浏览器认证边界（2026-10-15，源码已交付）
 
 - 独占modules/portal/；分支codex/portal-auth-boundary-r1，基线9acad1ab56532521222f592af0d4b3a849792db5；公共原提交918dd6369ea7a33bf9296949c8b5441a08d1e88f已cherry-pick为9303d36，未改公共源码。没有新增实际文件。源码交付提交为df96a3d6b35a6a49d5d9b901559386c3074573b4，随后记录提交只回填此真实源码SHA和已完成函数的verified证据。

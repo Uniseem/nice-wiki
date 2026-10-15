@@ -1,5 +1,12 @@
 # 第三轮交接：账号管理紧密函数组（2026-10-15，VPS现阶段检查通过）
 
+## 第三轮实际集成事实（2026-10-15）
+
+- 源码已合入主线，实际实现提交e0bc0594eaafbda7e4bd0d1bb13438d86a77bedd；旧工作分支提交仅作为溯源，逐项以progress.json为准。
+- 2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。
+- 整体启动与剩余用例仍按真实缺口保留blocked/in_progress，不push；本轮三项交付完成，后续由集成会话重新分配工作包。
+
+
 - 用户已重新授权继续实施，覆盖先前“不开展第三轮”的停止指令；旧停止记录保留为历史。独占modules/identity，分支codex/identity-management-r1，从精确9acad1ab56532521222f592af0d4b3a849792db5接续，初始工作树干净。
 - ListAccounts只返回同site子账号，含deleted墓碑，不含超管。当前会话、权限与row.isSuperadmin在一致快照核验；accountName/accountId键集排序，默认20/最多100，游标签名绑定主体/site/dataEpoch/子账号筛选，不返回任何凭据/会话秘密。修正原OpenAPI limit任意字符串为整数。
 - SetAccountStatus保持active↔disabled→deleted规则；唯一超管只接受active原样无副作用。状态真实变化CAS同时升revision/permissionRevision，RevokeAllSessions在同事务撤销全部session与refresh族并写status事件，重新启用不复活旧登录。删除保留不可再管理墓碑。
