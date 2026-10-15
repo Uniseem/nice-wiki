@@ -3322,6 +3322,21 @@
       "path": "docs/push-log/2026-10-15-0005.md",
       "kind": "documentation",
       "purpose": "三个工作包并行交付与统一复核的推送记录"
+    },
+    {
+      "path": "modules/identity/internal/csrf_service.go",
+      "kind": "source",
+      "purpose": "portal内部核对CSRF"
+    },
+    {
+      "path": "modules/identity/internal/authorization_service.go",
+      "kind": "source",
+      "purpose": "按最新账号功能权限授权"
+    },
+    {
+      "path": "modules/identity/migrations/0003_session_tokens.sql",
+      "kind": "migration",
+      "purpose": "只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据"
     }
   ]
 }

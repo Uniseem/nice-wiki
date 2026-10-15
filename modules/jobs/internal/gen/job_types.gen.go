@@ -5,30 +5,31 @@ package gen
 
 // JobTypeEntry 是一个已登记任务类型；Schedule为空表示无系统默认定时。
 type JobTypeEntry struct {
-	Type     string
-	Owner    string
-	Executor string
-	Schedule string
+	Type                 string
+	Owner                string
+	Executor             string
+	Schedule             string
+	ManagementPermission string
 }
 
 // JobTypes 按类型排序的全部已登记任务类型。
 var JobTypes = []JobTypeEntry{
-	{Type: "analytics.aggregate-daily", Owner: "analytics", Executor: "analytics.AggregateDaily", Schedule: "10 0 * * *"},
-	{Type: "analytics.aggregate-hourly", Owner: "analytics", Executor: "analytics.AggregateHourly", Schedule: "5 * * * *"},
-	{Type: "analytics.aggregate-usage", Owner: "analytics", Executor: "analytics.AggregateUsage", Schedule: "20 * * * *"},
-	{Type: "analytics.reconcile-usage", Owner: "analytics", Executor: "analytics.ReconcileUsage", Schedule: "30 3 * * *"},
-	{Type: "data-protection.backup", Owner: "data-protection", Executor: "data-protection.ExecuteBackup", Schedule: ""},
-	{Type: "data-protection.restore", Owner: "data-protection", Executor: "data-protection.ExecuteRestore", Schedule: ""},
-	{Type: "knowledge.build", Owner: "knowledge", Executor: "knowledge.ExecuteBuild", Schedule: ""},
-	{Type: "knowledge.extract", Owner: "knowledge", Executor: "knowledge.ExecuteExtraction", Schedule: ""},
-	{Type: "localization.cache-answer", Owner: "localization", Executor: "localization.ExecuteCacheAnswerTranslation", Schedule: ""},
-	{Type: "localization.document", Owner: "localization", Executor: "localization.ExecuteTranslation", Schedule: ""},
-	{Type: "localization.ui", Owner: "localization", Executor: "localization.TranslateInterfaceCatalog", Schedule: ""},
-	{Type: "media.cleanup", Owner: "media", Executor: "media.ExecuteManualCleanup", Schedule: ""},
-	{Type: "memory.assistant", Owner: "memory", Executor: "memory.RunAssistant", Schedule: ""},
-	{Type: "memory.overview", Owner: "memory", Executor: "memory.UpdateProjectOverview", Schedule: "0 4 * * *"},
-	{Type: "public-site.render-publication", Owner: "public-site", Executor: "public-site.PrewarmPublication", Schedule: ""},
-	{Type: "qa.cache-embedding", Owner: "qa", Executor: "qa.BuildCacheEmbedding", Schedule: ""},
-	{Type: "qa.compact", Owner: "qa", Executor: "qa.RunCompaction", Schedule: ""},
-	{Type: "qa.turn", Owner: "qa", Executor: "qa.ExecuteTurn", Schedule: ""},
+	{Type: "analytics.aggregate-daily", Owner: "analytics", Executor: "analytics.AggregateDaily", Schedule: "10 0 * * *", ManagementPermission: "system.manage"},
+	{Type: "analytics.aggregate-hourly", Owner: "analytics", Executor: "analytics.AggregateHourly", Schedule: "5 * * * *", ManagementPermission: "system.manage"},
+	{Type: "analytics.aggregate-usage", Owner: "analytics", Executor: "analytics.AggregateUsage", Schedule: "20 * * * *", ManagementPermission: "system.manage"},
+	{Type: "analytics.reconcile-usage", Owner: "analytics", Executor: "analytics.ReconcileUsage", Schedule: "30 3 * * *", ManagementPermission: "system.manage"},
+	{Type: "data-protection.backup", Owner: "data-protection", Executor: "data-protection.ExecuteBackup", Schedule: "", ManagementPermission: "backup.manage"},
+	{Type: "data-protection.restore", Owner: "data-protection", Executor: "data-protection.ExecuteRestore", Schedule: "", ManagementPermission: "backup.manage"},
+	{Type: "knowledge.build", Owner: "knowledge", Executor: "knowledge.ExecuteBuild", Schedule: "", ManagementPermission: "knowledge.manage"},
+	{Type: "knowledge.extract", Owner: "knowledge", Executor: "knowledge.ExecuteExtraction", Schedule: "", ManagementPermission: "knowledge.manage"},
+	{Type: "localization.cache-answer", Owner: "localization", Executor: "localization.ExecuteCacheAnswerTranslation", Schedule: "", ManagementPermission: "localization.manage"},
+	{Type: "localization.document", Owner: "localization", Executor: "localization.ExecuteTranslation", Schedule: "", ManagementPermission: "localization.manage"},
+	{Type: "localization.ui", Owner: "localization", Executor: "localization.TranslateInterfaceCatalog", Schedule: "", ManagementPermission: "localization.manage"},
+	{Type: "media.cleanup", Owner: "media", Executor: "media.ExecuteManualCleanup", Schedule: "", ManagementPermission: "media.manage"},
+	{Type: "memory.assistant", Owner: "memory", Executor: "memory.RunAssistant", Schedule: "", ManagementPermission: "memory.manage"},
+	{Type: "memory.overview", Owner: "memory", Executor: "memory.UpdateProjectOverview", Schedule: "0 4 * * *", ManagementPermission: "memory.manage"},
+	{Type: "public-site.render-publication", Owner: "public-site", Executor: "public-site.PrewarmPublication", Schedule: "", ManagementPermission: "content.publish"},
+	{Type: "qa.cache-embedding", Owner: "qa", Executor: "qa.BuildCacheEmbedding", Schedule: "", ManagementPermission: "qa.manage"},
+	{Type: "qa.compact", Owner: "qa", Executor: "qa.RunCompaction", Schedule: "", ManagementPermission: "qa.manage"},
+	{Type: "qa.turn", Owner: "qa", Executor: "qa.ExecuteTurn", Schedule: "", ManagementPermission: "qa.manage"},
 }

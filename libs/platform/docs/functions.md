@@ -121,6 +121,7 @@ func VerifyDelegation(anchors TrustAnchors, proof string, expect DelegationExpec
 3. 返回actor、grants与sessionVersion；权限仍须由业务函数经identity:checkAuthorization核实
 4. SessionVersion必须等于actor.sessionRevision；admin委托必须携带非空sessionId与正会话版本，缺失即拒绝
 5. 委托过期按当前时间严格拒绝，不套用服务断言30秒时钟容差；剩余期限不得超过10秒；header typ固定JWT
+6. CallerService必须取已验签服务断言issuer；portal首跳核proof原bodyHash，后续已认证服务跳原样保留原proof，当前正文只由本跳服务断言绑定，各域再核权限和资源
 
 **错误**
 
@@ -444,6 +445,7 @@ func BuildOperationContext(r *http.Request, anchors TrustAnchors, self string, r
 2. 读取X-Operation-Id、X-Root-Operation-Id、X-Cost-Class（只接受可信调用方传递）、截止与取消标识
 3. dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH
 4. 浏览器自报的身份、费用类别、网络作用域一律忽略
+5. 先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文
 
 **错误**
 

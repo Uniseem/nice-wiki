@@ -5,109 +5,127 @@
       "type": "analytics.aggregate-daily",
       "owner": "analytics",
       "executor": "analytics.AggregateDaily",
-      "schedule": "10 0 * * *"
+      "schedule": "10 0 * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.aggregate-hourly",
       "owner": "analytics",
       "executor": "analytics.AggregateHourly",
-      "schedule": "5 * * * *"
+      "schedule": "5 * * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.aggregate-usage",
       "owner": "analytics",
       "executor": "analytics.AggregateUsage",
-      "schedule": "20 * * * *"
+      "schedule": "20 * * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "analytics.reconcile-usage",
       "owner": "analytics",
       "executor": "analytics.ReconcileUsage",
-      "schedule": "30 3 * * *"
+      "schedule": "30 3 * * *",
+      "managementPermission": "system.manage"
     },
     {
       "type": "data-protection.backup",
       "owner": "data-protection",
       "executor": "data-protection.ExecuteBackup",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "backup.manage"
     },
     {
       "type": "data-protection.restore",
       "owner": "data-protection",
       "executor": "data-protection.ExecuteRestore",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "backup.manage"
     },
     {
       "type": "knowledge.build",
       "owner": "knowledge",
       "executor": "knowledge.ExecuteBuild",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "knowledge.manage"
     },
     {
       "type": "knowledge.extract",
       "owner": "knowledge",
       "executor": "knowledge.ExecuteExtraction",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "knowledge.manage"
     },
     {
       "type": "localization.cache-answer",
       "owner": "localization",
       "executor": "localization.ExecuteCacheAnswerTranslation",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "localization.manage"
     },
     {
       "type": "localization.document",
       "owner": "localization",
       "executor": "localization.ExecuteTranslation",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "localization.manage"
     },
     {
       "type": "localization.ui",
       "owner": "localization",
       "executor": "localization.TranslateInterfaceCatalog",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "localization.manage"
     },
     {
       "type": "media.cleanup",
       "owner": "media",
       "executor": "media.ExecuteManualCleanup",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "media.manage"
     },
     {
       "type": "memory.assistant",
       "owner": "memory",
       "executor": "memory.RunAssistant",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "memory.manage"
     },
     {
       "type": "memory.overview",
       "owner": "memory",
       "executor": "memory.UpdateProjectOverview",
-      "schedule": "0 4 * * *"
+      "schedule": "0 4 * * *",
+      "managementPermission": "memory.manage"
     },
     {
       "type": "public-site.render-publication",
       "owner": "public-site",
       "executor": "public-site.PrewarmPublication",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "content.publish"
     },
     {
       "type": "qa.cache-embedding",
       "owner": "qa",
       "executor": "qa.BuildCacheEmbedding",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "qa.manage"
     },
     {
       "type": "qa.compact",
       "owner": "qa",
       "executor": "qa.RunCompaction",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "qa.manage"
     },
     {
       "type": "qa.turn",
       "owner": "qa",
       "executor": "qa.ExecuteTurn",
-      "schedule": null
+      "schedule": null,
+      "managementPermission": "qa.manage"
     }
   ]
 }

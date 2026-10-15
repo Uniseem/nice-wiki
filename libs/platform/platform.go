@@ -252,8 +252,8 @@ type DelegationClaims struct {
 // DelegationExpectation 验证委托时的期望值；下游原样转发时route留空。
 type DelegationExpectation struct {
 	CallerService string `json:"callerService"`
-	Route    string `json:"route"`
-	BodyHash Hash   `json:"bodyHash"`
+	Route         string `json:"route"`
+	BodyHash      Hash   `json:"bodyHash"`
 }
 
 // RuntimeView site-config权威运行状态摘要。
