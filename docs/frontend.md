@@ -8,6 +8,8 @@ portal维护后台导航、权限菜单、全局错误与加载外壳；业务�
 
 业务模块的implementation清单包含本域UI文件和事件处理函数；没有UI的基础服务可由portal管理页调用其API，但在files.md明确所有权。测试/E2E或新借用UI组件仍须另行授权。
 
+后台页面键、路径、所需权限与中文标签由公共permission-groups.json的adminRoutes唯一登记，identity和portal通过make gen各取只读数据；权限列表为任一满足，接口仍核当前权威。偏好语言仅当前内置zh-Hans/en，不把站点内容语言冒充已提供界面翻译。偏好不存在时system/zh-Hans/dashboard/revision0；保存须内外revision一致，成功CAS提升一次，重放原安全结果，不更新认证或权限水位。
+
 ## 后台页面清单
 
 每个页面由所属模块的界面根实现，经 portal 同源接口调用下表接口；页面可见性由 portal 按权限装配，接口仍由服务端二次授权。表中接口均已在对应 openapi.json 登记。

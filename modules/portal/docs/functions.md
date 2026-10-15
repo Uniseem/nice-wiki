@@ -935,6 +935,7 @@ func BuildCapabilities(input BuildCapabilitiesInput) (BuildCapabilitiesResult, e
 1. 去重 grant
 2. 计算展示与禁用原因
 3. 对未知 grant 默认隐藏
+4. 仅取本域gen.AdminRoutes公共目录；permissions任一满足，路径/中文标签不手写第二表；zh-Hans使用中文标签
 
 **错误**
 
@@ -945,6 +946,7 @@ func BuildCapabilities(input BuildCapabilitiesInput) (BuildCapabilitiesResult, e
 - 并发：纯函数
 - 幂等：纯函数
 - 依赖：无
+- 其他依赖说明：公共contracts/permission-groups.json的adminRoutes/interfaceLocales，经make gen生成本域只读数据
 
 ## portal.BuildNavigation
 
@@ -974,6 +976,7 @@ func BuildNavigation(input BuildNavigationInput) (BuildNavigationResult, error)
 1. 遍历固定导航定义
 2. 按 capability 过滤
 3. 选择用户语言的标题与 fallback
+4. 仅取本域gen.AdminRoutes公共目录；permissions任一满足，路径/中文标签不手写第二表；zh-Hans使用中文标签
 
 **错误**
 
@@ -984,6 +987,7 @@ func BuildNavigation(input BuildNavigationInput) (BuildNavigationResult, error)
 - 并发：纯函数
 - 幂等：纯函数
 - 依赖：无
+- 其他依赖说明：公共contracts/permission-groups.json的adminRoutes/interfaceLocales，经make gen生成本域只读数据
 
 ## portal.ReadPreferences
 

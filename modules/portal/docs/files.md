@@ -41,6 +41,6 @@
 | `modules/portal/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `portal.mountModuleUI` |
 | `modules/portal/config/routes.json` | 生成 | 由全部模块openapi.json生成的入口路由表：非service接口的方法/路径→owner、operationId、x-permission、x-admission、超时与流式标志；CompileRouteRegistry启动时加载，未登记路径一律404 | 无 |
 | `modules/portal/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
-| `modules/portal/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/portal/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改；公共后台页面权限与界面语言目录数据 | 无 |
 | `modules/portal/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/portal/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript生成浏览器DTO；本域OpenAPI的x-browser-auth-adapters替换identity四认证操作的浏览器输入/输出，内部identity Go契约和真实路由归属保持生产方；生成目录不手改 | 无 |

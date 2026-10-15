@@ -735,42 +735,7 @@
       ]
     },
     "PortalPreferences": {
-      "type": "object",
-      "description": "identity 拥有的用户显示偏好",
-      "additionalProperties": false,
-      "properties": {
-        "theme": {
-          "type": "string",
-          "description": "主题",
-          "enum": [
-            "system",
-            "light",
-            "dark"
-          ]
-        },
-        "locale": {
-          "type": "string",
-          "description": "BCP47 用户界面语言",
-          "minLength": 2,
-          "maxLength": 35
-        },
-        "defaultRoute": {
-          "type": "string",
-          "description": "已授权站内 route key",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "revision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "Revision"
-        }
-      },
-      "required": [
-        "theme",
-        "locale",
-        "defaultRoute",
-        "revision"
-      ]
+      "$ref": "../../../contracts/common.schema.json#/$defs/PortalPreferences"
     },
     "PortalEvent": {
       "type": "object",

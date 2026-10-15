@@ -8,3 +8,5 @@
 - 按portal→identity→guard逐个合入后，实际集成树各通过VPS make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt和完整make check；最终生成回传零变化。856文件、1047函数、374HTTP操作、2222类型；324函数已实现或验证（249 verified、75 implemented），planned 697、in_progress 7、blocked 19。未运行业务验收，整体启动及余项仍blocked/in_progress。
 - 未新增测试或临时业务验证程序，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；私有连接、环境和运行数据未同步。用户HTML原样保留，未暂存提交。
 - 继续下一轮依计划补自身偏好、首页与任务管理；仍三个并发子代理、统一复核。本轮没有新push授权，不主动push。
+
+第四轮已启动：identity自身偏好、site-config首页权威/pin恢复、jobs管理查询/人工重试。当前基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，公共先收口后台页面/语言目录及首页跨域协议；本轮代码未编译前仍in_progress，不计已完成。

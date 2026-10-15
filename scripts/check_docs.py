@@ -216,6 +216,23 @@ def check_modules(modules, permissions, codes, shared=()):
 
 
 def check_wiring(modules, shared=()):
+    groups = load_json(ROOT / 'contracts/permission-groups.json')
+    definitions = load_json(ROOT / 'contracts/common.schema.json').get('$defs', {})
+    locales = groups.get('interfaceLocales', [])
+    routes = groups.get('adminRoutes', [])
+    if locales != definitions.get('UILocale', {}).get('enum') or len(locales) != len(set(locales)):
+        fail('后台偏好', '界面语言目录与公共schema不一致或重复')
+    keys = [row.get('key') for row in routes]
+    paths = [row.get('path') for row in routes]
+    if keys != definitions.get('AdminRouteKey', {}).get('enum') or len(keys) != len(set(keys)) or len(paths) != len(set(paths)):
+        fail('后台偏好', '页面目录与公共schema不一致或重复')
+    permissions = set(load_json(ROOT / 'contracts/permissions.json').get('permissions', [])) - {'anonymous', 'service'}
+    for row in routes:
+        grants = row.get('permissions', [])
+        if not grants or len(grants) != len(set(grants)) or not set(grants) <= permissions:
+            fail('后台偏好', '页面权限必须为已登记且不重复的非空权限集合')
+        if not re.fullmatch(r'/admin/[a-z-]+', row.get('path', '')) or not row.get('labelZH') or not row.get('labelEN') or not isinstance(row.get('navigation'), bool):
+            fail('后台偏好', '页面路径、标签或导航声明不合法')
     functions, files, roots, ops, callers = {}, {}, set(), {}, set()
     permissions = set(load_json(ROOT / "contracts/permissions.json").get("permissions", []))
     management = load_json(ROOT / "contracts/permission-groups.json").get("jobManagementGrants", [])

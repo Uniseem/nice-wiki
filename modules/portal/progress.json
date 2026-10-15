@@ -2,10 +2,10 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "b1276c5f9185ccf40df8676eae78f61134539076b15668571e839c43a9db4eff",
+  "contractSha256": "60d3db0b33aba00b30071bd6ac5d4093d32188f1b5528a16efa9a5aba2f3266b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1持续实施第三轮portal浏览器认证边界",
-  "branch": "main",
+  "assignedSession": "第四轮公共偏好目录与导航消费",
+  "branch": "codex/r1-round4-integration",
   "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
   "deliveryCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
   "deployment": "not_started",
@@ -549,22 +549,22 @@
     {
       "id": "portal.BuildCapabilities",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第四轮改用公共只读目录，待VPS编译与检查。"
       },
       "blocker": null
     },
     {
       "id": "portal.BuildNavigation",
       "path": "modules/portal/internal/bootstrap_service.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第四轮改用公共只读目录，待VPS编译与检查。"
       },
       "blocker": null
     },

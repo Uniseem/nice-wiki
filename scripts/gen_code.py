@@ -553,7 +553,22 @@ def render_clients(slug, impl, producer_specs):
             method, path, op = index[oid]
             lines.append(render_operation(struct, producer, oid, method, path, op))
             lines.append("")
+    if slug == "portal":
+        lines.append(render_admin_routes(load(ROOT / "contracts/permission-groups.json")))
     return "\n".join(lines)
+
+
+def render_admin_routes(groups):
+    """相同公共来源生成只读页面权限目录，服务不导入另一域业务代码。"""
+    lines = ["// InterfaceLocales 是随界面打包的后台语言。\n"]
+    lines.append("var InterfaceLocales = " + go_string_list(groups["interfaceLocales"], "") + "\n\n")
+    lines.append("// AdminRouteEntry 的Permissions为任一满足；页面可见性不代替接口授权。\n")
+    lines.append("type AdminRouteEntry struct { Key string; Path string; Permissions []string; LabelZH string; LabelEN string; Navigation bool }\n\n")
+    lines.append("var AdminRoutes = []AdminRouteEntry{\n")
+    for route in groups["adminRoutes"]:
+        lines.append("\t{Key: " + go_string(route["key"]) + ", Path: " + go_string(route["path"]) + ", Permissions: " + go_string_list(route["permissions"]) + ", LabelZH: " + go_string(route["labelZH"]) + ", LabelEN: " + go_string(route["labelEN"]) + ", Navigation: " + str(route["navigation"]).lower() + "},\n")
+    lines.append("}\n")
+    return "".join(lines)
 
 
 def main():
@@ -730,6 +745,7 @@ def gen_go_registries(modules):
         lines.append("var SuperadminOnlyGrants = " + go_string_list(groups["superadminOnly"], "") + "\n\n")
         lines.append("// JobManagementGrants 派生入口粗能力；任务服务仍按持久类型核业务权限。\n")
         lines.append("var JobManagementGrants = " + go_string_list(groups["jobManagementGrants"], "") + "\n")
+        lines.append("\n" + render_admin_routes(groups))
         out = roots["identity"] / "internal/gen/permission_groups.gen.go"
         out.write_text("".join(lines), encoding="utf-8")
         subprocess.run(["gofmt", "-w", str(out)], check=True)

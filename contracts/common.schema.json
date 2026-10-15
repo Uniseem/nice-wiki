@@ -1265,6 +1265,68 @@
       "required": [
         "applied"
       ]
+    },
+    "UILocale": {
+      "type": "string",
+      "description": "当前已随界面打包的规范后台语言；站点内容翻译语言不等于已有界面catalog",
+      "enum": [
+        "zh-Hans",
+        "en"
+      ],
+      "default": "zh-Hans"
+    },
+    "AdminRouteKey": {
+      "type": "string",
+      "description": "后台相对页面键；路径/权限由permission-groups.adminRoutes唯一映射，不接受URL、query或未登记键",
+      "enum": [
+        "dashboard",
+        "me",
+        "content",
+        "media",
+        "localization",
+        "models",
+        "memory",
+        "qa",
+        "knowledge",
+        "guard",
+        "jobs",
+        "analytics",
+        "settings",
+        "accounts",
+        "backup"
+      ],
+      "default": "dashboard"
+    },
+    "PortalPreferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "identity拥有的自身UI偏好；保存不改变账户权限/认证水位，目标页须当前授权",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ],
+          "default": "system"
+        },
+        "locale": {
+          "$ref": "#/$defs/UILocale"
+        },
+        "defaultRoute": {
+          "$ref": "#/$defs/AdminRouteKey"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "theme",
+        "locale",
+        "defaultRoute",
+        "revision"
+      ]
     }
   }
 }

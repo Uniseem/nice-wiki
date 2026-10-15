@@ -1,5 +1,10 @@
 # 主系统会话交接
 
+## 第四轮公共偏好目录消费（进行中）
+
+公共PortalPreferences/UILocale/AdminRouteKey统一浏览器与identity形状，导航和能力消费permission-groups生成数据，修正原guard/site路径及zh标签不匹配。仅源码调整，待VPS，不把本域其余blocked改为已完成。
+
+
 ## 第三轮实际集成事实（2026-10-15）
 
 - 源码已合入主线，实际实现提交a5dbc2f28c74872a0bf7ef498cd522eb51460326；旧工作分支提交仅作为溯源，逐项以progress.json为准。

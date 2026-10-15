@@ -316,3 +316,70 @@ func (c *TrafficGuardClient) CreateAdmission(ctx context.Context, body any, idem
 	}
 	return c.do(ctx, http.MethodPost, "/v1/admissions", body, idempotencyKey)
 }
+
+// InterfaceLocales 是随界面打包的后台语言。
+var InterfaceLocales = []string{
+	"zh-Hans",
+	"en",
+}
+
+// AdminRouteEntry 的Permissions为任一满足；页面可见性不代替接口授权。
+type AdminRouteEntry struct {
+	Key         string
+	Path        string
+	Permissions []string
+	LabelZH     string
+	LabelEN     string
+	Navigation  bool
+}
+
+var AdminRoutes = []AdminRouteEntry{
+	{Key: "dashboard", Path: "/admin/dashboard", Permissions: []string{
+		"portal.use",
+	}, LabelZH: "仪表盘", LabelEN: "Dashboard", Navigation: true},
+	{Key: "me", Path: "/admin/me", Permissions: []string{
+		"account.self",
+	}, LabelZH: "个人设置", LabelEN: "Profile", Navigation: false},
+	{Key: "content", Path: "/admin/content", Permissions: []string{
+		"content.read",
+	}, LabelZH: "文档", LabelEN: "Documents", Navigation: true},
+	{Key: "media", Path: "/admin/media", Permissions: []string{
+		"media.manage",
+		"media.upload",
+	}, LabelZH: "资源库", LabelEN: "Media", Navigation: true},
+	{Key: "localization", Path: "/admin/localization", Permissions: []string{
+		"localization.manage",
+		"localization.languages",
+	}, LabelZH: "多语言", LabelEN: "Languages", Navigation: true},
+	{Key: "models", Path: "/admin/models", Permissions: []string{
+		"model.manage",
+	}, LabelZH: "模型接入", LabelEN: "Models", Navigation: true},
+	{Key: "memory", Path: "/admin/memory", Permissions: []string{
+		"memory.manage",
+	}, LabelZH: "长期记忆", LabelEN: "Memory", Navigation: true},
+	{Key: "qa", Path: "/admin/qa", Permissions: []string{
+		"qa.manage",
+		"qa.debug",
+	}, LabelZH: "问答", LabelEN: "Q&A", Navigation: true},
+	{Key: "knowledge", Path: "/admin/knowledge", Permissions: []string{
+		"knowledge.manage",
+	}, LabelZH: "知识索引", LabelEN: "Knowledge", Navigation: true},
+	{Key: "guard", Path: "/admin/guard", Permissions: []string{
+		"guard.manage",
+	}, LabelZH: "防滥用", LabelEN: "Protection", Navigation: true},
+	{Key: "jobs", Path: "/admin/jobs", Permissions: []string{
+		"job.manage",
+	}, LabelZH: "任务队列", LabelEN: "Jobs", Navigation: true},
+	{Key: "analytics", Path: "/admin/analytics", Permissions: []string{
+		"stats.read",
+	}, LabelZH: "访问统计", LabelEN: "Analytics", Navigation: true},
+	{Key: "settings", Path: "/admin/site", Permissions: []string{
+		"site.manage",
+	}, LabelZH: "站点设置", LabelEN: "Settings", Navigation: true},
+	{Key: "accounts", Path: "/admin/accounts", Permissions: []string{
+		"account.manage",
+	}, LabelZH: "账号权限", LabelEN: "Accounts", Navigation: true},
+	{Key: "backup", Path: "/admin/backup", Permissions: []string{
+		"backup.manage",
+	}, LabelZH: "备份恢复", LabelEN: "Backup", Navigation: true},
+}

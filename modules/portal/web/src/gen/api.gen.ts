@@ -354,20 +354,30 @@ export interface components {
             /** @description 逐字段输入错误，不能回显秘密原值 */
             issues?: components["schemas"]["FieldIssue"][];
         };
-        /** @description identity 拥有的用户显示偏好 */
-        PortalPreferences: {
+        /**
+         * @description 当前已随界面打包的规范后台语言；站点内容翻译语言不等于已有界面catalog
+         * @default zh-Hans
+         * @enum {string}
+         */
+        UILocale: "zh-Hans" | "en";
+        /**
+         * @description 后台相对页面键；路径/权限由permission-groups.adminRoutes唯一映射，不接受URL、query或未登记键
+         * @default dashboard
+         * @enum {string}
+         */
+        AdminRouteKey: "dashboard" | "me" | "content" | "media" | "localization" | "models" | "memory" | "qa" | "knowledge" | "guard" | "jobs" | "analytics" | "settings" | "accounts" | "backup";
+        /** @description identity拥有的自身UI偏好；保存不改变账户权限/认证水位，目标页须当前授权 */
+        "common.schema_PortalPreferences": {
             /**
-             * @description 主题
+             * @default system
              * @enum {string}
              */
             theme: "system" | "light" | "dark";
-            /** @description BCP47 用户界面语言 */
-            locale: string;
-            /** @description 已授权站内 route key */
-            defaultRoute: string;
-            /** @description Revision */
+            locale: components["schemas"]["UILocale"];
+            defaultRoute: components["schemas"]["AdminRouteKey"];
             revision: components["schemas"]["Revision"];
         };
+        PortalPreferences: components["schemas"]["common.schema_PortalPreferences"];
         /** @description 读取用户的显示偏好的结果 */
         ReadPreferencesResult: {
             /** @description PortalPreferences */

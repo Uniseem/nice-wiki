@@ -95,5 +95,164 @@
     "jobs": "system.manage",
     "analytics": "system.manage",
     "data-protection": "backup.manage"
-  }
+  },
+  "interfaceLocales": [
+    "zh-Hans",
+    "en"
+  ],
+  "adminRoutes": [
+    {
+      "key": "dashboard",
+      "path": "/admin/dashboard",
+      "permissions": [
+        "portal.use"
+      ],
+      "labelZH": "仪表盘",
+      "labelEN": "Dashboard",
+      "navigation": true
+    },
+    {
+      "key": "me",
+      "path": "/admin/me",
+      "permissions": [
+        "account.self"
+      ],
+      "labelZH": "个人设置",
+      "labelEN": "Profile",
+      "navigation": false
+    },
+    {
+      "key": "content",
+      "path": "/admin/content",
+      "permissions": [
+        "content.read"
+      ],
+      "labelZH": "文档",
+      "labelEN": "Documents",
+      "navigation": true
+    },
+    {
+      "key": "media",
+      "path": "/admin/media",
+      "permissions": [
+        "media.manage",
+        "media.upload"
+      ],
+      "labelZH": "资源库",
+      "labelEN": "Media",
+      "navigation": true
+    },
+    {
+      "key": "localization",
+      "path": "/admin/localization",
+      "permissions": [
+        "localization.manage",
+        "localization.languages"
+      ],
+      "labelZH": "多语言",
+      "labelEN": "Languages",
+      "navigation": true
+    },
+    {
+      "key": "models",
+      "path": "/admin/models",
+      "permissions": [
+        "model.manage"
+      ],
+      "labelZH": "模型接入",
+      "labelEN": "Models",
+      "navigation": true
+    },
+    {
+      "key": "memory",
+      "path": "/admin/memory",
+      "permissions": [
+        "memory.manage"
+      ],
+      "labelZH": "长期记忆",
+      "labelEN": "Memory",
+      "navigation": true
+    },
+    {
+      "key": "qa",
+      "path": "/admin/qa",
+      "permissions": [
+        "qa.manage",
+        "qa.debug"
+      ],
+      "labelZH": "问答",
+      "labelEN": "Q&A",
+      "navigation": true
+    },
+    {
+      "key": "knowledge",
+      "path": "/admin/knowledge",
+      "permissions": [
+        "knowledge.manage"
+      ],
+      "labelZH": "知识索引",
+      "labelEN": "Knowledge",
+      "navigation": true
+    },
+    {
+      "key": "guard",
+      "path": "/admin/guard",
+      "permissions": [
+        "guard.manage"
+      ],
+      "labelZH": "防滥用",
+      "labelEN": "Protection",
+      "navigation": true
+    },
+    {
+      "key": "jobs",
+      "path": "/admin/jobs",
+      "permissions": [
+        "job.manage"
+      ],
+      "labelZH": "任务队列",
+      "labelEN": "Jobs",
+      "navigation": true
+    },
+    {
+      "key": "analytics",
+      "path": "/admin/analytics",
+      "permissions": [
+        "stats.read"
+      ],
+      "labelZH": "访问统计",
+      "labelEN": "Analytics",
+      "navigation": true
+    },
+    {
+      "key": "settings",
+      "path": "/admin/site",
+      "permissions": [
+        "site.manage"
+      ],
+      "labelZH": "站点设置",
+      "labelEN": "Settings",
+      "navigation": true
+    },
+    {
+      "key": "accounts",
+      "path": "/admin/accounts",
+      "permissions": [
+        "account.manage"
+      ],
+      "labelZH": "账号权限",
+      "labelEN": "Accounts",
+      "navigation": true
+    },
+    {
+      "key": "backup",
+      "path": "/admin/backup",
+      "permissions": [
+        "backup.manage"
+      ],
+      "labelZH": "备份恢复",
+      "labelEN": "Backup",
+      "navigation": true
+    }
+  ]
 }

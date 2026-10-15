@@ -1459,7 +1459,8 @@
           "steps": [
             "去重 grant",
             "计算展示与禁用原因",
-            "对未知 grant 默认隐藏"
+            "对未知 grant 默认隐藏",
+            "仅取本域gen.AdminRoutes公共目录；permissions任一满足，路径/中文标签不手写第二表；zh-Hans使用中文标签"
           ],
           "errors": [
             {
@@ -1473,7 +1474,9 @@
           "concurrency": "纯函数",
           "idempotency": "纯函数",
           "dependencies": [],
-          "resources": [],
+          "resources": [
+            "公共contracts/permission-groups.json的adminRoutes/interfaceLocales，经make gen生成本域只读数据"
+          ],
           "contract": "reference"
         },
         {
@@ -1514,7 +1517,8 @@
           "steps": [
             "遍历固定导航定义",
             "按 capability 过滤",
-            "选择用户语言的标题与 fallback"
+            "选择用户语言的标题与 fallback",
+            "仅取本域gen.AdminRoutes公共目录；permissions任一满足，路径/中文标签不手写第二表；zh-Hans使用中文标签"
           ],
           "errors": [
             {
@@ -1528,7 +1532,9 @@
           "concurrency": "纯函数",
           "idempotency": "纯函数",
           "dependencies": [],
-          "resources": [],
+          "resources": [
+            "公共contracts/permission-groups.json的adminRoutes/interfaceLocales，经make gen生成本域只读数据"
+          ],
           "contract": "reference"
         }
       ]
@@ -4297,7 +4303,7 @@
     {
       "path": "modules/portal/internal/gen/clients.gen.go",
       "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改；公共后台页面权限与界面语言目录数据",
       "functions": []
     },
     {
