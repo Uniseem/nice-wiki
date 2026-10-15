@@ -16,7 +16,7 @@
 
 2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。
 
-本轮仅本域合同、生成物及文档；准确合同源码SHA在提交后回填。所有业务函数/文件和生成物状态仍planned，implementationCommit仍null，不能把生成代码存在或根14模块通过当本域已实现。
+本轮仅本域合同、生成物及文档；准确合同源码SHA为`f9aa83fd199efd17593cf349938ef4c823336cfe`（16个本域文件）。所有业务函数/文件和生成物状态仍planned，implementationCommit仍null，不能把生成代码存在或根14模块通过当本域已实现。
 
 ## 下一步（一项）
 
