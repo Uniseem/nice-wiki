@@ -7,7 +7,7 @@
 - 公共冻结签名：gen.InterfaceLocales []string（zh-Hans/en）；gen.AdminRoutes []gen.AdminRouteEntry{Key,Path,Permissions []string}，Permissions为任一当前grant满足。根统一schema和生成来源，本域不维护第二份表，不混用站点翻译语言。settings规范路径/admin/site，guard为/admin/guard；偏好只接受key，不接受path/query/外链。
 - 新增实际文件仅既有登记internal/preference_service.go；原preferences表已具备account_id外键，不需新迁移。不碰account.revision/credential/permission/session，不写account-index或身份授权事件。
 - 最终VPS证据：2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。
-- 已用ff-only复用原公共提交bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb取得唯一schema；没有自行修改公共或portal，偏好gen产物仅来自根VPS。准确本域源码SHA在源码提交后回填；完整启动仍blocked，偏好完成不等于HTTP/后台全部可用。未本机编译/格式/生成/测试/运行SQL，未push。
+- 已用ff-only复用原公共提交bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb取得唯一schema；没有自行修改公共或portal，偏好gen产物仅来自根VPS。准确本域源码SHA为`b00aae001b2fe117e908cdc9fec5f46808a7db02`（16个本域文件），两用例/两助手、偏好文件与本轮生成物已转verified；完整启动仍blocked，偏好完成不等于HTTP/后台全部可用。未本机编译/格式/生成/测试/运行SQL，未push。
 
 ## 下一步（一项）
 

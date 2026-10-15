@@ -4,7 +4,7 @@
 
 locale与后台route key由根公共目录统一生成，入口由公共偏好schema校验，身份只按gen.AdminRoutes核目标页权限，不复制portal私有路由或信任前端授权。约束分支已同步；新增实际文件仅既有登记的internal/preference_service.go，不新增迁移。最终VPS证据：2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。
 
-已通过条目待本轮源码提交后回填准确SHA；完整BuildApplication/main仍blocked，transport仍缺服务器恢复/屏障等handler及后台，不当成可启动服务。公共来源已复用精确既有提交bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb，没有自行改公共。未本机go/gofmt/生成/编译/测试，未push。
+本轮源码`b00aae001b2fe117e908cdc9fec5f46808a7db02`（16个本域文件），ReadPreferences/UpdatePreferences及2个完整助手、偏好文件/本轮生成物已转verified。完整BuildApplication/main仍blocked，transport仍缺服务器恢复/屏障等handler及后台，不当成可启动服务。公共来源已复用精确既有提交bd748982e9ddc5dc1e55eaf7b2b92e660cba79cb，没有自行改公共。未本机go/gofmt/生成/编译/测试，未push。
 
 下一项为server_recovery.go的ObserveSuperadminResetFile/ApplySuperadminReset紧密组；本工作包交付后冻结，等根分派再开始。
 
