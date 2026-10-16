@@ -1,4 +1,4 @@
-# 当前工作包：持续目标第二轮真实共享草稿闭环（2026-10-16，已检查待提交）
+# 当前工作包：持续目标第二轮真实共享草稿闭环（2026-10-16，已交付）
 
 分支codex/content-goal-r2，基线471c036082e082763d90e1080b3489d4e4531380，初始clean；独占modules/content。根批准internal/draft_commit_store.go及只追加0004迁移，统一公共结构、VPS生成/检查和push；本域不自行推送。
 
@@ -8,7 +8,8 @@
 - 第一次VPS make docs/gen与格式完成，build因未使用time导入失败，未运行check；删除残留导入后第二次docs/gen、14模块build/vet/gofmt通过，但check报告4条可达性登记失败。已补真实文件校验/目录fsync调用边，删除全域无调用GuardLease及专用快照字段、合同和台账，没有假调用。
 - 最终冻结源码根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、8源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型）；精确生成/格式路径回传，其他域跟踪漂移0。只证明编译与设计结构，不代表业务验收。
 - publication_repository仍只完成ReadReferenceDecision，CommitPublication及发布/撤回/回收站等生命周期保持未完成；完整HTTP、RelayOutbox/在线消费、后台与启动、恢复activation仍未完成。未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实接口/模型、服务/镜像/部署；本域未运行本机Go/gofmt/生成/编译/vet/测试。
-- 源码提交与准确SHA台账紧随本次记录；当前源码已冻结，仅做提交及交付记录。
+- 源码提交7f7ec904b5bb9563bb801750512fea3483513cf6；本记录紧随源码。57个本轮检查函数按该SHA记verified，删除GuardLease无幽灵台账；相对基线完整函数净增52（113→165），新增或补登记49个参考函数并删除1个死参考函数。publication_repository整体partial、全部HTTP/Relay/启动及未实现发布生命周期保持未完成。完整文件净增6，含本轮刷新并核对的两个生成类型文件；不把生成接口解释为已绑定HTTP。
+- 两次实际暂存、中文提交说明、作者/提交者GitHub代用邮箱及GPT-6 trailer隐私审核通过；未修改Git身份，未push。本域交付后冻结。
 
 ## 下一步（一项）
 
