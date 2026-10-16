@@ -94,7 +94,7 @@ export interface paths {
         get?: never;
         /**
          * 管理AI档位与费用限制
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 仅portal携当前superadmin委托写入。profile.costClass是配置目标，不覆盖可信OperationContext。空候选数组合法，最多256个有序唯一候选；只按唯一目录核模型直接能力，保存不要求价格或凭据，不调用模型。当前同代7天原回执先返回，新操作才核本地屏障、唯一档位槽与CAS；配置、profile.changed及回执同事务。
          */
         put: operations["putProfile"];
         post?: never;
@@ -789,7 +789,7 @@ export interface components {
             profileId: components["schemas"]["Identifier"];
             /** @description CAS版本 */
             version: number;
-            /** @description 可信费用类别 */
+            /** @description 该档位配置面向的费用类别；不覆盖可信op.costClass */
             costClass: components["schemas"]["CostClass"];
             /**
              * @description 五档
@@ -1926,8 +1926,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
+            /** @description 版本或代次变化、幂等输入冲突、档位槽已被占用或本地维护屏障尚未释放。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 持久模型能力或原始回执损坏。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1937,6 +1946,15 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本域配置存储或权威代次尚未装配，查询未知失败关闭。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

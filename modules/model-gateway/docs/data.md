@@ -221,3 +221,9 @@
 本轮复用task_assignments及operation_receipts，不新增表或迁移。assignment.version为expectedVersion+1；首次expectedVersion=0，更新SQL以task_id/version/data_epoch作条件并核RowsAffected。任何非released本地屏障阻止新配置写入，不因其epoch或deadline过期绕过。
 
 回执主键仍为site_id/actor_id/function_id/idempotency_key；input_hash包含callerService、dataEpoch、assignment及expectedVersion，result_json保存完整PutTaskAssignmentResult。7天有效原结果在屏障与当前模型校验之前返回；坏时间/原结果失败关闭，过期查询无写入，只有成功新配置事务末尾替换旧回执。assignment.changed/v1只发布taskId/version/dataEpoch，与赋值和回执通过平台nw_outbox同事务提交。
+
+## 档位写入与原结果
+
+复用002的profiles及001的operation_receipts，不新增迁移。profile.costClass是目标配置类别，不覆盖可信op.costClass。profileId、当前version和dataEpoch共同做条件CAS；同代costClass+tier只允许一个profileId占用，迁移到已有槽返回CONFLICT，空槽允许。orderedModelIds最多256且保序唯一，空数组只清候选、保留行。
+
+7天回执摘要绑定callerService/dataEpoch/profile/expectedVersion，有效原结果先于新写屏障、候选与CAS检查返回；过期只在成功新配置事务替换。配置、profile.changed/v1与完整PutProfileResult回执同事务；事件taskIds来自根目录旧/新tier筛选并去重排序；旧/新含fast时保守包含vision/rerank回退任务，即使独立槽已配置，不广播候选、费用或秘密。

@@ -1,5 +1,17 @@
 # AI 接入当前进度
 
+更新：2026-10-16。用户授权三个子代理并行写两轮、每轮根统一检查并普通push main。当前为第一轮，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，独占本域。PutProfile及紧密辅助/真实HTTP映射已code-ready，尚待集成会话VPS生成、格式、编译与完整检查，台账in_progress；完整服务仍blocked，业务验收未执行。
+
+- 复用001/002 schema，新增已登记实际源码internal/catalog/profile.go；同事务严格非空epoch、7天原回执、所有非released屏障、配置版本/代次条件CAS与costClass+tier唯一槽。有效原结果先返回，过期键仅随成功新配置事务替换；提交未知不自行重试。
+- 有序候选保持原顺序、唯一且最多256，空数组只清空候选而保留配置行。直接能力复用根唯一目录生成的AITierCapabilities与既有模型元数据校验；不要求凭据/价格/供应方在线，不探测、不调用模型、不自动重算嵌入。
+- profile.changed/v1与配置、回执同事务写平台outbox，载荷仅profileId/version/dataEpoch及旧/新档位根目录受影响taskIds去重排序；旧/新含fast时保守包含vision/rerank回退任务。HTTP核路径/正文及幂等头一致性，portal写入复用公共入口即时superadmin授权。
+- 视觉及rerank档位行缺失或候选为空时的fast回退明确留在ResolveProfile/ResolveRoute参考合同，仍planned；免费可用性读取中已有空候选为已配但unavailable，不能把配置行声称已删除。
+- 本轮不新增迁移、外部依赖、测试/mock/fixture/样例或临时业务验证程序；不本机Go检查、不真实接口/模型、不部署。本域不push，根每轮统一收口。第二轮待根给首轮新基线后派发，不提前实施。
+
+以下为既有交付历史，本次授权取代旧的单轮停止指令。
+
+# AI 接入当前进度
+
 更新：2026-10-16。本轮任务分配配置读写已交付，分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，独占本域。源码提交c7c1cac9e3a59a206d506083ace25fd00c077e40；本轮完整Put/Read、2项辅助和修改后的HTTP映射，以及task.go和本轮生成物verified。wire.go整体partial、BuildApplication blocked，业务验收未执行。
 
 - PutTaskAssignment落实superadmin、根唯一任务目录默认档位与覆盖能力、严格非空epoch、同代7天原始回执、非released屏障、SQL条件CAS与同事务assignment.changed平台outbox。先返回有效原回执，不因后来模型停用或本地屏障阻断同代无副作用重放；异输入/异代回执冲突，过期仅同成功新配置事务替换。

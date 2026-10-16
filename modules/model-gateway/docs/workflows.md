@@ -39,3 +39,9 @@
 管理写入经平台入口即时核superadmin；同一SQL事务核非空epoch、7天回执、屏障、模型能力与任务版本。有效同代原回执先返回，不重做当前模型检查或产生副作用；新配置才检查所有非released屏障并执行条件CAS，assignment.changed和原结果同事务写平台outbox/回执。过期键仅随成功新配置事务替换，失败回滚保持原状态。
 
 任务读取按目录owner过滤纯服务范围，portal管理员读取在HTTP边界另查identity当前superadmin权限。只返回已存同代赋值，未配置不从默认目录合成；任务覆盖的缺失表示清除。完整服务仍因其他handler/epoch初始化/恢复/后台未齐拒绝启动。
+
+## 档位配置保存
+
+PutProfile在同一当前代次事务内，依次处理7天原结果、全部非released屏障、当前版本与唯一槽、候选直接能力、条件CAS、profile.changed平台outbox及完整回执。事件taskIds对旧/新fast改动保守包含vision/rerank回退任务并去重排序。有效原结果重放不受后来模型停用或本地写屏障阻断；未知Commit不自行重试。保存只核模型元数据，不读取价格、凭据或供应方在线性。
+
+空候选列表保留配置行。old规定的视觉/重排未设回退保留在尚未实现的ResolveProfile/ResolveRoute：该行缺失或候选数组为空时，分别使用fast中支持vision的候选、或由fast模型代替重排；不在保存时合成候选，不自动重算嵌入或已有付费结果。

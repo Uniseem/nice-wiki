@@ -78,6 +78,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			seen[task.Owner] = true
 		}
 	}
+	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+	for operationID, handler := range catalog.NewProfileHandlers() {
+		handlers[operationID] = handler
+	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -89,9 +93,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		AllowedCallers: map[string][]string{
 			"readTaskAvailability": {"qa"},
 			"putTaskAssignment":    {"portal"},
+			"putProfile":           {"portal"},
 			"readTaskAssignments":  assignmentCallers,
 		},
-	}, catalog.NewTaskAvailabilityHandlers(authorize))
+	}, handlers)
 	if err != nil {
 		return nil, err
 	}

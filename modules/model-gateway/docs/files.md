@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 56 个：手写 36、UI 3、生成 5、配置 10、迁移 2。函数 80 个：约束 37，参考 43。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 56 个：手写 36、UI 3、生成 5、配置 10、迁移 2。函数 83 个：约束 37，参考 46。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,7 +10,7 @@
 | `modules/model-gateway/internal/catalog/provider.go` | 手写 | 验证供应方配置所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ValidateProvider`（参考）、`model-gateway.PutProvider`、`model-gateway.SetProviderEnabled`（参考） |
 | `modules/model-gateway/internal/security/credential.go` | 手写 | 加密存储密钥所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutCredential`、`model-gateway.RotateCredential` |
 | `modules/model-gateway/internal/catalog/model.go` | 手写 | 保存不可变模型身份版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutModel`、`model-gateway.ValidateModel`（参考） |
-| `modules/model-gateway/internal/catalog/profile.go` | 手写 | 管理AI档位与费用限制所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutProfile`、`model-gateway.ResolveProfile`（参考） |
+| `modules/model-gateway/internal/catalog/profile.go` | 手写 | 档位配置持久写入与后续服务授权解析；保存不触发供应方或费用任务 | `model-gateway.PutProfile`、`model-gateway.ResolveProfile`（参考）、`model-gateway.readProfileReceipt`（参考）、`model-gateway.validateProfileModels`（参考）、`model-gateway.NewProfileHandlers`（参考） |
 | `modules/model-gateway/internal/routing/route.go` | 手写 | 确定不可变调用路线所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ResolveRoute`（参考） |
 | `modules/model-gateway/internal/billing/quote.go` | 手写 | 计算可保守预留的最大费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QuoteCost` |
 | `modules/model-gateway/internal/invocation/create.go` | 手写 | 接受统一AI调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateInvocation` |

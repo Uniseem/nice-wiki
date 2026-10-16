@@ -11,7 +11,7 @@
 | POST `/v1/admin/providers/{providerId}/credentials` | `putCredential` | `model-gateway.PutCredential` | `superadmin` | `PutCredentialInput` → 201 `PutCredentialResult` | 加密存储密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/admin/providers/{providerId}/credentials/rotate` | `rotateCredential` | `model-gateway.RotateCredential` | `superadmin` | `RotateCredentialInput` → 200 `RotateCredentialResult` | 轮转新请求使用的密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | PUT `/v1/admin/models/{modelId}` | `putModel` | `model-gateway.PutModel` | `superadmin` | `PutModelInput` → 200 `PutModelResult` | 保存不可变模型身份版本 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| PUT `/v1/admin/profiles/{profileId}` | `putProfile` | `model-gateway.PutProfile` | `superadmin` | `PutProfileInput` → 200 `PutProfileResult` | 管理AI档位与费用限制 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| PUT `/v1/admin/profiles/{profileId}` | `putProfile` | `model-gateway.PutProfile` | `superadmin` | `PutProfileInput` → 200 `PutProfileResult` | 管理AI档位与费用限制 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 422`、`HTTP 503` |
 | POST `/v1/inferences` | `createInference` | `model-gateway.CreateInvocation` | `service` | `CreateInvocationInput` → 202 `CreateInvocationResult` | 接受统一AI调用 | `HTTP 400`、`HTTP 409`、`HTTP 403`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/inferences/{invocationId}` | `readInference` | `model-gateway.GetInvocation` | `service` | `—` → 200 `GetInvocationResult` | 读取调用状态 | `HTTP 404`、`HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/inferences/{invocationId}/cancel` | `cancelInference` | `model-gateway.CancelInvocation` | `service` | `CancelInvocationInput` → 200 `CancelInvocationResult` | 贯穿取消调用 | `HTTP 404`、`HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
@@ -55,3 +55,7 @@ readTaskAvailability仅允许QA纯服务与固定三任务，不接受浏览器�
 putTaskAssignment的taskId路径必须与assignment.taskId一致；非空Idempotency-Key头必须等于正文idempotencyKey。assignment.tier固定目录defaultTier，版本为expectedVersion+1。统一入口处理严格schema、服务身份和管理员即时授权，真实写入不触发模型。
 
 readTaskAssignments对纯服务按根目录owner限制；portal携超管委托可读全部，并在本域HTTP map调用平台identity即时授权。显式跨owner FORBIDDEN、未知目录任务VALIDATION；结果只含已存赋值，未配置返回空数组，所有响应no-store。
+
+## 档位配置写入
+
+putProfile仅portal携当前superadmin委托；统一入口严格schema及即时授权，HTTP绑定核profileId路径/正文与非空幂等头/正文一致。费用类别字段表示要编辑的配置目标，不覆盖可信操作费用类别。保存空数组合法、最多256个有序唯一模型，直接能力来自根唯一目录生成表；模型未启用/能力不足或缺模型为VALIDATION，槽占用与幂等输入冲突为CONFLICT，未知存储失败关闭。所有响应no-store，不触发模型或付费重建。
