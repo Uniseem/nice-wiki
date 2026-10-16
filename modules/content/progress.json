@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "7ac3c64600cf6914a26968b83de1a38cb659a2e4d958caab950281a1670c8a36",
+  "contractSha256": "ee885fd5311e64f10dbe390e53f71894b2ae0a1f0f327e2bd96f72d30ce3ad89",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "本轮content资源引用与树纯规则",
-  "branch": "codex/content-persistence-round1",
-  "baseCommit": "170c1dc9057e122e349de43db532b2c48434b6cf",
-  "deliveryCommit": "f7bb9b8c029f3cc6af996708d28f50492ffb0546",
+  "assignedSession": "content第一轮真实私有正文存储",
+  "branch": "codex/content-next-two-r1",
+  "baseCommit": "d2161f41c441b69f080b7d8cf3d40b88afecb357",
+  "deliveryCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
   "deployment": "not_started",
   "files": [
     {
@@ -133,10 +133,10 @@
     {
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -153,10 +153,10 @@
     {
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -423,12 +423,12 @@
     {
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
+      "blocker": "本轮真实SQLite打开、迁移及正文恢复已完成；完整草稿事务、全部HTTP handler、恢复activation/epoch重绑定及后台装配尚未实现"
     },
     {
       "path": "modules/content/internal/transport/server.go",
@@ -442,23 +442,23 @@
     },
     {
       "path": "modules/content/go.mod",
-      "state": "implemented",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
-        "state": "not_run",
-        "evidence": "固定Go工具链与本域直接依赖已登记；未能运行go mod download"
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
-      "blocker": "Go工具链不可用，go.sum尚未生成"
+      "blocker": null
     },
     {
       "path": "modules/content/go.sum",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
-        "state": "not_run",
-        "evidence": "未能运行go mod download：当前环境无Go工具链，VPS不可用；未手写生成文件"
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
+      "blocker": null
     },
     {
       "path": "modules/content/Dockerfile",
@@ -607,6 +607,36 @@
       "verification": {
         "state": "not_run",
         "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/migrations/migrations.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/content/migrations/0001_domain.sql",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     }
@@ -869,10 +899,10 @@
       "id": "content.WriteRevisionFile",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -880,10 +910,10 @@
       "id": "content.RecoverPreparedCommits",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -902,10 +932,10 @@
       "id": "content.ReadRevisionBody",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1336,18 +1366,18 @@
         "state": "passed",
         "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
+      "blocker": "BuildApplication真实存储步骤已完成；完整草稿事务/HTTP/后台/恢复activation及epoch重绑定尚未实现，不能启动完整服务"
     },
     {
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
+      "blocker": "本轮真实SQLite打开、迁移及正文恢复已完成；完整草稿事务、全部HTTP handler、恢复activation/epoch重绑定及后台装配尚未实现"
     },
     {
       "id": "content.Serve",
@@ -1561,10 +1591,10 @@
       "id": "content.revisionPreparationDigest",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1572,10 +1602,10 @@
       "id": "content.validatePreparedMaterial",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1583,10 +1613,10 @@
       "id": "content.newRevisionWriteWindow",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1594,10 +1624,10 @@
       "id": "content.persistPreparedRevision",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1605,10 +1635,10 @@
       "id": "content.verifyRevisionMaterialFile",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1616,10 +1646,10 @@
       "id": "content.quarantineRevisionMaterial",
       "path": "modules/content/internal/revision_files.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1627,10 +1657,10 @@
       "id": "content.revisionFileStoreFromContext",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1638,10 +1668,10 @@
       "id": "content.revisionFileLocation",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1649,10 +1679,10 @@
       "id": "content.validateCommittedMaterial",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1660,10 +1690,10 @@
       "id": "content.readImmutableRevision",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1671,10 +1701,10 @@
       "id": "content.Read",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1682,10 +1712,10 @@
       "id": "content.decodeStoredBody",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1693,10 +1723,10 @@
       "id": "content.isolateRevisionRead",
       "path": "modules/content/internal/revision_reader.go",
       "state": "verified",
-      "implementationCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
       },
       "blocker": null
     },
@@ -1732,7 +1762,359 @@
         "evidence": "2026-10-16本轮冻结源码：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、两源码gofmt、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1185函数/379操作/2269类型）；暂存内容与提交信息静态隐私检查通过。只证明当前编译和设计结构检查，未新增或运行业务测试、SQL验收、真实API/模型、服务/镜像/部署。"
       },
       "blocker": null
+    },
+    {
+      "id": "content.WithRevisionFileStore",
+      "path": "modules/content/internal/revision_reader.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.OpenDatabase",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RunContentMigrations",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.ConfigureRevisionStorage",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RevisionRoot",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RevisionDataEpoch",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RevisionMaxDocumentBytes",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RevisionWriteWindow",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.FindRevisionPreparation",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.PrepareRevision",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.MarkRevisionPrepared",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.ReadCommittedRevision",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.QuarantineRevision",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.CurrentHead",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.HasCommittedReceipt",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.QuarantineDocument",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RecoverDatabaseJournal",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.CloseDatabase",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.findRevisionPreparation",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.checkRevisionScope",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.hasCommittedReceipt",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.preparationJournalState",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.decodePreparation",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.decodeStorageJSON",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.sameStoredDraft",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.contentStorageError",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.All",
+      "path": "modules/content/migrations/migrations.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.scanCommitJournal",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.appendJournalState",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.openRevisionJournal",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.validateRevisionJournalFile",
+      "path": "modules/content/internal/revision_files.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.validatePreparedJournalCoverage",
+      "path": "modules/content/internal/storage.go",
+      "state": "verified",
+      "implementationCommit": "97b31b1919181a4a697c8259c85ea9575f225a4d",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮冻结源码：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy生成本域go.mod/go.sum，make docs/gen、14个Go模块-mod=readonly build/vet/gofmt和完整make check通过（865文件/1258函数/379操作/2277类型）。人工复核修正首迁移与epoch同事务、journal RWMutex/NOFOLLOW及打开读写后SameFile、prepared/committed反向日志覆盖和缺日志失败关闭。只证明编译与设计结构；未新增或运行SQL行为验收、测试/fixture/mock/样例/临时业务程序、真实API/模型、服务/镜像/部署；本域未运行本机Go或push。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "本轮既有登记路径的资源引用与文档树纯规则已通过隔离VPS检查，2完整文件和5函数按准确源码SHA记verified；真实私有DB schema/迁移/启动协议尚未收口，adapter及完整HTTP/后台继续blocked。本轮交付后停止，不自行开启后续工作包，未业务验收或部署。"
+  "rule": "第一轮真实私有正文存储经根隔离VPS既有生成/编译/结构检查通过，完成条目按准确源码SHA记verified；完整DraftCommitStore/SaveDraft/HTTP/后台与恢复epoch重绑定/activation仍partial或blocked，不是业务accepted。第一轮由根集成检查push后再派第二轮。"
 }
