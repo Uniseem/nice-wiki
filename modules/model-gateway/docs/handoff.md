@@ -1,8 +1,8 @@
 # AI 接入会话交接
 
-## 两轮并行第一轮：档位配置写入（待VPS检查）
+## 两轮并行第一轮：档位配置写入（已交付）
 
-更新：2026-10-16。用户当次明确授权三个子代理并行写两轮，实施所需结构/契约取舍由助手决定，每轮根统一复核并普通push main，中间不询问。独占modules/model-gateway/，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357。当前源码code-ready尚未提交；等待集成会话VPS生成、格式、编译、vet和完整检查，未标implemented/verified。
+更新：2026-10-16。用户当次明确授权三个子代理并行写两轮，实施所需结构/契约取舍由助手决定，每轮根统一复核并普通push main，中间不询问。独占modules/model-gateway/，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357。源码提交82dee76414a823e4d2e71dd87c623d7220f8387e；本轮四个完整新/完成函数、改过的validateTaskOverride及本轮生成物通过根VPS检查并verified；整文件/完整服务缺口保持partial/blocked。
 
 实际范围：新增已登记internal/catalog/profile.go，实现PutProfile/readProfileReceipt/validateProfileModels/NewProfileHandlers。task.go已有validateTaskOverride复用于档位直接能力，错误说明改为所选模型；wire.go只合并真实putProfile映射与portal白名单。四契约、README/STATUS/progress与本域data/api/workflows同步；files/functions由根VPS make docs生成，生成目录只接收根VPS make gen回传。
 
@@ -14,11 +14,13 @@ profile.changed/v1最小载荷为profileId/version/dataEpoch及根AITaskCatalog�
 
 保留old规则：视觉、rerank行缺失或候选为空时，后续ResolveProfile读取分别回退fast中的vision候选、或由fast代替重排；该解析仍planned，不在PutProfile悄悄填充。配置写不触发模型、费用任务、嵌入重建或自动重算已有付费结果。免费可用性读取沿既有约定空候选为已配但unavailable，不能把行称为已删除。
 
-公共配合：根负责scripts/gen_code.py从contracts/ai-tasks.json.tierCapabilities新增AITierCapabilities map[string][]string至既有clients.gen.go，以及已登记profile.go实际结构启用；本域不改公共目录、不手抄生成表、不争用VPS。
+公共配合已由根提交6b4b15b完成：scripts/gen_code.py从contracts/ai-tasks.json.tierCapabilities生成AITierCapabilities map[string][]string至既有clients.gen.go，已登记profile.go实际结构由根启用；本域不改公共目录、不手抄生成表、不争用VPS。
 
-检查：尚未执行Go/gofmt/gen/编译/vet/完整check；所有既有检查均由根VPS统一执行并回传后再登记verified。未新增测试、mock、fixture、样例或临时业务验证程序，未执行SQL/HTTP行为验证、真实接口/模型、服务/镜像/部署；本域不push。
+检查：2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：初次同API候选make docs/gen通过；最终fast回退影响修正树make docs、profile.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1219函数/379操作/2272类型），精确格式/生成物已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 本地只执行git diff --check与既有静态隐私扫描（暂存内容、提交说明和用户Git代用身份）；未改身份配置。未新增测试、mock、fixture、样例或临时业务验证程序；本域不push。
 
-下一项仅为将第一轮候选交根VPS检查并按回传格式/生成物收口源码与记录，冻结等待首轮统一集成push及第二轮新基线；不提前开展凭据加密或完整服务。
+第一轮源码共19个本域路径，包含四机器合同、README/STATUS/progress、api/data/files/functions/handoff/workflows、profile.go/task.go/wire.go及三个既有生成物；无未提交业务源码。
+
+下一项仅为凭据安全持久化：先读internal/security/credential.go精确合同及部署masterKey引用装配，复用现有credentials schema与严格epoch/屏障/CAS/7天回执，实施AES-GCM PutCredential/RotateCredential，不探测供应方；依赖首轮根统一集成检查、push与新的明确基线。当前冻结等待根派发，不能提前开始第二轮或完整服务。
 
 以下为既有交付历史，本次两轮授权取代旧的停止指令。
 

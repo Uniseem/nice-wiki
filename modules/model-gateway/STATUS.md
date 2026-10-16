@@ -1,12 +1,13 @@
 # AI 接入当前进度
 
-更新：2026-10-16。用户授权三个子代理并行写两轮、每轮根统一检查并普通push main。当前为第一轮，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，独占本域。PutProfile及紧密辅助/真实HTTP映射已code-ready，尚待集成会话VPS生成、格式、编译与完整检查，台账in_progress；完整服务仍blocked，业务验收未执行。
+更新：2026-10-16。用户授权三个子代理并行写两轮、每轮根统一检查并普通push main。当前为第一轮，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，独占本域。源码提交82dee76414a823e4d2e71dd87c623d7220f8387e，PutProfile及三个紧密辅助/真实HTTP映射、改过的模型能力校验和本轮生成物verified；profile.go及wire.go整体partial，完整服务仍blocked，业务验收未执行。
 
 - 复用001/002 schema，新增已登记实际源码internal/catalog/profile.go；同事务严格非空epoch、7天原回执、所有非released屏障、配置版本/代次条件CAS与costClass+tier唯一槽。有效原结果先返回，过期键仅随成功新配置事务替换；提交未知不自行重试。
 - 有序候选保持原顺序、唯一且最多256，空数组只清空候选而保留配置行。直接能力复用根唯一目录生成的AITierCapabilities与既有模型元数据校验；不要求凭据/价格/供应方在线，不探测、不调用模型、不自动重算嵌入。
 - profile.changed/v1与配置、回执同事务写平台outbox，载荷仅profileId/version/dataEpoch及旧/新档位根目录受影响taskIds去重排序；旧/新含fast时保守包含vision/rerank回退任务。HTTP核路径/正文及幂等头一致性，portal写入复用公共入口即时superadmin授权。
 - 视觉及rerank档位行缺失或候选为空时的fast回退明确留在ResolveProfile/ResolveRoute参考合同，仍planned；免费可用性读取中已有空候选为已配但unavailable，不能把配置行声称已删除。
-- 本轮不新增迁移、外部依赖、测试/mock/fixture/样例或临时业务验证程序；不本机Go检查、不真实接口/模型、不部署。本域不push，根每轮统一收口。第二轮待根给首轮新基线后派发，不提前实施。
+- 2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：初次同API候选make docs/gen通过；最终fast回退影响修正树make docs、profile.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1219函数/379操作/2272类型），精确格式/生成物已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。
+- 本轮无新增迁移、外部依赖、测试/mock/fixture/样例或临时业务验证程序；未本机Go检查、真实接口/模型或部署。暂存内容、提交说明、用户Git代用身份已静态隐私扫描；身份配置未改。本域不push，第一轮交付后冻结，根每轮统一收口；第二轮待根给首轮新基线后派发，不提前实施。
 
 以下为既有交付历史，本次授权取代旧的单轮停止指令。
 

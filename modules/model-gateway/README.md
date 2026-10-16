@@ -2,7 +2,7 @@
 
 唯一拥有供应方、密钥、模型版本、功能档位、费用报价、额度预留、执行与费用账本。所有AI消费必须经过此服务。
 
-阶段：R1实施。用户授权两轮三子代理并行、每轮根统一检查并普通push main；本域第一轮PutProfile及紧密辅助/真实HTTP映射已code-ready，台账in_progress，等待根VPS生成/格式/编译/完整检查。profile.go及wire.go整体partial、完整启动blocked；视觉/重排读取回退、凭据、模型与费用执行未完成，未做SQL行为验证或业务验收。
+阶段：R1实施。用户授权两轮三子代理并行、每轮根统一检查并普通push main；本域第一轮PutProfile及紧密辅助/真实HTTP映射已交付并通过根VPS生成/格式/编译/完整检查，源码SHA见progress.json。profile.go及wire.go整体partial、完整启动blocked；视觉/重排读取回退、凭据、模型与费用执行未完成，未做SQL行为验证或业务验收。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
