@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 63 个：手写 36、UI 12、生成 5、配置 10。函数 134 个：约束 42，参考 92。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 65 个：手写 38、UI 12、生成 5、配置 10。函数 156 个：约束 42，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -11,7 +11,7 @@
 | `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考）、`content.documentTreeDepths`（参考） |
 | `modules/content/internal/metadata_service.go` | 手写 | 修改标题/路径/SEO描述/分享图 | `content.UpdateDocumentMetadata` |
 | `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考） |
-| `modules/content/internal/edit_lock_service.go` | 手写 | 打开文档自动获得内存编辑锁 | `content.AcquireEditLock`、`content.RenewEditLock`、`content.ReleaseEditLock`、`content.ForceReleaseEditLock`、`content.ExpireIdleLocks`（参考） |
+| `modules/content/internal/edit_lock_service.go` | 手写 | 打开文档自动获得内存编辑锁 | `content.AcquireEditLock`、`content.RenewEditLock`、`content.ReleaseEditLock`、`content.ForceReleaseEditLock`、`content.ExpireIdleLocks`（参考）、`content.NewEditLockManager`（参考）、`content.validateEditLeader`（参考）、`content.lockEditCell`（参考）、`content.AcquireLease`（参考）、`content.RenewLease`（参考）、`content.ReleaseLease`（参考）、`content.ForceReleaseLease`（参考）、`content.ExpireLeases`（参考）、`content.AcquireSaveFence`（参考）、`content.AcquireDocumentFence`（参考）、`content.DocumentState`（参考）、`content.GuardLease`（参考）、`content.ReleaseFence`（参考）、`content.matchEditLease`（参考）、`content.requireEditableDocument`（参考）、`content.advanceEditFence`（参考）、`content.editLeaseExpired`（参考）、`content.refreshEditLease`（参考）、`content.copyEditLease`（参考）、`content.editLockSnapshot`（参考）、`content.CloseEditLocks`（参考） |
 | `modules/content/internal/draft_service.go` | 手写 | 读取全篇共享草稿及编辑状态 | `content.ReadDraft`、`content.SaveDraft` |
 | `modules/content/internal/block_validator.go` | 手写 | 验证全部Tiptap块及稳定ID | `content.ValidateBlockTree`（参考）、`content.ValidateInline`（参考）、`content.visit`（参考）、`content.validateInlineNodes`（参考）、`content.validateContentLink`（参考）、`content.validateContentMath`（参考）、`content.contentInteger`（参考）、`content.contentNumber`（参考） |
 | `modules/content/internal/table_validator.go` | 手写 | 验证表格合并单元格覆盖 | `content.ValidateTableGrid`（参考）、`content.validateTableGridNode`（参考） |
@@ -69,3 +69,5 @@
 | `modules/content/internal/storage.go` | 手写 | 正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配 | `content.OpenDatabase`（参考）、`content.RunContentMigrations`（参考）、`content.ConfigureRevisionStorage`（参考）、`content.RevisionRoot`（参考）、`content.RevisionDataEpoch`（参考）、`content.RevisionMaxDocumentBytes`（参考）、`content.RevisionWriteWindow`（参考）、`content.FindRevisionPreparation`（参考）、`content.PrepareRevision`（参考）、`content.MarkRevisionPrepared`（参考）、`content.ReadCommittedRevision`（参考）、`content.QuarantineRevision`（参考）、`content.CurrentHead`（参考）、`content.HasCommittedReceipt`（参考）、`content.QuarantineDocument`（参考）、`content.RecoverDatabaseJournal`（参考）、`content.CloseDatabase`（参考）、`content.findRevisionPreparation`（参考）、`content.checkRevisionScope`（参考）、`content.hasCommittedReceipt`（参考）、`content.preparationJournalState`（参考）、`content.decodePreparation`（参考）、`content.decodeStorageJSON`（参考）、`content.sameStoredDraft`（参考）、`content.contentStorageError`（参考）、`content.validatePreparedJournalCoverage`（参考） |
 | `modules/content/migrations/migrations.go` | 手写 | 内嵌本域只追加迁移的唯一来源 | `content.All`（参考） |
 | `modules/content/migrations/0001_domain.sql` | 手写 | 初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交 | 无 |
+| `modules/content/internal/document_edit_state.go` | 手写 | 持久文档存在/生命周期/删除fence及隔离读取 | `content.ReadDocumentEditState`（参考） |
+| `modules/content/migrations/0002_document_edit_state.sql` | 手写 | 追加documents身份/生命周期/删除fence表，不插入文档或持久租约 | 无 |

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 134 个函数：约束 42 个，参考 92 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 156 个函数：约束 42 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -477,7 +477,8 @@ func AcquireEditLock(ctx context.Context, op OperationContext, input AcquireEdit
 - 授权：content.edit
 - 并发：docId内存mutex，content只有单写leader
 - 幂等：同account/doc有效lease复用，不换fence
-- 依赖：无
+- 依赖：`content.AcquireLease`
+- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
 
 ## content.RenewEditLock
 
@@ -506,9 +507,10 @@ func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLock
 
 **步骤**
 
-1. 核holder/lease/boot/fence当前且未到期
-2. 心跳延长2分钟，但15分钟无输入触发提醒，宽限2分钟仍无输入释放为只读
-3. 忽略客户端未来lastInputAt，服务依据输入序号/可信接收时间更新
+1. 核holder/lease/boot/fence当前且未到期，未知或过期不能复活
+2. heartbeatSequence严格前进才延长2分钟TTL；inputSequence严格前进才按服务接收时钟更新LastInputAt并清空空闲提醒，客户端lastInputAt仅兼容显示
+3. 等或旧心跳仅回当前快照，不续TTL/更新活动；成功响应包含当前共享账户lease的两个最新序号，同账户多tab先衔接服务序号，不拆成每tab锁
+4. 提醒界点固定LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不能延后，超过界点的新输入不能续活；实际通知/审计仍由完整业务编排可靠发送
 
 **错误**
 
@@ -519,8 +521,9 @@ func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLock
 - 副作用：内存lease时间
 - 授权：content.edit
 - 并发：doc mutex
-- 幂等：心跳序号单调，旧心跳不延长已释放锁
-- 依赖：无
+- 幂等：共享账户lease内心跳和输入序号各自单调；旧心跳不续TTL，已释放/过期/旧boot/fence永不复活
+- 依赖：`content.RenewLease`
+- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
 
 ## content.ReleaseEditLock
 
@@ -561,7 +564,8 @@ func ReleaseEditLock(ctx context.Context, op OperationContext, input ReleaseEdit
 - 授权：content.edit自身
 - 并发：doc mutex
 - 幂等：重复release无效果
-- 依赖：无
+- 依赖：`content.ReleaseLease`
+- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
 
 ## content.ForceReleaseEditLock
 
@@ -603,7 +607,8 @@ func ForceReleaseEditLock(ctx context.Context, op OperationContext, input ForceR
 - 授权：superadmin
 - 并发：与save登记同doc mutex
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：无
+- 依赖：`content.ForceReleaseLease`
+- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
 
 ## content.ExpireIdleLocks
 
@@ -644,6 +649,680 @@ func ExpireIdleLocks(ctx context.Context, op OperationContext, input ExpireIdleL
 - 授权：service:content内存maintenance
 - 并发：逐docmutex避免全局阻塞
 - 幂等：已释放不重复事件
+- 依赖：`content.ExpireLeases`
+- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
+
+## content.NewEditLockManager
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：真实control区NOFOLLOW/SameFile与flock单leader，持有至Close不unlink
+
+```go
+func NewEditLockManager(store *Store) (*EditLockManager,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实control区NOFOLLOW/SameFile与flock单leader，持有至Close不unlink
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.validateEditLeader`、`platform.ValidatePrivatePath`
+- 其他依赖说明：锁核心3种业务Input在本域按types.json投影；HTTP生成request DTO拆分路径字段，未来handler经严格边界显式映射，不依赖被裁剪的gen业务Input
+
+## content.validateEditLeader
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：复用私有路径及打开前后SameFile拒绝leader路径替换
+
+```go
+func validateEditLeader(file *os.File) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用私有路径及打开前后SameFile拒绝leader路径替换
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.lockEditCell
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：先核真实文档存在才分配site/doc cell，拒绝不存在ID无限积累；取得doc锁后用例仍重核权威
+
+```go
+func (manager *EditLockManager) lockEditCell(ctx context.Context, op OperationContext, documentID Identifier) (*editLeaseCell, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先核真实文档存在才分配site/doc cell，拒绝不存在ID无限积累；取得doc锁后用例仍重核权威
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.ReadDocumentEditState`
+
+## content.AcquireLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：真实文档/删除/隔离检查后分配或复用账户共享租约，其他账户只读，不因开tab重置活动
+
+```go
+func (manager *EditLockManager) AcquireLease(ctx context.Context,op OperationContext,input AcquireLeaseInput) (EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实文档/删除/隔离检查后分配或复用账户共享租约，其他账户只读，不因开tab重置活动
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.requireEditableDocument`、`content.refreshEditLease`、`content.advanceEditFence`
+
+## content.RenewLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：严格前进心跳才续2min，严格前进输入才以服务器接收时间更新活动；旧心跳不续期
+
+```go
+func (manager *EditLockManager) RenewLease(ctx context.Context,op OperationContext,input RenewEditLockInput) (EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格前进心跳才续2min，严格前进输入才以服务器接收时间更新活动；旧心跳不续期
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.requireEditableDocument`、`content.matchEditLease`、`content.refreshEditLease`
+
+## content.ReleaseLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：只释放匹配holder/lease/boot的当前内存锁并提高fence；完整通知编排另行实施
+
+```go
+func (manager *EditLockManager) ReleaseLease(ctx context.Context,op OperationContext,input ReleaseEditLockInput) (EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只释放匹配holder/lease/boot的当前内存锁并提高fence；完整通知编排另行实施
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.advanceEditFence`
+
+## content.ForceReleaseLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：已由超管编排授权后的expectedLease匹配内存强释，不实现未交付通知/审计/原回执
+
+```go
+func (manager *EditLockManager) ForceReleaseLease(ctx context.Context,op OperationContext,input ForceReleaseEditLockInput) (EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已由超管编排授权后的expectedLease匹配内存强释，不实现未交付通知/审计/原回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.advanceEditFence`
+
+## content.ExpireLeases
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达
+
+```go
+func (manager *EditLockManager) ExpireLeases(ctx context.Context,op OperationContext) ([]EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.refreshEditLease`、`content.editLockSnapshot`
+
+## content.AcquireSaveFence
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：持同doc mutex及生命周期读锁检查真实doc/deleteFence/隔离与当前holder/lease/boot/fence直到Release
+
+```go
+func (manager *EditLockManager) AcquireSaveFence(ctx context.Context,op OperationContext,input DraftFenceInput) (*SaveFenceGuard,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持同doc mutex及生命周期读锁检查真实doc/deleteFence/隔离与当前holder/lease/boot/fence直到Release
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.AcquireDocumentFence`、`content.requireEditableDocument`、`content.matchEditLease`、`content.copyEditLease`、`content.ReleaseFence`
+
+## content.AcquireDocumentFence
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态
+
+```go
+func (manager *EditLockManager) AcquireDocumentFence(ctx context.Context,op OperationContext,documentID Identifier) (*SaveFenceGuard,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`
+
+## content.DocumentState
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：返回guard取得的持久文档快照，不能替代提交事务内CAS
+
+```go
+func (guard *SaveFenceGuard) DocumentState() DocumentEditState
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回guard取得的持久文档快照，不能替代提交事务内CAS
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.GuardLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：返回已核租约深拷贝，不暴露可改写的内存权威
+
+```go
+func (guard *SaveFenceGuard) GuardLease() *gen.EditLease
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回已核租约深拷贝，不暴露可改写的内存权威
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.copyEditLease`
+
+## content.ReleaseFence
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：先释放doc mutex再释放manager生命读锁，重复释放安全
+
+```go
+func (guard *SaveFenceGuard) ReleaseFence()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先释放doc mutex再释放manager生命读锁，重复释放安全
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.matchEditLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：核当前holder/lease/boot/fence及真实服务时间未过期，旧资格不可复活
+
+```go
+func (manager *EditLockManager) matchEditLease(cell *editLeaseCell,op OperationContext,input DraftFenceInput,now time.Time) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前holder/lease/boot/fence及真实服务时间未过期，旧资格不可复活
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.editLeaseExpired`
+
+## content.requireEditableDocument
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：持久隔离、trash/purged阻止编辑，不根据请求猜文档
+
+```go
+func requireEditableDocument(state DocumentEditState) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持久隔离、trash/purged阻止编辑，不根据请求猜文档
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.advanceEditFence
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：提高boot内单调fence，达到安全整数上限则关闭该cell不溢出
+
+```go
+func advanceEditFence(cell *editLeaseCell) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 提高boot内单调fence，达到安全整数上限则关闭该cell不溢出
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.editLeaseExpired
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：判断2min心跳或LastInputAt+17min绝对无输入期限，即使没及时检测提醒也不能复活
+
+```go
+func editLeaseExpired(lease *gen.EditLease,now time.Time) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 判断2min心跳或LastInputAt+17min绝对无输入期限，即使没及时检测提醒也不能复活
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.refreshEditLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：空闲提醒界点固定LastInputAt+15min，17min绝对失效；检测延迟不能延后宽限
+
+```go
+func refreshEditLease(cell *editLeaseCell,now time.Time) (bool,string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 空闲提醒界点固定LastInputAt+15min，17min绝对失效；检测延迟不能延后宽限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.editLeaseExpired`、`content.advanceEditFence`
+
+## content.copyEditLease
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：深拷贝共享租约及nullable提醒时间，禁止调用方改写权威
+
+```go
+func copyEditLease(lease *gen.EditLease) *gen.EditLease
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 深拷贝共享租约及nullable提醒时间，禁止调用方改写权威
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：无
+
+## content.editLockSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：返回真实内存状态供完整用例可靠通知/审计编排，不当作已提交HTTP回执
+
+```go
+func (manager *EditLockManager) editLockSnapshot(op OperationContext,documentID Identifier,cell *editLeaseCell,changed bool,cause string) EditLockSnapshot
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回真实内存状态供完整用例可靠通知/审计编排，不当作已提交HTTP回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 依赖：`content.copyEditLease`
+
+## content.CloseEditLocks
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_service.go`
+- 作用：life写锁先排空全部操作和guard，再释放flock及句柄，关闭后拒绝旧manager
+
+```go
+func (manager *EditLockManager) CloseEditLocks() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. life写锁先排空全部操作和guard，再释放flock及句柄，关闭后拒绝旧manager
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
+- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
 - 依赖：无
 
 ## content.ReadDraft
@@ -1931,7 +2610,8 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 - 授权：私有SaveDraft/Create事务
 - 并发：doc rowCAS + fence检查
 - 幂等：operationId+canonicaldigest去重
-- 依赖：无
+- 依赖：`content.AcquireSaveFence`、`content.DocumentState`、`content.GuardLease`、`content.ReleaseFence`
+- 其他依赖说明：未来真实DraftCommitStore须接SaveFenceGuard并在同SQL事务重查doc/deleteFence/隔离、CAS/ledger/refs/pin/receipt/outbox；当前无adapter，不用恒成功ValidateFence补洞
 
 ## content.ReadRevisionBody
 
@@ -2598,7 +3278,7 @@ func TrashDocument(ctx context.Context, op OperationContext, input TrashDocument
 - 授权：content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.PlanOldPathRedirects`、`content.ValidatePublications`
+- 依赖：`content.PlanOldPathRedirects`、`content.ValidatePublications`、`content.AcquireDocumentFence`、`content.DocumentState`、`content.ReleaseFence`
 
 ## content.RestoreDocument
 
@@ -2645,7 +3325,7 @@ func RestoreDocument(ctx context.Context, op OperationContext, input RestoreDocu
 - 授权：content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.ValidatePathSegment`、`content.EnsureTreeAcyclic`、`media:readAsset`
+- 依赖：`content.ValidatePathSegment`、`content.EnsureTreeAcyclic`、`media:readAsset`、`content.AcquireDocumentFence`、`content.DocumentState`、`content.ReleaseFence`
 
 ## content.PurgeDocuments
 
@@ -2689,7 +3369,7 @@ func PurgeDocuments(ctx context.Context, op OperationContext, input PurgeDocumen
 - 授权：superadmin
 - 并发：purge/tree互斥，资源引用版本原子提高
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：无
+- 依赖：`content.AcquireDocumentFence`、`content.DocumentState`、`content.ReleaseFence`
 
 ## content.ReadRevisionHistory
 
@@ -4030,8 +4710,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`
-- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`
+- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
 
@@ -5149,3 +5829,36 @@ func All() ([]Migration, error)
 - 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
 - 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
 - 依赖：无
+
+## content.ReadDocumentEditState
+
+- 级别：参考
+- 文件：`modules/content/internal/document_edit_state.go`
+- 作用：按真实site/epoch读取documents及隔离，缺文档NOT_FOUND，不从输入创建
+
+```go
+func (s *Store) ReadDocumentEditState(ctx context.Context, op OperationContext, documentID Identifier) (DocumentEditState, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同绑定site/epoch读取真实documents和document_quarantines
+2. 只返回持久state/revision/deleteFence/隔离，由具体用例决定允许状态
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.checkRevisionScope`、`content.contentStorageError`

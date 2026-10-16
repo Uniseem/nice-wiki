@@ -876,7 +876,7 @@
       "put": {
         "operationId": "renewEditLock",
         "summary": "心跳维持锁并处理长时间无输入",
-        "description": "调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 heartbeatSequence与inputSequence分别严格单调；成功返回当前共享租约的最新序号，lastInputAt仅兼容显示，不能作为可信活跃时刻。",
         "x-handler": "content.RenewEditLock",
         "x-permission": "content.edit",
         "security": [

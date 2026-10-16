@@ -39,3 +39,6 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 待实现SaveDraft的媒体abort恢复对齐新版ReleaseResourceReferences：先源持久aborted/rejected，再携sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest、nullable pinId、reason请求媒体原子封存。pinId未知不先重新Acquire，避免资源已不可用时恢复永久卡住；COMMITTED优先且不释放已提交历史引用。此条仍planned，不代表媒体流程已实现。
 
 本轮树纯规则先核完整原树，再核拟移子树的完整高度：根为第1层，总深度最多32，禁止移入自己或后代。返回后代固定为原树ID字典序，不修改输入；MoveDocument/redirect事务仍待后续实现。本轮资源纯规则只提取已核正文的精确引用，不申请pin、不提交引用、不探测资源，也不修改head。
+
+
+第二轮只交付参考锁核心：已即时授权用例和identity姓名→真实持久doc状态→单leader内存账户共享lease；新心跳序号续TTL，新输入序号更新服务活动→固定15分钟提醒/17分钟绝对失效→同docmutex释放/提高fence。返回快照仍须由完整用例可靠通知和审计，不能直接绑定为已成功的HTTP。提交前AcquireSaveFence持生命读锁/docmutex→核真实doc/delete/隔离和lease/boot/fence→未来短SQL事务内再核CAS/ledger/refs/pin/receipt/outbox→Release；当前完整事务链仍blocked。

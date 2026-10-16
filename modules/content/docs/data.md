@@ -249,3 +249,18 @@ RevisionFileStore独立于DraftCommitStore，新增WithRevisionFileStore且保�
 首个可信新库的epoch与第1迁移及记录同SQL事务提交；JSONL追加/fsync与所有journal扫描共享RWMutex，读快照与追加互斥，锁内不取SQL/Store互斥。journal使用标准NOFOLLOW并在打开前后/读写后验证SameFile及公共私有路径，不持DB事务跨文件IO。
 
 持久prepared/committed决定必须有完整同材料JSONL；Find缺日志即完整性失败。启动反向核对全部已准备/提交索引，不能只扫描现存日志而漏丢失/截空记录；唯一允许无日志的是尚未append的preparing且没有提交资格，缺日志不猜补。
+
+
+## 第二轮编辑锁与持久文档fence
+
+0002只追加documents的site/doc、生命周期state、元数据revision和delete_fence权威；不插入任何文档，不从待保存请求/文件猜存在或删除状态。隔离继续读document_quarantines；未绑定站点的库有documents记录同样拒绝启动。完整Create/Trash/Restore/Purge必须在同doc mutex与本域业务事务内维护真实行及删除fence，当前仍未实施，不以影子状态代替。
+
+EditLockManager持control/content-leader.lock的flock至Close，私有路径/NOFOLLOW/打开前后SameFile阻止链接和路径替换，从不unlink控制锁文件。所有操作先持manager生命读锁，再取site/doc二元键mutex，后读SQL；SaveFenceGuard持两把锁至Release。Close先取生命写锁排空所有已取guard再释放flock，新旧leader不能在旧guard尚可提交时重叠。内存lease/boot/fence不进快照；数据库仍是文档/delete/隔离权威。
+
+RenewEditLockInput及请求新增required heartbeatSequence/inputSequence（0..9007199254740991），EditLease返回两者当前值，类型/OpenAPI为唯一来源并由根VPS重生成。每个共享账户lease有一对序号，同账户多tab先衔接服务返回值再递增，不生成每tab锁。心跳严格前进才续2分钟TTL，输入严格前进才以服务接收时钟更新LastInputAt并清提醒；等/旧心跳仅返回当前快照，不续期或更新活动。客户端lastInputAt只兼容显示，不信作活跃时间；过期/旧boot/fence不能续回。
+
+15分钟提醒界点固定为LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不延后界点，逾期新输入不能续活。提醒/释放快照只是内存事实，尚未通过jobs通知或审计，完整约束用例必须可靠编排后才能对HTTP声明成功。Core显示名参数必须来自identity权威，不能浏览器自报；本轮未伪造姓名生产方或超管授权，也未新增未获消费者确认的事件。
+
+SaveFenceGuard是实际lease/boot/fence和expectedDeleteFence材料的短事务前置，核持久doc状态与隔离；Release后不得用于提交。完整DraftCommitStore尚未实现；未来仍须在同SQL事务重查doc/deleteFence/隔离和head CAS，并完成稳定ID ledger、refs/pin、原回执及平台outbox，guard快照不替代数据库事务校验。
+
+cell分配前先查真实文档存在，NOT_FOUND不进入map或后台扫描；调用方取得同doc mutex后仍重读生命周期/delete/隔离权威。仅真实文档保留单调fence，避免随机缺失ID永久积累。
