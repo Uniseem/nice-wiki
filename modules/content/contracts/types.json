@@ -2775,7 +2775,7 @@
     },
     "AcquireEditLockResult": {
       "type": "object",
-      "description": "打开文档自动获得内存编辑锁的结果",
+      "description": "原操作快照；别人持有有效锁时成功返回lease和writable=false，显示名按纯文本；旧boot回执不恢复锁",
       "additionalProperties": false,
       "properties": {
         "lease": {
@@ -2939,7 +2939,7 @@
       "properties": {
         "now": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "可信server clock"
+          "description": "仅本站后台调度器当前服务时钟；同operationId重试保持原时刻"
         }
       },
       "required": [
@@ -6233,7 +6233,7 @@
     "EditLockManager": {
       "type": "object",
       "x-internal": true,
-      "description": "控制区flock持有期间唯一的内存账户共享租约管理器；未包含业务通知/审计/handler",
+      "description": "单leader内存共享租约和同doc guard，变更经可靠原回执事务确认后安装",
       "additionalProperties": false,
       "properties": {},
       "required": []
@@ -6249,7 +6249,7 @@
     "EditLockSnapshot": {
       "type": "object",
       "x-internal": true,
-      "description": "真实核心返回的租约/单调fence/状态变化快照，副作用通知仍由完整业务用例负责",
+      "description": "持久原操作结果，仅同boot待确认候选可安装，历史回放不重建租约",
       "additionalProperties": false,
       "properties": {},
       "required": []
@@ -6257,7 +6257,7 @@
     "AcquireLeaseInput": {
       "type": "object",
       "x-internal": true,
-      "description": "已授权内部核心输入：docId和identity权威获得的安全账户显示名，不接受浏览器自报姓名",
+      "description": "已授权内部输入doc/tab与identity权威安全姓名，不接受浏览器自报姓名",
       "additionalProperties": false,
       "properties": {},
       "required": []
@@ -6293,6 +6293,129 @@
       "additionalProperties": false,
       "properties": {},
       "required": []
+    },
+    "EditLockRuntime": {
+      "type": "object",
+      "x-internal": true,
+      "description": "已认证本域manager、identity生成客户端与平台WriteWindow配置的装配句柄",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "editLockCommand": {
+      "type": "object",
+      "x-internal": true,
+      "description": "内部动作/文档/原输入/权威姓名和后台now；不接受浏览器选择动作",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "editLockReceiptKey": {
+      "type": "object",
+      "x-internal": true,
+      "description": "caller/actor/site/epoch/op/scope与完整规范摘要及文档绑定",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "pendingEditLock": {
+      "type": "object",
+      "x-internal": true,
+      "description": "仅当前boot未知SQL提交的候选和原回执hash，保存前真实查决定，不持久恢复",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "editLockQuery": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域SQLite数据库或事务的最小原回执读取句柄",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "EditLockChangedPayload": {
+      "type": "object",
+      "description": "可靠编辑状态元数据；无正文/姓名/leaseId。跨boot顺序仅信封revision，过期字段不作为授权",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "serverBootId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "fencingToken": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "cause": {
+          "type": "string",
+          "enum": [
+            "acquired",
+            "released",
+            "forced",
+            "expired",
+            "idle_warning",
+            "active"
+          ]
+        },
+        "holderAccountId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "affectedAccountId": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "idleWarningAt": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "siteId",
+        "documentId",
+        "serverBootId",
+        "fencingToken",
+        "cause",
+        "holderAccountId",
+        "affectedAccountId",
+        "expiresAt",
+        "idleWarningAt"
+      ]
     }
   }
 }

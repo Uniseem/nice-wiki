@@ -42,3 +42,14 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 
 
 第二轮只交付参考锁核心：已即时授权用例和identity姓名→真实持久doc状态→单leader内存账户共享lease；新心跳序号续TTL，新输入序号更新服务活动→固定15分钟提醒/17分钟绝对失效→同docmutex释放/提高fence。返回快照仍须由完整用例可靠通知和审计，不能直接绑定为已成功的HTTP。提交前AcquireSaveFence持生命读锁/docmutex→核真实doc/delete/隔离和lease/boot/fence→未来短SQL事务内再核CAS/ledger/refs/pin/receipt/outbox→Release；当前完整事务链仍blocked。
+
+
+## 完整编辑锁用例的提交边界
+
+本轮Acquire/Renew/Release/Force先经identity即时核当前会话和功能权限，安全姓名仅来自同次AuthorizationDecision.accountName。别人持有有效锁时，原AcquireEditLockResult成功返回lease+writable=false；LOCKED保留给文档不可编辑、租约失效或维护窗口等。旧operationId先回原历史结果，再来的原租约不能因此复活；同键异动作、文档或完整参数返回CONFLICT。
+
+当前平台写窗口在文档互斥前建立；同doc mutex内复制候选，真实文档状态/deleteFence/隔离在短事务重核。原回执、跨boot单调revision的content.edit-lock.changed v1 outbox与本地审计提交成功，才把候选安装到权威内存。Commit结果未知时仅保留内存pending；所有编辑和保存guard先读取真实原回执决定安装或丢弃，读取失败保持关闭。匹配fence/到期是纯检查，不能偷偷清权威租约而漏发通知。fence耗尽不安装失败候选；旧租约仍按原到期界点拒绝保存。
+
+Expire使用本域调度器可信now，同操作局部失败后将已完成scope一起回放，逐文档事务不重复事件。15分钟提醒固定于LastInputAt+15，17分钟绝对失效；新输入清提醒发送active。状态载荷没有姓名、正文或leaseId，通知只供界面失效提示，不代替保存入口同步核租约。原回执虽然保留历史lease结果，授权仍只在当前boot内存，恢复/重启绝不据此重建。
+
+本轮只实现生产者可靠排队和本域持久审计，RelayOutbox/HTTP绑定、portal在线通知消费/流与启动后台尚未装配；不声称在线编辑器已收到强释，也不声称完整服务可运行。

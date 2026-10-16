@@ -1069,6 +1069,11 @@
       "purpose": "持久文档存在/生命周期/删除fence及隔离读取"
     },
     {
+      "path": "modules/content/internal/edit_lock_operations.go",
+      "kind": "source",
+      "purpose": "编辑锁完整用例、权威账户名、可靠原回执/状态事件/审计事务"
+    },
+    {
       "path": "modules/content/internal/edit_lock_service.go",
       "kind": "source",
       "purpose": "打开文档自动获得内存编辑锁"
@@ -1137,6 +1142,11 @@
       "path": "modules/content/migrations/0002_document_edit_state.sql",
       "kind": "source",
       "purpose": "追加documents身份/生命周期/删除fence表，不插入文档或持久租约"
+    },
+    {
+      "path": "modules/content/migrations/0003_edit_lock_operations.sql",
+      "kind": "source",
+      "purpose": "只追加编辑锁操作原回执、事件水位与审计；不重建内存租约"
     },
     {
       "path": "modules/content/migrations/migrations.go",

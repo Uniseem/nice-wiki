@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 	"syscall"
 	"time"
@@ -23,10 +22,11 @@ type editLeaseCell struct {
 	fence     int64
 	exhausted bool
 	lease     *gen.EditLease
+	pending   *pendingEditLock
 }
 
-// EditLockManager只实现真实租约和短事务guard。完整handler仍须即时授权、
-// identity账户显示名、可靠通知/审计与原操作回执，不能直接把核心当HTTP成功。
+// EditLockManager持有单leader与文档互斥；完整用例在同锁下持久原回执、通知和审计，
+// 候选事务确认前不发布内存租约。HTTP与后台入口仍由启动装配负责。
 type EditLockManager struct {
 	store   *Store
 	bootID  Identifier
@@ -41,6 +41,7 @@ type EditLockManager struct {
 type AcquireLeaseInput struct {
 	DocumentID  Identifier
 	AccountName string
+	TabID       Identifier
 }
 
 // 下列业务Input按types.json唯一业务定义投影；生成的HTTP request DTO
@@ -66,7 +67,7 @@ type ForceReleaseEditLockInput struct {
 	ExpectedLeaseId Identifier `json:"expectedLeaseId"`
 }
 
-// EditLockSnapshot是供完整用例编排的内存事实，不代表通知或审计已经提交。
+// EditLockSnapshot持久于原回执；仅execute完成通知/审计事务后才返回成功。
 type EditLockSnapshot struct {
 	SiteID       Identifier
 	DocumentID   Identifier
@@ -184,192 +185,26 @@ func (manager *EditLockManager) lockEditCell(ctx context.Context, op OperationCo
 	return cell, nil
 }
 
-// AcquireLease在真实文档状态检查后分配或复用账户共享锁；新tab不重置活动。
+// AcquireLease只接受完整用例取得的identity权威姓名。
 func (manager *EditLockManager) AcquireLease(ctx context.Context, op OperationContext, input AcquireLeaseInput) (EditLockSnapshot, error) {
-	manager.life.RLock()
-	defer manager.life.RUnlock()
-	if manager.closed {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeLocked, false, "编辑leader已关闭")
-	}
-	cell, err := manager.lockEditCell(ctx, op, input.DocumentID)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.mu.Lock()
-	defer cell.mu.Unlock()
-	state, err := manager.store.ReadDocumentEditState(ctx, op, input.DocumentID)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if err := requireEditableDocument(state); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	now := time.Now().UTC()
-	changed, cause, err := refreshEditLease(cell, now)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if cell.lease != nil {
-		return manager.editLockSnapshot(op, input.DocumentID, cell, changed, cause), nil
-	}
-	if err := advanceEditFence(cell); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.lease = &gen.EditLease{DocumentId: input.DocumentID, HolderAccountId: op.Actor.SubjectID, HolderAccountName: input.AccountName, LeaseId: platform.NewIdentifier(), FencingToken: int(cell.fence), ServerBootId: manager.bootID, ExpiresAt: now.Add(2 * time.Minute), LastInputAt: now, IdleWarningAt: nil, HeartbeatSequence: 0, InputSequence: 0}
-	return manager.editLockSnapshot(op, input.DocumentID, cell, true, "acquired"), nil
+	return manager.executeEditLock(ctx, op, editLockCommand{action: "acquire", documentID: input.DocumentID, accountName: input.AccountName, input: AcquireEditLockInput{DocumentId: input.DocumentID, TabId: input.TabID}})
 }
 
-// RenewLease分别接受单调心跳和输入；旧心跳不续期，lastInputAt不参与权威。
 func (manager *EditLockManager) RenewLease(ctx context.Context, op OperationContext, input RenewEditLockInput) (EditLockSnapshot, error) {
-	manager.life.RLock()
-	defer manager.life.RUnlock()
-	if manager.closed {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeLocked, false, "编辑leader已关闭")
-	}
-	cell, err := manager.lockEditCell(ctx, op, input.DocumentId)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.mu.Lock()
-	defer cell.mu.Unlock()
-	state, err := manager.store.ReadDocumentEditState(ctx, op, input.DocumentId)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if err := requireEditableDocument(state); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	now := time.Now().UTC()
-	if err := manager.matchEditLease(cell, op, DraftFenceInput{DocumentID: input.DocumentId, LeaseID: input.LeaseId, FencingToken: int64(input.FencingToken), ServerBootID: input.ServerBootId}, now); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if input.HeartbeatSequence <= cell.lease.HeartbeatSequence {
-		return manager.editLockSnapshot(op, input.DocumentId, cell, false, "unchanged"), nil
-	}
-	cell.lease.HeartbeatSequence = input.HeartbeatSequence
-	if input.InputSequence > cell.lease.InputSequence {
-		cell.lease.InputSequence = input.InputSequence
-		cell.lease.LastInputAt = now
-		cell.lease.IdleWarningAt = nil
-	}
-	cell.lease.ExpiresAt = now.Add(2 * time.Minute)
-	changed, cause, err := refreshEditLease(cell, now)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if cell.lease != nil && cell.lease.IdleWarningAt != nil {
-		deadline := cell.lease.IdleWarningAt.Add(2 * time.Minute)
-		if deadline.Before(cell.lease.ExpiresAt) {
-			cell.lease.ExpiresAt = deadline
-		}
-	}
-	return manager.editLockSnapshot(op, input.DocumentId, cell, changed, cause), nil
+	return manager.executeEditLock(ctx, op, editLockCommand{action: "renew", documentID: input.DocumentId, input: input})
 }
 
 func (manager *EditLockManager) ReleaseLease(ctx context.Context, op OperationContext, input ReleaseEditLockInput) (EditLockSnapshot, error) {
-	manager.life.RLock()
-	defer manager.life.RUnlock()
-	if manager.closed {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeLocked, false, "编辑leader已关闭")
-	}
-	cell, err := manager.lockEditCell(ctx, op, input.DocumentId)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.mu.Lock()
-	defer cell.mu.Unlock()
-	if _, err := manager.store.ReadDocumentEditState(ctx, op, input.DocumentId); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if cell.lease == nil {
-		return manager.editLockSnapshot(op, input.DocumentId, cell, false, "released"), nil
-	}
-	if cell.lease.HolderAccountId != op.Actor.SubjectID {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeForbidden, false, "不能释放其他账户编辑锁")
-	}
-	if cell.lease.LeaseId != input.LeaseId || cell.lease.ServerBootId != input.ServerBootId {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeVersionMismatch, false, "编辑锁已变化")
-	}
-	if err := advanceEditFence(cell); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.lease = nil
-	return manager.editLockSnapshot(op, input.DocumentId, cell, true, "released"), nil
+	return manager.executeEditLock(ctx, op, editLockCommand{action: "release", documentID: input.DocumentId, input: input})
 }
 
-// ForceReleaseLease只实现已授权超管编排中的原子内存步骤；不是完整HTTP回执。
 func (manager *EditLockManager) ForceReleaseLease(ctx context.Context, op OperationContext, input ForceReleaseEditLockInput) (EditLockSnapshot, error) {
-	manager.life.RLock()
-	defer manager.life.RUnlock()
-	if manager.closed {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeLocked, false, "编辑leader已关闭")
-	}
-	cell, err := manager.lockEditCell(ctx, op, input.DocumentId)
-	if err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.mu.Lock()
-	defer cell.mu.Unlock()
-	if _, err := manager.store.ReadDocumentEditState(ctx, op, input.DocumentId); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	if cell.lease == nil {
-		return manager.editLockSnapshot(op, input.DocumentId, cell, false, "released"), nil
-	}
-	if cell.lease.LeaseId != input.ExpectedLeaseId {
-		return EditLockSnapshot{}, platform.NewError(platform.CodeVersionMismatch, false, "待强释编辑锁已变化")
-	}
-	if err := advanceEditFence(cell); err != nil {
-		return EditLockSnapshot{}, err
-	}
-	cell.lease = nil
-	return manager.editLockSnapshot(op, input.DocumentId, cell, true, "forced"), nil
+	return manager.executeEditLock(ctx, op, editLockCommand{action: "force", documentID: input.DocumentId, input: input})
 }
 
-// ExpireLeases只返回真实已发生的内存变化；完整后台编排还须可靠发通知。
-func (manager *EditLockManager) ExpireLeases(ctx context.Context, op OperationContext) ([]EditLockSnapshot, error) {
-	manager.life.RLock()
-	defer manager.life.RUnlock()
-	if manager.closed {
-		return nil, platform.NewError(platform.CodeLocked, false, "编辑leader已关闭")
-	}
-	if op.CallerService != "content" || op.Actor.Kind != "service" {
-		return nil, platform.NewError(platform.CodeForbidden, false, "编辑锁过期仅由本域后台执行")
-	}
-	manager.cellsMu.Lock()
-	keys := make([]editDocumentKey, 0, len(manager.cells))
-	for key := range manager.cells {
-		keys = append(keys, key)
-	}
-	manager.cellsMu.Unlock()
-	sort.Slice(keys, func(i, j int) bool {
-		if keys[i].site != keys[j].site {
-			return keys[i].site < keys[j].site
-		}
-		return keys[i].document < keys[j].document
-	})
-	result := make([]EditLockSnapshot, 0)
-	now := time.Now().UTC()
-	for _, key := range keys {
-		if err := checkContextOnly(ctx); err != nil {
-			return nil, err
-		}
-		manager.cellsMu.Lock()
-		cell := manager.cells[key]
-		manager.cellsMu.Unlock()
-		cell.mu.Lock()
-		changed, cause, err := refreshEditLease(cell, now)
-		siteOp := op
-		siteOp.Actor.SiteID = key.site
-		if changed {
-			result = append(result, manager.editLockSnapshot(siteOp, key.document, cell, true, cause))
-		}
-		cell.mu.Unlock()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return result, nil
+// ExpireLeases由完整后台用例限定本站，逐文档提交；同次后台重试复用每篇原回执。
+func (manager *EditLockManager) ExpireLeases(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot, error) {
+	return manager.expireEditLocks(ctx, op, now)
 }
 
 // AcquireSaveFence在提交前持同doc mutex重查真实文档/delete/隔离与当前租约。
@@ -408,6 +243,11 @@ func (manager *EditLockManager) AcquireDocumentFence(ctx context.Context, op Ope
 		return nil, err
 	}
 	cell.mu.Lock()
+	if err := manager.resolvePendingEditLock(ctx, cell); err != nil {
+		cell.mu.Unlock()
+		manager.life.RUnlock()
+		return nil, err
+	}
 	state, err := manager.store.ReadDocumentEditState(ctx, op, documentID)
 	if err != nil {
 		cell.mu.Unlock()

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 65 个：手写 38、UI 12、生成 5、配置 10。函数 156 个：约束 42，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 67 个：手写 40、UI 12、生成 5、配置 10。函数 166 个：约束 42，参考 124。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -11,7 +11,7 @@
 | `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考）、`content.documentTreeDepths`（参考） |
 | `modules/content/internal/metadata_service.go` | 手写 | 修改标题/路径/SEO描述/分享图 | `content.UpdateDocumentMetadata` |
 | `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考） |
-| `modules/content/internal/edit_lock_service.go` | 手写 | 打开文档自动获得内存编辑锁 | `content.AcquireEditLock`、`content.RenewEditLock`、`content.ReleaseEditLock`、`content.ForceReleaseEditLock`、`content.ExpireIdleLocks`（参考）、`content.NewEditLockManager`（参考）、`content.validateEditLeader`（参考）、`content.lockEditCell`（参考）、`content.AcquireLease`（参考）、`content.RenewLease`（参考）、`content.ReleaseLease`（参考）、`content.ForceReleaseLease`（参考）、`content.ExpireLeases`（参考）、`content.AcquireSaveFence`（参考）、`content.AcquireDocumentFence`（参考）、`content.DocumentState`（参考）、`content.GuardLease`（参考）、`content.ReleaseFence`（参考）、`content.matchEditLease`（参考）、`content.requireEditableDocument`（参考）、`content.advanceEditFence`（参考）、`content.editLeaseExpired`（参考）、`content.refreshEditLease`（参考）、`content.copyEditLease`（参考）、`content.editLockSnapshot`（参考）、`content.CloseEditLocks`（参考） |
+| `modules/content/internal/edit_lock_service.go` | 手写 | 单leader内存租约、共享序号和同文档提交guard；改变租约统一经可靠操作事务 | `content.NewEditLockManager`（参考）、`content.validateEditLeader`（参考）、`content.lockEditCell`（参考）、`content.AcquireLease`（参考）、`content.RenewLease`（参考）、`content.ReleaseLease`（参考）、`content.ForceReleaseLease`（参考）、`content.ExpireLeases`（参考）、`content.AcquireSaveFence`（参考）、`content.AcquireDocumentFence`（参考）、`content.DocumentState`（参考）、`content.GuardLease`（参考）、`content.ReleaseFence`（参考）、`content.matchEditLease`（参考）、`content.requireEditableDocument`（参考）、`content.advanceEditFence`（参考）、`content.editLeaseExpired`（参考）、`content.refreshEditLease`（参考）、`content.copyEditLease`（参考）、`content.editLockSnapshot`（参考）、`content.CloseEditLocks`（参考） |
 | `modules/content/internal/draft_service.go` | 手写 | 读取全篇共享草稿及编辑状态 | `content.ReadDraft`、`content.SaveDraft` |
 | `modules/content/internal/block_validator.go` | 手写 | 验证全部Tiptap块及稳定ID | `content.ValidateBlockTree`（参考）、`content.ValidateInline`（参考）、`content.visit`（参考）、`content.validateInlineNodes`（参考）、`content.validateContentLink`（参考）、`content.validateContentMath`（参考）、`content.contentInteger`（参考）、`content.contentNumber`（参考） |
 | `modules/content/internal/table_validator.go` | 手写 | 验证表格合并单元格覆盖 | `content.ValidateTableGrid`（参考）、`content.validateTableGridNode`（参考） |
@@ -71,3 +71,5 @@
 | `modules/content/migrations/0001_domain.sql` | 手写 | 初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交 | 无 |
 | `modules/content/internal/document_edit_state.go` | 手写 | 持久文档存在/生命周期/删除fence及隔离读取 | `content.ReadDocumentEditState`（参考） |
 | `modules/content/migrations/0002_document_edit_state.sql` | 手写 | 追加documents身份/生命周期/删除fence表，不插入文档或持久租约 | 无 |
+| `modules/content/internal/edit_lock_operations.go` | 手写 | 完整编辑锁用例、即时授权与安全姓名、可靠状态事件/本地审计/原回执及未知提交隔离 | `content.AcquireEditLock`、`content.RenewEditLock`、`content.ReleaseEditLock`、`content.ForceReleaseEditLock`、`content.ExpireIdleLocks`（参考）、`content.WithEditLockRuntime`（参考）、`content.editLockRuntimeFromContext`（参考）、`content.authorizeEditLock`（参考）、`content.executeEditLock`（参考）、`content.planEditLock`（参考）、`content.resolvePendingEditLock`（参考）、`content.readEditLockReceipt`（参考）、`content.commitEditLock`（参考）、`content.enqueueEditLockChange`（参考）、`content.expireEditLocks`（参考） |
+| `modules/content/migrations/0003_edit_lock_operations.sql` | 手写 | 只追加编辑原回执、跨boot状态事件修订和本地审计；不恢复权威租约 | 无 |
