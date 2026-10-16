@@ -2,13 +2,13 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 60 个：手写 33、UI 12、生成 5、配置 10。函数 99 个：约束 42，参考 57。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 60 个：手写 33、UI 12、生成 5、配置 10。函数 102 个：约束 42，参考 60。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/content/internal/document_service.go` | 手写 | 新建共享草稿文档 | `content.CreateDocument` |
 | `modules/content/internal/tree_service.go` | 手写 | 后台读取整站文档树 | `content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren` |
-| `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考） |
+| `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考）、`content.documentTreeDepths`（参考） |
 | `modules/content/internal/metadata_service.go` | 手写 | 修改标题/路径/SEO描述/分享图 | `content.UpdateDocumentMetadata` |
 | `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考） |
 | `modules/content/internal/edit_lock_service.go` | 手写 | 打开文档自动获得内存编辑锁 | `content.AcquireEditLock`、`content.RenewEditLock`、`content.ReleaseEditLock`、`content.ForceReleaseEditLock`、`content.ExpireIdleLocks`（参考） |
@@ -16,7 +16,7 @@
 | `modules/content/internal/block_validator.go` | 手写 | 验证全部Tiptap块及稳定ID | `content.ValidateBlockTree`（参考）、`content.ValidateInline`（参考）、`content.visit`（参考）、`content.validateInlineNodes`（参考）、`content.validateContentLink`（参考）、`content.validateContentMath`（参考）、`content.contentInteger`（参考）、`content.contentNumber`（参考） |
 | `modules/content/internal/table_validator.go` | 手写 | 验证表格合并单元格覆盖 | `content.ValidateTableGrid`（参考）、`content.validateTableGridNode`（参考） |
 | `modules/content/internal/columns_validator.go` | 手写 | 校验2–4栏比例和禁止嵌套 | `content.ValidateColumns`（参考）、`content.validateColumnsNode`（参考）、`content.hasNestedColumns`（参考） |
-| `modules/content/internal/reference_extractor.go` | 手写 | 扫描所有嵌套块资源引用 | `content.CollectResourceReferences`（参考） |
+| `modules/content/internal/reference_extractor.go` | 手写 | 扫描所有嵌套块资源引用 | `content.CollectResourceReferences`（参考）、`content.visitReferenceNode`（参考）、`content.appendResourceReference`（参考） |
 | `modules/content/internal/body_canonicalizer.go` | 手写 | 规范序列化正文并计算hash | `content.CanonicalizeBody`（参考）、`content.HashBlock`（参考）、`content.bodyJSONValue`（参考）、`content.canonicalContentValue`（参考）、`content.orderContentMarks`（参考） |
 | `modules/content/internal/revision_files.go` | 手写 | 持久写权威正文文件 | `content.WriteRevisionFile`（参考）、`content.RecoverPreparedCommits`（参考）、`content.revisionPreparationDigest`（参考）、`content.validatePreparedMaterial`（参考）、`content.newRevisionWriteWindow`（参考）、`content.persistPreparedRevision`（参考）、`content.verifyRevisionMaterialFile`（参考）、`content.quarantineRevisionMaterial`（参考） |
 | `modules/content/internal/revision_repository.go` | 手写 | 原子提交共享草稿head | `content.CommitDraftJournal`（参考） |

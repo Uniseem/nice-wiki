@@ -1,3 +1,19 @@
+# 本轮交接：文档树与资源引用纯规则（2026-10-16，待VPS检查）
+
+- 基线170c1dc9057e122e349de43db532b2c48434b6cf，分支codex/content-persistence-round1，初始clean；仅拥有modules/content，源码暂未提交。根统一调度VPS、生成、格式、编译与集成。
+- 先核持久化适配可交付性：本域只有DraftCommitStore/RevisionFileStore窄接口，尚无私有DB schema、migrations路径登记及启动打开/迁移协议；完整准备/COMMITTED资格/隔离适配必须先由集成会话批准结构并收口设计。本轮未悄悄建表或新增路径，根同意转做既有登记的纯规则切片。
+- 新增实际文件仅internal/tree_validator.go、internal/reference_extractor.go；EnsureTreeAcyclic/CollectResourceReferences及3个参考辅助，共5函数。implementation参考合同和progress已同步，待根make docs生成files/functions。无正文格式迁移、OpenAPI/跨域/public字段变化。
+- EnsureTreeAcyclic先检查完整原树，不用拟移动“修复”损坏原树；父链三色迭代无不受限递归。原树根为第1层，拟移subtree完整高度与新父深度之和不能大于32；返回原树后代ID字典序、不含自己，null moving只校验且返回空序列，输入不变。
+- CollectResourceReferences沿content递归前序，按image/attachment.asset、drawing.scene/lightSVG/darkSVG、uploaded.source.asset或platform.snapshot.cover、video.poster的固定角色顺序。nullable资源不造空ref，不取URL、不探测外部服务；平台cover和poster同ref只保留一次。
+- sourceKey是content+documentId+revisionId+sourceVersion+kind+blockId+assetId+assetVersion，保留不同block引用；同assetId/version出现不同SHA/长度/MIME返回INTEGRITY_ERROR。资源version用精确整数转换，不借contentInteger的float64通道；当前/发布/历史kind原样保留，retained=true仅表达当前被扫描正文仍保留。去重后10000上限，空序列为[]。
+- 待检查源码仍in_progress；正文保存/发布/HTTP/后台和真实私有adapter保持原blocked/planned，不把本轮纯规则解释为可运行服务。未本机Go或新增测试/fixture/mock/样例/临时业务程序，未真实接口/模型、服务、部署或push。
+
+## 下一步（一项）
+
+由根对本轮源码及本域参考合同运行隔离VPS make docs/gen、make build与make check并回传生成/格式文件；通过后按准确源码提交SHA更新本域台账，由根完成一轮集成。本域本轮后不自行启动下一工作包。
+
+---
+
 # 第五轮交接：正文文件核心（2026-10-16，已交付）
 
 本轮统一集成实际源码a6cd2bc，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。

@@ -646,9 +646,11 @@
           ],
           "purpose": "检查树无环和层级约束",
           "steps": [
-            "索引ID/parent，缺父、重复ID拒绝",
-            "DFS颜色判环，最长层级32",
-            "movingId不得等于parent或在其后代内"
+            "索引完整当前树的documentId/parentId；重复ID、缺父与原树环返回INTEGRITY_ERROR，根为第一层，原树超过32层返回VALIDATION；不因拟移动可修复而接受损坏原树",
+            "movingId为null时只校验当前树、忽略拟父并返回空descendants；非null必须存在，非null拟父也必须存在；缺拟移/拟父返回VALIDATION",
+            "从原树收集拟移节点全部后代，不包含自己；拟父等于自身或任一后代返回VALIDATION",
+            "以拟父当前深度+拟移子树完整高度核移动后最长层级，超过32返回VALIDATION；移至根的拟父深度为0，不仅核拟移节点自身",
+            "成功返回valid=true及原树后代ID字典序，所有输入及父关系保持不变，空结果序列化为[]"
           ],
           "errors": [
             {
@@ -671,6 +673,27 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
+          "dependencies": [
+            "content.documentTreeDepths"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.documentTreeDepths",
+          "name": "documentTreeDepths",
+          "signature": "func documentTreeDepths(documents []gen.DocumentMetadata, index map[Identifier]int) ([]int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按已核完整父索引计算原树深度并拒绝环/超过32层",
+          "steps": [
+            "沿完整有限父链作三色遍历，黑色深度复用、灰色再入为环；无递归且每节点只处理一次，逆序回填根起第1层的深度并拒绝超过32层"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "纯函数；调用方已完成入口结构校验和本域资源授权",
+          "concurrency": "只读取输入，局部状态不跨调用共享；可以并发调用",
+          "idempotency": "相同输入产生相同输出，无持久副作用",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -2095,20 +2118,28 @@
               "type": "Error",
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
-                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "VALIDATION: 正文JSON硬限或去重后引用数超过10000项"
               ]
             }
           ],
           "purpose": "扫描所有嵌套块资源引用",
           "steps": [
-            "规范前序遍历image/attachment/drawing(scene+亮暗svg)/video及poster",
-            "保assetId/version/hash和blockId，不能只扫顶层或当前公开",
-            "去重sourceKey，当前/历史明确分类以支持手动清理警告"
+            "对已通过入口schema和上游块树语义的正文作只读JSON表示转换；沿content数组规范前序遍历，包含列表/任务/引述/提示/表格/分栏等全部嵌套层级，不重新校验schema/权限",
+            "image/attachment取asset；drawing固定scene、lightSVG、darkSVG顺序；uploaded video先取source.asset，platform video先取snapshot.cover，再取video.poster，nullable封面跳过，不抓URL或探测media",
+            "每项完整保留assetId/version/sha256/mediaType/byteSize与稳定blockId；version以精确整数转换，不能经float64丢精度，同assetId/version出现不同hash/长度/MIME返回INTEGRITY_ERROR",
+            "sourceKey为(sourceService=content,documentId,sourceRevisionId,sourceVersion,kind,blockId,assetId,assetVersion)；本次调用固定前五项，同一block同一asset版本只保留首次，不吞掉不同block的引用，保留前序/角色顺序",
+            "kind原样保留current_draft/current_published/history，retained=true表示本次仍保留正文中的引用，不从状态猜测历史已被删除；去重后超过10000项返回VALIDATION，空结果序列化为[]，不修改输入"
           ],
           "errors": [
             {
               "code": "INTEGRITY_ERROR",
               "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "正文JSON硬限或去重后引用数超过10000项",
               "retryable": false
             }
           ],
@@ -2116,7 +2147,53 @@
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": [],
+          "dependencies": [
+            "content.bodyJSONValue",
+            "content.visitReferenceNode"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.visitReferenceNode",
+          "name": "visitReferenceNode",
+          "signature": "func (collector *resourceReferenceCollector) visitReferenceNode(node map[string]any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按正文前序和固定资源角色顺序访问资源块",
+          "steps": [
+            "仅抽取已登记资源槽；nullable平台cover/独立poster分别访问后去重，所有content后代按输入顺序递归"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "纯函数；调用方已完成入口结构校验和本域资源授权",
+          "concurrency": "只读取输入，局部状态不跨调用共享；可以并发调用",
+          "idempotency": "相同输入产生相同输出，无持久副作用",
+          "dependencies": [
+            "content.appendResourceReference",
+            "content.visitReferenceNode"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.appendResourceReference",
+          "name": "appendResourceReference",
+          "signature": "func (collector *resourceReferenceCollector) appendResourceReference(blockID Identifier, value any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "精确资源版本转换、跨槽完整性核对与稳定sourceKey去重",
+          "steps": [
+            "跳过nullable资源；version精确转服务整数；同assetId/version的完整不可变元数据必须一致；同block的同版本去重，超过10000拒绝；沿用来源水位/分类并标retained"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "纯函数；调用方已完成入口结构校验和本域资源授权",
+          "concurrency": "只读取输入，局部状态不跨调用共享；可以并发调用",
+          "idempotency": "相同输入产生相同输出，无持久副作用",
+          "dependencies": [
+            "content.contentInteger"
+          ],
           "resources": [],
           "contract": "reference"
         }

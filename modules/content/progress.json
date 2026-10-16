@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "b148fbca5b5a7a575158a79447bca83ef4ed5240c420bb720caa4a2c2ca60723",
+  "contractSha256": "7ac3c64600cf6914a26968b83de1a38cb659a2e4d958caab950281a1670c8a36",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第五轮content不可变正文文件核心",
-  "branch": "codex/content-revision-files-r1",
-  "baseCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
-  "deliveryCommit": "a6cd2bcb3200cd2710f04799929da1febb9423f9",
+  "assignedSession": "本轮content资源引用与树纯规则",
+  "branch": "codex/content-persistence-round1",
+  "baseCommit": "170c1dc9057e122e349de43db532b2c48434b6cf",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -32,11 +32,11 @@
     },
     {
       "path": "modules/content/internal/tree_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已写，等待根在隔离VPS运行make docs/gen/build/check；未执行本机Go或业务验收。"
       },
       "blocker": null
     },
@@ -112,11 +112,11 @@
     },
     {
       "path": "modules/content/internal/reference_extractor.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已写，等待根在隔离VPS运行make docs/gen/build/check；未执行本机Go或业务验收。"
       },
       "blocker": null
     },
@@ -428,7 +428,7 @@
         "state": "passed",
         "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
     },
     {
       "path": "modules/content/internal/transport/server.go",
@@ -458,7 +458,7 @@
         "state": "not_run",
         "evidence": "未能运行go mod download：当前环境无Go工具链，VPS不可用；未手写生成文件"
       },
-      "blocker": "依赖锁文件必须由go mod download生成"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
     },
     {
       "path": "modules/content/Dockerfile",
@@ -670,11 +670,11 @@
     {
       "id": "content.EnsureTreeAcyclic",
       "path": "modules/content/internal/tree_validator.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已写，等待根在隔离VPS运行make docs/gen/build/check；未执行本机Go或业务验收。"
       },
       "blocker": null
     },
@@ -835,11 +835,11 @@
     {
       "id": "content.CollectResourceReferences",
       "path": "modules/content/internal/reference_extractor.go",
-      "state": "planned",
+      "state": "in_progress",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已写，等待根在隔离VPS运行make docs/gen/build/check；未执行本机Go或业务验收。"
       },
       "blocker": null
     },
@@ -1336,7 +1336,7 @@
         "state": "passed",
         "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
     },
     {
       "id": "content.BuildApplication",
@@ -1347,7 +1347,7 @@
         "state": "passed",
         "evidence": "2026-10-16隔离VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（859文件/1142函数/379操作/2264类型）；含最终同一time.Time与contentInteger修订。未行为验收，未新增测试/真实接口/模型/服务或部署; dependency wiring remains blocked"
       },
-      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter、保存/发布HTTP与后台仍缺，不以文件核心源码冒充可用服务"
+      "blocker": "真实私有DB准备/COMMITTED资格/隔离adapter尚缺已批准SQLite schema、迁移路径与启动打开协议，保存/发布HTTP与后台仍缺；本轮只实现既有登记纯规则，不冒充完整服务"
     },
     {
       "id": "content.Serve",
@@ -1699,7 +1699,40 @@
         "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
       },
       "blocker": null
+    },
+    {
+      "id": "content.documentTreeDepths",
+      "path": "modules/content/internal/tree_validator.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码已写，等待根隔离VPS检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.visitReferenceNode",
+      "path": "modules/content/internal/reference_extractor.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码已写，等待根隔离VPS检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.appendResourceReference",
+      "path": "modules/content/internal/reference_extractor.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码已写，等待根隔离VPS检查。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "第五轮不可变正文文件/读回与直接语义/hash辅助源码经VPS检查并按准确源码SHA记verified；准备不推进head。真实DB adapter/HTTP和完整启动仍blocked；本轮交付后停止实施，不启动后包，未行为验收或部署。"
+  "rule": "本轮仅既有登记路径的资源引用与文档树纯规则，VPS编译检查前保持in_progress；私有DB schema/迁移/启动协议尚未登记，真实adapter和完整HTTP/后台继续blocked，未业务验收或部署。"
 }
