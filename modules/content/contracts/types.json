@@ -6281,7 +6281,7 @@
     "DocumentEditState": {
       "type": "object",
       "x-internal": true,
-      "description": "来自私有documents行的真实site/doc/state/revision/deleteFence，缺行返回NOT_FOUND",
+      "description": "私有真实文档生命周期、元数据revision、deleteFence、独立referenceVersion与隔离状态；缺行不生成",
       "additionalProperties": false,
       "properties": {},
       "required": []
@@ -6416,6 +6416,78 @@
         "expiresAt",
         "idleWarningAt"
       ]
+    },
+    "DraftRuntime": {
+      "type": "object",
+      "x-internal": true,
+      "description": "真实本域Store/单leader锁管理器/identity/site-config/media客户端及公共写窗口装配",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftOperationPlan": {
+      "type": "object",
+      "x-internal": true,
+      "description": "不含正文的固定IDs、head/tree/CAS、ExpectedReferenceVersion/SourceVersion独立引用水位、稳定ID集合、完整引用与首次创建元数据",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftOperation": {
+      "type": "object",
+      "x-internal": true,
+      "description": "私有草稿动作、请求摘要、原计划、pin及终局原结果",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftCommitStore": {
+      "type": "object",
+      "x-internal": true,
+      "description": "绑定本次受信意图的真实延迟草稿事务适配",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftCommitTransaction": {
+      "type": "object",
+      "x-internal": true,
+      "description": "文件IO后才开启的短SQL与真实doc guard对象",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftMediaReference": {
+      "type": "object",
+      "x-internal": true,
+      "description": "media版本化AssetReference预提交DTO投影及固定来源身份",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftPinMaterial": {
+      "type": "object",
+      "x-internal": true,
+      "description": "完整源operation/site/object/revision/version/referenceDigest材料",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "creationQuery": {
+      "type": "object",
+      "x-internal": true,
+      "description": "只读站点树SQL快照接口",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "draftOperationQuery": {
+      "type": "object",
+      "x-internal": true,
+      "description": "同一真实DB或短SQL事务的草稿原记录只读查询句柄；不跨RPC/文件IO",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
     }
   }
 }

@@ -23,7 +23,7 @@ import (
 )
 
 // Store只拥有本域active库；正文准备与业务提交是不同持久边界。
-// 本轮不实现DraftCommitStore，不提供返回占位错误的事务适配器。
+// 草稿提交另由受信创建/保存意图装配，不能从文件准备隐式创建文档。
 type Store struct {
 	db              *sql.DB
 	root            string
@@ -495,7 +495,7 @@ func (s *Store) RecoverDatabaseJournal(ctx context.Context) error {
 			return contentStorageError()
 		}
 		var count int
-		if err := s.db.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM revision_preparations)+(SELECT COUNT(*) FROM committed_revisions)+(SELECT COUNT(*) FROM draft_heads)+(SELECT COUNT(*) FROM documents)`).Scan(&count); err != nil {
+		if err := s.db.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM revision_preparations)+(SELECT COUNT(*) FROM committed_revisions)+(SELECT COUNT(*) FROM draft_heads)+(SELECT COUNT(*) FROM documents)+(SELECT COUNT(*) FROM draft_operation_intents)+(SELECT COUNT(*) FROM content_tree_state)`).Scan(&count); err != nil {
 			return contentStorageError()
 		}
 		if count != 0 {

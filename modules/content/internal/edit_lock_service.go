@@ -94,7 +94,6 @@ type SaveFenceGuard struct {
 	manager *EditLockManager
 	cell    *editLeaseCell
 	state   DocumentEditState
-	lease   *gen.EditLease
 	once    sync.Once
 }
 
@@ -225,7 +224,6 @@ func (manager *EditLockManager) AcquireSaveFence(ctx context.Context, op Operati
 		guard.ReleaseFence()
 		return nil, err
 	}
-	guard.lease = copyEditLease(guard.cell.lease)
 	return guard, nil
 }
 
@@ -258,7 +256,6 @@ func (manager *EditLockManager) AcquireDocumentFence(ctx context.Context, op Ope
 }
 
 func (guard *SaveFenceGuard) DocumentState() DocumentEditState { return guard.state }
-func (guard *SaveFenceGuard) GuardLease() *gen.EditLease       { return copyEditLease(guard.lease) }
 func (guard *SaveFenceGuard) ReleaseFence() {
 	guard.once.Do(func() { guard.cell.mu.Unlock(); guard.manager.life.RUnlock() })
 }

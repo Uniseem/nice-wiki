@@ -1074,6 +1074,21 @@
       "purpose": "持久文档存在/生命周期/删除fence及隔离读取"
     },
     {
+      "path": "modules/content/internal/document_service.go",
+      "kind": "handwritten",
+      "purpose": "真实文档创建、站点树CAS和初始共享草稿"
+    },
+    {
+      "path": "modules/content/internal/draft_commit_store.go",
+      "kind": "handwritten",
+      "purpose": "延迟短SQL提交、稳定ID台账、COMMITTED资格、引用和完整原回执"
+    },
+    {
+      "path": "modules/content/internal/draft_service.go",
+      "kind": "handwritten",
+      "purpose": "共享草稿读取、真实租约保存、固定引用pin及原结果回放"
+    },
+    {
       "path": "modules/content/internal/edit_lock_operations.go",
       "kind": "source",
       "purpose": "编辑锁完整用例、权威账户名、可靠原回执/状态事件/审计事务"
@@ -1097,6 +1112,11 @@
       "path": "modules/content/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/content/internal/publication_repository.go",
+      "kind": "handwritten",
+      "purpose": "同代资源来源决定读取；完整发布仓库尚未实施"
     },
     {
       "path": "modules/content/internal/reference_extractor.go",
@@ -1152,6 +1172,11 @@
       "path": "modules/content/migrations/0003_edit_lock_operations.sql",
       "kind": "source",
       "purpose": "只追加编辑锁操作原回执、事件水位与审计；不重建内存租约"
+    },
+    {
+      "path": "modules/content/migrations/0004_draft_commits.sql",
+      "kind": "migration",
+      "purpose": "文档引用水位、真实树和元数据、草稿意图、稳定ID及引用权威表"
     },
     {
       "path": "modules/content/migrations/migrations.go",
