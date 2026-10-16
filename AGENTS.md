@@ -48,3 +48,21 @@ nice-wiki 从零重建为可独立开发部署的微服务文档站。旧实现�
 扫描暂存内容、提交信息、作者、提交者和待推送提交。禁止真实个人邮箱、姓名、地址、电话、本机用户路径、真实 IP、密钥、访客数据；示例用保留域名和文档地址，署名代用地址例外。
 
 借外部代码先核对许可，新借用项目先确认；文件标注出处、版本、版权，更新 THIRD_PARTY_NOTICES.md；GPL 项目只参考不复制；唯一例外是 Docmost 社区版编辑器扩展（AGPL-3.0，与本仓库许可相同，D51 与 ADR0005 已确认），借用时标注出处并登记。技术设计不等于授权复制第三方代码或调用外部服务。
+
+---
+
+## 双远程推送 / Dual-push (GitHub + GitLab)
+
+自 2026-10-16 起本仓库镜像到自建 GitLab。提交后请同时推送：
+
+| Remote | URL |
+|---|---|
+| `origin` (GitHub) | `https://github.com/Uniseem/nice-wiki.git` |
+| `gitlab` | `https://gitlab.anylocate.cc/anylocate/nice-wiki.git` |
+
+```bash
+git push origin HEAD && git push gitlab HEAD
+```
+
+Fleet / SSH / Mesh / Runner 规则见 **Uniseem/machine-management**（`anylocate/machine-management`）。CI：仅有 GitHub Actions、无现成可跑 `.gitlab-ci.yml` 时 GitLab 侧为代码镜像 only，勿发明会失败的流水线。清单：machine-management `GitLab/镜像清单.md`。
+
