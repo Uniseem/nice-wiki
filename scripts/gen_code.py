@@ -600,7 +600,12 @@ def render_clients(slug, impl, producer_specs):
 
 def render_ai_task_catalog(catalog):
     """从唯一任务目录生成本域任务校验材料，不读取其他域运行数据。"""
-    lines = ["// AITaskEntry 是任务归属、固定默认档位与模型覆盖能力的只读投影。\n"]
+    lines = ["// AITierCapabilities 是根目录的五档直接能力门槛，不修改此生成表。\n"]
+    lines.append("var AITierCapabilities = map[string][]string{\n")
+    for tier, capabilities in sorted(catalog["tierCapabilities"].items()):
+        lines.append("\t" + go_string(tier) + ": " + go_string_list(capabilities) + ",\n")
+    lines.append("}\n\n")
+    lines.append("// AITaskEntry 是任务归属、固定默认档位与模型覆盖能力的只读投影。\n")
     lines.append("type AITaskEntry struct { Owner string; DefaultTier string; RequiredCapabilities []string }\n\n")
     lines.append("var AITaskCatalog = map[string]AITaskEntry{\n")
     for task in sorted(catalog["tasks"], key=lambda task: task["id"]):

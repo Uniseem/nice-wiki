@@ -291,6 +291,25 @@ func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (js
 	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }
 
+// AITierCapabilities 是根目录的五档直接能力门槛，不修改此生成表。
+var AITierCapabilities = map[string][]string{
+	"accurate": []string{
+		"chat",
+	},
+	"embedding": []string{
+		"embedding",
+	},
+	"fast": []string{
+		"chat",
+	},
+	"rerank": []string{
+		"rerank",
+	},
+	"vision": []string{
+		"vision",
+	},
+}
+
 // AITaskEntry 是任务归属、固定默认档位与模型覆盖能力的只读投影。
 type AITaskEntry struct {
 	Owner                string
