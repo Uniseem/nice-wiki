@@ -1,8 +1,10 @@
-# 持续目标第二轮公共前置：延迟任务创建（VPS检查通过）
+# 持续目标第二轮公共前置：延迟任务创建（已检查）
 
-集成会话独占本次jobs公共API配合，基线471c036，新增可选notBefore：显式UTC时刻纳入去重且写既有not_before；省略保持原hash和首次立即可领。补真实createJob HTTP映射并限生成任务owner调用方，完整HTTP/存储/control/后台启动仍blocked。仅传输创建RPC受op.deadline限制，任务执行期限由owner领取时重建。无新迁移/依赖/路径，旧queued任务和旧无延迟去重回执不改写。
+集成会话独占本次jobs公共API配合，基线471c036。CreateJobRequestBody和内部CreateJobInput新增可选notBefore，显式UTC时刻纳入去重并写既有not_before；省略保持旧hash和首次立即可领。新增真实createJob映射，仅生成任务owner可调用，dataEpoch只取可信op；ClaimJob已有真实时间筛选，无新迁移/外部依赖/路径。任务执行期限由owner领取时建立，不沿用创建RPC短截止。
 
-首次VPS gen成功但HTTP输入引用误用被裁剪的业务DTO而编译失败，已改用实际CreateJobRequestBody并同步其可选字段，待完整重跑；不能新增implemented/verified；根统一VPS docs/gen/build/check，最终VPS已完整通过（872/1332/379/2297），源码SHA随下一记录提交回填。未新增测试/样例，未运行真实接口/模型、服务或部署。
+源码7a4f55b5be024deb11b9df821db0c9f7ccaaea62，CreateJob及3实际参考函数、完整队列/生成物已按源码记verified；BuildApplication只加真实映射，完整HTTP/存储/control/owner后台仍blocked，不宣称服务可运行。
+
+2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。
 
 ---
 

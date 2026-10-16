@@ -1,6 +1,10 @@
-# 持续目标第二轮公共IO错误工具（VPS检查通过）
+# 持续目标第二轮公共IO错误工具（已检查）
 
-集成会话新增NormalizeIOError，保留公共错误及统一ctx取消/截止，未知错误只用可信代码选择的安全说明，不传播原始存储错误。problem.FromError复用它，保持未知INTERNAL兜底；新域不再复制context错误分类。无新路径/外部依赖；首次完整编译通过但新工具因既有FromError未登记而结构检查失败，补真实FromError及jobs响应调用边界后待完整重跑，再回填源码SHA；不代表业务验收。
+集成会话新增NormalizeIOError，统一已有或包裹的公共错误、原始ctx取消/截止，未知只用可信安全fallback，不传播原存储错误。补登记真实FromError并由jobs响应实际调用，公共Problem保留未知INTERNAL；新域不再复制取消/截止分类。无新路径/外部依赖。
+
+源码7a4f55b5be024deb11b9df821db0c9f7ccaaea62，两个完整函数与对应源码文件已verified；只代表平台现阶段检查，不代替业务验收。
+
+2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。
 
 # 两轮并行第二轮：可选主密钥引用（2026-10-16，已检查）
 

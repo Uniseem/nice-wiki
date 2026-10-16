@@ -7,7 +7,7 @@
   "assignedSession": "持续目标第二轮公共延迟任务前置",
   "branch": "main",
   "baseCommit": "471c036082e082763d90e1080b3489d4e4531380",
-  "deliveryCommit": null,
+  "deliveryCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
   "deployment": "not_started",
   "files": [
     {
@@ -22,11 +22,11 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "state": "verified",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮新增延迟入队与真实HTTP映射待VPS检查"
+        "state": "passed",
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
@@ -443,10 +443,10 @@
     {
       "path": "modules/jobs/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
@@ -483,10 +483,10 @@
     {
       "path": "modules/jobs/web/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
@@ -586,11 +586,11 @@
     {
       "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": "7566a0c3a1273697b6a67c55aa6bdbeea8359503",
+      "state": "verified",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二轮新增notBefore待VPS检查"
+        "state": "passed",
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
@@ -1774,33 +1774,33 @@
     {
       "id": "jobs.createJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "not_run",
-        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
+        "state": "passed",
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
     {
       "id": "jobs.hashCreateJobInput",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "not_run",
-        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
+        "state": "passed",
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     },
     {
       "id": "jobs.NewQueueHandlers",
       "path": "modules/jobs/internal/queue.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "not_run",
-        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
+        "state": "passed",
+        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
     }
