@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 119 个函数：约束 36 个，参考 83 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 129 个函数：约束 36 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2485,11 +2485,12 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 
 **步骤**
 
-1. 核caller与持久pin的源site/object/operation/revision/version/digest归属；sourceRevisionId/sourceVersion与原acquire声明一致
-2. 读取注册源最小持久决定，必须当前epoch且COMMITTED、材料一致；未知/404/pending保留pin并失败关闭
-3. 同事务将该sourceObjectId的新完整集合确认，旧current保留history；较低sourceVersion的已提交pin只补history，不回退current水位，不以STALE丢历史
-4. 空集合也推进source水位并将旧current转history；同pin重复确认完整原回执，不重复generation；确认取消delete_pending并增referenceGeneration
-5. 与Acquire/Release使用同源互斥及asset稳定顺序；来源已sealed却被证明COMMITTED属于完整性矛盾，失败关闭，不复活来源
+1. 固定content/site-config纯服务及已打开epoch；从pinId查真实完整来源，caller/源修订/水位必须与原acquire一致，原pin/原资产保护完整；已confirmed只核持久原终局回执，不重复generation
+2. 不持source/对象/store/SQL锁回注册源最小决定；严格公共ReferenceSourceDecision schema、当前epoch及全部site/object/revision/version/operation/digest一致，必须committed，404/pending/未知保持pin并失败关闭
+3. 回源后先以公共NewWriteContext重新取running窗口；sourceOperation互斥→sourceObject水位互斥→旧current与新pin资产唯一升序锁→store提交互斥→SQL；重读源绑定/原pin/sealed/终局及current水位
+4. 同事务持久新完整集合与confirmed原回执，较高sourceVersion推进对象水位并将旧current保留history，较低已提交版本只补history不回退；相同水位不同源材料完整性冲突，空集合仍推进并保留旧history
+5. 新引用必须ready且精确版本/hash/长度/MIME/站点及fence完整；未知delete_pending失败关闭，不猜作可撤销计划。受影响asset fence/generation只提升一次，耗尽LOCKED；confirmed后原pin_assets永久保留供Acquire合法回放，pending保护由source.state决定
+6. 来源sealed却源证明COMMITTED是完整性矛盾，保持封存；不因pin到期丢已提交历史；未实现的真实清理计划取消仍不宣称完成
 
 **错误**
 
@@ -2497,12 +2498,16 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 - `STALE_RESULT`：事件/计算针对已过期源版本，拒绝覆盖新状态（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：源持久决定未知或依赖失败，保留pin等待恢复（可重试）
+- `CONFLICT`：来源材料、pin或终止reason冲突（不可重试）
+- `NOT_FOUND`：没有真实来源pin（不可重试）
+- `VERSION_MISMATCH`：来源或已打开epoch不同（不可重试）
+- `LOCKED`：维护、引用fence/generation耗尽或未知删除状态（可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service对应source
-- 并发：source key CAS+assetfence
+- 并发：所有RPC不持业务锁；sourceOperation→sourceObject→旧current与新pin资产升序→store→SQL CAS
 - 幂等：同pin同revision复用，异源CONFLICT
-- 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
+- 依赖：`media.validateReferenceSource`、`media.readReferenceRecord`、`media.readReferenceDecision`、`media.readReferenceResolution`、`media.confirmReferencePin`、`media.mediaWriteContext`
 
 ## media.ReleaseResourceReferences
 
@@ -2531,24 +2536,27 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 
 **步骤**
 
-1. 核固定content/site-config纯服务和完整site/object/revision/version/operation/digest材料；已知pinId必须属于同材料，pinId为null只表示调用方未知，不是无pin证据
-2. 不持本地源/对象/SQL写锁，按固定源API读取持久决定；必须同epoch与所有源材料且reason对应明确aborted/rejected，COMMITTED、404、pending、超时、依赖或完整性未知均保留且不得封存
-3. 回源后重新核当前epoch/维护写窗口；先取caller/epoch/sourceOperationId源互斥，再取已存pin的assetId稳定顺序mutex，事务内核既有来源绑定；确认current/history或COMMITTED矛盾失败关闭，不得删除或降级；nullable pinId仅是已知原pin的一致性提示，不参与授权，也不作为无pin推断
-4. 在同事务持久sealed终止来源和完整材料、释放该来源pending pin并增generation；若在同源锁/CAS下确实没有pin也持久sealed，返回released=true；不查当前asset存在/ready来证明无pin，不需要重新acquire；保留来源材料与已知原pinId的终局回执，不删除封存依据
-5. Acquire和Release同源锁且写前重查sealed，覆盖从未有pin、远端成功本域未收到pin、与释放并发的在途acquire；只有封存/释放事务成功才回成功，重复同来源/同材料只回原安全结果，异材料冲突
-6. 到期不跳过源决定核对；旧已提交版本须历史确认，不因current更高或expiry自动删除ready文件
+1. 固定content/site-config纯服务和已打开epoch；完整site/object/revision/version/operation/digest规范绑定；已知pinId只核真实原pin一致，不授权也不证明无pin，null仅未知提示
+2. 同材料已sealed只核原reason/原终局回执；其他情况不持source/object/store/SQL锁回固定源API，严格共享schema且当前epoch/完整材料一致，必须reason对应aborted/rejected；committed/current/history拒绝，pending/404/未知/到期均保留
+3. 回源后先重新公共running窗口，再sourceOperation→sourceObject→原pin资产稳定序→store→SQL；重核来源绑定/confirmed或sealed和终局回执，不能释放确认引用或以调用方hint造出无pin
+4. 同事务持久sealed完整来源/reason/原安全回执，并由状态退出pending保护、逐原pin资产generation提升；从未有pin也持久sealed，不查当前asset ready来证明无pin，不造pin；原pin_assets和原acquire快照保留不可变
+5. Acquire与Release同source锁与事务CAS，封存后所有迟到Acquire失败；只有事务成功才返回released=true，未知Commit报错并以同完整材料读原回执确认，不删除封存证据
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `NOT_FOUND`：没有真实来源pin（不可重试）
+- `VERSION_MISMATCH`：来源或已打开epoch不同（不可重试）
+- `LOCKED`：维护、引用fence/generation耗尽或未知删除状态（可重试）
+- `INTEGRITY_ERROR`：源决定、原材料/回执或引用水位矛盾（不可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：service对应source
-- 并发：回源RPC不持写锁；源caller/epoch/sourceOperationId互斥先于assetId稳定顺序，封存与pin释放同事务并阻止迟到acquire
+- 并发：所有RPC不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL CAS
 - 幂等：同源完整材料+终止reason持久封存并重复成功，pinId可null；异材料冲突，无pin也不能省略来源核验
-- 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
+- 依赖：`media.validateReferenceSource`、`media.referenceBindingHash`、`media.readReferenceRecord`、`media.readReferenceDecision`、`media.readReferenceResolution`、`media.releaseReferencePin`、`media.mediaWriteContext`
 
 ## media.validateReferenceSource
 
@@ -2612,6 +2620,38 @@ func canonicalReferenceInput(op OperationContext, input AcquireResourceReference
 - 授权：已授权本域引用链或受信装配，入口身份/schema一次
 - 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
 - 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：`platform.CanonicalJSON`、`media.referenceBindingHash`
+
+## media.referenceBindingHash
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_service.go`
+- 作用：规范绑定可信caller/epoch和完整site/object/revision/version/operation/digest，refs已由digest绑定
+
+```go
+func referenceBindingHash(op OperationContext, input AcquireResourceReferencesInput) (Hash, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 规范绑定可信caller/epoch和完整site/object/revision/version/operation/digest，refs已由digest绑定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
 - 依赖：`platform.CanonicalJSON`
 
 ## media.ApplyReferenceEvent
@@ -2818,6 +2858,230 @@ func (s *localBlobStore) readReferenceAsset(ctx context.Context, q sqlExecer, si
 - 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
 - 幂等：完整源材料和原回执持久绑定，不从当前状态重建
 - 依赖：无
+
+## media.readReferenceRecord
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：核私有完整来源及canonical input，已知原pin仍核首次原结果及逐资产保护；sealed无pin允许无input
+
+```go
+func (s *localBlobStore) readReferenceRecord(ctx context.Context, q sqlExecer, op OperationContext, sourceOperationID Identifier) (referenceRecord, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核私有完整来源及canonical input，已知原pin仍核首次原结果及逐资产保护；sealed无pin允许无input
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`media.referenceBindingHash`、`media.canonicalReferenceInput`、`media.readReferenceSource`
+
+## media.readReferenceResolution
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：终局原结果/hash/resolve时刻必须真实持久且与confirmed/sealed对应，缺旧回执不重建
+
+```go
+func readReferenceResolution(ctx context.Context, q sqlExecer, op OperationContext, record referenceRecord, kind string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 终局原结果/hash/resolve时刻必须真实持久且与confirmed/sealed对应，缺旧回执不重建
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：无
+
+## media.writeReferenceResolution
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：固定安全成功结果与hash/时刻同来源终局事务持久
+
+```go
+func writeReferenceResolution(ctx context.Context, tx *sql.Tx, op OperationContext, record referenceRecord, kind string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定安全成功结果与hash/时刻同来源终局事务持久
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`platform.CanonicalJSON`
+
+## media.referenceObjectAssets
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：持源对象锁后枚举旧current并与新pin资产去重升序，用于稳定锁完整受影响对象
+
+```go
+func (s *localBlobStore) referenceObjectAssets(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, assets []gen.AssetVersionRef) ([]gen.AssetVersionRef, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持源对象锁读取旧head，核原confirmed来源/终局回执以及每个current项和完整计数，缺行/影子current失败关闭；旧完整资产与新pin去重升序，不信不完整反向索引
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`media.readReferenceRecord`、`media.readReferenceResolution`
+
+## media.advanceReferenceGeneration
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：读真实逐asset水位，缺/负损坏，int64耗尽LOCKED，CAS增generation且按确认语义提升fence
+
+```go
+func advanceReferenceGeneration(ctx context.Context, tx *sql.Tx, assetID Identifier, bumpFence bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读真实逐asset水位，缺/负损坏，int64耗尽LOCKED，CAS增generation且按确认语义提升fence
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：无
+
+## media.confirmReferencePin
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：回源后窗口内source/对象/asset/store锁及SQL事务，完整集合current/history单调与原confirmed回执同提交
+
+```go
+func (s *localBlobStore) confirmReferencePin(ctx context.Context, op OperationContext, record referenceRecord) (ConfirmResourceReferencesResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回源后窗口内source/对象/asset/store锁及SQL事务，完整集合current/history单调与原confirmed回执同提交
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.referenceObjectAssets`、`media.readReferenceRecord`、`media.readReferenceResolution`、`media.writeReferenceResolution`、`media.advanceReferenceGeneration`、`media.readReferenceAsset`
+
+## media.releaseReferencePin
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：回源后同source/对象/asset/store序，重核来源并CAS sealed/原回执，缺pin亦封存，保留原pin_assets
+
+```go
+func (s *localBlobStore) releaseReferencePin(ctx context.Context, op OperationContext, input ReleaseResourceReferencesInput, material AcquireResourceReferencesInput, bindingHash Hash) (ReleaseResourceReferencesResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回源后同source/对象/asset/store序，重核来源并CAS sealed/原回执，缺pin亦封存，保留原pin_assets
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.readReferenceRecord`、`media.readReferenceResolution`、`media.writeReferenceResolution`、`media.advanceReferenceGeneration`
 
 ## media.ReadAssetReferences
 
@@ -4016,7 +4280,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -4246,7 +4510,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`
 
 ## media.serveUploadChunk
 
@@ -4431,3 +4695,68 @@ func All() ([]Migration, error)
 - 并发：纯读取，可并发调用
 - 幂等：确定性输出
 - 依赖：无
+
+## media.InstallReferenceDecisionClients
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_decision_client.go`
+- 作用：构造期在已打开store安装生成的固定content/site-config只读源客户端
+
+```go
+func InstallReferenceDecisionClients(content *gen.ContentClient, config *gen.SiteConfigClient) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 构造期在已打开store安装生成的固定content/site-config只读源客户端
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：无
+
+## media.readReferenceDecision
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_decision_client.go`
+- 作用：无锁纯media服务上下文经固定来源API读取公共schema最小决定，逐字段核caller来源/epoch/完整材料；404及pending不作为释放证据
+
+```go
+func (s *localBlobStore) readReferenceDecision(ctx context.Context, op OperationContext, material AcquireResourceReferencesInput) (ReferenceSourceDecision, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 无锁纯media服务上下文经固定来源API读取公共schema最小决定，逐字段核caller来源/epoch/完整材料；404及pending不作为释放证据
+2. 唯一公共schema仍由内嵌规格严格校验；本域ReferenceSourceDecision只作解码投影，不依赖oapi-codegen保留未用于HTTP的DTO，不扩大生成器或添加伪HTTP端点
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
+- 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
+- 幂等：完整来源绑定与终局原回执，不从mutable状态重建
+- 依赖：`content:readReferenceDecision`、`site-config:readHomeReferenceDecision`

@@ -2866,11 +2866,12 @@
           ],
           "purpose": "源提交后确认pin为引用",
           "steps": [
-            "核caller与持久pin的源site/object/operation/revision/version/digest归属；sourceRevisionId/sourceVersion与原acquire声明一致",
-            "读取注册源最小持久决定，必须当前epoch且COMMITTED、材料一致；未知/404/pending保留pin并失败关闭",
-            "同事务将该sourceObjectId的新完整集合确认，旧current保留history；较低sourceVersion的已提交pin只补history，不回退current水位，不以STALE丢历史",
-            "空集合也推进source水位并将旧current转history；同pin重复确认完整原回执，不重复generation；确认取消delete_pending并增referenceGeneration",
-            "与Acquire/Release使用同源互斥及asset稳定顺序；来源已sealed却被证明COMMITTED属于完整性矛盾，失败关闭，不复活来源"
+            "固定content/site-config纯服务及已打开epoch；从pinId查真实完整来源，caller/源修订/水位必须与原acquire一致，原pin/原资产保护完整；已confirmed只核持久原终局回执，不重复generation",
+            "不持source/对象/store/SQL锁回注册源最小决定；严格公共ReferenceSourceDecision schema、当前epoch及全部site/object/revision/version/operation/digest一致，必须committed，404/pending/未知保持pin并失败关闭",
+            "回源后先以公共NewWriteContext重新取running窗口；sourceOperation互斥→sourceObject水位互斥→旧current与新pin资产唯一升序锁→store提交互斥→SQL；重读源绑定/原pin/sealed/终局及current水位",
+            "同事务持久新完整集合与confirmed原回执，较高sourceVersion推进对象水位并将旧current保留history，较低已提交版本只补history不回退；相同水位不同源材料完整性冲突，空集合仍推进并保留旧history",
+            "新引用必须ready且精确版本/hash/长度/MIME/站点及fence完整；未知delete_pending失败关闭，不猜作可撤销计划。受影响asset fence/generation只提升一次，耗尽LOCKED；confirmed后原pin_assets永久保留供Acquire合法回放，pending保护由source.state决定",
+            "来源sealed却源证明COMMITTED是完整性矛盾，保持封存；不因pin到期丢已提交历史；未实现的真实清理计划取消仍不宣称完成"
           ],
           "errors": [
             {
@@ -2892,17 +2893,41 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "源持久决定未知或依赖失败，保留pin等待恢复",
               "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "来源材料、pin或终止reason冲突",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "没有真实来源pin",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "来源或已打开epoch不同",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护、引用fence/generation耗尽或未知删除状态",
+              "retryable": true
             }
           ],
           "sideEffects": [
             "私有事务/文件/receipt/outbox"
           ],
           "authorization": "service对应source",
-          "concurrency": "source key CAS+assetfence",
+          "concurrency": "所有RPC不持业务锁；sourceOperation→sourceObject→旧current与新pin资产升序→store→SQL CAS",
           "idempotency": "同pin同revision复用，异源CONFLICT",
           "dependencies": [
-            "site-config:readHomeReferenceDecision",
-            "content:readReferenceDecision"
+            "media.validateReferenceSource",
+            "media.readReferenceRecord",
+            "media.readReferenceDecision",
+            "media.readReferenceResolution",
+            "media.confirmReferencePin",
+            "media.mediaWriteContext"
           ],
           "resources": [],
           "contract": "binding"
@@ -2963,12 +2988,11 @@
           ],
           "purpose": "明确源未提交后释放或确认无pin并持久封存来源",
           "steps": [
-            "核固定content/site-config纯服务和完整site/object/revision/version/operation/digest材料；已知pinId必须属于同材料，pinId为null只表示调用方未知，不是无pin证据",
-            "不持本地源/对象/SQL写锁，按固定源API读取持久决定；必须同epoch与所有源材料且reason对应明确aborted/rejected，COMMITTED、404、pending、超时、依赖或完整性未知均保留且不得封存",
-            "回源后重新核当前epoch/维护写窗口；先取caller/epoch/sourceOperationId源互斥，再取已存pin的assetId稳定顺序mutex，事务内核既有来源绑定；确认current/history或COMMITTED矛盾失败关闭，不得删除或降级；nullable pinId仅是已知原pin的一致性提示，不参与授权，也不作为无pin推断",
-            "在同事务持久sealed终止来源和完整材料、释放该来源pending pin并增generation；若在同源锁/CAS下确实没有pin也持久sealed，返回released=true；不查当前asset存在/ready来证明无pin，不需要重新acquire；保留来源材料与已知原pinId的终局回执，不删除封存依据",
-            "Acquire和Release同源锁且写前重查sealed，覆盖从未有pin、远端成功本域未收到pin、与释放并发的在途acquire；只有封存/释放事务成功才回成功，重复同来源/同材料只回原安全结果，异材料冲突",
-            "到期不跳过源决定核对；旧已提交版本须历史确认，不因current更高或expiry自动删除ready文件"
+            "固定content/site-config纯服务和已打开epoch；完整site/object/revision/version/operation/digest规范绑定；已知pinId只核真实原pin一致，不授权也不证明无pin，null仅未知提示",
+            "同材料已sealed只核原reason/原终局回执；其他情况不持source/object/store/SQL锁回固定源API，严格共享schema且当前epoch/完整材料一致，必须reason对应aborted/rejected；committed/current/history拒绝，pending/404/未知/到期均保留",
+            "回源后先重新公共running窗口，再sourceOperation→sourceObject→原pin资产稳定序→store→SQL；重核来源绑定/confirmed或sealed和终局回执，不能释放确认引用或以调用方hint造出无pin",
+            "同事务持久sealed完整来源/reason/原安全回执，并由状态退出pending保护、逐原pin资产generation提升；从未有pin也持久sealed，不查当前asset ready来证明无pin，不造pin；原pin_assets和原acquire快照保留不可变",
+            "Acquire与Release同source锁与事务CAS，封存后所有迟到Acquire失败；只有事务成功才返回released=true，未知Commit报错并以同完整材料读原回执确认，不删除封存证据"
           ],
           "errors": [
             {
@@ -2985,17 +3009,42 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "没有真实来源pin",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "来源或已打开epoch不同",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护、引用fence/generation耗尽或未知删除状态",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "源决定、原材料/回执或引用水位矛盾",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "私有事务/文件/receipt/outbox"
           ],
           "authorization": "service对应source",
-          "concurrency": "回源RPC不持写锁；源caller/epoch/sourceOperationId互斥先于assetId稳定顺序，封存与pin释放同事务并阻止迟到acquire",
+          "concurrency": "所有RPC不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL CAS",
           "idempotency": "同源完整材料+终止reason持久封存并重复成功，pinId可null；异材料冲突，无pin也不能省略来源核验",
           "dependencies": [
-            "site-config:readHomeReferenceDecision",
-            "content:readReferenceDecision"
+            "media.validateReferenceSource",
+            "media.referenceBindingHash",
+            "media.readReferenceRecord",
+            "media.readReferenceDecision",
+            "media.readReferenceResolution",
+            "media.releaseReferencePin",
+            "media.mediaWriteContext"
           ],
           "resources": [],
           "contract": "binding"
@@ -3034,6 +3083,28 @@
           "authorization": "已授权本域引用链或受信装配，入口身份/schema一次",
           "concurrency": "源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭",
           "idempotency": "完整源材料和原回执持久绑定，不从当前状态重建",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "media.referenceBindingHash"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.referenceBindingHash",
+          "name": "referenceBindingHash",
+          "signature": "func referenceBindingHash(op OperationContext, input AcquireResourceReferencesInput) (Hash, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "规范绑定可信caller/epoch和完整site/object/revision/version/operation/digest，refs已由digest绑定",
+          "steps": [
+            "规范绑定可信caller/epoch和完整site/object/revision/version/operation/digest，refs已由digest绑定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
           "dependencies": [
             "platform.CanonicalJSON"
           ],
@@ -3236,6 +3307,164 @@
           "concurrency": "源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭",
           "idempotency": "完整源材料和原回执持久绑定，不从当前状态重建",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.readReferenceRecord",
+          "name": "readReferenceRecord",
+          "signature": "func (s *localBlobStore) readReferenceRecord(ctx context.Context, q sqlExecer, op OperationContext, sourceOperationID Identifier) (referenceRecord, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核私有完整来源及canonical input，已知原pin仍核首次原结果及逐资产保护；sealed无pin允许无input",
+          "steps": [
+            "核私有完整来源及canonical input，已知原pin仍核首次原结果及逐资产保护；sealed无pin允许无input"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "media.referenceBindingHash",
+            "media.canonicalReferenceInput",
+            "media.readReferenceSource"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.readReferenceResolution",
+          "name": "readReferenceResolution",
+          "signature": "func readReferenceResolution(ctx context.Context, q sqlExecer, op OperationContext, record referenceRecord, kind string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "终局原结果/hash/resolve时刻必须真实持久且与confirmed/sealed对应，缺旧回执不重建",
+          "steps": [
+            "终局原结果/hash/resolve时刻必须真实持久且与confirmed/sealed对应，缺旧回执不重建"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.writeReferenceResolution",
+          "name": "writeReferenceResolution",
+          "signature": "func writeReferenceResolution(ctx context.Context, tx *sql.Tx, op OperationContext, record referenceRecord, kind string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "固定安全成功结果与hash/时刻同来源终局事务持久",
+          "steps": [
+            "固定安全成功结果与hash/时刻同来源终局事务持久"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.referenceObjectAssets",
+          "name": "referenceObjectAssets",
+          "signature": "func (s *localBlobStore) referenceObjectAssets(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, assets []gen.AssetVersionRef) ([]gen.AssetVersionRef, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "持源对象锁后枚举旧current并与新pin资产去重升序，用于稳定锁完整受影响对象",
+          "steps": [
+            "持源对象锁读取旧head，核原confirmed来源/终局回执以及每个current项和完整计数，缺行/影子current失败关闭；旧完整资产与新pin去重升序，不信不完整反向索引"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "media.readReferenceRecord",
+            "media.readReferenceResolution"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.advanceReferenceGeneration",
+          "name": "advanceReferenceGeneration",
+          "signature": "func advanceReferenceGeneration(ctx context.Context, tx *sql.Tx, assetID Identifier, bumpFence bool) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读真实逐asset水位，缺/负损坏，int64耗尽LOCKED，CAS增generation且按确认语义提升fence",
+          "steps": [
+            "读真实逐asset水位，缺/负损坏，int64耗尽LOCKED，CAS增generation且按确认语义提升fence"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.confirmReferencePin",
+          "name": "confirmReferencePin",
+          "signature": "func (s *localBlobStore) confirmReferencePin(ctx context.Context, op OperationContext, record referenceRecord) (ConfirmResourceReferencesResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "回源后窗口内source/对象/asset/store锁及SQL事务，完整集合current/history单调与原confirmed回执同提交",
+          "steps": [
+            "回源后窗口内source/对象/asset/store锁及SQL事务，完整集合current/history单调与原confirmed回执同提交"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "media.lockReferenceKey",
+            "media.lockReferenceAssets",
+            "media.referenceObjectAssets",
+            "media.readReferenceRecord",
+            "media.readReferenceResolution",
+            "media.writeReferenceResolution",
+            "media.advanceReferenceGeneration",
+            "media.readReferenceAsset"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.releaseReferencePin",
+          "name": "releaseReferencePin",
+          "signature": "func (s *localBlobStore) releaseReferencePin(ctx context.Context, op OperationContext, input ReleaseResourceReferencesInput, material AcquireResourceReferencesInput, bindingHash Hash) (ReleaseResourceReferencesResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "回源后同source/对象/asset/store序，重核来源并CAS sealed/原回执，缺pin亦封存，保留原pin_assets",
+          "steps": [
+            "回源后同source/对象/asset/store序，重核来源并CAS sealed/原回执，缺pin亦封存，保留原pin_assets"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "media.lockReferenceKey",
+            "media.lockReferenceAssets",
+            "media.readReferenceRecord",
+            "media.readReferenceResolution",
+            "media.writeReferenceResolution",
+            "media.advanceReferenceGeneration"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -5787,7 +6016,8 @@
             "media.CloseLocalBlobStore",
             "identity:checkAuthorization",
             "platform.NewIdentityAuthorizer",
-            "platform.NewServiceHandler"
+            "platform.NewServiceHandler",
+            "media.InstallReferenceDecisionClients"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6100,7 +6330,9 @@
             "media.ReadAsset",
             "media.writeRequestProblem",
             "media.CompleteUpload",
-            "media.AcquireResourceReferences"
+            "media.AcquireResourceReferences",
+            "media.ConfirmResourceReferences",
+            "media.ReleaseResourceReferences"
           ],
           "resources": [],
           "contract": "reference"
@@ -6459,6 +6691,61 @@
       "path": "modules/media/migrations/0003_reference_pins.sql",
       "kind": "handwritten",
       "purpose": "只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改",
+      "functions": []
+    },
+    {
+      "path": "modules/media/internal/reference_decision_client.go",
+      "kind": "handwritten",
+      "purpose": "只经固定版本化源决定API/共享schema读取，清proof的media纯服务上下文，不持本域锁",
+      "functions": [
+        {
+          "id": "media.InstallReferenceDecisionClients",
+          "name": "InstallReferenceDecisionClients",
+          "signature": "func InstallReferenceDecisionClients(content *gen.ContentClient, config *gen.SiteConfigClient) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "构造期在已打开store安装生成的固定content/site-config只读源客户端",
+          "steps": [
+            "构造期在已打开store安装生成的固定content/site-config只读源客户端"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "media.readReferenceDecision",
+          "name": "readReferenceDecision",
+          "signature": "func (s *localBlobStore) readReferenceDecision(ctx context.Context, op OperationContext, material AcquireResourceReferencesInput) (ReferenceSourceDecision, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "无锁纯media服务上下文经固定来源API读取公共schema最小决定，逐字段核caller来源/epoch/完整材料；404及pending不作为释放证据",
+          "steps": [
+            "无锁纯media服务上下文经固定来源API读取公共schema最小决定，逐字段核caller来源/epoch/完整材料；404及pending不作为释放证据",
+            "唯一公共schema仍由内嵌规格严格校验；本域ReferenceSourceDecision只作解码投影，不依赖oapi-codegen保留未用于HTTP的DTO，不扩大生成器或添加伪HTTP端点"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核",
+          "concurrency": "源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL",
+          "idempotency": "完整来源绑定与终局原回执，不从mutable状态重建",
+          "dependencies": [
+            "content:readReferenceDecision",
+            "site-config:readHomeReferenceDecision"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/media/migrations/0004_reference_resolution.sql",
+      "kind": "handwritten",
+      "purpose": "只追加源终局原回执、对象current水位与保留history的确认引用行，原pin保护不删除",
       "functions": []
     }
   ],

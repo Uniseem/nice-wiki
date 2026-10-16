@@ -68,18 +68,22 @@ const (
 // 数据库单连接串行写入；mu 串行化同进程的提交，使“写文件→元数据事务”
 // 不与另一提交交错。所有路径都由受约束的 ID/hash 生成。
 type localBlobStore struct {
-	root             string
-	db               *sql.DB
-	mu               sync.Mutex
-	openedEpoch      Identifier
-	window           platform.WriteWindowConfig
-	validateAsset    func(json.RawMessage) error
-	validateUpload   func(json.RawMessage) error
-	validatePin      func(json.RawMessage) error
-	referenceLocksMu sync.Mutex
-	referenceLocks   map[string]*referenceLock
-	chunkRecovered   bool
-	blobRecovered    bool
+	root                   string
+	db                     *sql.DB
+	mu                     sync.Mutex
+	openedEpoch            Identifier
+	window                 platform.WriteWindowConfig
+	validateAsset          func(json.RawMessage) error
+	validateUpload         func(json.RawMessage) error
+	validatePin            func(json.RawMessage) error
+	validateReferenceInput func(json.RawMessage) error
+	validateDecision       func(json.RawMessage) error
+	contentDecisions       *gen.ContentClient
+	configDecisions        *gen.SiteConfigClient
+	referenceLocksMu       sync.Mutex
+	referenceLocks         map[string]*referenceLock
+	chunkRecovered         bool
+	blobRecovered          bool
 }
 
 // activeBlobStore 由本域存储装配在接受业务请求前设置；nil 时所有依赖该
@@ -184,6 +188,16 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		return nil, err
 	}
 	store.validatePin, err = apivalidate.NewPayloadValidator(document, "AcquireResourceReferencesResult")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateReferenceInput, err = apivalidate.NewPayloadValidator(document, "AcquireResourceReferencesInput")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateDecision, err = apivalidate.NewPayloadValidator(document, "ReferenceSourceDecision")
 	if err != nil {
 		_ = db.Close()
 		return nil, err

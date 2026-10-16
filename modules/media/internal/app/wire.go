@@ -81,6 +81,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			_ = mediaDomain.CloseLocalBlobStore()
 		}
 	}()
+	if err := mediaDomain.InstallReferenceDecisionClients(gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), siteConfig); err != nil {
+		return nil, err
+	}
 	if err := mediaDomain.ConfigureWriteWindow(platform.WriteWindowConfig{Runtime: runtimeClient.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
 		current, err := runtimeClient.ReadRuntimeState(work)
 		if err != nil {
