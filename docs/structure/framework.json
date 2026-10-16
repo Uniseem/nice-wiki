@@ -2739,6 +2739,11 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/model-gateway/internal/routing/route.go",
+      "kind": "source",
+      "purpose": "同一次只读快照的任务路线入口"
+    },
+    {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "kind": "handwritten",
       "purpose": "模型网关私有存储、CAS与启动恢复"

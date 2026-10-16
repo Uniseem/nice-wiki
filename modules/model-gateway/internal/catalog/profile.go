@@ -21,6 +21,34 @@ type Profile = gen.Profile
 type PutProfileInput = gen.PutProfileInput
 type PutProfileResult = gen.PutProfileResult
 
+// 这些内部类型不增加HTTP入口，调用者不能自由指定任务档位或能力。
+type ResolveProfileInput struct {
+	TaskId    string `json:"taskId"`
+	CostClass string `json:"costClass"`
+}
+
+type ResolveRouteInput = ResolveProfileInput
+
+type ResolveProfileResult struct {
+	Profile              Profile        `json:"profile"`
+	Assignment           TaskAssignment `json:"assignment"`
+	OrderedModelIds      []string       `json:"orderedModelIds"`
+	RequiredCapabilities []string       `json:"requiredCapabilities"`
+	Fallback             bool           `json:"fallback"`
+}
+
+type RouteCandidate struct {
+	Model             Model `json:"model"`
+	ProviderVersion   int   `json:"providerVersion"`
+	CredentialVersion int   `json:"credentialVersion"`
+}
+
+type ResolveRouteResult struct {
+	Resolved     ResolveProfileResult `json:"resolved"`
+	Candidates   []RouteCandidate     `json:"candidates"`
+	RouteVersion platform.Hash        `json:"routeVersion"`
+}
+
 const profileFunctionID = "model-gateway.PutProfile"
 
 // PutProfile 保存有序档位与费用配置，不调用供应方或重算既有付费结果。
@@ -207,6 +235,255 @@ func validateProfileModels(ctx context.Context, snapshot *availabilitySnapshot, 
 		}
 	}
 	return nil
+}
+
+// ResolveProfile 在调用者的同代快照内解析真实配置，不保证供应方或费用可用。
+func ResolveProfile(ctx context.Context, op OperationContext, snapshot *availabilitySnapshot, input ResolveProfileInput) (ResolveProfileResult, error) {
+	task, ok := gen.AITaskCatalog[input.TaskId]
+	if !ok {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeValidation, false, "任务未在目录登记")
+	}
+	if task.Owner != op.CallerService || input.CostClass != op.CostClass {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeForbidden, false, "任务拥有者或费用类别不符")
+	}
+	var result ResolveProfileResult
+	var override sql.NullString
+	var epoch string
+	err := snapshot.tx.QueryRowContext(ctx, `SELECT task_id, tier, override_model_id, version, data_epoch
+		FROM task_assignments WHERE task_id = ?`, input.TaskId).Scan(&result.Assignment.TaskId,
+		&result.Assignment.Tier, &override, &result.Assignment.Version, &epoch)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeNotFound, false, "任务模型分配尚未配置")
+	}
+	if err != nil {
+		return ResolveProfileResult{}, availabilityReadError(err)
+	}
+	if epoch != snapshot.epoch {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeVersionMismatch, false, "任务模型分配代次已变化")
+	}
+	if string(result.Assignment.Tier) != task.DefaultTier || result.Assignment.Version < 1 ||
+		result.Assignment.Version > 9007199254740991 || (override.Valid && !platform.ValidIdentifier(override.String)) {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeIntegrityError, false, "任务模型分配损坏")
+	}
+	if override.Valid {
+		result.Assignment.OverrideModelId = &override.String
+	}
+	profile, found, err := readRouteProfile(ctx, snapshot, op.CostClass, task.DefaultTier)
+	if err != nil {
+		return ResolveProfileResult{}, err
+	}
+	result.RequiredCapabilities = append([]string{}, task.RequiredCapabilities...)
+	if found {
+		result.OrderedModelIds = applyTaskOverride(profile.OrderedModelIds, result.Assignment.OverrideModelId)
+	}
+	if (!found || len(result.OrderedModelIds) == 0) && (task.DefaultTier == "vision" || task.DefaultTier == "rerank") {
+		profile, found, err = readRouteProfile(ctx, snapshot, op.CostClass, "fast")
+		if err != nil {
+			return ResolveProfileResult{}, err
+		}
+		if found {
+			result.Fallback = true
+			result.OrderedModelIds = applyTaskOverride(profile.OrderedModelIds, result.Assignment.OverrideModelId)
+			if task.DefaultTier == "rerank" && result.Assignment.OverrideModelId == nil {
+				result.RequiredCapabilities = append([]string{}, gen.AITierCapabilities["fast"]...)
+			}
+		}
+	}
+	if !found {
+		return ResolveProfileResult{}, platform.NewError(platform.CodeNotFound, false, "任务所需档位尚未配置")
+	}
+	result.Profile = profile
+	return result, nil
+}
+
+func readRouteProfile(ctx context.Context, snapshot *availabilitySnapshot, costClass string, tier string) (Profile, bool, error) {
+	var profile Profile
+	var orderedJSON []byte
+	err := snapshot.tx.QueryRowContext(ctx, `SELECT profile_id, version, cost_class, tier, ordered_model_ids_json,
+		maximum_cost_micro_usd, concurrency, daily_limit_cost_micro_usd FROM profiles
+		WHERE data_epoch = ? AND cost_class = ? AND tier = ?`, snapshot.epoch, costClass, tier).
+		Scan(&profile.ProfileId, &profile.Version, &profile.CostClass, &profile.Tier, &orderedJSON,
+			&profile.MaximumCost.Micros, &profile.Concurrency, &profile.DailyLimitCost.Micros)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Profile{}, false, nil
+	}
+	if err != nil {
+		return Profile{}, false, availabilityReadError(err)
+	}
+	if !platform.ValidIdentifier(profile.ProfileId) || profile.Version < 1 || profile.Version > 9007199254740991 ||
+		profile.MaximumCost.Micros < 0 || profile.MaximumCost.Micros > 9007199254740991 ||
+		profile.DailyLimitCost.Micros < 0 || profile.DailyLimitCost.Micros > 9007199254740991 ||
+		profile.Concurrency < 0 || profile.Concurrency > 9007199254740991 ||
+		json.Unmarshal(orderedJSON, &profile.OrderedModelIds) != nil || profile.OrderedModelIds == nil || len(profile.OrderedModelIds) > 256 {
+		return Profile{}, false, platform.NewError(platform.CodeIntegrityError, false, "档位持久配置损坏")
+	}
+	seen := make(map[string]bool, len(profile.OrderedModelIds))
+	for _, modelID := range profile.OrderedModelIds {
+		if !platform.ValidIdentifier(modelID) || seen[modelID] {
+			return Profile{}, false, platform.NewError(platform.CodeIntegrityError, false, "档位候选引用损坏")
+		}
+		seen[modelID] = true
+	}
+	profile.MaximumCost.Currency = "USD"
+	profile.DailyLimitCost.Currency = "USD"
+	return profile, true, nil
+}
+
+func applyTaskOverride(ordered []string, override *string) []string {
+	result := make([]string, 0, len(ordered)+1)
+	seen := make(map[string]bool, len(ordered)+1)
+	if override != nil {
+		result = append(result, *override)
+		seen[*override] = true
+		if len(ordered) > 0 {
+			ordered = ordered[1:]
+		}
+	}
+	for _, modelID := range ordered {
+		if !seen[modelID] {
+			result = append(result, modelID)
+			seen[modelID] = true
+		}
+	}
+	return result
+}
+
+// SelectCandidates 只解析安全元数据；持久派发引用与费用准入留在执行链。
+func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRouteInput) (ResolveRouteResult, error) {
+	store := gatewayruntime.CurrentStore()
+	if store == nil {
+		return ResolveRouteResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "模型配置存储尚未装配")
+	}
+	snapshot, err := beginAvailabilitySnapshot(ctx, op, store)
+	if err != nil {
+		return ResolveRouteResult{}, err
+	}
+	defer snapshot.tx.Rollback()
+	resolved, err := ResolveProfile(ctx, op, snapshot, input)
+	if err != nil {
+		return ResolveRouteResult{}, err
+	}
+	result := ResolveRouteResult{Resolved: resolved, Candidates: make([]RouteCandidate, 0, 16)}
+	var spaceID platform.Hash
+	for _, modelID := range resolved.OrderedModelIds {
+		candidate, eligible, err := readRouteCandidate(ctx, snapshot, modelID, resolved.RequiredCapabilities)
+		if err != nil {
+			return ResolveRouteResult{}, err
+		}
+		if !eligible {
+			continue
+		}
+		if hasGrant(resolved.RequiredCapabilities, "embedding") {
+			candidateSpace, err := embeddingSpaceID(candidate.Model)
+			if err != nil {
+				return ResolveRouteResult{}, platform.NewError(platform.CodeInternal, false, "嵌入空间摘要编码失败")
+			}
+			if spaceID != "" && spaceID != candidateSpace {
+				return ResolveRouteResult{}, platform.NewError(platform.CodeIntegrityError, false, "嵌入备用模型空间不一致")
+			}
+			spaceID = candidateSpace
+		}
+		// 后续候选仍须完成同代/完整性与嵌入空间检查，不能先截断配置。
+		if len(result.Candidates) < 16 {
+			result.Candidates = append(result.Candidates, candidate)
+		}
+	}
+	if len(result.Candidates) == 0 {
+		return ResolveRouteResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "当前配置没有可用模型候选")
+	}
+	result.RouteVersion, err = hashJSON(struct {
+		DataEpoch  platform.Identifier  `json:"dataEpoch"`
+		Resolved   ResolveProfileResult `json:"resolved"`
+		Candidates []RouteCandidate     `json:"candidates"`
+	}{snapshot.epoch, resolved, result.Candidates})
+	if err != nil {
+		return ResolveRouteResult{}, platform.NewError(platform.CodeInternal, false, "路线版本摘要编码失败")
+	}
+	return result, nil
+}
+
+func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) (RouteCandidate, bool, error) {
+	var candidate RouteCandidate
+	var capabilitiesJSON, headerNamesJSON, headerRefsJSON []byte
+	var modelEpoch string
+	var providerEnabled sql.NullBool
+	var providerVersion, credentialVersion sql.NullInt64
+	var providerEpoch sql.NullString
+	model := &candidate.Model
+	err := snapshot.tx.QueryRowContext(ctx, `SELECT m.model_id, m.version, m.provider_id, m.provider_model_version,
+		m.capabilities_json, m.dimension, m.preprocessor_version, m.max_input_tokens, m.max_output_tokens,
+		m.catalog_origin, m.manual_override, m.enabled, m.data_epoch,
+		p.enabled, p.version, p.credential_version, p.data_epoch, p.extra_header_names_json, p.extra_header_secret_refs_json
+		FROM models m LEFT JOIN providers p ON p.provider_id = m.provider_id WHERE m.model_id = ?`, modelID).
+		Scan(&model.ModelId, &model.Version, &model.ProviderId, &model.ProviderModelVersion,
+			&capabilitiesJSON, &model.Dimension, &model.PreprocessorVersion, &model.MaxInputTokens, &model.MaxOutputTokens,
+			&model.CatalogOrigin, &model.ManualOverride, &model.Enabled, &modelEpoch,
+			&providerEnabled, &providerVersion, &credentialVersion, &providerEpoch, &headerNamesJSON, &headerRefsJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return RouteCandidate{}, false, nil
+	}
+	if err != nil {
+		return RouteCandidate{}, false, availabilityReadError(err)
+	}
+	if !providerEnabled.Valid || !providerVersion.Valid || !credentialVersion.Valid || !providerEpoch.Valid {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型供应方引用损坏")
+	}
+	if modelEpoch != snapshot.epoch || providerEpoch.String != snapshot.epoch {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeVersionMismatch, false, "模型或供应方代次已变化")
+	}
+	var names, refs []string
+	if !platform.ValidIdentifier(model.ProviderId) || model.Version < 1 || model.Version > 9007199254740991 ||
+		!validModelString(model.ProviderModelVersion) || !validModelString(model.PreprocessorVersion) || !validCatalogOrigin(model.CatalogOrigin) ||
+		model.MaxInputTokens < 0 || model.MaxInputTokens > 9007199254740991 || model.MaxOutputTokens < 0 || model.MaxOutputTokens > 9007199254740991 ||
+		providerVersion.Int64 < 1 || providerVersion.Int64 > 9007199254740991 || credentialVersion.Int64 < 0 || credentialVersion.Int64 > 9007199254740991 ||
+		json.Unmarshal(capabilitiesJSON, &model.Capabilities) != nil || len(model.Capabilities) == 0 || len(model.Capabilities) > 256 ||
+		json.Unmarshal(headerNamesJSON, &names) != nil || names == nil || len(names) > 256 ||
+		json.Unmarshal(headerRefsJSON, &refs) != nil || refs == nil || len(names) != len(refs) {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型或供应方元数据损坏")
+	}
+	for _, capability := range model.Capabilities {
+		if !validCapability(capability) {
+			return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型能力损坏")
+		}
+	}
+	if (hasGrant(model.Capabilities, "embedding") && (model.Dimension < 1 || model.Dimension > maxEmbeddingDimension)) ||
+		(!hasGrant(model.Capabilities, "embedding") && model.Dimension != 0) ||
+		((hasGrant(model.Capabilities, "chat") || hasGrant(model.Capabilities, "translation")) && model.MaxOutputTokens < 1) {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型能力边界损坏")
+	}
+	for i, name := range names {
+		if name == "" || refs[i] == "" {
+			return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方附加头引用不完整")
+		}
+	}
+	if !model.Enabled || !providerEnabled.Bool || credentialVersion.Int64 == 0 {
+		return RouteCandidate{}, false, nil
+	}
+	for _, required := range requiredCapabilities {
+		if !hasGrant(model.Capabilities, required) {
+			return RouteCandidate{}, false, nil
+		}
+	}
+	var credentialEpoch string
+	var nonceBytes, ciphertextBytes int64
+	err = snapshot.tx.QueryRowContext(ctx, `SELECT data_epoch, length(nonce), length(ciphertext) FROM credentials
+		WHERE provider_id = ? AND credential_version = ?`, model.ProviderId, credentialVersion.Int64).
+		Scan(&credentialEpoch, &nonceBytes, &ciphertextBytes)
+	if errors.Is(err, sql.ErrNoRows) {
+		return RouteCandidate{}, false, nil
+	}
+	if err != nil {
+		return RouteCandidate{}, false, availabilityReadError(err)
+	}
+	if credentialEpoch != snapshot.epoch {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeVersionMismatch, false, "凭据引用代次已变化")
+	}
+	if nonceBytes != 12 || ciphertextBytes <= 16 {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "凭据引用材料不完整")
+	}
+	candidate.ProviderVersion = int(providerVersion.Int64)
+	candidate.CredentialVersion = int(credentialVersion.Int64)
+	return candidate, true, nil
 }
 
 // NewProfileHandlers 只绑定真实档位写入，统一授权与严格schema由公共入口完成。

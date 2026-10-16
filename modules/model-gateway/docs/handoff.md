@@ -1,5 +1,25 @@
 # AI 接入会话交接
 
+## 持续目标第一轮：免费真实路由解析（已交付）
+
+2026-10-16。用户新授权每轮三个子代理同时编写，根统一审核后普通push直到代码编写部分完成；此前两轮停止不再适用。独占modules/model-gateway/，分支codex/model-goal-r1，基线685db4f48bb359f79a7501098204ccc5a4cde6b2。源码提交24e4026d452333061cad9ef6abde3050e2944101，根统一VPS检查通过，6项完整路由函数、修改readAvailabilityCandidate与3个完整文件verified。PutProfile本轮源码未修改，其既有costClass条件UPDATE与参数已核对，不虚记本轮修复。
+
+本轮实际源码：internal/catalog/profile.go新增真实ResolveProfile、SelectCandidates及readRouteProfile/applyTaskOverride/readRouteCandidate；新增已登记internal/routing/route.go实现ResolveRoute；task.go的readAvailabilityCandidate复用共享读取器。四份机器来源中只修改implementation/types，HTTP/events不变。人工状态/交接/README/data/workflows同步，functions/files已由根VPS make docs精确回传。无公共目录修改、迁移或外部依赖。
+
+最终真实调用链ResolveRoute → SelectCandidates → ResolveProfile；SelectCandidates持有一次严格当前epoch SQL事务并结束回滚，不先开独立配置快照。目录owner和可信costClass核对，必须真实同代assignment/defaultTier；缺赋值NOT_FOUND。先覆盖替换首项并保序去重，再仅vision/rerank缺槽/仍空时取同costClass真实fast槽；缺fast不能合成。vision继续vision，rerank有override继续rerank，只有无override空档回退fast/chat。其他档不回退，也不因eligible过滤后为空切换档位。
+
+候选遍历完整至多256项并先过滤后保序16，后续项仍检查代次/完整性；embedding所有eligible候选须同空间。安全输出绑定模型元数据、providerVersion、credentialVersion和固定JSON字段顺序路线SHA256。凭据只读代次/长度，不读密文/主密钥/URL/价格；profile费用配置仅声明，不作为费用准入。不获取派发引用、不调供应方、不自动重算付费结果，不能把免费读取器当作完整执行或安全回收依据。
+
+QA免费读取仍固定QA纯服务/三任务/chat，缺assignment保持not_configured，未扩大范围或增加费用权限。完整HTTP/启动/epoch初始化/恢复/后台及真实执行费用、引用释放销毁仍partial/blocked。
+
+已有检查：2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。 本地仅git diff --check与暂存/消息/用户代用身份静态隐私扫描；未执行本机Go/gofmt/编译/vet/测试或make check/gen/docs。源码SHA已精确回填对应verified条目。无新增测试、fixture、mock、样例、临时业务验证程序；未真实接口/模型、部署或本域push。
+
+下一项：根顺序集成本轮源码与记录后统一复核实际树并普通push；本域冻结，后续真实凭据版本引用/释放协议工作包等待根以新基线派发，不提前实现或推送。
+
+以下为既有交付历史。
+
+# AI 接入会话交接
+
 ## 两轮并行第二轮：凭据安全持久化（已交付）
 
 更新：2026-10-16。用户授权三子代理并行两轮、每轮根统一检查并普通push main；本轮是最后一轮，完成后停止。基线53acce862467dbe40b829d1984519d78ccac5608，分支codex/model-next-two-r2；公共ServiceConfig.MasterKeyRef/NW_MASTER_KEY_REF前置993904524e4d7a792a6c84a80606de6215f7ace5已正常ff合入。只拥有modules/model-gateway/，源码提交c82f663bb8f935ff67a8da9e22c463ea0765d816；Put完整、紧密辅助与修改后的完整函数verified，Rotate旧引用生命周期与整体启动缺口保持partial/blocked。

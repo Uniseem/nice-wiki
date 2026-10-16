@@ -30,7 +30,7 @@
 
 仅已认证QA纯服务调用ReadTaskAvailability，按原请求顺序返回qa.preflight/qa.inspect/qa.answer的安全三态。统一入口处理服务断言、schema、当前runtime、维护与截止，本域只核该只读调用范围；在一次严格epoch的SQL快照内关联任务赋值、QA档位和候选元数据。缺赋值/档位为not_configured；已配但模型/供应方停用、chat不匹配或当前凭据未配为unavailable；存储未知或损坏必须返回公共错误，不伪造false。
 
-单任务覆盖替换orderedModelIds第一项，原第二项起有序备用保留并去重；列表空可仅覆盖，不把被替换主模型加回备用。合法配置上限256项，先按完整配置过滤本地eligible，执行ResolveRoute再保序返回至多16个候选，不能先截断配置。本规则同步ResolveRoute参考合同，本轮不实现付费路由。所有候选只核元数据存在性，不读取密文/主密钥或供应方URL，不查价格、余额、预算，不发HTTP探测、不占额度或调用模型。即使返回available，也只表示当前配置材料具备。
+单任务覆盖替换orderedModelIds第一项，原第二项起有序备用保留并去重；列表空可仅覆盖，不把被替换主模型加回备用。合法配置上限256项，先按完整配置过滤本地eligible，ResolveRoute通过SelectCandidates再保序返回至多16个候选，不能先截断配置。QA免费读取仍只投影固定三任务chat配置三态，不因此取得执行或费用权限。所有候选只核元数据存在性，不读取密文/主密钥或供应方URL，不查价格、余额、预算，不发HTTP探测、不占额度或调用模型。即使返回available，也只表示当前配置材料具备。
 
 ## 任务分配配置读写
 
@@ -44,7 +44,7 @@
 
 PutProfile在同一当前代次事务内，依次处理7天原结果、全部非released屏障、当前版本与唯一槽、候选直接能力、条件CAS、profile.changed平台outbox及完整回执。事件taskIds对旧/新fast改动保守包含vision/rerank回退任务并去重排序。有效原结果重放不受后来模型停用或本地写屏障阻断；未知Commit不自行重试。保存只核模型元数据，不读取价格、凭据或供应方在线性。
 
-空候选列表保留配置行。old规定的视觉/重排未设回退保留在尚未实现的ResolveProfile/ResolveRoute：该行缺失或候选数组为空时，分别使用fast中支持vision的候选、或由fast模型代替重排；不在保存时合成候选，不自动重算嵌入或已有付费结果。
+空候选列表保留配置行。视觉/重排未设回退由同快照ResolveProfile处理，先应用任务覆盖再判断候选是否为空；详细顺序见下节。保存不合成候选、不自动重算嵌入或已有付费结果。
 
 ## 凭据保存与版本切换
 
@@ -53,3 +53,13 @@ PutProfile在同一当前代次事务内，依次处理7天原结果、全部非
 Put可首次保存/替换或修复缺失active材料；Rotate需要既有完整active材料，全部旧密文保留。当前没有真实派发版本引用与释放依据，最后引用销毁仍未交付，Rotate/credential.go整体partial；不能因invocations为空而清密文。
 
 第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后根全量生成/编译/结构检查通过，证据见本轮交付记录。
+
+## 免费执行路线元数据解析
+
+真实调用链为ResolveRoute → SelectCandidates → ResolveProfile，后两者共享一次严格非空当前epoch的SQL事务。taskId必须在根唯一生成目录且owner等于可信callerService，输入costClass只与可信op.costClass核对。必须已有同代任务赋值，tier必须等于目录defaultTier；缺行NOT_FOUND，不用目录默认值伪造已保存赋值。公开HTTP输入、QA免费三任务gate及其缺赋值not_configured语义保持。
+
+先读取同costClass/defaultTier的真实档位并应用override：替换首项，保留原第二项起备用且去重；空列表可仅覆盖，不把被替换主模型加回。仅vision/rerank在槽缺失或覆盖后仍空时使用同costClass真实fast档位；缺fast报NOT_FOUND，不合成profile或版本。缺目标槽而有override也只由真实fast承载。vision继续要求vision；rerank有override继续要求rerank，只有无override空档回退才改为fast/chat。其他档不回退，不因候选暂不可用而切换档位。
+
+ResolveProfile返回真实原始profile、assignment及派生顺序/能力。SelectCandidates读取全部至多256项引用，按同代启用模型、目标能力、启用供应方和active凭据元数据过滤，保留原顺序后最多取16项；后续候选仍须完成完整性/代次检查。所有eligible embedding候选必须同一现有embeddingSpaceID，异空间失败关闭。未知SQL、损坏或异代返回公共错误，不能伪造空候选；无eligible为DEPENDENCY_UNAVAILABLE。
+
+路线只含模型安全元数据及供应方/凭据版本引用，routeVersion按epoch、真实配置和最终候选的固定JSON字段顺序计算SHA256。凭据只读存在性/代次/nonce及ciphertext长度，不读取密文、主密钥、URL或价格；profile费用字段仅配置声明，不读取余额或判断费用准入。不探测、不调用模型、不获取持久派发引用；后续派发前仍需真实引用/屏障/版本及费用协议，不能把免费候选视为完整执行完成。

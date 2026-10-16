@@ -1,5 +1,19 @@
 # AI 接入当前进度
 
+更新：2026-10-16。用户新授权每轮三个子代理并行编写、统一审核及普通push直到代码编写完成，取代此前两轮停止指令。本轮基线685db4f48bb359f79a7501098204ccc5a4cde6b2，分支codex/model-goal-r1，独占本域。源码提交24e4026d452333061cad9ef6abde3050e2944101；免费同代路由已通过根VPS检查与交叉审核，6项完整路由函数、修改的readAvailabilityCandidate及3个完整文件verified。PutProfile源码本轮未修改，保留原实现SHA。
+
+- ResolveRoute通过SelectCandidates在一个严格当前epoch SQL快照内调用ResolveProfile；任务须目录登记且属于可信callerService，costClass只核对可信op。必须真实同代assignment且tier等于目录defaultTier，不合成缺失赋值。
+- 先override替换主模型并保序去重，空列表可仅覆盖；仅vision/rerank在目标槽缺失或覆盖后仍空时使用真实同costClass fast配置。vision仍需vision，rerank有override仍需rerank、无override空档才fast/chat；缺配置NOT_FOUND，其他档不回退。
+- 全部256项先按安全元数据筛选，保序最多16项；同代模型/供应方/凭据引用及完整性未知失败关闭，eligible embedding全部同空间。返回模型/供应方/凭据版本及路线摘要；没有解密、探测、费用准入或持久派发引用。
+- QA免费gate仍只允许QA纯服务、固定三任务、chat能力及原有缺赋值not_configured语义；仅复用共享安全候选读取器。无新增HTTP、迁移、依赖、测试、样例或临时业务程序，未本机Go/gofmt/编译/check、真实接口/模型、部署或本域push。
+- 完整服务、权威epoch初始化、费用预留/派发/结算、凭据引用释放及旧密文销毁仍未完成；BuildApplication保持blocked，Rotate整体partial。候选检查不等于业务验收。
+
+- 2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。
+
+以下为既有交付历史，以页首最新授权与progress.json为准。
+
+# AI 接入当前进度
+
 更新：2026-10-16。第二轮（最后一轮），分支codex/model-next-two-r2，基线53acce862467dbe40b829d1984519d78ccac5608；公共可信masterKeyRef前置993904524e4d7a792a6c84a80606de6215f7ace5已正常合入。独占本域，源码提交c82f663bb8f935ff67a8da9e22c463ea0765d816；PutCredential与紧密辅助、HMAC回执、可信引用装配及PutProvider指针保护已verified。Rotate最后引用销毁生命周期未齐，整函数/credential.go仍partial，完整启动blocked。
 
 - 新增已登记internal/security/credential.go，复用001/002 schema，无新迁移或依赖。主密钥只在凭据写入读取：私有路径、NOFOLLOW/SameFile、最多33字节、恰好32字节及末次文件身份核对；启动/免费配置读取只装配引用，不依赖secret文件。
