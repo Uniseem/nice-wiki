@@ -1,6 +1,6 @@
 # 重建计划
 
-更新于2026-10-16。本次用户授权三个子代理并行一轮；content树/资源引用、model-gateway任务分配配置、media上传完成/直接校验已各用独立worktree交付，顺序合入main并逐包在VPS复核。机器契约861文件、1216函数、379HTTP操作、2271类型；515函数已实现或验证（452 verified、63 implemented），planned 671、in_progress 7、blocked 23，台账完成率42.4%。较轮前净增43个完成条目，新增7个预登记实际源码；无新增迁移或依赖。各包docs/gen与各实际集成树14模块readonly build/vet/gofmt、完整check通过，最终同树重复docs/gen零漂移，提交隐私与AI署名审计通过；不代表SQL/HTTP或业务验收。content真实DB adapter、完整HTTP/后台/公开链及其余业务仍未完成。本轮已收口，不自动开展后包。推送复核修正SVG style文本分片边界，VPS检查通过；用户已授权普通push main，结果待执行，不部署；当前交接见push-log/2026-10-16-0002.md。
+更新于2026-10-16。本次用户授权三个子代理并行一轮；content树/资源引用、model-gateway任务分配配置、media上传完成/直接校验已各用独立worktree交付，顺序合入main并逐包在VPS复核。机器契约861文件、1216函数、379HTTP操作、2271类型；515函数已实现或验证（452 verified、63 implemented），planned 671、in_progress 7、blocked 23，台账完成率42.4%。较轮前净增43个完成条目，新增7个预登记实际源码；无新增迁移或依赖。各包docs/gen与各实际集成树14模块readonly build/vet/gofmt、完整check通过，最终同树重复docs/gen零漂移，提交隐私与AI署名审计通过；不代表SQL/HTTP或业务验收。content真实DB adapter、完整HTTP/后台/公开链及其余业务仍未完成。本轮已收口，不自动开展后包。推送复核修正SVG style文本分片边界，VPS检查通过；main已按本次授权普通推送并核对远端，不部署；当前交接见push-log/2026-10-16-0002.md。
 
 | 任务 | 内容 | 验收 | 状态 |
 |---|---|---|---|

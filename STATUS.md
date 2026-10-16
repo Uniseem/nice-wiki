@@ -1,6 +1,6 @@
 # 当前状态（2026-10-16，三模块并行一轮已收口）
 
-阶段：R1分批实施，整体尚未完成。本次用户授权检查状态后同时启动三个子代理编写一轮；content、model-gateway、media各用独立worktree交付，已顺序合入main并逐包复核。本轮结束，不自动展开后包。本次用户已授权复核通过后普通push main，推送结果待执行；不部署。
+阶段：R1分批实施，整体尚未完成。本次用户授权检查状态后同时启动三个子代理编写一轮；content、model-gateway、media各用独立worktree交付，已顺序合入main并逐包复核。本轮结束，不自动展开后包。main已按本次授权普通推送并核对远端；不部署。
 
 ## 最新事实
 
@@ -12,7 +12,7 @@
 - media完成CompleteUpload及MIME/容器、SVG和画板直接校验，固定首次成功/安全错误；完整字节/hash和chunk水位后，文件fsync/rename/目录fsync，再以单SQL事务提交ready、session CAS、COMMITTED、回执和新资源outbox。复用资源精确匹配站点/类别/主键/引用；未知Commit留文件，暂存路径与启动恢复一致。源码9c2521a3142db0bc2ebcf1dc2914d3aea6984b46；37项本轮完整或修改函数verified，outbox转发、全部HTTP、pins、公开bytes及后台仍未完成。
 - blocked上传保留临时文件并持续计入站点存储预留，本轮不开放Abort清理blocked，等待后续已登记临时维护明确清理，不能视为空间已释放。最终复用既有upload_receipts，未新增003迁移或第三方依赖。
 - 公共结构登记本轮7个实际源码。OpenAPI 3.0生成将propertyNames保留为扩展，DrawingScene语义精确检查原文件键规则，原3.1 schema约束不变。三个实际集成树分别在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过14模块readonly build/vet/gofmt及完整make check；各包docs/gen通过。最终同树重复docs/gen零漂移，本轮交付提交、收尾暂存与提交消息的内容/身份/AI署名隐私审计通过。
-- 全部生成、格式、编译、vet与检查在VPS执行；未新增测试、fixture、mock、样例或临时业务验证程序，未运行SQL/HTTP行为验收、真实模型、服务、镜像或部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮交付与待整理记录见[会话记录](docs/push-log/_pending.md)。
+- 全部生成、格式、编译、vet与检查在VPS执行；未新增测试、fixture、mock、样例或临时业务验证程序，未运行SQL/HTTP行为验收、真实模型、服务、镜像或部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮交付与待整理记录见[推送记录](docs/push-log/2026-10-16-0002.md)。
 
 后续一项：先为content真实私有持久化补齐本域schema、只追加迁移与启动装配协议，结构新增按AGENTS取得授权后实施；本轮不自动开始。R1整体、业务验收及部署保持未完成。
 
