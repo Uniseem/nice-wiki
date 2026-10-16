@@ -2477,7 +2477,7 @@
         "x-handler": "model-gateway.PutTaskAssignment",
         "x-permission": "superadmin",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 taskId与tier来自根唯一任务目录；tier必须等于defaultTier，assignment.version=expectedVersion+1；覆盖模型满足目录能力，7天原回执绑定callerService和dataEpoch。",
         "parameters": [
           {
             "name": "taskId",
@@ -2615,7 +2615,7 @@
         "x-handler": "model-gateway.ReadTaskAssignments",
         "x-permission": "service",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 纯服务仅可读取根任务目录owner=callerService的范围；portal携superadmin管理员委托可读全部。显式跨owner任务返回FORBIDDEN，未登记任务VALIDATION；未赋值不生成默认记录。",
         "parameters": [
           {
             "name": "taskId",

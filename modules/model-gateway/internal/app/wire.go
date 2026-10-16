@@ -24,7 +24,7 @@ const ModuleSlug = "model-gateway"
 // BuildApplication 按服务启动合同校验配置、建立本域目录、加载服务身份
 // 信任锚与签名密钥、读取运行权威并执行恢复换目录前置流程。
 //
-// 本包只装配私有库和免费任务配置读取映射，不读取主密钥、不启动模型或费用任务。
+// 本包装配私有库和任务配置映射，不读取主密钥、不启动模型或费用任务。
 // 其余handler、恢复回执和后台未齐时，公共完整工厂仍拒绝启动。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
@@ -68,6 +68,16 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
+	identityClient := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	authorize := apivalidate.NewIdentityAuthorizer(identityClient)
+	assignmentCallers := []string{"portal"}
+	seen := map[string]bool{"portal": true}
+	for _, task := range gen.AITaskCatalog {
+		if !seen[task.Owner] {
+			assignmentCallers = append(assignmentCallers, task.Owner)
+			seen[task.Owner] = true
+		}
+	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -75,10 +85,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
 		},
 		OpenedDataEpoch: runtimeView.DataEpoch,
+		Authorize:       authorize,
 		AllowedCallers: map[string][]string{
 			"readTaskAvailability": {"qa"},
+			"putTaskAssignment":    {"portal"},
+			"readTaskAssignments":  assignmentCallers,
 		},
-	}, catalog.NewTaskAvailabilityHandlers())
+	}, catalog.NewTaskAvailabilityHandlers(authorize))
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,17 @@
 # AI 接入当前进度
 
+更新：2026-10-16。本轮任务分配配置读写已交付，分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，独占本域。源码提交c7c1cac9e3a59a206d506083ace25fd00c077e40；本轮完整Put/Read、2项辅助和修改后的HTTP映射，以及task.go和本轮生成物verified。wire.go整体partial、BuildApplication blocked，业务验收未执行。
+
+- PutTaskAssignment落实superadmin、根唯一任务目录默认档位与覆盖能力、严格非空epoch、同代7天原始回执、非released屏障、SQL条件CAS与同事务assignment.changed平台outbox。先返回有效原回执，不因后来模型停用或本地屏障阻断同代无副作用重放；异输入/异代回执冲突，过期仅同成功新配置事务替换。
+- ReadTaskAssignments只读取根目录owner=callerService的已持久配置，显式跨owner拒绝，未配置保持空数组。portal管理员全量读取通过HTTP边界平台identity即时superadmin授权；写入由公共边界统一授权一次，SQL函数信任可信op。路径、正文及幂等头一致性在本域HTTP绑定核实。
+- 沿用既有task.go、wire.go及001/002持久结构；根集成会话在既有clients.gen.go生成AITaskCatalog，不手抄目录、不运行时跨域读文件。缺失assignment.changed生产契约已补最小taskId/version/dataEpoch载荷，无新增消费者。公共前置为ab94e1e。
+- 本轮未实现档位写入、凭据加密、模型/费用执行、权威epoch初始化、完整HTTP/后台或可运行服务；不以持久schema和映射冒充完整配置运行。
+- 2026-10-16 集成会话基于已集成content的模型候选快照：VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、task.go与wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt、暂存隐私扫描与完整make check全部通过（861文件/1187函数/379操作/2271类型）。完整本域生成/格式结果由集成会话精确回传，未本机执行Go检查。仅现阶段源码/生成/编译/结构证据，未执行SQL行为验证、业务测试、真实接口或模型、服务/镜像/部署，不代表业务验收。
+- 未新增测试/mock/fixture/样例或临时验证程序，未执行push。本轮交付后停止，不自动进入下一包。
+
+以下为先前交付历史，旧停止指令由本次用户授权单轮并行实施取代。
+
+
 更新：2026-10-16。第六轮只实现QA免费任务配置可用性读取，分支codex/model-task-availability-r1，基线cbe93952464bc9bd4a159e4d870c1b191855bc3a，独占本域。源码、合同与VPS生成产物已交付，完整12项相关函数及对应完整迁移/生成文件verified；task.go和runtime/bootstrap.go各自未完成职责保持partial，完整启动仍blocked，业务验收未执行。
 
 - ReadTaskAvailability仅QA纯服务、固定三任务，一次当前epoch SQL快照；缺任务/QA档位为not_configured，已配无可用元数据候选为unavailable；空/异代、损坏与查询未知失败关闭。

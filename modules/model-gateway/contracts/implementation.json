@@ -5752,7 +5752,7 @@
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
       "kind": "handwritten",
-      "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "任务分配配置读写与QA免费可用性读取；真实本域SQL、权限、CAS、回执和平台outbox，不调用供应方。",
       "functions": [
         {
           "id": "model-gateway.PutTaskAssignment",
@@ -5794,11 +5794,13 @@
           ],
           "purpose": "超管维护单任务模型覆盖",
           "steps": [
-            "1 taskId在根唯一AI task catalog",
-            "2 default tier按任务登记",
-            "3 override检查能力",
-            "4 CAS保存并发assignment.changed",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "仅已验证admin且含superadmin授权可写；入口已统一完成服务身份、identity当前授权、schema、期限与权威epoch校验，内部不重复边界解析",
+            "taskId必须在根contracts/ai-tasks.json生成的AITaskCatalog；assignment.tier必须等于目录defaultTier，assignment.version必须为expectedVersion+1，不修改任务目录默认档位",
+            "使用beginAvailabilitySnapshot在同一事务核本地非空当前epoch；先读有效原回执，再检查任何非released屏障；同代有效重放不产生写入，屏障只阻止新配置事务",
+            "幂等键按siteId+actorId+函数ID+key定位，规范输入摘要同时绑定callerService、dataEpoch、assignment与expectedVersion；7天内同hash返回原始回执而不重查可能已停用的覆盖模型，不同hash为CONFLICT；坏时间或原结果不匹配为INTEGRITY_ERROR，过期只视为未命中，确认无屏障后仅在同一成功事务末尾替换旧回执",
+            "设置override时只读本域models的enabled/capabilities/dataEpoch，必须存在、已启用、同epoch并满足目录RequiredCapabilities全部能力；不读凭据、不要求价格或在线探测；省略override清除覆盖",
+            "任务不存在仅expectedVersion=0可创建，存在行必须同epoch；SQL INSERT ON CONFLICT DO NOTHING或带version/dataEpoch的UPDATE并核RowsAffected=1执行CAS，冲突返回VERSION_MISMATCH，不覆写异代行",
+            "同事务保存assignment、原结果回执与平台outbox assignment.changed/v1，载荷只含taskId/version/dataEpoch；提交后才返回，失败回滚，Commit未知不重试或重建操作"
           ],
           "errors": [
             {
@@ -5848,16 +5850,43 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同规范输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久配置或回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本地权威代次或存储不可用",
+              "retryable": true
             }
           ],
           "sideEffects": [
-            "写任务映射"
+            "同事务写task_assignments、operation_receipts、nw_outbox；不调用供应方、不创建费用或后台任务"
           ],
-          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "已验证admin且含superadmin；HTTP入口以identity核实当前授权，服务身份不替代管理员委托。"
+          },
+          "concurrency": "严格同epoch SQL事务；本地非released屏障失败关闭；任务版本条件写并核受影响行数，幂等键与outbox唯一约束。",
+          "idempotency": "siteId+actorId+函数ID+key唯一；摘要含callerService/dataEpoch/规范assignment/expectedVersion；7天原结果先于屏障与当前模型校验返回且无写入；异hash CONFLICT，过期仅同成功新配置事务替换。",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot",
+            "model-gateway.readTaskAssignmentReceipt",
+            "model-gateway.validateTaskOverride",
+            "platform.EnqueueEvent",
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [
+            "根AI任务目录生成表AITaskCatalog；本域runtime_meta/barriers/task_assignments/models/operation_receipts/nw_outbox"
+          ],
           "contract": "binding"
         },
         {
@@ -5900,11 +5929,11 @@
           ],
           "purpose": "读取任务模型映射",
           "steps": [
-            "1 service能力范围过滤",
-            "2 与根目录taskId校验",
-            "3 输出固定version",
-            "4 禁止模型调用",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "只接受根AI目录owner范围内纯服务actor；按callerService与生成目录owner过滤，portal管理读取另要求admin+superadmin；其他调用方拒绝",
+            "显式taskId必须在根目录且属于调用方owner，否则分别VALIDATION/FORBIDDEN；不因不存在赋值而放宽服务范围",
+            "beginAvailabilitySnapshot取得同一严格当前epoch快照；读取本域task_assignments按taskId排序，不合成默认已配置记录，未配置返回非null空数组",
+            "持久行校验根taskId、目录defaultTier、正版本与覆盖引用；损坏INTEGRITY_ERROR，所读行异代VERSION_MISMATCH；不读取其他owner的持久值",
+            "输出固定version及已存可选覆盖字段；不读密钥、费用、供应方或执行模型，不创建任务或回执"
           ],
           "errors": [
             {
@@ -5942,14 +5971,43 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "指定任务未登记",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地或任务行代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久任务配置损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "当前权威快照未知",
+              "retryable": true
             }
           ],
           "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "纯服务仅callerService=任务owner的范围；portal admin+superadmin可读全部；跨owner显式单项FORBIDDEN。"
+          },
+          "concurrency": "一次短SQL快照；按owner过滤后投影，不以未知或异代数据返回空结果。",
+          "idempotency": "纯读取当前配置，无写入或费用副作用。",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot",
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [
+            "根AI任务目录生成表AITaskCatalog；本域runtime_meta/task_assignments只读SQL快照"
+          ],
           "contract": "binding"
         },
         {
@@ -6107,11 +6165,11 @@
               "constraints": "错误时不使用结果；不暴露私有配置原值"
             }
           ],
-          "purpose": "建立严格当前代次只读快照",
+          "purpose": "建立严格当前代次任务配置事务快照",
           "steps": [
-            "调用既有Store.BeginTx，不写任何业务字段",
+            "调用既有Store.BeginTx；开始事务本身不写业务字段",
             "同事务读取runtime_meta singleton，空/缺失为503，异代409；失败回滚",
-            "返回句柄由上层defer Rollback结束，三任务共用"
+            "返回句柄由上层defer Rollback结束；只读共用快照，写入链在同事务检查屏障、CAS、回执/outbox后提交"
           ],
           "errors": [
             {
@@ -6143,10 +6201,10 @@
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域任务配置读写链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。"
           },
-          "concurrency": "一次短SQL快照；不持本域锁执行网络IO",
-          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "concurrency": "一次SQL事务；不持事务执行网络IO。",
+          "idempotency": "建立事务无独立副作用；业务写入由调用方同事务决定提交或回滚。",
           "dependencies": [
             "model-gateway.Store.BeginTx",
             "model-gateway.availabilityReadError"
@@ -6372,7 +6430,7 @@
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域任务配置读写链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。"
           },
           "concurrency": "纯错误投影，无锁或IO",
           "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
@@ -6383,8 +6441,15 @@
         {
           "id": "model-gateway.NewTaskAvailabilityHandlers",
           "name": "NewTaskAvailabilityHandlers",
-          "signature": "func NewTaskAvailabilityHandlers() map[string]http.Handler",
-          "inputs": [],
+          "signature": "func NewTaskAvailabilityHandlers(authorize TaskAssignmentAuthorizer) map[string]http.Handler",
+          "inputs": [
+            {
+              "name": "authorize",
+              "type": "TaskAssignmentAuthorizer",
+              "description": "平台identity当前授权回调",
+              "constraints": "从本域既有identity客户端装配，仅HTTP管理员读取调用；缺失失败关闭"
+            }
+          ],
           "outputs": [
             {
               "name": "handlers",
@@ -6393,22 +6458,232 @@
               "constraints": "错误时不使用结果；不暴露私有配置原值"
             }
           ],
-          "purpose": "创建免费配置读取真实HTTP映射",
+          "purpose": "创建任务配置读写及免费可用性读取真实HTTP映射",
           "steps": [
-            "只映射readTaskAvailability，取平台可信OperationContext",
-            "绑定已由统一入口校验的JSON并调用真实ReadTaskAvailability",
-            "所有响应no-store，公共Problem失败关闭；成功只写安全JSON，不挂半成品服务"
+            "映射readTaskAvailability、putTaskAssignment、readTaskAssignments；从平台读取可信OperationContext",
+            "绑定公共入口已严格校验的JSON或query；本域写入绑定校验taskId路径与assignment.taskId，以及非空Idempotency-Key头与正文键一致",
+            "readTaskAssignments的admin入口额外通过平台authorize核superadmin当前会话授权；纯owner服务不做管理员回查；写入口由公共ServiceBoundaryConfig.Authorize统一校验一次",
+            "调用真实本域任务函数，所有响应no-store，错误输出公共Problem，缺其余handler仍不能启动完整服务"
           ],
           "errors": [],
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "交公共完整HTTP边界；具体函数分别校验QA、owner服务或superadmin范围。"
           },
-          "concurrency": "只创建映射；每个请求从平台上下文进入绑定并独立只读快照",
-          "idempotency": "只读每次读取当前快照，不创建费用或操作回执",
+          "concurrency": "每请求独立事务；不构造部分可运行服务。",
+          "idempotency": "HTTP仅绑定；写入由真实函数持久回执与CAS保证。",
           "dependencies": [
-            "model-gateway.ReadTaskAvailability"
+            "model-gateway.ReadTaskAvailability",
+            "model-gateway.PutTaskAssignment",
+            "model-gateway.ReadTaskAssignments",
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readTaskAssignmentReceipt",
+          "name": "readTaskAssignmentReceipt",
+          "signature": "func readTaskAssignmentReceipt(ctx context.Context, op OperationContext, snapshot *availabilitySnapshot, input PutTaskAssignmentInput, inputHash platform.Hash) (PutTaskAssignmentResult, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信调用范围",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "snapshot",
+              "type": "availabilitySnapshot",
+              "description": "当前同代事务",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "input",
+              "type": "PutTaskAssignmentInput",
+              "description": "原请求",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "inputHash",
+              "type": "Hash",
+              "description": "含代次与调用方摘要",
+              "constraints": "本域已验证任务配置链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PutTaskAssignmentResult",
+              "description": "原结果",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否命中有效原回执",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "脱敏公共错误",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            }
+          ],
+          "purpose": "读取7天任务赋值原始回执并验证准确结果",
+          "steps": [
+            "按site/actor/函数/key读取hash、原结果与创建时间，缺行表示未执行",
+            "坏时间失败关闭；超过7天仅视为未命中，不删除或提交；旧回执由上层在released且新配置成功事务末尾替换",
+            "有效期内异hash CONFLICT；解码原结果并与本次规范assignment核同，损坏INTEGRITY_ERROR；返回已存原结果"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "覆盖模型未启用或能力不满足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "模型或回执代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等输入不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久模型能力或回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本域查询未知",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅PutTaskAssignment已核superadmin的同事务链路。"
+          },
+          "concurrency": "与PutTaskAssignment共用当前SQL事务；不执行跨域IO。",
+          "idempotency": "由上层同事务原回执与CAS保证。",
+          "dependencies": [
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.validateTaskOverride",
+          "name": "validateTaskOverride",
+          "signature": "func validateTaskOverride(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "snapshot",
+              "type": "availabilitySnapshot",
+              "description": "当前同代事务",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "modelID",
+              "type": "string",
+              "description": "覆盖模型ID",
+              "constraints": "本域已验证任务配置链路使用"
+            },
+            {
+              "name": "requiredCapabilities",
+              "type": "string[]",
+              "description": "唯一目录生成能力集合",
+              "constraints": "本域已验证任务配置链路使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "脱敏公共错误",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            }
+          ],
+          "purpose": "校验覆盖模型同代启用与目录能力",
+          "steps": [
+            "只SELECT enabled/capabilities_json/data_epoch；缺模型或停用VALIDATION，异代VERSION_MISMATCH",
+            "解码持久能力数组并核集合结构，损坏INTEGRITY_ERROR；满足全部目录requiredCapabilities才成功",
+            "不读供应方地址、密钥、价格或余额，不探测模型"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "覆盖模型未启用或能力不满足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "模型或回执代次不匹配",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等输入不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久模型能力或回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本域查询未知",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅PutTaskAssignment已核superadmin的同事务链路。"
+          },
+          "concurrency": "与PutTaskAssignment共用当前SQL事务；不执行跨域IO。",
+          "idempotency": "由上层同事务原回执与CAS保证。",
+          "dependencies": [
+            "model-gateway.availabilityReadError"
           ],
           "resources": [],
           "contract": "reference"
@@ -7226,7 +7501,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "本轮只读映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不为免费读取调用需主密钥LoadRuntime、不覆写未知runtime_meta代次；NewTaskAvailabilityHandlers交公共NewServiceHandler，固定caller qa、当前Runtime及OpenedDataEpoch，全表其他handler缺失仍拒绝启动",
+            "本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
@@ -7273,7 +7548,9 @@
             "model-gateway.InstallStore",
             "model-gateway.Store.Close",
             "model-gateway.NewTaskAvailabilityHandlers",
-            "platform.NewServiceHandler"
+            "platform.NewServiceHandler",
+            "platform.NewIdentityAuthorizer",
+            "identity:checkAuthorization"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7662,7 +7939,7 @@
     {
       "path": "modules/model-gateway/internal/gen/clients.gen.go",
       "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改；同时从根AI任务目录生成AITaskCatalog owner/defaultTier/RequiredCapabilities，禁止手抄或运行时跨域读源文件",
       "functions": []
     },
     {

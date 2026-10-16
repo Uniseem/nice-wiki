@@ -695,7 +695,7 @@
             "embedding",
             "rerank"
           ],
-          "description": "默认档位"
+          "description": "根唯一AI任务目录登记的默认档位；不能用输入改写目录"
         },
         "overrideModelId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -4297,7 +4297,41 @@
       "type": "null",
       "x-internal": true,
       "x-go-type": "map[string]http.Handler",
-      "description": "仅readTaskAvailability真实映射，须交公共完整工厂"
+      "description": "任务配置读写与QA免费可用性真实映射，须交公共完整工厂"
+    },
+    "EventAssignmentChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "根唯一AI目录任务ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "任务赋值提交版本"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "提交代次"
+        }
+      },
+      "required": [
+        "taskId",
+        "version",
+        "dataEpoch"
+      ],
+      "description": "任务赋值提交元数据；不广播覆盖模型、密钥或业务正文。"
+    },
+    "TaskAssignmentAuthorizer": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "func(context.Context, platform.OperationContext, string, string) error",
+      "description": "平台identity即时授权回调；仅HTTP边界，不是JSON值"
     }
   }
 }

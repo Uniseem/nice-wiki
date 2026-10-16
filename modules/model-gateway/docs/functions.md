@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 78 个函数：约束 37 个，参考 41 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 80 个函数：约束 37 个，参考 43 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2722,11 +2722,13 @@ func PutTaskAssignment(ctx context.Context, op OperationContext, input PutTaskAs
 
 **步骤**
 
-1. taskId在根唯一AI task catalog
-2. default tier按任务登记
-3. override检查能力
-4. CAS保存并发assignment.changed
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅已验证admin且含superadmin授权可写；入口已统一完成服务身份、identity当前授权、schema、期限与权威epoch校验，内部不重复边界解析
+2. taskId必须在根contracts/ai-tasks.json生成的AITaskCatalog；assignment.tier必须等于目录defaultTier，assignment.version必须为expectedVersion+1，不修改任务目录默认档位
+3. 使用beginAvailabilitySnapshot在同一事务核本地非空当前epoch；先读有效原回执，再检查任何非released屏障；同代有效重放不产生写入，屏障只阻止新配置事务
+4. 幂等键按siteId+actorId+函数ID+key定位，规范输入摘要同时绑定callerService、dataEpoch、assignment与expectedVersion；7天内同hash返回原始回执而不重查可能已停用的覆盖模型，不同hash为CONFLICT；坏时间或原结果不匹配为INTEGRITY_ERROR，过期只视为未命中，确认无屏障后仅在同一成功事务末尾替换旧回执
+5. 设置override时只读本域models的enabled/capabilities/dataEpoch，必须存在、已启用、同epoch并满足目录RequiredCapabilities全部能力；不读凭据、不要求价格或在线探测；省略override清除覆盖
+6. 任务不存在仅expectedVersion=0可创建，存在行必须同epoch；SQL INSERT ON CONFLICT DO NOTHING或带version/dataEpoch的UPDATE并核RowsAffected=1执行CAS，冲突返回VERSION_MISMATCH，不覆写异代行
+7. 同事务保存assignment、原结果回执与平台outbox assignment.changed/v1，载荷只含taskId/version/dataEpoch；提交后才返回，失败回滚，Commit未知不重试或重建操作
 
 **错误**
 
@@ -2738,12 +2740,16 @@ func PutTaskAssignment(ctx context.Context, op OperationContext, input PutTaskAs
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `CONFLICT`：幂等键绑定不同规范输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久配置或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本地权威代次或存储不可用（可重试）
 
-- 副作用：写任务映射
-- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 副作用：同事务写task_assignments、operation_receipts、nw_outbox；不调用供应方、不创建费用或后台任务
+- 授权：permission：superadmin；rule：已验证admin且含superadmin；HTTP入口以identity核实当前授权，服务身份不替代管理员委托。
+- 并发：严格同epoch SQL事务；本地非released屏障失败关闭；任务版本条件写并核受影响行数，幂等键与outbox唯一约束。
+- 幂等：siteId+actorId+函数ID+key唯一；摘要含callerService/dataEpoch/规范assignment/expectedVersion；7天原结果先于屏障与当前模型校验返回且无写入；异hash CONFLICT，过期仅同成功新配置事务替换。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readTaskAssignmentReceipt`、`model-gateway.validateTaskOverride`、`platform.EnqueueEvent`、`model-gateway.availabilityReadError`
+- 其他依赖说明：根AI任务目录生成表AITaskCatalog；本域runtime_meta/barriers/task_assignments/models/operation_receipts/nw_outbox
 
 ## model-gateway.ReadTaskAssignments
 
@@ -2772,11 +2778,11 @@ func ReadTaskAssignments(ctx context.Context, op OperationContext, input ReadTas
 
 **步骤**
 
-1. service能力范围过滤
-2. 与根目录taskId校验
-3. 输出固定version
-4. 禁止模型调用
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受根AI目录owner范围内纯服务actor；按callerService与生成目录owner过滤，portal管理读取另要求admin+superadmin；其他调用方拒绝
+2. 显式taskId必须在根目录且属于调用方owner，否则分别VALIDATION/FORBIDDEN；不因不存在赋值而放宽服务范围
+3. beginAvailabilitySnapshot取得同一严格当前epoch快照；读取本域task_assignments按taskId排序，不合成默认已配置记录，未配置返回非null空数组
+4. 持久行校验根taskId、目录defaultTier、正版本与覆盖引用；损坏INTEGRITY_ERROR，所读行异代VERSION_MISMATCH；不读取其他owner的持久值
+5. 输出固定version及已存可选覆盖字段；不读密钥、费用、供应方或执行模型，不创建任务或回执
 
 **错误**
 
@@ -2786,12 +2792,17 @@ func ReadTaskAssignments(ctx context.Context, op OperationContext, input ReadTas
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION`：指定任务未登记（不可重试）
+- `VERSION_MISMATCH`：本地或任务行代次不匹配（不可重试）
+- `INTEGRITY_ERROR`：持久任务配置损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：当前权威快照未知（可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 授权：permission：service；rule：纯服务仅callerService=任务owner的范围；portal admin+superadmin可读全部；跨owner显式单项FORBIDDEN。
+- 并发：一次短SQL快照；按owner过滤后投影，不以未知或异代数据返回空结果。
+- 幂等：纯读取当前配置，无写入或费用副作用。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.availabilityReadError`
+- 其他依赖说明：根AI任务目录生成表AITaskCatalog；本域runtime_meta/task_assignments只读SQL快照
 
 ## model-gateway.ReadTaskAvailability
 
@@ -2850,7 +2861,7 @@ func ReadTaskAvailability(ctx context.Context, op OperationContext, input ReadTa
 
 - 级别：参考
 - 文件：`modules/model-gateway/internal/catalog/task.go`
-- 作用：建立严格当前代次只读快照
+- 作用：建立严格当前代次任务配置事务快照
 
 ```go
 func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *PrivateStore) (*availabilitySnapshot, error)
@@ -2873,9 +2884,9 @@ func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *
 
 **步骤**
 
-1. 调用既有Store.BeginTx，不写任何业务字段
+1. 调用既有Store.BeginTx；开始事务本身不写业务字段
 2. 同事务读取runtime_meta singleton，空/缺失为503，异代409；失败回滚
-3. 返回句柄由上层defer Rollback结束，三任务共用
+3. 返回句柄由上层defer Rollback结束；只读共用快照，写入链在同事务检查屏障、CAS、回执/outbox后提交
 
 **错误**
 
@@ -2886,9 +2897,9 @@ func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *
 - `DEADLINE_EXCEEDED`：查询已到原截止（不可重试）
 
 - 副作用：无
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
-- 并发：一次短SQL快照；不持本域锁执行网络IO
-- 幂等：只读每次读取当前快照，不创建费用或操作回执
+- 授权：permission：service；rule：仅本域任务配置读写链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。
+- 并发：一次SQL事务；不持事务执行网络IO。
+- 幂等：建立事务无独立副作用；业务写入由调用方同事务决定提交或回滚。
 - 依赖：`model-gateway.Store.BeginTx`、`model-gateway.availabilityReadError`
 
 ## model-gateway.readAvailabilityTask
@@ -3019,7 +3030,7 @@ func availabilityReadError(err error) error
 - `DEADLINE_EXCEEDED`：已到截止（不可重试）
 
 - 副作用：无
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 授权：permission：service；rule：仅本域任务配置读写链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。
 - 并发：纯错误投影，无锁或IO
 - 幂等：只读每次读取当前快照，不创建费用或操作回执
 - 依赖：无
@@ -3028,15 +3039,17 @@ func availabilityReadError(err error) error
 
 - 级别：参考
 - 文件：`modules/model-gateway/internal/catalog/task.go`
-- 作用：创建免费配置读取真实HTTP映射
+- 作用：创建任务配置读写及免费可用性读取真实HTTP映射
 
 ```go
-func NewTaskAvailabilityHandlers() map[string]http.Handler
+func NewTaskAvailabilityHandlers(authorize TaskAssignmentAuthorizer) map[string]http.Handler
 ```
 
 **输入**
 
-无
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `authorize` | `TaskAssignmentAuthorizer` | 平台identity当前授权回调 | 从本域既有identity客户端装配，仅HTTP管理员读取调用；缺失失败关闭 |
 
 **输出**
 
@@ -3046,19 +3059,117 @@ func NewTaskAvailabilityHandlers() map[string]http.Handler
 
 **步骤**
 
-1. 只映射readTaskAvailability，取平台可信OperationContext
-2. 绑定已由统一入口校验的JSON并调用真实ReadTaskAvailability
-3. 所有响应no-store，公共Problem失败关闭；成功只写安全JSON，不挂半成品服务
+1. 映射readTaskAvailability、putTaskAssignment、readTaskAssignments；从平台读取可信OperationContext
+2. 绑定公共入口已严格校验的JSON或query；本域写入绑定校验taskId路径与assignment.taskId，以及非空Idempotency-Key头与正文键一致
+3. readTaskAssignments的admin入口额外通过平台authorize核superadmin当前会话授权；纯owner服务不做管理员回查；写入口由公共ServiceBoundaryConfig.Authorize统一校验一次
+4. 调用真实本域任务函数，所有响应no-store，错误输出公共Problem，缺其余handler仍不能启动完整服务
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
-- 并发：只创建映射；每个请求从平台上下文进入绑定并独立只读快照
-- 幂等：只读每次读取当前快照，不创建费用或操作回执
-- 依赖：`model-gateway.ReadTaskAvailability`
+- 授权：permission：service；rule：交公共完整HTTP边界；具体函数分别校验QA、owner服务或superadmin范围。
+- 并发：每请求独立事务；不构造部分可运行服务。
+- 幂等：HTTP仅绑定；写入由真实函数持久回执与CAS保证。
+- 依赖：`model-gateway.ReadTaskAvailability`、`model-gateway.PutTaskAssignment`、`model-gateway.ReadTaskAssignments`、`identity:checkAuthorization`
+
+## model-gateway.readTaskAssignmentReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：读取7天任务赋值原始回执并验证准确结果
+
+```go
+func readTaskAssignmentReceipt(ctx context.Context, op OperationContext, snapshot *availabilitySnapshot, input PutTaskAssignmentInput, inputHash platform.Hash) (PutTaskAssignmentResult, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域已验证任务配置链路使用 |
+| `op` | `OperationContext` | 可信调用范围 | 本域已验证任务配置链路使用 |
+| `snapshot` | `availabilitySnapshot` | 当前同代事务 | 本域已验证任务配置链路使用 |
+| `input` | `PutTaskAssignmentInput` | 原请求 | 本域已验证任务配置链路使用 |
+| `inputHash` | `Hash` | 含代次与调用方摘要 | 本域已验证任务配置链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PutTaskAssignmentResult` | 原结果 | 失败结果不可使用；不输出私有原值 |
+| `found` | `bool` | 是否命中有效原回执 | 失败结果不可使用；不输出私有原值 |
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 按site/actor/函数/key读取hash、原结果与创建时间，缺行表示未执行
+2. 坏时间失败关闭；超过7天仅视为未命中，不删除或提交；旧回执由上层在released且新配置成功事务末尾替换
+3. 有效期内异hash CONFLICT；解码原结果并与本次规范assignment核同，损坏INTEGRITY_ERROR；返回已存原结果
+
+**错误**
+
+- `VALIDATION`：覆盖模型未启用或能力不满足（不可重试）
+- `VERSION_MISMATCH`：模型或回执代次不匹配（不可重试）
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutTaskAssignment已核superadmin的同事务链路。
+- 并发：与PutTaskAssignment共用当前SQL事务；不执行跨域IO。
+- 幂等：由上层同事务原回执与CAS保证。
+- 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.validateTaskOverride
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/task.go`
+- 作用：校验覆盖模型同代启用与目录能力
+
+```go
+func validateTaskOverride(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 本域已验证任务配置链路使用 |
+| `snapshot` | `availabilitySnapshot` | 当前同代事务 | 本域已验证任务配置链路使用 |
+| `modelID` | `string` | 覆盖模型ID | 本域已验证任务配置链路使用 |
+| `requiredCapabilities` | `string[]` | 唯一目录生成能力集合 | 本域已验证任务配置链路使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 只SELECT enabled/capabilities_json/data_epoch；缺模型或停用VALIDATION，异代VERSION_MISMATCH
+2. 解码持久能力数组并核集合结构，损坏INTEGRITY_ERROR；满足全部目录requiredCapabilities才成功
+3. 不读供应方地址、密钥、价格或余额，不探测模型
+
+**错误**
+
+- `VALIDATION`：覆盖模型未启用或能力不满足（不可重试）
+- `VERSION_MISMATCH`：模型或回执代次不匹配（不可重试）
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutTaskAssignment已核superadmin的同事务链路。
+- 并发：与PutTaskAssignment共用当前SQL事务；不执行跨域IO。
+- 幂等：由上层同事务原回执与CAS保证。
+- 依赖：`model-gateway.availabilityReadError`
 
 ## model-gateway.RefreshModelCatalog
 
@@ -3455,7 +3566,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮只读映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不为免费读取调用需主密钥LoadRuntime、不覆写未知runtime_meta代次；NewTaskAvailabilityHandlers交公共NewServiceHandler，固定caller qa、当前Runtime及OpenedDataEpoch，全表其他handler缺失仍拒绝启动
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -3470,7 +3581,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

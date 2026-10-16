@@ -1,5 +1,26 @@
 # AI 接入会话交接
 
+## 本轮任务分配配置读写（已交付）
+
+更新：2026-10-16。用户当次授权三个子代理并行编写一轮；本域独占modules/model-gateway/，分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf。源码提交c7c1cac9e3a59a206d506083ace25fd00c077e40；deliveryCommit与本轮完整函数/文件台账均引用该实际SHA，检查后记录在后续记录提交。任务配置源码已交付，不开展后包。
+
+实际源码改动仅internal/catalog/task.go与internal/app/wire.go；四份机器合同同步真实职责与协议。源码提交另含README/STATUS/progress与docs api/data/workflows/handoff、VPS make docs生成的files/functions，以及根VPS生成并回传的internal/gen/clients.gen.go、internal/gen/openapi.gen.go、ui/src/gen/api.gen.ts；共18个本域路径。现有001/002 schema足够，无新路径、迁移或外部依赖。完整函数为PutTaskAssignment、ReadTaskAssignments、readTaskAssignmentReceipt、validateTaskOverride及修改后的NewTaskAvailabilityHandlers；task.go全部登记职责与本轮生成物verified。BuildApplication只补配置映射与当前授权，整文件仍partial、函数仍blocked。
+
+PutTaskAssignment检查admin+superadmin、目录任务/defaultTier及expectedVersion+1；本地事务先核非空当前epoch，再按site/actor/函数/key读7天原结果，hash额外绑定callerService和dataEpoch。同代同hash先返回持久结果，不重查后来已停用的模型；异hash为CONFLICT，坏时间/原结果不匹配为INTEGRITY_ERROR。过期读取无副作用；仅新配置事务在非released屏障均不存在、能力和条件CAS成功后替换旧回执。覆盖只读models enabled/capabilities/dataEpoch并满足目录能力，不读秘密、价格或供应方地址，不探测模型。同事务通过平台outbox写assignment.changed/v1最小taskId/version/dataEpoch，Commit未知不自行重试。
+
+ReadTaskAssignments纯服务仅owner范围，显式未知任务VALIDATION、跨owner FORBIDDEN；按taskId排序只返回已持久同代赋值，未配置保持非null空数组。portal admin+superadmin可读全部；因service权限入口不会自动查管理员权限，本域HTTP map在管理员读取分支调用平台NewIdentityAuthorizer即时授权，写入只由公共ServiceBoundaryConfig.Authorize查一次。函数内部不重复身份/schema/deadline校验；HTTP绑定核路径与正文taskId、非空Idempotency-Key头与正文键一致。
+
+公共配合：根已确认assignment.changed按已有约束补生产方，无需新消费者；根AI目录新增tierCapabilities并由make gen生成AITaskCatalog Owner/DefaultTier/RequiredCapabilities。能力沿old：fast/accurate为chat，vision为vision，embedding为embedding，rerank为rerank，不额外强制translation标签。公共根文件、jobs事件生成目录由集成会话拥有；公共前置提交ab94e1e由根集成顺序合入，不在本域工作树重复合并。
+
+检查：2026-10-16 集成会话基于已集成content的模型候选快照：VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、task.go与wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt、暂存隐私扫描与完整make check全部通过（861文件/1187函数/379操作/2271类型）。完整本域生成/格式结果由集成会话精确回传，未本机执行Go检查。仅现阶段源码/生成/编译/结构证据，未执行SQL行为验证、业务测试、真实接口或模型、服务/镜像/部署，不代表业务验收。 提交前仅在本地运行既有静态隐私扫描，包含暂存源码、提交信息与用户Git代用身份；未更改身份配置。未新增测试、fixture、mock、样例或临时验证程序，未push。
+
+遗留：完整服务仍因其他handler、权威epoch初始化、恢复回执与后台缺失而拒绝启动；档位/凭据写入、真实模型、费用与完整服务机制均未实施。当前verified仅对应本阶段已有检查，不能视为SQL行为或业务accepted。
+
+下一项仅为集成会话按独立提交顺序合入并复核本轮最终实际树，汇总根台账；本轮结束不自动实施后包，push仍需当次明确授权。
+
+以下为先前交付历史，本次授权已恢复单轮实施。
+
+
 本轮统一集成实际源码71cd82a，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。
 
 ## 第六轮免费任务配置读取（已交付）

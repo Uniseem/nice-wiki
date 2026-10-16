@@ -374,7 +374,7 @@ export interface paths {
         get?: never;
         /**
          * 超管维护单任务模型覆盖
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 taskId与tier来自根唯一任务目录；tier必须等于defaultTier，assignment.version=expectedVersion+1；覆盖模型满足目录能力，7天原回执绑定callerService和dataEpoch。
          */
         put: operations["putTaskAssignment"];
         post?: never;
@@ -393,7 +393,7 @@ export interface paths {
         };
         /**
          * 读取任务模型映射
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 纯服务仅可读取根任务目录owner=callerService的范围；portal携superadmin管理员委托可读全部。显式跨owner任务返回FORBIDDEN，未登记任务VALIDATION；未赋值不生成默认记录。
          */
         get: operations["readTaskAssignments"];
         put?: never;
@@ -1212,7 +1212,7 @@ export interface components {
             /** @description 根唯一任务目录ID */
             taskId: string;
             /**
-             * @description 默认档位
+             * @description 根唯一AI任务目录登记的默认档位；不能用输入改写目录
              * @enum {string}
              */
             tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";

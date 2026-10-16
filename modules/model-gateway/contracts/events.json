@@ -85,6 +85,18 @@
       "delivery": "at-least-once",
       "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
       "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "assignment.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventAssignmentChangedPayload"
+      },
+      "purpose": "发布已提交任务赋值的taskId/version/dataEpoch；与配置及原结果回执同事务写平台outbox，不广播模型配置或正文。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
     }
   ]
 }

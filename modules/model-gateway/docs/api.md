@@ -49,3 +49,9 @@ SSE：id严格递增，重连从Last-Event-ID排他续读；15秒comment heartbe
 ## 免费配置读取边界
 
 readTaskAvailability仅允许QA纯服务与固定三任务，不接受浏览器委托或管理入口扩大范围。响应按请求顺序逐项，仅taskId/available/reason，Cache-Control为no-store；严格代次、存储未知或损坏分别失败关闭。available是配置元数据具备，不证明供应方在线、凭据可解密、费用额度或执行授权；缺价格不阻断。
+
+## 任务赋值入口
+
+putTaskAssignment的taskId路径必须与assignment.taskId一致；非空Idempotency-Key头必须等于正文idempotencyKey。assignment.tier固定目录defaultTier，版本为expectedVersion+1。统一入口处理严格schema、服务身份和管理员即时授权，真实写入不触发模型。
+
+readTaskAssignments对纯服务按根目录owner限制；portal携超管委托可读全部，并在本域HTTP map调用平台identity即时授权。显式跨owner FORBIDDEN、未知目录任务VALIDATION；结果只含已存赋值，未配置返回空数组，所有响应no-store。
