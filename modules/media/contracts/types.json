@@ -5450,6 +5450,10 @@
       "properties": {},
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
+    },
+    "ReferenceSourceDecision": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ReferenceSourceDecision",
+      "description": "固定源只读最小决定，公共唯一schema，不含正文或配置"
     }
   }
 }

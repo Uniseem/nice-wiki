@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 49 个：手写 39、生成 3、配置 6、迁移 1。函数 119 个：约束 36，参考 83。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 51 个：手写 41、生成 3、配置 6、迁移 1。函数 129 个：约束 36，参考 93。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -17,8 +17,8 @@
 | `modules/media/internal/asset_service.go` | 手写 | 读取资源/variants安全元数据 | `media.ReadAsset`、`media.ListAssets` |
 | `modules/media/internal/image_variants.go` | 手写 | 关联浏览器多宽WebP原图 | `media.AttachImageVariants` |
 | `modules/media/internal/drawing_validator.go` | 手写 | 校验Excalidraw场景和提取文字 | `media.ValidateDrawingScene`（参考）、`media.decodeDrawingRaster`（参考）、`media.validateDrawingRaster`（参考） |
-| `modules/media/internal/reference_service.go` | 手写 | 正文/config提交前保护资源迟到引用 | `media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.validateReferenceSource`（参考）、`media.canonicalReferenceInput`（参考） |
-| `modules/media/internal/reference_repository.go` | 手写 | 消费引用事件防重复/乱序 | `media.ApplyReferenceEvent`、`media.lockReferenceKey`（参考）、`media.lockReferenceAssets`（参考）、`media.readReferenceSource`（参考）、`media.acquireReferencePin`（参考）、`media.readReferenceAsset`（参考） |
+| `modules/media/internal/reference_service.go` | 手写 | 正文/config提交前保护资源迟到引用 | `media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.validateReferenceSource`（参考）、`media.canonicalReferenceInput`（参考）、`media.referenceBindingHash`（参考） |
+| `modules/media/internal/reference_repository.go` | 手写 | 消费引用事件防重复/乱序 | `media.ApplyReferenceEvent`、`media.lockReferenceKey`（参考）、`media.lockReferenceAssets`（参考）、`media.readReferenceSource`（参考）、`media.acquireReferencePin`（参考）、`media.readReferenceAsset`（参考）、`media.readReferenceRecord`（参考）、`media.readReferenceResolution`（参考）、`media.writeReferenceResolution`（参考）、`media.referenceObjectAssets`（参考）、`media.advanceReferenceGeneration`（参考）、`media.confirmReferencePin`（参考）、`media.releaseReferencePin`（参考） |
 | `modules/media/internal/reference_reader.go` | 手写 | 列哪些文档当前/历史引用资源 | `media.ReadAssetReferences` |
 | `modules/media/internal/cleanup_service.go` | 手写 | 后台单列当前未引用文件 | `media.ListUnusedAssets`、`media.ProposeManualCleanup`、`media.ConfirmManualCleanup`、`media.CancelManualCleanup` |
 | `modules/media/internal/cleanup_sources.go` | 手写 | 确认所有权威引用源后才认定可清理 | `media.ValidateCleanupSources`（参考） |
@@ -55,3 +55,5 @@
 | `modules/media/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `media.All`（参考） |
 | `modules/media/migrations/0002_upload_chunks.sql` | 手写 | 只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次 | 无 |
 | `modules/media/migrations/0003_reference_pins.sql` | 手写 | 只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改 | 无 |
+| `modules/media/internal/reference_decision_client.go` | 手写 | 只经固定版本化源决定API/共享schema读取，清proof的media纯服务上下文，不持本域锁 | `media.InstallReferenceDecisionClients`（参考）、`media.readReferenceDecision`（参考） |
+| `modules/media/migrations/0004_reference_resolution.sql` | 手写 | 只追加源终局原回执、对象current水位与保留history的确认引用行，原pin保护不删除 | 无 |
