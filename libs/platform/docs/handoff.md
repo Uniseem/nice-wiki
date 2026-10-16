@@ -1,6 +1,6 @@
-# 两轮并行第二轮：可选主密钥引用（2026-10-16，待检查）
+# 两轮并行第二轮：可选主密钥引用（2026-10-16，已检查）
 
-基线53acce862467dbe40b829d1984519d78ccac5608，集成会话独占公共源码。ServiceConfig新增可选masterKeyRef，NW_MASTER_KEY_REF按现有env优先级覆盖文件；非空只要求绝对路径。公共加载不打开主密钥，实际32字节读取、保密和AES-GCM由model-gateway凭据用例负责；免费任务配置读取不因主密钥缺失失效。无新路径/函数/依赖，不新增测试或样例。等待根统一VPS检查并回填准确源码与证据。
+基线53acce862467dbe40b829d1984519d78ccac5608，集成会话独占公共源码。ServiceConfig新增可选masterKeyRef，NW_MASTER_KEY_REF按现有env优先级覆盖文件；非空只要求绝对路径。公共加载不打开主密钥，实际32字节读取、保密和AES-GCM由model-gateway凭据用例负责；免费任务配置读取不因主密钥缺失失效。无新路径/函数/依赖，不新增测试或样例。源码993904524e4d7a792a6c84a80606de6215f7ace5；VPS docs/gen、14模块readonly build/vet/gofmt及完整check通过（865/1258/379/2277），对应台账准确引用该SHA。下一项仅由集成会话核对model-gateway实际凭据调用方并完成第二轮收尾。
 
 # platform 交接（R1-00）
 

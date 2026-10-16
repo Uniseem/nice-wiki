@@ -1,6 +1,6 @@
-# 两轮并行第二轮公共前置（2026-10-16，待VPS检查）
+# 两轮并行第二轮公共前置（2026-10-16，已检查）
 
-ServiceConfig新增可选masterKeyRef及NW_MASTER_KEY_REF覆盖，非空仅校验绝对路径。加载配置不读取主密钥，model-gateway的免费读取可独立；密钥实际读取和加密由该域凭据用例负责。无新增函数、路径或依赖；待根VPS生成/编译/check后回填源码SHA，不进行真实密钥读取或行为验收。
+ServiceConfig新增可选masterKeyRef及NW_MASTER_KEY_REF覆盖，非空仅校验绝对路径。加载配置不读取主密钥，model-gateway的免费读取可独立；密钥实际读取和加密由该域凭据用例负责。无新增函数、路径或依赖；源码993904524e4d7a792a6c84a80606de6215f7ace5，VPS docs/gen、14模块readonly build/vet/gofmt及完整check通过（865/1258/379/2277）；对应文件/函数准确引用源码。未读取真实密钥或执行行为验收。
 
 # platform 状态
 
