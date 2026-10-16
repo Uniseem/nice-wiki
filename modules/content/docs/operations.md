@@ -9,3 +9,10 @@ D30第一版不做批量导入；粘贴是编辑器交互。D54公开heading不�
 超时的写请求必须使用同 operationId 获取原结果。依赖失败不可假定权限、可见性或引用为空。日志记录 requestId、operationId、状态与安全字段，不记录正文、密码、token、原始文件路径或用户 IP。备份导出经只读 ObjectRef API；导出内容与 staging 根由本服务拥有。
 
 快照协议各阶段在 API/函数中登记；portal 仅 gate 屏障。stage/discard 均需 data-protection 服务证明、superadmin 委托及维护状态；只要有域未登记切换回执，site-config 不能退出维护。
+
+
+第一轮真实正文存储已接启动open/migrate/recover，完整服务继续blocked。迁移只追加，已应用SQL哈希不同或私有库epoch不符时停止；本轮不实现恢复换目录后的epoch重绑定和activation。正文恢复的COMMITTED必须同时有真实私有提交资格及原回执，不能由JSONL单独升级。根统一在VPS做格式/生成/编译/结构检查，业务验收未执行。
+
+首个可信新库的epoch与第1迁移及记录同SQL事务提交；JSONL追加/fsync与所有journal扫描共享RWMutex，读快照与追加互斥，锁内不取SQL/Store互斥。journal使用标准NOFOLLOW并在打开前后/读写后验证SameFile及公共私有路径，不持DB事务跨文件IO。
+
+持久prepared/committed决定必须有完整同材料JSONL；Find缺日志即完整性失败。启动反向核对全部已准备/提交索引，不能只扫描现存日志而漏丢失/截空记录；唯一允许无日志的是尚未append的preparing且没有提交资格，缺日志不猜补。

@@ -1,3 +1,17 @@
+# 当前工作包：第一轮真实私有正文存储（2026-10-16，已交付）
+
+分支codex/content-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，初始clean；独占modules/content。用户授权三个子代理并行两轮及每轮根统一检查/push，本域本轮只交付真实正文存储，第二轮待根给新基线。
+
+- 新增internal/storage.go、migrations/migrations.go、migrations/0001_domain.sql。独立RevisionFileStore/WithRevisionFileStore兼容既有完整存储注入，不继承或伪装DraftCommitStore；未添加BeginDraftCommit占位。
+- 私有SQLite安全打开/只追加连续迁移及已应用SQL哈希核对，首次新空库绑定可信打开epoch，既有未知/异代库失败关闭。首次Prepare在同SQL事务绑定可信站点并持久原材料；准备不创建文档、不推进head、不造COMMITTED资格。
+- 完整scope和摘要原结果回放，合并原8字段JSONL终局及真实COMMITTED回执；提交资格只来自精确修订/准备/原回执联查。坏已提交文件持久隔离并关闭文档资格，坏未提交准备只隔离自身。
+- BuildApplication实际打开/迁移/独占恢复后，仍因完整草稿事务、全部handler、activation及后台装配未完成而blocked；恢复换目录后的epoch重绑定未交付时仍失败关闭。maxDocumentBytes和公共写窗口只由已授权上游传入，不虚构配置或开放writer。
+- 本轮完整文件和函数按源码提交97b31b1919181a4a697c8259c85ea9575f225a4d记verified；根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，go mod tidy、make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（865文件/1258函数/379操作/2277类型）。go.mod/go.sum和格式/生成物均由根VPS回传，未手写锁文件；本域未运行本机Go/编译/测试。未新增测试/fixture/mock/样例/临时业务程序，未运行SQL行为验收、真实API/模型、服务或部署，未自行push。
+
+- 源码提交97b31b1919181a4a697c8259c85ea9575f225a4d；当前记录提交紧随源码。新3文件/31参考函数及修改的正文读取/恢复源码已逐包检查；首个迁移与epoch同事务，journal共享RWMutex+NOFOLLOW/SameFile避免半行/路径替换，启动反向核所有prepared/committed必须有完整匹配JSONL，preparing无日志合法窗口保留。完整DraftCommitStore/SaveDraft、全部HTTP/后台与恢复activation/epoch重绑定未交付，main/Build仍blocked。
+
+---
+
 # 当前工作包：文档树与资源引用纯规则（2026-10-16，已交付）
 
 分支codex/content-persistence-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，初始工作区干净，独占modules/content。本轮用户要求三个子代理并行一轮，由根统一集成与VPS检查。

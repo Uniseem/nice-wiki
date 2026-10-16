@@ -3627,6 +3627,21 @@
       "path": "modules/media/migrations/0003_reference_pins.sql",
       "kind": "source",
       "purpose": "只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改"
+    },
+    {
+      "path": "modules/content/internal/storage.go",
+      "kind": "source",
+      "purpose": "正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配"
+    },
+    {
+      "path": "modules/content/migrations/migrations.go",
+      "kind": "source",
+      "purpose": "内嵌本域只追加迁移的唯一来源"
+    },
+    {
+      "path": "modules/content/migrations/0001_domain.sql",
+      "kind": "source",
+      "purpose": "初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交"
     }
   ]
 }

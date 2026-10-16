@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 60 个：手写 33、UI 12、生成 5、配置 10。函数 102 个：约束 42，参考 60。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 63 个：手写 36、UI 12、生成 5、配置 10。函数 134 个：约束 42，参考 92。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -18,9 +18,9 @@
 | `modules/content/internal/columns_validator.go` | 手写 | 校验2–4栏比例和禁止嵌套 | `content.ValidateColumns`（参考）、`content.validateColumnsNode`（参考）、`content.hasNestedColumns`（参考） |
 | `modules/content/internal/reference_extractor.go` | 手写 | 扫描所有嵌套块资源引用 | `content.CollectResourceReferences`（参考）、`content.visitReferenceNode`（参考）、`content.appendResourceReference`（参考） |
 | `modules/content/internal/body_canonicalizer.go` | 手写 | 规范序列化正文并计算hash | `content.CanonicalizeBody`（参考）、`content.HashBlock`（参考）、`content.bodyJSONValue`（参考）、`content.canonicalContentValue`（参考）、`content.orderContentMarks`（参考） |
-| `modules/content/internal/revision_files.go` | 手写 | 持久写权威正文文件 | `content.WriteRevisionFile`（参考）、`content.RecoverPreparedCommits`（参考）、`content.revisionPreparationDigest`（参考）、`content.validatePreparedMaterial`（参考）、`content.newRevisionWriteWindow`（参考）、`content.persistPreparedRevision`（参考）、`content.verifyRevisionMaterialFile`（参考）、`content.quarantineRevisionMaterial`（参考） |
+| `modules/content/internal/revision_files.go` | 手写 | 持久写权威正文文件 | `content.WriteRevisionFile`（参考）、`content.RecoverPreparedCommits`（参考）、`content.revisionPreparationDigest`（参考）、`content.validatePreparedMaterial`（参考）、`content.newRevisionWriteWindow`（参考）、`content.persistPreparedRevision`（参考）、`content.verifyRevisionMaterialFile`（参考）、`content.quarantineRevisionMaterial`（参考）、`content.scanCommitJournal`（参考）、`content.appendJournalState`（参考）、`content.openRevisionJournal`（参考）、`content.validateRevisionJournalFile`（参考） |
 | `modules/content/internal/revision_repository.go` | 手写 | 原子提交共享草稿head | `content.CommitDraftJournal`（参考） |
-| `modules/content/internal/revision_reader.go` | 手写 | 读取COMMITTED正文并核真相 | `content.ReadRevisionBody`（参考）、`content.revisionFileStoreFromContext`（参考）、`content.revisionFileLocation`（参考）、`content.validateCommittedMaterial`（参考）、`content.readImmutableRevision`（参考）、`content.Read`（参考）、`content.decodeStoredBody`（参考）、`content.isolateRevisionRead`（参考） |
+| `modules/content/internal/revision_reader.go` | 手写 | 读取COMMITTED正文并核真相 | `content.ReadRevisionBody`（参考）、`content.revisionFileStoreFromContext`（参考）、`content.revisionFileLocation`（参考）、`content.validateCommittedMaterial`（参考）、`content.readImmutableRevision`（参考）、`content.Read`（参考）、`content.decodeStoredBody`（参考）、`content.isolateRevisionRead`（参考）、`content.WithRevisionFileStore`（参考） |
 | `modules/content/internal/publication_metadata.go` | 手写 | 人工优先准备首次slug和SEO | `content.PreparePublicationMetadata`（参考） |
 | `modules/content/internal/publication_service.go` | 手写 | 点击发布才公开精确共享草稿版本 | `content.PublishDocument`、`content.WithdrawDocument` |
 | `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.ReadReferenceDecision` |
@@ -66,3 +66,6 @@
 | `modules/content/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/content/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/content/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/content/internal/storage.go` | 手写 | 正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配 | `content.OpenDatabase`（参考）、`content.RunContentMigrations`（参考）、`content.ConfigureRevisionStorage`（参考）、`content.RevisionRoot`（参考）、`content.RevisionDataEpoch`（参考）、`content.RevisionMaxDocumentBytes`（参考）、`content.RevisionWriteWindow`（参考）、`content.FindRevisionPreparation`（参考）、`content.PrepareRevision`（参考）、`content.MarkRevisionPrepared`（参考）、`content.ReadCommittedRevision`（参考）、`content.QuarantineRevision`（参考）、`content.CurrentHead`（参考）、`content.HasCommittedReceipt`（参考）、`content.QuarantineDocument`（参考）、`content.RecoverDatabaseJournal`（参考）、`content.CloseDatabase`（参考）、`content.findRevisionPreparation`（参考）、`content.checkRevisionScope`（参考）、`content.hasCommittedReceipt`（参考）、`content.preparationJournalState`（参考）、`content.decodePreparation`（参考）、`content.decodeStorageJSON`（参考）、`content.sameStoredDraft`（参考）、`content.contentStorageError`（参考）、`content.validatePreparedJournalCoverage`（参考） |
+| `modules/content/migrations/migrations.go` | 手写 | 内嵌本域只追加迁移的唯一来源 | `content.All`（参考） |
+| `modules/content/migrations/0001_domain.sql` | 手写 | 初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交 | 无 |

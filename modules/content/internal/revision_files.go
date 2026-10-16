@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -172,6 +174,13 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 		item := entryRecovery{journal: entry.journal}
 		switch entry.journal.State {
 		case "committed":
+			hasReceipt, receiptErr := store.State.HasCommittedReceipt(ctx, entry.journal.CommitID)
+			if receiptErr != nil {
+				return result, receiptErr
+			}
+			if !hasReceipt {
+				return result, platform.NewError(platform.CodeIntegrityError, false, "COMMITTED正文日志缺少私有提交回执")
+			}
 			item.committed = true
 		case "prepared":
 			hasReceipt, receiptErr := store.State.HasCommittedReceipt(ctx, entry.journal.CommitID)
@@ -344,13 +353,18 @@ func ensureActiveRoot(root string) error {
 	return nil
 }
 
+// journal锁内只做文件IO；调用方拿Store互斥后可读journal，反向禁止。
+var revisionJournalMu sync.RWMutex
+
 func scanCommitJournal(ctx context.Context, store RevisionRecoveryStore, journalPath string) ([]journalEntry, bool, error) {
-	file, err := os.Open(journalPath)
+	revisionJournalMu.RLock()
+	defer revisionJournalMu.RUnlock()
+	file, err := openRevisionJournal(journalPath, false)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, false, nil
 		}
-		return nil, false, platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交日志不可读")
+		return nil, false, normalizeDraftCommitError(err, "正文提交日志不可读")
 	}
 	defer file.Close()
 
@@ -392,6 +406,9 @@ func scanCommitJournal(ctx context.Context, store RevisionRecoveryStore, journal
 		return nil, false, platform.NewError(platform.CodeIntegrityError, false, "正文提交日志记录过长或读取失败")
 	}
 
+	if err := validateRevisionJournalFile(file); err != nil {
+		return nil, false, err
+	}
 	entries := make([]journalEntry, 0, len(order))
 	for _, commitID := range order {
 		entries = append(entries, latest[commitID])
@@ -639,6 +656,8 @@ func moveBodyToQuarantine(ctx context.Context, root, siteID string, journal Comm
 }
 
 func appendJournalState(ctx context.Context, journalPath string, journal CommitJournal, state string) error {
+	revisionJournalMu.Lock()
+	defer revisionJournalMu.Unlock()
 	if err := checkContextOnly(ctx); err != nil {
 		return err
 	}
@@ -648,9 +667,9 @@ func appendJournalState(ctx context.Context, journalPath string, journal CommitJ
 		return platform.NewError(platform.CodeInternal, false, "正文恢复记录编码失败")
 	}
 	data = append(data, '\n')
-	file, err := os.OpenFile(journalPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
+	file, err := openRevisionJournal(journalPath, true)
 	if err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文恢复日志不可写")
+		return normalizeDraftCommitError(err, "正文恢复日志不可写")
 	}
 	if _, err := file.Write(data); err != nil {
 		_ = file.Close()
@@ -660,11 +679,67 @@ func appendJournalState(ctx context.Context, journalPath string, journal CommitJ
 		_ = file.Close()
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文恢复日志持久化失败")
 	}
+	if err := validateRevisionJournalFile(file); err != nil {
+		_ = file.Close()
+		return err
+	}
 	if err := file.Close(); err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文恢复日志关闭失败")
 	}
 	if err := syncDirectory(filepath.Dir(journalPath)); err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文日志目录持久化失败")
+	}
+	return nil
+}
+
+// openRevisionJournal在共享journal锁内使用；拒绝路径替换、符号链接和多硬链接。
+func openRevisionJournal(path string, appendMode bool) (*os.File, error) {
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", true); err != nil {
+		return nil, err
+	}
+	before, err := os.Lstat(path)
+	missing := errors.Is(err, os.ErrNotExist)
+	if err != nil && !missing {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交日志不可检查")
+	}
+	if missing && !appendMode {
+		return nil, os.ErrNotExist
+	}
+	flags := syscall.O_RDONLY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW
+	if appendMode {
+		flags = syscall.O_WRONLY | syscall.O_APPEND | syscall.O_CLOEXEC | syscall.O_NOFOLLOW
+		if missing {
+			flags |= syscall.O_CREAT | syscall.O_EXCL
+		}
+	}
+	fd, err := syscall.Open(path, flags, 0o600)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交日志不可打开")
+	}
+	file := os.NewFile(uintptr(fd), path)
+	opened, err := file.Stat()
+	if err != nil || (before != nil && !os.SameFile(before, opened)) {
+		_ = file.Close()
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "正文提交日志打开期间身份变化")
+	}
+	if err := validateRevisionJournalFile(file); err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	return file, nil
+}
+
+func validateRevisionJournalFile(file *os.File) error {
+	if err := lifecycle.ValidatePrivatePath(file.Name(), "regular-file", false); err != nil {
+		return err
+	}
+	current, err := os.Lstat(file.Name())
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "正文提交日志路径已变化")
+	}
+	opened, err := file.Stat()
+	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(current, opened) {
+		return platform.NewError(platform.CodeIntegrityError, false, "正文提交日志文件身份已变化")
 	}
 	return nil
 }
