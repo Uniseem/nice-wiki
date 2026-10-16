@@ -11,6 +11,7 @@
   全部模块 implementation.json 的 jobTypes 与 events.json 的 consume条目；
 - jobs internal/gen/job_types.gen.go 与 identity internal/gen/permission_groups.gen.go：
   任务类型目录与根 permission-groups.json 的Go表，运行时校验只读生成表；
+- model-gateway internal/gen/clients.gen.go：根 ai-tasks.json 的任务归属、默认档位与能力要求；
 - portal config/routes.json：全部 openapi.json 的非service接口路由表。
 
 生成内容确定性排序；重复运行结果一致。生成目录不手改。
@@ -589,7 +590,21 @@ def render_clients(slug, impl, producer_specs):
             lines.append("")
     if slug == "portal":
         lines.append(render_admin_routes(load(ROOT / "contracts/permission-groups.json")))
+    if slug == "model-gateway":
+        lines.append(render_ai_task_catalog(load(ROOT / "contracts/ai-tasks.json")))
     return "\n".join(lines)
+
+
+def render_ai_task_catalog(catalog):
+    """从唯一任务目录生成本域任务校验材料，不读取其他域运行数据。"""
+    lines = ["// AITaskEntry 是任务归属、固定默认档位与模型覆盖能力的只读投影。\n"]
+    lines.append("type AITaskEntry struct { Owner string; DefaultTier string; RequiredCapabilities []string }\n\n")
+    lines.append("var AITaskCatalog = map[string]AITaskEntry{\n")
+    for task in sorted(catalog["tasks"], key=lambda task: task["id"]):
+        capabilities = catalog["tierCapabilities"][task["defaultTier"]]
+        lines.append("\t" + go_string(task["id"]) + ": {Owner: " + go_string(task["owner"]) + ", DefaultTier: " + go_string(task["defaultTier"]) + ", RequiredCapabilities: " + go_string_list(capabilities) + "},\n")
+    lines.append("}\n")
+    return "".join(lines)
 
 
 def render_admin_routes(groups):

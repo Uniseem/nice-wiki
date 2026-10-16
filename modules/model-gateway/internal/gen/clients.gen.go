@@ -290,3 +290,76 @@ func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessag
 func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }
+
+// AITaskEntry 是任务归属、固定默认档位与模型覆盖能力的只读投影。
+type AITaskEntry struct {
+	Owner                string
+	DefaultTier          string
+	RequiredCapabilities []string
+}
+
+var AITaskCatalog = map[string]AITaskEntry{
+	"content.seo": {Owner: "content", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"content.slug": {Owner: "content", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"knowledge.context": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"knowledge.describe": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"knowledge.describe-visual": {Owner: "knowledge", DefaultTier: "vision", RequiredCapabilities: []string{
+		"vision",
+	}},
+	"knowledge.embed": {Owner: "knowledge", DefaultTier: "embedding", RequiredCapabilities: []string{
+		"embedding",
+	}},
+	"knowledge.extract-attachment": {Owner: "knowledge", DefaultTier: "vision", RequiredCapabilities: []string{
+		"vision",
+	}},
+	"knowledge.rerank": {Owner: "knowledge", DefaultTier: "rerank", RequiredCapabilities: []string{
+		"rerank",
+	}},
+	"localization.document": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"localization.review": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"localization.suggest": {Owner: "localization", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"localization.terms": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"localization.ui": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"memory.assistant": {Owner: "memory", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"memory.overview": {Owner: "memory", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.answer": {Owner: "qa", DefaultTier: "accurate", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.cache-match": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.cache-translate": {Owner: "localization", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.compact": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.inspect": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+	"qa.preflight": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
+}

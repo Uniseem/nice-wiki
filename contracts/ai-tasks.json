@@ -305,5 +305,22 @@
     "translationReflection": false,
     "dailyQABudgetZeroMeansUnlimited": true,
     "backgroundCostsExcludedFromDailyQABudget": true
+  },
+  "tierCapabilities": {
+    "fast": [
+      "chat"
+    ],
+    "accurate": [
+      "chat"
+    ],
+    "vision": [
+      "vision"
+    ],
+    "embedding": [
+      "embedding"
+    ],
+    "rerank": [
+      "rerank"
+    ]
   }
 }
