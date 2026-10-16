@@ -186,7 +186,7 @@ DrawingScene的files以additionalProperties值schema及propertyNames原精确模
 
 SVG的style在XML解析后按完整文本校验：合并所有CharData/CDATA片段、忽略注释边界，每个style结束时检查CSS关键字和URL；拒绝style子元素，保持原字节及既有16MiB/节点/深度上限。
 
-## 两轮并行第一轮：ready 引用预留（2026-10-16，待统一检查）
+## 两轮并行第一轮：ready 引用预留（2026-10-16，既有检查通过，行为未验收）
 
 只追加0003_reference_pins.sql，旧0001/0002不变。reference_sources按可信sourceService/dataEpoch/sourceOperationId唯一绑定site/object/revision/version/digest、规范完整输入及首次pin结果/hash；pending/confirmed保留原回执，sealed先于旧成功检查。源站点来自明确input.siteId并逐资源核实，纯服务Actor的system站点不能代替来源绑定。references为空也生成pin；重复同材料返回原pin/expiry，不续期、不再次增加generation。
 

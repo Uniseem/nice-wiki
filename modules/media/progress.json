@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "f1ef2518f4f089d7ca8b00353ad56e81368cec13c1ce344d2f43f98491815717",
+  "contractSha256": "6bb0e4264416e175fe253efbcffac1b2c5d6ab732b660a53b0aca4c58738fafb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "推送前集成复核SVG样式文本边界",
-  "branch": "main",
-  "baseCommit": "de04c858e375cd815842e298ff831efc389b249f",
-  "deliveryCommit": "eafa9275a31b38dc02880e6339694fa1d0f4286c",
+  "assignedSession": "三代理两轮第一轮：media ready引用预留与来源持久绑定",
+  "branch": "codex/media-next-two-r1",
+  "baseCommit": "d2161f41c441b69f080b7d8cf3d40b88afecb357",
+  "deliveryCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
   "deployment": "not_started",
   "files": [
     {
@@ -83,10 +83,10 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
       "blocker": null
     },
@@ -122,23 +122,23 @@
     },
     {
       "path": "modules/media/internal/reference_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
-      "blocker": null
+      "blocker": "ready Acquire已实现；真实清理计划取消、Confirm/Release未实现，整文件职责未齐。"
     },
     {
       "path": "modules/media/internal/reference_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
-      "blocker": null
+      "blocker": "本轮锁/来源原回执/ready资产pin事务助手已完整；ApplyReferenceEvent仍planned。"
     },
     {
       "path": "modules/media/internal/reference_reader.go",
@@ -343,12 +343,12 @@
     {
       "path": "modules/media/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
-      "blocker": "本轮新增Complete真实映射已verified；其余handler/控制恢复/后台未齐，NewApplication仍blocked，未完成整文件职责"
+      "blocker": "本轮Acquire局部真实映射已实现，完整HTTP/控制恢复/后台未齐，NewApplication仍blocked。"
     },
     {
       "path": "modules/media/go.mod",
@@ -487,6 +487,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/migrations/0003_reference_pins.sql",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
       "blocker": null
     }
@@ -660,13 +670,13 @@
     {
       "id": "media.AcquireResourceReferences",
       "path": "modules/media/internal/reference_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
-      "blocker": null
+      "blocker": "本轮ready资源完整来源pin与原回执已实现并过既有检查；delete_pending缺真实计划生产方时LOCKED，已知有效清理计划的取消/CAS分支尚未实现，不将ready切片记作完整Acquire完成。"
     },
     {
       "id": "media.ConfirmResourceReferences",
@@ -1007,7 +1017,7 @@
         "state": "passed",
         "evidence": "2026-10-16 media+model-gateway最终完整合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有模块readonly build/vet/gofmt及完整make check通过（861文件/1182函数/379操作/2269类型），回传无冲突。明确含hardlink公共边界、二次runtime epoch、quota纯服务上下文、Begin Commit未知保留/原回执闭环和参考函数name修正；经统一静态复核。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": "本轮真实部分handler及本地恢复已实现；CompleteUpload/其他handler、控制恢复回执及后台未齐，严格平台工厂拒绝完整启动，控制就绪不伪造"
+      "blocker": "上传Complete与Acquire局部映射已落地；Confirm/Release及其他handler、控制恢复回执/后台未齐，严格平台工厂拒绝完整启动，未运行服务。"
     },
     {
       "id": "media.Serve",
@@ -1233,10 +1243,10 @@
       "id": "media.openLocalBlobStore",
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
       "blocker": null
     },
@@ -1354,21 +1364,21 @@
       "id": "media.NewApplication",
       "path": "modules/media/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
-      "blocker": "本轮真实部分handler及本地恢复已实现；CompleteUpload/其他handler、控制恢复回执及后台未齐，严格平台工厂拒绝完整启动，控制就绪不伪造"
+      "blocker": "本轮只新增Acquire真实映射；Confirm/Release及其他handler、控制恢复回执/后台未齐，严格平台工厂仍拒绝完整启动，控制就绪不伪造。"
     },
     {
       "id": "media.serviceHandlers",
       "path": "modules/media/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
       "blocker": null
     },
@@ -1618,10 +1628,10 @@
       "id": "media.CommitVerifiedBlob",
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
       },
       "blocker": null
     },
@@ -1723,7 +1733,84 @@
         "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
       },
       "blocker": null
+    },
+    {
+      "id": "media.validateReferenceSource",
+      "path": "modules/media/internal/reference_service.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.canonicalReferenceInput",
+      "path": "modules/media/internal/reference_service.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.lockReferenceKey",
+      "path": "modules/media/internal/reference_repository.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.lockReferenceAssets",
+      "path": "modules/media/internal/reference_repository.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readReferenceSource",
+      "path": "modules/media/internal/reference_repository.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.acquireReferencePin",
+      "path": "modules/media/internal/reference_repository.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readReferenceAsset",
+      "path": "modules/media/internal/reference_repository.go",
+      "state": "verified",
+      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "本轮源码9c2521a3142db0bc2ebcf1dc2914d3aea6984b46已过统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check；37个本轮完整函数verified，outbox_repository/transport与asset_service部分文件不记整包完成。无业务验收/部署/push，交付后停止本轮。"
+  "rule": "第一轮源码aab3c6edd25d0c56f677dc02ce843f7fafce5706已过统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check；7个新增完整参考助手与迁移verified，原完整助手随改动刷新证据。Acquire仅ready切片保持in_progress，完整HTTP/app仍blocked，Confirm/Release仍planned；第一轮冻结等根统一push和新基线，未自行push或业务验收。"
 }

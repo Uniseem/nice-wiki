@@ -1,5 +1,15 @@
 # 资源媒体当前进度
 
+## 两轮并行第一轮：ready引用预留（2026-10-16，已交付冻结）
+
+- 基线d2161f41c441b69f080b7d8cf3d40b88afecb357，分支codex/media-next-two-r1，仅拥有modules/media/；源码提交`aab3c6edd25d0c56f677dc02ce843f7fafce5706`，本域不自行push，等待根统一集成、每轮检查与push。
+- 新增既有登记reference_service.go/reference_repository.go与获准只追加0003_reference_pins.sql；Complete新ready资产同事务建立逐对象fence，旧0001/0002未改。完整来源/可信caller/epoch和规范摘要绑定，原pin不续期，空集合也落pin，sealed先于旧结果，source→asset稳定锁→store互斥→SQL CAS。
+- 新pin至少24h；逐资产真实ready/站点/版本/hash/长度/MIME/唯一schema/fence失败关闭，fence与generation同事务提升。原pin完整输入/结果hash与schema、原pinId/expiry及逐资产保护可核；原结果不依当前资产重建。缺fence/负值INTEGRITY_ERROR，int64合法最大值耗尽LOCKED，不施加额外JS上限。
+- 7个新增完整参考助手与迁移verified；Acquire仅ready切片保持in_progress，delete_pending未知计划LOCKED，已知有效清理计划取消仍planned。reference_service/reference_repository/transport为partial，Confirm/Release与事件、公开bytes/其余handler/控制恢复/后台未齐；完整HTTP/app仍blocked，不能称服务可运行或业务验收通过。
+- 根统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、4源码gofmt、14现有Go模块readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；本域仅本地静态差异/路径/隐私核对，无本机Go/完整check。未新增测试/mock/fixture/样例/临时验证程序，无SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。
+- 公共结构请求：根登记modules/media/migrations/0003_reference_pins.sql；两个源码路径原已登记。第一轮完成冻结，不提前展开第二轮。
+- 下一项：等根第一轮统一集成检查并push后，按新main基线实施Confirm/Release真实权威决定闭环；先读content:readReferenceDecision/site-config:readHomeReferenceDecision版本化合同，复用同来源/逐asset锁，不持锁回源，未知/404/pending/过期不释放，封存与释放同事务。
+
 ## 推送前复核：SVG样式文本分片（2026-10-16，已验证）
 
 集成会话在main复核本轮时发现style按XML CharData逐片校验会漏掉由CDATA或注释拆分的CSS关键字。现改为每个style合并最终文本后一次校验，并拒绝style内嵌子元素；保持原字节与既有预算。源码提交eafa9275a31b38dc02880e6339694fa1d0f4286c，仅修改既有validateSVG、合同和台账，未加测试或样例；VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过，仅为本阶段检查，业务验收未执行。
