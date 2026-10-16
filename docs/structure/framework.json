@@ -589,6 +589,11 @@
       "purpose": "持续代码目标首轮交付、检查与推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-16-0006.md",
+      "kind": "documentation",
+      "purpose": "持续代码目标第二轮交付、检查推送与最新暂停范围"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
