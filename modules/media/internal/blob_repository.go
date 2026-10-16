@@ -68,15 +68,18 @@ const (
 // 数据库单连接串行写入；mu 串行化同进程的提交，使“写文件→元数据事务”
 // 不与另一提交交错。所有路径都由受约束的 ID/hash 生成。
 type localBlobStore struct {
-	root           string
-	db             *sql.DB
-	mu             sync.Mutex
-	openedEpoch    Identifier
-	window         platform.WriteWindowConfig
-	validateAsset  func(json.RawMessage) error
-	validateUpload func(json.RawMessage) error
-	chunkRecovered bool
-	blobRecovered  bool
+	root             string
+	db               *sql.DB
+	mu               sync.Mutex
+	openedEpoch      Identifier
+	window           platform.WriteWindowConfig
+	validateAsset    func(json.RawMessage) error
+	validateUpload   func(json.RawMessage) error
+	validatePin      func(json.RawMessage) error
+	referenceLocksMu sync.Mutex
+	referenceLocks   map[string]*referenceLock
+	chunkRecovered   bool
+	blobRecovered    bool
 }
 
 // activeBlobStore 由本域存储装配在接受业务请求前设置；nil 时所有依赖该
@@ -176,6 +179,11 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		return nil, err
 	}
 	store.validateUpload, err = apivalidate.NewPayloadValidator(document, "UploadSession")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validatePin, err = apivalidate.NewPayloadValidator(document, "AcquireResourceReferencesResult")
 	if err != nil {
 		_ = db.Close()
 		return nil, err
@@ -710,6 +718,9 @@ func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, op OperationCon
 		}
 		if _, err := tx.ExecContext(work, `INSERT INTO assets(asset_id,site_id,sha256,byte_size,media_type,state,asset_json,updated_at) VALUES(?,?,?,?,?,'ready',?,?)`, asset.Ref.AssetId, asset.SiteId, asset.Ref.Sha256, asset.Ref.ByteSize, asset.Ref.MediaType, string(raw), platform.Now()); err != nil {
 			return gen.Asset{}, mapMediaDBError(err, "写入资源元数据失败")
+		}
+		if _, err := tx.ExecContext(work, `INSERT INTO reference_objects(asset_id,deletion_fence,reference_generation) VALUES(?,0,0)`, asset.Ref.AssetId); err != nil {
+			return gen.Asset{}, mapMediaDBError(err, "建立新资源引用fence失败")
 		}
 	}
 	record.session.State = gen.Complete

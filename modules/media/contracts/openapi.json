@@ -1096,7 +1096,7 @@
             }
           },
           "409": {
-            "description": "LOCKED或CONFLICT：删除锁定或同源操作输入冲突",
+            "description": "LOCKED、CONFLICT或VERSION_MISMATCH：非ready/删除锁定、同源材料冲突、来源sealed或数据代次不同",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1107,6 +1107,16 @@
           },
           "422": {
             "description": "INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：本域持久存储或运行写窗口不可用",
             "content": {
               "application/problem+json": {
                 "schema": {

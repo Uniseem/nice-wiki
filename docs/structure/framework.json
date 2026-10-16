@@ -3612,6 +3612,21 @@
       "path": "modules/model-gateway/internal/catalog/profile.go",
       "kind": "source",
       "purpose": "档位配置持久写入与后续服务授权解析；保存不触发供应方或费用任务"
+    },
+    {
+      "path": "modules/media/internal/reference_service.go",
+      "kind": "source",
+      "purpose": "正文/config提交前保护资源迟到引用"
+    },
+    {
+      "path": "modules/media/internal/reference_repository.go",
+      "kind": "source",
+      "purpose": "消费引用事件防重复/乱序"
+    },
+    {
+      "path": "modules/media/migrations/0003_reference_pins.sql",
+      "kind": "source",
+      "purpose": "只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改"
     }
   ]
 }

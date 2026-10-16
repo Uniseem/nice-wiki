@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 112 个函数：约束 36 个，参考 76 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 119 个函数：约束 36 个，参考 83 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2091,6 +2091,7 @@ func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context,op OperationCont
 **步骤**
 
 1. 持上传锁，PREPARED/file/rename/fsync后，同事务CAS complete、ready、原结果、COMMITTED与outbox
+2. 创建新ready资源的同事务建立reference_objects逐对象fence=0/referenceGeneration=0；既有迁移只在0003首次应用时回填，不为丢失fence的旧对象运行时补造
 
 **错误**
 
@@ -2437,8 +2438,9 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 1. 固定注册content/site-config已认证服务；siteId与每个asset权威站点匹配，顶层sourceObjectId/sourceRevisionId/sourceVersion逐一匹配完整references元素，sourceService取caller不取冒名字段
 2. 完整引用数组按referenceId、assetId、asset.version、asset.sha256排序，空集合固定[]；用platform.CanonicalJSON编码后SHA256等于referenceDigest；输入pending_pin/confirmed=false/expiresAt=null，媒体自己确定pin到期
 3. 按caller/dataEpoch/sourceOperationId先取源互斥，核已绑定所有顶层源字段和digest；明确sealed终止来源返回CONFLICT且不创建pin；未封存的相同成功返回原pinId/原expiresAt不续期，异材料冲突
-4. 保持源互斥后按assetId稳定顺序取得对象mutex，在写事务内再核来源未sealed及deletionFence，核asset版本/hash/ready，取消delete_pending计划或增fence，创建至少24小时pending pin；与Release同源锁/CAS序列化，不能晚于封存落pin
+4. 保持源互斥后按assetId稳定顺序取得对象mutex，再取本域store提交互斥，在写事务内重查来源未sealed；资产必须真实ready且站点/版本/hash/长度/MIME与唯一schema及索引一致，缺逐对象fence或delete_pending一律失败关闭，不推测尚未实现的清理计划；CAS逐对象deletionFence与referenceGeneration加一，完整来源、逐asset fence和至少24小时pending pin原回执同事务
 5. 即使references为空也生成绑定源身份的pin，以后confirm推进该对象完整集合并保留旧history；不以空数组跳过提交协议
+6. ReferencePin.assets按assetId唯一升序；deletionFence仅为本次逐asset新fence的最大值（空集合0），不是全局删除能力；原pin回放只核原材料/回执不查当前asset状态，不续期、不重复升generation
 
 **错误**
 
@@ -2447,12 +2449,14 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `CONFLICT`：同源操作不同材料，或来源已经明确终止封存（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域存储或运行写窗口不可用（可重试）
+- `VERSION_MISMATCH`：操作epoch不同于已打开active代次（不可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
-- 授权：service:content/site-config
+- 授权：仅已认证content/site-config纯服务，Actor.SubjectID必须等于caller；来源站点来自已绑定input.siteId，不从system服务Actor.SiteID推测
 - 并发：源caller/epoch/sourceOperationId互斥先于assetId稳定顺序mutex；Acquire/Confirm/Release同序，最终delete只取asset锁/fence
 - 幂等：同源完整材料未sealed时回原pin；sealed检查先于任何旧成功快路径，终止后不再创建或返回可提交pin
-- 依赖：`platform.CanonicalJSON`
+- 依赖：`platform.CanonicalJSON`、`media.validateReferenceSource`、`media.canonicalReferenceInput`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.readReferenceSource`、`media.acquireReferencePin`、`media.mediaWriteContext`
 
 ## media.ConfirmResourceReferences
 
@@ -2546,6 +2550,70 @@ func ReleaseResourceReferences(ctx context.Context, op OperationContext, input R
 - 幂等：同源完整材料+终止reason持久封存并重复成功，pinId可null；异材料冲突，无pin也不能省略来源核验
 - 依赖：`site-config:readHomeReferenceDecision`、`content:readReferenceDecision`
 
+## media.validateReferenceSource
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_service.go`
+- 作用：只接受固定content/site-config纯服务及相同SubjectID
+
+```go
+func validateReferenceSource(op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受固定content/site-config纯服务及相同SubjectID
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：无
+
+## media.canonicalReferenceInput
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_service.go`
+- 作用：核完整来源/pending元数据和重复条目，按referenceId/asset/version/hash固定排序与空数组，核原digest，再对caller/epoch/完整input规范摘要
+
+```go
+func canonicalReferenceInput(op OperationContext, input AcquireResourceReferencesInput) (AcquireResourceReferencesInput, Hash, []gen.AssetVersionRef, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核完整来源/pending元数据和重复条目，按referenceId/asset/version/hash固定排序与空数组，核原digest，再对caller/epoch/完整input规范摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：`platform.CanonicalJSON`
+
 ## media.ApplyReferenceEvent
 
 - 级别：约束
@@ -2589,6 +2657,167 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 - 并发：sourceaggregate+asset锁稳定排序
 - 幂等：eventId唯一+sourceversion单调
 - 依赖：`platform.ClaimInbox`
+
+## media.lockReferenceKey
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：本域来源/资源键互斥引用计数，最后释放删除锁表项
+
+```go
+func (s *localBlobStore) lockReferenceKey(key string) func()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域来源/资源键互斥引用计数，最后释放删除锁表项
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：无
+
+## media.lockReferenceAssets
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：输入按assetId唯一升序锁定对象，逆序释放
+
+```go
+func (s *localBlobStore) lockReferenceAssets(assets []gen.AssetVersionRef) func()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输入按assetId唯一升序锁定对象，逆序释放
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：`media.lockReferenceKey`
+
+## media.readReferenceSource
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：读取同源原绑定，sealed先冲突，核完整材料/原pin快照哈希及唯一schema，不以当前asset重建原回执
+
+```go
+func (s *localBlobStore) readReferenceSource(ctx context.Context, q sqlExecer, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash) (AcquireResourceReferencesResult, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取同源原绑定，sealed先冲突，核完整材料/原pin快照哈希及唯一schema，不以当前asset重建原回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：无
+
+## media.acquireReferencePin
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：已持source/asset锁后store串行；原回执优先，新窗口内事务核ready及逐对象fence，CAS+24h pin/原回执同事务
+
+```go
+func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash, assets []gen.AssetVersionRef) (AcquireResourceReferencesResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已持source/asset锁后store串行；原回执优先，新窗口内事务核ready及逐对象fence，CAS+24h pin/原回执同事务
+2. 逐对象fence/generation只以SQLite int64最大值为耗尽边界；达到最大值LOCKED，不把合法最大值记作损坏，不使用额外JavaScript安全整数上限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：`media.readReferenceSource`、`media.mediaWriteContext`、`media.readReferenceAsset`
+
+## media.readReferenceAsset
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_repository.go`
+- 作用：精确站点/ready/版本/hash/长度/MIME及索引/唯一schema；缺fence或负值INTEGRITY_ERROR，合法math.MaxInt64耗尽LOCKED，返回真实当前逐对象fence
+
+```go
+func (s *localBlobStore) readReferenceAsset(ctx context.Context, q sqlExecer, siteID Identifier, expected gen.AssetVersionRef) (int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确站点/ready/版本/hash/长度/MIME及索引/唯一schema；缺fence或负值INTEGRITY_ERROR，合法math.MaxInt64耗尽LOCKED，返回真实当前逐对象fence
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权本域引用链或受信装配，入口身份/schema一次
+- 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
+- 幂等：完整源材料和原回执持久绑定，不从当前状态重建
+- 依赖：无
 
 ## media.ReadAssetReferences
 
@@ -4017,7 +4246,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`
 
 ## media.serveUploadChunk
 

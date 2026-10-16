@@ -513,7 +513,7 @@
         },
         "deletionFence": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "标记/删除fence"
+          "description": "本次逐资产新fence的最大快照值，空集合0；不作为全局删除能力，各对象独立持久CAS"
         }
       },
       "required": [
