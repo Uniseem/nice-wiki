@@ -519,6 +519,66 @@
       "purpose": "全局2026-10-14-0004设计/手册/状态记录"
     },
     {
+      "path": "docs/push-log/2026-10-14-0005.md",
+      "kind": "documentation",
+      "purpose": "R1-00推送记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0006.md",
+      "kind": "documentation",
+      "purpose": "推送记录0006：R1-01 identity启动装配组"
+    },
+    {
+      "path": "docs/push-log/2026-10-14-0007.md",
+      "kind": "documentation",
+      "purpose": "推送记录0007：R1-02启动装配组与R1-01私有持久化"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0001.md",
+      "kind": "documentation",
+      "purpose": "记录R1两轮并行工作包的main分支推送准备与核对结果"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0002.md",
+      "kind": "documentation",
+      "purpose": "记录R1两轮业务切片收尾与main推送核对结果"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0003.md",
+      "kind": "documentation",
+      "purpose": "2026-10-15第三次推送记录：R1云端切片集成复核修复"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0004.md",
+      "kind": "documentation",
+      "purpose": "2026-10-15第四次推送记录：实现尺度、编译门槛与平台公共机制"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0005.md",
+      "kind": "documentation",
+      "purpose": "三个工作包并行交付与统一复核的推送记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-15-0006.md",
+      "kind": "documentation",
+      "purpose": "2026-10-15两轮持续实施交付、复核、普通推送及停止范围记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-16-0001.md",
+      "kind": "documentation",
+      "purpose": "本轮代码交付、VPS统一复核、停止目标与普通推送记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-16-0002.md",
+      "kind": "documentation",
+      "purpose": "三模块并行一轮复核、SVG样式修正与授权main普通推送记录"
+    },
+    {
+      "path": "docs/push-log/2026-10-16-0003.md",
+      "kind": "documentation",
+      "purpose": "两轮并行第一轮交付与普通推送实际记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
@@ -574,6 +634,21 @@
       "purpose": "平台公共库总入口"
     },
     {
+      "path": "libs/platform/STATUS.md",
+      "kind": "documentation",
+      "purpose": "platform状态简表"
+    },
+    {
+      "path": "libs/platform/apivalidate/validator.go",
+      "kind": "handwritten",
+      "purpose": "HTTP入口统一请求校验中间件（ADR0005/ADR0006）"
+    },
+    {
+      "path": "libs/platform/cmd/nw-keys/main.go",
+      "kind": "handwritten",
+      "purpose": "服务密钥生成工具实现"
+    },
+    {
       "path": "libs/platform/contracts/implementation.json",
       "kind": "documentation",
       "purpose": "平台公共库文件与函数机器合同"
@@ -594,14 +669,114 @@
       "purpose": "平台公共库函数合同（生成）"
     },
     {
+      "path": "libs/platform/docs/handoff.md",
+      "kind": "documentation",
+      "purpose": "platform交接记录"
+    },
+    {
+      "path": "libs/platform/go.mod",
+      "kind": "config",
+      "purpose": "Go module nice-wiki/libs/platform；仅依赖标准库"
+    },
+    {
+      "path": "libs/platform/go.sum",
+      "kind": "generated",
+      "purpose": "依赖校验锁；当前无第三方依赖，保持为空"
+    },
+    {
+      "path": "libs/platform/inbox/consumer.go",
+      "kind": "handwritten",
+      "purpose": "事件订阅循环实现"
+    },
+    {
+      "path": "libs/platform/inbox/inbox.go",
+      "kind": "handwritten",
+      "purpose": "事件inbox去重实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/config.go",
+      "kind": "handwritten",
+      "purpose": "服务配置加载实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/restore_swap.go",
+      "kind": "handwritten",
+      "purpose": "恢复换目录实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/runtime.go",
+      "kind": "handwritten",
+      "purpose": "运行状态读取与监视实现"
+    },
+    {
+      "path": "libs/platform/lifecycle/service.go",
+      "kind": "handwritten",
+      "purpose": "进程模板实现"
+    },
+    {
+      "path": "libs/platform/modelclient/invoke.go",
+      "kind": "handwritten",
+      "purpose": "模型调用助手实现"
+    },
+    {
+      "path": "libs/platform/opctx/context.go",
+      "kind": "handwritten",
+      "purpose": "可信OperationContext构建实现"
+    },
+    {
+      "path": "libs/platform/outbox/outbox.go",
+      "kind": "handwritten",
+      "purpose": "事务内outbox登记实现"
+    },
+    {
+      "path": "libs/platform/outbox/relay.go",
+      "kind": "handwritten",
+      "purpose": "outbox转发循环实现"
+    },
+    {
+      "path": "libs/platform/platform.go",
+      "kind": "handwritten",
+      "purpose": "跨包共享的契约类型与客户端接口"
+    },
+    {
+      "path": "libs/platform/problem/problem.go",
+      "kind": "handwritten",
+      "purpose": "RFC9457公共Problem输出实现"
+    },
+    {
       "path": "libs/platform/progress.json",
       "kind": "documentation",
       "purpose": "平台公共库进度台账"
     },
     {
+      "path": "libs/platform/serviceauth/assertion.go",
+      "kind": "handwritten",
+      "purpose": "服务断言签发与验证实现"
+    },
+    {
+      "path": "libs/platform/serviceauth/delegation.go",
+      "kind": "handwritten",
+      "purpose": "portal委托证明验证实现"
+    },
+    {
+      "path": "libs/platform/worker/loop.go",
+      "kind": "handwritten",
+      "purpose": "任务领取循环实现"
+    },
+    {
       "path": "modules/analytics/AGENTS.md",
       "kind": "documentation",
       "purpose": "analytics分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/analytics/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/analytics/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/analytics与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/analytics/README.md",
@@ -612,6 +787,16 @@
       "path": "modules/analytics/STATUS.md",
       "kind": "documentation",
       "purpose": "analytics人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/analytics/cmd/analytics/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/analytics/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/analytics/contracts/events.json",
@@ -632,6 +817,11 @@
       "path": "modules/analytics/contracts/types.json",
       "kind": "contract",
       "purpose": "analytics唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/analytics/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/analytics/docs/acceptance.md",
@@ -684,14 +874,64 @@
       "purpose": "analytics分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/analytics/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/analytics；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/analytics/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/analytics/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/analytics/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/analytics/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
       "path": "modules/analytics/progress.json",
       "kind": "contract",
       "purpose": "analytics逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/analytics/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
       "path": "modules/content/AGENTS.md",
       "kind": "documentation",
       "purpose": "content分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/content/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/content/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/content与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/content/README.md",
@@ -702,6 +942,16 @@
       "path": "modules/content/STATUS.md",
       "kind": "documentation",
       "purpose": "content人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/content/cmd/content/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/content/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/content/contracts/events.json",
@@ -722,6 +972,11 @@
       "path": "modules/content/contracts/types.json",
       "kind": "contract",
       "purpose": "content唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/content/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/content/docs/acceptance.md",
@@ -774,9 +1029,109 @@
       "purpose": "content分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/content/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/content/go.sum",
+      "kind": "generated",
+      "purpose": "content依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/content/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/content/internal/block_validator.go",
+      "kind": "source",
+      "purpose": "验证全部Tiptap块及稳定ID"
+    },
+    {
+      "path": "modules/content/internal/body_canonicalizer.go",
+      "kind": "source",
+      "purpose": "规范序列化正文并计算hash"
+    },
+    {
+      "path": "modules/content/internal/columns_validator.go",
+      "kind": "source",
+      "purpose": "校验2–4栏比例和禁止嵌套"
+    },
+    {
+      "path": "modules/content/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/content/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/content/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/content/internal/reference_extractor.go",
+      "kind": "source",
+      "purpose": "扫描所有嵌套块资源引用"
+    },
+    {
+      "path": "modules/content/internal/revision_files.go",
+      "kind": "handwritten",
+      "purpose": "持久写权威正文文件"
+    },
+    {
+      "path": "modules/content/internal/revision_reader.go",
+      "kind": "source",
+      "purpose": "读取COMMITTED正文并核真相"
+    },
+    {
+      "path": "modules/content/internal/revision_repository.go",
+      "kind": "handwritten",
+      "purpose": "草稿正文提交、版本CAS、journal回执与outbox事务边界"
+    },
+    {
+      "path": "modules/content/internal/storage.go",
+      "kind": "source",
+      "purpose": "正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配"
+    },
+    {
+      "path": "modules/content/internal/table_validator.go",
+      "kind": "source",
+      "purpose": "验证表格合并单元格覆盖"
+    },
+    {
+      "path": "modules/content/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/content/internal/tree_validator.go",
+      "kind": "source",
+      "purpose": "检查树无环和层级约束"
+    },
+    {
+      "path": "modules/content/migrations/0001_domain.sql",
+      "kind": "source",
+      "purpose": "初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交"
+    },
+    {
+      "path": "modules/content/migrations/migrations.go",
+      "kind": "source",
+      "purpose": "内嵌本域只追加迁移的唯一来源"
+    },
+    {
       "path": "modules/content/progress.json",
       "kind": "contract",
       "purpose": "content逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/content/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
       "path": "modules/data-protection/AGENTS.md",
@@ -864,14 +1219,44 @@
       "purpose": "data-protection分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/data-protection/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/data-protection/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/data-protection/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
       "path": "modules/data-protection/progress.json",
       "kind": "contract",
       "purpose": "data-protection逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/data-protection/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
       "path": "modules/identity/AGENTS.md",
       "kind": "documentation",
       "purpose": "identity分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/identity/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/identity；运行只带server/config，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/identity/Makefile",
+      "kind": "tool",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/identity；run传配置；verify核编译和格式。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/identity/README.md",
@@ -882,6 +1267,16 @@
       "path": "modules/identity/STATUS.md",
       "kind": "documentation",
       "purpose": "identity人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/identity/cmd/identity/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；装配本域参数交给平台进程模板，不放产品算法"
+    },
+    {
+      "path": "modules/identity/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；secret仅ref"
     },
     {
       "path": "modules/identity/contracts/events.json",
@@ -902,6 +1297,11 @@
       "path": "modules/identity/contracts/types.json",
       "kind": "contract",
       "purpose": "identity唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/identity/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/identity/docs/acceptance.md",
@@ -954,6 +1354,151 @@
       "purpose": "identity分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/identity/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/identity；固定Go工具链与本域实际库依赖（kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2、相对replace引用libs/platform）"
+    },
+    {
+      "path": "modules/identity/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/identity/internal/account_service.go",
+      "kind": "handwritten",
+      "purpose": "账号索引读取、写入与运维子命令服务"
+    },
+    {
+      "path": "modules/identity/internal/account_validator.go",
+      "kind": "handwritten",
+      "purpose": "规范不可变账号名"
+    },
+    {
+      "path": "modules/identity/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/identity/internal/authorization_service.go",
+      "kind": "source",
+      "purpose": "按最新账号功能权限授权"
+    },
+    {
+      "path": "modules/identity/internal/credential_service.go",
+      "kind": "handwritten",
+      "purpose": "生成Argon2id口令哈希"
+    },
+    {
+      "path": "modules/identity/internal/csrf_service.go",
+      "kind": "source",
+      "purpose": "portal内部核对CSRF"
+    },
+    {
+      "path": "modules/identity/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/identity/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/identity/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/identity/internal/gen/permission_groups.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由根permission-groups.json生成的固定权限映射Go表"
+    },
+    {
+      "path": "modules/identity/internal/operation_repository.go",
+      "kind": "handwritten",
+      "purpose": "装配受信私有存储上下文与既有仓库调用前置"
+    },
+    {
+      "path": "modules/identity/internal/outbox_repository.go",
+      "kind": "handwritten",
+      "purpose": "身份域事件outbox持久化"
+    },
+    {
+      "path": "modules/identity/internal/permission_mapping.go",
+      "kind": "handwritten",
+      "purpose": "账号权限映射与校验"
+    },
+    {
+      "path": "modules/identity/internal/preference_service.go",
+      "kind": "source",
+      "purpose": "在当前本人授权快照读写后台偏好与完整安全回执"
+    },
+    {
+      "path": "modules/identity/internal/registration_service.go",
+      "kind": "handwritten",
+      "purpose": "首个超管注册状态与前置校验"
+    },
+    {
+      "path": "modules/identity/internal/restore_security.go",
+      "kind": "handwritten",
+      "purpose": "恢复后会话失效与身份安全边界"
+    },
+    {
+      "path": "modules/identity/internal/server_recovery.go",
+      "kind": "handwritten",
+      "purpose": "身份恢复回执与重置监视"
+    },
+    {
+      "path": "modules/identity/internal/session_revocation.go",
+      "kind": "source",
+      "purpose": "账户全部会话撤销与原子回执事件"
+    },
+    {
+      "path": "modules/identity/internal/session_service.go",
+      "kind": "source",
+      "purpose": "账户自身会话分页查询与受信游标签名引用"
+    },
+    {
+      "path": "modules/identity/internal/storage.go",
+      "kind": "handwritten",
+      "purpose": "打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志"
+    },
+    {
+      "path": "modules/identity/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/identity/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "初始权威表：accounts/credentials/account_permissions/sessions/preferences/operation_receipts/schema_migrations；平台outbox/inbox表不在此登记"
+    },
+    {
+      "path": "modules/identity/migrations/0002_session_revocation.sql",
+      "kind": "migration",
+      "purpose": "完整撤销结果回执与分页索引的追加迁移"
+    },
+    {
+      "path": "modules/identity/migrations/0003_session_tokens.sql",
+      "kind": "migration",
+      "purpose": "只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据"
+    },
+    {
+      "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
+      "kind": "migration",
+      "purpose": "追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie"
+    },
+    {
+      "path": "modules/identity/migrations/control/0001_bootstrap.sql",
+      "kind": "migration",
+      "purpose": "独立control schema1与不可逆bootstrap决定；不随active恢复替换"
+    },
+    {
+      "path": "modules/identity/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续"
+    },
+    {
       "path": "modules/identity/progress.json",
       "kind": "contract",
       "purpose": "identity逐文件/函数实现、检查和交接台账；初始未实现"
@@ -964,6 +1509,16 @@
       "purpose": "jobs分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/jobs/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/jobs；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/jobs/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/jobs与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
       "path": "modules/jobs/README.md",
       "kind": "documentation",
       "purpose": "jobs分级规格/实现约束/文档索引"
@@ -972,6 +1527,26 @@
       "path": "modules/jobs/STATUS.md",
       "kind": "documentation",
       "purpose": "jobs人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/jobs/cmd/jobs/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/jobs/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
+    },
+    {
+      "path": "modules/jobs/config/event-subscriptions.json",
+      "kind": "generated",
+      "purpose": "事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝"
+    },
+    {
+      "path": "modules/jobs/config/job-types.json",
+      "kind": "generated",
+      "purpose": "任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建"
     },
     {
       "path": "modules/jobs/contracts/events.json",
@@ -992,6 +1567,11 @@
       "path": "modules/jobs/contracts/types.json",
       "kind": "contract",
       "purpose": "jobs唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/jobs/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/jobs/docs/acceptance.md",
@@ -1044,9 +1624,174 @@
       "purpose": "jobs分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/jobs/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/jobs；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/jobs/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/jobs/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/jobs/internal/cancellation.go",
+      "kind": "source",
+      "purpose": "请求取消任务；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/event_delivery.go",
+      "kind": "source",
+      "purpose": "至少一次投递；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/event_store.go",
+      "kind": "source",
+      "purpose": "持久接收事件；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/event_validation.go",
+      "kind": "source",
+      "purpose": "验证跨域事件；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/jobs/internal/gen/job_types.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由jobTypes生成的任务类型Go表，与config/job-types.json同源"
+    },
+    {
+      "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/jobs/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/jobs/internal/http_event_subscription.go",
+      "kind": "source",
+      "purpose": "已登记消费者订阅事件SSE；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/http_events.go",
+      "kind": "source",
+      "purpose": "已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application"
+    },
+    {
+      "path": "modules/jobs/internal/http_progress.go",
+      "kind": "source",
+      "purpose": "任务进度SSE；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/leases.go",
+      "kind": "source",
+      "purpose": "owner/worker租约、持久fence与领取续租回执"
+    },
+    {
+      "path": "modules/jobs/internal/progress.go",
+      "kind": "source",
+      "purpose": "同租约事务中的安全进度与outbox"
+    },
+    {
+      "path": "modules/jobs/internal/queries.go",
+      "kind": "source",
+      "purpose": "查看任务队列"
+    },
+    {
+      "path": "modules/jobs/internal/query.go",
+      "kind": "source",
+      "purpose": "读取管理任务状态；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/queue.go",
+      "kind": "handwritten",
+      "purpose": "任务提交、去重、屏障检查与队列持久化"
+    },
+    {
+      "path": "modules/jobs/internal/results.go",
+      "kind": "source",
+      "purpose": "提交成功结果；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/retry.go",
+      "kind": "source",
+      "purpose": "固定错误重试分类；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/scheduler.go",
+      "kind": "source",
+      "purpose": "到期重排；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/jobs/internal/validation.go",
+      "kind": "handwritten",
+      "purpose": "验证任务入口；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/jobs/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "任务域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/jobs/migrations/0002_leases.sql",
+      "kind": "migration",
+      "purpose": "持久fence、租约回执和检查点的追加迁移"
+    },
+    {
+      "path": "modules/jobs/migrations/0003_terminal_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造"
+    },
+    {
+      "path": "modules/jobs/migrations/0004_orphan_jobs.sql",
+      "kind": "migration",
+      "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用"
+    },
+    {
+      "path": "modules/jobs/migrations/0005_event_deliveries.sql",
+      "kind": "migration",
+      "purpose": "只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递"
+    },
+    {
+      "path": "modules/jobs/migrations/0006_job_management.sql",
+      "kind": "migration",
+      "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态"
+    },
+    {
+      "path": "modules/jobs/migrations/0007_progress_retention.sql",
+      "kind": "migration",
+      "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间"
+    },
+    {
+      "path": "modules/jobs/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌jobs只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/jobs/progress.json",
       "kind": "contract",
       "purpose": "jobs逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/jobs/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
       "path": "modules/knowledge/AGENTS.md",
@@ -1139,14 +1884,59 @@
       "purpose": "knowledge分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/knowledge/go.mod",
+      "kind": "config",
+      "purpose": "知识域独立Go module依赖"
+    },
+    {
+      "path": "modules/knowledge/go.sum",
+      "kind": "generated",
+      "purpose": "knowledge依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/knowledge/internal/chunk/normalize.go",
+      "kind": "handwritten",
+      "purpose": "知识源文本规范化及原文偏移映射"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/knowledge/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
       "path": "modules/knowledge/progress.json",
       "kind": "contract",
       "purpose": "knowledge逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/knowledge/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
       "path": "modules/localization/AGENTS.md",
       "kind": "documentation",
       "purpose": "localization分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/localization/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/localization；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/localization/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/localization与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/localization/README.md",
@@ -1157,6 +1947,11 @@
       "path": "modules/localization/STATUS.md",
       "kind": "documentation",
       "purpose": "localization人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/localization/cmd/localization/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
     },
     {
       "path": "modules/localization/contracts/events.json",
@@ -1177,6 +1972,16 @@
       "path": "modules/localization/contracts/types.json",
       "kind": "contract",
       "purpose": "localization唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/localization/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/localization/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/localization/docs/acceptance.md",
@@ -1234,14 +2039,109 @@
       "purpose": "localization分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/localization/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/localization；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/localization/go.sum",
+      "kind": "generated",
+      "purpose": "localization依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/localization/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/localization/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/localization/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/localization/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/localization/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "本地化运行时私有持久化与启动恢复"
+    },
+    {
+      "path": "modules/localization/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/localization/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "本地化域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/localization/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌localization只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/localization/progress.json",
       "kind": "contract",
       "purpose": "localization逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/localization/ui/index.html",
+      "kind": "config",
+      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret"
+    },
+    {
+      "path": "modules/localization/ui/package.json",
+      "kind": "config",
+      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务"
+    },
+    {
+      "path": "modules/localization/ui/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest"
+    },
+    {
+      "path": "modules/localization/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/localization/ui/src/main.ts",
+      "kind": "ui",
+      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务"
+    },
+    {
+      "path": "modules/localization/ui/tsconfig.json",
+      "kind": "config",
+      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像"
+    },
+    {
+      "path": "modules/localization/ui/vite.config.ts",
+      "kind": "config",
+      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token"
+    },
+    {
       "path": "modules/media/AGENTS.md",
       "kind": "documentation",
       "purpose": "media分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/media/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/media；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/media/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/media与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/media/README.md",
@@ -1252,6 +2152,16 @@
       "path": "modules/media/STATUS.md",
       "kind": "documentation",
       "purpose": "media人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/media/cmd/media/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/media/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/media/contracts/events.json",
@@ -1272,6 +2182,11 @@
       "path": "modules/media/contracts/types.json",
       "kind": "contract",
       "purpose": "media唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/media/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/media/docs/acceptance.md",
@@ -1324,6 +2239,126 @@
       "purpose": "media分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/media/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/media；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/media/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/media/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/media/internal/asset_service.go",
+      "kind": "source",
+      "purpose": "读取资源/variants安全元数据"
+    },
+    {
+      "path": "modules/media/internal/blob_recovery.go",
+      "kind": "handwritten",
+      "purpose": "媒体blob journal恢复与孤儿隔离"
+    },
+    {
+      "path": "modules/media/internal/blob_repository.go",
+      "kind": "handwritten",
+      "purpose": "将已验证文件提交不可变内容寻址存储"
+    },
+    {
+      "path": "modules/media/internal/chunk_writer.go",
+      "kind": "source",
+      "purpose": "顺序原子写有界上传块"
+    },
+    {
+      "path": "modules/media/internal/drawing_validator.go",
+      "kind": "source",
+      "purpose": "校验Excalidraw场景和提取文字"
+    },
+    {
+      "path": "modules/media/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/media/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/media/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/media/internal/mime_validator.go",
+      "kind": "source",
+      "purpose": "从字节识别类型"
+    },
+    {
+      "path": "modules/media/internal/outbox_repository.go",
+      "kind": "source",
+      "purpose": "原子写最小资源状态outbox"
+    },
+    {
+      "path": "modules/media/internal/payload_validator.go",
+      "kind": "source",
+      "purpose": "验证SVG/场景/附件/视频安全交付"
+    },
+    {
+      "path": "modules/media/internal/reference_repository.go",
+      "kind": "source",
+      "purpose": "消费引用事件防重复/乱序"
+    },
+    {
+      "path": "modules/media/internal/reference_service.go",
+      "kind": "source",
+      "purpose": "正文/config提交前保护资源迟到引用"
+    },
+    {
+      "path": "modules/media/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/media/internal/upload_completion.go",
+      "kind": "source",
+      "purpose": "完成hash/MIME验证后发布ready资源"
+    },
+    {
+      "path": "modules/media/internal/upload_service.go",
+      "kind": "handwritten",
+      "purpose": "上传会话、配额、分块前置与不可变资源提交"
+    },
+    {
+      "path": "modules/media/internal/upload_validator.go",
+      "kind": "handwritten",
+      "purpose": "清理展示文件名而不用于路径"
+    },
+    {
+      "path": "modules/media/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "media私有SQLite初始权威表：上传会话、回执、资源与blob日志"
+    },
+    {
+      "path": "modules/media/migrations/0002_upload_chunks.sql",
+      "kind": "migration",
+      "purpose": "只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次"
+    },
+    {
+      "path": "modules/media/migrations/0003_reference_pins.sql",
+      "kind": "source",
+      "purpose": "只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改"
+    },
+    {
+      "path": "modules/media/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌media只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/media/progress.json",
       "kind": "contract",
       "purpose": "media逐文件/函数实现、检查和交接台账；初始未实现"
@@ -1334,6 +2369,16 @@
       "purpose": "memory分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/memory/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/memory；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/memory/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/memory与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
       "path": "modules/memory/README.md",
       "kind": "documentation",
       "purpose": "memory分级规格/实现约束/文档索引"
@@ -1342,6 +2387,11 @@
       "path": "modules/memory/STATUS.md",
       "kind": "documentation",
       "purpose": "memory人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/memory/cmd/memory/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
     },
     {
       "path": "modules/memory/contracts/events.json",
@@ -1362,6 +2412,16 @@
       "path": "modules/memory/contracts/types.json",
       "kind": "contract",
       "purpose": "memory唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/memory/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/memory/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/memory/docs/acceptance.md",
@@ -1419,14 +2479,84 @@
       "purpose": "memory分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/memory/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/memory；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/memory/go.sum",
+      "kind": "generated",
+      "purpose": "memory依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/memory/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/memory/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/memory/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/memory/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/memory/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "记忆域私有持久化、epoch与启动恢复"
+    },
+    {
+      "path": "modules/memory/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/memory/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "记忆域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/memory/migrations/control/0001_control.sql",
+      "kind": "migration",
+      "purpose": "memory control区控制库初始迁移"
+    },
+    {
+      "path": "modules/memory/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌memory业务库与control库只追加SQL迁移（ADR0005）"
+    },
+    {
       "path": "modules/memory/progress.json",
       "kind": "contract",
       "purpose": "memory逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/memory/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
       "path": "modules/model-gateway/AGENTS.md",
       "kind": "documentation",
       "purpose": "model-gateway分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/model-gateway/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/model-gateway；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/model-gateway/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/model-gateway与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/model-gateway/README.md",
@@ -1437,6 +2567,11 @@
       "path": "modules/model-gateway/STATUS.md",
       "kind": "documentation",
       "purpose": "model-gateway人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/model-gateway/cmd/model-gateway/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
     },
     {
       "path": "modules/model-gateway/contracts/events.json",
@@ -1457,6 +2592,16 @@
       "path": "modules/model-gateway/contracts/types.json",
       "kind": "contract",
       "purpose": "model-gateway唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/model-gateway/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
+    },
+    {
+      "path": "modules/model-gateway/deploy/service.config.json",
+      "kind": "config",
+      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/model-gateway/docs/acceptance.md",
@@ -1514,9 +2659,89 @@
       "purpose": "model-gateway分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/model-gateway/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/model-gateway；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
+    },
+    {
+      "path": "modules/model-gateway/go.sum",
+      "kind": "generated",
+      "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/model-gateway/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/model.go",
+      "kind": "handwritten",
+      "purpose": "模型目录字段与纯规则校验"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/profile.go",
+      "kind": "source",
+      "purpose": "档位配置持久写入与后续服务授权解析；保存不触发供应方或费用任务"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/provider.go",
+      "kind": "handwritten",
+      "purpose": "供应方目录字段与纯规则校验"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/task.go",
+      "kind": "source",
+      "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/model-gateway/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "模型网关私有存储、CAS与启动恢复"
+    },
+    {
+      "path": "modules/model-gateway/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/model-gateway/migrations/001_initial.sql",
+      "kind": "migration",
+      "purpose": "模型网关域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/model-gateway/migrations/002_task_availability.sql",
+      "kind": "migration",
+      "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌model-gateway只追加SQL迁移（ADR0005），运行时唯一来源"
+    },
+    {
       "path": "modules/model-gateway/progress.json",
       "kind": "contract",
       "purpose": "model-gateway逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
       "path": "modules/portal/AGENTS.md",
@@ -1532,6 +2757,21 @@
       "path": "modules/portal/STATUS.md",
       "kind": "documentation",
       "purpose": "portal人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/portal/cmd/portal/main.go",
+      "kind": "handwritten",
+      "purpose": "后台入口服务启动装配"
+    },
+    {
+      "path": "modules/portal/config/routes.json",
+      "kind": "generated",
+      "purpose": "由全部模块openapi.json生成的入口路由表：非service接口的方法/路径→owner、operationId、x-permission、x-admission、超时与流式标志；CompileRouteRegistry启动时加载，未登记路径一律404"
+    },
+    {
+      "path": "modules/portal/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "后台入口默认配置与环境覆盖"
     },
     {
       "path": "modules/portal/contracts/events.json",
@@ -1552,6 +2792,11 @@
       "path": "modules/portal/contracts/types.json",
       "kind": "contract",
       "purpose": "portal唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/portal/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "后台入口服务部署清单"
     },
     {
       "path": "modules/portal/docs/acceptance.md",
@@ -1604,9 +2849,89 @@
       "purpose": "portal分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/portal/go.mod",
+      "kind": "config",
+      "purpose": "后台入口独立Go module依赖"
+    },
+    {
+      "path": "modules/portal/go.sum",
+      "kind": "config",
+      "purpose": "后台入口Go依赖校验记录"
+    },
+    {
+      "path": "modules/portal/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "后台入口依赖装配与路由绑定"
+    },
+    {
+      "path": "modules/portal/internal/auth_proof.go",
+      "kind": "handwritten",
+      "purpose": "后台委托证明校验"
+    },
+    {
+      "path": "modules/portal/internal/bootstrap_service.go",
+      "kind": "handwritten",
+      "purpose": "后台入口启动与依赖就绪装配"
+    },
+    {
+      "path": "modules/portal/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/portal/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/portal/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/portal/internal/maintenance_gate.go",
+      "kind": "handwritten",
+      "purpose": "维护状态入口门禁"
+    },
+    {
+      "path": "modules/portal/internal/origin_guard.go",
+      "kind": "handwritten",
+      "purpose": "同源与来源校验"
+    },
+    {
+      "path": "modules/portal/internal/proxy_stream.go",
+      "kind": "handwritten",
+      "purpose": "后台代理HTTP与流式响应转发"
+    },
+    {
+      "path": "modules/portal/internal/request_validation.go",
+      "kind": "handwritten",
+      "purpose": "后台请求字段与CSRF前置校验"
+    },
+    {
+      "path": "modules/portal/internal/route_registry.go",
+      "kind": "handwritten",
+      "purpose": "后台路由表加载、匹配与服务断言"
+    },
+    {
+      "path": "modules/portal/internal/runtime_state_client.go",
+      "kind": "handwritten",
+      "purpose": "读取站点运行状态与维护阶段"
+    },
+    {
+      "path": "modules/portal/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "后台HTTP生命周期、健康与就绪"
+    },
+    {
       "path": "modules/portal/progress.json",
       "kind": "contract",
       "purpose": "portal逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/portal/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
       "path": "modules/public-site/AGENTS.md",
@@ -1694,9 +3019,29 @@
       "purpose": "public-site分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/public-site/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/public-site/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/public-site/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
       "path": "modules/public-site/progress.json",
       "kind": "contract",
       "purpose": "public-site逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/public-site/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
       "path": "modules/qa/AGENTS.md",
@@ -1789,14 +3134,59 @@
       "purpose": "qa分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/qa/go.mod",
+      "kind": "config",
+      "purpose": "问答域独立Go module依赖"
+    },
+    {
+      "path": "modules/qa/go.sum",
+      "kind": "generated",
+      "purpose": "qa依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/qa/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/qa/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/qa/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/qa/internal/turn/normalize.go",
+      "kind": "handwritten",
+      "purpose": "问题规范化、缓存键与稳定锚点"
+    },
+    {
       "path": "modules/qa/progress.json",
       "kind": "contract",
       "purpose": "qa逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/qa/ui/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
       "path": "modules/site-config/AGENTS.md",
       "kind": "documentation",
       "purpose": "site-config分级规格/实现约束/文档索引"
+    },
+    {
+      "path": "modules/site-config/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/site-config；运行只带server/config，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/site-config/Makefile",
+      "kind": "tool",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/site-config；run传配置；verify核编译和格式。无共享业务启动器，不创建测试样例"
     },
     {
       "path": "modules/site-config/README.md",
@@ -1807,6 +3197,16 @@
       "path": "modules/site-config/STATUS.md",
       "kind": "documentation",
       "purpose": "site-config人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/site-config/cmd/site-config/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；装配本域参数交给平台进程模板，不放产品算法"
+    },
+    {
+      "path": "modules/site-config/config/service.defaults.json",
+      "kind": "config",
+      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；secret仅ref"
     },
     {
       "path": "modules/site-config/contracts/events.json",
@@ -1827,6 +3227,11 @@
       "path": "modules/site-config/contracts/types.json",
       "kind": "contract",
       "purpose": "site-config唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/site-config/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/site-config/docs/acceptance.md",
@@ -1879,6 +3284,161 @@
       "purpose": "site-config分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/site-config/go.mod",
+      "kind": "config",
+      "purpose": "独立module nice-wiki/modules/site-config；固定Go工具链与本域实际库依赖（kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2、相对replace引用libs/platform）"
+    },
+    {
+      "path": "modules/site-config/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
+    },
+    {
+      "path": "modules/site-config/internal/announcement_files.go",
+      "kind": "handwritten",
+      "purpose": "持久写不可变公告正文文件"
+    },
+    {
+      "path": "modules/site-config/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
+    },
+    {
+      "path": "modules/site-config/internal/config_files.go",
+      "kind": "source",
+      "purpose": "写权威版本化站点设置文件"
+    },
+    {
+      "path": "modules/site-config/internal/config_service.go",
+      "kind": "source",
+      "purpose": "读取后台站点配置"
+    },
+    {
+      "path": "modules/site-config/internal/config_validator.go",
+      "kind": "source",
+      "purpose": "校验配置所有字段和关联约束"
+    },
+    {
+      "path": "modules/site-config/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
+    },
+    {
+      "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
+      "kind": "config",
+      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
+    },
+    {
+      "path": "modules/site-config/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/site-config/internal/home_service.go",
+      "kind": "source",
+      "purpose": "保存一屏hero权威配置、公开安全投影和媒体引用持久恢复"
+    },
+    {
+      "path": "modules/site-config/internal/home_validator.go",
+      "kind": "source",
+      "purpose": "验证首页目标与引用"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_defaults.go",
+      "kind": "source",
+      "purpose": "确定性生成首站点完整默认配置"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_repository.go",
+      "kind": "source",
+      "purpose": "持久初始化决定、准备材料与协调状态"
+    },
+    {
+      "path": "modules/site-config/internal/initialization_service.go",
+      "kind": "source",
+      "purpose": "安全初始化状态读取与协调字段隔离"
+    },
+    {
+      "path": "modules/site-config/internal/language_service.go",
+      "kind": "handwritten",
+      "purpose": "语言标签规范化与校验"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/0001_control.sql",
+      "kind": "migration",
+      "purpose": "初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0001_active.sql",
+      "kind": "migration",
+      "purpose": "初始active业务索引表：schema_migrations、site_config_state、config_revision_index与announcement_heads"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
+      "kind": "migration",
+      "purpose": "初始化不可变决定与当前状态的追加迁移"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
+      "kind": "migration",
+      "purpose": "只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0004_config_operations.sql",
+      "kind": "migration",
+      "purpose": "一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
+      "kind": "migration",
+      "purpose": "追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威"
+    },
+    {
+      "path": "modules/site-config/internal/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域control.db只追加SQL迁移并校验编号连续"
+    },
+    {
+      "path": "modules/site-config/internal/object_reader.go",
+      "kind": "source",
+      "purpose": "经协议读取本域正文或快照对象"
+    },
+    {
+      "path": "modules/site-config/internal/operation_repository.go",
+      "kind": "source",
+      "purpose": "查询配置幂等回执"
+    },
+    {
+      "path": "modules/site-config/internal/outbox_repository.go",
+      "kind": "source",
+      "purpose": "将配置事件与业务提交原子登记"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_state_service.go",
+      "kind": "handwritten",
+      "purpose": "读取独立控制库权威运行状态"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_store.go",
+      "kind": "handwritten",
+      "purpose": "打开独立control.db并持久化RuntimeState、激活回执与操作幂等记录"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "kind": "handwritten",
+      "purpose": "按CAS切换epoch与维护阶段"
+    },
+    {
+      "path": "modules/site-config/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/site-config/internal/write_epoch.go",
+      "kind": "handwritten",
+      "purpose": "所有业务写入执行epoch与屏障检查"
+    },
+    {
       "path": "modules/site-config/progress.json",
       "kind": "contract",
       "purpose": "site-config逐文件/函数实现、检查和交接台账；初始未实现"
@@ -1889,6 +3449,16 @@
       "purpose": "traffic-guard分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/traffic-guard/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/traffic-guard；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
+    },
+    {
+      "path": "modules/traffic-guard/Makefile",
+      "kind": "config",
+      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/traffic-guard与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
+    },
+    {
       "path": "modules/traffic-guard/README.md",
       "kind": "documentation",
       "purpose": "traffic-guard分级规格/实现约束/文档索引"
@@ -1897,6 +3467,16 @@
       "path": "modules/traffic-guard/STATUS.md",
       "kind": "documentation",
       "purpose": "traffic-guard人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/traffic-guard/config/defaults.json",
+      "kind": "config",
+      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
     },
     {
       "path": "modules/traffic-guard/contracts/events.json",
@@ -1917,6 +3497,11 @@
       "path": "modules/traffic-guard/contracts/types.json",
       "kind": "contract",
       "purpose": "traffic-guard唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/traffic-guard/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
     },
     {
       "path": "modules/traffic-guard/docs/acceptance.md",
@@ -1969,454 +3554,24 @@
       "purpose": "traffic-guard分级规格/实现约束/文档索引"
     },
     {
-      "path": "modules/traffic-guard/progress.json",
-      "kind": "contract",
-      "purpose": "traffic-guard逐文件/函数实现、检查和交接台账；初始未实现"
-    },
-    {
-      "path": "scripts/check_docs.py",
-      "kind": "tool",
-      "purpose": "标准库设计结构、引用、台账、权限、依赖、暂存与隐私检查"
-    },
-    {
-      "path": "scripts/render_docs.py",
-      "kind": "tool",
-      "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
-    },
-    {
-      "path": "libs/platform/platform.go",
-      "kind": "handwritten",
-      "purpose": "跨包共享的契约类型与客户端接口"
-    },
-    {
-      "path": "libs/platform/serviceauth/assertion.go",
-      "kind": "handwritten",
-      "purpose": "服务断言签发与验证实现"
-    },
-    {
-      "path": "libs/platform/serviceauth/delegation.go",
-      "kind": "handwritten",
-      "purpose": "portal委托证明验证实现"
-    },
-    {
-      "path": "libs/platform/opctx/context.go",
-      "kind": "handwritten",
-      "purpose": "可信OperationContext构建实现"
-    },
-    {
-      "path": "libs/platform/problem/problem.go",
-      "kind": "handwritten",
-      "purpose": "RFC9457公共Problem输出实现"
-    },
-    {
-      "path": "libs/platform/outbox/outbox.go",
-      "kind": "handwritten",
-      "purpose": "事务内outbox登记实现"
-    },
-    {
-      "path": "libs/platform/outbox/relay.go",
-      "kind": "handwritten",
-      "purpose": "outbox转发循环实现"
-    },
-    {
-      "path": "libs/platform/inbox/inbox.go",
-      "kind": "handwritten",
-      "purpose": "事件inbox去重实现"
-    },
-    {
-      "path": "libs/platform/inbox/consumer.go",
-      "kind": "handwritten",
-      "purpose": "事件订阅循环实现"
-    },
-    {
-      "path": "libs/platform/worker/loop.go",
-      "kind": "handwritten",
-      "purpose": "任务领取循环实现"
-    },
-    {
-      "path": "libs/platform/modelclient/invoke.go",
-      "kind": "handwritten",
-      "purpose": "模型调用助手实现"
-    },
-    {
-      "path": "libs/platform/lifecycle/config.go",
-      "kind": "handwritten",
-      "purpose": "服务配置加载实现"
-    },
-    {
-      "path": "libs/platform/lifecycle/runtime.go",
-      "kind": "handwritten",
-      "purpose": "运行状态读取与监视实现"
-    },
-    {
-      "path": "libs/platform/apivalidate/validator.go",
-      "kind": "handwritten",
-      "purpose": "HTTP入口统一请求校验中间件（ADR0005/ADR0006）"
-    },
-    {
-      "path": "libs/platform/lifecycle/restore_swap.go",
-      "kind": "handwritten",
-      "purpose": "恢复换目录实现"
-    },
-    {
-      "path": "libs/platform/lifecycle/service.go",
-      "kind": "handwritten",
-      "purpose": "进程模板实现"
-    },
-    {
-      "path": "libs/platform/cmd/nw-keys/main.go",
-      "kind": "handwritten",
-      "purpose": "服务密钥生成工具实现"
-    },
-    {
-      "path": "libs/platform/go.mod",
+      "path": "modules/traffic-guard/go.mod",
       "kind": "config",
-      "purpose": "Go module nice-wiki/libs/platform；仅依赖标准库"
+      "purpose": "独立module nice-wiki/modules/traffic-guard；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
     },
     {
-      "path": "libs/platform/go.sum",
+      "path": "modules/traffic-guard/go.sum",
       "kind": "generated",
-      "purpose": "依赖校验锁；当前无第三方依赖，保持为空"
+      "purpose": "traffic-guard依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
-      "path": "libs/platform/STATUS.md",
-      "kind": "documentation",
-      "purpose": "platform状态简表"
+      "path": "modules/traffic-guard/internal/admission.go",
+      "kind": "source",
+      "purpose": "编排频率/挑战/并发；同文件职责限本域以下登记函数"
     },
     {
-      "path": "libs/platform/docs/handoff.md",
-      "kind": "documentation",
-      "purpose": "platform交接记录"
-    },
-    {
-      "path": "scripts/gen_code.py",
-      "kind": "handwritten",
-      "purpose": "make gen实现：oapi-codegen服务端、生产方客户端、openapi-typescript、jobs目录与portal路由表"
-    },
-    {
-      "path": "modules/portal/config/routes.json",
-      "kind": "generated",
-      "purpose": "由全部模块openapi.json生成的入口路由表：非service接口的方法/路径→owner、operationId、x-permission、x-admission、超时与流式标志；CompileRouteRegistry启动时加载，未登记路径一律404"
-    },
-    {
-      "path": "modules/portal/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/portal/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/portal/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/portal/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/identity/cmd/identity/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；装配本域参数交给平台进程模板，不放产品算法"
-    },
-    {
-      "path": "modules/identity/config/service.defaults.json",
-      "kind": "config",
-      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；secret仅ref"
-    },
-    {
-      "path": "modules/identity/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/identity/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/identity；运行只带server/config，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/identity/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/identity；固定Go工具链与本域实际库依赖（kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2、相对replace引用libs/platform）"
-    },
-    {
-      "path": "modules/identity/go.sum",
-      "kind": "generated",
-      "purpose": "go.mod依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/identity/internal/app/wire.go",
+      "path": "modules/traffic-guard/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/identity/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/identity/internal/storage.go",
-      "kind": "handwritten",
-      "purpose": "打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志"
-    },
-    {
-      "path": "modules/identity/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续"
-    },
-    {
-      "path": "modules/identity/migrations/0001_domain.sql",
-      "kind": "migration",
-      "purpose": "初始权威表：accounts/credentials/account_permissions/sessions/preferences/operation_receipts/schema_migrations；平台outbox/inbox表不在此登记"
-    },
-    {
-      "path": "modules/identity/Makefile",
-      "kind": "tool",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/identity；run传配置；verify核编译和格式。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/identity/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/identity/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/identity/internal/gen/permission_groups.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由根permission-groups.json生成的固定权限映射Go表"
-    },
-    {
-      "path": "modules/identity/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/site-config/cmd/site-config/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；装配本域参数交给平台进程模板，不放产品算法"
-    },
-    {
-      "path": "modules/site-config/config/service.defaults.json",
-      "kind": "config",
-      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；secret仅ref"
-    },
-    {
-      "path": "modules/site-config/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/site-config/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/site-config；运行只带server/config，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/site-config/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/site-config；固定Go工具链与本域实际库依赖（kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2、相对replace引用libs/platform）"
-    },
-    {
-      "path": "modules/site-config/go.sum",
-      "kind": "generated",
-      "purpose": "go.mod依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/site-config/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/site-config/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/site-config/Makefile",
-      "kind": "tool",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/site-config；run传配置；verify核编译和格式。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/site-config/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/site-config/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/site-config/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/content/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/content/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/content/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/content/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/media/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/media/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/media/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/public-site/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/public-site/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/public-site/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/public-site/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/model-gateway/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/model-gateway/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/model-gateway/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/knowledge/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/knowledge/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/knowledge/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/knowledge/ui/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/qa/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/qa/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/qa/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/qa/ui/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/localization/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/localization/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/localization/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/localization/ui/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/memory/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/memory/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/memory/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/memory/ui/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
       "path": "modules/traffic-guard/internal/gen/clients.gen.go",
@@ -2429,1039 +3584,9 @@
       "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
     },
     {
-      "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/jobs/config/event-subscriptions.json",
-      "kind": "generated",
-      "purpose": "事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝"
-    },
-    {
-      "path": "modules/jobs/config/job-types.json",
-      "kind": "generated",
-      "purpose": "任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建"
-    },
-    {
-      "path": "modules/jobs/internal/gen/openapi.gen.go",
+      "path": "modules/traffic-guard/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/jobs/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/jobs/internal/gen/job_types.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由jobTypes生成的任务类型Go表，与config/job-types.json同源"
-    },
-    {
-      "path": "modules/jobs/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/jobs/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/analytics/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/analytics/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/analytics/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/analytics/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "modules/data-protection/internal/gen/openapi.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
-    },
-    {
-      "path": "modules/data-protection/internal/gen/clients.gen.go",
-      "kind": "generated",
-      "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
-    },
-    {
-      "path": "modules/data-protection/internal/gen/oapi-codegen.yaml",
-      "kind": "config",
-      "purpose": "oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation"
-    },
-    {
-      "path": "modules/data-protection/web/src/gen/api.gen.ts",
-      "kind": "generated",
-      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
-    },
-    {
-      "path": "docs/push-log/2026-10-14-0005.md",
-      "kind": "documentation",
-      "purpose": "R1-00推送记录"
-    },
-    {
-      "path": "docs/push-log/2026-10-14-0006.md",
-      "kind": "documentation",
-      "purpose": "推送记录0006：R1-01 identity启动装配组"
-    },
-    {
-      "path": "docs/push-log/2026-10-14-0007.md",
-      "kind": "documentation",
-      "purpose": "推送记录0007：R1-02启动装配组与R1-01私有持久化"
-    },
-    {
-      "path": "modules/analytics/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/analytics/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/analytics与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/analytics/cmd/analytics/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/analytics/config/defaults.json",
-      "kind": "config",
-      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/analytics/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/analytics/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/analytics；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/analytics/go.sum",
-      "kind": "generated",
-      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/analytics/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/analytics/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/content/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/content/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/content与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/content/cmd/content/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/content/config/service.defaults.json",
-      "kind": "config",
-      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/content/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/content/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/content/go.sum",
-      "kind": "generated",
-      "purpose": "content依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/content/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/content/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/identity/internal/account_validator.go",
-      "kind": "handwritten",
-      "purpose": "规范不可变账号名"
-    },
-    {
-      "path": "modules/identity/internal/credential_service.go",
-      "kind": "handwritten",
-      "purpose": "生成Argon2id口令哈希"
-    },
-    {
-      "path": "modules/jobs/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/jobs；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/jobs/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/jobs与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/jobs/cmd/jobs/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/jobs/config/defaults.json",
-      "kind": "config",
-      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/jobs/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/jobs/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/jobs；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/jobs/go.sum",
-      "kind": "generated",
-      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/jobs/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/jobs/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/localization/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/localization；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/localization/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/localization与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/localization/cmd/localization/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/localization/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/localization/deploy/service.config.json",
-      "kind": "config",
-      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/localization/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/localization；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/localization/go.sum",
-      "kind": "generated",
-      "purpose": "localization依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/localization/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/localization/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/localization/ui/index.html",
-      "kind": "config",
-      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret"
-    },
-    {
-      "path": "modules/localization/ui/package.json",
-      "kind": "config",
-      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务"
-    },
-    {
-      "path": "modules/localization/ui/pnpm-lock.yaml",
-      "kind": "generated",
-      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest"
-    },
-    {
-      "path": "modules/localization/ui/src/main.ts",
-      "kind": "ui",
-      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务"
-    },
-    {
-      "path": "modules/localization/ui/tsconfig.json",
-      "kind": "config",
-      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像"
-    },
-    {
-      "path": "modules/localization/ui/vite.config.ts",
-      "kind": "config",
-      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token"
-    },
-    {
-      "path": "modules/media/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/media；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/media/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/media与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/media/cmd/media/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/media/config/service.defaults.json",
-      "kind": "config",
-      "purpose": "ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/media/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/media/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/media；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/media/go.sum",
-      "kind": "generated",
-      "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/media/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/media/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/memory/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/memory；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/memory/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/memory与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/memory/cmd/memory/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/memory/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/memory/deploy/service.config.json",
-      "kind": "config",
-      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/memory/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/memory；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/memory/go.sum",
-      "kind": "generated",
-      "purpose": "memory依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/memory/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/memory/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/model-gateway/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/model-gateway；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/model-gateway/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/model-gateway与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/model-gateway/cmd/model-gateway/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/model-gateway/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/model-gateway/deploy/service.config.json",
-      "kind": "config",
-      "purpose": "未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/model-gateway/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/model-gateway；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/model-gateway/go.sum",
-      "kind": "generated",
-      "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/model-gateway/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/model-gateway/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/0001_control.sql",
-      "kind": "migration",
-      "purpose": "初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌本域control.db只追加SQL迁移并校验编号连续"
-    },
-    {
-      "path": "modules/site-config/internal/runtime_state_service.go",
-      "kind": "handwritten",
-      "purpose": "读取独立控制库权威运行状态"
-    },
-    {
-      "path": "modules/site-config/internal/runtime_store.go",
-      "kind": "handwritten",
-      "purpose": "打开独立control.db并持久化RuntimeState、激活回执与操作幂等记录"
-    },
-    {
-      "path": "modules/site-config/internal/runtime_transition.go",
-      "kind": "handwritten",
-      "purpose": "按CAS切换epoch与维护阶段"
-    },
-    {
-      "path": "modules/site-config/internal/write_epoch.go",
-      "kind": "handwritten",
-      "purpose": "所有业务写入执行epoch与屏障检查"
-    },
-    {
-      "path": "modules/traffic-guard/Dockerfile",
-      "kind": "config",
-      "purpose": "本域多阶段独立镜像：按go.mod工具链构建./cmd/traffic-guard；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS"
-    },
-    {
-      "path": "modules/traffic-guard/Makefile",
-      "kind": "config",
-      "purpose": "generate校验并生成合同绑定；build执行go build ./cmd/traffic-guard与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例"
-    },
-    {
-      "path": "modules/traffic-guard/cmd/traffic-guard/main.go",
-      "kind": "handwritten",
-      "purpose": "本域唯一Go可执行入口；不放产品算法"
-    },
-    {
-      "path": "modules/traffic-guard/config/defaults.json",
-      "kind": "config",
-      "purpose": "首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref"
-    },
-    {
-      "path": "modules/traffic-guard/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证"
-    },
-    {
-      "path": "modules/traffic-guard/go.mod",
-      "kind": "config",
-      "purpose": "独立module nice-wiki/modules/traffic-guard；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖"
-    },
-    {
-      "path": "modules/traffic-guard/go.sum",
-      "kind": "generated",
-      "purpose": "traffic-guard依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/traffic-guard/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
-    },
-    {
-      "path": "modules/traffic-guard/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
-    },
-    {
-      "path": "modules/content/internal/revision_files.go",
-      "kind": "handwritten",
-      "purpose": "持久写权威正文文件"
-    },
-    {
-      "path": "modules/jobs/internal/validation.go",
-      "kind": "handwritten",
-      "purpose": "验证任务入口；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/media/internal/blob_repository.go",
-      "kind": "handwritten",
-      "purpose": "将已验证文件提交不可变内容寻址存储"
-    },
-    {
-      "path": "modules/media/internal/upload_validator.go",
-      "kind": "handwritten",
-      "purpose": "清理展示文件名而不用于路径"
-    },
-    {
-      "path": "modules/site-config/internal/announcement_files.go",
-      "kind": "handwritten",
-      "purpose": "持久写不可变公告正文文件"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/active/0001_active.sql",
-      "kind": "migration",
-      "purpose": "初始active业务索引表：schema_migrations、site_config_state、config_revision_index与announcement_heads"
-    },
-    {
-      "path": "modules/traffic-guard/internal/policy.go",
-      "kind": "handwritten",
-      "purpose": "校验风控参数；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0001.md",
-      "kind": "documentation",
-      "purpose": "记录R1两轮并行工作包的main分支推送准备与核对结果"
-    },
-    {
-      "path": "modules/content/internal/revision_repository.go",
-      "kind": "handwritten",
-      "purpose": "草稿正文提交、版本CAS、journal回执与outbox事务边界"
-    },
-    {
-      "path": "modules/identity/internal/account_service.go",
-      "kind": "handwritten",
-      "purpose": "账号索引读取、写入与运维子命令服务"
-    },
-    {
-      "path": "modules/identity/internal/operation_repository.go",
-      "kind": "handwritten",
-      "purpose": "装配受信私有存储上下文与既有仓库调用前置"
-    },
-    {
-      "path": "modules/identity/internal/outbox_repository.go",
-      "kind": "handwritten",
-      "purpose": "身份域事件outbox持久化"
-    },
-    {
-      "path": "modules/identity/internal/permission_mapping.go",
-      "kind": "handwritten",
-      "purpose": "账号权限映射与校验"
-    },
-    {
-      "path": "modules/identity/internal/registration_service.go",
-      "kind": "handwritten",
-      "purpose": "首个超管注册状态与前置校验"
-    },
-    {
-      "path": "modules/identity/internal/restore_security.go",
-      "kind": "handwritten",
-      "purpose": "恢复后会话失效与身份安全边界"
-    },
-    {
-      "path": "modules/identity/internal/server_recovery.go",
-      "kind": "handwritten",
-      "purpose": "身份恢复回执与重置监视"
-    },
-    {
-      "path": "modules/jobs/internal/queue.go",
-      "kind": "handwritten",
-      "purpose": "任务提交、去重、屏障检查与队列持久化"
-    },
-    {
-      "path": "modules/jobs/migrations/0001_domain.sql",
-      "kind": "migration",
-      "purpose": "任务域初始SQLite表结构与迁移"
-    },
-    {
-      "path": "modules/jobs/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌jobs只追加SQL迁移（ADR0005），运行时唯一来源"
-    },
-    {
-      "path": "modules/knowledge/go.mod",
-      "kind": "config",
-      "purpose": "知识域独立Go module依赖"
-    },
-    {
-      "path": "modules/knowledge/go.sum",
-      "kind": "generated",
-      "purpose": "knowledge依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/knowledge/internal/chunk/normalize.go",
-      "kind": "handwritten",
-      "purpose": "知识源文本规范化及原文偏移映射"
-    },
-    {
-      "path": "modules/localization/internal/runtime/bootstrap.go",
-      "kind": "handwritten",
-      "purpose": "本地化运行时私有持久化与启动恢复"
-    },
-    {
-      "path": "modules/localization/migrations/001_initial.sql",
-      "kind": "migration",
-      "purpose": "本地化域初始SQLite表结构与迁移"
-    },
-    {
-      "path": "modules/localization/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌localization只追加SQL迁移（ADR0005），运行时唯一来源"
-    },
-    {
-      "path": "modules/media/internal/blob_recovery.go",
-      "kind": "handwritten",
-      "purpose": "媒体blob journal恢复与孤儿隔离"
-    },
-    {
-      "path": "modules/media/internal/upload_service.go",
-      "kind": "handwritten",
-      "purpose": "上传会话、配额、分块前置与不可变资源提交"
-    },
-    {
-      "path": "modules/media/migrations/0001_domain.sql",
-      "kind": "migration",
-      "purpose": "media私有SQLite初始权威表：上传会话、回执、资源与blob日志"
-    },
-    {
-      "path": "modules/media/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌media只追加SQL迁移（ADR0005），运行时唯一来源"
-    },
-    {
-      "path": "modules/memory/internal/runtime/bootstrap.go",
-      "kind": "handwritten",
-      "purpose": "记忆域私有持久化、epoch与启动恢复"
-    },
-    {
-      "path": "modules/memory/migrations/001_initial.sql",
-      "kind": "migration",
-      "purpose": "记忆域初始SQLite表结构与迁移"
-    },
-    {
-      "path": "modules/memory/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌memory业务库与control库只追加SQL迁移（ADR0005）"
-    },
-    {
-      "path": "modules/memory/migrations/control/0001_control.sql",
-      "kind": "migration",
-      "purpose": "memory control区控制库初始迁移"
-    },
-    {
-      "path": "modules/model-gateway/internal/catalog/model.go",
-      "kind": "handwritten",
-      "purpose": "模型目录字段与纯规则校验"
-    },
-    {
-      "path": "modules/model-gateway/internal/catalog/provider.go",
-      "kind": "handwritten",
-      "purpose": "供应方目录字段与纯规则校验"
-    },
-    {
-      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "kind": "handwritten",
-      "purpose": "模型网关私有存储、CAS与启动恢复"
-    },
-    {
-      "path": "modules/model-gateway/migrations/001_initial.sql",
-      "kind": "migration",
-      "purpose": "模型网关域初始SQLite表结构与迁移"
-    },
-    {
-      "path": "modules/model-gateway/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌model-gateway只追加SQL迁移（ADR0005），运行时唯一来源"
-    },
-    {
-      "path": "modules/portal/cmd/portal/main.go",
-      "kind": "handwritten",
-      "purpose": "后台入口服务启动装配"
-    },
-    {
-      "path": "modules/portal/config/service.defaults.json",
-      "kind": "config",
-      "purpose": "后台入口默认配置与环境覆盖"
-    },
-    {
-      "path": "modules/portal/deploy/manifest.json",
-      "kind": "config",
-      "purpose": "后台入口服务部署清单"
-    },
-    {
-      "path": "modules/portal/go.mod",
-      "kind": "config",
-      "purpose": "后台入口独立Go module依赖"
-    },
-    {
-      "path": "modules/portal/go.sum",
-      "kind": "config",
-      "purpose": "后台入口Go依赖校验记录"
-    },
-    {
-      "path": "modules/portal/internal/app/wire.go",
-      "kind": "handwritten",
-      "purpose": "后台入口依赖装配与路由绑定"
-    },
-    {
-      "path": "modules/portal/internal/auth_proof.go",
-      "kind": "handwritten",
-      "purpose": "后台委托证明校验"
-    },
-    {
-      "path": "modules/portal/internal/bootstrap_service.go",
-      "kind": "handwritten",
-      "purpose": "后台入口启动与依赖就绪装配"
-    },
-    {
-      "path": "modules/portal/internal/maintenance_gate.go",
-      "kind": "handwritten",
-      "purpose": "维护状态入口门禁"
-    },
-    {
-      "path": "modules/portal/internal/origin_guard.go",
-      "kind": "handwritten",
-      "purpose": "同源与来源校验"
-    },
-    {
-      "path": "modules/portal/internal/proxy_stream.go",
-      "kind": "handwritten",
-      "purpose": "后台代理HTTP与流式响应转发"
-    },
-    {
-      "path": "modules/portal/internal/request_validation.go",
-      "kind": "handwritten",
-      "purpose": "后台请求字段与CSRF前置校验"
-    },
-    {
-      "path": "modules/portal/internal/route_registry.go",
-      "kind": "handwritten",
-      "purpose": "后台路由表加载、匹配与服务断言"
-    },
-    {
-      "path": "modules/portal/internal/runtime_state_client.go",
-      "kind": "handwritten",
-      "purpose": "读取站点运行状态与维护阶段"
-    },
-    {
-      "path": "modules/portal/internal/transport/server.go",
-      "kind": "handwritten",
-      "purpose": "后台HTTP生命周期、健康与就绪"
-    },
-    {
-      "path": "modules/qa/go.mod",
-      "kind": "config",
-      "purpose": "问答域独立Go module依赖"
-    },
-    {
-      "path": "modules/qa/go.sum",
-      "kind": "generated",
-      "purpose": "qa依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
-    },
-    {
-      "path": "modules/qa/internal/turn/normalize.go",
-      "kind": "handwritten",
-      "purpose": "问题规范化、缓存键与稳定锚点"
-    },
-    {
-      "path": "modules/site-config/internal/language_service.go",
-      "kind": "handwritten",
-      "purpose": "语言标签规范化与校验"
-    },
-    {
-      "path": "modules/traffic-guard/internal/policy_store.go",
-      "kind": "handwritten",
-      "purpose": "风控策略私有存储、迁移与恢复"
-    },
-    {
-      "path": "modules/traffic-guard/migrations/0001_domain.sql",
-      "kind": "migration",
-      "purpose": "风控域初始SQLite表结构与迁移"
-    },
-    {
-      "path": "modules/traffic-guard/migrations/migrations.go",
-      "kind": "handwritten",
-      "purpose": "内嵌traffic-guard只追加SQL迁移（ADR0005），运行时唯一来源"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0002.md",
-      "kind": "documentation",
-      "purpose": "记录R1两轮业务切片收尾与main推送核对结果"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0003.md",
-      "kind": "documentation",
-      "purpose": "2026-10-15第三次推送记录：R1云端切片集成复核修复"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0004.md",
-      "kind": "documentation",
-      "purpose": "2026-10-15第四次推送记录：实现尺度、编译门槛与平台公共机制"
-    },
-    {
-      "path": "modules/identity/internal/session_revocation.go",
-      "kind": "source",
-      "purpose": "账户全部会话撤销与原子回执事件"
-    },
-    {
-      "path": "modules/identity/internal/session_service.go",
-      "kind": "source",
-      "purpose": "账户自身会话分页查询与受信游标签名引用"
-    },
-    {
-      "path": "modules/identity/migrations/0002_session_revocation.sql",
-      "kind": "migration",
-      "purpose": "完整撤销结果回执与分页索引的追加迁移"
-    },
-    {
-      "path": "modules/jobs/internal/leases.go",
-      "kind": "source",
-      "purpose": "owner/worker租约、持久fence与领取续租回执"
-    },
-    {
-      "path": "modules/jobs/internal/progress.go",
-      "kind": "source",
-      "purpose": "同租约事务中的安全进度与outbox"
-    },
-    {
-      "path": "modules/jobs/migrations/0002_leases.sql",
-      "kind": "migration",
-      "purpose": "持久fence、租约回执和检查点的追加迁移"
-    },
-    {
-      "path": "modules/site-config/internal/initialization_defaults.go",
-      "kind": "source",
-      "purpose": "确定性生成首站点完整默认配置"
-    },
-    {
-      "path": "modules/site-config/internal/initialization_repository.go",
-      "kind": "source",
-      "purpose": "持久初始化决定、准备材料与协调状态"
-    },
-    {
-      "path": "modules/site-config/internal/initialization_service.go",
-      "kind": "source",
-      "purpose": "安全初始化状态读取与协调字段隔离"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/active/0002_initialization.sql",
-      "kind": "migration",
-      "purpose": "初始化不可变决定与当前状态的追加迁移"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0005.md",
-      "kind": "documentation",
-      "purpose": "三个工作包并行交付与统一复核的推送记录"
-    },
-    {
-      "path": "modules/identity/internal/csrf_service.go",
-      "kind": "source",
-      "purpose": "portal内部核对CSRF"
-    },
-    {
-      "path": "modules/identity/internal/authorization_service.go",
-      "kind": "source",
-      "purpose": "按最新账号功能权限授权"
-    },
-    {
-      "path": "modules/identity/migrations/0003_session_tokens.sql",
-      "kind": "migration",
-      "purpose": "只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据"
-    },
-    {
-      "path": "modules/site-config/internal/operation_repository.go",
-      "kind": "source",
-      "purpose": "查询配置幂等回执"
-    },
-    {
-      "path": "modules/site-config/internal/outbox_repository.go",
-      "kind": "source",
-      "purpose": "将配置事件与业务提交原子登记"
-    },
-    {
-      "path": "modules/site-config/internal/config_files.go",
-      "kind": "source",
-      "purpose": "写权威版本化站点设置文件"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/active/0003_config_commit.sql",
-      "kind": "migration",
-      "purpose": "只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform"
-    },
-    {
-      "path": "modules/jobs/internal/results.go",
-      "kind": "source",
-      "purpose": "提交成功结果；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/retry.go",
-      "kind": "source",
-      "purpose": "固定错误重试分类；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/scheduler.go",
-      "kind": "source",
-      "purpose": "到期重排；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/cancellation.go",
-      "kind": "source",
-      "purpose": "请求取消任务；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/query.go",
-      "kind": "source",
-      "purpose": "读取管理任务状态；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/migrations/0003_terminal_jobs.sql",
-      "kind": "migration",
-      "purpose": "只追加终局回执与安全错误码；扩展租约操作回执种类，不更改既有fence；持久保存根操作，历史未知根不伪造"
-    },
-    {
-      "path": "modules/jobs/migrations/0004_orphan_jobs.sql",
-      "kind": "migration",
-      "purpose": "只追加重建jobs状态CHECK纳入orphan；逐列保留既有任务及关联FK，登记失效租约恢复引用"
-    },
-    {
-      "path": "modules/identity/migrations/0004_private_operation_receipts.sql",
-      "kind": "migration",
-      "purpose": "追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie"
-    },
-    {
-      "path": "modules/identity/migrations/control/0001_bootstrap.sql",
-      "kind": "migration",
-      "purpose": "独立control schema1与不可逆bootstrap决定；不随active恢复替换"
-    },
-    {
-      "path": "modules/site-config/internal/config_service.go",
-      "kind": "source",
-      "purpose": "读取后台站点配置"
-    },
-    {
-      "path": "modules/site-config/internal/config_validator.go",
-      "kind": "source",
-      "purpose": "校验配置所有字段和关联约束"
-    },
-    {
-      "path": "modules/site-config/internal/object_reader.go",
-      "kind": "source",
-      "purpose": "经协议读取本域正文或快照对象"
-    },
-    {
-      "path": "modules/site-config/internal/migrations/active/0004_config_operations.sql",
-      "kind": "migration",
-      "purpose": "一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威"
-    },
-    {
-      "path": "modules/jobs/internal/event_validation.go",
-      "kind": "source",
-      "purpose": "验证跨域事件；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/event_store.go",
-      "kind": "source",
-      "purpose": "持久接收事件；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/event_delivery.go",
-      "kind": "source",
-      "purpose": "至少一次投递；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/internal/http_event_subscription.go",
-      "kind": "source",
-      "purpose": "已登记消费者订阅事件SSE；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/migrations/0005_event_deliveries.sql",
-      "kind": "migration",
-      "purpose": "只追加事件唯一元数据/hash、全局seq、持久deliveryId/确认租约/CAS、连续确认水位与事件操作回执，保留既有事件/投递"
-    },
-    {
-      "path": "modules/jobs/internal/http_events.go",
-      "kind": "source",
-      "purpose": "已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application"
-    },
-    {
-      "path": "docs/push-log/2026-10-15-0006.md",
-      "kind": "documentation",
-      "purpose": "2026-10-15两轮持续实施交付、复核、普通推送及停止范围记录"
-    },
-    {
-      "path": "modules/traffic-guard/internal/admission.go",
-      "kind": "source",
-      "purpose": "编排频率/挑战/并发；同文件职责限本域以下登记函数"
     },
     {
       "path": "modules/traffic-guard/internal/http_admission.go",
@@ -3469,179 +3594,59 @@
       "purpose": "准入 HTTP；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/traffic-guard/internal/policy.go",
+      "kind": "handwritten",
+      "purpose": "校验风控参数；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/traffic-guard/internal/policy_store.go",
+      "kind": "handwritten",
+      "purpose": "风控策略私有存储、迁移与恢复"
+    },
+    {
+      "path": "modules/traffic-guard/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "风控域初始SQLite表结构与迁移"
+    },
+    {
       "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
       "kind": "migration",
       "purpose": "只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变"
     },
     {
-      "path": "modules/identity/internal/preference_service.go",
-      "kind": "source",
-      "purpose": "在当前本人授权快照读写后台偏好与完整安全回执"
+      "path": "modules/traffic-guard/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌traffic-guard只追加SQL迁移（ADR0005），运行时唯一来源"
     },
     {
-      "path": "modules/jobs/internal/queries.go",
-      "kind": "source",
-      "purpose": "查看任务队列"
+      "path": "modules/traffic-guard/progress.json",
+      "kind": "contract",
+      "purpose": "traffic-guard逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
-      "path": "modules/jobs/migrations/0006_job_management.sql",
-      "kind": "migration",
-      "purpose": "仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态"
+      "path": "modules/traffic-guard/web/src/gen/api.gen.ts",
+      "kind": "generated",
+      "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
     },
     {
-      "path": "modules/site-config/internal/home_service.go",
-      "kind": "source",
-      "purpose": "保存一屏hero权威配置、公开安全投影和媒体引用持久恢复"
+      "path": "scripts/check_docs.py",
+      "kind": "tool",
+      "purpose": "标准库设计结构、引用、台账、权限、依赖、暂存与隐私检查"
     },
     {
-      "path": "modules/site-config/internal/home_validator.go",
-      "kind": "source",
-      "purpose": "验证首页目标与引用"
+      "path": "scripts/gen_code.py",
+      "kind": "handwritten",
+      "purpose": "make gen实现：oapi-codegen服务端、生产方客户端、openapi-typescript、jobs目录与portal路由表"
     },
     {
-      "path": "modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql",
-      "kind": "migration",
-      "purpose": "追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威"
-    },
-    {
-      "path": "modules/jobs/internal/http_progress.go",
-      "kind": "source",
-      "purpose": "任务进度SSE；同文件职责限本域以下登记函数"
-    },
-    {
-      "path": "modules/jobs/migrations/0007_progress_retention.sql",
-      "kind": "migration",
-      "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间"
-    },
-    {
-      "path": "modules/content/internal/block_validator.go",
-      "kind": "source",
-      "purpose": "验证全部Tiptap块及稳定ID"
-    },
-    {
-      "path": "modules/content/internal/table_validator.go",
-      "kind": "source",
-      "purpose": "验证表格合并单元格覆盖"
-    },
-    {
-      "path": "modules/content/internal/columns_validator.go",
-      "kind": "source",
-      "purpose": "校验2–4栏比例和禁止嵌套"
-    },
-    {
-      "path": "modules/content/internal/body_canonicalizer.go",
-      "kind": "source",
-      "purpose": "规范序列化正文并计算hash"
-    },
-    {
-      "path": "modules/content/internal/revision_reader.go",
-      "kind": "source",
-      "purpose": "读取COMMITTED正文并核真相"
-    },
-    {
-      "path": "modules/model-gateway/internal/catalog/task.go",
-      "kind": "source",
-      "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
-    },
-    {
-      "path": "modules/model-gateway/migrations/002_task_availability.sql",
-      "kind": "migration",
-      "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。"
-    },
-    {
-      "path": "modules/media/internal/chunk_writer.go",
-      "kind": "source",
-      "purpose": "顺序原子写有界上传块"
-    },
-    {
-      "path": "modules/media/internal/asset_service.go",
-      "kind": "source",
-      "purpose": "读取资源/variants安全元数据"
-    },
-    {
-      "path": "modules/media/migrations/0002_upload_chunks.sql",
-      "kind": "migration",
-      "purpose": "只追加上传创建epoch和分块PREPARED/COMMITTED原结果日志，不重写0001或猜测旧上传代次"
-    },
-    {
-      "path": "docs/push-log/2026-10-16-0001.md",
-      "kind": "documentation",
-      "purpose": "本轮代码交付、VPS统一复核、停止目标与普通推送记录"
-    },
-    {
-      "path": "modules/content/internal/tree_validator.go",
-      "kind": "source",
-      "purpose": "检查树无环和层级约束"
-    },
-    {
-      "path": "modules/content/internal/reference_extractor.go",
-      "kind": "source",
-      "purpose": "扫描所有嵌套块资源引用"
-    },
-    {
-      "path": "modules/media/internal/upload_completion.go",
-      "kind": "source",
-      "purpose": "完成hash/MIME验证后发布ready资源"
-    },
-    {
-      "path": "modules/media/internal/mime_validator.go",
-      "kind": "source",
-      "purpose": "从字节识别类型"
-    },
-    {
-      "path": "modules/media/internal/payload_validator.go",
-      "kind": "source",
-      "purpose": "验证SVG/场景/附件/视频安全交付"
-    },
-    {
-      "path": "modules/media/internal/drawing_validator.go",
-      "kind": "source",
-      "purpose": "校验Excalidraw场景和提取文字"
-    },
-    {
-      "path": "modules/media/internal/outbox_repository.go",
-      "kind": "source",
-      "purpose": "原子写最小资源状态outbox"
-    },
-    {
-      "path": "docs/push-log/2026-10-16-0002.md",
-      "kind": "documentation",
-      "purpose": "三模块并行一轮复核、SVG样式修正与授权main普通推送记录"
-    },
-    {
-      "path": "modules/model-gateway/internal/catalog/profile.go",
-      "kind": "source",
-      "purpose": "档位配置持久写入与后续服务授权解析；保存不触发供应方或费用任务"
-    },
-    {
-      "path": "modules/media/internal/reference_service.go",
-      "kind": "source",
-      "purpose": "正文/config提交前保护资源迟到引用"
-    },
-    {
-      "path": "modules/media/internal/reference_repository.go",
-      "kind": "source",
-      "purpose": "消费引用事件防重复/乱序"
-    },
-    {
-      "path": "modules/media/migrations/0003_reference_pins.sql",
-      "kind": "source",
-      "purpose": "只追加引用来源完整绑定/终止封存、pending pin原结果与逐资产fence保护；旧迁移不改"
-    },
-    {
-      "path": "modules/content/internal/storage.go",
-      "kind": "source",
-      "purpose": "正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配"
-    },
-    {
-      "path": "modules/content/migrations/migrations.go",
-      "kind": "source",
-      "purpose": "内嵌本域只追加迁移的唯一来源"
-    },
-    {
-      "path": "modules/content/migrations/0001_domain.sql",
-      "kind": "source",
-      "purpose": "初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交"
+      "path": "scripts/render_docs.py",
+      "kind": "tool",
+      "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
     }
   ]
 }

@@ -1,22 +1,18 @@
-# 当前状态（2026-10-16，三模块并行两轮：第一轮实施中）
+# 当前状态（2026-10-16，两轮并行：第一轮检查通过）
 
-阶段：R1分批实施。用户最新授权三个子代理按最新交接并行编写两轮，每轮由集成会话统一检查后普通push main；所需结构和契约取舍由本次实施自行决定，不在轮间询问。第一轮正在实现content真实私有持久化、media引用预留和model-gateway档位配置；第二轮须基于第一轮完成后的新交接推进，结束第二轮后停止，不自动开第三轮。
+阶段：R1分批实施。用户授权三个子代理按最新交接并行编写两轮，每轮统一检查后普通push main，结构和契约取舍自行决定，轮间不询问；第二轮结束后停止，不自动开展第三轮。
 
 ## 最新事实
 
-- 本次两轮基线d2161f41c441b69f080b7d8cf3d40b88afecb357，main已与远端核对一致。当前main已实现台账仍515/1216（42.4%），以下已交付事实保留；新包仅在独立worktree实施，未合并前不计入根完成数。根统一公共文件、VPS生成/编译/检查与每轮推送，用户原HTML不改不提交。
+- 本次基线d2161f41c441b69f080b7d8cf3d40b88afecb357。第一轮三个独立worktree已合入main，实际集成提交依次3a576ab、ac836fe、92b4499；用户原HTML保持未跟踪，私有配置、凭据与运行数据未同步。
+- 机器契约865文件、1258函数、379HTTP操作、2277类型。已实现或验证558函数（495 verified、63 implemented），planned 669、in_progress 8、blocked 23，台账完成率44.4%，较轮前净增43项；无业务accepted。
+- content交付真实私有SQLite、只追加迁移、原准备回执、精确COMMITTED资格、隔离和启动恢复；新库epoch与迁移原子绑定，journal文件边界与反向覆盖核对失败关闭。源码97b31b1919181a4a697c8259c85ea9575f225a4d，完整保存事务、编辑锁前置与启动仍未闭合。
+- media交付完整来源绑定、逐对象fence/generation及ready资源pin单事务，首次pin原结果不续期、sealed先于旧结果。源码aab3c6edd25d0c56f677dc02ce843f7fafce5706；Acquire仍partial，真实清理计划取消与Confirm/Release留后续，不把ready切片称为完整预留链。
+- model-gateway交付PutProfile、同代CAS/槽唯一性、7天原结果及profile.changed事务outbox。源码82dee76414a823e4d2e71dd87c623d7220f8387e；公共能力表从唯一目录生成，fast变化覆盖vision/rerank回退影响，解析与完整服务仍未完成。
+- 候选和每次实际集成树均通过隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8的14模块readonly build/vet/gofmt及make check；各包docs/gen通过。最终同树重复docs/gen零漂移，跟踪文件哈希一致，全部待推送提交及暂存/消息隐私审计通过。
+- 全部Go生成、格式、编译、vet与check仅VPS。未新增测试、fixture、mock、样例或临时业务验证程序；未执行SQL/HTTP业务验收、真实模型、服务、镜像或部署。根状态与模块partial/blocked均如实保留。
 
-- 推送前复核修正SVG style按XML文本片段分别校验的遗漏：合并CDATA/注释边界后的完整style文本再检查，拒绝style子元素；源码eafa9275a31b38dc02880e6339694fa1d0f4286c，VPS生成、14模块编译/vet/gofmt及完整check通过，无新增测试或样例。
-
-- 基线170c1dc9057e122e349de43db532b2c48434b6cf，第三包实际集成提交71776e2。机器契约现覆盖861文件、1216函数、379HTTP操作、2271类型；515函数已实现或验证（452 verified、63 implemented），planned 671、in_progress 7、blocked 23。函数台账完成率42.4%（515/1216），较轮前净增43个完成条目；这是台账比例，不是产品可用率，无业务accepted。
-- content完成整树完整性、移动整棵子树的32层约束和全部嵌套资源精确抽取，保留不同块的引用、原来源水位/分类，拒绝同资源版本元数据冲突。新增2个已登记实际源码，5函数verified；源码f7bb9b8c029f3cc6af996708d28f50492ffb0546。真实私有数据库schema/迁移/启动协议尚缺，准备、COMMITTED资格与隔离adapter及完整保存链保持blocked，未猜建表。
-- model-gateway完成任务分配配置读写、固定目录档位/覆盖能力、owner范围过滤、CAS、7天原回执和assignment.changed事务outbox；管理员读取复用平台即时授权。公共唯一任务目录经make gen生成到本域，能力门槛按旧产品保留，不额外要求translation标签或调用供应方。源码c7c1cac9e3a59a206d506083ace25fd00c077e40；权威epoch初始化、其余handler、模型/费用与完整启动仍未完成。
-- media完成CompleteUpload及MIME/容器、SVG和画板直接校验，固定首次成功/安全错误；完整字节/hash和chunk水位后，文件fsync/rename/目录fsync，再以单SQL事务提交ready、session CAS、COMMITTED、回执和新资源outbox。复用资源精确匹配站点/类别/主键/引用；未知Commit留文件，暂存路径与启动恢复一致。源码9c2521a3142db0bc2ebcf1dc2914d3aea6984b46；37项本轮完整或修改函数verified，outbox转发、全部HTTP、pins、公开bytes及后台仍未完成。
-- blocked上传保留临时文件并持续计入站点存储预留，本轮不开放Abort清理blocked，等待后续已登记临时维护明确清理，不能视为空间已释放。最终复用既有upload_receipts，未新增003迁移或第三方依赖。
-- 公共结构登记本轮7个实际源码。OpenAPI 3.0生成将propertyNames保留为扩展，DrawingScene语义精确检查原文件键规则，原3.1 schema约束不变。三个实际集成树分别在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过14模块readonly build/vet/gofmt及完整make check；各包docs/gen通过。最终同树重复docs/gen零漂移，本轮交付提交、收尾暂存与提交消息的内容/身份/AI署名隐私审计通过。
-- 全部生成、格式、编译、vet与检查在VPS执行；未新增测试、fixture、mock、样例或临时业务验证程序，未运行SQL/HTTP行为验收、真实模型、服务、镜像或部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮交付与待整理记录见[推送记录](docs/push-log/2026-10-16-0002.md)。
-
-当前一项：第一轮先补content私有schema/迁移/准备与资格/隔离适配，media先做真实ready pin，模型网关做PutProfile。结构新增在用户本次整体授权范围内由集成会话裁定并同步；仍采用默认不新增测试的实施尺度，不开展真实模型调用或部署。R1整体和业务验收未完成。
+当前一项：第一轮最终检查并普通推送main，随后按最新交接开展第二轮：content真实编辑锁和文档/fence前置、media引用确认释放、model-gateway凭据加密轮换。推送结果见[第一轮记录](docs/push-log/2026-10-16-0003.md)。
 
 ## 历史实施记录
 
