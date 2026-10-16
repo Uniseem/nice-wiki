@@ -56,6 +56,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	defer store.CloseDatabase()
+	editLocks, err := content.NewEditLockManager(store)
+	if err != nil {
+		return nil, err
+	}
+	defer editLocks.CloseEditLocks()
 	if err := store.RecoverDatabaseJournal(ctx); err != nil {
 		return nil, err
 	}

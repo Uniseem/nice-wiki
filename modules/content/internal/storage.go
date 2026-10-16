@@ -491,7 +491,7 @@ func (s *Store) RecoverDatabaseJournal(ctx context.Context) error {
 			return contentStorageError()
 		}
 		var count int
-		if err := s.db.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM revision_preparations)+(SELECT COUNT(*) FROM committed_revisions)+(SELECT COUNT(*) FROM draft_heads)`).Scan(&count); err != nil {
+		if err := s.db.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM revision_preparations)+(SELECT COUNT(*) FROM committed_revisions)+(SELECT COUNT(*) FROM draft_heads)+(SELECT COUNT(*) FROM documents)`).Scan(&count); err != nil {
 			return contentStorageError()
 		}
 		if count != 0 {

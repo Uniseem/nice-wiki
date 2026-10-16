@@ -1059,6 +1059,16 @@
       "purpose": "校验2–4栏比例和禁止嵌套"
     },
     {
+      "path": "modules/content/internal/document_edit_state.go",
+      "kind": "source",
+      "purpose": "持久文档存在/生命周期/删除fence及隔离读取"
+    },
+    {
+      "path": "modules/content/internal/edit_lock_service.go",
+      "kind": "source",
+      "purpose": "打开文档自动获得内存编辑锁"
+    },
+    {
       "path": "modules/content/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -1117,6 +1127,11 @@
       "path": "modules/content/migrations/0001_domain.sql",
       "kind": "source",
       "purpose": "初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交"
+    },
+    {
+      "path": "modules/content/migrations/0002_document_edit_state.sql",
+      "kind": "source",
+      "purpose": "追加documents身份/生命周期/删除fence表，不插入文档或持久租约"
     },
     {
       "path": "modules/content/migrations/migrations.go",

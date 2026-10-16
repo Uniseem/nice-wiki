@@ -178,7 +178,7 @@ export interface paths {
         get?: never;
         /**
          * 心跳维持锁并处理长时间无输入
-         * @description 调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 heartbeatSequence与inputSequence分别严格单调；成功返回当前共享租约的最新序号，lastInputAt仅兼容显示，不能作为可信活跃时刻。
          */
         put: operations["renewEditLock"];
         /**
@@ -1017,6 +1017,10 @@ export interface components {
             lastInputAt: components["schemas"]["Timestamp"];
             /** @description 未提醒null */
             idleWarningAt: components["schemas"]["Timestamp"] | null;
+            /** @description 共享账户租约的单调心跳序号；严格前进才延长TTL */
+            heartbeatSequence: number;
+            /** @description 共享账户租约的单调输入序号；严格前进才以服务接收时钟更新活跃 */
+            inputSequence: number;
         };
         /** @description 打开文档自动获得内存编辑锁的结果 */
         AcquireEditLockResult: {
@@ -1045,8 +1049,12 @@ export interface components {
             fencingToken: number;
             /** @description boot */
             serverBootId: components["schemas"]["Identifier"];
-            /** @description 输入时间，由服务限制≤now */
+            /** @description 兼容客户端显示，不作为服务活跃时刻或续期权威 */
             lastInputAt: components["schemas"]["Timestamp"];
+            /** @description 共享账户租约的单调心跳序号；严格前进才延长TTL */
+            heartbeatSequence: number;
+            /** @description 共享账户租约的单调输入序号；严格前进才以服务接收时钟更新活跃 */
+            inputSequence: number;
         };
         /** @description 关闭页面释放自身锁的结果 */
         ReleaseEditLockResult: {
