@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "52c2e7d421a5700ec81df5b2b910a1d44fa66c50fee3c0d3165d2acf169a4803",
+  "contractSha256": "020918b3c5d00fd5c5297314b7d226c5a6a7b1fb76cf0617cd9edd4163e8495d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "三代理两轮第二轮：media源决定确认/封存闭环",
-  "branch": "codex/media-next-two-r2",
-  "baseCommit": "53acce862467dbe40b829d1984519d78ccac5608",
-  "deliveryCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+  "assignedSession": "持续目标第一轮：media真实来源快照与人工计划取消前置",
+  "branch": "codex/media-goal-r1",
+  "baseCommit": "685db4f48bb359f79a7501098204ccc5a4cde6b2",
+  "deliveryCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
   "deployment": "not_started",
   "files": [
     {
@@ -83,10 +83,10 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -122,51 +122,51 @@
     },
     {
       "path": "modules/media/internal/reference_service.go",
-      "state": "in_progress",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
-      "blocker": "Acquire/Confirm的ready切片和完整Release已实现；真实清理计划取消未齐，整文件partial。"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/reference_repository.go",
       "state": "in_progress",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。 整文件仅已实现范围通过。"
       },
-      "blocker": "本轮10助手中的持久化/锁与确认封存助手完整；ApplyReferenceEvent仍planned，整文件partial。"
+      "blocker": "本轮Acquire/Confirm真实人工计划同事务取消已验证；ApplyReferenceEvent仍planned，整文件partial。"
     },
     {
       "path": "modules/media/internal/reference_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
     {
       "path": "modules/media/internal/cleanup_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。 整文件仅已实现范围通过。"
       },
-      "blocker": null
+      "blocker": "Propose/Cancel与完整参考助手已验证；ListUnusedAssets和ConfirmManualCleanup仍planned，整文件partial。"
     },
     {
       "path": "modules/media/internal/cleanup_sources.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -343,12 +343,12 @@
     {
       "path": "modules/media/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。 整文件仅已实现范围通过。"
       },
-      "blocker": "本轮Confirm/Release局部真实HTTP映射已实现，其余handler/控制恢复/后台未齐，NewApplication仍blocked。"
+      "blocker": "本轮ReadAssetReferences/Propose/Cancel真实HTTP已绑定；其余handler/控制恢复/后台未齐，NewApplication仍blocked，整文件partial。"
     },
     {
       "path": "modules/media/go.mod",
@@ -517,6 +517,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/migrations/0005_manual_cleanup.sql",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     }
@@ -690,24 +700,24 @@
     {
       "id": "media.AcquireResourceReferences",
       "path": "modules/media/internal/reference_service.go",
-      "state": "in_progress",
-      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
-      "blocker": "本轮ready资源完整来源pin与原回执已实现并过既有检查；delete_pending缺真实计划生产方时LOCKED，已知有效清理计划的取消/CAS分支尚未实现，不将ready切片记作完整Acquire完成。"
+      "blocker": null
     },
     {
       "id": "media.ConfirmResourceReferences",
       "path": "modules/media/internal/reference_service.go",
-      "state": "in_progress",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
-      "blocker": "ready COMMITTED确认、单调current/history/空集合与原回执已实现并过既有门槛；真实delete_pending清理计划取消分支未实现，整体保持partial，不能将ready切片记作完整Confirm完成。"
+      "blocker": null
     },
     {
       "id": "media.ReleaseResourceReferences",
@@ -734,11 +744,11 @@
     {
       "id": "media.ReadAssetReferences",
       "path": "modules/media/internal/reference_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -756,11 +766,11 @@
     {
       "id": "media.ProposeManualCleanup",
       "path": "modules/media/internal/cleanup_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -778,22 +788,22 @@
     {
       "id": "media.CancelManualCleanup",
       "path": "modules/media/internal/cleanup_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
     {
       "id": "media.ValidateCleanupSources",
       "path": "modules/media/internal/cleanup_sources.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -1037,7 +1047,7 @@
         "state": "passed",
         "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
       },
-      "blocker": "本轮Confirm/Release局部HTTP及源客户端已装配；引用事件/其余handler、控制恢复回执与后台未齐，严格工厂仍拒绝完整启动，不伪造ready。"
+      "blocker": "本轮真实来源快照、计划提案/取消与Acquire/Confirm局部HTTP已实现；人工清理确认/任务、引用事件/其余handler、控制恢复及后台未齐，严格工厂仍拒绝完整启动，不伪造ready。"
     },
     {
       "id": "media.Serve",
@@ -1263,10 +1273,10 @@
       "id": "media.openLocalBlobStore",
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -1389,16 +1399,16 @@
         "state": "passed",
         "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
       },
-      "blocker": "本轮Confirm/Release局部HTTP及源客户端已装配；引用事件/其余handler、控制恢复回执与后台未齐，严格工厂仍拒绝完整启动，不伪造ready。"
+      "blocker": "本轮真实来源快照、计划提案/取消与Acquire/Confirm局部HTTP已实现；人工清理确认/任务、引用事件/其余handler、控制恢复及后台未齐，严格工厂仍拒绝完整启动，不伪造ready。"
     },
     {
       "id": "media.serviceHandlers",
       "path": "modules/media/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -1813,10 +1823,10 @@
       "id": "media.acquireReferencePin",
       "path": "modules/media/internal/reference_repository.go",
       "state": "verified",
-      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -1901,10 +1911,10 @@
       "id": "media.confirmReferencePin",
       "path": "modules/media/internal/reference_repository.go",
       "state": "verified",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
       },
       "blocker": null
     },
@@ -1940,7 +1950,161 @@
         "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
       },
       "blocker": null
+    },
+    {
+      "id": "media.readSourceReferences",
+      "path": "modules/media/internal/reference_reader.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.pendingAssetReferences",
+      "path": "modules/media/internal/reference_reader.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupStore",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readCleanupAsset",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupRequestHash",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readCleanupReceipt",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.writeCleanupReceipt",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readCleanupPlan",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cancelCleanupPlan",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.referenceCleanupAssets",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.assetCleanupPlans",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cancelReferenceCleanupPlans",
+      "path": "modules/media/internal/cleanup_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.currentBlobStore",
+      "path": "modules/media/internal/blob_repository.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.hasGrant",
+      "path": "modules/media/internal/upload_service.go",
+      "state": "verified",
+      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "第二轮源码89138f68209598b736eb9e93ad0d9717ac22fdbd已过修正后的统一VPS docs/gen、6源码gofmt、14模块readonly build/vet/gofmt与完整check；新增10完整参考助手及Release/0004/client verified。首次内部DTO裁剪编译失败已修并完整重跑。Acquire/Confirm均partial，完整应用blocked，无业务验收/部署；第二轮完成冻结并停止，不自行push或展开第三轮。"
+  "rule": "持续目标第一轮源码9647d143173e336dee465e7c5163a4b1d95d96b3最终通过统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check。4主用例与14参考助手（含2旧助手补登记）、Acquire/Confirm完整合同verified；cleanup_service/reference_repository/transport整体partial，人工清理确认/任务/最终删除planned，完整应用blocked，无业务验收/部署。两次失败均修后完整重跑，11路径精确回传。子代理已交付冻结，根统一集成push；等待下一轮派发，不缩减持续目标。"
 }

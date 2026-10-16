@@ -1,3 +1,17 @@
+# 持续目标第一轮：真实来源快照与人工计划取消前置（2026-10-16，已交付冻结）
+
+- 新授权持续目标已取代旧“两轮后停止”。基线685db4f48bb359f79a7501098204ccc5a4cde6b2，分支codex/media-goal-r1，独占modules/media/；源码`9647d143173e336dee465e7c5163a4b1d95d96b3`。本域不自行VPS或push，由根统一集成、审核及本轮push；交付后冻结等待下一轮派发。
+- ReadAssetReferences/ValidateCleanupSources完整：固定content/site-config生成客户端，无锁RPC、清原proof/用户委托、保留epoch/root/deadline；逐页唯一schema、cursor前进及固定watermark，精确asset与完整来源。去重含sourceVersion，合法不同版本保留，精确相同draft/published投影可合并；本地pending核原pin即使到期仍保护，回源后重核generation，未知绝不展示未引用。
+- ProposeManualCleanup/CancelManualCleanup及14参考助手完整（含currentBlobStore/hasGrant两个既有助手补登记），只追加0005；计划原扫描与原提案结果/hash独立持久，revision从0起，公共上限9007199254740991耗尽拒绝。提案不标delete_pending、不自动确认；单计划扫描总材料16MiB，超出明确分批；notBefore提案值只展示，未来确认须重设至少24h。
+- Acquire/Confirm完整合同已验证：相交计划完整资产在锁前扩展，assetId稳定锁→store→SQL重核计划代次/修订/集合→整份取消与新pin/confirmed同事务。confirmed/waiting要求全部精确marks；blocked允许部分本计划marks，逐项只撤销真实本计划标记，其余项核ready或另一有效计划精确标记；未知delete_pending、缺fence与任何DELETING失败关闭。逐对象fence/generation仍为原int64边界，不能借计划公共上限收紧。
+- 最终统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型）；11路径精确格式/生成已回传，其他模块零生成漂移。4主用例/14参考助手、Acquire/Confirm与完整职责文件按范围verified；cleanup_service/reference_repository/transport整体partial，完整应用blocked。
+- 失败记录：首次docs/gen成功，但冗余同名ReferenceSnapshot组件alias令4处生成DTO未定义，编译失败；删除多余alias后，第二次build/vet/gofmt通过而check因2旧助手未登记失败。补实际参考合同/内部blobStore与台账，并按全局映射修LOCKED409后，最终同树完整重跑通过，不沿用失败或中间结论。
+- 本地仅静态JSON、文件/差异/契约/暂存及隐私核对，无本机Go/gofmt/编译/测试或完整check；无新增测试/fixture/mock/样例/临时业务程序，无SQL/HTTP验收、真实接口/模型、服务/镜像/部署。源snapshot服务仍须其域真实实现，本轮不称联调成功或服务可用。用户GitHub代用身份与GPT-6合著署名已核。
+- 未完成：ConfirmManualCleanup、jobs延迟授权/执行删除、列表、引用事件与其余HTTP/控制恢复/后台仍按planned/blocked保留。业务验收/部署未执行。
+- 下一项：等根统一集成/检查/push后，在下一轮派发中实施本域cleanup_service.go的ConfirmManualCleanup；先读本域确认合同与jobs:createJob，按原扫描/修订/精确marks及≥24h窗口建立真实人工批准与任务原回执桥接，未知不得产生删除授权，不展开实际删除。
+
+公共结构：根已登记0005_manual_cleanup.sql，三个新增源码路径原已登记。两源Page schema仅引用生产方既有ListResourceReferencesResult，未改跨域API/事件。manual_cleanup_assets保存原扫描不可变材料，未来确认不能覆盖；manual_cleanup_marks单独保存人工确认时精确fence/generation，须与delete_pending/计划状态同事务；CleanupPlan.referenceGeneration只是逐资产最大原快照，不是全局删除授权。
+
 # 资源媒体会话交接
 
 ## 两轮并行第二轮：源决定确认/封存（2026-10-16，已交付冻结）
