@@ -6127,7 +6127,7 @@
     "RevisionFileStore": {
       "type": "object",
       "x-internal": true,
-      "description": "既有DraftCommitStore的受信扩展；scope绑定caller/actor/site/epoch/op和规范摘要，提供真实持久准备/读取资格/隔离及公共安全窗口；没有adapter则拒绝，不是可用DB实现",
+      "description": "独立受信正文文件存储边界，不继承完整DraftCommitStore；经WithRevisionFileStore注入，兼容既有完整存储注入。持久方法负责scope/epoch与真实COMMITTED资格，准备不推进head。",
       "additionalProperties": false,
       "properties": {},
       "required": []
@@ -6144,6 +6144,46 @@
       "type": "object",
       "x-internal": true,
       "description": "受信私有COMMITTED资格快照，含同site/doc/revision/epoch的Draft/ObjectRef及committed Journal；隔离或PREPARED不得返回",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "Store": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域私有SQLite句柄，只有打开epoch及持久站点绑定，没有业务成功占位",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RevisionStorageConfig": {
+      "type": "object",
+      "x-internal": true,
+      "description": "受信上游本次已核站点maxDocumentBytes和公共WriteWindow回调；缺失时禁止写文件",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "revisionStorage": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Store的本次正文写入配置view，不实现未交付DraftCommitStore",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "Migration": {
+      "type": "object",
+      "x-internal": true,
+      "description": "内嵌只追加SQL的编号、文件名、SQL与内容hash",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "preparationRow": {
+      "type": "object",
+      "x-internal": true,
+      "description": "首次准备原材料的受信SQL行，scope由精确查询限定",
       "additionalProperties": false,
       "properties": {},
       "required": []

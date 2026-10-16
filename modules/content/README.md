@@ -2,7 +2,7 @@
 
 保持 D4/D9/D15/D16/D20/D35/D54/D55：Tiptap3块、共享自动保存草稿、内存编辑锁、发布撤回回收站和署名历史；私有正文文件权威。
 
-当前为R1实施：既有正文准备/COMMITTED读回和块/hash核心已通过上一轮VPS检查；本轮文档树与资源引用纯规则已通过隔离VPS生成、readonly编译/vet/gofmt与完整结构检查，2文件/5函数按准确源码提交记verified。真实私有DB adapter尚缺已确认schema/迁移与启动协议，完整HTTP/后台和保存/发布链未装配，不把窄接口或源码存在当可运行服务；业务验收与部署未开始。
+当前为R1实施：正文纯规则与文件核心已经交付；本轮真实私有SQLite、只追加迁移、正文准备/COMMITTED资格/隔离和启动恢复已通过根统一VPS生成、readonly编译/vet/gofmt与完整结构检查。完整草稿事务、HTTP/后台、恢复epoch重绑定与activation仍未完成，BuildApplication保持blocked；不把空提交表或窄适配器视为可运行服务，业务验收与部署未开始。
 
 ## 设计索引
 

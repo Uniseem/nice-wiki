@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 102 个函数：约束 42 个，参考 60 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 134 个函数：约束 42 个，参考 92 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1499,7 +1499,7 @@ func WriteRevisionFile(ctx context.Context, op OperationContext, input WriteRevi
 
 **步骤**
 
-1. CanonicalizeBody得到≤16MiB规范JSON/hash；从既有WithDraftCommitStore读取扩展RevisionFileStore，核可信active root/site/打开epoch，路径仅服务生成site/doc/revisionId.json，拒绝路径跳转/链接/特殊文件/多硬链接
+1. CanonicalizeBody得到≤16MiB规范JSON/hash；从独立WithRevisionFileStore或兼容既有WithDraftCommitStore读取RevisionFileStore，核可信active root/site/打开epoch，路径仅服务生成site/doc/revisionId.json，拒绝路径跳转/链接/特殊文件/多硬链接
 2. 原操作按caller/actor/site/dataEpoch/operation及包含doc/revision/expectedHead/expectedDraftVersion/bodyHash的完整规范摘要先查持久准备材料；异摘要CONFLICT；同op使用首次Draft/Journal，不重造时间/commitId或受后来站点配额下降影响
 3. 新操作ValidateBlockTree语义并核当前受信maxDocumentBytes（1024..16MiB）；author只取可信op，ObjectRef固定owner=content/objectId=revisionId/version=1、application/json及完整hash/长度；draftVersion=expectedDraftVersion+1，previousRevisionId=expectedHead
 4. 公共lifecycle.NewWriteContext建立当前epoch和control截止；受信私有adapter原子保存preparing+摘要+原结果，不推进head；同revision归属冲突拒绝，缺真实adapter直接DEPENDENCY_UNAVAILABLE
@@ -1523,7 +1523,7 @@ func WriteRevisionFile(ctx context.Context, op OperationContext, input WriteRevi
 - 授权：私有正文提交
 - 并发：私有根单进程拥有；文件准备进程内串行，窄adapter原子幂等/修订归属；临时文件不可见，只有业务COMMITTED后可读，不宣称FS与DB单事务
 - 幂等：caller/actor/site/epoch/op+完整规范摘要，先取首次原材料再新策略/CAS；同键异摘要冲突，不重造结果；preparing崩溃可续，不复活终局
-- 依赖：`content.CanonicalizeBody`、`content.ValidateBlockTree`、`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.revisionPreparationDigest`、`content.validatePreparedMaterial`、`content.newRevisionWriteWindow`、`content.persistPreparedRevision`、`content.verifyRevisionMaterialFile`、`content.quarantineRevisionMaterial`、`platform.NewWriteContext`、`platform.ValidatePrivatePath`
+- 依赖：`content.CanonicalizeBody`、`content.ValidateBlockTree`、`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.revisionPreparationDigest`、`content.validatePreparedMaterial`、`content.newRevisionWriteWindow`、`content.persistPreparedRevision`、`content.verifyRevisionMaterialFile`、`content.quarantineRevisionMaterial`、`platform.NewWriteContext`、`platform.ValidatePrivatePath`、`content.FindRevisionPreparation`、`content.PrepareRevision`、`content.MarkRevisionPrepared`、`content.RevisionMaxDocumentBytes`
 - 其他依赖说明：Go实际公共函数为lifecycle.NewWriteContext与lifecycle.ValidatePrivatePath；contract平台前缀不是Go包名；RevisionFileStore所有持久方法需真实本域adapter；本项只实现文件核心，未装配时失败关闭；历史正文硬限16MiB，新写另服站点maxDocumentBytes；不等价上传配额
 
 ## content.RecoverPreparedCommits
@@ -1554,7 +1554,7 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 **步骤**
 
 1. exclusive启动或safe屏障内扫描journal
-2. COMMITTED查file/hash/head；缺失隔离doc并关闭公开
+2. COMMITTED必须有同epoch私有提交资格及原回执，再查file/hash/head；缺回执启动失败，文件损坏隔离doc并关闭公开，不从JSONL猜业务提交
 3. PREPARED若无已提交receipt则隔离，不能自行推进head；保留窗口后仅受控清未见孤儿
 
 **错误**
@@ -1566,7 +1566,7 @@ func RecoverPreparedCommits(ctx context.Context, op OperationContext, input Reco
 - 授权：service:content启动控制
 - 并发：exclusive gate
 - 幂等：重复恢复不发布PREPARED
-- 依赖：无
+- 依赖：`content.scanCommitJournal`、`content.appendJournalState`
 
 ## content.revisionPreparationDigest
 
@@ -1662,7 +1662,7 @@ func newRevisionWriteWindow(ctx context.Context, op OperationContext, store Revi
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
-- 依赖：`platform.NewWriteContext`
+- 依赖：`platform.NewWriteContext`、`content.RevisionWriteWindow`、`content.RevisionDataEpoch`
 
 ## content.persistPreparedRevision
 
@@ -1694,7 +1694,7 @@ func persistPreparedRevision(ctx context.Context, op OperationContext, store Rev
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
-- 依赖：`content.newRevisionWriteWindow`、`content.verifyRevisionMaterialFile`、`content.Read`、`platform.ValidatePrivatePath`
+- 依赖：`content.newRevisionWriteWindow`、`content.verifyRevisionMaterialFile`、`content.Read`、`platform.ValidatePrivatePath`、`content.appendJournalState`
 
 ## content.verifyRevisionMaterialFile
 
@@ -1759,6 +1759,134 @@ func quarantineRevisionMaterial(ctx context.Context, op OperationContext, store 
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
 - 依赖：`content.isolateRevisionRead`
+
+## content.scanCommitJournal
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：共享journal读锁内取得严格恢复快照；NOFOLLOW与打开前后身份核对，锁内不取SQL或Store互斥
+
+```go
+func scanCommitJournal(ctx context.Context, store RevisionRecoveryStore, journalPath string) ([]journalEntry, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 共享journal读锁内取得严格恢复快照；NOFOLLOW与打开前后身份核对，锁内不取SQL或Store互斥
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.openRevisionJournal`、`content.validateRevisionJournalFile`
+
+## content.appendJournalState
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：共享journal写锁覆盖安全打开、完整追加/fsync/close/目录同步；锁内无SQL
+
+```go
+func appendJournalState(ctx context.Context, journalPath string, journal CommitJournal, state string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 共享journal写锁覆盖安全打开、完整追加/fsync/close/目录同步；锁内无SQL
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.openRevisionJournal`、`content.validateRevisionJournalFile`
+
+## content.openRevisionJournal
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：公共私有路径验证和标准NOFOLLOW打开，创建仅O_EXCL，拒绝链接与路径替换
+
+```go
+func openRevisionJournal(path string, appendMode bool) (*os.File, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 公共私有路径验证和标准NOFOLLOW打开，创建仅O_EXCL，拒绝链接与路径替换
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.validateRevisionJournalFile`、`platform.ValidatePrivatePath`
+
+## content.validateRevisionJournalFile
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：读写后复核公共私有正规路径、已打开文件与当前路径SameFile一致
+
+```go
+func validateRevisionJournalFile(file *os.File) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读写后复核公共私有正规路径、已打开文件与当前路径SameFile一致
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`platform.ValidatePrivatePath`
 
 ## content.CommitDraftJournal
 
@@ -1852,7 +1980,7 @@ func ReadRevisionBody(ctx context.Context, op OperationContext, input ReadRevisi
 - 授权：调用方先做content.read或已验证publication/preview
 - 并发：COMMITTED资格前后校验，文件不可变且打开epoch固定；不把多个服务或FS/DB读取宣称成单事务
 - 幂等：只读
-- 依赖：`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.validateCommittedMaterial`、`content.readImmutableRevision`、`content.decodeStoredBody`、`content.ValidateBlockTree`、`content.CanonicalizeBody`、`content.isolateRevisionRead`、`platform.ValidatePrivatePath`
+- 依赖：`content.revisionFileStoreFromContext`、`content.revisionFileLocation`、`content.validateCommittedMaterial`、`content.readImmutableRevision`、`content.decodeStoredBody`、`content.ValidateBlockTree`、`content.CanonicalizeBody`、`content.isolateRevisionRead`、`platform.ValidatePrivatePath`、`content.ReadCommittedRevision`
 
 ## content.revisionFileStoreFromContext
 
@@ -1917,7 +2045,7 @@ func revisionFileLocation(store RevisionFileStore, op OperationContext, document
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
-- 依赖：`platform.ValidatePrivatePath`
+- 依赖：`platform.ValidatePrivatePath`、`content.RevisionRoot`、`content.RevisionDataEpoch`
 
 ## content.validateCommittedMaterial
 
@@ -2077,6 +2205,38 @@ func isolateRevisionRead(ctx context.Context, op OperationContext, store Revisio
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
+- 依赖：`content.QuarantineRevision`
+
+## content.WithRevisionFileStore
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_reader.go`
+- 作用：独立注入正文文件存储，兼容既有完整草稿存储注入
+
+```go
+func WithRevisionFileStore(ctx context.Context, store RevisionFileStore) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅注入受信独立存储，不制造完整草稿提交能力
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
 - 依赖：无
 
 ## content.PreparePublicationMetadata
@@ -3854,7 +4014,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
+2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换；本轮仅在SwapNone时真实OpenDatabase/RecoverDatabaseJournal；恢复换目录后的epoch重绑定与activation未交付则保持失败关闭，不能按请求覆写既有epoch
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
@@ -3870,8 +4030,8 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
-- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`
+- 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked
 
 ## content.Serve
 
@@ -4120,3 +4280,872 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
 - 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+
+## content.OpenDatabase
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：打开私有SQLite、核安全路径、执行只追加迁移及严格绑定dataEpoch
+
+```go
+func OpenDatabase(ctx context.Context, dataRoot string, epoch Identifier) (*Store, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只有本次O_EXCL创建的新空库可将可信openedEpoch在首个schema迁移和迁移记录的同SQL事务初始化；既有未知/异代库失败关闭
+2. 逐层ValidatePrivatePath验证active与DB/sidecar，SQLite采用WAL/foreign_keys/busy_timeout3000/synchronousFULL单连接，成功后目录fsync
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.RunContentMigrations`
+
+## content.RunContentMigrations
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：事务应用连续内嵌迁移，版本/文件名/hash未知时拒绝启动
+
+```go
+func (s *Store) RunContentMigrations(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取内嵌连续迁移，已应用版本/文件名/SQL hash必须精确匹配
+2. 每个新增版本SQL与迁移记录同事务；可信首次新库的store_identity也在第1迁移同事务初始化，不能另开epoch插入窗口
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.All`
+
+## content.ConfigureRevisionStorage
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：返回独立受信正文写入view，不冒充完整DraftCommitStore
+
+```go
+func (s *Store) ConfigureRevisionStorage(config RevisionStorageConfig) RevisionFileStore
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回独立受信正文写入view，不冒充完整DraftCommitStore
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.FindRevisionPreparation`、`content.PrepareRevision`、`content.MarkRevisionPrepared`、`content.ReadCommittedRevision`、`content.QuarantineRevision`、`content.RevisionRoot`、`content.RevisionDataEpoch`、`content.RevisionMaxDocumentBytes`、`content.RevisionWriteWindow`
+
+## content.RevisionRoot
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：读取本域active根
+
+```go
+func (s *revisionStorage) RevisionRoot() string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取本域active根
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.RevisionDataEpoch
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：读取严格绑定的活动epoch
+
+```go
+func (s *revisionStorage) RevisionDataEpoch() Identifier
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取严格绑定的活动epoch
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.RevisionMaxDocumentBytes
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：读取本次上游授权获得的站点正文限额
+
+```go
+func (s *revisionStorage) RevisionMaxDocumentBytes() int64
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取本次上游授权获得的站点正文限额
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.RevisionWriteWindow
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：读取受信公共写窗口回调
+
+```go
+func (s *revisionStorage) RevisionWriteWindow() platform.WriteWindowConfig
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取受信公共写窗口回调
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.FindRevisionPreparation
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：按完整scope及摘要读首次原结果，合并JSONL终局和真实提交回执，不复活隔离
+
+```go
+func (s *revisionStorage) FindRevisionPreparation(ctx context.Context, op OperationContext, digest Hash) (PreparedRevisionFile, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按完整scope及摘要读首次原结果，合并JSONL终局和真实提交回执，不复活隔离
+2. 持久prepared/committed或真实receipt已提交时必须有完整匹配JSONL，日志缺失/截空INTEGRITY_ERROR；preparing尚未append的合法窗口不误拒
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.findRevisionPreparation`
+
+## content.PrepareRevision
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：同事务首次绑定空库站点并持久preparing原材料，重复返原结果、修订归属冲突拒绝
+
+```go
+func (s *revisionStorage) PrepareRevision(ctx context.Context, op OperationContext, digest Hash, result WriteRevisionFileResult) (PreparedRevisionFile, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务首次绑定空库站点并持久preparing原材料，重复返原结果、修订归属冲突拒绝
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.findRevisionPreparation`
+
+## content.MarkRevisionPrepared
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：核scope/commit及JSONL准备状态后只推进preparing到prepared
+
+```go
+func (s *revisionStorage) MarkRevisionPrepared(ctx context.Context, op OperationContext, commitID Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核scope/commit及JSONL准备状态后只推进preparing到prepared
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.findRevisionPreparation`、`content.preparationJournalState`
+
+## content.ReadCommittedRevision
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：只读同scope/epoch有私有COMMITTED修订与回执且未隔离的完整资格，事务不跨文件IO
+
+```go
+func (s *revisionStorage) ReadCommittedRevision(ctx context.Context, op OperationContext, documentID, revisionID Identifier) (CommittedRevisionFile, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读同scope/epoch有私有COMMITTED修订与回执且未隔离的完整资格，事务不跨文件IO
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.checkRevisionScope`、`content.decodeStorageJSON`、`content.sameStoredDraft`、`content.preparationJournalState`
+
+## content.QuarantineRevision
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：事务隔离真实准备；已提交损坏同时持久关闭文档公开资格，未提交不关闭合法head
+
+```go
+func (s *revisionStorage) QuarantineRevision(ctx context.Context, op OperationContext, documentID, revisionID Identifier, reason string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 事务隔离真实准备；已提交损坏同时持久关闭文档公开资格，未提交不关闭合法head
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.checkRevisionScope`
+
+## content.CurrentHead
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：恢复只读已绑定站点真实draft head，不推进head
+
+```go
+func (s *Store) CurrentHead(ctx context.Context, documentID Identifier) (Identifier, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 恢复只读已绑定站点真实draft head，不推进head
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.HasCommittedReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：恢复查询同epoch真实COMMITTED资格与原回执，不把JSONL当业务提交
+
+```go
+func (s *Store) HasCommittedReceipt(ctx context.Context, commitID Identifier) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 恢复查询同epoch真实COMMITTED资格与原回执，不把JSONL当业务提交
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.hasCommittedReceipt`
+
+## content.QuarantineDocument
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：独占恢复阶段持久隔离文档并关闭公开资格
+
+```go
+func (s *Store) QuarantineDocument(ctx context.Context, documentID Identifier, reason string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 独占恢复阶段持久隔离文档并关闭公开资格
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.RecoverDatabaseJournal
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：独占启动读取真实站点绑定、运行既有正文恢复并同步隔离终局，不伪造站点或head
+
+```go
+func (s *Store) RecoverDatabaseJournal(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 独占启动读取真实站点绑定、运行既有正文恢复并同步隔离终局，不伪造站点或head
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.RecoverPreparedCommits`、`content.CurrentHead`、`content.HasCommittedReceipt`、`content.QuarantineDocument`、`content.validatePreparedJournalCoverage`
+
+## content.CloseDatabase
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：关闭私有SQLite连接，不删除正文或隔离记录
+
+```go
+func (s *Store) CloseDatabase() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 关闭私有SQLite连接，不删除正文或隔离记录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.findRevisionPreparation
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：在存储互斥内读取首次材料并合并终局
+
+```go
+func (s *Store) findRevisionPreparation(ctx context.Context, op OperationContext, digest Hash) (PreparedRevisionFile, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在存储互斥内读取首次材料并合并终局
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.checkRevisionScope`、`content.decodePreparation`、`content.preparationJournalState`、`content.hasCommittedReceipt`、`content.contentStorageError`
+
+## content.checkRevisionScope
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：私有库持久站点及epoch与可信操作严格一致，空站点只允许未命中及后续事务绑定
+
+```go
+func (s *Store) checkRevisionScope(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 私有库持久站点及epoch与可信操作严格一致，空站点只允许未命中及后续事务绑定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.hasCommittedReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：联查真实修订及scope回执并核首次Draft一致，隔离不抹去既有提交决定
+
+```go
+func (s *Store) hasCommittedReceipt(ctx context.Context, commitID Identifier) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 联查真实修订及scope回执并核首次Draft一致，隔离不抹去既有提交决定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.decodeStorageJSON`、`content.sameStoredDraft`
+
+## content.preparationJournalState
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：只读严格JSONL与合法状态迁移，核同commit身份，不制造或回退决定
+
+```go
+func (s *Store) preparationJournalState(ctx context.Context, expected CommitJournal) (string, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读严格JSONL与合法状态迁移，核同commit身份，不制造或回退决定
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.openRevisionJournal`、`content.validateRevisionJournalFile`
+
+## content.decodePreparation
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：持久原材料边界严格JSON及scope身份校验
+
+```go
+func decodePreparation(raw []byte, row *preparationRow, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持久原材料边界严格JSON及scope身份校验
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.decodeStorageJSON`
+
+## content.decodeStorageJSON
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：持久记录边界拒绝未知字段及额外JSON值
+
+```go
+func decodeStorageJSON(raw []byte, value any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持久记录边界拒绝未知字段及额外JSON值
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.sameStoredDraft
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：比较持久回执与首次Draft完整JSON值
+
+```go
+func sameStoredDraft(left, right DraftRevision) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 比较持久回执与首次Draft完整JSON值
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.contentStorageError
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：产生不泄漏路径或原始SQLite消息的标准依赖错误
+
+```go
+func contentStorageError() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 产生不泄漏路径或原始SQLite消息的标准依赖错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无
+
+## content.validatePreparedJournalCoverage
+
+- 级别：参考
+- 文件：`modules/content/internal/storage.go`
+- 作用：启动反向核所有持久prepared/committed准备都被完整同材料JSONL覆盖，缺失或截空失败关闭
+
+```go
+func (s *Store) validatePreparedJournalCoverage(ctx context.Context, recovery RevisionRecoveryStore) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先在共享journal读锁下取得严格快照，释放锁后才读SQL，锁内没有SQL
+2. 逐条核所有prepared/committed和真实committed索引的首次scope/epoch/完整Draft及Journal；缺日志或身份不匹配INTEGRITY_ERROR，不猜补
+3. 尚处preparing且无提交资格的首次窗口允许没有日志，其他已完成准备/提交缺失不能被空扫描掩盖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：`content.scanCommitJournal`、`content.decodePreparation`
+
+## content.All
+
+- 级别：参考
+- 文件：`modules/content/migrations/migrations.go`
+- 作用：按文件名排序读取内嵌SQL并校验四位编号从1连续
+
+```go
+func All() ([]Migration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按文件名排序读取内嵌SQL并校验四位编号从1连续
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
+- 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
+- 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
+- 依赖：无

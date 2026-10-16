@@ -39,11 +39,11 @@ type CommittedRevisionFile struct {
 	Journal CommitJournal
 }
 
-// RevisionFileStore扩展既有注入。适配器未实现这些持久操作时，文件用例拒绝运行。
+// RevisionFileStore独立于草稿提交事务，允许真实准备存储先于完整提交链交付。
 // 所有键固定caller/actor/site/dataEpoch/operation，摘要不含原始正文。
 // 准备不能推进head、改变ledger或发布；业务提交仍由DraftCommitTransaction负责。
 type RevisionFileStore interface {
-	DraftCommitStore
+	RevisionRoot() string
 	RevisionDataEpoch() Identifier
 	RevisionMaxDocumentBytes() int64
 	RevisionWriteWindow() platform.WriteWindowConfig
@@ -62,28 +62,36 @@ type RevisionFileStore interface {
 	QuarantineRevision(context.Context, OperationContext, Identifier, Identifier, string) error
 }
 
+type revisionFileStoreContextKey struct{}
+
+// WithRevisionFileStore注入真实正文文件适配，不要求未交付的草稿事务。
+func WithRevisionFileStore(ctx context.Context, store RevisionFileStore) context.Context {
+	return context.WithValue(ctx, revisionFileStoreContextKey{}, store)
+}
+
 func revisionFileStoreFromContext(ctx context.Context) (RevisionFileStore, error) {
-	base, ok := draftCommitStoreFromContext(ctx)
-	if !ok {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文文件私有存储未装配")
+	if store, ok := ctx.Value(revisionFileStoreContextKey{}).(RevisionFileStore); ok && store != nil {
+		return store, nil
 	}
-	store, ok := base.(RevisionFileStore)
-	if !ok {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文准备及读取存储尚未实现")
+	if base, ok := draftCommitStoreFromContext(ctx); ok {
+		if store, ok := base.(RevisionFileStore); ok {
+			return store, nil
+		}
 	}
-	return store, nil
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "正文文件私有存储未装配")
 }
 
 func revisionFileLocation(store RevisionFileStore, op OperationContext, documentID, revisionID Identifier) (string, string, error) {
-	root, site, err := validateDraftCommitStore(store, op)
-	if err != nil {
-		return "", "", err
+	root := store.RevisionRoot()
+	if root == "" || !filepath.IsAbs(root) {
+		return "", "", platform.NewError(platform.CodeDependencyUnavailable, true, "正文私有根不可用")
 	}
 	if store.RevisionDataEpoch() != op.DataEpoch {
 		return "", "", platform.NewError(platform.CodeVersionMismatch, false, "正文文件存储代次已变化")
 	}
-	// Identifier允许点；OS路径组件不得把点解释成站点或目录跳转。
-	if site == "." || site == ".." || documentID == "." || documentID == ".." {
+	site := op.Actor.SiteID
+	// 此处只计算路径；首次站点绑定只能在PrepareRevision事务内，不能提前创建目录。
+	if !platform.ValidIdentifier(site) || site == "." || site == ".." || documentID == "." || documentID == ".." {
 		return "", "", platform.NewError(platform.CodeIntegrityError, false, "正文路径组件不合法")
 	}
 	if err := lifecycle.ValidatePrivatePath(root, "directory", false); err != nil {

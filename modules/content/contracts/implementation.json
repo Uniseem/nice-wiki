@@ -2448,7 +2448,7 @@
           ],
           "purpose": "持久写权威正文文件",
           "steps": [
-            "CanonicalizeBody得到≤16MiB规范JSON/hash；从既有WithDraftCommitStore读取扩展RevisionFileStore，核可信active root/site/打开epoch，路径仅服务生成site/doc/revisionId.json，拒绝路径跳转/链接/特殊文件/多硬链接",
+            "CanonicalizeBody得到≤16MiB规范JSON/hash；从独立WithRevisionFileStore或兼容既有WithDraftCommitStore读取RevisionFileStore，核可信active root/site/打开epoch，路径仅服务生成site/doc/revisionId.json，拒绝路径跳转/链接/特殊文件/多硬链接",
             "原操作按caller/actor/site/dataEpoch/operation及包含doc/revision/expectedHead/expectedDraftVersion/bodyHash的完整规范摘要先查持久准备材料；异摘要CONFLICT；同op使用首次Draft/Journal，不重造时间/commitId或受后来站点配额下降影响",
             "新操作ValidateBlockTree语义并核当前受信maxDocumentBytes（1024..16MiB）；author只取可信op，ObjectRef固定owner=content/objectId=revisionId/version=1、application/json及完整hash/长度；draftVersion=expectedDraftVersion+1，previousRevisionId=expectedHead",
             "公共lifecycle.NewWriteContext建立当前epoch和control截止；受信私有adapter原子保存preparing+摘要+原结果，不推进head；同revision归属冲突拒绝，缺真实adapter直接DEPENDENCY_UNAVAILABLE",
@@ -2517,7 +2517,11 @@
             "content.verifyRevisionMaterialFile",
             "content.quarantineRevisionMaterial",
             "platform.NewWriteContext",
-            "platform.ValidatePrivatePath"
+            "platform.ValidatePrivatePath",
+            "content.FindRevisionPreparation",
+            "content.PrepareRevision",
+            "content.MarkRevisionPrepared",
+            "content.RevisionMaxDocumentBytes"
           ],
           "resources": [
             "Go实际公共函数为lifecycle.NewWriteContext与lifecycle.ValidatePrivatePath；contract平台前缀不是Go包名",
@@ -2582,7 +2586,7 @@
           "purpose": "恢复崩溃前正文提交日志",
           "steps": [
             "exclusive启动或safe屏障内扫描journal",
-            "COMMITTED查file/hash/head；缺失隔离doc并关闭公开",
+            "COMMITTED必须有同epoch私有提交资格及原回执，再查file/hash/head；缺回执启动失败，文件损坏隔离doc并关闭公开，不从JSONL猜业务提交",
             "PREPARED若无已提交receipt则隔离，不能自行推进head；保留窗口后仅受控清未见孤儿"
           ],
           "errors": [
@@ -2603,7 +2607,10 @@
           "authorization": "service:content启动控制",
           "concurrency": "exclusive gate",
           "idempotency": "重复恢复不发布PREPARED",
-          "dependencies": [],
+          "dependencies": [
+            "content.scanCommitJournal",
+            "content.appendJournalState"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -2663,7 +2670,9 @@
           "concurrency": "遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用",
           "idempotency": "纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费",
           "dependencies": [
-            "platform.NewWriteContext"
+            "platform.NewWriteContext",
+            "content.RevisionWriteWindow",
+            "content.RevisionDataEpoch"
           ],
           "resources": [],
           "contract": "reference"
@@ -2687,7 +2696,8 @@
             "content.newRevisionWriteWindow",
             "content.verifyRevisionMaterialFile",
             "content.Read",
-            "platform.ValidatePrivatePath"
+            "platform.ValidatePrivatePath",
+            "content.appendJournalState"
           ],
           "resources": [],
           "contract": "reference"
@@ -2730,6 +2740,93 @@
           "idempotency": "纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费",
           "dependencies": [
             "content.isolateRevisionRead"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.scanCommitJournal",
+          "name": "scanCommitJournal",
+          "signature": "func scanCommitJournal(ctx context.Context, store RevisionRecoveryStore, journalPath string) ([]journalEntry, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "共享journal读锁内取得严格恢复快照；NOFOLLOW与打开前后身份核对，锁内不取SQL或Store互斥",
+          "steps": [
+            "共享journal读锁内取得严格恢复快照；NOFOLLOW与打开前后身份核对，锁内不取SQL或Store互斥"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.openRevisionJournal",
+            "content.validateRevisionJournalFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.appendJournalState",
+          "name": "appendJournalState",
+          "signature": "func appendJournalState(ctx context.Context, journalPath string, journal CommitJournal, state string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "共享journal写锁覆盖安全打开、完整追加/fsync/close/目录同步；锁内无SQL",
+          "steps": [
+            "共享journal写锁覆盖安全打开、完整追加/fsync/close/目录同步；锁内无SQL"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.openRevisionJournal",
+            "content.validateRevisionJournalFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.openRevisionJournal",
+          "name": "openRevisionJournal",
+          "signature": "func openRevisionJournal(path string, appendMode bool) (*os.File, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共私有路径验证和标准NOFOLLOW打开，创建仅O_EXCL，拒绝链接与路径替换",
+          "steps": [
+            "公共私有路径验证和标准NOFOLLOW打开，创建仅O_EXCL，拒绝链接与路径替换"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.validateRevisionJournalFile",
+            "platform.ValidatePrivatePath"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.validateRevisionJournalFile",
+          "name": "validateRevisionJournalFile",
+          "signature": "func validateRevisionJournalFile(file *os.File) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读写后复核公共私有正规路径、已打开文件与当前路径SameFile一致",
+          "steps": [
+            "读写后复核公共私有正规路径、已打开文件与当前路径SameFile一致"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "platform.ValidatePrivatePath"
           ],
           "resources": [],
           "contract": "reference"
@@ -2956,7 +3053,8 @@
             "content.ValidateBlockTree",
             "content.CanonicalizeBody",
             "content.isolateRevisionRead",
-            "platform.ValidatePrivatePath"
+            "platform.ValidatePrivatePath",
+            "content.ReadCommittedRevision"
           ],
           "resources": [],
           "contract": "reference"
@@ -2998,7 +3096,9 @@
           "concurrency": "遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用",
           "idempotency": "纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费",
           "dependencies": [
-            "platform.ValidatePrivatePath"
+            "platform.ValidatePrivatePath",
+            "content.RevisionRoot",
+            "content.RevisionDataEpoch"
           ],
           "resources": [],
           "contract": "reference"
@@ -3097,6 +3197,27 @@
           "authorization": "仅已授权本域私有正文调用链或受信装配，通用边界不在此重复",
           "concurrency": "遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用",
           "idempotency": "纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费",
+          "dependencies": [
+            "content.QuarantineRevision"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.WithRevisionFileStore",
+          "name": "WithRevisionFileStore",
+          "signature": "func WithRevisionFileStore(ctx context.Context, store RevisionFileStore) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立注入正文文件存储，兼容既有完整草稿存储注入",
+          "steps": [
+            "仅注入受信独立存储，不制造完整草稿提交能力"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -6966,7 +7087,7 @@
           "purpose": "装配本域存储、客户端、函数路由与worker",
           "steps": [
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-            "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
+            "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换；本轮仅在SwapNone时真实OpenDatabase/RecoverDatabaseJournal；恢复换目录后的epoch重绑定与activation未交付则保持失败关闭，不能按请求覆写既有epoch",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
@@ -7009,12 +7130,18 @@
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "content.OpenDatabase",
+            "content.RecoverDatabaseJournal",
+            "content.CloseDatabase",
+            "content.ConfigureRevisionStorage",
+            "content.WithRevisionFileStore"
           ],
           "resources": [
             "本域implementation全部x-handler",
             "本域journal恢复函数",
-            "site-config.readRuntimeState（本域site-config读取自身权威）"
+            "site-config.readRuntimeState（本域site-config读取自身权威）",
+            "完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked"
           ],
           "contract": "binding"
         }
@@ -7522,6 +7649,597 @@
       "path": "modules/content/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/content/internal/storage.go",
+      "kind": "handwritten",
+      "purpose": "正文私有SQLite、迁移、准备/提交资格/隔离与独占启动恢复适配",
+      "functions": [
+        {
+          "id": "content.OpenDatabase",
+          "name": "OpenDatabase",
+          "signature": "func OpenDatabase(ctx context.Context, dataRoot string, epoch Identifier) (*Store, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "打开私有SQLite、核安全路径、执行只追加迁移及严格绑定dataEpoch",
+          "steps": [
+            "只有本次O_EXCL创建的新空库可将可信openedEpoch在首个schema迁移和迁移记录的同SQL事务初始化；既有未知/异代库失败关闭",
+            "逐层ValidatePrivatePath验证active与DB/sidecar，SQLite采用WAL/foreign_keys/busy_timeout3000/synchronousFULL单连接，成功后目录fsync"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.RunContentMigrations"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RunContentMigrations",
+          "name": "RunContentMigrations",
+          "signature": "func (s *Store) RunContentMigrations(ctx context.Context) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事务应用连续内嵌迁移，版本/文件名/hash未知时拒绝启动",
+          "steps": [
+            "读取内嵌连续迁移，已应用版本/文件名/SQL hash必须精确匹配",
+            "每个新增版本SQL与迁移记录同事务；可信首次新库的store_identity也在第1迁移同事务初始化，不能另开epoch插入窗口"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.All"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.ConfigureRevisionStorage",
+          "name": "ConfigureRevisionStorage",
+          "signature": "func (s *Store) ConfigureRevisionStorage(config RevisionStorageConfig) RevisionFileStore",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "返回独立受信正文写入view，不冒充完整DraftCommitStore",
+          "steps": [
+            "返回独立受信正文写入view，不冒充完整DraftCommitStore"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.FindRevisionPreparation",
+            "content.PrepareRevision",
+            "content.MarkRevisionPrepared",
+            "content.ReadCommittedRevision",
+            "content.QuarantineRevision",
+            "content.RevisionRoot",
+            "content.RevisionDataEpoch",
+            "content.RevisionMaxDocumentBytes",
+            "content.RevisionWriteWindow"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RevisionRoot",
+          "name": "RevisionRoot",
+          "signature": "func (s *revisionStorage) RevisionRoot() string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取本域active根",
+          "steps": [
+            "读取本域active根"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RevisionDataEpoch",
+          "name": "RevisionDataEpoch",
+          "signature": "func (s *revisionStorage) RevisionDataEpoch() Identifier",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取严格绑定的活动epoch",
+          "steps": [
+            "读取严格绑定的活动epoch"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RevisionMaxDocumentBytes",
+          "name": "RevisionMaxDocumentBytes",
+          "signature": "func (s *revisionStorage) RevisionMaxDocumentBytes() int64",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取本次上游授权获得的站点正文限额",
+          "steps": [
+            "读取本次上游授权获得的站点正文限额"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RevisionWriteWindow",
+          "name": "RevisionWriteWindow",
+          "signature": "func (s *revisionStorage) RevisionWriteWindow() platform.WriteWindowConfig",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取受信公共写窗口回调",
+          "steps": [
+            "读取受信公共写窗口回调"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.FindRevisionPreparation",
+          "name": "FindRevisionPreparation",
+          "signature": "func (s *revisionStorage) FindRevisionPreparation(ctx context.Context, op OperationContext, digest Hash) (PreparedRevisionFile, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按完整scope及摘要读首次原结果，合并JSONL终局和真实提交回执，不复活隔离",
+          "steps": [
+            "按完整scope及摘要读首次原结果，合并JSONL终局和真实提交回执，不复活隔离",
+            "持久prepared/committed或真实receipt已提交时必须有完整匹配JSONL，日志缺失/截空INTEGRITY_ERROR；preparing尚未append的合法窗口不误拒"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.findRevisionPreparation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.PrepareRevision",
+          "name": "PrepareRevision",
+          "signature": "func (s *revisionStorage) PrepareRevision(ctx context.Context, op OperationContext, digest Hash, result WriteRevisionFileResult) (PreparedRevisionFile, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同事务首次绑定空库站点并持久preparing原材料，重复返原结果、修订归属冲突拒绝",
+          "steps": [
+            "同事务首次绑定空库站点并持久preparing原材料，重复返原结果、修订归属冲突拒绝"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.findRevisionPreparation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.MarkRevisionPrepared",
+          "name": "MarkRevisionPrepared",
+          "signature": "func (s *revisionStorage) MarkRevisionPrepared(ctx context.Context, op OperationContext, commitID Identifier) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核scope/commit及JSONL准备状态后只推进preparing到prepared",
+          "steps": [
+            "核scope/commit及JSONL准备状态后只推进preparing到prepared"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.findRevisionPreparation",
+            "content.preparationJournalState"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.ReadCommittedRevision",
+          "name": "ReadCommittedRevision",
+          "signature": "func (s *revisionStorage) ReadCommittedRevision(ctx context.Context, op OperationContext, documentID, revisionID Identifier) (CommittedRevisionFile, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读同scope/epoch有私有COMMITTED修订与回执且未隔离的完整资格，事务不跨文件IO",
+          "steps": [
+            "只读同scope/epoch有私有COMMITTED修订与回执且未隔离的完整资格，事务不跨文件IO"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.checkRevisionScope",
+            "content.decodeStorageJSON",
+            "content.sameStoredDraft",
+            "content.preparationJournalState"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.QuarantineRevision",
+          "name": "QuarantineRevision",
+          "signature": "func (s *revisionStorage) QuarantineRevision(ctx context.Context, op OperationContext, documentID, revisionID Identifier, reason string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事务隔离真实准备；已提交损坏同时持久关闭文档公开资格，未提交不关闭合法head",
+          "steps": [
+            "事务隔离真实准备；已提交损坏同时持久关闭文档公开资格，未提交不关闭合法head"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.checkRevisionScope"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.CurrentHead",
+          "name": "CurrentHead",
+          "signature": "func (s *Store) CurrentHead(ctx context.Context, documentID Identifier) (Identifier, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "恢复只读已绑定站点真实draft head，不推进head",
+          "steps": [
+            "恢复只读已绑定站点真实draft head，不推进head"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.HasCommittedReceipt",
+          "name": "HasCommittedReceipt",
+          "signature": "func (s *Store) HasCommittedReceipt(ctx context.Context, commitID Identifier) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "恢复查询同epoch真实COMMITTED资格与原回执，不把JSONL当业务提交",
+          "steps": [
+            "恢复查询同epoch真实COMMITTED资格与原回执，不把JSONL当业务提交"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.hasCommittedReceipt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.QuarantineDocument",
+          "name": "QuarantineDocument",
+          "signature": "func (s *Store) QuarantineDocument(ctx context.Context, documentID Identifier, reason string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独占恢复阶段持久隔离文档并关闭公开资格",
+          "steps": [
+            "独占恢复阶段持久隔离文档并关闭公开资格"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RecoverDatabaseJournal",
+          "name": "RecoverDatabaseJournal",
+          "signature": "func (s *Store) RecoverDatabaseJournal(ctx context.Context) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独占启动读取真实站点绑定、运行既有正文恢复并同步隔离终局，不伪造站点或head",
+          "steps": [
+            "独占启动读取真实站点绑定、运行既有正文恢复并同步隔离终局，不伪造站点或head"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.RecoverPreparedCommits",
+            "content.CurrentHead",
+            "content.HasCommittedReceipt",
+            "content.QuarantineDocument",
+            "content.validatePreparedJournalCoverage"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.CloseDatabase",
+          "name": "CloseDatabase",
+          "signature": "func (s *Store) CloseDatabase() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "关闭私有SQLite连接，不删除正文或隔离记录",
+          "steps": [
+            "关闭私有SQLite连接，不删除正文或隔离记录"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.findRevisionPreparation",
+          "name": "findRevisionPreparation",
+          "signature": "func (s *Store) findRevisionPreparation(ctx context.Context, op OperationContext, digest Hash) (PreparedRevisionFile, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在存储互斥内读取首次材料并合并终局",
+          "steps": [
+            "在存储互斥内读取首次材料并合并终局"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.checkRevisionScope",
+            "content.decodePreparation",
+            "content.preparationJournalState",
+            "content.hasCommittedReceipt",
+            "content.contentStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.checkRevisionScope",
+          "name": "checkRevisionScope",
+          "signature": "func (s *Store) checkRevisionScope(ctx context.Context, op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有库持久站点及epoch与可信操作严格一致，空站点只允许未命中及后续事务绑定",
+          "steps": [
+            "私有库持久站点及epoch与可信操作严格一致，空站点只允许未命中及后续事务绑定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.hasCommittedReceipt",
+          "name": "hasCommittedReceipt",
+          "signature": "func (s *Store) hasCommittedReceipt(ctx context.Context, commitID Identifier) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "联查真实修订及scope回执并核首次Draft一致，隔离不抹去既有提交决定",
+          "steps": [
+            "联查真实修订及scope回执并核首次Draft一致，隔离不抹去既有提交决定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.decodeStorageJSON",
+            "content.sameStoredDraft"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.preparationJournalState",
+          "name": "preparationJournalState",
+          "signature": "func (s *Store) preparationJournalState(ctx context.Context, expected CommitJournal) (string, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读严格JSONL与合法状态迁移，核同commit身份，不制造或回退决定",
+          "steps": [
+            "只读严格JSONL与合法状态迁移，核同commit身份，不制造或回退决定"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.openRevisionJournal",
+            "content.validateRevisionJournalFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.decodePreparation",
+          "name": "decodePreparation",
+          "signature": "func decodePreparation(raw []byte, row *preparationRow, op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "持久原材料边界严格JSON及scope身份校验",
+          "steps": [
+            "持久原材料边界严格JSON及scope身份校验"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.decodeStorageJSON",
+          "name": "decodeStorageJSON",
+          "signature": "func decodeStorageJSON(raw []byte, value any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "持久记录边界拒绝未知字段及额外JSON值",
+          "steps": [
+            "持久记录边界拒绝未知字段及额外JSON值"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.sameStoredDraft",
+          "name": "sameStoredDraft",
+          "signature": "func sameStoredDraft(left, right DraftRevision) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "比较持久回执与首次Draft完整JSON值",
+          "steps": [
+            "比较持久回执与首次Draft完整JSON值"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.contentStorageError",
+          "name": "contentStorageError",
+          "signature": "func contentStorageError() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "产生不泄漏路径或原始SQLite消息的标准依赖错误",
+          "steps": [
+            "产生不泄漏路径或原始SQLite消息的标准依赖错误"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.validatePreparedJournalCoverage",
+          "name": "validatePreparedJournalCoverage",
+          "signature": "func (s *Store) validatePreparedJournalCoverage(ctx context.Context, recovery RevisionRecoveryStore) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "启动反向核所有持久prepared/committed准备都被完整同材料JSONL覆盖，缺失或截空失败关闭",
+          "steps": [
+            "先在共享journal读锁下取得严格快照，释放锁后才读SQL，锁内没有SQL",
+            "逐条核所有prepared/committed和真实committed索引的首次scope/epoch/完整Draft及Journal；缺日志或身份不匹配INTEGRITY_ERROR，不猜补",
+            "尚处preparing且无提交资格的首次窗口允许没有日志，其他已完成准备/提交缺失不能被空扫描掩盖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [
+            "content.scanCommitJournal",
+            "content.decodePreparation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/content/migrations/migrations.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域只追加迁移的唯一来源",
+      "functions": [
+        {
+          "id": "content.All",
+          "name": "All",
+          "signature": "func All() ([]Migration, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按文件名排序读取内嵌SQL并校验四位编号从1连续",
+          "steps": [
+            "按文件名排序读取内嵌SQL并校验四位编号从1连续"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责",
+          "concurrency": "单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO",
+          "idempotency": "原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/content/migrations/0001_domain.sql",
+      "kind": "handwritten",
+      "purpose": "初始正文权威schema：绑定、准备、精确已提交索引、回执、head和隔离；不创建文档/锁/提交",
       "functions": []
     }
   ],

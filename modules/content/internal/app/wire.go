@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	content "nice-wiki/modules/content/internal"
 	"nice-wiki/modules/content/internal/transport"
 )
 
@@ -19,9 +20,9 @@ const ModuleSlug = "content"
 
 // BuildApplication 按服务启动蓝图校验本域启动前置条件。
 //
-// 本工作包只完成启动与契约生成准备。由于本域的业务存储、OpenAPI
-// x-handler、journal恢复和后台任务尚未实现，不能返回一个看似可用的
-// Application；在完成公共启动检查后按合同返回 DEPENDENCY_UNAVAILABLE。
+// 本域已接入私有SQLite打开、迁移和正文日志恢复。完整草稿事务、
+// OpenAPI x-handler、恢复activation和后台任务尚未装配，按合同返回
+// DEPENDENCY_UNAVAILABLE，不返回不完整的Application。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -50,7 +51,16 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域后续工作包")
 	}
 
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content业务处理器与私有存储尚未实现")
+	store, err := content.OpenDatabase(ctx, config.DataRoot, runtimeView.DataEpoch)
+	if err != nil {
+		return nil, err
+	}
+	defer store.CloseDatabase()
+	if err := store.RecoverDatabaseJournal(ctx); err != nil {
+		return nil, err
+	}
+
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务处理器、草稿事务与后台装配尚未实现")
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端；只保存外部引用，
@@ -88,8 +98,15 @@ func validateConfig(config platform.ServiceConfig) error {
 
 func ensureDataLayout(dataRoot string) error {
 	for _, name := range []string{"active", "control", "restore"} {
-		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
+		path := filepath.Join(dataRoot, name)
+		if err := lifecycle.ValidatePrivatePath(path, "directory", true); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(path, 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
+		}
+		if err := lifecycle.ValidatePrivatePath(path, "directory", false); err != nil {
+			return err
 		}
 	}
 	return nil
