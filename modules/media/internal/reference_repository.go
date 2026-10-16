@@ -144,7 +144,7 @@ func (s *localBlobStore) readReferenceAsset(ctx context.Context, q sqlExecer, si
 	return int(fence.Int64), nil
 }
 
-func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash, assets []gen.AssetVersionRef) (AcquireResourceReferencesResult, error) {
+func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash, assets, locked []gen.AssetVersionRef, plans []Identifier) (AcquireResourceReferencesResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	original, found, err := s.readReferenceSource(ctx, s.db, op, input, bindingHash)
@@ -164,6 +164,9 @@ func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationCo
 	original, found, err = s.readReferenceSource(work, tx, op, input, bindingHash)
 	if err != nil || found {
 		return original, err
+	}
+	if err := s.cancelReferenceCleanupPlans(work, tx, op, input.SiteId, assets, locked, plans); err != nil {
+		return AcquireResourceReferencesResult{}, err
 	}
 	fences := make([]int, len(assets))
 	maximumFence := 0
@@ -414,7 +417,11 @@ func (s *localBlobStore) confirmReferencePin(ctx context.Context, op OperationCo
 	if err != nil {
 		return ConfirmResourceReferencesResult{}, err
 	}
-	releaseAssets := s.lockReferenceAssets(affected)
+	locked, plans, err := s.referenceCleanupAssets(ctx, op, material.SiteId, record.Assets, affected)
+	if err != nil {
+		return ConfirmResourceReferencesResult{}, err
+	}
+	releaseAssets := s.lockReferenceAssets(locked)
 	defer releaseAssets()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -441,6 +448,9 @@ func (s *localBlobStore) confirmReferencePin(ctx context.Context, op OperationCo
 	}
 	if current.Input == nil {
 		return ConfirmResourceReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "待确认来源缺完整引用集合")
+	}
+	if err := s.cancelReferenceCleanupPlans(ctx, tx, op, material.SiteId, current.Assets, locked, plans); err != nil {
+		return ConfirmResourceReferencesResult{}, err
 	}
 	for _, asset := range current.Assets {
 		if _, err := s.readReferenceAsset(ctx, tx, material.SiteId, asset); err != nil {

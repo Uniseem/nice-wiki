@@ -2304,6 +2304,16 @@
       "purpose": "顺序原子写有界上传块"
     },
     {
+      "path": "modules/media/internal/cleanup_service.go",
+      "kind": "source",
+      "purpose": "真实人工清理计划、精确扫描材料与计划取消事务"
+    },
+    {
+      "path": "modules/media/internal/cleanup_sources.go",
+      "kind": "source",
+      "purpose": "当前与历史引用的完整权威清理判定"
+    },
+    {
       "path": "modules/media/internal/drawing_validator.go",
       "kind": "source",
       "purpose": "校验Excalidraw场景和提取文字"
@@ -2342,6 +2352,11 @@
       "path": "modules/media/internal/reference_decision_client.go",
       "kind": "source",
       "purpose": "只经固定版本化源决定API/共享schema读取，清proof的media纯服务上下文，不持本域锁"
+    },
+    {
+      "path": "modules/media/internal/reference_reader.go",
+      "kind": "source",
+      "purpose": "两源固定水位分页与本地pending引用保护读取"
     },
     {
       "path": "modules/media/internal/reference_repository.go",
@@ -2392,6 +2407,11 @@
       "path": "modules/media/migrations/0004_reference_resolution.sql",
       "kind": "source",
       "purpose": "只追加源终局原回执、对象current水位与保留history的确认引用行，原pin保护不删除"
+    },
+    {
+      "path": "modules/media/migrations/0005_manual_cleanup.sql",
+      "kind": "source",
+      "purpose": "只追加人工清理计划、逐资产扫描/删除标记与原回执"
     },
     {
       "path": "modules/media/migrations/migrations.go",

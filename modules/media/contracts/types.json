@@ -649,6 +649,10 @@
             "deleted",
             "blocked"
           ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "计划单调修订，首次0；确认/取消按本修订CAS"
         }
       },
       "required": [
@@ -658,7 +662,8 @@
         "referenceGeneration",
         "confirmationHash",
         "notBefore",
-        "state"
+        "state",
+        "revision"
       ]
     },
     "PlatformProvider": {
@@ -5454,6 +5459,13 @@
     "ReferenceSourceDecision": {
       "$ref": "../../../contracts/common.schema.json#/$defs/ReferenceSourceDecision",
       "description": "固定源只读最小决定，公共唯一schema，不含正文或配置"
+    },
+    "blobStore": {
+      "type": "object",
+      "x-internal": true,
+      "description": "仅Go内部上传字节读取接口；当前本域私有存储能力，允许nil表示未装配，不序列化、不接受HTTP输入",
+      "additionalProperties": false,
+      "properties": {}
     }
   }
 }

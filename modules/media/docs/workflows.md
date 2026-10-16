@@ -33,6 +33,7 @@
 1. jobs worker claim确认plan/notBefore/approvalhash，未知或未确认拒绝
 2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
 3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
+4. 遇新引用/未知来源/readers/水位变化时计划可blocked，尚无DELETING决定的资产可保留原精确marks/delete_pending待取消；blocked不授权继续删除，也不凭状态释放标记。已有DELETING的资产按持久决定恢复，Cancel必须CONFLICT，不能声称全部可逆
 
 ### 后台任务
 
@@ -57,3 +58,6 @@
 两轮并行第一轮引用：可信content/site-config纯服务 → 已打开epoch与完整pending材料/规范摘要 → 源互斥 → sealed/异材料拒绝或原pin回放 → assetId稳定锁 → store提交互斥 → 公共running写窗口 → SQL内来源复核与真实ready/站点/精确版本/hash/长度/MIME/fence → fence+generation CAS和至少24h pin原结果同事务。空集合走同一来源协议。delete_pending一律失败关闭；尚未实现真实计划取消、Confirm/Release与引用事件，完整服务仍不可运行。
 
 第二轮Confirm/Release：本域当前epoch/可信来源与原材料 → 原终局回执优先 → 无锁固定源决定API与共享schema → 完整材料和明确committed或aborted/rejected → 无锁重新runtime写窗口 → sourceOperation/sourceObject互斥 → 完整受影响asset稳定锁 → store互斥 → SQL内重核来源/终局 → 单调current/history或sealed与原回执同事务。低版本提交历史不丢弃，空集合推进head，无pin终止仍封存，原pin_assets保留，pending/404/未知永不释放。真实清理计划取消仍未实现，Acquire/Confirm保持partial，完整服务仍blocked。
+
+
+持续目标第一轮：ReadAssetReferences完整两源分页→本地pending与generation复核→ValidateCleanupSources→管理员Propose真实风险计划；只有后来明确确认才能进入delete_pending，目前确认/延迟任务/执行删除仍planned。Acquire/Confirm在任何asset锁之前扩出相交计划完整资产，再稳定锁序和SQL内完整重核→取消整份有效计划/恢复ready/提升水位→同事务pin或confirmed。持久DELETING与未知计划继续阻止，所有回源RPC无asset/store锁。
