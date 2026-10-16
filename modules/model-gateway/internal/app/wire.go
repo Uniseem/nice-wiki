@@ -12,6 +12,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/model-gateway/internal/admin"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -80,6 +81,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+	for operationID, handler := range admin.NewAdminHandlers(authorize) {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range catalog.NewProfileHandlers() {
 		handlers[operationID] = handler
 	}
@@ -101,6 +105,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"putCredential":        {"portal"},
 			"rotateCredential":     {"portal"},
 			"readTaskAssignments":  assignmentCallers,
+			"readModels":           assignmentCallers,
+			"readProfiles":         assignmentCallers,
+			"readAdminCatalog":     {"portal"},
+			"readFeeBudgetPolicy":  {"portal"},
+			"putFeeBudgetPolicy":   {"portal"},
 		},
 	}, handlers)
 	if err != nil {

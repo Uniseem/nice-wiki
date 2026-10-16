@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 56 个：手写 36、UI 3、生成 5、配置 10、迁移 2。函数 96 个：约束 37，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 57 个：手写 37、UI 3、生成 5、配置 10、迁移 2。函数 107 个：约束 37，参考 70。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -27,7 +27,7 @@
 | `modules/model-gateway/internal/concurrency/lease.go` | 手写 | 限制供应方并发所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireProviderSlot`（参考）、`model-gateway.ReleaseProviderSlot`（参考） |
 | `modules/model-gateway/internal/events/outbox.go` | 手写 | 原子记录业务事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.EnqueueOutbox`（参考）、`model-gateway.PublishOutbox` |
 | `modules/model-gateway/internal/runtime/recovery.go` | 手写 | 恢复崩溃中的调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RecoverLeases`（参考） |
-| `modules/model-gateway/internal/admin/read.go` | 手写 | 管理端查询费用账本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.GetLedger`、`model-gateway.GetPriceBook`、`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.ReadAdminCatalog` |
+| `modules/model-gateway/internal/admin/read.go` | 手写 | 真实安全目录读取与费用策略；账本/价格及space/最近探测分支按台账未完成。 | `model-gateway.GetLedger`、`model-gateway.GetPriceBook`、`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.ReadAdminCatalog`、`model-gateway.requireCatalogReader`（参考）、`model-gateway.beginAdminSnapshot`（参考）、`model-gateway.readCatalogModels`（参考）、`model-gateway.readCatalogProfiles`（参考）、`model-gateway.readCatalogProviders`（参考）、`model-gateway.readCatalogAssignments`（参考）、`model-gateway.requireFeePolicyActor`（参考）、`model-gateway.readFeePolicy`（参考）、`model-gateway.readFeePolicyReceipt`（参考）、`model-gateway.adminStorageError`（参考）、`model-gateway.NewAdminHandlers`（参考） |
 | `modules/model-gateway/internal/security/redact.go` | 手写 | 生成最小运行日志所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RedactLog`（参考） |
 | `modules/model-gateway/internal/admin/usage.go` | 手写 | 跨服务读取权威费用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QueryUsage` |
 | `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireBarrier`、`model-gateway.ReleaseBarrier`、`model-gateway.ExportSnapshot`、`model-gateway.StageSnapshot`、`model-gateway.DiscardSnapshot` |
@@ -62,3 +62,4 @@
 | `modules/model-gateway/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/model-gateway/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/model-gateway/migrations/002_task_availability.sql` | 迁移 | 只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。 | 无 |
+| `modules/model-gateway/migrations/003_fee_budget_policy.sql` | 手写 | 只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。 | 无 |

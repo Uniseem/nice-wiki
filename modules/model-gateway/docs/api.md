@@ -20,8 +20,8 @@
 | GET `/v1/admin/ledger` | `getLedger` | `model-gateway.GetLedger` | `model.manage` | `—` → 200 `GetLedgerResult` | 管理端查询费用账本 | `HTTP 403`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/admin/prices/{modelId}` | `getPriceBook` | `model-gateway.GetPriceBook` | `model.manage` | `—` → 200 `GetPriceBookResult` | 读取历史固定价目 | `HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/usage` | `queryUsage` | `model-gateway.QueryUsage` | `service` | `—` → 200 `QueryUsageResult` | 跨服务读取权威费用状态 | `HTTP 403`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| GET `/v1/models` | `readModels` | `model-gateway.ReadModels` | `service` | `—` → 200 `ReadModelsResult` | 读取模型能力声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| GET `/v1/profiles` | `readProfiles` | `model-gateway.ReadProfiles` | `service` | `—` → 200 `ReadProfilesResult` | 读取档位声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| GET `/v1/models` | `readModels` | `model-gateway.ReadModels` | `service` | `—` → 200 `ReadModelsResult` | 读取模型能力声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
+| GET `/v1/profiles` | `readProfiles` | `model-gateway.ReadProfiles` | `service` | `—` → 200 `ReadProfilesResult` | 读取档位声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
 | POST `/v1/barriers` | `acquireBarrier` | `model-gateway.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得本地维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
 | POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `model-gateway.ReleaseBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 释放已授权维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
 | POST `/v1/snapshots:export` | `exportSnapshot` | `model-gateway.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出安全watermark快照 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
@@ -30,13 +30,13 @@
 | POST `/v1/catalog:refresh` | `refreshModelCatalog` | `model-gateway.RefreshModelCatalog` | `superadmin` | `RefreshModelCatalogInput` → 200 `RefreshModelCatalogResult` | 刷新公开模型目录 | `HTTP 503`、`HTTP 422`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/providers/{providerId}:probe` | `createConnectionProbe` | `model-gateway.CreateConnectionProbe` | `superadmin` | `CreateConnectionProbeInput` → 202 `CreateConnectionProbeResult` | 显式测试连接 | `HTTP 403`、`HTTP 503`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/cost-quotes` | `quoteCost` | `model-gateway.QuoteCost` | `service` | `QuoteCostInput` → 200 `QuoteCostResult` | 计算可保守预留的最大费用 | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| GET `/v1/budget-policy` | `readFeeBudgetPolicy` | `model-gateway.ReadFeeBudgetPolicy` | `guard.manage` | `—` → 200 `ReadFeeBudgetPolicyResult` | 读取费用限额配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| PUT `/v1/budget-policy` | `putFeeBudgetPolicy` | `model-gateway.PutFeeBudgetPolicy` | `guard.manage` | `PutFeeBudgetPolicyInput` → 200 `PutFeeBudgetPolicyResult` | 维护old费用开关与会话小时、网络5倍配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| GET `/v1/budget-policy` | `readFeeBudgetPolicy` | `model-gateway.ReadFeeBudgetPolicy` | `guard.manage` | `—` → 200 `ReadFeeBudgetPolicyResult` | 读取费用限额配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 429`、`HTTP 503` |
+| PUT `/v1/budget-policy` | `putFeeBudgetPolicy` | `model-gateway.PutFeeBudgetPolicy` | `guard.manage` | `PutFeeBudgetPolicyInput` → 200 `PutFeeBudgetPolicyResult` | 维护old费用开关与会话小时、网络5倍配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 429`、`HTTP 503` |
 | GET `/healthz` | `health` | `model-gateway.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `model-gateway.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `model-gateway.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `model-gateway.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| GET `/v1/admin/catalog` | `readAdminCatalog` | `model-gateway.ReadAdminCatalog` | `model.manage` | `—` → 200 `ReadAdminCatalogResult` | 读取渠道、模型、档位与任务分配 | `FORBIDDEN` |
+| GET `/v1/admin/catalog` | `readAdminCatalog` | `model-gateway.ReadAdminCatalog` | `model.manage` | `—` → 200 `ReadAdminCatalogResult` | 读取渠道、模型、档位与任务分配 | `FORBIDDEN`、`HTTP 400`、`HTTP 401`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 500`、`HTTP 503`、`HTTP 504` |
 | POST `/v1/task-availability:read` | `readTaskAvailability` | `model-gateway.ReadTaskAvailability` | `service` | `ReadTaskAvailabilityInput` → 200 `ReadTaskAvailabilityResult` | 免费读取QA任务配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 500`、`HTTP 504` |
 <!-- openapi:end -->
 
@@ -65,3 +65,9 @@ putProfile仅portal携当前superadmin委托；统一入口严格schema及即时
 putCredential/rotateCredential仅portal当前superadmin委托；HTTP核providerId路径/正文和非空幂等头/正文一致，响应no-store。Put返回201及新版本/掩码指纹，Rotate返回200及新/旧版本；secret超过8个Unicode字符才显示末4位，其余只掩码及HMAC摘要。expectedVersion指凭据当前版本；Rotate至少1，成功结果版本必须仍在公共整数范围内。
 
 同代同HMAC的7天原回执先返回；新操作才核屏障及真实provider双版本CAS。未配主密钥/存储未知失败关闭，缺供应方NOT_FOUND，凭据历史/active材料损坏INTEGRITY_ERROR，不探测供应方或调用模型。Rotate版本切换已写，最后引用释放销毁尚未完成，不构成完整生命周期验收。
+
+## 管理读取与费用策略入口
+
+readProfiles/readModels允许根任务目录owner纯服务，portal管理员通过映射即时model.manage。profiles纯服务只读可信op.costClass，未知费用类拒绝；管理员全量。目录固定同代SQL快照、稳定ID排序，不静默截断响应上限。ReadAdminCatalog使用ProviderSummary四目录真实投影，最近probe权威生产者与投影仍未交付；ReadModels完整space分支亦未齐，两个整函数保持partial。
+
+readFeeBudgetPolicy/putFeeBudgetPolicy仅portal当前guard.manage管理员，全部no-store。Put核非空Idempotency-Key与正文一致；首次expectedVersion0或已配置dailyQaLimit变化另当前superadmin，普通账号保留日额度仅改小时设置。无policy返回NOT_FOUND，不合成默认美元。公共边界当前guard.manage授权先于所有原回放。
