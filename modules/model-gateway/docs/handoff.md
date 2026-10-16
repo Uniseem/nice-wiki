@@ -1,3 +1,17 @@
+# 持续目标第二轮：管理读取与费用策略已交付
+
+更新：2026-10-16。分支codex/model-goal-r2，基线471c036082e082763d90e1080b3489d4e4531380，独占本域。源码提交14c5d80cb05d28f345c0db84916deb75dd92ec3e，根VPS生成/编译/结构检查与交叉审读通过；本轮14项完整函数verified，ReadModels和ReadAdminCatalog仍in_progress，admin/read.go整体partial，BuildApplication仍blocked。业务验收与部署未开始。
+
+- 新增既有登记internal/admin/read.go及获根批准003_fee_budget_policy.sql；ReadProfiles在真实同代快照按根任务owner/可信op.costClass过滤，portal当前model.manage可全量。ReadModels只完成声明读取，空间身份/归一化历史缺口未修；ReadAdminCatalog四目录同快照与安全供应方投影已写，最近probe生产者/投影未齐，不虚构结果。
+- ProviderSummary只查非秘密配置、active凭据版本/材料存在及长度，不SELECT/返回附加头secret引用、nonce/密文正文；credentialConfigured不表示可解密、在线或已经探测，异代或坏长度失败关闭。超响应上限报错，不静默截断。
+- policy无行NOT_FOUND；old保留设计只确认网络默认5倍和daily0不限，未确认会话美元数字，部署资料无策略种子；迁移不插金额默认。Put首次expectedVersion0仅当前superadmin显式完整创建；普通guard.manage仅保留当前日额度调整小时设置，daily变化另即时superadmin。
+- 当前guard.manage公共授权先于原回放；7天同caller/epoch规范输入完整原结果先于当前policy/CAS/屏障返回。新写预读事务结束后无锁权限RPC，再开短事务重核回执、所有非released屏障、归属/CAS和授权条件；策略、完整回执及本地脱敏审计同事务，不清held/ledger。整体跨域审计投影仍未实现，未宣称通知analytics。
+- 五项真实HTTP映射已装配，no-store及幂等头一致；复用公共NormalizeIOError，未复制通用错误机制。公共前置源码7a4f55b、记录ec1732e；完整服务仍因其他handler、权威epoch初始化、恢复及后台缺失拒绝启动。
+- 2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。
+- 未本机Go/gofmt/gen/编译/check，未新增测试/mock/fixture/样例/临时业务程序，未执行真实接口/模型、服务或部署。本域不push，交付后冻结。实际暂存、提交消息、作者/提交者和GPT-6署名已静态隐私扫描；保持既有GitHub代用身份。
+
+本轮下一项：由集成会话先修订ReadModels所需公共空间身份/归一化合同及既存space迁移决策，再交本域补声明中的space；先读本域M07-R06、Model/EmbeddingSpace与公共schema、现有model.go和本交接。完成条件是来源明确的归一化规则、版本迁移和跨域space比较边界一致，不以默认规则补齐旧空间。最近probe和费用执行另按后续包交付，本次不扩写或部署。
+
 # AI 接入会话交接
 
 ## 持续目标第一轮：免费真实路由解析（已交付）
