@@ -1321,32 +1321,22 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "profileId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "档位ID"
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "唯一目录ID；必须已有同代赋值且属于可信callerService"
         },
         "costClass": {
           "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
-          "description": "可信继承费用类"
-        },
-        "capability": {
-          "type": "string",
-          "enum": [
-            "chat",
-            "vision",
-            "embedding",
-            "rerank",
-            "translation"
-          ],
-          "description": "能力"
+          "description": "只核对可信op.costClass，不覆盖"
         }
       },
       "required": [
-        "profileId",
-        "costClass",
-        "capability"
+        "taskId",
+        "costClass"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "内部免费配置解析输入；无新增HTTP入口，能力和档位只来自目录。"
     },
     "ResolveProfileResult": {
       "type": "object",
@@ -1354,64 +1344,93 @@
       "properties": {
         "profile": {
           "$ref": "#/$defs/Profile",
-          "description": "固定档位快照"
+          "description": "真实生效档位原始快照，费用字段仅配置声明，不作额度准入"
+        },
+        "assignment": {
+          "$ref": "#/$defs/TaskAssignment",
+          "description": "同快照真实任务赋值及版本"
+        },
+        "orderedModelIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 256,
+          "uniqueItems": true,
+          "description": "先覆盖再回退的有序唯一引用，不改原始profile"
+        },
+        "requiredCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 16,
+          "description": "有效目录能力；无override的rerank回退转fast/chat"
+        },
+        "fallback": {
+          "type": "boolean",
+          "description": "是否采用真实fast档位承载回退"
         }
       },
       "required": [
-        "profile"
+        "profile",
+        "assignment",
+        "orderedModelIds",
+        "requiredCapabilities",
+        "fallback"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "免费配置快照，不过滤供应方或解密凭据。"
     },
     "ResolveRouteInput": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "profile": {
-          "$ref": "#/$defs/Profile",
-          "description": "档位快照"
-        },
-        "capability": {
+        "taskId": {
           "type": "string",
-          "enum": [
-            "chat",
-            "vision",
-            "embedding",
-            "rerank",
-            "translation"
-          ],
-          "description": "目标能力"
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "唯一目录ID；必须已有同代赋值且属于可信callerService"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
+          "description": "只核对可信op.costClass，不覆盖"
         }
       },
       "required": [
-        "profile",
-        "capability"
+        "taskId",
+        "costClass"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "内部免费候选元数据解析输入；不代表费用或派发准入。"
     },
     "ResolveRouteResult": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "models": {
+        "resolved": {
+          "$ref": "#/$defs/ResolveProfileResult",
+          "description": "与候选同一SQL快照的解析结果"
+        },
+        "candidates": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Model"
+            "$ref": "#/$defs/RouteCandidate"
           },
-          "maxItems": 256,
-          "description": "有序候选"
+          "minItems": 1,
+          "maxItems": 16,
+          "description": "先完整过滤再保序取16项"
         },
         "routeVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
-          "description": "固定路线版本"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "epoch、解析配置和最终候选版本按固定JSON字段顺序SHA256"
         }
       },
       "required": [
-        "models",
+        "resolved",
+        "candidates",
         "routeVersion"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "本地元数据eligible候选，不表示在线、费用或派发准入。"
     },
     "QuoteCostInput": {
       "type": "object",
@@ -4355,6 +4374,34 @@
       "x-internal": true,
       "x-go-type": "map[string]http.Handler",
       "description": "真实凭据写入映射，须交公共完整工厂"
+    },
+    "RouteCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/Model",
+          "description": "同代启用模型安全元数据"
+        },
+        "providerVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "同快照供应方配置版本"
+        },
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "active凭据版本，仅元数据引用"
+        }
+      },
+      "required": [
+        "model",
+        "providerVersion",
+        "credentialVersion"
+      ],
+      "description": "免费路线候选；未获取持久派发引用，不表示凭据可解密。"
     }
   }
 }

@@ -412,66 +412,8 @@ func readAvailabilityTask(ctx context.Context, snapshot *availabilitySnapshot, t
 }
 
 func readAvailabilityCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string) (bool, error) {
-	var enabled bool
-	var capabilitiesJSON, headerNamesJSON, headerRefsJSON []byte
-	var modelEpoch, providerID string
-	var providerEnabled sql.NullBool
-	var credentialVersion sql.NullInt64
-	var providerEpoch sql.NullString
-	err := snapshot.tx.QueryRowContext(ctx, `SELECT m.enabled, m.capabilities_json, m.data_epoch, m.provider_id,
-		p.enabled, p.credential_version, p.data_epoch, p.extra_header_names_json, p.extra_header_secret_refs_json
-		FROM models m LEFT JOIN providers p ON p.provider_id = m.provider_id WHERE m.model_id = ?`, modelID).
-		Scan(&enabled, &capabilitiesJSON, &modelEpoch, &providerID, &providerEnabled, &credentialVersion, &providerEpoch, &headerNamesJSON, &headerRefsJSON)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	if err != nil {
-		return false, availabilityReadError(err)
-	}
-	if !providerEnabled.Valid || !credentialVersion.Valid || !providerEpoch.Valid {
-		return false, platform.NewError(platform.CodeIntegrityError, false, "模型供应方引用损坏")
-	}
-	if modelEpoch != snapshot.epoch || providerEpoch.String != snapshot.epoch {
-		return false, platform.NewError(platform.CodeVersionMismatch, false, "模型或供应方代次已变化")
-	}
-	var capabilities, names, refs []string
-	if json.Unmarshal(capabilitiesJSON, &capabilities) != nil || capabilities == nil || len(capabilities) > 256 ||
-		json.Unmarshal(headerNamesJSON, &names) != nil || names == nil || len(names) > 256 ||
-		json.Unmarshal(headerRefsJSON, &refs) != nil || refs == nil || len(names) != len(refs) {
-		return false, platform.NewError(platform.CodeIntegrityError, false, "模型能力或附加头引用损坏")
-	}
-	for i, name := range names {
-		if name == "" || refs[i] == "" {
-			return false, platform.NewError(platform.CodeIntegrityError, false, "供应方附加头引用不完整")
-		}
-	}
-	chat := false
-	for _, capability := range capabilities {
-		if capability == "chat" {
-			chat = true
-		}
-	}
-	if !enabled || !chat || !providerEnabled.Bool || credentialVersion.Int64 == 0 {
-		return false, nil
-	}
-	var credentialEpoch string
-	var nonceBytes, ciphertextBytes int64
-	err = snapshot.tx.QueryRowContext(ctx, `SELECT data_epoch, length(nonce), length(ciphertext) FROM credentials
-		WHERE provider_id = ? AND credential_version = ?`, providerID, credentialVersion.Int64).
-		Scan(&credentialEpoch, &nonceBytes, &ciphertextBytes)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	if err != nil {
-		return false, availabilityReadError(err)
-	}
-	if credentialEpoch != snapshot.epoch {
-		return false, platform.NewError(platform.CodeVersionMismatch, false, "凭据引用代次已变化")
-	}
-	if nonceBytes != 12 || ciphertextBytes <= 16 {
-		return false, platform.NewError(platform.CodeIntegrityError, false, "凭据引用材料不完整")
-	}
-	return true, nil
+	_, eligible, err := readRouteCandidate(ctx, snapshot, modelID, []string{"chat"})
+	return eligible, err
 }
 
 func availabilityReadError(err error) error {

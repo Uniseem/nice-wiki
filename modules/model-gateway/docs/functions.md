@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 92 个函数：约束 37 个，参考 55 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 96 个函数：约束 37 个，参考 59 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1128,7 +1128,7 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 4. orderedModelIds保留管理员给定顺序及公开schema唯一性，最多256项，空数组合法用于清配置。按根唯一目录生成AITierCapabilities逐模型核同代、enabled及全部直接能力；缺模型或停用/能力不足VALIDATION，未知查询与持久损坏失败关闭。保存不要求价格、供应方启用或凭据，不探测或调用模型。
 5. INSERT首次创建或UPDATE带profileId/expectedVersion/dataEpoch条件，RowsAffected必须1；同事务写profile.changed/v1最小profileId/version/dataEpoch及根目录中旧/新tier受影响taskIds；任一旧/新tier为fast时保守包含defaultTier为vision/rerank的回退任务，即使其当前有独立配置（去重按taskId排序），不广播候选、费用或秘密。
 6. 写入完整PutProfileResult原始回执并提交；仅成功新配置事务可替换过期回执，失败回滚；Commit未知不自动重试。只影响后续新调用，不自动重算嵌入或已有付费结果。
-7. 视觉未配时使用fast中支持vision的候选、rerank未配时由fast代替，属于ResolveProfile/ResolveRoute解析规则，不在保存时填充或新增能力硬门槛。执行路由先过滤本地eligible再取至多16个候选。
+7. 视觉未配时使用fast中支持vision的候选、无override的rerank未配时由fast/chat代替。ResolveProfile先应用override再判断空列表回退，不在保存时填充配置。执行SelectCandidates先过滤完整本地eligible列表再取至多16个候选。
 
 **错误**
 
@@ -1156,10 +1156,10 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 
 - 级别：参考
 - 文件：`modules/model-gateway/internal/catalog/profile.go`
-- 作用：解析服务授权档位
+- 作用：按唯一任务目录与可信费用类别解析真实档位配置快照
 
 ```go
-func ResolveProfile(ctx context.Context, op OperationContext, input ResolveProfileInput) (ResolveProfileResult, error)
+func ResolveProfile(ctx context.Context, op OperationContext, snapshot *availabilitySnapshot, input ResolveProfileInput) (ResolveProfileResult, error)
 ```
 
 **输入**
@@ -1168,6 +1168,7 @@ func ResolveProfile(ctx context.Context, op OperationContext, input ResolveProfi
 |---|---|---|---|
 | `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
 | `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `snapshot` | `availabilitySnapshot` | SelectCandidates持有的同代SQL事务 | 只在本域同快照链路使用，不另开事务、不提交 |
 | `input` | `ResolveProfileInput` | 封闭业务输入；逐字段见types $defs/ResolveProfileInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
 
 **输出**
@@ -1179,29 +1180,30 @@ func ResolveProfile(ctx context.Context, op OperationContext, input ResolveProfi
 
 **步骤**
 
-1. 读取profile快照
-2. 与ctx.costClass逐字比较
-3. 校验调用服务允许能力
-4. 视觉或rerank档位行缺失、或候选数组为空时，其解析分别回退到fast中支持vision的候选、或fast模型代替重排；空数组不等于删除该配置行。此读取解析尚待实现，不改写已保存档位或触发付费重算。
-5. 返回版本
-6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. taskId须根生成AITaskCatalog登记且owner等于可信op.callerService；input.costClass必须逐字等于op.costClass，不接受自由tier/能力。
+2. 使用SelectCandidates已开启的严格非空当前epoch SQL快照，必须存在同代task_assignments且tier等于目录defaultTier；缺赋值NOT_FOUND，旧代VERSION_MISMATCH，损坏INTEGRITY_ERROR。
+3. 读取同costClass/defaultTier真实profiles；先应用override替换首项或在空列表成为唯一候选并保序去重，不把被替换主模型加回。
+4. 仅vision/rerank在目标槽缺失或覆盖后仍空时读取同costClass真实fast槽；缺fast NOT_FOUND，不合成档位/version。目标槽缺失但有override时由真实fast承载，vision仍需vision，rerank有override仍需rerank、仅无override空档才fast/chat代替。其他档不回退。
+5. 返回原profile、真实assignment版本、派生有序引用、目录有效能力及fallback；纯读取不修改配置，不过滤供应方或读取密文/主密钥/价格，不作费用准入。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `NOT_FOUND` / HTTP 404：（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`
+- 授权：permission：service；rule：公共入口建立可信身份；本函数只核任务owner与costClass，允许owner服务继承已认证主体，不重复身份/schema/deadline。
+- 并发：一次本域只读SQL事务，所有赋值与档位同代；结束回滚释放，不持事务做网络IO。
+- 幂等：纯读取可重复，不写回执；快照版本按实际持久行返回。
+- 依赖：`model-gateway.readRouteProfile`、`model-gateway.applyTaskOverride`、`model-gateway.availabilityReadError`
+- 其他依赖说明：根contracts/ai-tasks.json生成AITaskCatalog/AITierCapabilities；无HTTP变更
 
 ## model-gateway.readProfileReceipt
 
@@ -1332,6 +1334,205 @@ func NewProfileHandlers() map[string]http.Handler
 - 幂等：HTTP仅绑定；写入由真实函数持久回执与CAS保证。
 - 依赖：`model-gateway.PutProfile`
 
+## model-gateway.readRouteProfile
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：读取当前费用类别和档位的真实配置行
+
+```go
+func readRouteProfile(ctx context.Context, snapshot *availabilitySnapshot, costClass string, tier string) (Profile, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 已通过公共入口；仅执行本函数登记规则 |
+| `snapshot` | `availabilitySnapshot` | 当前同代事务 | 已通过公共入口；仅执行本函数登记规则 |
+| `costClass` | `string` | 可信费用类别 | 已通过公共入口；仅执行本函数登记规则 |
+| `tier` | `string` | 目录或合法回退档位 | 已通过公共入口；仅执行本函数登记规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `profile` | `Profile` | 真实原始配置 | 失败结果不可用；不输出密文/秘密/正文 |
+| `found` | `bool` | 是否存在 | 失败结果不可用；不输出密文/秘密/正文 |
+| `err` | `error` | 公共错误 | 失败结果不可用；不输出密文/秘密/正文 |
+
+**步骤**
+
+1. 读取当前epoch/costClass/tier唯一行；缺行返回found=false，不创建默认记录。
+2. 校验持久版本、费用整数范围和有序唯一引用；费用数值仅返回配置声明，绝不查询价目/余额/使用量或判断收费准入。
+
+**错误**
+
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅已认证任务owner内部链路；身份/schema/deadline由公共边界建立，不重复校验。
+- 并发：同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。
+- 幂等：纯读取/计算可重复，无回执或费用写入。
+- 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.applyTaskOverride
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：纯函数应用主模型覆盖并保序去重
+
+```go
+func applyTaskOverride(ordered []string, override *string) []string
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ordered` | `[]string` | 持久合法有序引用 | 已通过公共入口；仅执行本函数登记规则 |
+| `override` | `*string` | 已核合法引用或nil | 已通过公共入口；仅执行本函数登记规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `modelIds` | `[]string` | 非null有序唯一候选 | 失败结果不可用；不输出密文/秘密/正文 |
+
+**步骤**
+
+1. 复制有序引用，override替换首项或在空数组成为唯一候选。
+2. 保留原第二项起备用并去重，不修改原始profile、不加入原首项。
+
+**错误**
+
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅已认证任务owner内部链路；身份/schema/deadline由公共边界建立，不重复校验。
+- 并发：同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。
+- 幂等：纯读取/计算可重复，无回执或费用写入。
+- 依赖：无
+
+## model-gateway.SelectCandidates
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：在同一SQL快照解析真实执行候选元数据
+
+```go
+func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRouteInput) (ResolveRouteResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 已通过公共入口；仅执行本函数登记规则 |
+| `op` | `OperationContext` | 可信范围 | 已通过公共入口；仅执行本函数登记规则 |
+| `input` | `ResolveRouteInput` | 任务与费用类别 | 已通过公共入口；仅执行本函数登记规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ResolveRouteResult` | 真实有序候选元数据 | 失败结果不可用；不输出密文/秘密/正文 |
+| `err` | `error` | 公共错误 | 失败结果不可用；不输出密文/秘密/正文 |
+
+**步骤**
+
+1. CurrentStore与beginAvailabilitySnapshot建立一次严格当前epoch SQL快照，ResolveProfile在该事务内解析真实赋值/档位、先覆盖再回退；不先ResolveProfile后另开快照。
+2. 遍历完整至多256项派生配置，readRouteCandidate核同代模型/供应方/当前凭据引用，仅过滤缺模型、停用、有效能力不符或凭据未配；未知SQL/损坏/异代失败关闭。
+3. embedding全部eligible候选须同一现有embeddingSpaceID，发现异空间INTEGRITY_ERROR，不能混用或静默跳过；先核完整候选再取16项。
+4. 保序返回至多16项模型/供应方版本/凭据版本；无候选DEPENDENCY_UNAVAILABLE。routeVersion为epoch、真实解析配置与最终候选的固定JSON字段顺序SHA256。
+5. 不解密、不读主密钥/价目/余额、不调用供应方、不获取派发引用；费用配置仅声明，执行、费用预留与最后引用释放仍由未来执行链保证。
+
+**错误**
+
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅已认证任务owner内部链路；身份/schema/deadline由公共边界建立，不重复校验。
+- 并发：同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。
+- 幂等：纯读取/计算可重复，无回执或费用写入。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.ResolveProfile`、`model-gateway.readRouteCandidate`
+- 其他依赖说明：复用本域现有embeddingSpaceID与hashJSON纯摘要工具，不新增算法副本。
+
+## model-gateway.readRouteCandidate
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：读取安全候选元数据与当前凭据引用完整性
+
+```go
+func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) (RouteCandidate, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 已通过公共入口；仅执行本函数登记规则 |
+| `snapshot` | `availabilitySnapshot` | 当前同代事务 | 已通过公共入口；仅执行本函数登记规则 |
+| `modelID` | `string` | 合法模型引用 | 已通过公共入口；仅执行本函数登记规则 |
+| `requiredCapabilities` | `[]string` | 有效目录能力 | 已通过公共入口；仅执行本函数登记规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `candidate` | `RouteCandidate` | 安全模型与版本引用 | 失败结果不可用；不输出密文/秘密/正文 |
+| `eligible` | `bool` | 本地元数据满足 | 失败结果不可用；不输出密文/秘密/正文 |
+| `err` | `error` | 公共错误 | 失败结果不可用；不输出密文/秘密/正文 |
+
+**步骤**
+
+1. 读取完整模型安全元数据及供应方enabled/version/credentialVersion/epoch和附加头引用元数据，不SELECT供应方URL或密文正文。
+2. 缺模型、停用、有效能力不符、active凭据版本0或材料缺行返回eligible=false；模型/供应方/凭据异代VERSION_MISMATCH、缺供应方或损坏字段/长度INTEGRITY_ERROR、SQL未知失败关闭。
+3. 凭据只查data_epoch和nonce/ciphertext长度，12字节nonce与大于16字节密文仅表示材料具备；不表示能解密、供应方在线或派发引用已持久获取。
+
+**错误**
+
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅已认证任务owner内部链路；身份/schema/deadline由公共边界建立，不重复校验。
+- 并发：同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。
+- 幂等：纯读取/计算可重复，无回执或费用写入。
+- 依赖：`model-gateway.availabilityReadError`
+
 ## model-gateway.ResolveRoute
 
 - 级别：参考
@@ -1359,28 +1560,26 @@ func ResolveRoute(ctx context.Context, op OperationContext, input ResolveRouteIn
 
 **步骤**
 
-1. 固定档位/任务覆盖版本：覆盖模型替换orderedModelIds首项，保留第二项起有序备用并去重；空列表覆盖模型可成唯一候选，不把被替换主模型另加备用
-2. 按完整合法有序配置先剔除模型停用、目标能力不匹配（QA链为chat）、供应方停用或当前凭据引用未配置项；保留可用候选原顺序，再最多取16个，不在过滤前截断
-3. embedding必须同一公共space，空间变化新索引而非混用
-4. 返回过滤后至多16个有序候选，不改变备用顺序或新增已被覆盖的原主模型；已派发attempt各自独立计费
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 在同一次SelectCandidates只读SQL快照内解析任务/档位及全部候选，返回实际有序至多16项；不先ResolveProfile后另开快照。
+2. 只读取本地配置/安全元数据；不创建invocation、费用预留、派发引用或供应方调用。
 
 **错误**
 
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION`：未知任务目录ID（不可重试）
+- `FORBIDDEN`：任务非调用服务owner或costClass不一致（不可重试）
+- `NOT_FOUND`：任务赋值或所需真实档位缺失（不可重试）
+- `VERSION_MISMATCH`：本地域或持久引用异代（不可重试）
+- `INTEGRITY_ERROR`：持久元数据损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域SQL或依赖未装配、无eligible候选（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：安全元数据摘要编码失败（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 授权：permission：service；rule：公共入口建立可信身份；本函数只核任务owner与costClass，允许owner服务继承已认证主体，不重复身份/schema/deadline。
+- 并发：一次本域只读SQL事务，所有赋值与档位同代；结束回滚释放，不持事务做网络IO。
+- 幂等：纯读取可重复，不写回执；快照版本按实际持久行返回。
+- 依赖：`model-gateway.SelectCandidates`
 
 ## model-gateway.QuoteCost
 
@@ -1664,7 +1863,7 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 
 **步骤**
 
-1. CreateInvocation持久accepted后在本进程以调用租约启动；ResolveProfile与ResolveRoute固定候选模型，EstimateTokens计算本次预留上限
+1. CreateInvocation持久accepted后在本进程以调用租约启动；一次ResolveRoute调用SelectCandidates和同快照ResolveProfile，固定真实task assignment/profile与候选版本，EstimateTokens计算本次预留上限；不在执行前另开配置快照。
 2. 每个attempt先ReserveCost（额度不足写BUDGET_EXCEEDED终态且不派发），再AcquireProviderSlot与DispatchInvocation发送；embedding结果先ValidateEmbeddingSpace
 3. 流式delta经AppendStreamEvent持久并广播；输出超出预估时ExtendReservation，不足则在安全点停止并按已产生用量结算
 4. 成功：RecordUsage→SettleInvocation→ReleaseProviderSlot，EnqueueOutbox写invocation.settled；运行日志只经RedactLog输出
@@ -1679,7 +1878,7 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 - 授权：permission：service；rule：仅由CreateInvocation在进程内启动
 - 并发：每调用一个执行协程，持调用租约；崩溃后由RecoverLeases收敛
 - 幂等：每attempt唯一；已派发attempt不重放
-- 依赖：`model-gateway.ResolveProfile`、`model-gateway.ResolveRoute`、`model-gateway.EstimateTokens`、`model-gateway.ReserveCost`、`model-gateway.ExtendReservation`、`model-gateway.AcquireProviderSlot`、`model-gateway.DispatchInvocation`、`model-gateway.ValidateEmbeddingSpace`、`model-gateway.AppendStreamEvent`、`model-gateway.RecordUsage`、`model-gateway.SettleInvocation`、`model-gateway.ReleaseProviderSlot`、`model-gateway.ClassifyFailure`、`model-gateway.CreateFallbackAttempt`、`model-gateway.MarkUnknownCharge`、`model-gateway.EnqueueOutbox`、`model-gateway.RedactLog`
+- 依赖：`model-gateway.ResolveRoute`、`model-gateway.EstimateTokens`、`model-gateway.ReserveCost`、`model-gateway.ExtendReservation`、`model-gateway.AcquireProviderSlot`、`model-gateway.DispatchInvocation`、`model-gateway.ValidateEmbeddingSpace`、`model-gateway.AppendStreamEvent`、`model-gateway.RecordUsage`、`model-gateway.SettleInvocation`、`model-gateway.ReleaseProviderSlot`、`model-gateway.ClassifyFailure`、`model-gateway.CreateFallbackAttempt`、`model-gateway.MarkUnknownCharge`、`model-gateway.EnqueueOutbox`、`model-gateway.RedactLog`
 
 ## model-gateway.BuildProviderRequest
 
@@ -3576,11 +3775,7 @@ func readAvailabilityCandidate(ctx context.Context, snapshot *availabilitySnapsh
 
 **步骤**
 
-1. 模型缺失/停用或无chat能力为false，所读模型/provider异代失败；坏能力JSON为422
-2. provider引用缺失为完整性错误；停用或credentialVersion=0为false
-3. 只核附加头名/secret refs数组结构及等长，不新建secret refs存储模型
-4. credential按provider/version读取epoch和nonce/ciphertext长度，缺行false，异代409，长度矛盾422；不取密文/主密钥/URL
-5. 不查价格、预算、余额，不做任何HTTP探测
+1. 复用readRouteCandidate在原QA免费快照内仅要求chat安全元数据，投影eligible布尔；不返回模型、供应方版本或凭据引用，不增加执行/费用权限。
 
 **错误**
 
@@ -3594,7 +3789,7 @@ func readAvailabilityCandidate(ctx context.Context, snapshot *availabilitySnapsh
 - 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
 - 并发：一次短SQL快照；不持本域锁执行网络IO
 - 幂等：只读每次读取当前快照，不创建费用或操作回执
-- 依赖：`model-gateway.availabilityReadError`
+- 依赖：`model-gateway.readRouteCandidate`
 
 ## model-gateway.availabilityReadError
 
