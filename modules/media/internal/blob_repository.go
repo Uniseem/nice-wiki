@@ -68,26 +68,29 @@ const (
 // 数据库单连接串行写入；mu 串行化同进程的提交，使“写文件→元数据事务”
 // 不与另一提交交错。所有路径都由受约束的 ID/hash 生成。
 type localBlobStore struct {
-	root                   string
-	db                     *sql.DB
-	mu                     sync.Mutex
-	openedEpoch            Identifier
-	window                 platform.WriteWindowConfig
-	validateAsset          func(json.RawMessage) error
-	validateUpload         func(json.RawMessage) error
-	validatePin            func(json.RawMessage) error
-	validateReferenceInput func(json.RawMessage) error
-	validateDecision       func(json.RawMessage) error
-	validateContentPage    func(json.RawMessage) error
-	validateConfigPage     func(json.RawMessage) error
-	validateSnapshot       func(json.RawMessage) error
-	validateCleanupPlan    func(json.RawMessage) error
-	contentDecisions       *gen.ContentClient
-	configDecisions        *gen.SiteConfigClient
-	referenceLocksMu       sync.Mutex
-	referenceLocks         map[string]*referenceLock
-	chunkRecovered         bool
-	blobRecovered          bool
+	root                      string
+	db                        *sql.DB
+	mu                        sync.Mutex
+	openedEpoch               Identifier
+	window                    platform.WriteWindowConfig
+	validateAsset             func(json.RawMessage) error
+	validateUpload            func(json.RawMessage) error
+	validatePin               func(json.RawMessage) error
+	validateReferenceInput    func(json.RawMessage) error
+	validateDecision          func(json.RawMessage) error
+	validateContentPage       func(json.RawMessage) error
+	validateConfigPage        func(json.RawMessage) error
+	validateSnapshot          func(json.RawMessage) error
+	validateCleanupPlan       func(json.RawMessage) error
+	validateCleanupApproval   func(json.RawMessage) error
+	validateCleanupJobReceipt func(json.RawMessage) error
+	cleanupJobs               *gen.JobsClient
+	contentDecisions          *gen.ContentClient
+	configDecisions           *gen.SiteConfigClient
+	referenceLocksMu          sync.Mutex
+	referenceLocks            map[string]*referenceLock
+	chunkRecovered            bool
+	blobRecovered             bool
 }
 
 // activeBlobStore 由本域存储装配在接受业务请求前设置；nil 时所有依赖该
@@ -222,6 +225,16 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		return nil, err
 	}
 	store.validateCleanupPlan, err = apivalidate.NewPayloadValidator(document, "CleanupPlan")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateCleanupApproval, err = apivalidate.NewPayloadValidator(document, "CleanupApproval")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateCleanupJobReceipt, err = apivalidate.NewPayloadValidator(document, "CleanupJobReceipt")
 	if err != nil {
 		_ = db.Close()
 		return nil, err

@@ -636,7 +636,7 @@
         },
         "notBefore": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "迟到保护窗口24h；可取消"
+          "description": "proposed仅展示；人工批准时固定为confirmedAt+24h并传jobs.notBefore，重试和任务未知不重置"
         },
         "state": {
           "type": "string",
@@ -4168,7 +4168,7 @@
     },
     "ConfirmManualCleanupResult": {
       "type": "object",
-      "description": "管理员确认后进入迟到引用保护窗口的结果",
+      "description": "只有jobs真实入队且本地waiting/原任务回执同事务持久后返回首次waiting计划；重试返回原成功快照",
       "additionalProperties": false,
       "properties": {
         "plan": {
@@ -5464,6 +5464,185 @@
       "type": "object",
       "x-internal": true,
       "description": "仅Go内部上传字节读取接口；当前本域私有存储能力，允许nil表示未装配，不序列化、不接受HTTP输入",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "CleanupApprovalMark": {
+      "type": "object",
+      "description": "人工批准当次逐对象精确水位，原扫描不覆盖；int64水位不施加公共Revision上限",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "deletionFence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "逐对象删除fence"
+        },
+        "referenceGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "逐对象引用generation"
+        }
+      },
+      "required": [
+        "assetId",
+        "deletionFence",
+        "referenceGeneration"
+      ]
+    },
+    "CleanupApproval": {
+      "type": "object",
+      "description": "一次人工批准的不可变规范对象；取消后保留证据，读取不等于允许执行删除",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "首版批准对象"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "callerService": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "原可信服务调用方"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "approvedBy": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "明确批准的管理员ID，不含会话/grants/token"
+        },
+        "confirmedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "原批准UTC时刻"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原caller/actor/site/epoch/完整确认输入摘要"
+        },
+        "input": {
+          "$ref": "#/$defs/ConfirmManualCleanupInput",
+          "description": "ConfirmManualCleanupInput"
+        },
+        "plan": {
+          "$ref": "#/$defs/CleanupPlan",
+          "description": "首次confirmed完整计划，notBefore固定为confirmedAt+24h"
+        },
+        "marks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CleanupApprovalMark",
+            "description": "CleanupApprovalMark"
+          },
+          "minItems": 1,
+          "maxItems": 10000,
+          "description": "按assetId与plan.assets同一稳定唯一顺序"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "rootOperationId",
+        "callerService",
+        "siteId",
+        "dataEpoch",
+        "approvedBy",
+        "confirmedAt",
+        "requestHash",
+        "input",
+        "plan",
+        "marks"
+      ]
+    },
+    "ReadCleanupApprovalObjectInput": {
+      "type": "object",
+      "description": "仅Go同域worker内部精确对象读取参数/结果，不是HTTP请求或响应；原UTF8和ObjectRef保留，不授权删除",
+      "additionalProperties": false,
+      "properties": {
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "Identifier"
+        },
+        "version": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "ObjectRef版本，等于首次confirmed修订"
+        },
+        "expectedHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "ObjectRef.sha256"
+        }
+      },
+      "required": [
+        "planId",
+        "version",
+        "expectedHash"
+      ],
+      "x-internal": true
+    },
+    "ReadCleanupApprovalObjectResult": {
+      "type": "object",
+      "description": "仅Go同域worker内部精确对象读取参数/结果，不是HTTP请求或响应；原UTF8和ObjectRef保留，不授权删除",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "ObjectRef"
+        },
+        "utf8": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16777216,
+          "description": "0006中原批准对象的完整规范JSON UTF8"
+        }
+      },
+      "required": [
+        "object",
+        "utf8"
+      ],
+      "x-internal": true
+    },
+    "cleanupApprovalRecord": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域独立批准桥接、固定jobs输入及原AcceptedJob/waiting结果，不序列化到HTTP",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "cleanupJobInput": {
+      "type": "object",
+      "x-internal": true,
+      "description": "按jobs:createJob真实RequestBody唯一合同发送owner/type/inputRef/dedupeKey/notBefore；dataEpoch只由已核原批准绑定的可信op传递，不进入严格HTTP正文",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "cleanupJobReceipt": {
+      "type": "object",
+      "x-internal": true,
+      "description": "通过jobs CreateJobResult唯一schema后的本域解码投影",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "cleanupScan": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域精确不可变asset/fence/完整ReferenceSnapshot扫描材料",
       "additionalProperties": false,
       "properties": {}
     }
