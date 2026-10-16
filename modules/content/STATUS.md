@@ -1,12 +1,13 @@
-# 当前工作包：文档树与资源引用纯规则（2026-10-16，待VPS检查）
+# 当前工作包：文档树与资源引用纯规则（2026-10-16，已交付）
 
 分支codex/content-persistence-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，初始工作区干净，独占modules/content。本轮用户要求三个子代理并行一轮，由根统一集成与VPS检查。
 
-- 已写既有登记的internal/tree_validator.go与internal/reference_extractor.go，共5个登记函数；源码/台账目前in_progress，尚未记implemented或verified。
+- 源码提交f7bb9b8c029f3cc6af996708d28f50492ffb0546：新增既有登记的internal/tree_validator.go与internal/reference_extractor.go，2完整文件/5函数按准确源码SHA记verified。
 - 树规则检查当前完整父索引、重复ID、缺父、环和32层；拟移动拒绝自身/后代，按整棵子树高度核移动后上限，后代ID字典序返回，输入不变。
 - 资源规则按正文前序和固定角色顺序保留所有嵌套资源、画板3文件、上传视频及平台本地cover/poster；稳定sourceKey去重保留不同block，完整引用冲突失败关闭，水位/当前历史分类保留，最多10000项。
 - 原持久化适配切片因本域尚无登记的私有DB schema/迁移文件与启动打开协议而未展开；根同意改做上述既有纯规则。真实准备记录、COMMITTED资格、隔离adapter与BuildApplication/main继续blocked，未猜建表、未放松head/ledger/refs/receipt/outbox同事务。
-- 不改正文schemaVersion、OpenAPI/公共类型或其他域；等待根隔离VPS make docs/gen/build/check与格式回传。未执行本机Go/gofmt/编译/测试，未新增测试/mock/fixture/样例/临时验证程序，未调用真实接口/模型或部署，未push。
+- 根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、两源码gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1185函数/379操作/2269类型）。暂存内容与提交信息静态隐私扫描通过；verified仅表示当前编译与结构检查，不代表业务验收。
+- 不改正文schemaVersion、OpenAPI/公共类型或其他域；未本机Go/gofmt/编译/测试，未新增测试/mock/fixture/样例/临时验证程序，未调用真实接口/模型或部署，未push。本域本轮交付后停止，由根集成，不自行启动后续工作包。
 
 ---
 
