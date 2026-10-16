@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 83 个函数：约束 36 个，参考 47 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 112 个函数：约束 36 个，参考 76 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -127,6 +127,7 @@ func AbortUpload(ctx context.Context, op OperationContext, input AbortUploadInpu
 1. 限定owner，ready不接受自动删
 2. 事务stateaborted与预留释放
 3. 只清该receivingtmp；并发complete谁先commit由CAS决定
+4. 本轮仅receiving可取消，blocked明确拒绝并持续计入存储预留；不沿忽略unlink错误路径释放blocked配额
 
 **错误**
 
@@ -718,9 +719,11 @@ func CompleteUpload(ctx context.Context, op OperationContext, input CompleteUplo
 
 **步骤**
 
-1. receivedBytes==expected，流算sha对照声明，不信任Content-Type
-2. SniffAssetType及ValidateAssetPayload检查类型/视频格式/SVG/scene，失败blocked不ready
-3. CommitAssetBlob fsync/rename内容寻址，再事务ready metadata/ref/配额receipt；文件失败不提交ready
+1. 当前media.upload本人管理会话与opened epoch先核；kind/caller/actor/site/epoch及原CompleteUploadInput规范摘要，operationId异材料CONFLICT
+2. 原完成回执先于新写窗口/revision/expiry读取：来源upload owner/site/创建epoch与hash匹配后，只返回首次Asset快照或首次安全错误；不从当前mutable Asset重建，不要求被同站点去重资源的原creator等于本次上传者
+3. 新操作核公共running写窗口、来源同站点owner/创建epoch、receiving/未到期、精确expectedRevision及receivedBytes==expectedBytes；上传互斥边界内先按SQL已提交chunk核前缀/截尾，再HashUpload核完整SHA/长度
+4. SniffAssetType验证签名/扩展/类别与有界元数据；ValidateAssetPayload核SVG/scene。确定的VALIDATION/UNSUPPORTED_SCHEMA/UNSUPPORTED_CAPABILITY/INTEGRITY_ERROR用新写窗口和revision CAS，同事务记blocked/revision+1及原安全错误；依赖/取消/未知不猜作校验失败
+5. CommitAssetBlob先PREPARED→安全普通暂存复制同时复核SHA/长度→file fsync/rename/两目录fsync；新写窗口再次核epoch/维护，单SQL事务CAS complete/revision、ready元数据、COMMITTED、原成功回执及新资源outbox。Commit未知留所有文件仍报错，同op查回执确认；无文件持久证明不ready
 
 **错误**
 
@@ -730,12 +733,208 @@ func CompleteUpload(ctx context.Context, op OperationContext, input CompleteUplo
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久回执、来源、字节或元数据损坏（不可重试）
+- `UNSUPPORTED_SCHEMA`：画板版本未知（不可重试）
+- `UNSUPPORTED_CAPABILITY`：资源格式缺少必需能力（不可重试）
+- `LOCKED`：新操作遇维护或屏障（可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：media.upload本人
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`media.HashUpload`、`media.SniffAssetType`、`media.ValidateAssetPayload`、`media.CommitAssetBlob`
+- 并发：本域upload互斥；完成/拒绝以owner/site/epoch/receiving/revision/字节SQL CAS；每次持久副作用复用公共running窗口
+- 幂等：既有upload_receipts中version=1/kind=complete_upload封套绑定固定原成功或安全错误；请求摘要含caller/actor/site/epoch；Begin与Chunk查同一操作绑定，不把封套当Begin结果
+- 依赖：`media.validateUploadActor`、`media.hashCompleteRequest`、`media.replayCompletion`、`media.mediaWriteContext`、`media.reconcileUploadFile`、`media.HashUpload`、`media.SniffAssetType`、`media.ValidateAssetPayload`、`media.rejectCompletion`、`media.CommitAssetBlob`
+
+## media.hashCompleteRequest
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：固定kind/caller/actor/site/epoch与原完成输入规范摘要
+
+```go
+func hashCompleteRequest(op OperationContext,input CompleteUploadInput)(Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定kind/caller/actor/site/epoch与原完成输入规范摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`platform.CanonicalJSON`
+
+## media.replayCompletion
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：回放固定版本封套，来源授权/epoch/hash验证后返回原成功或原安全错误
+
+```go
+func (s *localBlobStore) replayCompletion(ctx context.Context,op OperationContext,input CompleteUploadInput,hash Hash)(CompleteUploadResult,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回放固定版本封套，来源授权/epoch/hash验证后返回原成功或原安全错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.readUploadRow`、`media.completionRejectionCode`
+
+## media.completionRejectionCode
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：确定可持久blocked的校验拒绝码白名单
+
+```go
+func completionRejectionCode(code string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 确定可持久blocked的校验拒绝码白名单
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.rejectCompletion
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：新写窗口+revision CAS同事务blocked及首次安全错误
+
+```go
+func (s *localBlobStore) rejectCompletion(ctx context.Context,op OperationContext,input CompleteUploadInput,record storedUpload,hash Hash,problem *platform.Error)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 新写窗口+revision CAS同事务blocked及首次安全错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.mediaWriteContext`、`media.casCompleteSession`、`media.writeCompletionReceipt`
+
+## media.casCompleteSession
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：精确owner/site/epoch/receiving/revision/已收齐字节CAS完成或blocked状态
+
+```go
+func (s *localBlobStore) casCompleteSession(ctx context.Context,tx *sql.Tx,op OperationContext,input CompleteUploadInput,record storedUpload)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确owner/site/epoch/receiving/revision/已收齐字节CAS完成或blocked状态
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.writeCompletionReceipt
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_completion.go`
+- 作用：在业务事务写version1完成封套与完整hash，不覆盖Begin原快照
+
+```go
+func writeCompletionReceipt(ctx context.Context,tx *sql.Tx,op OperationContext,uploadID Identifier,hash Hash,receipt completionReceipt)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在业务事务写version1完成封套与完整hash，不覆盖Begin原快照
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
 
 ## media.ExpireUploadSessions
 
@@ -805,9 +1004,10 @@ func SniffAssetType(ctx context.Context, op OperationContext, input SniffAssetTy
 
 **步骤**
 
-1. 签名字节和扩展不一致拒绝或强制attachment安全下载
-2. PNG/JPEG/WebP/GIF/AVIF尺寸帧元数据有界解析，不做图像重编码
-3. 上传视频只验证MP4或WebM容器/允许播放编码声明，未知回明确格式提示，无ffmpeg
+1. 已受信上传只经OpenUpload安全普通文件读取；附件一律application/octet-stream下载，忽略claimedMediaType；其他资源签名/类别与扩展不一致明确拒绝
+2. PNG/JPEG/GIF/WebP/AVIF只读容器/尺寸/动画声明；单维1..100000，JPEG头读取≤16MiB，容器节点/块≤65536，BMFF box≤16384且嵌套≤12，非媒体载荷元数据≤16MiB；不解码像素或重编码
+3. MP4只接受isom/iso2/iso4/iso5/iso6/mp41/mp42/avc1/M4V品牌及H.264/AV1/VP9视频和AAC/Opus样本声明；WebM仅webm DocType与VP8/VP9/AV1及Opus/Vorbis，禁止压缩/加密轨道，未知编码明确提示；不解码帧或调用ffmpeg
+4. 返回确证MIME/kind/animated及图片width/height；SVG/scene/视频不伪造尺寸，交后续payload核语义
 
 **错误**
 
@@ -819,7 +1019,455 @@ func SniffAssetType(ctx context.Context, op OperationContext, input SniffAssetTy
 - 授权：私有payload验证
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：纯读取
+- 依赖：`media.OpenUpload`、`media.readUploadRow`、`media.inspectPNG`、`media.inspectGIF`、`media.inspectWebP`、`media.inspectBrands`、`media.inspectBMFF`、`media.inspectWebM`、`media.invalidMedia`
+
+## media.invalidMedia
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：输出不含文件内容或路径的格式错误
+
+```go
+func invalidMedia(message string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输出不含文件内容或路径的格式错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
 - 依赖：无
+
+## media.inspectPNG
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界PNG块/尺寸/动画元数据
+
+```go
+func inspectPNG(ctx context.Context, r io.ReaderAt, size int64) (int,int,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界PNG块/尺寸/动画元数据
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.inspectGIF
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界GIF帧/子块/尺寸/动画元数据
+
+```go
+func inspectGIF(ctx context.Context,r io.ReaderAt,size int64) (int,int,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界GIF帧/子块/尺寸/动画元数据
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.inspectWebP
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界RIFF/WebP帧/尺寸/动画元数据
+
+```go
+func inspectWebP(ctx context.Context,r io.ReaderAt,size int64)(int,int,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界RIFF/WebP帧/尺寸/动画元数据
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.readMediaBox
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界BMFF box头及扩展长度
+
+```go
+func readMediaBox(r io.ReaderAt,offset,end int64)(mediaBox,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界BMFF box头及扩展长度
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.inspectBrands
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界ftyp品牌白名单与AVIF动画标记
+
+```go
+func inspectBrands(r io.ReaderAt,size int64)(bool,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界ftyp品牌白名单与AVIF动画标记
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.inspectBMFF
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界BMFF层级/元数据及视频样本编码声明
+
+```go
+func inspectBMFF(ctx context.Context,r io.ReaderAt,size int64,avif bool)(int,int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界BMFF层级/元数据及视频样本编码声明
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.readMediaBox`、`media.validateMP4SampleEntry`
+
+## media.readEBMLNumber
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：EBML ID/长度有界读取
+
+```go
+func readEBMLNumber(r io.ReaderAt,offset,end int64,id bool)(uint64,int64,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. EBML ID/长度有界读取
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.inspectWebM
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界WebM DocType/轨道/编码/帧容器核验
+
+```go
+func inspectWebM(ctx context.Context,r io.ReaderAt,size int64)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界WebM DocType/轨道/编码/帧容器核验
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.readEBMLNumber`、`media.validateWebMTrack`
+
+## media.validateMP4SampleEntry
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：样本类型与对应avcC/av1C/vpcC/esds/dOps声明一致，配置≤64KiB，禁止只凭fourcc宣称编码
+
+```go
+func validateMP4SampleEntry(ctx context.Context,r io.ReaderAt,entry mediaBox)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 样本类型与对应avcC/av1C/vpcC/esds/dOps声明一致，配置≤64KiB，禁止只凭fourcc宣称编码
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权私有payload校验链，不重新验入口身份/schema
+- 并发：有界元数据读取，不解码压缩载荷
+- 幂等：相同字节结果确定
+- 依赖：`media.readMediaBox`、`media.validateAACDescriptor`
+
+## media.readMP4Descriptor
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界MPEG-4描述符tag/最多4字节变长长度，精确payload与剩余边界
+
+```go
+func readMP4Descriptor(data []byte)(byte,[]byte,[]byte,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界MPEG-4描述符tag/最多4字节变长长度，精确payload与剩余边界
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权私有payload校验链，不重新验入口身份/schema
+- 并发：有界元数据读取，不解码压缩载荷
+- 幂等：相同字节结果确定
+- 依赖：无
+
+## media.validateAACDescriptor
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：有界ES/DecoderConfig/DecoderSpecificInfo声明，OTI=0x40且音频streamType=5，不接受外部URL
+
+```go
+func validateAACDescriptor(data []byte)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界ES/DecoderConfig/DecoderSpecificInfo声明，OTI=0x40且音频streamType=5，不接受外部URL
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权私有payload校验链，不重新验入口身份/schema
+- 并发：有界元数据读取，不解码压缩载荷
+- 幂等：相同字节结果确定
+- 依赖：`media.readMP4Descriptor`、`media.validateAACConfig`
+
+## media.validateAACConfig
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：AudioSpecificConfig只接受AAC LC/HE/HEv2及有效采样频率/声道/核心对象类型
+
+```go
+func validateAACConfig(data []byte)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. AudioSpecificConfig只接受AAC LC/HE/HEv2及有效采样频率/声道/核心对象类型
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权私有payload校验链，不重新验入口身份/schema
+- 并发：有界元数据读取，不解码压缩载荷
+- 幂等：相同字节结果确定
+- 依赖：无
+
+## media.validateWebMTrack
+
+- 级别：参考
+- 文件：`modules/media/internal/mime_validator.go`
+- 作用：每个TrackEntry同时核TrackType与CodecID、拒未知/音轨冒充视频及加密压缩轨道
+
+```go
+func validateWebMTrack(ctx context.Context,r io.ReaderAt,start,end int64)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每个TrackEntry同时核TrackType与CodecID、拒未知/音轨冒充视频及加密压缩轨道
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已授权私有payload校验链，不重新验入口身份/schema
+- 并发：有界元数据读取，不解码压缩载荷
+- 幂等：相同字节结果确定
+- 依赖：`media.readEBMLNumber`
 
 ## media.ValidateAssetPayload
 
@@ -848,9 +1496,9 @@ func ValidateAssetPayload(ctx context.Context, op OperationContext, input Valida
 
 **步骤**
 
-1. SVG XML有界解析，拒绝外部entity/网络资源；上传SVG和ExcalidrawSVG均CSP sandbox且不内联执行
-2. scene按DrawingScene schema验证；附件可保存但Content-Disposition attachment+nosniff
-3. 视频只格式核对，浏览器封面/派生图由另上传提供，服务不转码/处理图片
+1. 附件只接受application/octet-stream，后续交付必须attachment+nosniff；非SVG/scene字节类型已由SniffAssetType验证，不重复全链身份/schema
+2. SVG≤16MiB、节点≤200000/深度≤128有界XML，拒DTD/entity/处理指令、脚本/事件/foreignObject、未知元素与网络资源；href仅本地片段、受限raster data URL或安全a链接，样式仅本地片段及≤2MiB内嵌woff2，拒混淆/网络载入
+3. SVG原字节保持且返回cspSandbox=true，交付必须sandbox+nosniff且不内联；scene≤64MiB按ValidateDrawingScene验证，保留全部受支持字段；服务不处理像素/视频帧或转码
 
 **错误**
 
@@ -862,7 +1510,103 @@ func ValidateAssetPayload(ctx context.Context, op OperationContext, input Valida
 - 授权：私有payload验证
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`media.ValidateDrawingScene`
+- 依赖：`media.OpenUpload`、`media.ValidateDrawingScene`、`media.validateSVG`
+
+## media.validateSVG
+
+- 级别：参考
+- 文件：`modules/media/internal/payload_validator.go`
+- 作用：有界严格SVG XML、元素/属性/资源安全语义
+
+```go
+func validateSVG(ctx context.Context, reader io.Reader) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界严格SVG XML、元素/属性/资源安全语义
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.validateSVGCSS`、`media.decodeDrawingRaster`、`media.validateDrawingRaster`、`media.safeDrawingLink`
+
+## media.validateSVGCSS
+
+- 级别：参考
+- 文件：`modules/media/internal/payload_validator.go`
+- 作用：SVG样式本地引用与受限字体白名单，拒混淆网络语法
+
+```go
+func validateSVGCSS(value string,style bool)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. SVG样式本地引用与受限字体白名单，拒混淆网络语法
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.safeDrawingLink
+
+- 级别：参考
+- 文件：`modules/media/internal/payload_validator.go`
+- 作用：只允许http/https/mailto安全链接
+
+```go
+func safeDrawingLink(value string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只允许http/https/mailto安全链接
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
 
 ## media.CommitAssetBlob
 
@@ -891,9 +1635,8 @@ func CommitAssetBlob(ctx context.Context, op OperationContext, input CommitAsset
 
 **步骤**
 
-1. 服务生成site/blobs/sha256路径；同hash存在先核bytes/hash，不跨site泄漏
-2. tmpfsync→同FSrename→dirfsync，DBjournal记录COMMITTED object版本
-3. 事务assetmetadataready/预留转实际quota/receipt/outbox；失败孤儿隔离不会ready
+1. 仅CompleteUpload持锁且完整校验后调用，信任input/op，不重新解析deadline或schema
+2. CommitVerifiedBlob复核文件SHA/长度并完成PREPARED、不可变文件持久化及ready/session/receipt/COMMITTED/outbox同事务；未知提交保留字节
 
 **错误**
 
@@ -901,10 +1644,10 @@ func CommitAssetBlob(ctx context.Context, op OperationContext, input CommitAsset
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 
 - 副作用：不可变blob/提交journal
-- 授权：私有completeuploadtxn
+- 授权：已授权本域CompleteUpload持锁链，HTTP不可直接调用
 - 并发：(site,sha)mutex+唯一blobkey
 - 幂等：同SHA/bytes复用，异bytes完整性拒绝
-- 依赖：无
+- 依赖：`media.CommitVerifiedBlob`
 
 ## media.InstallLocalBlobStore
 
@@ -1281,6 +2024,7 @@ func (s *localBlobStore) CreateUpload(ctx context.Context,op OperationContext,se
 
 1. 复查原回执后真实窗口/配额，普通新临时文件fsync，session/epoch/原快照同事务
 2. 调用SQL Commit前标记保留候选文件；Commit错误继续返回错误但不删可能已提交对象，同op以持久原回执确认，不把未知当成功
+3. 站点存储预留统计receiving与blocked的expected_bytes，blocked字节未明确清理前不释放；上传并发数只计receiving
 
 **错误**
 
@@ -1291,6 +2035,136 @@ func (s *localBlobStore) CreateUpload(ctx context.Context,op OperationContext,se
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
 - 依赖：`media.replayBeginUpload`、`media.mediaWriteContext`、`media.openMediaRoot`、`media.writeUploadRow`、`platform.CanonicalJSON`
+
+## media.OpenUpload
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：私有根目录能力/NOFOLLOW/公共硬链接及inode核验读取临时对象
+
+```go
+func (s *localBlobStore) OpenUpload(ctx context.Context, uploadID Identifier) (ioReadCloser, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 私有根目录能力/NOFOLLOW/公共硬链接及inode核验读取临时对象
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.openMediaRoot`、`media.openMediaRegular`
+
+## media.CommitVerifiedBlob
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：持上传锁，PREPARED/file/rename/fsync后，同事务CAS complete、ready、原结果、COMMITTED与outbox
+
+```go
+func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context,op OperationContext,input CommitAssetBlobInput)(gen.Asset,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持上传锁，PREPARED/file/rename/fsync后，同事务CAS complete、ready、原结果、COMMITTED与outbox
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.readUploadRow`、`media.openMediaRoot`、`media.mediaWriteContext`、`media.ensureMediaDirectory`、`media.openMediaRegular`、`media.findReadyAsset`、`media.casCompleteSession`、`media.writeCompletionReceipt`、`media.PublishAssetEvent`
+
+## media.findReadyAsset
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：精确同站点/hash/bytes/MIME/kind选择ready资源；16MiB有界原元数据、唯一Asset schema及SQL主键/索引一致后复用
+
+```go
+func (s *localBlobStore) findReadyAsset(ctx context.Context, exec sqlExecer, siteID Identifier, sha256Hash Hash, byteSize int, mediaType string, kind gen.AssetKind) (gen.Asset, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确同站点/hash/bytes/MIME/kind选择ready资源；16MiB有界原元数据、唯一Asset schema及SQL主键/索引一致后复用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：无
+
+## media.hashFile
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：恢复时对私有普通文件流算SHA/长度；复用公共ValidatePrivatePath拒链接/硬链接，NOFOLLOW及打开前后inode身份一致，未知失败关闭
+
+```go
+func hashFile(path string) (Hash, int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取前公共ValidatePrivatePath及Lstat普通文件
+2. NOFOLLOW打开并核fd与命名路径SameFile，固定缓冲流算SHA与长度
+3. 读取后再次公共私有路径与inode核验，禁止被换路径或硬链接的字节通过恢复确认
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信恢复链生成路径，不接收HTTP路径
+- 并发：恢复入口开放前独占；文件身份及SHA核对
+- 幂等：相同私有文件确定结果；损坏或身份变化拒绝
+- 依赖：`platform.ValidatePrivatePath`
 
 ## media.ReadAsset
 
@@ -1451,9 +2325,9 @@ func ValidateDrawingScene(ctx context.Context, op OperationContext, input Valida
 
 **步骤**
 
-1. 完整schema/元素ID唯一/引用group/frame/bound/file存在/坐标有界
-2. files仅受限rasterdataURL，禁svg脚本/外部URL；无可执行HTML
-3. 按element顺序收集非deletedtext给knowledge，场景+亮暗SVG各按SHA上传
+1. 原DrawingScene schema经OpenAPI components引用进入唯一生成GetSwagger，由平台NewPayloadValidator完整验证；版本只接受2，未知字段/类型/坐标原schema拒绝，files等价additionalProperties值schema+propertyNames模式不改变持久版本
+2. Drawing专属语义核文件键原精确^[A-Za-z0-9._:-]{1,128}$与key/id一致、元素ID唯一、frame/bound/container/binding/file存在与类型、frame无环、group无重复、freedraw压力长度与points一致
+3. files只受限raster base64 data URL≤32MiB，MIME与签名及元数据一致，禁止SVG/外部URL；元素链接仅http/https/mailto，不执行HTML；按原element顺序收非deleted text，≤1048576字符，不写日志
 
 **错误**
 
@@ -1465,7 +2339,71 @@ func ValidateDrawingScene(ctx context.Context, op OperationContext, input Valida
 - 授权：私有asset验证
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：纯验证
+- 依赖：`platform.NewPayloadValidator`、`media.decodeDrawingRaster`、`media.validateDrawingRaster`、`media.safeDrawingLink`
+
+## media.decodeDrawingRaster
+
+- 级别：参考
+- 文件：`modules/media/internal/drawing_validator.go`
+- 作用：精确raster MIME/base64 data URL与大小预算
+
+```go
+func decodeDrawingRaster(value,expected string)([]byte,string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确raster MIME/base64 data URL与大小预算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
 - 依赖：无
+
+## media.validateDrawingRaster
+
+- 级别：参考
+- 文件：`modules/media/internal/drawing_validator.go`
+- 作用：嵌入raster真实签名与有界尺寸/格式一致
+
+```go
+func validateDrawingRaster(ctx context.Context,data []byte,mediaType string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 嵌入raster真实签名与有界尺寸/格式一致
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权上传链；入口schema/身份一次，边界负责来源/epoch/CAS/持久完整性
+- 并发：调用方持上传互斥；SQL事务精确CAS；纯规则不重复ctx校验
+- 幂等：原材料/原结果稳定，未知失败关闭
+- 依赖：`media.inspectPNG`、`media.inspectGIF`、`media.inspectWebP`、`media.inspectBrands`、`media.inspectBMFF`
 
 ## media.AcquireResourceReferences
 
@@ -2456,7 +3394,7 @@ func RecoverBlobJournal(ctx context.Context, op OperationContext, input RecoverB
 - 授权：service:media启动控制
 - 并发：exclusive gate
 - 幂等：重复不产生新delete授权
-- 依赖：无
+- 依赖：`media.hashFile`
 
 ## media.PublishAssetEvent
 
@@ -2465,7 +3403,7 @@ func RecoverBlobJournal(ctx context.Context, op OperationContext, input RecoverB
 - 作用：原子写最小资源状态outbox
 
 ```go
-func PublishAssetEvent(ctx context.Context, op OperationContext, input PublishAssetEventInput) (PublishAssetEventResult, error)
+func PublishAssetEvent(ctx context.Context, op OperationContext, input PublishAssetEventInput) error
 ```
 
 **输入**
@@ -2480,14 +3418,12 @@ func PublishAssetEvent(ctx context.Context, op OperationContext, input PublishAs
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `PublishAssetEventResult` | 原子写最小资源状态outbox的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 同事务事件登记失败；业务事务整体回滚 | 无错误才可提交ready事务 |
 
 **步骤**
 
-1. 确认payload无filepath/secret/usertext
-2. 同ready/delete事务eventId唯一写outbox
-3. 只在业务事务内写outbox；提交后由media.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs；消费方source watermark单调
+1. 仅新建ready资源时从安全Asset构造siteId/ref/state/referenceGeneration=0/occurredAt最小载荷
+2. 在调用方同一本域sql.Tx用platform.EnqueueEvent写固定eventId；业务回滚则事件也不存在；不直接调用jobs，RelayOutbox尚未实施
 
 **错误**
 
@@ -3053,7 +3989,7 @@ func NewApplication(config platform.ServiceConfig,anchors platform.TrustAnchors,
 
 - 级别：参考
 - 文件：`modules/media/internal/transport/server.go`
-- 作用：真实health/ready及Begin/Read/Abort/Chunk/ReadAsset转换，不填占位
+- 作用：真实health/ready及Begin/Read/Abort/Chunk/Complete/ReadAsset转换，不填占位
 
 ```go
 func (a *Application) serviceHandlers() map[string]http.Handler
@@ -3069,7 +4005,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 
 **步骤**
 
-1. 真实health/ready及Begin/Read/Abort/Chunk/ReadAsset转换，不填占位
+1. 真实health/ready及Begin/Read/Abort/Chunk/Complete/ReadAsset转换，不填占位
 
 **错误**
 
@@ -3079,7 +4015,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`
 
 ## media.serveUploadChunk
 

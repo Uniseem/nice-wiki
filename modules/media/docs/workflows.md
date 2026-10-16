@@ -51,3 +51,5 @@
 第五轮Begin：原严格输入+caller/actor/site/epoch业务hash → 固定原回执 → 新操作running窗口/规范名称/site-config配额 → 创建临时文件fsync → session+创建epoch+原结果同事务。旧成功不再走当前配额；旧缺材料失败要求新操作。
 
 构造先装配公共运行写窗口、核blob和chunk本地日志，再绑定真实已实现HTTP。全部OpenAPI handler未齐时NewServiceHandler失败，关闭存储，不启动部分可用服务；本轮不实现CompleteUpload和引用pin业务。维护仅允许Begin/Chunk的旧成功回放，所有新/未完成写入仍由公共窗口拒绝。
+
+本轮完成链：当前media.upload/已打开epoch → 固定原完成回执 → 新操作running窗口/owner/site/创建epoch/receiving/到期/revision/已收齐 → SQL chunk前缀/完整SHA → MIME与SVG/scene语义 → PREPARED → 复制同时核hash/length → file fsync/rename/两目录fsync → 再核运行窗口 → 同事务ready+complete CAS+COMMITTED+原回执+新资源outbox。校验拒绝只持久blocked及原安全错误，不造ready。原回执不重做新写窗口；所有未提交写入都必须通过公共窗口。完整HTTP、引用pins、公开bytes、RelayOutbox/后台及业务验收仍未完成。

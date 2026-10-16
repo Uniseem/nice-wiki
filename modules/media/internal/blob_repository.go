@@ -14,7 +14,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unicode/utf8"
 
 	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动（ADR0005）。
 
@@ -27,35 +26,22 @@ import (
 	mediamigrations "nice-wiki/modules/media/migrations"
 )
 
-// CommitAssetBlobInput 是已完成校验的上传对象提交输入。
+// CommitAssetBlobInput 只由已校验完成链构造，不由HTTP直接解码。
 type CommitAssetBlobInput struct {
-	UploadID  Identifier `json:"uploadId"`
-	SHA256    Hash       `json:"sha256"`
-	MediaType string     `json:"mediaType"`
+	UploadID         Identifier   `json:"uploadId"`
+	SHA256           Hash         `json:"sha256"`
+	MediaType        string       `json:"mediaType"`
+	ExpectedRevision gen.Revision `json:"expectedRevision"`
+	RequestHash      Hash         `json:"requestHash"`
+	Animated         bool         `json:"animated"`
+	Width            *int         `json:"width"`
+	Height           *int         `json:"height"`
 }
-
-// CommitAssetBlobResult 是不可变资源提交结果。
 type CommitAssetBlobResult struct {
 	Asset gen.Asset `json:"asset"`
 }
-
-// blobCommitRequest 是私有存储提交边界；它不暴露操作系统路径。
-// 实现必须在同一 site 的 sha256 命名空间内核对已有对象字节，临时对象
-// fsync 后执行同文件系统 rename 和目录 fsync，并在元数据事务成功前不返回
-// ready 资源。
-type blobCommitRequest struct {
-	SiteID    Identifier
-	UploadID  Identifier
-	SHA256    Hash
-	MediaType string
-	ByteSize  int
-}
-
-// blobStore 是 media 私有存储与本函数之间的最小边界。它不允许调用方传入
-// 任意路径，也不连接外部对象存储。
 type blobStore interface {
-	OpenUpload(ctx context.Context, uploadID Identifier) (ioReadCloser, error)
-	CommitVerifiedBlob(ctx context.Context, request blobCommitRequest) (gen.Asset, error)
+	OpenUpload(context.Context, Identifier) (ioReadCloser, error)
 }
 
 // ioReadCloser 只保留 HashUpload 所需的受限读取能力，避免把文件句柄或路径
@@ -324,18 +310,21 @@ func syncDirectory(path string) error {
 }
 
 func hashFile(path string) (Hash, int64, error) {
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", false); err != nil {
+		return "", 0, err
+	}
 	lstat, err := os.Lstat(path)
 	if err != nil || !lstat.Mode().IsRegular() {
 		return "", 0, errors.New("非普通文件")
 	}
-	file, err := os.Open(path)
+	file, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		return "", 0, err
 	}
 	defer file.Close()
 	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		return "", 0, errors.New("非普通文件")
+	if err != nil || !info.Mode().IsRegular() || !os.SameFile(lstat, info) {
+		return "", 0, errors.New("非普通文件或身份变化")
 	}
 	hasher := sha256.New()
 	buffer := make([]byte, hashBufferSize)
@@ -361,38 +350,14 @@ func hashFile(path string) (Hash, int64, error) {
 			return "", 0, errors.New("文件读取无进展")
 		}
 	}
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", false); err != nil {
+		return "", 0, err
+	}
+	named, err := os.Lstat(path)
+	if err != nil || !os.SameFile(info, named) {
+		return "", 0, errors.New("资源路径身份变化")
+	}
 	return Hash(hex.EncodeToString(hasher.Sum(nil))), size, nil
-}
-
-func copyAndSync(sourcePath, destinationPath string) error {
-	source, err := os.Open(sourcePath)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-	destination, err := os.OpenFile(destinationPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		return err
-	}
-	ok := false
-	defer func() {
-		_ = destination.Close()
-		if !ok {
-			_ = os.Remove(destinationPath)
-		}
-	}()
-	buffer := make([]byte, hashBufferSize)
-	if _, err := io.CopyBuffer(destination, source, buffer); err != nil {
-		return err
-	}
-	if err := destination.Sync(); err != nil {
-		return err
-	}
-	if err := destination.Close(); err != nil {
-		return err
-	}
-	ok = true
-	return nil
 }
 
 type storedUpload struct {
@@ -444,30 +409,12 @@ func writeUploadRow(ctx context.Context, exec sqlExecer, record storedUpload, in
 }
 
 func (s *localBlobStore) OpenUpload(ctx context.Context, uploadID Identifier) (ioReadCloser, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, contextError(err)
-	}
-	if !validIdentifier(uploadID) {
-		return nil, platform.NewError(platform.CodeValidation, false, "上传标识不合法")
-	}
-	if _, exists, err := readUploadRow(ctx, s.db, uploadID, s.validateUpload); err != nil {
-		return nil, err
-	} else if !exists {
-		return nil, platform.NewError(platform.CodeNotFound, false, "上传不存在")
-	}
-	file, err := os.Open(s.uploadPath(uploadID))
+	root, err := s.openMediaRoot()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, platform.NewError(platform.CodeIntegrityError, false, "上传临时对象缺失")
-		}
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "打开上传临时对象失败")
+		return nil, err
 	}
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		_ = file.Close()
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "上传临时对象不是普通文件")
-	}
-	return file, nil
+	defer root.Close()
+	return openMediaRegular(root, s.root, "uploads/"+uploadID+".part", os.O_RDONLY)
 }
 
 // CreateUpload 为后续上传 handler 提供私有 receiving 会话落点；会话、回执与
@@ -533,7 +480,7 @@ func (s *localBlobStore) CreateUpload(ctx context.Context, op OperationContext, 
 	}
 	var receivingCount int
 	var receivingBytes, readyBytes int64
-	if err := tx.QueryRowContext(work, `SELECT COUNT(*),COALESCE(SUM(expected_bytes),0) FROM upload_sessions WHERE site_id=? AND state='receiving'`, op.Actor.SiteID).Scan(&receivingCount, &receivingBytes); err != nil {
+	if err := tx.QueryRowContext(work, `SELECT COUNT(CASE WHEN state='receiving' THEN 1 END),COALESCE(SUM(expected_bytes),0) FROM upload_sessions WHERE site_id=? AND state IN ('receiving','blocked')`, op.Actor.SiteID).Scan(&receivingCount, &receivingBytes); err != nil {
 		return gen.UploadSession{}, mapMediaDBError(err, "读取上传预留失败")
 	}
 	if err := tx.QueryRowContext(work, `SELECT COALESCE(SUM(byte_size),0) FROM assets WHERE site_id=? AND state='ready'`, op.Actor.SiteID).Scan(&readyBytes); err != nil {
@@ -650,156 +597,159 @@ func (s *localBlobStore) AbortUpload(ctx context.Context, siteID, uploadID Ident
 	return nil
 }
 
-// CommitVerifiedBlob 按“PREPARED日志→不可变文件→单事务(资源+会话完成+COMMITTED)”
-// 的顺序提交。COMMITTED 与资源元数据同事务落库，崩溃后不会出现有 COMMITTED
-// 却无资源记录的状态；PREPARED 后中断的文件由 RecoverBlobJournal 隔离。
-func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, request blobCommitRequest) (gen.Asset, error) {
-	if err := ctx.Err(); err != nil {
-		return gen.Asset{}, contextError(err)
-	}
-	if !validIdentifier(request.SiteID) || !validIdentifier(request.UploadID) ||
-		!validHash(request.SHA256) || request.ByteSize < 1 {
-		return gen.Asset{}, platform.NewError(platform.CodeValidation, false, "不可变资源提交参数不合法")
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	record, exists, err := readUploadRow(ctx, s.db, request.UploadID, s.validateUpload)
-	if err != nil {
-		return gen.Asset{}, err
-	}
-	if !exists {
-		return gen.Asset{}, platform.NewError(platform.CodeNotFound, false, "上传不存在")
-	}
-	if record.session.SiteId != request.SiteID {
-		return gen.Asset{}, platform.NewError(platform.CodeForbidden, false, "上传不属于当前站点")
-	}
-	if record.session.ExpectedSha256 != request.SHA256 || record.session.ExpectedBytes != request.ByteSize {
-		return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "上传声明与临时对象不一致")
-	}
-	if record.session.State == gen.Complete {
-		asset, found, err := findReadyAsset(ctx, s.db, request.SiteID, request.SHA256, request.ByteSize, request.MediaType)
-		if err != nil {
-			return gen.Asset{}, err
-		}
-		if !found {
-			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "已完成上传缺少资源元数据")
-		}
-		return asset, nil
-	}
-	if record.session.State != gen.Receiving {
-		return gen.Asset{}, platform.NewError(platform.CodeConflict, false, "上传状态不允许提交")
-	}
-	temporaryPath := s.uploadPath(request.UploadID)
-	actualHash, actualSize, err := hashFile(temporaryPath)
-	if err != nil {
-		return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "读取上传临时对象失败")
-	}
-	if actualHash != request.SHA256 || actualSize != int64(request.ByteSize) {
-		return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "上传临时对象完整性校验失败")
-	}
-
-	finalPath := s.blobPath(request.SiteID, request.SHA256)
-	if err := os.MkdirAll(filepath.Dir(finalPath), 0o700); err != nil {
-		return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "建立不可变资源目录失败")
-	}
-	if err := appendJournal(ctx, s.db, blobJournalPrepared, request.SiteID, request.UploadID, request.SHA256, ""); err != nil {
-		return gen.Asset{}, err
-	}
-	if _, err := os.Stat(finalPath); err == nil {
-		existingHash, existingSize, hashErr := hashFile(finalPath)
-		if hashErr != nil || existingHash != request.SHA256 || existingSize != int64(request.ByteSize) {
-			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "同站点不可变资源校验失败")
-		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		stagingPath := s.stagingPath(request.UploadID, request.SHA256)
-		if err := copyAndSync(temporaryPath, stagingPath); err != nil {
-			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "写入不可变资源暂存失败")
-		}
-		if err := os.Rename(stagingPath, finalPath); err != nil {
-			_ = os.Remove(stagingPath)
-			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "提交不可变资源失败")
-		}
-		if err := syncDirectory(filepath.Dir(finalPath)); err != nil {
-			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化不可变资源目录失败")
-		}
-	} else {
-		return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "检查不可变资源失败")
-	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return gen.Asset{}, mapMediaDBError(err, "开始资源提交事务失败")
-	}
-	defer func() { _ = tx.Rollback() }()
-	asset, found, err := findReadyAsset(ctx, tx, request.SiteID, request.SHA256, request.ByteSize, request.MediaType)
+// CommitVerifiedBlob 在调用方持有上传互斥锁时提交文件与完成事务。
+func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, op OperationContext, input CommitAssetBlobInput) (gen.Asset, error) {
+	record, found, err := readUploadRow(ctx, s.db, input.UploadID, s.validateUpload)
 	if err != nil {
 		return gen.Asset{}, err
 	}
 	if !found {
-		asset = gen.Asset{
-			Animated:      false,
-			CreatedAt:     time.Now().UTC(),
-			CreatedBy:     record.createdBy,
-			Height:        nil,
-			ImageVariants: []gen.ImageVariant{},
-			Kind:          gen.AssetKind(record.session.Kind),
-			OriginalName:  record.session.OriginalName,
-			Ref: gen.AssetVersionRef{
-				AssetId:   platform.NewIdentifier(),
-				Version:   0,
-				Sha256:    request.SHA256,
-				MediaType: request.MediaType,
-				ByteSize:  request.ByteSize,
-			},
-			Revision: 0,
-			SiteId:   request.SiteID,
-			State:    gen.AssetStateReady,
-			Width:    nil,
+		return gen.Asset{}, platform.NewError(platform.CodeNotFound, false, "上传不存在")
+	}
+	root, err := s.openMediaRoot()
+	if err != nil {
+		return gen.Asset{}, err
+	}
+	defer root.Close()
+	prepare, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return gen.Asset{}, err
+	}
+	defer cancel()
+	if err := appendJournal(prepare, s.db, blobJournalPrepared, op.Actor.SiteID, input.UploadID, input.SHA256, ""); err != nil {
+		return gen.Asset{}, err
+	}
+	finalPath := s.blobPath(op.Actor.SiteID, input.SHA256)
+	if err := ensureMediaDirectory(filepath.Dir(finalPath)); err != nil {
+		return gen.Asset{}, err
+	}
+	finalName := "blobs/" + op.Actor.SiteID + "/" + input.SHA256[:2] + "/" + input.SHA256
+	finalInfo, err := root.Lstat(finalName)
+	if err == nil {
+		if !finalInfo.Mode().IsRegular() {
+			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "不可变资源不是普通文件")
 		}
-		raw, err := json.Marshal(asset)
+		existing, err := openMediaRegular(root, s.root, finalName, os.O_RDONLY)
 		if err != nil {
-			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "序列化资源元数据失败")
+			return gen.Asset{}, err
 		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO assets (asset_id, site_id, sha256, byte_size, media_type, state, asset_json, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			string(asset.Ref.AssetId), string(asset.SiteId), string(asset.Ref.Sha256), asset.Ref.ByteSize,
-			asset.Ref.MediaType, string(asset.State), string(raw), string(platform.Now())); err != nil {
-			return gen.Asset{}, mapMediaDBError(err, "保存资源元数据失败")
+		digest := sha256.New()
+		size, err := io.CopyBuffer(digest, chunkContextReader{prepare, existing}, make([]byte, hashBufferSize))
+		existing.Close()
+		if err != nil {
+			return gen.Asset{}, mapMediaDBError(err, "核对同站点资源失败")
+		}
+		if size != int64(record.session.ExpectedBytes) || hex.EncodeToString(digest.Sum(nil)) != input.SHA256 {
+			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "同站点不可变资源SHA或长度不一致")
+		}
+	} else if errors.Is(err, os.ErrNotExist) {
+		source, err := openMediaRegular(root, s.root, "uploads/"+input.UploadID+".part", os.O_RDONLY)
+		if err != nil {
+			return gen.Asset{}, err
+		}
+		defer source.Close()
+		stageName := "staging/" + input.UploadID + "-" + input.SHA256 + ".part"
+		stage, err := root.OpenFile(stageName, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err != nil {
+			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "创建资源暂存失败")
+		}
+		preserve := false
+		defer func() {
+			stage.Close()
+			if !preserve {
+				_ = root.Remove(stageName)
+			}
+		}()
+		digest := sha256.New()
+		size, err := io.CopyBuffer(io.MultiWriter(stage, digest), io.LimitReader(chunkContextReader{prepare, source}, int64(record.session.ExpectedBytes)+1), make([]byte, hashBufferSize))
+		if err != nil {
+			return gen.Asset{}, mapMediaDBError(err, "写入不可变资源失败")
+		}
+		if size != int64(record.session.ExpectedBytes) || hex.EncodeToString(digest.Sum(nil)) != input.SHA256 {
+			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "提交时上传SHA或长度已变化")
+		}
+		if err := stage.Sync(); err != nil {
+			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化资源暂存失败")
+		}
+		if err := stage.Close(); err != nil {
+			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "关闭资源暂存失败")
+		}
+		if err := root.Rename(stageName, finalName); err != nil {
+			return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "提交不可变资源失败")
+		}
+		preserve = true
+	} else {
+		return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "读取不可变资源路径失败")
+	}
+	// 目录确认失败时不能提交ready；已有文件也重新确认持久目录边界。
+	if err := syncDirectory(filepath.Dir(finalPath)); err != nil {
+		return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化资源目录失败")
+	}
+	if err := syncDirectory(filepath.Join(s.root, "staging")); err != nil {
+		return gen.Asset{}, platform.NewError(platform.CodeDependencyUnavailable, true, "持久化资源暂存目录失败")
+	}
+	work, commitCancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return gen.Asset{}, err
+	}
+	defer commitCancel()
+	tx, err := s.db.BeginTx(work, nil)
+	if err != nil {
+		return gen.Asset{}, mapMediaDBError(err, "开始完成上传事务失败")
+	}
+	defer tx.Rollback()
+	asset, found, err := s.findReadyAsset(work, tx, op.Actor.SiteID, input.SHA256, record.session.ExpectedBytes, input.MediaType, gen.AssetKind(record.session.Kind))
+	if err != nil {
+		return gen.Asset{}, err
+	}
+	if !found {
+		asset = gen.Asset{Animated: input.Animated, CreatedAt: time.Now().UTC(), CreatedBy: record.createdBy, Height: input.Height, Width: input.Width, ImageVariants: []gen.ImageVariant{}, Kind: gen.AssetKind(record.session.Kind), OriginalName: record.session.OriginalName, Ref: gen.AssetVersionRef{AssetId: platform.NewIdentifier(), Version: 0, Sha256: input.SHA256, MediaType: input.MediaType, ByteSize: record.session.ExpectedBytes}, Revision: 0, SiteId: op.Actor.SiteID, State: gen.AssetStateReady}
+		raw, err := platform.CanonicalJSON(asset)
+		if err != nil {
+			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "资源元数据无法编码")
+		}
+		if _, err := tx.ExecContext(work, `INSERT INTO assets(asset_id,site_id,sha256,byte_size,media_type,state,asset_json,updated_at) VALUES(?,?,?,?,?,'ready',?,?)`, asset.Ref.AssetId, asset.SiteId, asset.Ref.Sha256, asset.Ref.ByteSize, asset.Ref.MediaType, string(raw), platform.Now()); err != nil {
+			return gen.Asset{}, mapMediaDBError(err, "写入资源元数据失败")
 		}
 	}
 	record.session.State = gen.Complete
-	record.session.ReceivedBytes = record.session.ExpectedBytes
 	record.session.Revision++
-	if err := writeUploadRow(ctx, tx, record, false); err != nil {
+	completeInput := CompleteUploadInput{UploadId: input.UploadID, ExpectedRevision: input.ExpectedRevision}
+	if err := s.casCompleteSession(work, tx, op, completeInput, record); err != nil {
 		return gen.Asset{}, err
 	}
-	if err := appendJournal(ctx, tx, blobJournalCommitted, request.SiteID, request.UploadID, request.SHA256, asset.Ref.AssetId); err != nil {
+	if err := appendJournal(work, tx, blobJournalCommitted, op.Actor.SiteID, input.UploadID, input.SHA256, asset.Ref.AssetId); err != nil {
 		return gen.Asset{}, err
 	}
+	if err := writeCompletionReceipt(work, tx, op, input.UploadID, input.RequestHash, completionReceipt{Version: 1, Kind: "complete_upload", Asset: &asset}); err != nil {
+		return gen.Asset{}, err
+	}
+	if !found {
+		if err := PublishAssetEvent(work, op, PublishAssetEventInput{Tx: tx, Asset: asset, EventID: platform.NewIdentifier(), OccurredAt: platform.Now()}); err != nil {
+			return gen.Asset{}, err
+		}
+	}
+	// 未知Commit不能删除临时或不可变文件；同operationId读取SQL原回执确认。
 	if err := tx.Commit(); err != nil {
-		return gen.Asset{}, mapMediaDBError(err, "提交资源元数据失败")
+		return gen.Asset{}, mapMediaDBError(err, "提交完成上传失败")
 	}
-	_ = os.Remove(temporaryPath)
+	_ = root.Remove("uploads/" + input.UploadID + ".part")
 	return asset, nil
 }
 
-func findReadyAsset(ctx context.Context, exec sqlExecer, siteID Identifier, sha256Hash Hash, byteSize int, mediaType string) (gen.Asset, bool, error) {
-	var raw string
-	err := exec.QueryRowContext(ctx, `
-		SELECT asset_json FROM assets
-		WHERE site_id = ? AND sha256 = ? AND byte_size = ? AND media_type = ? AND state = ?
-		ORDER BY asset_id LIMIT 1`,
-		string(siteID), string(sha256Hash), byteSize, mediaType, string(gen.AssetStateReady)).Scan(&raw)
+func (s *localBlobStore) findReadyAsset(ctx context.Context, exec sqlExecer, siteID Identifier, sha256Hash Hash, byteSize int, mediaType string, kind gen.AssetKind) (gen.Asset, bool, error) {
+	var raw sql.NullString
+	var assetID string
+	err := exec.QueryRowContext(ctx, `SELECT asset_id,CASE WHEN length(CAST(asset_json AS BLOB))<=16777216 THEN asset_json ELSE NULL END FROM assets WHERE site_id=? AND sha256=? AND byte_size=? AND media_type=? AND state='ready' AND json_extract(asset_json,'$.kind')=? ORDER BY asset_id LIMIT 1`, siteID, sha256Hash, byteSize, mediaType, kind).Scan(&assetID, &raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return gen.Asset{}, false, nil
 	}
 	if err != nil {
-		return gen.Asset{}, false, mapMediaDBError(err, "读取资源元数据失败")
+		return gen.Asset{}, false, mapMediaDBError(err, "读取已有资源失败")
 	}
 	var asset gen.Asset
-	if err := json.Unmarshal([]byte(raw), &asset); err != nil {
-		return gen.Asset{}, false, platform.NewError(platform.CodeIntegrityError, false, "资源元数据损坏")
+	if !raw.Valid || s.validateAsset(json.RawMessage(raw.String)) != nil || json.Unmarshal([]byte(raw.String), &asset) != nil || asset.Ref.AssetId != assetID || asset.Kind != kind || asset.SiteId != siteID || asset.Ref.Sha256 != sha256Hash || asset.Ref.ByteSize != byteSize || asset.Ref.MediaType != mediaType || asset.State != gen.AssetStateReady {
+		return gen.Asset{}, false, platform.NewError(platform.CodeIntegrityError, false, "已有ready资源元数据与索引不符")
 	}
 	return asset, true, nil
 }
@@ -815,88 +765,14 @@ func mapMediaDBError(err error, message string) error {
 	}
 }
 
-// CommitAssetBlob 将已验证上传提交到不可变内容寻址边界。哈希在提交前再次
-// 从临时对象读取，防止调用方仅凭声明的 SHA 绕过校验；文件落盘、journal
-// 和资源元数据事务由 blobStore 的私有实现原子完成。
+// CommitAssetBlob 仅供CompleteUpload持锁、校验完毕的链调用。
 func CommitAssetBlob(ctx context.Context, op OperationContext, input CommitAssetBlobInput) (CommitAssetBlobResult, error) {
-	workCtx, cancel, err := uploadOperationContext(ctx, op)
-	if err != nil {
-		return CommitAssetBlobResult{}, err
+	s, ok := currentBlobStore().(*localBlobStore)
+	if !ok {
+		return CommitAssetBlobResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体私有存储未装配")
 	}
-	defer cancel()
-
-	if !validIdentifier(input.UploadID) {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeValidation, false, "上传标识不合法")
-	}
-	if !validHash(input.SHA256) {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeIntegrityError, false, "上传摘要不合法")
-	}
-	if !validMediaType(input.MediaType) {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeValidation, false, "媒体类型不合法")
-	}
-	if !validIdentifier(op.Actor.SiteID) {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeValidation, false, "站点标识不合法")
-	}
-
-	store := currentBlobStore()
-	if store == nil {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体私有存储尚未装配")
-	}
-
-	hashResult, err := HashUpload(workCtx, op, HashUploadInput{UploadID: input.UploadID})
-	if err != nil {
-		return CommitAssetBlobResult{}, err
-	}
-	if hashResult.SHA256 != input.SHA256 {
-		return CommitAssetBlobResult{}, platform.NewError(platform.CodeIntegrityError, false, "上传对象摘要与声明不一致")
-	}
-
-	select {
-	case <-workCtx.Done():
-		return CommitAssetBlobResult{}, contextError(workCtx.Err())
-	default:
-	}
-	asset, err := store.CommitVerifiedBlob(workCtx, blobCommitRequest{
-		SiteID:    op.Actor.SiteID,
-		UploadID:  input.UploadID,
-		SHA256:    input.SHA256,
-		MediaType: input.MediaType,
-		ByteSize:  hashResult.ByteSize,
-	})
-	if err != nil {
-		return CommitAssetBlobResult{}, mapBlobStoreError(err, "提交不可变资源失败")
-	}
-	if err := validateCommittedAsset(asset, op.Actor.SiteID, input, hashResult.ByteSize); err != nil {
-		return CommitAssetBlobResult{}, err
-	}
-	return CommitAssetBlobResult{Asset: asset}, nil
-}
-
-func validateCommittedAsset(asset gen.Asset, siteID Identifier, input CommitAssetBlobInput, byteSize int) error {
-	if asset.SiteId != siteID || asset.State != gen.AssetStateReady ||
-		!validIdentifier(asset.Ref.AssetId) || asset.Ref.Sha256 != input.SHA256 ||
-		asset.Ref.ByteSize != byteSize || asset.Ref.MediaType != input.MediaType {
-		return platform.NewError(platform.CodeIntegrityError, false, "不可变资源提交回执不一致")
-	}
-	if !validIdentifier(asset.CreatedBy) || !utf8ValidAndNonEmpty(asset.OriginalName) ||
-		!validAssetKind(asset.Kind) || asset.CreatedAt.IsZero() || asset.Revision < 0 {
-		return platform.NewError(platform.CodeIntegrityError, false, "资源元数据回执不完整")
-	}
-	return nil
-}
-
-func validAssetKind(kind gen.AssetKind) bool {
-	switch kind {
-	case gen.AssetKindAttachment, gen.AssetKindDrawingScene, gen.AssetKindDrawingSvg,
-		gen.AssetKindImage, gen.AssetKindPlatformCover, gen.AssetKindVideo:
-		return true
-	default:
-		return false
-	}
-}
-
-func utf8ValidAndNonEmpty(value string) bool {
-	return value != "" && utf8.ValidString(value)
+	asset, err := s.CommitVerifiedBlob(ctx, op, input)
+	return CommitAssetBlobResult{Asset: asset}, err
 }
 
 func mapBlobStoreError(err error, fallback string) error {

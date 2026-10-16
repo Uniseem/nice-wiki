@@ -3577,6 +3577,31 @@
       "path": "modules/content/internal/reference_extractor.go",
       "kind": "source",
       "purpose": "扫描所有嵌套块资源引用"
+    },
+    {
+      "path": "modules/media/internal/upload_completion.go",
+      "kind": "source",
+      "purpose": "完成hash/MIME验证后发布ready资源"
+    },
+    {
+      "path": "modules/media/internal/mime_validator.go",
+      "kind": "source",
+      "purpose": "从字节识别类型"
+    },
+    {
+      "path": "modules/media/internal/payload_validator.go",
+      "kind": "source",
+      "purpose": "验证SVG/场景/附件/视频安全交付"
+    },
+    {
+      "path": "modules/media/internal/drawing_validator.go",
+      "kind": "source",
+      "purpose": "校验Excalidraw场景和提取文字"
+    },
+    {
+      "path": "modules/media/internal/outbox_repository.go",
+      "kind": "source",
+      "purpose": "原子写最小资源状态outbox"
     }
   ]
 }

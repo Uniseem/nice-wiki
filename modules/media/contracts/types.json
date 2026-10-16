@@ -316,12 +316,13 @@
         },
         "state": {
           "type": "string",
-          "description": "状态",
+          "description": "receiving可续传；complete已提交；blocked校验拒绝且原错误持久；aborted/expired只影响临时对象；未知状态拒绝",
           "enum": [
             "receiving",
             "complete",
             "aborted",
-            "expired"
+            "expired",
+            "blocked"
           ]
         },
         "expiresAt": {
@@ -2956,63 +2957,63 @@
         "files": {
           "type": "object",
           "description": "Excalidraw image文件字典；仅明确pattern键，禁止任意未知top字段",
-          "additionalProperties": false,
-          "patternProperties": {
-            "^[A-Za-z0-9._:-]{1,128}$": {
-              "type": "object",
-              "description": "scene图像",
-              "additionalProperties": false,
-              "properties": {
-                "id": {
-                  "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-                  "description": "fileId"
-                },
-                "mimeType": {
-                  "type": "string",
-                  "description": "嵌入图像",
-                  "enum": [
-                    "image/png",
-                    "image/jpeg",
-                    "image/webp",
-                    "image/gif",
-                    "image/avif"
-                  ]
-                },
-                "dataURL": {
-                  "type": "string",
-                  "description": "仅上述raster MIME的base64 data URL，不允许SVG/外部URL",
-                  "minLength": 1,
-                  "maxLength": 33554432
-                },
-                "created": {
-                  "type": "integer",
-                  "description": "epochms",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "lastRetrieved": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "description": "epochms",
-                      "minimum": 0,
-                      "maximum": 9007199254740991
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "无null"
-                }
+          "additionalProperties": {
+            "type": "object",
+            "description": "scene图像",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "fileId"
               },
-              "required": [
-                "id",
-                "mimeType",
-                "dataURL",
-                "created",
-                "lastRetrieved"
-              ]
-            }
+              "mimeType": {
+                "type": "string",
+                "description": "嵌入图像",
+                "enum": [
+                  "image/png",
+                  "image/jpeg",
+                  "image/webp",
+                  "image/gif",
+                  "image/avif"
+                ]
+              },
+              "dataURL": {
+                "type": "string",
+                "description": "仅上述raster MIME的base64 data URL，不允许SVG/外部URL",
+                "minLength": 1,
+                "maxLength": 33554432
+              },
+              "created": {
+                "type": "integer",
+                "description": "epochms",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "lastRetrieved": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "description": "epochms",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "无null"
+              }
+            },
+            "required": [
+              "id",
+              "mimeType",
+              "dataURL",
+              "created",
+              "lastRetrieved"
+            ]
+          },
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
           }
         }
       },
@@ -3440,12 +3441,42 @@
             "drawing_svg",
             "platform_cover"
           ]
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "图/视频宽",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "高",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
         }
       },
       "required": [
         "mediaType",
         "animated",
-        "kind"
+        "kind",
+        "width",
+        "height"
       ]
     },
     "ValidateAssetPayloadInput": {
@@ -3519,13 +3550,59 @@
           "description": "MIME",
           "minLength": 1,
           "maxLength": 128
+        },
+        "expectedRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "已授权完成链的精确会话水位"
+        },
+        "requestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "kind/caller/actor/site/epoch及原输入摘要"
+        },
+        "animated": {
+          "type": "boolean",
+          "description": "确证的动画元数据"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "图/视频宽",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "高",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "无null"
         }
       },
       "required": [
         "uploadId",
         "sha256",
-        "mediaType"
-      ]
+        "mediaType",
+        "expectedRevision",
+        "requestHash",
+        "animated",
+        "width",
+        "height"
+      ],
+      "x-internal": true
     },
     "CommitAssetBlobResult": {
       "type": "object",
@@ -4860,21 +4937,33 @@
     },
     "PublishAssetEventInput": {
       "type": "object",
-      "description": "原子写最小资源状态outbox的输入",
+      "x-internal": true,
+      "description": "内部ready事务句柄与最小资源事件材料；HTTP不能提供或序列化",
       "additionalProperties": false,
       "properties": {
-        "event": {
-          "$ref": "#/$defs/AssetChangedPayload",
-          "description": "AssetChangedPayload"
+        "tx": {
+          "type": "object",
+          "x-internal": true,
+          "description": "同一本域sql.Tx句柄"
+        },
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "同事务ready安全元数据"
         },
         "eventId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "ID"
+          "description": "同事务固定事件标识"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "事件时间"
         }
       },
       "required": [
-        "event",
-        "eventId"
+        "tx",
+        "asset",
+        "eventId",
+        "occurredAt"
       ]
     },
     "PublishAssetEventResult": {

@@ -169,3 +169,17 @@ ReadAsset只读真实ready元数据并核索引与唯一Asset schema，明确版
 本轮私有文件安全收口复用公共lifecycle.ValidatePrivatePath：既有上传/暂存普通文件打开前后均拒硬链接，并核Root、fd和绝对路径SameFile；media.db打开前后同一公共校验，未知失败关闭，不复制规则。
 
 Begin配额读取在当前用户media.upload/原站点与回执边界之后，按bounded op保留deadline/epoch/root/costClass，派生固定media纯服务Actor并清原PortalProof，不携用户session/grants，不额外要求编辑者site.read。site-config返回siteId必须仍等于原用户站点。
+
+## 本轮完成上传与直接校验（2026-10-16，已有检查通过，行为未验收）
+
+继续使用0001/0002的私有upload_receipts，不新增迁移。Begin原UploadSession快照保持；Complete摘要中kind=complete_upload，封套version=1固定首次Asset或安全错误，result_hash核原字节。来源上传owner/site/创建epoch匹配后才回放；不借当前资源重建原结果，也不因当前revision、配额、到期或维护改变旧成功。不同主体可在同站点复用原ready资源，保留原资源creator；本次授权仍以本次上传owner为准。
+
+UploadSession新增blocked枚举，表示确定的完整SHA/格式/场景校验失败，revision+1与原错误同事务；原有receiving/complete/aborted/expired值兼容，未知状态仍拒绝。尚未收齐、revision冲突、依赖失败与取消不猜作blocked。完整成功按upload owner/site/创建epoch、receiving、原revision与已确认字节SQL CAS；ready/session/COMMITTED/原结果/新资源media.asset.changed outbox同一事务。Commit未知保留临时与不可变文件并报错，同op查回执确认。
+
+MIME忽略浏览器声明；附件固定application/octet-stream，后续字节交付须attachment+nosniff。图片只解析PNG/JPEG/GIF/WebP/AVIF容器/尺寸/动画元数据，不解码像素；MP4/WebM只核允许的编码声明，不解码帧。SVG≤16MiB、画板scene≤64MiB，XML节点≤200000/深度≤128；JPEG头读取≤16MiB、容器节点有界。图片单维1..100000，不支持的容器/编码明确拒绝。SVG保留原字节并带sandbox约束，实际bytes交付函数仍planned，不能将本轮校验视为公开交付已实现。
+
+DrawingScene的files以additionalProperties值schema及propertyNames原精确模式等价表达；OpenAPI 3.0不能表达的键限制由Drawing专属语义按原模式与key/id一致完成，其余字段仍走唯一生成schema。保持场景version=2，未知字段/版本不静默丢弃。文件只允许受限raster base64 data URL，图元引用、frame无环、压力点数量和安全链接另核语义。
+
+完成拒绝的blocked临时文件继续按expected_bytes计入站点存储预留，上传并发数仍只计receiving；尚未明确清理的坏MIME不能反复绕过存储上限。本轮Abort只允许receiving，blocked明确拒绝且继续占用预留，不能沿忽略unlink错误的旧路径释放blocked配额。后续显式临时清理须先建立可恢复的删除/释放决定，不能把unlink失败或未知提交当成空间已释放。
+
+同站点资源复用在SQL选择时即按hash/byteSize/mediaType/kind精确匹配；持久Asset通过唯一schema及所选asset_id/索引字段核对后才进入COMMITTED/原回执，不能在LIMIT1后丢弃不匹配kind的首行造成重复元数据。

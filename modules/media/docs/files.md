@@ -2,21 +2,21 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 48 个：手写 38、生成 3、配置 6、迁移 1。函数 83 个：约束 36，参考 47。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 48 个：手写 38、生成 3、配置 6、迁移 1。函数 112 个：约束 36，参考 76。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/media/internal/upload_service.go` | 手写 | 开始内容寻址可续传上传 | `media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.hashBeginUploadRequest`（参考）、`media.validateUploadActor`（参考）、`media.readUploadQuota`（参考） |
 | `modules/media/internal/upload_validator.go` | 手写 | 清理展示文件名而不用于路径 | `media.NormalizeOriginalName`（参考）、`media.HashUpload`（参考） |
 | `modules/media/internal/chunk_writer.go` | 手写 | 顺序原子写有界上传块 | `media.PutUploadChunk`、`media.mediaWriteContext`（参考）、`media.hashChunkRequest`（参考）、`media.readChunkOperation`（参考）、`media.chunkContextReader.Read`（参考）、`media.chunkStageName`（参考）、`media.writeChunkStage`（参考）、`media.reconcileUploadFile`（参考）、`media.verifyUploadChunks`（参考）、`media.commitChunk`（参考）、`media.RecoverUploadChunks`（参考） |
-| `modules/media/internal/upload_completion.go` | 手写 | 完成hash/MIME验证后发布ready资源 | `media.CompleteUpload` |
+| `modules/media/internal/upload_completion.go` | 手写 | 完成hash/MIME验证后发布ready资源 | `media.CompleteUpload`、`media.hashCompleteRequest`（参考）、`media.replayCompletion`（参考）、`media.completionRejectionCode`（参考）、`media.rejectCompletion`（参考）、`media.casCompleteSession`（参考）、`media.writeCompletionReceipt`（参考） |
 | `modules/media/internal/upload_maintenance.go` | 手写 | 仅回收过期未完成临时字节 | `media.ExpireUploadSessions`（参考） |
-| `modules/media/internal/mime_validator.go` | 手写 | 从字节识别类型 | `media.SniffAssetType`（参考） |
-| `modules/media/internal/payload_validator.go` | 手写 | 验证SVG/场景/附件/视频安全交付 | `media.ValidateAssetPayload`（参考） |
-| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务 | `media.CommitAssetBlob`（参考）、`media.InstallLocalBlobStore`（参考）、`media.openLocalBlobStore`（参考）、`media.readUploadRow`（参考）、`media.writeUploadRow`（参考）、`media.ensureMediaDirectory`（参考）、`media.openMediaRoot`（参考）、`media.openMediaRegular`（参考）、`media.ConfigureWriteWindow`（参考）、`media.CloseLocalBlobStore`（参考）、`media.LocalStorageRecovered`（参考）、`media.replayBeginUpload`（参考）、`media.CreateUpload`（参考） |
+| `modules/media/internal/mime_validator.go` | 手写 | 从字节识别类型 | `media.SniffAssetType`（参考）、`media.invalidMedia`（参考）、`media.inspectPNG`（参考）、`media.inspectGIF`（参考）、`media.inspectWebP`（参考）、`media.readMediaBox`（参考）、`media.inspectBrands`（参考）、`media.inspectBMFF`（参考）、`media.readEBMLNumber`（参考）、`media.inspectWebM`（参考）、`media.validateMP4SampleEntry`（参考）、`media.readMP4Descriptor`（参考）、`media.validateAACDescriptor`（参考）、`media.validateAACConfig`（参考）、`media.validateWebMTrack`（参考） |
+| `modules/media/internal/payload_validator.go` | 手写 | 验证SVG/场景/附件/视频安全交付 | `media.ValidateAssetPayload`（参考）、`media.validateSVG`（参考）、`media.validateSVGCSS`（参考）、`media.safeDrawingLink`（参考） |
+| `modules/media/internal/blob_repository.go` | 手写 | 将已验证文件提交不可变内容寻址存储；私有SQLite保存上传会话、资源元数据、回执与blob日志，COMMITTED与资源元数据同事务 | `media.CommitAssetBlob`（参考）、`media.InstallLocalBlobStore`（参考）、`media.openLocalBlobStore`（参考）、`media.readUploadRow`（参考）、`media.writeUploadRow`（参考）、`media.ensureMediaDirectory`（参考）、`media.openMediaRoot`（参考）、`media.openMediaRegular`（参考）、`media.ConfigureWriteWindow`（参考）、`media.CloseLocalBlobStore`（参考）、`media.LocalStorageRecovered`（参考）、`media.replayBeginUpload`（参考）、`media.CreateUpload`（参考）、`media.OpenUpload`（参考）、`media.CommitVerifiedBlob`（参考）、`media.findReadyAsset`（参考）、`media.hashFile`（参考） |
 | `modules/media/internal/asset_service.go` | 手写 | 读取资源/variants安全元数据 | `media.ReadAsset`、`media.ListAssets` |
 | `modules/media/internal/image_variants.go` | 手写 | 关联浏览器多宽WebP原图 | `media.AttachImageVariants` |
-| `modules/media/internal/drawing_validator.go` | 手写 | 校验Excalidraw场景和提取文字 | `media.ValidateDrawingScene`（参考） |
+| `modules/media/internal/drawing_validator.go` | 手写 | 校验Excalidraw场景和提取文字 | `media.ValidateDrawingScene`（参考）、`media.decodeDrawingRaster`（参考）、`media.validateDrawingRaster`（参考） |
 | `modules/media/internal/reference_service.go` | 手写 | 正文/config提交前保护资源迟到引用 | `media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences` |
 | `modules/media/internal/reference_repository.go` | 手写 | 消费引用事件防重复/乱序 | `media.ApplyReferenceEvent` |
 | `modules/media/internal/reference_reader.go` | 手写 | 列哪些文档当前/历史引用资源 | `media.ReadAssetReferences` |

@@ -55,9 +55,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch,
-		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}},
+		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}},
 		ServiceActorCallers:   map[string][]string{"readAsset": {"content", "site-config", "public-site", "localization", "knowledge"}},
-		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
+		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +116,22 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 			writeJSON(w, http.StatusOK, result)
 		}),
 		"putUploadChunk": http.HandlerFunc(serveUploadChunk),
+		"completeUpload": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var body struct {
+				ExpectedRevision gen.Revision `json:"expectedRevision"`
+			}
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "完成上传参数无法转换"))
+				return
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.CompleteUpload(r.Context(), op, mediaDomain.CompleteUploadInput{UploadId: r.PathValue("uploadId"), ExpectedRevision: body.ExpectedRevision})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
 		"readAsset": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var version *gen.Revision
 			if text := r.URL.Query().Get("version"); text != "" {
