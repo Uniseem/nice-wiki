@@ -1,8 +1,8 @@
 # AI 接入会话交接
 
-## 两轮并行第二轮：凭据安全持久化（待VPS检查）
+## 两轮并行第二轮：凭据安全持久化（已交付）
 
-更新：2026-10-16。用户授权三子代理并行两轮、每轮根统一检查并普通push main；本轮是最后一轮，完成后停止。基线53acce862467dbe40b829d1984519d78ccac5608，分支codex/model-next-two-r2；公共ServiceConfig.MasterKeyRef/NW_MASTER_KEY_REF前置993904524e4d7a792a6c84a80606de6215f7ace5已正常ff合入。只拥有modules/model-gateway/，当前源码code-ready尚未提交、未记implemented/verified。
+更新：2026-10-16。用户授权三子代理并行两轮、每轮根统一检查并普通push main；本轮是最后一轮，完成后停止。基线53acce862467dbe40b829d1984519d78ccac5608，分支codex/model-next-two-r2；公共ServiceConfig.MasterKeyRef/NW_MASTER_KEY_REF前置993904524e4d7a792a6c84a80606de6215f7ace5已正常ff合入。只拥有modules/model-gateway/，源码提交c82f663bb8f935ff67a8da9e22c463ea0765d816；Put完整、紧密辅助与修改后的完整函数verified，Rotate旧引用生命周期与整体启动缺口保持partial/blocked。
 
 实际路径：新增已登记internal/security/credential.go；修改runtime/bootstrap.go（只装配可选secret引用）、app/wire.go（可信引用和真实Put/Rotate映射）、catalog/provider.go（保护active指针及同事务严格epoch）、本域deploy配置/manifest。复用001/002既有credentials/providers/operation_receipts和平台outbox，无迁移、依赖或外部借用。四契约与文档/台账同步，生成物由根VPS回传，不手改。
 
@@ -16,9 +16,11 @@ HMAC回执：主密钥按固定用途域派生子键，再HMAC规范输入（cal
 
 PutCredential支持首次/替换，也可修复active材料缺失但必须沿真实版本CAS；Rotate要求已有完整同代active材料。全部旧密文保留，不能以目前invocations表空推断无引用。原Rotate“最后引用释放后销毁”生命周期尚无真实派发/引用释放依据，保留该责任并将Rotate整体in_progress/partial、credential.go整体partial；不为完成率挪走责任。完整启动/HTTP其余handler/权威epoch初始化/恢复/后台/模型费用仍未交付，BuildApplication保持blocked。
 
-检查：等待根VPS docs/gen、gofmt、14模块readonly build/vet与完整check；本机仅只读结构/git diff检查。未新增测试、mock、fixture、样例或临时业务程序；未SQL/HTTP行为、真实接口/模型、服务/镜像/部署或push。
+检查：2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 首次候选check因readCredentialReceipt参数顺序失败，该次不计完整通过；改为ctx,op,tx并补全PutProvider原结果/屏障闭环后，全量重跑通过。全部Go检查在根VPS，本机仅git diff及暂存/提交/用户代用身份静态隐私扫描，未改身份配置。未新增测试、mock、fixture、样例或临时业务程序；本域不push。
 
-下一项仅为把第二轮最终候选交根复核/VPS检查，按精确回传收口双提交并冻结；本次两轮结束后不第三轮。后续若另有授权，先完善真实派发的凭据版本引用与释放协议，再实现最后引用后的旧密文销毁，不能把当前表空当作安全回收证据。
+第二轮源码共22个本域路径，新增已登记credential.go，其他为四机器合同、真实装配/provider/runtime、本域部署引用、人工/生成文档、状态与两个API生成物；无新增迁移或依赖。PutCredential、PutProvider、InstallStore、Store.MasterKeyRef、七项凭据辅助/映射及readProviderReceipt共12个完整条目verified；Rotate/LoadRuntime及整文件缺口未误记完成。
+
+下一项仅为根顺序集成本轮源码/记录、统一复核并按用户本次授权普通push main；本域冻结停止，不第三轮。未来另获授权时，先完善真实派发的凭据版本引用与释放协议，再实现最后引用后的旧密文销毁，不能把当前表空当作安全回收证据。
 
 以下为第一轮及既有交付历史。
 
@@ -136,4 +138,4 @@ ReadTaskAssignments纯服务仅owner范围，显式未知任务VALIDATION、跨o
 
 新增readTaskAvailability固定QA链三任务的免费配置投影。缺价格按原产品不阻断，不查询余额，不调用供应方或模型；仅合同与生成来源，业务函数仍planned。
 
-第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后待根重新检查。
+第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后根全量生成/编译/结构检查通过，证据见本轮交付记录。

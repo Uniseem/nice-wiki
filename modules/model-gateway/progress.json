@@ -7,38 +7,38 @@
   "assignedSession": "两轮并行第二轮凭据安全持久化",
   "branch": "codex/model-next-two-r2",
   "baseCommit": "53acce862467dbe40b829d1984519d78ccac5608",
-  "deliveryCommit": null,
+  "deliveryCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "in_progress",
-      "implementationCommit": "71cd82a4a6a1936e6e814680495b8afdeeb3eb6b",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮源码code-ready；整体未完成职责保持partial"
+      "blocker": "本轮InstallStore/主密钥引用getter已verified，LoadRuntime完整恢复调度与关键依赖就绪仍partial"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
       "state": "in_progress",
-      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮源码code-ready；整体未完成职责保持partial"
+      "blocker": "本轮PutProvider/原回执辅助已verified，SetProviderEnabled仍planned，整文件partial"
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "Put与版本切换code-ready；Rotate最后引用释放销毁生命周期尚缺，整文件partial"
+      "blocker": "Put和七项紧密辅助/映射verified；Rotate最后引用销毁生命周期尚缺，整文件partial"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -352,13 +352,13 @@
     },
     {
       "path": "modules/model-gateway/deploy/service.config.json",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮源码code-ready；整体未完成职责保持partial"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/migrations/001_initial.sql",
@@ -393,12 +393,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮源码code-ready；整体未完成职责保持partial"
+      "blocker": "本轮可信主密钥引用和真实凭据HTTP映射已检查；其余handler/权威epoch初始化/恢复回执/后台缺失，整文件partial且BuildApplication blocked"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -452,13 +452,13 @@
     },
     {
       "path": "modules/model-gateway/deploy/manifest.json",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮改动待根统一VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮源码code-ready；整体未完成职责保持partial"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/ui/package.json",
@@ -523,10 +523,10 @@
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：初次同API候选make docs/gen通过；最终fast回退影响修正树make docs、profile.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1219函数/379操作/2272类型），精确格式/生成物已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -553,10 +553,10 @@
     {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：初次同API候选make docs/gen通过；最终fast回退影响修正树make docs、profile.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1219函数/379操作/2272类型），精确格式/生成物已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -576,12 +576,12 @@
       "id": "model-gateway.LoadRuntime",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 仅本轮已写切片经过检查，整函数缺口未完成。"
       },
-      "blocker": "本轮只改可选引用装配，不读取secret；完整恢复调度/关键依赖就绪尚缺，整体partial"
+      "blocker": "本轮可选主密钥引用装配已检查且启动不读secret；完整恢复调度及关键依赖就绪尚缺，整体partial"
     },
     {
       "id": "model-gateway.ValidateProvider",
@@ -597,13 +597,13 @@
     {
       "id": "model-gateway.PutProvider",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.SetProviderEnabled",
@@ -619,24 +619,24 @@
     {
       "id": "model-gateway.PutCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.RotateCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "in_progress",
-      "implementationCommit": null,
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 仅本轮已写切片经过检查，整函数缺口未完成。"
       },
-      "blocker": "新版本切换已写；派发旧凭据引用/释放与最后引用销毁尚未实现，本函数整体partial，不能记完整verified"
+      "blocker": "新版本切换通过本阶段检查；派发旧凭据引用/释放及最后引用销毁尚未实现，整函数partial，不能记完整verified"
     },
     {
       "id": "model-gateway.PutModel",
@@ -1236,10 +1236,10 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只增加可信主密钥引用与两项真实HTTP映射，完整服务未齐，待根VPS检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 仅本轮已写切片经过检查，整函数缺口未完成。"
       },
       "blocker": "其他handler、权威epoch初始化、恢复回执和后台未齐，不能启动部分服务"
     },
@@ -1389,13 +1389,13 @@
     {
       "id": "model-gateway.InstallStore",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.Store.BeginTx",
@@ -1488,102 +1488,102 @@
     {
       "id": "model-gateway.Store.MasterKeyRef",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.writeCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.loadCredentialMasterKey",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.credentialDigest",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.credentialFingerprint",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.readCredentialReceipt",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.credentialStorageError",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewCredentialHandlers",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮源码与合同code-ready待集成会话VPS生成/格式/编译/完整检查；不执行本机Go/SQL/业务验证。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.readProviderReceipt",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮窄修7天原回执及触达凭据指针的配置闭环，待根VPS重新检查。"
+        "state": "passed",
+        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "待根VPS现阶段检查"
+      "blocker": null
     }
   ],
-  "rule": "第二轮（最后一轮）只做AES-GCM PutCredential/RotateCredential版本切换、HMAC脱敏原回执、可信主密钥引用按写入读取及PutProvider指针保护。代码待根VPS检查，不得标implemented；Rotate保留引用释放销毁生命周期职责而整体partial，credential.go和完整启动partial/blocked；未新增迁移/依赖/测试/真实接口模型或部署。公共引用前置9939045已正常合入，本轮后停止，不第三轮。"
+  "rule": "第二轮（最后一轮）源码已交付：PutCredential、PutProvider窄修、InstallStore、Store.MasterKeyRef及凭据七项参考辅助/映射、渠道回执辅助按源码SHA verified。Rotate仅新版本切换已写，旧引用释放销毁尚缺，整体in_progress；LoadRuntime恢复调度仍partial，credential/provider/runtime/wire文件均保留准确partial/blocked。修复首次ctx/op签名检查失败后，最终根VPS生成/14模块build/vet/gofmt/完整check通过；未做业务验收或部署。本轮结束冻结，无第三轮，本域不push。"
 }
