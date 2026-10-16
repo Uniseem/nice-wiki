@@ -5,12 +5,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/content/internal/gen"
@@ -77,9 +75,6 @@ func draftCommitStoreFromContext(ctx context.Context) (DraftCommitStore, bool) {
 // CommitDraftJournal核验不可变正文文件后，以单个私有事务提交共享draft head。
 // 具体数据库和outbox写入由DraftCommitTransaction实现，避免本域函数绕过事务边界。
 func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDraftJournalInput) (result CommitDraftJournalResult, retErr error) {
-	if err := validateDraftCommitContext(ctx, op); err != nil {
-		return result, err
-	}
 	if err := validateDraftCommitInput(op, input); err != nil {
 		return result, err
 	}
@@ -127,18 +122,19 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 	if receipt, found, err := tx.FindReceipt(ctx, op.OperationID, digest); err != nil {
 		return result, normalizeDraftCommitError(err, "正文提交回执不可读")
 	} else if found {
+		if err := tx.Rollback(ctx); err != nil {
+			return result, normalizeDraftCommitError(err, "正文原回执事务释放失败")
+		}
 		finished = true
 		return receipt, nil
 	}
 
+	// 文件校验不得持有doc guard或SQL事务；fence只覆盖随后短提交。
+	if err := verifyRevisionMaterialFile(ctx, bodyPath, input.Draft); err != nil {
+		return result, err
+	}
 	if err := tx.ValidateFence(ctx, input); err != nil {
 		return result, normalizeDraftCommitError(err, "正文提交fence校验失败")
-	}
-	if err := verifyPreparedRevisionFile(ctx, bodyPath, input.Draft); err != nil {
-		return result, err
-	}
-	if err := checkDraftCommitContext(ctx, op); err != nil {
-		return result, err
 	}
 
 	result, err = tx.Commit(ctx, request)
@@ -147,45 +143,6 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 	}
 	finished = true
 	return result, nil
-}
-
-func validateDraftCommitContext(ctx context.Context, op OperationContext) error {
-	if ctx == nil {
-		return platform.NewError(platform.CodeValidation, false, "正文提交上下文为空")
-	}
-	if !platform.ValidIdentifier(op.OperationID) || !platform.ValidIdentifier(op.RequestID) {
-		return platform.NewError(platform.CodeValidation, false, "正文提交操作标识不合法")
-	}
-	if !platform.ValidIdentifier(op.DataEpoch) || !platform.ValidIdentifier(op.Actor.SiteID) {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "正文提交运行代次或站点不可用")
-	}
-	if op.Deadline == "" {
-		return platform.NewError(platform.CodeDeadlineExceeded, true, "正文提交缺少操作期限")
-	}
-	deadline, err := platform.ParseTimestamp(op.Deadline)
-	if err != nil {
-		return platform.NewError(platform.CodeValidation, false, "正文提交操作期限不合法")
-	}
-	if !time.Now().UTC().Before(deadline) {
-		return platform.NewError(platform.CodeDeadlineExceeded, true, "正文提交已超过期限")
-	}
-	return checkDraftCommitContext(ctx, op)
-}
-
-func checkDraftCommitContext(ctx context.Context, op OperationContext) error {
-	select {
-	case <-ctx.Done():
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return platform.NewError(platform.CodeDeadlineExceeded, true, "正文提交已超过期限")
-		}
-		return platform.NewError(platform.CodeCancelled, true, "正文提交已取消")
-	default:
-	}
-	deadline, err := platform.ParseTimestamp(op.Deadline)
-	if err != nil || !time.Now().UTC().Before(deadline) {
-		return platform.NewError(platform.CodeDeadlineExceeded, true, "正文提交已超过期限")
-	}
-	return nil
 }
 
 func validateDraftCommitInput(op OperationContext, input CommitDraftJournalInput) error {
@@ -304,7 +261,7 @@ func checkDraftCommitIOContext(ctx context.Context) error {
 }
 
 func draftCommitDigest(input CommitDraftJournalInput) (Hash, error) {
-	data, err := json.Marshal(input)
+	data, err := platform.CanonicalJSON(input)
 	if err != nil {
 		return "", err
 	}

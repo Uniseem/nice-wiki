@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 166 个函数：约束 42 个，参考 124 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 214 个函数：约束 42 个，参考 172 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,9 +33,9 @@ func CreateDocument(ctx context.Context, op OperationContext, input CreateDocume
 
 **步骤**
 
-1. 检查content.edit、parent非trash和treeRevision，site-config取基准语言
-2. 生成docId/空Tiptap doc与fractional order；WriteRevisionFile
-3. 事务建tree metadata/shared draft head/ID ledger/COMMITTED journal；未发草稿不可公开
+1. 即时检查content.edit，经site-config读取基准语言与当前正文限额
+2. 读取完整本站treeRevision与元数据快照，核parent非trash及完整32层树，生成固定docId/空Tiptap doc/fractional order并先持久专用创建意图
+3. WriteRevisionFile文件IO后，创建专用短SQL以站点树CAS和doc不存在谓词原子建立metadata/head/ledger/COMMITTED/refs/完整原回执/outbox；不取得通用恒成功保存fence
 
 **错误**
 
@@ -46,12 +46,238 @@ func CreateDocument(ctx context.Context, op OperationContext, input CreateDocume
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：私有固定意图、正文资格、稳定ID或完整原回执不一致（不可重试）
+- `CONFLICT`：同操作异动作或摘要，或意图已终止（不可重试）
 
 - 副作用：私有事务/正文提交日志/operation receipt/outbox
 - 授权：按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config:readSiteConfig`、`content.WriteRevisionFile`、`content.CommitDraftJournal`
+- 依赖：`content.draftRuntimeFromContext`、`content.authorizeEditLock`、`content.draftRequestDigest`、`content.readDraftOperation`、`content.readDraftSiteConfig`、`content.planDocumentCreation`、`content.draftWriteContext`、`content.prepareDraftOperation`、`content.executeDraftCommit`、`content.decodeStorageJSON`、`site-config:readSiteConfig`
+
+## content.draftWriteContext
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：在doc互斥和SQL之前读取当前公共写窗口
+
+```go
+func draftWriteContext(ctx context.Context,op OperationContext,runtime DraftRuntime) (context.Context,context.CancelFunc,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在doc互斥和SQL之前读取当前公共写窗口
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`platform.NewWriteContext`
+
+## content.contentServiceContext
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：把本站内部引用与配置只读请求装配为content纯服务身份
+
+```go
+func contentServiceContext(ctx context.Context,op OperationContext) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 把本站内部引用与配置只读请求装配为content纯服务身份
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.readDraftSiteConfig
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：经版本化API读取初始化基准语言及当前正文大小限额
+
+```go
+func readDraftSiteConfig(ctx context.Context,op OperationContext,runtime DraftRuntime) (string,int64,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 经版本化API读取初始化基准语言及当前正文大小限额
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.contentServiceContext`、`site-config:readSiteConfig`
+
+## content.planDocumentCreation
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：以站点树一致快照生成首次空正文文档与fractional顺序材料
+
+```go
+func (s *Store) planDocumentCreation(ctx context.Context,op OperationContext,input CreateDocumentInput,language string,body DocumentBody) (draftOperationPlan,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 以站点树一致快照生成首次空正文文档与fractional顺序材料
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.checkRevisionScope`、`content.readCreationTree`、`content.fractionalDocumentOrder`、`content.sameIdentifierPointer`、`content.EnsureTreeAcyclic`、`content.CanonicalizeBody`
+
+## content.readCreationTree
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：读取完整站点树版本与文档元数据一致快照
+
+```go
+func readCreationTree(ctx context.Context,q creationQuery,siteID Identifier) (int64,[]gen.DocumentMetadata,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取完整站点树版本与文档元数据一致快照
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.decodeStorageJSON`、`content.contentStorageError`
+
+## content.fractionalDocumentOrder
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：计算有界字典序中点，饱和时显式要求重排
+
+```go
+func fractionalDocumentOrder(lower,upper string) (string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 计算有界字典序中点，饱和时显式要求重排
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.validateCreateTransaction
+
+- 级别：参考
+- 文件：`modules/content/internal/document_service.go`
+- 作用：同SQL核受信创建意图、文档不存在、父节点及站点树CAS
+
+```go
+func (t *draftCommitTransaction) validateCreateTransaction(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同SQL核受信创建意图、文档不存在、父节点及站点树CAS
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.readCreationTree`、`content.EnsureTreeAcyclic`
 
 ## content.ReadDocumentTree
 
@@ -466,7 +692,7 @@ func NewEditLockManager(store *Store) (*EditLockManager,error)
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
 - 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
-- 依赖：`content.validateEditLeader`、`platform.ValidatePrivatePath`
+- 依赖：`content.validateEditLeader`、`platform.ValidatePrivatePath`、`content.syncDirectory`
 - 其他依赖说明：锁核心3种业务Input在本域按types.json投影；HTTP生成request DTO拆分路径字段，未来handler经严格边界显式映射，不依赖被裁剪的gen业务Input
 
 ## content.validateEditLeader
@@ -789,38 +1015,6 @@ func (guard *SaveFenceGuard) DocumentState() DocumentEditState
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
 - 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
-
-## content.GuardLease
-
-- 级别：参考
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：返回已核租约深拷贝，不暴露可改写的内存权威
-
-```go
-func (guard *SaveFenceGuard) GuardLease() *gen.EditLease
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 返回已核租约深拷贝，不暴露可改写的内存权威
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
-- 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
-- 依赖：`content.copyEditLease`
 
 ## content.ReleaseFence
 
@@ -1147,12 +1341,13 @@ func ReadDraft(ctx context.Context, op OperationContext, input ReadDraftInput) (
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `CONFLICT`：同操作异动作或摘要，或意图已终止（不可重试）
 
 - 副作用：无
 - 授权：content.read
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.ReadRevisionBody`
+- 依赖：`content.draftRuntimeFromContext`、`content.authorizeEditLock`、`content.readDraftSnapshot`、`content.ConfigureRevisionStorage`、`content.ReadRevisionBody`、`content.WithRevisionFileStore`、`content.AcquireDocumentFence`、`content.ReleaseFence`、`content.copyEditLease`、`content.editLeaseExpired`
 
 ## content.SaveDraft
 
@@ -1181,10 +1376,14 @@ func SaveDraft(ctx context.Context, op OperationContext, input SaveDraftInput) (
 
 **步骤**
 
-1. doc mutex检查有效holder/boot/fence/lease，ctx授权与epoch；ValidateBlockTree/IDs
-2. CollectResourceReferences先media acquire pins，再WriteRevisionFile不可变fsync
-3. 同私有txn再检查lease/fence和expectedHead/version，CommitDraftJournal+refs+receipt/outbox；commit后confirm pins，失败release且隔离未提交文件
-4. WriteRevisionFile的expectedHead取已核expectedDraftRevisionId，expectedDraftVersion取原输入；author不由浏览器提供。abort pin释放携sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest、nullable pinId及reason；先持久aborted/rejected，再由media原子封存源，pin未知不得先重新Acquire，COMMITTED不释放
+1. 即时content.edit授权，短doc guard核真实holder/boot/fence/lease和原head/version，释放guard后校正文与稳定ID
+2. 初读或prepareDraftOperation并发回放后的当前record.State统一分派：COMMITTED回原结果；aborted/rejected隔离并Release原pin后CONFLICT；只有pending继续，不能因初读found=false给已终止源新建文件准备
+3. 首次新操作先读取当前站点maxDocumentBytes，规范UTF8长度超额立即VALIDATION，不写intent不申请pin；原COMMITTED回执先回放，已prepared材料仍由文件层先回放，不因降低配额拒绝原成功
+4. found pending继续Acquire或文件IO前，短真实SaveFenceGuard核原lease/head/version/独立引用CAS并释放；确定拒绝走统一无COMMITTED证明和nullable原pin封存，未知及完整性错误保留保护
+5. 固定来源operation/site/object/revision/version/完整排序引用digest意图先持久，再media Acquire真实pin；网络未知保留pending且不释放
+6. WriteRevisionFile不可变fsync后才建立当前窗口与真实SaveFenceGuard；短SQL重核deleteFence/隔离/head CAS并同事务写ledger、COMMITTED、refs、完整原回执和outbox
+7. COMMITTED后confirm原pin；失败重试同op先读原结果再补confirm，不重新推进head；COMMITTED/未知Commit/坏正文均不转abort
+8. 只有明确CAS/租约/不存在拒绝且同SQL确认无COMMITTED资格才持久aborted、防迟到提交，随后隔离未提交文件并携完整source材料及nullable原pin释放；未知依赖保留保护
 
 **错误**
 
@@ -1195,12 +1394,437 @@ func SaveDraft(ctx context.Context, op OperationContext, input SaveDraftInput) (
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：私有固定意图、正文资格、稳定ID或完整原回执不一致（不可重试）
+- `CONFLICT`：同操作异动作或摘要，或意图已终止（不可重试）
 
 - 副作用：私有事务/正文提交日志/operation receipt/outbox
 - 授权：content.edit且当前有效锁
 - 并发：save登记与锁强释同docmutex；持久head CAS避免同人双tab覆盖；不能持mutex跨无限网络
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.ValidateBlockTree`、`content.CollectResourceReferences`、`content.WriteRevisionFile`、`content.CommitDraftJournal`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`
+- 依赖：`content.draftRuntimeFromContext`、`content.authorizeEditLock`、`content.CanonicalizeBody`、`content.draftRequestDigest`、`content.readDraftOperation`、`content.planDraftSave`、`content.draftWriteContext`、`content.prepareDraftOperation`、`content.acquireDraftPin`、`content.readDraftSiteConfig`、`content.executeDraftCommit`、`content.abortDraftOperation`、`content.confirmDraftPin`、`content.releaseDraftPin`、`content.replaySavedDraft`、`content.isolateAbortedDraft`、`media:acquireResourceReferences`、`media:confirmResourceReferences`、`media:releaseResourceReferences`、`content.checkPendingDraftSave`、`content.finishDraftSaveFailure`
+
+## content.readDraftSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：读取元数据共享head与COMMITTED回执一致快照
+
+```go
+func (s *Store) readDraftSnapshot(ctx context.Context,op OperationContext,documentID Identifier) (gen.DocumentMetadata,DraftRevision,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取元数据共享head与COMMITTED回执一致快照
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.checkRevisionScope`、`content.decodeStorageJSON`、`content.sameStoredDraft`
+
+## content.planDraftSave
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：短guard核真实租约和head后抽取稳定ID及精确引用材料
+
+```go
+func planDraftSave(ctx context.Context,op OperationContext,runtime DraftRuntime,input SaveDraftInput,bodyHash Hash) (draftOperationPlan,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 短guard核真实租约和head后抽取稳定ID及精确引用材料
+2. 引用水位独立于draftVersion：首次意图冻结ExpectedReferenceVersion及SourceVersion，短SQL与head/ledger/refs同事务CAS推进documents.reference_version；公共Revision耗尽失败，旧/未知行不猜补资格
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.ReadDocumentEditState`、`content.AcquireSaveFence`、`content.readDraftSnapshot`、`content.ReleaseFence`、`content.ValidateBlockTree`、`content.CollectResourceReferences`、`content.draftMediaReferences`
+
+## content.executeDraftCommit
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：复用持久修订ID准备正文文件后调用真实短SQL提交
+
+```go
+func executeDraftCommit(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation,body DocumentBody,limit int64) (DraftRevision,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用持久修订ID准备正文文件后调用真实短SQL提交
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.WriteRevisionFile`、`content.WithDraftCommitStore`、`content.CommitDraftJournal`
+
+## content.draftMediaReferences
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：投影并排序媒体预提交引用，计算完整规范集合摘要
+
+```go
+func draftMediaReferences(refs []gen.ResourceReference) ([]draftMediaReference,Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 投影并排序媒体预提交引用，计算完整规范集合摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.draftPinSource
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：从首次持久意图构造完整媒体来源材料
+
+```go
+func draftPinSource(op OperationContext,record draftOperation) draftPinMaterial
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 从首次持久意图构造完整媒体来源材料
+2. sourceVersion取首次持久SourceVersion，原op重试不改来源水位或重新生成pin身份
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.acquireDraftPin
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：意图已持久后调用真实媒体Acquire并固定完整资产pin回执
+
+```go
+func acquireDraftPin(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) (draftOperation,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 意图已持久后调用真实媒体Acquire并固定完整资产pin回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.draftPinSource`、`content.contentServiceContext`、`content.draftWriteContext`、`content.readDraftOperation`
+
+## content.confirmDraftPin
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：COMMITTED后请求media确认原pin，不释放未知或历史资源
+
+```go
+func confirmDraftPin(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. COMMITTED后请求media确认原pin，不释放未知或历史资源
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.contentServiceContext`
+
+## content.replaySavedDraft
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：回放完整原保存回执并重试尚未确认的原pin
+
+```go
+func replaySavedDraft(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) (SaveDraftResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回放完整原保存回执并重试尚未确认的原pin
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.decodeStorageJSON`、`content.confirmDraftPin`
+
+## content.abortDraftOperation
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：只在真实确认没有COMMITTED资格时原子封存已知失败源
+
+```go
+func (s *Store) abortDraftOperation(ctx context.Context,op OperationContext,record draftOperation) (draftOperation,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 用当前短SQL快照重新读取同scope完整真实原记录，刷新固定计划、state、pin_id和完整原结果，所有终态分支均使用当前持久pin
+2. 若COMMITTED在同一事务核真实资格与完整原回执，明确结束事务后才交给调用方replay/confirm，不带较早pending快照的nil pin
+3. 仅确认没有COMMITTED资格时原子封存确定失败源；SQL提交未知不释放资源
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.readDraftOperationFrom`、`content.contentStorageError`
+
+## content.releaseDraftPin
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：仅已持久aborted或rejected的完整源材料调用media封存
+
+```go
+func releaseDraftPin(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅已持久aborted或rejected的完整源材料调用media封存
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.draftPinSource`、`content.contentServiceContext`
+
+## content.isolateAbortedDraft
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：源已终止且禁止迟到COMMITTED后隔离该次未提交正文文件
+
+```go
+func isolateAbortedDraft(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 源已终止且禁止迟到COMMITTED后隔离该次未提交正文文件
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.decodeStorageJSON`、`content.revisionBodyPath`、`content.moveBodyToQuarantine`、`content.appendJournalState`
+
+## content.checkPendingDraftSave
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：在pending续作的Acquire和文件IO前短核真实租约及原CAS
+
+```go
+func checkPendingDraftSave(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原意图Fence取得真实短guard，核本次共享head/draftVersion及ExpectedReferenceVersion快照
+2. 返回前释放guard；期间无RPC或正文文件IO，不生成新修订ID、水位或pin
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证content.edit保存调用链，信任已核持久意图；无COMMITTED证明前不释放资源
+- 并发：check只持真实guard跨短SQL快照；统一失败收敛先结束guard，再读取写窗口及封存SQL，全部RPC/文件IO无guard
+- 幂等：同操作复用原source材料与nullable原pin；COMMITTED优先，未知和完整性错误保留保护
+- 依赖：`content.AcquireSaveFence`、`content.ReleaseFence`、`content.readDraftSnapshot`
+
+## content.finishDraftSaveFailure
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_service.go`
+- 作用：统一收敛确定保存拒绝，证明无COMMITTED后封存源并释放原pin
+
+```go
+func finishDraftSaveFailure(ctx context.Context,op OperationContext,runtime DraftRuntime,record draftOperation,cause error) (SaveDraftResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅明确VALIDATION/租约/版本CAS/不存在拒绝可继续；Commit/IO未知及完整性损坏直接保留原意图和pin
+2. 读取当前公共窗口后用真实SQL证明没有COMMITTED资格并封存原source；若竞争已提交则回原结果并补confirm
+3. 源封存后隔离本次未提交正文并携原source材料及nullable pin Release，不重新Acquire
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证content.edit保存调用链，信任已核持久意图；无COMMITTED证明前不释放资源
+- 并发：check只持真实guard跨短SQL快照；统一失败收敛先结束guard，再读取写窗口及封存SQL，全部RPC/文件IO无guard
+- 幂等：同操作复用原source材料与nullable原pin；COMMITTED优先，未知和完整性错误保留保护
+- 依赖：`content.draftWriteContext`、`content.abortDraftOperation`、`content.replaySavedDraft`、`content.isolateAbortedDraft`、`content.releaseDraftPin`
 
 ## content.ValidateBlockTree
 
@@ -2158,7 +2782,7 @@ func persistPreparedRevision(ctx context.Context, op OperationContext, store Rev
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
-- 依赖：`content.newRevisionWriteWindow`、`content.verifyRevisionMaterialFile`、`content.Read`、`platform.ValidatePrivatePath`、`content.appendJournalState`
+- 依赖：`content.newRevisionWriteWindow`、`content.verifyRevisionMaterialFile`、`content.Read`、`platform.ValidatePrivatePath`、`content.appendJournalState`、`content.syncDirectory`
 
 ## content.verifyRevisionMaterialFile
 
@@ -2190,7 +2814,7 @@ func verifyRevisionMaterialFile(ctx context.Context, path string, draft DraftRev
 - 授权：仅已授权本域私有正文调用链或受信装配，通用边界不在此重复
 - 并发：遵守外层文件串行准备/不可变读取及真实窄存储资格；纯值函数无副作用
 - 幂等：纯派生或遵循外层原准备/COMMITTED资格，不推进head或新增付费
-- 依赖：`platform.ValidatePrivatePath`
+- 依赖：`platform.ValidatePrivatePath`、`content.verifyPreparedRevisionFile`
 
 ## content.quarantineRevisionMaterial
 
@@ -2286,7 +2910,7 @@ func appendJournalState(ctx context.Context, journalPath string, journal CommitJ
 - 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
 - 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
 - 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
-- 依赖：`content.openRevisionJournal`、`content.validateRevisionJournalFile`
+- 依赖：`content.openRevisionJournal`、`content.validateRevisionJournalFile`、`content.syncDirectory`
 
 ## content.openRevisionJournal
 
@@ -2352,6 +2976,134 @@ func validateRevisionJournalFile(file *os.File) error
 - 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
 - 依赖：`platform.ValidatePrivatePath`
 
+## content.sameJournalIdentity
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：比较持久日志固定身份和正文hash材料
+
+```go
+func sameJournalIdentity(left, right CommitJournal) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 比较持久日志固定身份和正文hash材料
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信私有正文调用链；不可从浏览器传入任意磁盘路径
+- 并发：不持SQL事务或doc guard跨正文文件IO
+- 幂等：相同固定材料不改变已提交身份
+- 依赖：无
+
+## content.moveBodyToQuarantine
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：把已失败关闭的修订文件持久移入本域隔离区
+
+```go
+func moveBodyToQuarantine(ctx context.Context, root, siteID string, journal CommitJournal, bodyPath string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 把已失败关闭的修订文件持久移入本域隔离区
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信私有正文调用链；不可从浏览器传入任意磁盘路径
+- 并发：不持SQL事务或doc guard跨正文文件IO
+- 幂等：相同固定材料不改变已提交身份
+- 依赖：`content.syncDirectory`
+
+## content.syncDirectory
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：持久化私有目录项
+
+```go
+func syncDirectory(path string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持久化私有目录项
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信私有正文调用链；不可从浏览器传入任意磁盘路径
+- 并发：不持SQL事务或doc guard跨正文文件IO
+- 幂等：相同固定材料不改变已提交身份
+- 依赖：无
+
+## content.revisionBodyPath
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_files.go`
+- 作用：定位同站点文档不可变正文路径
+
+```go
+func revisionBodyPath(root, siteID, documentID, revisionID string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 定位同站点文档不可变正文路径
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域受信私有正文调用链；不可从浏览器传入任意磁盘路径
+- 并发：不持SQL事务或doc guard跨正文文件IO
+- 幂等：相同固定材料不改变已提交身份
+- 依赖：无
+
 ## content.CommitDraftJournal
 
 - 级别：参考
@@ -2379,10 +3131,10 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 
 **步骤**
 
-1. 核PREPARED文件hash/fsync与有效fence登记
-2. 同事务CAS head/version、append稳定IDledger、journal COMMITTED、refs/receipt/outbox
-3. CAS失败正文未可见；已commitreceipt返原revision，不能网络失败重复改head
-4. 稳定ID ledger必须同head CAS原子拒绝所有历史retired ID复用；仅看previousBody不构成历史检查，不能由文件准备推进ledger
+1. 先读同scope摘要COMMITTED原回执，命中后释放真实事务对象并回原结果
+2. 文件hash/fsync和私有路径校验在SQL/doc guard之前完成
+3. 延迟对象在当前写窗口及真实保存guard内，短SQL原子CAS head/version、ledger、COMMITTED资格、refs、完整用例回执和outbox
+4. 文件准备或未知提交不代表可见；COMMITTED不转abort，坏正文或未知状态保留资源保护
 
 **错误**
 
@@ -2395,8 +3147,295 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 - 授权：私有SaveDraft/Create事务
 - 并发：doc rowCAS + fence检查
 - 幂等：operationId+canonicaldigest去重
-- 依赖：`content.AcquireSaveFence`、`content.DocumentState`、`content.GuardLease`、`content.ReleaseFence`
-- 其他依赖说明：未来真实DraftCommitStore须接SaveFenceGuard并在同SQL事务重查doc/deleteFence/隔离、CAS/ledger/refs/pin/receipt/outbox；当前无adapter，不用恒成功ValidateFence补洞
+- 依赖：`content.validateDraftCommitInput`、`content.draftCommitStoreFromContext`、`content.validateDraftCommitStore`、`content.draftCommitDigest`、`content.revisionBodyPath`、`content.BeginDraftCommit`、`content.FindReceipt`、`content.Rollback`、`content.verifyRevisionMaterialFile`、`content.ValidateFence`、`content.Commit`、`content.normalizeDraftCommitError`
+
+## content.WithDraftCommitStore
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：装配受信真实草稿提交存储
+
+```go
+func WithDraftCommitStore(ctx context.Context, store DraftCommitStore) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配受信真实草稿提交存储
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.draftCommitStoreFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：取得本域真实草稿提交适配
+
+```go
+func draftCommitStoreFromContext(ctx context.Context) (DraftCommitStore, bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取得本域真实草稿提交适配
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.validateDraftCommitInput
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：核草稿与PREPARED日志、前序head和对象材料一致
+
+```go
+func validateDraftCommitInput(op OperationContext, input CommitDraftJournalInput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核草稿与PREPARED日志、前序head和对象材料一致
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.sameIdentifierPointer`
+
+## content.validateDraftCommitStore
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：核私有根和本站提交作用域
+
+```go
+func validateDraftCommitStore(store DraftCommitStore, op OperationContext) (string, Identifier, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核私有根和本站提交作用域
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.RevisionSiteID`、`content.RevisionRoot`
+
+## content.verifyPreparedRevisionFile
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：核不可变PREPARED正文大小哈希和文件目录持久性
+
+```go
+func verifyPreparedRevisionFile(ctx context.Context, path string, draft DraftRevision) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核不可变PREPARED正文大小哈希和文件目录持久性
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.checkDraftCommitIOContext`、`content.syncDirectory`
+
+## content.checkDraftCommitIOContext
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：把可取消正文IO的终止映射为公共错误
+
+```go
+func checkDraftCommitIOContext(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 把可取消正文IO的终止映射为公共错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.draftCommitDigest
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：以规范JSON计算完整草稿提交摘要
+
+```go
+func draftCommitDigest(input CommitDraftJournalInput) (Hash, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 以规范JSON计算完整草稿提交摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.sameIdentifierPointer
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：精确比较可空稳定标识
+
+```go
+func sameIdentifierPointer(left, right *Identifier) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确比较可空稳定标识
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.normalizeDraftCommitError
+
+- 级别：参考
+- 文件：`modules/content/internal/revision_repository.go`
+- 作用：保留公共错误并隐藏私有存储失败细节
+
+```go
+func normalizeDraftCommitError(err error, fallback string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留公共错误并隐藏私有存储失败细节
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
 
 ## content.ReadRevisionBody
 
@@ -2915,6 +3954,7 @@ func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadR
 2. 从源操作私有pin intent读取site/object/revision/version/referenceDigest；固定材料在acquire前持久化，只有引用提交操作可查询
 3. 源正文COMMITTED决定为权威，SQL待补不当abort；明确aborted/rejected必须持久且防迟到commit；未找到404、跨代409，未知或损坏503/422
 4. 只输出共享ReferenceSourceDecision最小字段，no-store；pending/404/timeout都不代表资源可释放，不输出文档正文或私密账户
+5. SourceVersion只取首次意图固定的独立文档引用水位并核同一COMMITTED引用记录，不能按draftVersion重算或用旧重放回退当前水位
 
 **错误**
 
@@ -2929,7 +3969,7 @@ func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadR
 - 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方media；不授予模型调用或管理写入权限
 - 并发：当前权威快照一致读取；不持锁执行跨服务IO
 - 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
-- 依赖：无
+- 依赖：`content.draftRuntimeFromContext`、`content.checkRevisionScope`、`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.sameStoredDraft`
 
 ## content.ValidatePublications
 
@@ -4495,7 +5535,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
@@ -4778,7 +5818,7 @@ func OpenDatabase(ctx context.Context, dataRoot string, epoch Identifier) (*Stor
 - 授权：受信本域启动装配或已经授权的私有正文调用链；scope/epoch/提交资格由本存储负责
 - 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
 - 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
-- 依赖：`content.RunContentMigrations`
+- 依赖：`content.RunContentMigrations`、`content.syncDirectory`
 
 ## content.RunContentMigrations
 
@@ -5620,7 +6660,7 @@ func All() ([]Migration, error)
 
 - 级别：参考
 - 文件：`modules/content/internal/document_edit_state.go`
-- 作用：按真实site/epoch读取documents及隔离，缺文档NOT_FOUND，不从输入创建
+- 作用：读取真实文档生命周期、删除fence、独立引用水位与隔离状态
 
 ```go
 func (s *Store) ReadDocumentEditState(ctx context.Context, op OperationContext, documentID Identifier) (DocumentEditState, error)
@@ -5636,8 +6676,7 @@ func (s *Store) ReadDocumentEditState(ctx context.Context, op OperationContext, 
 
 **步骤**
 
-1. 同绑定site/epoch读取真实documents和document_quarantines
-2. 只返回持久state/revision/deleteFence/隔离，由具体用例决定允许状态
+1. 从私有documents及document_quarantines读取存在/状态/revision/deleteFence/referenceVersion/隔离；缺行NOT_FOUND，不猜建文档或引用资格
 
 **错误**
 
@@ -6237,3 +7276,521 @@ func (manager *EditLockManager) expireEditLocks(ctx context.Context, op Operatio
 - 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
 - 幂等：同scope规范摘要原回执，不重建重启后租约
 - 依赖：`content.checkRevisionScope`、`content.executeEditLock`、`content.contentStorageError`
+
+## content.WithDraftRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：装配真实本域草稿依赖与客户端
+
+```go
+func WithDraftRuntime(ctx context.Context, runtime DraftRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配真实本域草稿依赖与客户端
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.draftRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：取得同真实Store绑定的草稿运行依赖
+
+```go
+func draftRuntimeFromContext(ctx context.Context) (DraftRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取得同真实Store绑定的草稿运行依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.WithDraftRuntime`
+
+## content.readDraftOperation
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：按完整身份动作摘要回放首次意图和原始完整回执
+
+```go
+func (s *Store) readDraftOperation(ctx context.Context, op OperationContext, action string, digest Hash) (draftOperation, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按完整身份动作摘要回放首次意图和原始完整回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.checkRevisionScope`、`content.readDraftOperationFrom`
+
+## content.prepareDraftOperation
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：在当前写窗口持久首次创建或保存意图并绑定站点
+
+```go
+func (s *Store) prepareDraftOperation(ctx context.Context, op OperationContext, record draftOperation) (draftOperation,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在当前写窗口持久首次创建或保存意图并绑定站点
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.readDraftOperation`、`content.contentStorageError`
+
+## content.draftRequestDigest
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：以动作和规范参数摘要绑定原操作
+
+```go
+func draftRequestDigest(action string,input any) (Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 以动作和规范参数摘要绑定原操作
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.RevisionSiteID
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：返回受信草稿事务本站身份
+
+```go
+func (s *draftCommitStore) RevisionSiteID() Identifier
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回受信草稿事务本站身份
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.BeginDraftCommit
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：建立延迟事务对象，尚不持SQL或doc guard
+
+```go
+func (s *draftCommitStore) BeginDraftCommit(ctx context.Context, request DraftCommitRequest) (DraftCommitTransaction,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 返回绑定真实Store、受信创建/保存意图及原op的延迟事务对象；此时不打开SQL，不取doc guard
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.FindReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：真实读取同scope规范摘要的COMMITTED原回执
+
+```go
+func (t *draftCommitTransaction) FindReceipt(ctx context.Context, operationID Identifier, digest Hash) (CommitDraftJournalResult,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实读取同scope规范摘要的COMMITTED原回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.decodeStorageJSON`、`content.sameStoredDraft`、`content.contentStorageError`
+
+## content.ValidateFence
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：文件IO完成后建立当前写窗口和真实保存guard并开启短SQL
+
+```go
+func (t *draftCommitTransaction) ValidateFence(ctx context.Context, input CommitDraftJournalInput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先建立当前公共写窗口，再获取真实SaveFenceGuard或创建生命读锁，之后才开短SQL
+2. 同事务复核固定意图、PREPARED材料、本站代次、文档/deleteFence/隔离与head；创建必须专用意图和站点树CAS
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.AcquireSaveFence`、`content.validateDraftTransaction`、`platform.NewWriteContext`
+
+## content.validateDraftTransaction
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：同SQL重查意图准备、持久站点代次、生命周期删除fence与head
+
+```go
+func (t *draftCommitTransaction) validateDraftTransaction(ctx context.Context,input CommitDraftJournalInput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同SQL重查意图准备、持久站点代次、生命周期删除fence与head
+2. 引用水位独立于draftVersion：首次意图冻结ExpectedReferenceVersion及SourceVersion，短SQL与head/ledger/refs同事务CAS推进documents.reference_version；公共Revision耗尽失败，旧/未知行不猜补资格
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.sameStoredDraft`、`content.sameJournalIdentity`、`content.sameIdentifierPointer`、`content.validateCreateTransaction`、`content.requireEditableDocument`、`content.matchEditLease`、`content.decodeStorageJSON`、`content.contentStorageError`
+
+## content.Commit
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：原子提交站点树或head CAS、ledger、COMMITTED资格、refs、完整用例回执与平台outbox
+
+```go
+func (t *draftCommitTransaction) Commit(ctx context.Context,request DraftCommitRequest) (CommitDraftJournalResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 创建只插入本次固定docId，保存只CAS现有head/version；同事务维护全部历史稳定IDledger
+2. 同事务落COMMITTED资格和原草稿回执、完整Create/Save原结果、当前/历史引用与平台outbox
+3. SQL Commit返回未知时终结并释放短guard，但保留pending意图和pin；仅真实原回执可认定成功
+4. 引用水位独立于draftVersion：首次意图冻结ExpectedReferenceVersion及SourceVersion，短SQL与head/ledger/refs同事务CAS推进documents.reference_version；公共Revision耗尽失败，旧/未知行不猜补资格
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.commitStableIDs`、`content.Rollback`、`content.releaseDraftTransaction`、`content.contentStorageError`、`platform.EnqueueEvent`
+
+## content.commitStableIDs
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：同head CAS事务拒绝全部历史retired ID复用并追加退役记录
+
+```go
+func (t *draftCommitTransaction) commitStableIDs(ctx context.Context,op OperationContext,plan draftOperationPlan) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同head CAS事务拒绝全部历史retired ID复用并追加退役记录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.contentStorageError`
+
+## content.releaseDraftTransaction
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：释放短事务持有的真实doc或创建生命guard及平台写窗口
+
+```go
+func (t *draftCommitTransaction) releaseDraftTransaction()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 释放短事务持有的真实doc或创建生命guard及平台写窗口
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.ReleaseFence`
+
+## content.Rollback
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：回滚尚未终结SQL并释放guard和写窗口，原回执命中也释放
+
+```go
+func (t *draftCommitTransaction) Rollback(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 回滚尚未终结SQL并释放guard和写窗口，原回执命中也释放
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.releaseDraftTransaction`
+
+## content.validateDraftOperationPlan
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：核持久固定材料之间的身份、CAS与完整引用摘要关系
+
+```go
+func validateDraftOperationPlan(action string,plan draftOperationPlan) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核持久固定材料之间的身份、CAS与完整引用摘要关系
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：无
+
+## content.readDraftOperationFrom
+
+- 级别：参考
+- 文件：`modules/content/internal/draft_commit_store.go`
+- 作用：在指定真实SQL快照读取完整草稿原意图、当前pin及COMMITTED回执资格
+
+```go
+func readDraftOperationFrom(ctx context.Context,query draftOperationQuery,op OperationContext,action string,digest Hash) (draftOperation,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按scope/动作/规范摘要核当前caller与actor，解码固定计划及最新state/pin/result
+2. 若COMMITTED，同一查询句柄核真实提交资格和完整原结果，不复用较早pending快照的nil pin或原结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域已授权草稿读取/封存链，持久scope与原结果失败关闭
+- 并发：可传私有DB或当前短SQL事务；无RPC或文件IO
+- 幂等：回放同操作真实当前持久记录，COMMITTED优先且保留原pin
+- 依赖：`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.sameStoredDraft`、`content.contentStorageError`

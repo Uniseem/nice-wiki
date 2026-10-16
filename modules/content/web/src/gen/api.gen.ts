@@ -2242,6 +2242,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description INTEGRITY_ERROR：正文、稳定ID、持久意图或原回执不一致，失败关闭保留资源保护 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
             503: {
                 headers: {
@@ -2909,6 +2918,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description VERSION_MISMATCH/LOCKED：当前代次或编辑leader已变化 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 */
             422: {
                 headers: {
@@ -2992,6 +3010,15 @@ export interface operations {
             };
             /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：正文、稳定ID、持久意图或原回执不一致，失败关闭保留资源保护 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
