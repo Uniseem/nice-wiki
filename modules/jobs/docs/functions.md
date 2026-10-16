@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 109 个函数：约束 34 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 112 个函数：约束 34 个，参考 78 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -81,6 +81,7 @@ func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (Cre
 4. 同inputHash复用，否则409
 5. 插入queued及outbox
 6. 持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根
+7. notBefore省略时原输入摘要字节不变且首次not_before=当前时刻；显式时将UTC RFC3339Nano时刻纳入摘要并持久入队，过去时刻立即具备领取资格；同键不同显式时刻CONFLICT，不用op.deadline作为延迟任务期限
 
 **错误**
 
@@ -91,7 +92,7 @@ func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (Cre
 - 授权：permission：service；rule：service所属owner
 - 并发：SQLite单事务；barrier draining拒绝新任务
 - 幂等：dedupeKey/inputHash幂等
-- 依赖：`jobs.ValidateJobSpec`、`jobs.beginLeaseOperation`
+- 依赖：`jobs.ValidateJobSpec`、`jobs.beginLeaseOperation`、`jobs.createJob`
 
 ## jobs.FailJob
 
@@ -290,6 +291,108 @@ func (s *Store) Close() error
 - 并发：短事务；网络核权/等待不持数据库锁
 - 幂等：只读原进度；配额幂等归还
 - 依赖：无
+
+## jobs.createJob
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：持久提交原任务与可选最早领取时刻
+
+```go
+func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJobInput) (CreateJobResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原有owner/epoch/dedupe在同一短SQL事务返回原AcceptedJob或CONFLICT
+2. 显式notBefore格式化为UTC RFC3339Nano，省略首次仅取当前时间；queued任务、原输入摘要和初始状态outbox同事务写入
+3. 不存创建RPC deadline为任务执行期限，领取仍由既有ClaimJob按真实not_before筛选
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`jobs.hashCreateJobInput`、`jobs.beginLeaseOperation`、`platform.EnqueueEvent`
+
+## jobs.hashCreateJobInput
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：规范任务去重摘要，保持旧无延迟请求兼容
+
+```go
+func hashCreateJobInput(in CreateJobInput) (Hash, []byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保持原owner/type/inputRef/dedupeKey/dataEpoch字段顺序与编码
+2. notBefore缺失时omitempty不新增任何字节；显式时按UTC RFC3339Nano固定时刻编码，使等价时区表达一致而不把重试当前时间写入摘要
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：无
+
+## jobs.NewQueueHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：绑定真实任务提交到统一服务入口
+
+```go
+func NewQueueHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | 仅createJob的真实HTTP映射，复用本域处理器map内部类型 | 只交统一NewServiceHandler，不独立裸挂 |
+
+**步骤**
+
+1. 仅提供createJob处理器，生成CreateJobRequestBody绑定内部CreateJobInput的owner/type/inputRef/dedupeKey/notBefore，dataEpoch只来自可信op，不接受正文自声明
+2. 成功202返回原AcceptedJob，错误经既有统一Problem写出；不补其他handler或假服务就绪
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`jobs.CreateJob`、`jobs.writeEventResponse`
 
 ## jobs.ClaimJob
 
@@ -3594,6 +3697,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE
 8. 私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked
+9. 合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败
 
 **错误**
 
@@ -3605,7 +3709,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve
@@ -4567,7 +4671,7 @@ func writeEventResponse(w http.ResponseWriter, requestID Identifier, result any,
 - 授权：permission：service；rule：只由本组已通过统一边界的handler调用
 - 并发：单响应单次输出
 - 幂等：只序列化已有结果，不增加业务副作用
-- 依赖：无
+- 依赖：`platform.FromError`、`platform.WriteProblem`
 - 其他依赖说明：platform.problem
 
 ## jobs.NewManagementHandlers

@@ -2,12 +2,12 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "d4ceb5a7cbb1e61e621ad24fe9025b51e4d0c4a5fc8f564940194dcb23c35064",
+  "contractSha256": "22bc9d91163780ae3f32f26e19d354570927e1e7287d44b539a3d9e61187bf7c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续实施第五轮任务进度SSE",
-  "branch": "codex/jobs-progress-stream-r1",
-  "baseCommit": "7a147fc0ded784d16792d5d82e9b8277efd4be6c",
-  "deliveryCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+  "assignedSession": "持续目标第二轮公共延迟任务前置",
+  "branch": "main",
+  "baseCommit": "471c036082e082763d90e1080b3489d4e4531380",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
@@ -22,11 +22,11 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "第二轮新增延迟入队与真实HTTP映射待VPS检查"
       },
       "blocker": null
     },
@@ -586,11 +586,11 @@
     {
       "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "7566a0c3a1273697b6a67c55aa6bdbeea8359503",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "第二轮新增notBefore待VPS检查"
       },
       "blocker": null
     },
@@ -1768,6 +1768,39 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.createJob",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.hashCreateJobInput",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
+      },
+      "blocker": null
+    },
+    {
+      "id": "jobs.NewQueueHandlers",
+      "path": "modules/jobs/internal/queue.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "持续目标第二轮公共延迟入队前置，待VPS检查"
       },
       "blocker": null
     }

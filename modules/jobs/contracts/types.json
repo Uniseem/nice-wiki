@@ -950,6 +950,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "notBefore": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "可选最早领取时刻；省略立即可领，显式值按UTC时刻固定纳入去重摘要，不接受null；不作为创建请求或执行期限"
         }
       },
       "required": [
@@ -2552,6 +2556,10 @@
           "description": "dedupeKey；UTF-8非空；同owner与dataEpoch内唯一；不得为 null",
           "minLength": 1,
           "maxLength": 8192
+        },
+        "notBefore": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "可选固定最早领取时刻；不接受null；省略立即可领，显式值纳入去重"
         }
       },
       "required": [

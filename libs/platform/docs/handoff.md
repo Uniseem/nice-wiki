@@ -1,3 +1,7 @@
+# 持续目标第二轮公共IO错误工具（VPS检查通过）
+
+集成会话新增NormalizeIOError，保留公共错误及统一ctx取消/截止，未知错误只用可信代码选择的安全说明，不传播原始存储错误。problem.FromError复用它，保持未知INTERNAL兜底；新域不再复制context错误分类。无新路径/外部依赖；首次完整编译通过但新工具因既有FromError未登记而结构检查失败，补真实FromError及jobs响应调用边界后待完整重跑，再回填源码SHA；不代表业务验收。
+
 # 两轮并行第二轮：可选主密钥引用（2026-10-16，已检查）
 
 基线53acce862467dbe40b829d1984519d78ccac5608，集成会话独占公共源码。ServiceConfig新增可选masterKeyRef，NW_MASTER_KEY_REF按现有env优先级覆盖文件；非空只要求绝对路径。公共加载不打开主密钥，实际32字节读取、保密和AES-GCM由model-gateway凭据用例负责；免费任务配置读取不因主密钥缺失失效。无新路径/函数/依赖，不新增测试或样例。源码993904524e4d7a792a6c84a80606de6215f7ace5；VPS docs/gen、14模块readonly build/vet/gofmt及完整check通过（865/1258/379/2277），对应台账准确引用该SHA。下一项仅由集成会话核对model-gateway实际凭据调用方并完成第二轮收尾。
@@ -110,3 +114,5 @@ ProgressEvent保持业务JSON直出；新增SSEFrame/JSONEventStream与ServeJSON
 - 各域 progress.json 中生成文件保持 planned（其模块仍处design阶段），生成物由make gen随时重建；模块自身实现包交付时一并翻状态。
 - 署名约定：本次实现由GLM（ZCode）完成；2026-10-14用户确认GLM代用地址 noreply@z.ai，已登记AGENTS与隐私扫描白名单，后续提交直接使用。
 - 下一项任务：合并R1-00后按 plan.md 认领 R1-01（identity），其 main/BuildApplication装配全部经本库。
+
+本次最终检查：2026-10-16持续目标第二轮公共前置：VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt和完整make check通过（872/1332/379/2297）。HTTP用实际RequestBody，dataEpoch仅可信上下文；公共错误分类有真实FromError调用。无新测试/业务验收/真实接口模型/服务部署。

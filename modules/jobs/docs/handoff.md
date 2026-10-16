@@ -1,3 +1,11 @@
+# 持续目标第二轮公共前置：延迟任务创建（VPS检查通过）
+
+集成会话独占本次jobs公共API配合，基线471c036，新增可选notBefore：显式UTC时刻纳入去重且写既有not_before；省略保持原hash和首次立即可领。补真实createJob HTTP映射并限生成任务owner调用方，完整HTTP/存储/control/后台启动仍blocked。仅传输创建RPC受op.deadline限制，任务执行期限由owner领取时重建。无新迁移/依赖/路径，旧queued任务和旧无延迟去重回执不改写。
+
+首次VPS gen成功但HTTP输入引用误用被裁剪的业务DTO而编译失败，已改用实际CreateJobRequestBody并同步其可选字段，待完整重跑；不能新增implemented/verified；根统一VPS docs/gen/build/check，最终VPS已完整通过（872/1332/379/2297），源码SHA随下一记录提交回填。未新增测试/样例，未运行真实接口/模型、服务或部署。
+
+---
+
 # 任务与事件会话交接
 
 本轮统一集成实际源码d607dbb，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。
@@ -193,3 +201,5 @@
 ## 下一步
 
 下一工作包优先实现 `ClaimJob`、`StartJob`、`HeartbeatJob`、`CheckLease` 的租约 fencing，并复用本次 jobs 表、dataEpoch 和迁移边界；之后再接完整 OpenAPI handler 和 BuildApplication。不要修改公共 `framework.json`，由集成会话统一登记本次实际文件。
+
+本次最终检查：2026-10-16持续目标第二轮公共前置：VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt和完整make check通过（872/1332/379/2297）。HTTP用实际RequestBody，dataEpoch仅可信上下文；公共错误分类有真实FromError调用。无新测试/业务验收/真实接口模型/服务部署。

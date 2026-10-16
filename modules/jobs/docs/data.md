@@ -54,3 +54,5 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 进度SSE（第五轮）：`0007_progress_retention.sql`只追加nullable created_at。旧时刻从nw_outbox/events中同job/seq/epoch且安全payload吻合的来源核对；任何对应来源不完整或互相矛盾均保持NULL，不挑一个好值、不借task创建时间猜测。新progress与outbox使用同一服务时间。RFC3339Nano解析后精确比较7天窗口，未知时刻不对外重放。
 
 进度本身是持久权威，不由通用事件的全局eventSeq替代。当前只限制SSE可读范围，不物理删除历史；未来清理必须另存job进度seq水位，不能因MAX(seq)归零复用游标。首次0只取当前保留项；正游标必须可连续续接且不超过已登记水位。每批最多64行、每帧重新核当前业务权限和epoch，权限IO及空闲等待无SQL/进程锁。只投影jobId/seq/phase/计数，不读输入或结果正文/原始错误。actor/site配额仅内存10连接，Close幂等取消读取并归还。
+
+延迟创建补充：CreateJobInput.notBefore可选且不接受null，显式值归UTC RFC3339Nano参与原请求摘要并写已有jobs.not_before；省略时摘要编码不增加字段，首次not_before取当前时间。显式过去时刻立即可领，同键不同显式时刻CONFLICT。not_before只管最早领取，不使用创建RPC的短op.deadline限制未来执行；worker在领取时建立自己的执行期限。

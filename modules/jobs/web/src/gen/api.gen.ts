@@ -19,7 +19,7 @@ export interface paths {
         put?: never;
         /**
          * 持久提交任务
-         * @description 提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前
+         * @description 提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前 可选notBefore指定最早领取时刻，省略保留原立即入队语义；显式值是去重材料，执行期限由owner领取时建立，不沿用创建RPC截止。
          */
         post: operations["createJob"];
         delete?: never;
@@ -599,6 +599,11 @@ export interface components {
             /** @description 完整对象字节数，读取结束复核 */
             byteSize: number;
         };
+        /**
+         * Format: date-time
+         * @description RFC3339 UTC 时间
+         */
+        Timestamp: string;
         /** @description 提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateJobRequestBody: {
             /** @description owner；UTF-8；不得为 null */
@@ -609,6 +614,8 @@ export interface components {
             inputRef: components["schemas"]["ObjectRef"];
             /** @description dedupeKey；UTF-8非空；同owner与dataEpoch内唯一；不得为 null */
             dedupeKey: string;
+            /** @description 可选固定最早领取时刻；不接受null；省略立即可领，显式值纳入去重 */
+            notBefore?: components["schemas"]["Timestamp"];
         };
         /** @description 安全阶段及计数，不含正文或输出 */
         JobProgressSummary: {
@@ -652,11 +659,6 @@ export interface components {
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
         };
-        /**
-         * Format: date-time
-         * @description RFC3339 UTC 时间
-         */
-        Timestamp: string;
         /** @description 领取任务引用和fencing；job.state在领取时由任务状态响应说明，AcceptedJob为创建结果 */
         ClaimedJob: {
             /** @description 当前领取任务 */

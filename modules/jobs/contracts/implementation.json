@@ -306,7 +306,8 @@
             "事务按owner/epoch/dedupeKey查重复",
             "同inputHash复用，否则409",
             "插入queued及outbox",
-            "持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根"
+            "持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根",
+            "notBefore省略时原输入摘要字节不变且首次not_before=当前时刻；显式时将UTC RFC3339Nano时刻纳入摘要并持久入队，过去时刻立即具备领取资格；同键不同显式时刻CONFLICT，不用op.deadline作为延迟任务期限"
           ],
           "errors": [
             {
@@ -335,7 +336,8 @@
           "idempotency": "dedupeKey/inputHash幂等",
           "dependencies": [
             "jobs.ValidateJobSpec",
-            "jobs.beginLeaseOperation"
+            "jobs.beginLeaseOperation",
+            "jobs.createJob"
           ],
           "resources": [],
           "contract": "binding"
@@ -654,6 +656,81 @@
           "concurrency": "短事务；网络核权/等待不持数据库锁",
           "idempotency": "只读原进度；配额幂等归还",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.createJob",
+          "name": "createJob",
+          "signature": "func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJobInput) (CreateJobResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "持久提交原任务与可选最早领取时刻",
+          "steps": [
+            "按原有owner/epoch/dedupe在同一短SQL事务返回原AcceptedJob或CONFLICT",
+            "显式notBefore格式化为UTC RFC3339Nano，省略首次仅取当前时间；queued任务、原输入摘要和初始状态outbox同事务写入",
+            "不存创建RPC deadline为任务执行期限，领取仍由既有ClaimJob按真实not_before筛选"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "jobs.hashCreateJobInput",
+            "jobs.beginLeaseOperation",
+            "platform.EnqueueEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.hashCreateJobInput",
+          "name": "hashCreateJobInput",
+          "signature": "func hashCreateJobInput(in CreateJobInput) (Hash, []byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "规范任务去重摘要，保持旧无延迟请求兼容",
+          "steps": [
+            "保持原owner/type/inputRef/dedupeKey/dataEpoch字段顺序与编码",
+            "notBefore缺失时omitempty不新增任何字节；显式时按UTC RFC3339Nano固定时刻编码，使等价时区表达一致而不把重试当前时间写入摘要"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.NewQueueHandlers",
+          "name": "NewQueueHandlers",
+          "signature": "func NewQueueHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "仅createJob的真实HTTP映射，复用本域处理器map内部类型",
+              "constraints": "只交统一NewServiceHandler，不独立裸挂"
+            }
+          ],
+          "purpose": "绑定真实任务提交到统一服务入口",
+          "steps": [
+            "仅提供createJob处理器，生成CreateJobRequestBody绑定内部CreateJobInput的owner/type/inputRef/dedupeKey/notBefore，dataEpoch只来自可信op，不接受正文自声明",
+            "成功202返回原AcceptedJob，错误经既有统一Problem写出；不补其他handler或假服务就绪"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "jobs.CreateJob",
+            "jobs.writeEventResponse"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -6456,7 +6533,8 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE",
-            "私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked"
+            "私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked",
+            "合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败"
           ],
           "errors": [
             {
@@ -6507,7 +6585,8 @@
             "platform.NewIdentityAuthorizer",
             "jobs.NewProgressHandlers",
             "jobs.OpenDatabase",
-            "jobs.Store.Close"
+            "jobs.Store.Close",
+            "jobs.NewQueueHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8488,7 +8567,10 @@
           },
           "concurrency": "单响应单次输出",
           "idempotency": "只序列化已有结果，不增加业务副作用",
-          "dependencies": [],
+          "dependencies": [
+            "platform.FromError",
+            "platform.WriteProblem"
+          ],
           "resources": [
             "platform.problem"
           ],

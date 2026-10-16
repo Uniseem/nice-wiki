@@ -79,8 +79,19 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	defer store.Close()
 	handlers := jobs.NewManagementHandlers(key)
+	for id, handler := range jobs.NewQueueHandlers() {
+		handlers[id] = handler
+	}
 	for id, handler := range jobs.NewProgressHandlers() {
 		handlers[id] = handler
+	}
+	queueCallers := make([]string, 0)
+	queueOwners := make(map[string]bool)
+	for _, definition := range gen.JobTypes {
+		if !queueOwners[definition.Owner] {
+			queueOwners[definition.Owner] = true
+			queueCallers = append(queueCallers, definition.Owner)
+		}
 	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
@@ -90,12 +101,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: view.DataEpoch,
 		AllowedCallers: map[string][]string{
+			"createJob":      queueCallers,
 			"listJobs":       {"portal"},
 			"listDeliveries": {"portal"},
 			"retryJob":       {"portal"},
 			"streamProgress": {"portal"},
 		},
-		Authorize: apivalidate.NewIdentityAuthorizer(identity),
+		ServiceActorCallers: map[string][]string{"createJob": queueCallers},
+		Authorize:           apivalidate.NewIdentityAuthorizer(identity),
 	}, handlers)
 	if err != nil {
 		return nil, err

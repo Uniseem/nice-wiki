@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +39,7 @@ type CreateJobInput struct {
 	InputRef  ObjectRef
 	DedupeKey string
 	DataEpoch platform.Identifier
+	NotBefore *time.Time
 }
 
 // CreateJobResult 复用生成的成功响应类型，确保 AcceptedJob 与 OpenAPI 一致。
@@ -210,6 +212,10 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 	jobRevision := int64(1)
 	operationID := op.OperationID
 	now := platform.Now()
+	notBefore := now
+	if in.NotBefore != nil {
+		notBefore = in.NotBefore.UTC().Format(time.RFC3339Nano)
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO jobs (
 			job_id, operation_id, root_operation_id, owner, type, immutable_input_ref, input_hash,
@@ -217,7 +223,7 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 			created_at, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
 		jobID, operationID, op.RootOperationID, in.Owner, in.Type, inputRefJSON, inputHash,
-		in.DedupeKey, jobStateQueued, now, in.DataEpoch, jobRevision, now, now); err != nil {
+		in.DedupeKey, jobStateQueued, notBefore, in.DataEpoch, jobRevision, now, now); err != nil {
 		if isUniqueConstraint(err) {
 			existing, found, lookupErr := findByDedupe(ctx, tx, in.Owner, in.DataEpoch, in.DedupeKey)
 			if lookupErr != nil {
@@ -290,17 +296,42 @@ func hashCreateJobInput(in CreateJobInput) (platform.Hash, []byte, error) {
 	if err != nil {
 		return "", nil, platform.NewError(platform.CodeValidation, false, "任务引用不可编码")
 	}
+	var notBefore *string
+	if in.NotBefore != nil {
+		value := in.NotBefore.UTC().Format(time.RFC3339Nano)
+		notBefore = &value
+	}
 	canonical, err := json.Marshal(struct {
 		Owner     string    `json:"owner"`
 		Type      string    `json:"type"`
 		InputRef  ObjectRef `json:"inputRef"`
 		DedupeKey string    `json:"dedupeKey"`
 		DataEpoch string    `json:"dataEpoch"`
-	}{in.Owner, in.Type, in.InputRef, in.DedupeKey, in.DataEpoch})
+		NotBefore *string   `json:"notBefore,omitempty"`
+	}{in.Owner, in.Type, in.InputRef, in.DedupeKey, in.DataEpoch, notBefore})
 	if err != nil {
 		return "", nil, platform.NewError(platform.CodeValidation, false, "任务输入不可编码")
 	}
 	return platform.HashBytes(canonical), inputRefJSON, nil
+}
+
+// NewQueueHandlers只做已通过统一边界的请求绑定，不以本组映射冒充完整服务。
+func NewQueueHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		"createJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input gen.CreateJobRequestBody
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeEventResponse(w, op.RequestID, nil, platform.NewError(platform.CodeValidation, false, "任务提交请求绑定失败"), 0)
+				return
+			}
+			result, err := CreateJob(r.Context(), op, CreateJobInput{
+				Owner: input.Owner, Type: input.Type, InputRef: input.InputRef,
+				DedupeKey: input.DedupeKey, DataEpoch: op.DataEpoch, NotBefore: input.NotBefore,
+			})
+			writeEventResponse(w, op.RequestID, result, err, http.StatusAccepted)
+		}),
+	}
 }
 
 type jobStateChangedPayload struct {

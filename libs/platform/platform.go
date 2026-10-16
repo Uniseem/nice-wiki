@@ -1,6 +1,6 @@
 // Package platform 提供各服务共用的契约类型与基础设施接口。
 //
-// 本文件只承载类型与接口定义，不含业务规则；行为机制分布在
+// 本文件承载契约类型、接口及公共纯工具，不含业务规则；行为机制分布在
 // serviceauth、opctx、problem、outbox、inbox、worker、modelclient、
 // lifecycle 各包，由各服务装配后调用。
 package platform
@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -93,6 +94,25 @@ func (e *Error) Error() string { return e.Code + ": " + e.Message }
 // NewError 构造带登记错误码的库错误；code必须已登记。
 func NewError(code string, retryable bool, format string, args ...any) *Error {
 	return &Error{Code: code, Retryable: retryable, Message: fmt.Sprintf(format, args...)}
+}
+
+// NormalizeIOError统一保留平台错误和取消/截止语义；未知错误只使用可信安全说明。
+// 不把原始存储错误、路径或请求内容带入公开错误。
+func NormalizeIOError(err error, fallbackCode string, retryable bool, safeMessage string) error {
+	if err == nil {
+		return nil
+	}
+	var public *Error
+	if errors.As(err, &public) {
+		return public
+	}
+	if errors.Is(err, context.Canceled) {
+		return NewError(CodeCancelled, false, "操作已取消")
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return NewError(CodeDeadlineExceeded, false, "操作已到截止时间")
+	}
+	return NewError(fallbackCode, retryable, "%s", safeMessage)
 }
 
 // FieldIssue 逐字段输入错误，不回显字段值。

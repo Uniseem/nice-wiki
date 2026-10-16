@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 46 个函数：约束 19 个，参考 27 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 48 个函数：约束 19 个，参考 29 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -624,6 +624,45 @@ func WriteProblem(w http.ResponseWriter, problem Problem) error
 - 并发：每请求一次
 - 幂等：无状态
 - 依赖：无
+
+## platform.FromError
+
+- 级别：参考
+- 文件：`libs/platform/problem/problem.go`
+- 作用：把库错误归一为无敏感数据的公共Problem
+
+```go
+func FromError(err error, requestID Identifier) Problem
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 库或IO错误 | 原始文本不输出 |
+| `requestID` | `Identifier` | 可信请求标识 | 平台入口建立 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `problem` | `Problem` | 公共安全错误响应 | 未知INTERNAL；按登记映射status，detail过滤敏感内容 |
+
+**步骤**
+
+1. 以固定INTERNAL安全缺省建立Problem
+2. NormalizeIOError统一原始context及包裹公共错误，公共code/retryable保留，未知不暴露原文本
+3. 按公共HTTP映射填status，detail沿既有sanitizeDetail处理
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：错误纯映射不授予权限
+- 并发：无业务可变状态
+- 幂等：相同错误及requestId输出同一安全描述
+- 依赖：`platform.NormalizeIOError`
 
 ## platform.EnqueueEvent
 
@@ -1893,4 +1932,45 @@ func CanonicalJSON(value any) ([]byte, error)
 - 授权：平台受信装配；不读业务秘密，不授予业务权限
 - 并发：不产生并发本域业务批次；IO只用传入ctx
 - 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.NormalizeIOError
+
+- 级别：参考
+- 文件：`libs/platform/platform.go`
+- 作用：统一IO取消/截止与公共错误语义，未知错误只用可信安全说明
+
+```go
+func NormalizeIOError(err error, fallbackCode string, retryable bool, safeMessage string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 原IO错误或nil | 不输出原始错误文本 |
+| `fallbackCode` | `string` | 可信调用方选择的登记错误码 | 静态代码提供，非请求输入 |
+| `retryable` | `bool` | 未知错误的重试声明 | 已有公共错误与取消语义优先 |
+| `safeMessage` | `string` | 可信安全常量说明 | 不得插入密码、密钥、正文、真实IP或私有路径 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | nil或公共platform.Error | 保留原公共错误；取消/截止统一；未知不带原文本 |
+
+**步骤**
+
+1. nil保持nil；已有或包裹的platform.Error原样保留
+2. errors.Is识别context取消/截止，返回公共CANCELLED/DEADLINE_EXCEEDED且不自动重试
+3. 其余未知错误使用可信fallbackCode/retryable/safeMessage，不保留原错误文本或调用栈
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：公共纯工具，只接可信参数，不增加业务授权
+- 并发：无可变共享状态
+- 幂等：纯映射
 - 依赖：无

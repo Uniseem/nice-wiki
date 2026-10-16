@@ -46,7 +46,7 @@ func FromError(err error, requestID platform.Identifier) platform.Problem {
 		RequestID: requestID,
 		Retryable: false,
 	}
-	if libErr, ok := err.(*platform.Error); ok {
+	if libErr, ok := platform.NormalizeIOError(err, platform.CodeInternal, false, p.Detail).(*platform.Error); ok {
 		p.Code = libErr.Code
 		p.Retryable = libErr.Retryable
 		p.Detail = sanitizeDetail(libErr.Message)

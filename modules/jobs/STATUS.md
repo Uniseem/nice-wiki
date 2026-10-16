@@ -1,3 +1,11 @@
+# 持续目标第二轮公共前置：延迟任务创建（VPS检查通过）
+
+集成会话独占本次jobs公共API配合，基线471c036，新增可选notBefore：显式UTC时刻纳入去重且写既有not_before；省略保持原hash和首次立即可领。补真实createJob HTTP映射并限生成任务owner调用方，完整HTTP/存储/control/后台启动仍blocked。仅传输创建RPC受op.deadline限制，任务执行期限由owner领取时重建。无新迁移/依赖/路径，旧queued任务和旧无延迟去重回执不改写。
+
+首次VPS gen成功但HTTP输入引用误用被裁剪的业务DTO而编译失败，已改用实际CreateJobRequestBody并同步其可选字段，待完整重跑；不能新增implemented/verified；根统一VPS docs/gen/build/check，最终VPS已完整通过（872/1332/379/2297），源码SHA随下一记录提交回填。未新增测试/样例，未运行真实接口/模型、服务或部署。
+
+---
+
 # 任务与事件当前进度
 
 更新：2026-10-15。持续实施第五轮StreamProgress，分支`codex/jobs-progress-stream-r1`，基线`7a147fc0ded784d16792d5d82e9b8277efd4be6c`；独占本域，原管理交付分支保留。源码、合同与VPS生成产物已交付，本轮完整10项函数及对应完整文件verified；完整服务仍blocked，业务验收未执行。
@@ -91,3 +99,5 @@ VPS顺序集成后make docs/gen、14模块make build和完整make check通过；
 前置启动骨架、`ValidateJobSpec`、`Serve`、`Shutdown`、`Health`、`Ready` 的既有状态与未验证限制保持不变。下一项优先实现 `ClaimJob`/租约 fencing，之后再接入完整存储与 handler 装配。
 
 公共契约、根状态、scripts、libs、deploy 拓扑和其他模块均未修改；并行工作只改本域，公共资料交集成会话。
+
+本次最终检查：2026-10-16持续目标第二轮公共前置：VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt和完整make check通过（872/1332/379/2297）。HTTP用实际RequestBody，dataEpoch仅可信上下文；公共错误分类有真实FromError调用。无新测试/业务验收/真实接口模型/服务部署。

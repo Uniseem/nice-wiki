@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "561edc88877a089a967a69b91b6119b1058b9573d1cf2b429cf8b474f65eadd8",
+  "contractSha256": "b29f53121af2def39ea5f444a29bdce7917b725124803861e77a6ab77d7ecfb5",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "两轮并行第二轮公共主密钥引用",
   "branch": "main",
@@ -700,6 +700,28 @@
       },
       "blocker": null,
       "id": "platform.envelopeJSONStream.Close"
+    },
+    {
+      "id": "platform.NormalizeIOError",
+      "path": "libs/platform/platform.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二轮统一IO错误工具待VPS检查"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.FromError",
+      "path": "libs/platform/problem/problem.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "补登记真实公共Problem映射及统一IO归类调用，待VPS完整检查"
+      },
+      "blocker": null
     }
   ],
   "rule": "已实现公共机制通过VPS现阶段检查，不证明尚未实现的调用方/业务、guard或cookie链可运行；用户要求第二轮后停止，不开展下一轮。"

@@ -16,7 +16,7 @@
       "post": {
         "operationId": "createJob",
         "summary": "持久提交任务",
-        "description": "提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前",
+        "description": "提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前 可选notBefore指定最早领取时刻，省略保留原立即入队语义；显式值是去重材料，执行期限由owner领取时建立，不沿用创建RPC截止。",
         "x-handler": "jobs.CreateJob",
         "x-permission": "service",
         "x-data-epoch-required": true,

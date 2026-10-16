@@ -28,3 +28,5 @@ implementation.json 为 905 个函数生成了同一套通用条文：输入“�
 
 - 根 AGENTS.md 增“实现尺度”一节，`docs/playbooks/implement-module.md` 增实施尺度说明，`scripts/render_docs.py` 在每份 functions.md 页首写明通用条文的解释。
 - 代码审查与集成复核以本 ADR 判断冗余：多余的重复校验、自写工具和测试应删除，而不是保留。
+
+2026-10-16持续实施补充：平台提供NormalizeIOError一次统一IO取消/截止与已有公共错误，新域仅传静态安全fallback；公共problem.FromError复用同一机制。不得在各域再写等价分类器，原始存储错误和私有路径不进入Problem。
