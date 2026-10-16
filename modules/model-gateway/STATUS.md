@@ -1,6 +1,6 @@
 # AI 接入当前进度
 
-更新：2026-10-16。用户新授权每轮三个子代理并行编写、统一审核及普通push直到代码编写完成，取代此前两轮停止指令。本轮基线685db4f48bb359f79a7501098204ccc5a4cde6b2，分支codex/model-goal-r1，独占本域。免费同代路由候选已写并通过根VPS检查，正在提交源码与精确SHA台账，未提交条目暂保持in_progress。
+更新：2026-10-16。用户新授权每轮三个子代理并行编写、统一审核及普通push直到代码编写完成，取代此前两轮停止指令。本轮基线685db4f48bb359f79a7501098204ccc5a4cde6b2，分支codex/model-goal-r1，独占本域。源码提交24e4026d452333061cad9ef6abde3050e2944101；免费同代路由已通过根VPS检查与交叉审核，6项完整路由函数、修改的readAvailabilityCandidate及3个完整文件verified。PutProfile源码本轮未修改，保留原实现SHA。
 
 - ResolveRoute通过SelectCandidates在一个严格当前epoch SQL快照内调用ResolveProfile；任务须目录登记且属于可信callerService，costClass只核对可信op。必须真实同代assignment且tier等于目录defaultTier，不合成缺失赋值。
 - 先override替换主模型并保序去重，空列表可仅覆盖；仅vision/rerank在目标槽缺失或覆盖后仍空时使用真实同costClass fast配置。vision仍需vision，rerank有override仍需rerank、无override空档才fast/chat；缺配置NOT_FOUND，其他档不回退。

@@ -7,7 +7,7 @@
   "assignedSession": "持续目标第一轮免费路由解析",
   "branch": "codex/model-goal-r1",
   "baseCommit": "685db4f48bb359f79a7501098204ccc5a4cde6b2",
-  "deliveryCommit": null,
+  "deliveryCommit": "24e4026d452333061cad9ef6abde3050e2944101",
   "deployment": "not_started",
   "files": [
     {
@@ -52,23 +52,23 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮免费同代路由候选待根VPS检查；完整执行/费用/引用生命周期不在本包"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/routing/route.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮免费同代路由候选待根VPS检查；完整执行/费用/引用生命周期不在本包"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/billing/quote.go",
@@ -282,13 +282,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": "82dee76414a823e4d2e71dd87c623d7220f8387e",
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮免费同代路由候选待根VPS检查；完整执行/费用/引用生命周期不在本包"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/catalog/refresh.go",
@@ -674,24 +674,24 @@
     {
       "id": "model-gateway.ResolveProfile",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮候选待根VPS检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.ResolveRoute",
       "path": "modules/model-gateway/internal/routing/route.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮候选待根VPS检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.QuoteCost",
@@ -1334,13 +1334,13 @@
     {
       "id": "model-gateway.readAvailabilityCandidate",
       "path": "modules/model-gateway/internal/catalog/task.go",
-      "state": "in_progress",
-      "implementationCommit": "71cd82a4a6a1936e6e814680495b8afdeeb3eb6b",
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮候选待根VPS检查"
+      "blocker": null
     },
     {
       "id": "model-gateway.availabilityReadError",
@@ -1587,47 +1587,47 @@
     {
       "id": "model-gateway.readRouteProfile",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "候选源码已写，等待集成会话VPS格式/生成/编译与结构检查；非业务验收"
+      "blocker": null
     },
     {
       "id": "model-gateway.applyTaskOverride",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "候选源码已写，等待集成会话VPS格式/生成/编译与结构检查；非业务验收"
+      "blocker": null
     },
     {
       "id": "model-gateway.SelectCandidates",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "候选源码已写，等待集成会话VPS格式/生成/编译与结构检查；非业务验收"
+      "blocker": null
     },
     {
       "id": "model-gateway.readRouteCandidate",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "候选源码已写，等待集成会话VPS格式/生成/编译与结构检查；非业务验收"
+      "blocker": null
     }
   ],
-  "rule": "持续目标第一轮：免费真实ResolveRoute到SelectCandidates到同快照ResolveProfile链路及共享元数据读取已写，未提交未检查，保持in_progress；所有生成/格式/编译/check由根VPS执行后才记录对应完成状态。无测试、模型、供应方、部署或本域push；凭据引用生命周期与完整服务仍partial/blocked。"
+  "rule": "持续目标第一轮源码24e4026：ResolveProfile、ResolveRoute、SelectCandidates及3项新助手、修改readAvailabilityCandidate和3个完整文件按根VPS检查verified；PutProfile本轮源码未修改，保留原实际SHA。仅免费同代路由元数据，不表示费用/派发/凭据引用生命周期、完整服务或业务验收完成。无新增测试、模型调用或部署；本域冻结等根顺序集成及下一轮派发，不自行push。"
 }

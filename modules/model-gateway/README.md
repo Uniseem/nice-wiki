@@ -2,7 +2,7 @@
 
 唯一拥有供应方、密钥、模型版本、功能档位、费用报价、额度预留、执行与费用账本。所有AI消费必须经过此服务。
 
-阶段：R1实施。用户最新持续目标取代此前两轮停止指令。本轮免费路由解析候选已写：ResolveRoute通过SelectCandidates在一个SQL快照内调用ResolveProfile，核真实任务赋值、可信费用类别、覆盖/回退、同代安全候选与嵌入空间。当前等待根VPS统一检查，不提前标记完成。完整HTTP、权威epoch初始化、恢复、派发引用生命周期与模型费用仍未齐，BuildApplication保持blocked；未做业务验收或部署。
+阶段：R1实施。用户最新持续目标取代此前两轮停止指令。本轮免费路由解析候选已写：ResolveRoute通过SelectCandidates在一个SQL快照内调用ResolveProfile，核真实任务赋值、可信费用类别、覆盖/回退、同代安全候选与嵌入空间。源码已交付并通过根VPS生成/编译/结构与交叉审核，相关完整函数verified；实际SHA与范围见progress。完整HTTP、权威epoch初始化、恢复、派发引用生命周期与模型费用仍未齐，BuildApplication保持blocked；未做业务验收或部署。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
