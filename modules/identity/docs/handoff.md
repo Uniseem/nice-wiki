@@ -1,3 +1,11 @@
+# 持续实施第一轮：授权安全显示名（2026-10-16，VPS检查通过）
+
+用户重新授权每轮三子代理编写、审核并push至R1代码完成。集成会话为content编辑锁补齐公共前置：AuthorizationDecision追加当前已校验主体的accountName，readSessionSnapshot同一账户JOIN读取不可变账号名，不新增任意账户读取能力、不改变grants。来源685db4f，独占本次identity修改；本域原后续服务器重置工作包仍未实施。
+
+隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（869文件/1299函数/379操作/2289类型）。首次生成因既有pnpm未在PATH失败，补入已安装入口后完整重跑通过；未改工具版本或新增依赖。未新增测试/样例，未执行SQL/HTTP行为验收、真实接口/模型、服务或部署。源码SHA随下一台账提交记录。
+
+---
+
 # 第四轮交接：本人后台偏好（2026-10-15，VPS现阶段检查通过）
 
 - 继续根持续实施授权，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，分支codex/identity-preferences-r1，独占modules/identity；接续时工作树干净。

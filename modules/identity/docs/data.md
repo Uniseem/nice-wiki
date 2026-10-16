@@ -140,3 +140,5 @@
 第四轮本人后台偏好仍使用既有preferences表，以当前权威session/site/account核权后仅按本人account_id访问，不收外部主体键。无行读取system/zh-Hans/dashboard/revision0且不写默认行；新保存须嵌套revision等于expectedRevision，首写仅允许0并生成1，随后每个新成功操作CAS加1（同值也加1）。完整preferences安全结果和HMAC/keyId回执同事务；同op回放原结果不覆写后来值。偏好不改变账号/认证水位，不进入账号索引或授权变更outbox。
 
 允许后台语言和route key仅来自根公共目录生成的gen.InterfaceLocales、gen.AdminRoutes。当前内置后台界面语言为zh-Hans/en，与站点翻译语种分离；目标页按目录Permissions中任一当前权威grant核验。持久记录读取不因后来的权限变化偷偷改写，返回route key本身不授权限。
+
+单次授权响应追加当前已校验主体的不可变accountName，与会话/账户权威同一快照读取，供content编辑锁显示持有人；不接收外部显示名，不返回其他账户资料，不改变grants。

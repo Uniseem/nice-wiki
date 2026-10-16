@@ -2218,6 +2218,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 2. 同一只读事务读取session/账户/族与auth_state，核对access摘要或委托主体、最新凭据/权限/session水位（委托sessionRevision必须为正数且等于当前session revision）、auth/data epoch、撤销和期限；纯服务无账户session不获得账户功能
 3. MapFunctionGrants只读取本域功能表派生grants；active和superadmin-only单独检查，expectedPermissionRevision不匹配即拒绝；resourceId仅审计不设文档scope
 4. 初始口令AuthContext只持account.self；仅当permission为account.self且可信静态action是identity:changePassword、identity:revokeSession、identity:readSelf时允许，缺失或其他动作拒绝；action不扩充grants
+5. 成功返回当前授权主体同一只读快照中的不可变accountName，供content锁显示；拒绝客户端显示名，不额外读取其他账户资料
 
 **错误**
 
@@ -2253,6 +2254,7 @@ func readSessionSnapshot(ctx context.Context, query sessionQueryer, sessionID pl
 **步骤**
 
 1. 同一事务连接sessions、accounts、credentials、session_families、auth_state；缺失签发族拒绝，不返回秘密
+2. 同一账户JOIN读取不可变account_name；AuthorizationDecision只返回当前已校验主体的安全显示名
 
 **错误**
 

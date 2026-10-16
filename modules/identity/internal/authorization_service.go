@@ -24,6 +24,7 @@ type AuthorizationRequest struct {
 }
 
 type AuthorizationDecision struct {
+	AccountName       AccountName          `json:"accountName"`
 	Authorized        bool                 `json:"authorized"`
 	Auth              platform.AuthContext `json:"auth"`
 	EvaluatedRevision platform.Revision    `json:"evaluatedRevision"`
@@ -36,6 +37,7 @@ type sessionQueryer interface {
 }
 
 type sessionSnapshot struct {
+	AccountName               AccountName
 	Session                   Session
 	Status                    string
 	IsSuperadmin              bool
@@ -59,7 +61,7 @@ func readSessionSnapshot(ctx context.Context, query sessionQueryer, sessionID pl
         s.permission_revision, s.issued_at, s.expires_at, s.absolute_expires_at, s.device_label,
         s.restricted_to_password_change, s.revoked_at, s.revision, a.status, a.is_superadmin,
         a.must_change_password, c.credential_revision, a.permission_revision,
-        f.auth_epoch, f.data_epoch, f.access_digest, f.csrf_digest, f.revoked_at, au.auth_epoch
+        f.auth_epoch, f.data_epoch, f.access_digest, f.csrf_digest, f.revoked_at, au.auth_epoch, a.account_name
         FROM sessions s JOIN accounts a ON a.account_id = s.account_id AND a.site_id = s.site_id
         JOIN credentials c ON c.account_id = s.account_id JOIN session_families f ON f.session_id = s.session_id
         JOIN auth_state au ON au.singleton = 1 WHERE s.session_id = ?`, sessionID).
@@ -67,7 +69,7 @@ func readSessionSnapshot(ctx context.Context, query sessionQueryer, sessionID pl
 			&s.IssuedAt, &s.ExpiresAt, &s.AbsoluteExpiresAt, &s.DeviceLabel, &s.RestrictedToPasswordChange,
 			&sessionRevoked, &s.Revision, &result.Status, &result.IsSuperadmin, &result.MustChangePassword,
 			&result.CurrentCredentialRevision, &result.CurrentPermissionRevision, &result.FamilyAuthEpoch,
-			&result.FamilyDataEpoch, &result.AccessDigest, &result.CSRFDigest, &familyRevoked, &result.CurrentAuthEpoch)
+			&result.FamilyDataEpoch, &result.AccessDigest, &result.CSRFDigest, &familyRevoked, &result.CurrentAuthEpoch, &result.AccountName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return sessionSnapshot{}, platform.NewError(platform.CodeUnauthenticated, false, "会话不存在或尚未签发")
 	}
@@ -218,7 +220,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 	if err != nil {
 		return AuthorizationDecision{}, err
 	}
-	decision := AuthorizationDecision{Auth: auth, EvaluatedRevision: snapshot.CurrentPermissionRevision, Reason: "allowed"}
+	decision := AuthorizationDecision{AccountName: snapshot.AccountName, Auth: auth, EvaluatedRevision: snapshot.CurrentPermissionRevision, Reason: "allowed"}
 	switch {
 	case snapshot.Status == "disabled":
 		decision.Reason = "disabled"

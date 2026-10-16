@@ -504,13 +504,18 @@
             "session_expired",
             "must_change_password"
           ]
+        },
+        "accountName": {
+          "$ref": "#/$defs/AccountName",
+          "description": "已校验当前账户的安全显示名；仅用于编辑持有人显示，不授予其他账户资料读取权限"
         }
       },
       "required": [
         "authorized",
         "auth",
         "evaluatedRevision",
-        "reason"
+        "reason",
+        "accountName"
       ]
     },
     "PortalPreferences": {

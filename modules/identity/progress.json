@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "8d61de0010103b4c64e7265a15fdc566dfc7cdf5f000e1d1204fdfac539933aa",
+  "contractSha256": "1c05ee8489ef896a860a1f40a2ac04b3e421d7662d6f109f1eccae19543cbda4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "第四轮身份本人后台偏好紧密函数组",
   "branch": "codex/identity-preferences-r1",
