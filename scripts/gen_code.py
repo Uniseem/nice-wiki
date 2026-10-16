@@ -386,7 +386,8 @@ def browser_spec(module, modules, internal_spec):
 def downgrade_to_30(spec):
     """把打包后的3.1规格确定性降级为oapi-codegen可读的3.0形态。
 
-    只转换类型表达：可空anyOf/type数组改为nullable，const改为enum；
+    可空anyOf/type数组改为nullable，const改为enum；propertyNames保留为扩展，
+    其键规则由登记的领域语义校验承担，避免3.0库拒绝未知schema关键字；
     不改变路径、operationId与权限标注。TS生成仍使用3.1原始规格。
     """
     result = json.loads(json.dumps(spec, ensure_ascii=False))
@@ -438,6 +439,8 @@ def downgrade_to_30(spec):
                     node.pop("type")
             if "const" in node:
                 node["enum"] = [node.pop("const")]
+            if "propertyNames" in node:
+                node["x-json-schema-property-names"] = node.pop("propertyNames")
             for bound, base in (("exclusiveMinimum", "minimum"), ("exclusiveMaximum", "maximum")):
                 limit = node.get(bound)
                 if isinstance(limit, (int, float)) and not isinstance(limit, bool):

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 99 个函数：约束 42 个，参考 57 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 102 个函数：约束 42 个，参考 60 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -257,9 +257,11 @@ func EnsureTreeAcyclic(input EnsureTreeAcyclicInput) (EnsureTreeAcyclicResult, e
 
 **步骤**
 
-1. 索引ID/parent，缺父、重复ID拒绝
-2. DFS颜色判环，最长层级32
-3. movingId不得等于parent或在其后代内
+1. 索引完整当前树的documentId/parentId；重复ID、缺父与原树环返回INTEGRITY_ERROR，根为第一层，原树超过32层返回VALIDATION；不因拟移动可修复而接受损坏原树
+2. movingId为null时只校验当前树、忽略拟父并返回空descendants；非null必须存在，非null拟父也必须存在；缺拟移/拟父返回VALIDATION
+3. 从原树收集拟移节点全部后代，不包含自己；拟父等于自身或任一后代返回VALIDATION
+4. 以拟父当前深度+拟移子树完整高度核移动后最长层级，超过32返回VALIDATION；移至根的拟父深度为0，不仅核拟移节点自身
+5. 成功返回valid=true及原树后代ID字典序，所有输入及父关系保持不变，空结果序列化为[]
 
 **错误**
 
@@ -271,6 +273,38 @@ func EnsureTreeAcyclic(input EnsureTreeAcyclicInput) (EnsureTreeAcyclicResult, e
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
+- 依赖：`content.documentTreeDepths`
+
+## content.documentTreeDepths
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_validator.go`
+- 作用：按已核完整父索引计算原树深度并拒绝环/超过32层
+
+```go
+func documentTreeDepths(documents []gen.DocumentMetadata, index map[Identifier]int) ([]int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 沿完整有限父链作三色遍历，黑色深度复用、灰色再入为环；无递归且每节点只处理一次，逆序回填根起第1层的深度并拒绝超过32层
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：纯函数；调用方已完成入口结构校验和本域资源授权
+- 并发：只读取输入，局部状态不跨调用共享；可以并发调用
+- 幂等：相同输入产生相同输出，无持久副作用
 - 依赖：无
 
 ## content.UpdateDocumentMetadata
@@ -1178,23 +1212,90 @@ func CollectResourceReferences(input CollectResourceReferencesInput) (CollectRes
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `CollectResourceReferencesResult` | 扫描所有嵌套块资源引用的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；VALIDATION: 正文JSON硬限或去重后引用数超过10000项 |
 
 **步骤**
 
-1. 规范前序遍历image/attachment/drawing(scene+亮暗svg)/video及poster
-2. 保assetId/version/hash和blockId，不能只扫顶层或当前公开
-3. 去重sourceKey，当前/历史明确分类以支持手动清理警告
+1. 对已通过入口schema和上游块树语义的正文作只读JSON表示转换；沿content数组规范前序遍历，包含列表/任务/引述/提示/表格/分栏等全部嵌套层级，不重新校验schema/权限
+2. image/attachment取asset；drawing固定scene、lightSVG、darkSVG顺序；uploaded video先取source.asset，platform video先取snapshot.cover，再取video.poster，nullable封面跳过，不抓URL或探测media
+3. 每项完整保留assetId/version/sha256/mediaType/byteSize与稳定blockId；version以精确整数转换，不能经float64丢精度，同assetId/version出现不同hash/长度/MIME返回INTEGRITY_ERROR
+4. sourceKey为(sourceService=content,documentId,sourceRevisionId,sourceVersion,kind,blockId,assetId,assetVersion)；本次调用固定前五项，同一block同一asset版本只保留首次，不吞掉不同block的引用，保留前序/角色顺序
+5. kind原样保留current_draft/current_published/history，retained=true表示本次仍保留正文中的引用，不从状态猜测历史已被删除；去重后超过10000项返回VALIDATION，空结果序列化为[]，不修改输入
 
 **错误**
 
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `VALIDATION`：正文JSON硬限或去重后引用数超过10000项（不可重试）
 
 - 副作用：无
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：无
+- 依赖：`content.bodyJSONValue`、`content.visitReferenceNode`
+
+## content.visitReferenceNode
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_extractor.go`
+- 作用：按正文前序和固定资源角色顺序访问资源块
+
+```go
+func (collector *resourceReferenceCollector) visitReferenceNode(node map[string]any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅抽取已登记资源槽；nullable平台cover/独立poster分别访问后去重，所有content后代按输入顺序递归
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：纯函数；调用方已完成入口结构校验和本域资源授权
+- 并发：只读取输入，局部状态不跨调用共享；可以并发调用
+- 幂等：相同输入产生相同输出，无持久副作用
+- 依赖：`content.appendResourceReference`、`content.visitReferenceNode`
+
+## content.appendResourceReference
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_extractor.go`
+- 作用：精确资源版本转换、跨槽完整性核对与稳定sourceKey去重
+
+```go
+func (collector *resourceReferenceCollector) appendResourceReference(blockID Identifier, value any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 跳过nullable资源；version精确转服务整数；同assetId/version的完整不可变元数据必须一致；同block的同版本去重，超过10000拒绝；沿用来源水位/分类并标retained
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：纯函数；调用方已完成入口结构校验和本域资源授权
+- 并发：只读取输入，局部状态不跨调用共享；可以并发调用
+- 幂等：相同输入产生相同输出，无持久副作用
+- 依赖：`content.contentInteger`
 
 ## content.CanonicalizeBody
 

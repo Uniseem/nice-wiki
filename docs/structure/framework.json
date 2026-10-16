@@ -3567,6 +3567,16 @@
       "path": "docs/push-log/2026-10-16-0001.md",
       "kind": "documentation",
       "purpose": "本轮代码交付、VPS统一复核、停止目标与普通推送记录"
+    },
+    {
+      "path": "modules/content/internal/tree_validator.go",
+      "kind": "source",
+      "purpose": "检查树无环和层级约束"
+    },
+    {
+      "path": "modules/content/internal/reference_extractor.go",
+      "kind": "source",
+      "purpose": "扫描所有嵌套块资源引用"
     }
   ]
 }

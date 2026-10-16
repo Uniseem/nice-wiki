@@ -37,3 +37,5 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 第五轮文件核心不接HTTP或业务保存成功：上游授权/CAS快照→规范hash→私有原准备回放→新操作当前站点大小及本树语义→公共写窗口+真实持久preparing→原8字段PREPARED/fsync→tmp/fsync/不覆盖rename/目录同步→MarkPrepared。head/稳定ID ledger/refs/receipt/outbox仍在后续既有CommitDraftTransaction同事务完成。Read只允许受信COMMITTED资格，保留历史节点语义，坏文件隔离而不从旧head或缓存降级。
 
 待实现SaveDraft的媒体abort恢复对齐新版ReleaseResourceReferences：先源持久aborted/rejected，再携sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest、nullable pinId、reason请求媒体原子封存。pinId未知不先重新Acquire，避免资源已不可用时恢复永久卡住；COMMITTED优先且不释放已提交历史引用。此条仍planned，不代表媒体流程已实现。
+
+本轮树纯规则先核完整原树，再核拟移子树的完整高度：根为第1层，总深度最多32，禁止移入自己或后代。返回后代固定为原树ID字典序，不修改输入；MoveDocument/redirect事务仍待后续实现。本轮资源纯规则只提取已核正文的精确引用，不申请pin、不提交引用、不探测资源，也不修改head。

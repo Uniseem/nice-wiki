@@ -228,3 +228,7 @@ WriteRevisionFile参考输入新增expectedHead(nullable)/expectedDraftVersion�
 ReadRevisionBody只从受信COMMITTED索引拿完整ObjectRef/归属和资格，nullable expectedHash从该精确修订索引取，不从文件系统推当前head。持久文件边界一次使用生成DocumentBody schema验证，再核块语义、规范编码与hash；读前后资格一致才返回。真实材料/文件损坏持久隔离并关闭公开，无fallback；调用方错expectedHash只拒绝，不隔离与权威一致的文件。没有实际窄存储adapter则失败关闭。
 
 窄存储的FindPreparation必须合并原JSONL最新终止/隔离状态与COMMITTED receipt；不能用旧索引复活启动已隔离孤儿。隔离按COMMITTED优先：已提交损坏关闭文档，未提交坏准备只隔离该准备，不关闭另一个合法head；本轮没有假adapter实现。
+
+本轮纯规则明确资源sourceKey为content+documentId+sourceRevisionId+sourceVersion+kind+blockId+assetId+assetVersion。同块相同资源版本去重，不合并不同块；同assetId/version的哈希、长度或MIME冲突拒绝。画板三文件、平台snapshot.cover与独立poster均保留为精确本地引用，nullable跳过；sourceVersion与当前/发布/历史分类来自已授权上游，不从正文推测提交。retained=true只表示本次被扫描正文仍保留，函数不读media或判断远端文件存亡。
+
+真实私有DB准备/COMMITTED资格/隔离adapter尚缺首次SQLite schema、只追加迁移路径与启动打开协议的结构确认；本轮未实现或猜测这些存储行为。head/ledger/refs/receipt/outbox仍要求在原草稿提交事务内一致。
