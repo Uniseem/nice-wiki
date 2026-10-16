@@ -1,5 +1,9 @@
 # 资源媒体当前进度
 
+## 推送前复核：SVG样式文本分片（2026-10-16，进行中）
+
+集成会话在main复核本轮时发现style按XML CharData逐片校验会漏掉由CDATA或注释拆分的CSS关键字。现改为每个style合并最终文本后一次校验，并拒绝style内嵌子元素；保持原字节与既有预算。仅修改既有validateSVG、合同和台账，未加测试或样例，待VPS检查后填写交付SHA。
+
 ## 本轮完成上传与直接资源校验（2026-10-16，已交付冻结）
 
 - 分支codex/media-completion-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，源码提交 `9c2521a3142db0bc2ebcf1dc2914d3aea6984b46`；独占modules/media/，公共文件由根统一处理。

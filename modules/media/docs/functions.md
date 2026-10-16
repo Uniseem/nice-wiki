@@ -1532,7 +1532,9 @@ func validateSVG(ctx context.Context, reader io.Reader) error
 
 **步骤**
 
-1. 有界严格SVG XML、元素/属性/资源安全语义
+1. 在既有SVG字节、节点和深度预算内解析XML，核元素、属性、引用与嵌入raster；拒DTD、处理指令、未知元素及不安全外部资源
+2. style仅允许文本；合并其全部XML CharData片段（包含CDATA展开、忽略XML注释）后，在style结束时一次调用validateSVGCSS，不能按单个Token判定CSS关键字/URL；各style独立重置缓冲
+3. 保持原SVG字节不变，不执行样式或抓取URL；原子上传和交付CSP仍由调用链负责
 
 **错误**
 

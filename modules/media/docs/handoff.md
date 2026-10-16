@@ -1,5 +1,9 @@
 # 资源媒体会话交接
 
+## 推送前集成复核（2026-10-16，进行中）
+
+基线de04c858e375cd815842e298ff831efc389b249f，main仅有用户原HTML未跟踪。集成会话修正validateSVG按XML片段逐片检查style的遗漏：在style结束时验证全部文本拼接结果，CDATA与注释分界不改变CSS语义；style内拒绝子元素。未改变正文/资源格式、HTTP、权限、费用或文件职责，未新增测试/fixture/样例，检查仅隔离VPS既有docs/gen/build/check；待通过后回填准确源码SHA。用户本次明确授权复核无问题后普通push main，部署未授权。
+
 ## 本轮完成上传与直接资源校验（2026-10-16，已交付冻结）
 
 - 分支codex/media-completion-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，源码提交 `9c2521a3142db0bc2ebcf1dc2914d3aea6984b46`；独占modules/media/，公共文件由根统一处理。

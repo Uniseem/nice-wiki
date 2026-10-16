@@ -81,6 +81,7 @@ func validateSVG(ctx context.Context, reader io.Reader) error {
 	decoder := xml.NewDecoder(reader)
 	depth, tokens, roots := 0, 0, 0
 	inStyle := false
+	var styleText strings.Builder
 	for {
 		token, err := decoder.Token()
 		if errors.Is(err, io.EOF) {
@@ -101,6 +102,9 @@ func validateSVG(ctx context.Context, reader io.Reader) error {
 				return invalidMedia("SVG不接受处理指令")
 			}
 		case xml.StartElement:
+			if inStyle {
+				return invalidMedia("SVG样式元素只允许文本")
+			}
 			if depth == 0 {
 				roots++
 				if roots != 1 || value.Name.Local != "svg" {
@@ -118,6 +122,7 @@ func validateSVG(ctx context.Context, reader io.Reader) error {
 			case "svg", "g", "defs", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text", "tspan", "title", "desc", "clipPath", "mask", "linearGradient", "radialGradient", "stop", "pattern", "use", "image", "a", "marker", "symbol":
 			case "style":
 				inStyle = true
+				styleText.Reset()
 			default:
 				return invalidMedia("SVG包含不允许的元素")
 			}
@@ -156,16 +161,18 @@ func validateSVG(ctx context.Context, reader io.Reader) error {
 		case xml.EndElement:
 			depth--
 			if value.Name.Local == "style" {
+				if err := validateSVGCSS(styleText.String(), true); err != nil {
+					return err
+				}
 				inStyle = false
+				styleText.Reset()
 			}
 		case xml.CharData:
 			if depth == 0 && strings.TrimSpace(string(value)) != "" {
 				return invalidMedia("SVG根节点外存在内容")
 			}
 			if inStyle {
-				if err := validateSVGCSS(string(value), true); err != nil {
-					return err
-				}
+				styleText.Write(value)
 			}
 		}
 	}

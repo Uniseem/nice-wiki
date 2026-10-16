@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "da51a68fd3a7483844f6bb548f11c5a48be2ceec57d4547adfdd624aa3ee3041",
+  "contractSha256": "f1ef2518f4f089d7ca8b00353ad56e81368cec13c1ce344d2f43f98491815717",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "完成上传与直接资源校验一轮",
   "branch": "codex/media-completion-round1",
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/media/internal/payload_validator.go",
-      "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "state": "not_run",
+        "evidence": "推送前复核修正style分片合并，待隔离VPS格式/编译/结构检查。"
       },
       "blocker": null
     },
@@ -1573,11 +1573,11 @@
     {
       "id": "media.validateSVG",
       "path": "modules/media/internal/payload_validator.go",
-      "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "state": "not_run",
+        "evidence": "推送前复核修正style分片合并，待隔离VPS格式/编译/结构检查。"
       },
       "blocker": null
     },
