@@ -7,9 +7,9 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| PUT `/v1/admin/providers/{providerId}` | `putProvider` | `model-gateway.PutProvider` | `superadmin` | `PutProviderInput` → 200 `PutProviderResult` | CAS保存供应方 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| POST `/v1/admin/providers/{providerId}/credentials` | `putCredential` | `model-gateway.PutCredential` | `superadmin` | `PutCredentialInput` → 201 `PutCredentialResult` | 加密存储密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| POST `/v1/admin/providers/{providerId}/credentials/rotate` | `rotateCredential` | `model-gateway.RotateCredential` | `superadmin` | `RotateCredentialInput` → 200 `RotateCredentialResult` | 轮转新请求使用的密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| PUT `/v1/admin/providers/{providerId}` | `putProvider` | `model-gateway.PutProvider` | `superadmin` | `PutProviderInput` → 200 `PutProviderResult` | CAS保存供应方 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 503`、`HTTP 422` |
+| POST `/v1/admin/providers/{providerId}/credentials` | `putCredential` | `model-gateway.PutCredential` | `superadmin` | `PutCredentialInput` → 201 `PutCredentialResult` | 加密存储密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 404`、`HTTP 422` |
+| POST `/v1/admin/providers/{providerId}/credentials/rotate` | `rotateCredential` | `model-gateway.RotateCredential` | `superadmin` | `RotateCredentialInput` → 200 `RotateCredentialResult` | 轮转新请求使用的密钥 | `HTTP 400`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 404`、`HTTP 422` |
 | PUT `/v1/admin/models/{modelId}` | `putModel` | `model-gateway.PutModel` | `superadmin` | `PutModelInput` → 200 `PutModelResult` | 保存不可变模型身份版本 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | PUT `/v1/admin/profiles/{profileId}` | `putProfile` | `model-gateway.PutProfile` | `superadmin` | `PutProfileInput` → 200 `PutProfileResult` | 管理AI档位与费用限制 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 422`、`HTTP 503` |
 | POST `/v1/inferences` | `createInference` | `model-gateway.CreateInvocation` | `service` | `CreateInvocationInput` → 202 `CreateInvocationResult` | 接受统一AI调用 | `HTTP 400`、`HTTP 409`、`HTTP 403`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
@@ -59,3 +59,9 @@ readTaskAssignments对纯服务按根目录owner限制；portal携超管委托�
 ## 档位配置写入
 
 putProfile仅portal携当前superadmin委托；统一入口严格schema及即时授权，HTTP绑定核profileId路径/正文与非空幂等头/正文一致。费用类别字段表示要编辑的配置目标，不覆盖可信操作费用类别。保存空数组合法、最多256个有序唯一模型，直接能力来自根唯一目录生成表；模型未启用/能力不足或缺模型为VALIDATION，槽占用与幂等输入冲突为CONFLICT，未知存储失败关闭。所有响应no-store，不触发模型或付费重建。
+
+## 凭据配置写入
+
+putCredential/rotateCredential仅portal当前superadmin委托；HTTP核providerId路径/正文和非空幂等头/正文一致，响应no-store。Put返回201及新版本/掩码指纹，Rotate返回200及新/旧版本；secret超过8个Unicode字符才显示末4位，其余只掩码及HMAC摘要。expectedVersion指凭据当前版本；Rotate至少1，成功结果版本必须仍在公共整数范围内。
+
+同代同HMAC的7天原回执先返回；新操作才核屏障及真实provider双版本CAS。未配主密钥/存储未知失败关闭，缺供应方NOT_FOUND，凭据历史/active材料损坏INTEGRITY_ERROR，不探测供应方或调用模型。Rotate版本切换已写，最后引用释放销毁尚未完成，不构成完整生命周期验收。

@@ -1,7 +1,11 @@
 {
   "slug": "model-gateway",
   "image": "nice-wiki-model-gateway",
-  "command": ["/model-gateway", "--config", "/config/service.config.json"],
+  "command": [
+    "/model-gateway",
+    "--config",
+    "/config/service.config.json"
+  ],
   "httpPort": 8105,
   "dataVolume": "/data/model-gateway",
   "secrets": [
@@ -12,6 +16,10 @@
     {
       "name": "model-gateway-signing-key",
       "path": "/run/secrets/model-gateway-signing-key.json"
+    },
+    {
+      "name": "model-gateway-master-key",
+      "path": "/run/secrets/model-gateway-master-key"
     }
   ],
   "dependencies": [

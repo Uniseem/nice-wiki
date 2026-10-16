@@ -45,3 +45,11 @@
 PutProfile在同一当前代次事务内，依次处理7天原结果、全部非released屏障、当前版本与唯一槽、候选直接能力、条件CAS、profile.changed平台outbox及完整回执。事件taskIds对旧/新fast改动保守包含vision/rerank回退任务并去重排序。有效原结果重放不受后来模型停用或本地写屏障阻断；未知Commit不自行重试。保存只核模型元数据，不读取价格、凭据或供应方在线性。
 
 空候选列表保留配置行。old规定的视觉/重排未设回退保留在尚未实现的ResolveProfile/ResolveRoute：该行缺失或候选数组为空时，分别使用fast中支持vision的候选、或由fast模型代替重排；不在保存时合成候选，不自动重算嵌入或已有付费结果。
+
+## 凭据保存与版本切换
+
+可信启动只保存可选masterKeyRef，不读取secret；免费配置读取不依赖它。凭据写入才安全有界读取32字节主密钥、计算域分离HMAC输入摘要，严格当前epoch事务先处理7天原结果，再核所有未释放屏障、真实active/供应方CAS和未复用历史版本。新nonce/AAD加密后，密文、active、provider.changed、脱敏回执同事务；无网络探测或费用任务。
+
+Put可首次保存/替换或修复缺失active材料；Rotate需要既有完整active材料，全部旧密文保留。当前没有真实派发版本引用与释放依据，最后引用销毁仍未交付，Rotate/credential.go整体partial；不能因invocations为空而清密文。
+
+第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后根全量生成/编译/结构检查通过，证据见本轮交付记录。

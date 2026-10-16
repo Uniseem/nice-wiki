@@ -129,7 +129,7 @@
           "purpose": "启动并验证本服务私有持久化与密钥引用",
           "steps": [
             "1 只读取本服务配置和迁移版本",
-            "2 校验masterKeyRef可取32字节密钥",
+            "2 masterKeyRef可缺省；非空须绝对路径，仅装配引用，不在启动读secret，凭据写入时安全有界读取32字节",
             "3 注册恢复调度",
             "4 所有关键依赖可用才ready",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
@@ -185,7 +185,7 @@
             }
           ],
           "sideEffects": [
-            "建立连接池和worker，不调用供应方"
+            "建立本域持久化并装配可信主密钥引用，不读取secret或调用供应方"
           ],
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
@@ -287,7 +287,7 @@
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。"
           },
           "concurrency": "进程RWMutex仅取当前Store指针，无SQL或网络",
           "idempotency": "无写入，可重复",
@@ -298,19 +298,25 @@
         {
           "id": "model-gateway.InstallStore",
           "name": "InstallStore",
-          "signature": "func InstallStore(store *Store)",
+          "signature": "func InstallStore(store *Store, masterKeyRef string)",
           "inputs": [
             {
               "name": "store",
               "type": "Store",
               "description": "可信启动已打开的本域库",
               "constraints": "可信本域装配或已通过入口的只读链路使用"
+            },
+            {
+              "name": "masterKeyRef",
+              "type": "string",
+              "description": "可信启动可选主密钥绝对路径引用",
+              "constraints": "只装配引用，不读取文件；空引用不阻断免费配置读取"
             }
           ],
           "outputs": [],
           "purpose": "安装既有本域Store供业务读取",
           "steps": [
-            "仅启动装配设置当前Store；不读主密钥、不写runtime_meta代次、不宣称服务ready"
+            "仅启动装配在安装前保存主密钥引用，再设置当前Store；不读取secret、不写runtime_meta、不宣称服务ready。"
           ],
           "errors": [],
           "sideEffects": [
@@ -318,7 +324,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。"
           },
           "concurrency": "仅可信启动装配持进程写锁设置指针，不持锁执行IO",
           "idempotency": "重复安装同指针不改持久数据；不证明服务ready",
@@ -388,7 +394,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。"
           },
           "concurrency": "先短读锁核关闭状态，再SQL BeginTx；ctx贯穿查询",
           "idempotency": "无业务写入；事务由调用方结束",
@@ -425,7 +431,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅本域可信装配或ReadTaskAvailability已核纯QA服务链路"
+            "rule": "仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。"
           },
           "concurrency": "Store写锁标关闭后释放，进程写锁仅撤销同指针，然后关闭SQL连接",
           "idempotency": "重复关闭不重复撤销或关闭资源",
@@ -476,6 +482,108 @@
           "dependencies": [
             "model-gateway.All"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.Store.MasterKeyRef",
+          "name": "Store.MasterKeyRef",
+          "signature": "func (s *Store) MasterKeyRef() string",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "ref",
+              "type": "string",
+              "description": "启动装配引用",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "读取可信不可变主密钥引用",
+          "steps": [
+            "只返回可信InstallStore保存的路径引用，不读文件或secret。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -624,11 +732,12 @@
           ],
           "purpose": "CAS保存供应方",
           "steps": [
-            "1 校验配置",
-            "2 锁provider行",
-            "3 比较版本",
-            "4 写配置和审计outbox后提交",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "1 仅已授权superadmin保存渠道元数据，ValidateProvider完成本函数配置安全规则与URL规范化；版本为expectedVersion+1。",
+            "2 复用beginAvailabilitySnapshot在同一事务严格核非空runtime_meta当前代次；普通非秘密输入摘要绑定callerService/dataEpoch/provider/expectedVersion。",
+            "3 先按site/actor/函数/key读取7天原回执：同代同hash返回首次规范结果，不核后来的指针或屏障；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR。过期只读未命中，不能提前删除。",
+            "4 新操作在同一事务拒绝任何state非released屏障，不按屏障epoch或deadline过滤；不改PutModel或其旧共享屏障helper。",
+            "5 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。推进或回退只由专用凭据端点事务负责，普通编辑不能改写凭据。",
+            "6 同事务写provider配置、provider.changed平台outbox和完整原结果回执；仅成功新事务末尾替换过期回执，失败回滚；不读取secret或调用供应方。"
           ],
           "errors": [
             {
@@ -684,17 +793,38 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域存储或权威代次尚未知；未知查询失败关闭。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "已持久供应方原结果回执损坏。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或代次不一致。",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "更新providers并发出provider.changed"
           ],
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "concurrency": "同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；配置、平台outbox和回执一起提交，不做网络IO。",
+          "idempotency": "siteId+actorId+函数ID+key唯一、7天有效；普通配置hash绑定callerService/dataEpoch/provider/expectedVersion，同代同hash返回首次规范结果，异hash CONFLICT。过期仅成功新配置事务替换，不因后续屏障/指针阻断有效无副作用重放。",
           "dependencies": [
             "model-gateway.ValidateProvider",
-            "model-gateway.SetProviderEnabled"
+            "model-gateway.SetProviderEnabled",
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot",
+            "model-gateway.readProviderReceipt"
           ],
           "resources": [],
           "contract": "binding"
@@ -810,13 +940,121 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readProviderReceipt",
+          "name": "readProviderReceipt",
+          "signature": "func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Provider) (PutProviderResult, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原入口取消",
+              "constraints": "已授权PutProvider当前同代事务"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信范围",
+              "constraints": "已授权PutProvider当前同代事务"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "当前事务",
+              "constraints": "已授权PutProvider当前同代事务"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "幂等键",
+              "constraints": "已授权PutProvider当前同代事务"
+            },
+            {
+              "name": "inputHash",
+              "type": "Hash",
+              "description": "含caller和epoch摘要",
+              "constraints": "已授权PutProvider当前同代事务"
+            },
+            {
+              "name": "expected",
+              "type": "Provider",
+              "description": "URL规范化首次结果",
+              "constraints": "已授权PutProvider当前同代事务"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PutProviderResult",
+              "description": "原结果",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否命中有效原回执",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "脱敏公共错误",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            }
+          ],
+          "purpose": "只读7天渠道配置原结果并核同代普通输入摘要",
+          "steps": [
+            "同scope/函数/key只读hash/created_at/result_json；坏时间失败，过期未命中不写。",
+            "有效hash不匹配CONFLICT；完整规范结果编码必须与持久原结果精确一致，否则INTEGRITY_ERROR。",
+            "命中先返原结果，不做后续写屏障/当前指针/CAS校验；仅上层成功新事务替换过期键。"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "when": "幂等输入不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久模型能力或回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本域查询未知",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅PutProvider已核superadmin的同代事务链路。"
+          },
+          "concurrency": "共用PutProvider的同代SQL事务，只读原回执，不独立提交。",
+          "idempotency": "同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。",
+          "dependencies": [
+            "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
       "kind": "handwritten",
-      "purpose": "加密存储密钥所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "凭据AES-GCM密文、敏感输入HMAC原回执与active版本CAS；旧引用生命周期回收尚未交付",
       "functions": [
         {
           "id": "model-gateway.PutCredential",
@@ -858,11 +1096,15 @@
           ],
           "purpose": "加密存储密钥",
           "steps": [
-            "1 禁止日志请求体",
-            "2 读取部署主密钥",
-            "3 用随机96bit nonce与providerId/version AAD加密",
-            "4 事务写密文并擦除临时缓冲",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "1 只接受已通过公共入口即时授权的admin+superadmin，不重复schema/服务身份/deadline校验；禁止记录secret或请求正文。",
+            "2 从已安装Store取得可信masterKeyRef；仅本凭据写入按私有路径、O_NOFOLLOW/文件身份与33字节有界读取验证恰好32字节部署主密钥。配置可缺省；缺失/不可读取失败关闭，不影响免费任务读取。",
+            "3 规范输入以主密钥派生的域分离HMAC-SHA256形成敏感摘要，绑定callerService/dataEpoch/函数/providerId/expectedVersion/secret；明文、可离线猜测的普通SHA和masterKey不入持久记录。7天回执协议固定同一部署主密钥，本轮不是主密钥轮换，换键导致旧回执不能匹配时CONFLICT，不自动覆盖。",
+            "4 同一SQL事务严格核非空当前epoch，再读取site/actor/函数/key的7天原结果；同代同HMAC返回原结果，不重核后来供应方/屏障；异输入/异代CONFLICT，时间或原结果损坏INTEGRITY_ERROR；过期只读未命中。",
+            "5 新操作拒绝所有非released本地屏障；读取同代provider及其真实version/credential_version，expectedVersion只比较当前凭据版本。不存在NOT_FOUND，旧代或CAS变化VERSION_MISMATCH；不得复用已存在历史版本，历史冲突INTEGRITY_ERROR。",
+            "6 新credentialVersion=expectedVersion+1；每次新操作随机96bit nonce，AES-256-GCM以规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}作完整AAD。只写nonce/ciphertext/dataEpoch，不解密或连接供应方。",
+            "7 providers更新同时条件绑定providerId/version/credential_version/dataEpoch，provider.version递增；密文、active指针、provider.changed/v1最小元数据及完整脱敏原结果回执同事务提交。只成功的新配置事务替换过期键，失败回滚，Commit未知不自行重试。",
+            "8 保留全部旧密文供既有派发引用；不因当前invocations为空推断可销毁。临时可变key/plaintext/HMAC规范编码字节清零，不承诺擦除immutable Go string或标准库内部副本。",
+            "PutCredential可首次写入或替换当前凭据，允许修复active材料缺失但保留真实版本CAS。fingerprint为域分离HMAC摘要与掩码；仅超过8个Unicode字符时显示末4位，短secret不完整回显。响应不含明文。"
           ],
           "errors": [
             {
@@ -918,15 +1160,38 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "更新credential密文与审计，响应无密钥"
+            "同事务增加AES-GCM密文、推进供应方active指针/版本、平台provider.changed及脱敏原回执；保留旧密文，不调用模型、供应方或费用任务"
           ],
-          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅已通过公共入口即时授权的admin+superadmin；可信主密钥引用仅来自本域启动装配，不接受浏览器路径。"
+          },
+          "concurrency": "同一本域SQL事务严格epoch、7天HMAC回执、全部屏障、真实凭据与供应方双版本CAS、历史唯一性、密文、平台outbox和回执；主密钥文件在事务之前只读，不执行网络IO。",
+          "idempotency": "siteId+actorId+函数ID+key唯一，7天同代同HMAC返回完整原结果；摘要以同一部署主密钥域分离派生，异输入/异代或换主密钥导致摘要不匹配均CONFLICT；过期仅成功新事务替换。",
+          "dependencies": [
+            "model-gateway.writeCredential"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -970,11 +1235,16 @@
           ],
           "purpose": "轮转新请求使用的密钥",
           "steps": [
-            "1 加密新secret",
-            "2 CAS替换active版本",
-            "3 已派发调用保留旧版本引用",
-            "4 最后引用释放后销毁旧密文",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "1 只接受已通过公共入口即时授权的admin+superadmin，不重复schema/服务身份/deadline校验；禁止记录secret或请求正文。",
+            "2 从已安装Store取得可信masterKeyRef；仅本凭据写入按私有路径、O_NOFOLLOW/文件身份与33字节有界读取验证恰好32字节部署主密钥。配置可缺省；缺失/不可读取失败关闭，不影响免费任务读取。",
+            "3 规范输入以主密钥派生的域分离HMAC-SHA256形成敏感摘要，绑定callerService/dataEpoch/函数/providerId/expectedVersion/secret；明文、可离线猜测的普通SHA和masterKey不入持久记录。7天回执协议固定同一部署主密钥，本轮不是主密钥轮换，换键导致旧回执不能匹配时CONFLICT，不自动覆盖。",
+            "4 同一SQL事务严格核非空当前epoch，再读取site/actor/函数/key的7天原结果；同代同HMAC返回原结果，不重核后来供应方/屏障；异输入/异代CONFLICT，时间或原结果损坏INTEGRITY_ERROR；过期只读未命中。",
+            "5 新操作拒绝所有非released本地屏障；读取同代provider及其真实version/credential_version，expectedVersion只比较当前凭据版本。不存在NOT_FOUND，旧代或CAS变化VERSION_MISMATCH；不得复用已存在历史版本，历史冲突INTEGRITY_ERROR。",
+            "6 新credentialVersion=expectedVersion+1；每次新操作随机96bit nonce，AES-256-GCM以规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}作完整AAD。只写nonce/ciphertext/dataEpoch，不解密或连接供应方。",
+            "7 providers更新同时条件绑定providerId/version/credential_version/dataEpoch，provider.version递增；密文、active指针、provider.changed/v1最小元数据及完整脱敏原结果回执同事务提交。只成功的新配置事务替换过期键，失败回滚，Commit未知不自行重试。",
+            "8 保留全部旧密文供既有派发引用；不因当前invocations为空推断可销毁。临时可变key/plaintext/HMAC规范编码字节清零，不承诺擦除immutable Go string或标准库内部副本。",
+            "RotateCredential要求expectedVersion>=1且当前active凭据存在、同代且nonce/ciphertext长度完整；返回新credentialVersion和retiredVersion，保留旧密文。",
+            "最后引用释放后销毁旧密文属于本函数既有生命周期责任；派发/引用计数与释放尚未交付，本轮只实现新版本切换，此函数整体partial，不执行销毁。"
           ],
           "errors": [
             {
@@ -1030,17 +1300,922 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "密钥版本切换；不重复派发供应方请求"
+            "同事务增加AES-GCM密文、推进供应方active指针/版本、平台provider.changed及脱敏原回执；保留旧密文，不调用模型、供应方或费用任务"
           ],
-          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅已通过公共入口即时授权的admin+superadmin；可信主密钥引用仅来自本域启动装配，不接受浏览器路径。"
+          },
+          "concurrency": "同一本域SQL事务严格epoch、7天HMAC回执、全部屏障、真实凭据与供应方双版本CAS、历史唯一性、密文、平台outbox和回执；主密钥文件在事务之前只读，不执行网络IO。",
+          "idempotency": "siteId+actorId+函数ID+key唯一，7天同代同HMAC返回完整原结果；摘要以同一部署主密钥域分离派生，异输入/异代或换主密钥导致摘要不匹配均CONFLICT；过期仅成功新事务替换。",
+          "dependencies": [
+            "model-gateway.writeCredential"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "model-gateway.writeCredential",
+          "name": "writeCredential",
+          "signature": "func writeCredential(ctx context.Context, op OperationContext, input credentialCommand) (credentialWriteResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信主体与epoch",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "input",
+              "type": "credentialCommand",
+              "description": "Put或Rotate不可持久明文命令",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "credentialWriteResult",
+              "description": "脱敏结果",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "共用凭据密文与原结果事务",
+          "steps": [
+            "落实Put/Rotate共同步骤：只读主密钥、HMAC敏感摘要、严格epoch/回执/屏障、真实provider及凭据CAS、历史唯一性、AES-GCM、同事务outbox和脱敏回执。",
+            "Rotate额外核active材料；任何分支均不删除旧密文。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.Store.MasterKeyRef",
+            "model-gateway.Store.BeginTx",
+            "model-gateway.loadCredentialMasterKey",
+            "model-gateway.credentialDigest",
+            "model-gateway.credentialFingerprint",
+            "model-gateway.readCredentialReceipt",
+            "model-gateway.credentialStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.loadCredentialMasterKey",
+          "name": "loadCredentialMasterKey",
+          "signature": "func loadCredentialMasterKey(ref string) ([]byte, error)",
+          "inputs": [
+            {
+              "name": "ref",
+              "type": "string",
+              "description": "已装配部署secret引用",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "key",
+              "type": "bytes",
+              "description": "恰好32字节可变缓冲，由上层清零",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "只在凭据写入安全有界读取主密钥",
+          "steps": [
+            "引用必须非空绝对路径；复用平台ValidatePrivatePath拒绝符号链接/多硬链接并核regular-file。",
+            "Lstat后O_RDONLY/O_NOFOLLOW/O_CLOEXEC/O_NONBLOCK打开，核SameFile；读取最多33字节，必须32；末次再核路径/打开文件身份、长度和mtime未变，失败关闭且清临时字节。",
+            "不记录引用或密钥，不在免费读取/启动时读密钥。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [
+            "platform.ValidatePrivatePath"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.credentialDigest",
+          "name": "credentialDigest",
+          "signature": "func credentialDigest(key []byte, purpose string, value any) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "bytes",
+              "description": "32字节主密钥",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "purpose",
+              "type": "string",
+              "description": "固定域分离用途",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "value",
+              "type": "any",
+              "description": "待摘要规范对象",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "digest",
+              "type": "string",
+              "description": "HMAC十六进制摘要",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "生成不可离线猜测的域分离敏感摘要",
+          "steps": [
+            "CanonicalJSON产生临时字节，HMAC-SHA256先按固定purpose派生子键，再对规范输入HMAC；清零临时编码和子键。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.credentialFingerprint",
+          "name": "credentialFingerprint",
+          "signature": "func credentialFingerprint(key []byte, providerID, secret string) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "bytes",
+              "description": "32字节主密钥",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "providerID",
+              "type": "string",
+              "description": "供应方范围",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "secret",
+              "type": "string",
+              "description": "本次不可持久明文",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "fingerprint",
+              "type": "string",
+              "description": "掩码与截短HMAC",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "生成不会完整回显短密钥的脱敏指纹",
+          "steps": [
+            "fingerprint域HMAC绑定providerId/secret；显示12个十六进制摘要字符；secret超过8个Unicode字符才保留末4位，否则全掩码。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [
+            "model-gateway.credentialDigest"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readCredentialReceipt",
+          "name": "readCredentialReceipt",
+          "signature": "func readCredentialReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, functionID, key, digest string, expectedJSON []byte) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "IO取消",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信范围",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "当前同代事务",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "functionID",
+              "type": "string",
+              "description": "Put或Rotate函数ID",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "幂等键",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "digest",
+              "type": "string",
+              "description": "域分离HMAC",
+              "constraints": "仅已验证的本域凭据写入链路"
+            },
+            {
+              "name": "expectedJSON",
+              "type": "bytes",
+              "description": "确定脱敏原结果编码",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否存在有效精确原结果",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "只读7天凭据脱敏原结果并失败关闭",
+          "steps": [
+            "同scope/函数/key只读HMAC、result_json与created_at；坏时间失败，过期只返回未命中不删除。",
+            "有效HMAC不匹配CONFLICT，脱敏原结果精确字节不符INTEGRITY_ERROR；命中不执行后续写屏障/供应方查询。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [
+            "model-gateway.credentialStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.credentialStorageError",
+          "name": "credentialStorageError",
+          "signature": "func credentialStorageError(err error) error",
+          "inputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "下游错误",
+              "constraints": "仅已验证的本域凭据写入链路"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "保留取消/截止的脱敏错误",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "映射本域凭据存储未知与取消",
+          "steps": [
+            "保留已脱敏公共错误；原始context取消/截止分别映射公共CANCELLED/DEADLINE_EXCEEDED，其余SQL错误统一DEPENDENCY_UNAVAILABLE，不输出原SQL/秘密。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.NewCredentialHandlers",
+          "name": "NewCredentialHandlers",
+          "signature": "func NewCredentialHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "CredentialHandlers",
+              "description": "真实Put/Rotate HTTP映射",
+              "constraints": "失败结果不可用，不输出明文或私有路径"
+            }
+          ],
+          "purpose": "装配凭据写入真实HTTP映射",
+          "steps": [
+            "仅putCredential/rotateCredential；取平台可信op并绑定已严格校验的JSON。",
+            "核providerId路径/正文和非空Idempotency-Key头/正文一致；调用真实Put/Rotate；响应no-store、Put 201、Rotate 200与公共Problem。",
+            "授权由公共ServiceBoundaryConfig.Authorize即时核superadmin一次，不记录正文，不构造部分可运行服务。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "供应方不存在。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入或主密钥协议发生冲突。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "历史凭据/active材料或回执损坏。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路"
+          },
+          "concurrency": "同域上下文传播，密钥只在请求内临时持有；不调用网络",
+          "idempotency": "业务写入由同事务HMAC回执与CAS保证；纯计算可重复",
+          "dependencies": [
+            "model-gateway.PutCredential",
+            "model-gateway.RotateCredential"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7755,7 +8930,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。",
+            "本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
@@ -7805,7 +8980,8 @@
             "platform.NewServiceHandler",
             "platform.NewIdentityAuthorizer",
             "identity:checkAuthorization",
-            "model-gateway.NewProfileHandlers"
+            "model-gateway.NewProfileHandlers",
+            "model-gateway.NewCredentialHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",

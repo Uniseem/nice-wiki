@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -116,28 +117,27 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if store == nil {
 		return PutProviderResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据库尚未装配")
 	}
-	if err := store.CheckDataEpoch(operationCtx, op.DataEpoch); err != nil {
-		return PutProviderResult{}, err
-	}
-	tx, err := store.BeginTx(operationCtx)
+	snapshot, err := beginAvailabilitySnapshot(operationCtx, op, store)
 	if err != nil {
 		return PutProviderResult{}, err
 	}
+	tx := snapshot.tx
 	rollback := func(cause error) (PutProviderResult, error) {
 		_ = tx.Rollback()
 		return PutProviderResult{}, cause
 	}
-	if err := rejectDrainingBarrier(operationCtx, tx, op.DataEpoch); err != nil {
-		return rollback(err)
-	}
+	provider := input.Provider
+	provider.BaseUrl = validated.NormalizedBaseURL
 	inputHash, err := hashJSON(struct {
-		Provider        Provider `json:"provider"`
-		ExpectedVersion int      `json:"expectedVersion"`
-	}{input.Provider, input.ExpectedVersion})
+		CallerService   string              `json:"callerService"`
+		DataEpoch       platform.Identifier `json:"dataEpoch"`
+		Provider        Provider            `json:"provider"`
+		ExpectedVersion int                 `json:"expectedVersion"`
+	}{op.CallerService, op.DataEpoch, input.Provider, input.ExpectedVersion})
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方输入摘要计算失败"))
 	}
-	if result, found, err := readProviderReceipt(operationCtx, tx, op, input.IdempotencyKey, inputHash); err != nil {
+	if result, found, err := readProviderReceipt(operationCtx, op, tx, input.IdempotencyKey, inputHash, provider); err != nil {
 		return rollback(err)
 	} else if found {
 		if err := tx.Commit(); err != nil {
@@ -146,8 +146,17 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 		return result, nil
 	}
 
-	var currentVersion int
-	err = tx.QueryRowContext(operationCtx, `SELECT version FROM providers WHERE provider_id = ?`, string(input.Provider.ProviderId)).Scan(&currentVersion)
+	var blocked bool
+	if err := tx.QueryRowContext(operationCtx, `SELECT EXISTS(SELECT 1 FROM barriers WHERE state <> 'released')`).Scan(&blocked); err != nil {
+		return rollback(availabilityReadError(err))
+	}
+	if blocked {
+		return rollback(platform.NewError(platform.CodeLocked, false, "供应方配置屏障尚未释放"))
+	}
+
+	var currentVersion, currentCredentialVersion int
+	var currentEpoch string
+	err = tx.QueryRowContext(operationCtx, `SELECT version, credential_version, data_epoch FROM providers WHERE provider_id = ?`, string(input.Provider.ProviderId)).Scan(&currentVersion, &currentCredentialVersion, &currentEpoch)
 	switch {
 	case errors.Is(err, sql.ErrNoRows) && input.ExpectedVersion != 0:
 		return rollback(platform.NewError(platform.CodeNotFound, false, "供应方不存在"))
@@ -157,8 +166,13 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 		return rollback(platform.NewError(platform.CodeInternal, true, "读取供应方版本失败"))
 	}
 
-	provider := input.Provider
-	provider.BaseUrl = validated.NormalizedBaseURL
+	if err == nil && currentEpoch != op.DataEpoch {
+		return rollback(platform.NewError(platform.CodeVersionMismatch, false, "供应方数据代次已变化"))
+	}
+	if input.Provider.CredentialVersion != currentCredentialVersion {
+		return rollback(platform.NewError(platform.CodeValidation, false, "供应方编辑必须保留当前凭据版本"))
+	}
+
 	names, _ := json.Marshal(provider.ExtraHeaderNames)
 	refs, _ := json.Marshal(provider.ExtraHeaderSecretRefs)
 	if _, err := tx.ExecContext(operationCtx, `
@@ -209,6 +223,9 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	resultJSON, err := json.Marshal(result)
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方回执编码失败"))
+	}
+	if _, err := tx.ExecContext(operationCtx, `DELETE FROM operation_receipts WHERE site_id=? AND actor_id=? AND function_id=? AND idempotency_key=?`, op.Actor.SiteID, op.Actor.SubjectID, providerFunctionID, input.IdempotencyKey); err != nil {
+		return rollback(availabilityReadError(err))
 	}
 	if _, err := tx.ExecContext(operationCtx, `
 		INSERT INTO operation_receipts
@@ -340,27 +357,35 @@ func hashJSON(value any) (platform.Hash, error) {
 	return platform.Hash(hex.EncodeToString(sum[:])), nil
 }
 
-func readProviderReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, key string, inputHash platform.Hash) (PutProviderResult, bool, error) {
-	var storedHash string
+func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Provider) (PutProviderResult, bool, error) {
+	var storedHash, createdAt string
 	var resultJSON []byte
 	err := tx.QueryRowContext(ctx, `
-		SELECT input_hash, result_json FROM operation_receipts
+		SELECT input_hash, result_json, created_at FROM operation_receipts
 		WHERE site_id = ? AND actor_id = ? AND function_id = ? AND idempotency_key = ?`,
-		string(op.Actor.SiteID), string(op.Actor.SubjectID), providerFunctionID, key).Scan(&storedHash, &resultJSON)
+		op.Actor.SiteID, op.Actor.SubjectID, providerFunctionID, key).Scan(&storedHash, &resultJSON, &createdAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PutProviderResult{}, false, nil
 	}
 	if err != nil {
-		return PutProviderResult{}, false, platform.NewError(platform.CodeInternal, true, "读取供应方幂等回执失败")
+		return PutProviderResult{}, false, availabilityReadError(err)
 	}
-	if storedHash != string(inputHash) {
-		return PutProviderResult{}, false, platform.NewError(platform.CodeConflict, false, "幂等键已绑定不同供应方配置")
+	created, err := platform.ParseTimestamp(createdAt)
+	now := time.Now().UTC()
+	if err != nil || created.After(now) {
+		return PutProviderResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方回执时间损坏")
 	}
-	var result PutProviderResult
-	if err := json.Unmarshal(resultJSON, &result); err != nil {
-		return PutProviderResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方幂等回执损坏")
+	if now.Sub(created) > 7*24*time.Hour {
+		return PutProviderResult{}, false, nil
 	}
-	return result, true, nil
+	if storedHash != inputHash {
+		return PutProviderResult{}, false, platform.NewError(platform.CodeConflict, false, "幂等键已绑定不同供应方配置或代次")
+	}
+	expectedJSON, _ := json.Marshal(PutProviderResult{Provider: expected})
+	if !bytes.Equal(resultJSON, expectedJSON) {
+		return PutProviderResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方原结果与摘要不一致")
+	}
+	return PutProviderResult{Provider: expected}, true, nil
 }
 
 func boolInt(value bool) int {

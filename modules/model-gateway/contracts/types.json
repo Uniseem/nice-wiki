@@ -925,7 +925,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "部署secret引用"
+          "description": "可选部署主密钥引用，只装配；凭据写入时安全读取，启动不读取secret"
         },
         "dataDirectory": {
           "type": "string",
@@ -936,7 +936,6 @@
       },
       "required": [
         "serviceId",
-        "masterKeyRef",
         "dataDirectory"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
@@ -1103,7 +1102,7 @@
         "expectedVersion": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991,
+          "maximum": 9007199254740990,
           "description": "预期密钥版本"
         },
         "idempotencyKey": {
@@ -1135,7 +1134,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "末4位及摘要"
+          "description": "掩码与截短域分离HMAC；仅secret超过8个Unicode字符时显示末4位，短secret绝不完整回显"
         }
       },
       "required": [
@@ -1160,8 +1159,8 @@
         },
         "expectedVersion": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
+          "minimum": 1,
+          "maximum": 9007199254740990,
           "description": "旧版本"
         },
         "idempotencyKey": {
@@ -4338,6 +4337,24 @@
       "x-internal": true,
       "x-go-type": "map[string]http.Handler",
       "description": "仅真实putProfile映射，须与其他本域映射交公共完整工厂"
+    },
+    "credentialCommand": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "credentialCommand",
+      "description": "仅请求内Put/Rotate命令，含不可持久明文"
+    },
+    "credentialWriteResult": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "credentialWriteResult",
+      "description": "仅脱敏版本和指纹"
+    },
+    "CredentialHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "真实凭据写入映射，须交公共完整工厂"
     }
   }
 }

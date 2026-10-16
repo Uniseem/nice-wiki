@@ -2724,6 +2724,11 @@
       "purpose": "模型网关私有存储、CAS与启动恢复"
     },
     {
+      "path": "modules/model-gateway/internal/security/credential.go",
+      "kind": "source",
+      "purpose": "凭据AES-GCM密文、敏感输入HMAC原回执与active版本CAS；旧引用生命周期回收尚未交付"
+    },
+    {
       "path": "modules/model-gateway/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"

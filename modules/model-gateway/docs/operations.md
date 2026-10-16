@@ -9,3 +9,9 @@
 诊断只输出request/root/object IDs、版本、耗时、状态和公共错误码；禁止secret/prompt/记忆正文/问题正文/IP。业务文本只在授权私有业务表保存。备份对象按ObjectRef SHA256和byteSize验证，schema1以外拒绝；恢复暂存仅在本域restore/<restoreId>目录创建，禁止任意路径导入。
 
 可观测指标：请求量/错误率/延迟、活动lease、outbox积压、屏障状态、stale_result数量；费用显示调用MG queryUsage。健康ready需DB/schema/关键依赖可用，配置未设某AI能力为degraded且明确禁派发。
+
+## 主密钥引用与回执协议
+
+本域ServiceConfig可选masterKeyRef（部署secret引用），环境覆盖为NW_MASTER_KEY_REF；示意引用只登记在本域manifest，实际secret由部署私有注入，不进入仓库或data git。缺引用不阻断免费读取和启动装配，凭据写入失败关闭。主密钥文件必须正规单硬链接、无符号链接，内容恰好32字节；只在写凭据时安全有界读取，文件替换/长度或mtime变化失败关闭。
+
+本轮不支持部署主密钥轮换：AES密文与7天敏感输入回执都依赖同一部署主密钥。需要换主密钥时必须另行设计密文及回执迁移，禁止自动重签或覆盖旧结果。Put/Rotate的旧供应方密钥版本不是部署主密钥轮换，旧密文仍保留供后续派发引用；引用计数/释放与销毁尚未交付。

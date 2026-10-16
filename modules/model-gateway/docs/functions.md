@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 83 个函数：约束 37 个，参考 46 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 92 个函数：约束 37 个，参考 55 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -34,7 +34,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 **步骤**
 
 1. 只读取本服务配置和迁移版本
-2. 校验masterKeyRef可取32字节密钥
+2. masterKeyRef可缺省；非空须绝对路径，仅装配引用，不在启动读secret，凭据写入时安全有界读取32字节
 3. 注册恢复调度
 4. 所有关键依赖可用才ready
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
@@ -50,7 +50,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
 
-- 副作用：建立连接池和worker，不调用供应方
+- 副作用：建立本域持久化并装配可信主密钥引用，不读取secret或调用供应方
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
@@ -127,7 +127,7 @@ func CurrentStore() *Store
 - 无
 
 - 副作用：无
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 授权：permission：service；rule：仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。
 - 并发：进程RWMutex仅取当前Store指针，无SQL或网络
 - 幂等：无写入，可重复
 - 依赖：无
@@ -139,7 +139,7 @@ func CurrentStore() *Store
 - 作用：安装既有本域Store供业务读取
 
 ```go
-func InstallStore(store *Store)
+func InstallStore(store *Store, masterKeyRef string)
 ```
 
 **输入**
@@ -147,6 +147,7 @@ func InstallStore(store *Store)
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `store` | `Store` | 可信启动已打开的本域库 | 可信本域装配或已通过入口的只读链路使用 |
+| `masterKeyRef` | `string` | 可信启动可选主密钥绝对路径引用 | 只装配引用，不读取文件；空引用不阻断免费配置读取 |
 
 **输出**
 
@@ -154,14 +155,14 @@ func InstallStore(store *Store)
 
 **步骤**
 
-1. 仅启动装配设置当前Store；不读主密钥、不写runtime_meta代次、不宣称服务ready
+1. 仅启动装配在安装前保存主密钥引用，再设置当前Store；不读取secret、不写runtime_meta、不宣称服务ready。
 
 **错误**
 
 - 无
 
 - 副作用：更新进程内当前Store指针
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 授权：permission：service；rule：仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。
 - 并发：仅可信启动装配持进程写锁设置指针，不持锁执行IO
 - 幂等：重复安装同指针不改持久数据；不证明服务ready
 - 依赖：无
@@ -202,7 +203,7 @@ func (s *Store) BeginTx(ctx context.Context) (*sql.Tx, error)
 - `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
 
 - 副作用：建立本域SQL事务
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 授权：permission：service；rule：仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。
 - 并发：先短读锁核关闭状态，再SQL BeginTx；ctx贯穿查询
 - 幂等：无业务写入；事务由调用方结束
 - 依赖：无
@@ -236,7 +237,7 @@ func (s *Store) Close() error
 - `INTERNAL`：既有私有存储装配/IO或迁移失败，输出脱敏公共错误（不可重试）
 
 - 副作用：幂等关闭数据库并撤销同一已安装指针
-- 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
+- 授权：permission：service；rule：仅本域可信启动装配或已通过各自授权的任务/档位/凭据配置读写链路；不暴露私有句柄给外域。
 - 并发：Store写锁标关闭后释放，进程写锁仅撤销同指针，然后关闭SQL连接
 - 幂等：重复关闭不重复撤销或关闭资源
 - 依赖：无
@@ -277,6 +278,51 @@ func (s *Store) runMigrations() error
 - 并发：仅可信启动单连接执行迁移，版本未知先拒绝；无网络IO
 - 幂等：编号/名称匹配已应用项跳过，未应用项事务提交
 - 依赖：`model-gateway.All`
+
+## model-gateway.Store.MasterKeyRef
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：读取可信不可变主密钥引用
+
+```go
+func (s *Store) MasterKeyRef() string
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ref` | `string` | 启动装配引用 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 只返回可信InstallStore保存的路径引用，不读文件或secret。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：无
 
 ## model-gateway.ValidateProvider
 
@@ -354,11 +400,12 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 
 **步骤**
 
-1. 校验配置
-2. 锁provider行
-3. 比较版本
-4. 写配置和审计outbox后提交
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅已授权superadmin保存渠道元数据，ValidateProvider完成本函数配置安全规则与URL规范化；版本为expectedVersion+1。
+2. 复用beginAvailabilitySnapshot在同一事务严格核非空runtime_meta当前代次；普通非秘密输入摘要绑定callerService/dataEpoch/provider/expectedVersion。
+3. 先按site/actor/函数/key读取7天原回执：同代同hash返回首次规范结果，不核后来的指针或屏障；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR。过期只读未命中，不能提前删除。
+4. 新操作在同一事务拒绝任何state非released屏障，不按屏障epoch或deadline过滤；不改PutModel或其旧共享屏障helper。
+5. 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。推进或回退只由专用凭据端点事务负责，普通编辑不能改写凭据。
+6. 同事务写provider配置、provider.changed平台outbox和完整原结果回执；仅成功新事务末尾替换过期回执，失败回滚；不读取secret或调用供应方。
 
 **错误**
 
@@ -371,12 +418,15 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
 
 - 副作用：更新providers并发出provider.changed
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.ValidateProvider`、`model-gateway.SetProviderEnabled`
+- 并发：同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；配置、平台outbox和回执一起提交，不做网络IO。
+- 幂等：siteId+actorId+函数ID+key唯一、7天有效；普通配置hash绑定callerService/dataEpoch/provider/expectedVersion，同代同hash返回首次规范结果，异hash CONFLICT。过期仅成功新配置事务替换，不因后续屏障/指针阻断有效无副作用重放。
+- 依赖：`model-gateway.ValidateProvider`、`model-gateway.SetProviderEnabled`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProviderReceipt`
 
 ## model-gateway.SetProviderEnabled
 
@@ -429,6 +479,55 @@ func SetProviderEnabled(ctx context.Context, op OperationContext, input SetProvi
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
 
+## model-gateway.readProviderReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/provider.go`
+- 作用：只读7天渠道配置原结果并核同代普通输入摘要
+
+```go
+func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Provider) (PutProviderResult, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原入口取消 | 已授权PutProvider当前同代事务 |
+| `op` | `OperationContext` | 可信范围 | 已授权PutProvider当前同代事务 |
+| `tx` | `SQLTransaction` | 当前事务 | 已授权PutProvider当前同代事务 |
+| `key` | `string` | 幂等键 | 已授权PutProvider当前同代事务 |
+| `inputHash` | `Hash` | 含caller和epoch摘要 | 已授权PutProvider当前同代事务 |
+| `expected` | `Provider` | URL规范化首次结果 | 已授权PutProvider当前同代事务 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PutProviderResult` | 原结果 | 失败结果不可使用；不输出私有原值 |
+| `found` | `bool` | 是否命中有效原回执 | 失败结果不可使用；不输出私有原值 |
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 同scope/函数/key只读hash/created_at/result_json；坏时间失败，过期未命中不写。
+2. 有效hash不匹配CONFLICT；完整规范结果编码必须与持久原结果精确一致，否则INTEGRITY_ERROR。
+3. 命中先返原结果，不做后续写屏障/当前指针/CAS校验；仅上层成功新事务替换过期键。
+
+**错误**
+
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutProvider已核superadmin的同代事务链路。
+- 并发：共用PutProvider的同代SQL事务，只读原回执，不独立提交。
+- 幂等：同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。
+- 依赖：`model-gateway.availabilityReadError`
+
 ## model-gateway.PutCredential
 
 - 级别：约束
@@ -456,11 +555,15 @@ func PutCredential(ctx context.Context, op OperationContext, input PutCredential
 
 **步骤**
 
-1. 禁止日志请求体
-2. 读取部署主密钥
-3. 用随机96bit nonce与providerId/version AAD加密
-4. 事务写密文并擦除临时缓冲
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受已通过公共入口即时授权的admin+superadmin，不重复schema/服务身份/deadline校验；禁止记录secret或请求正文。
+2. 从已安装Store取得可信masterKeyRef；仅本凭据写入按私有路径、O_NOFOLLOW/文件身份与33字节有界读取验证恰好32字节部署主密钥。配置可缺省；缺失/不可读取失败关闭，不影响免费任务读取。
+3. 规范输入以主密钥派生的域分离HMAC-SHA256形成敏感摘要，绑定callerService/dataEpoch/函数/providerId/expectedVersion/secret；明文、可离线猜测的普通SHA和masterKey不入持久记录。7天回执协议固定同一部署主密钥，本轮不是主密钥轮换，换键导致旧回执不能匹配时CONFLICT，不自动覆盖。
+4. 同一SQL事务严格核非空当前epoch，再读取site/actor/函数/key的7天原结果；同代同HMAC返回原结果，不重核后来供应方/屏障；异输入/异代CONFLICT，时间或原结果损坏INTEGRITY_ERROR；过期只读未命中。
+5. 新操作拒绝所有非released本地屏障；读取同代provider及其真实version/credential_version，expectedVersion只比较当前凭据版本。不存在NOT_FOUND，旧代或CAS变化VERSION_MISMATCH；不得复用已存在历史版本，历史冲突INTEGRITY_ERROR。
+6. 新credentialVersion=expectedVersion+1；每次新操作随机96bit nonce，AES-256-GCM以规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}作完整AAD。只写nonce/ciphertext/dataEpoch，不解密或连接供应方。
+7. providers更新同时条件绑定providerId/version/credential_version/dataEpoch，provider.version递增；密文、active指针、provider.changed/v1最小元数据及完整脱敏原结果回执同事务提交。只成功的新配置事务替换过期键，失败回滚，Commit未知不自行重试。
+8. 保留全部旧密文供既有派发引用；不因当前invocations为空推断可销毁。临时可变key/plaintext/HMAC规范编码字节清零，不承诺擦除immutable Go string或标准库内部副本。
+9. PutCredential可首次写入或替换当前凭据，允许修复active材料缺失但保留真实版本CAS。fingerprint为域分离HMAC摘要与掩码；仅超过8个Unicode字符时显示末4位，短secret不完整回显。响应不含明文。
 
 **错误**
 
@@ -473,12 +576,15 @@ func PutCredential(ctx context.Context, op OperationContext, input PutCredential
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
-- 副作用：更新credential密文与审计，响应无密钥
-- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 副作用：同事务增加AES-GCM密文、推进供应方active指针/版本、平台provider.changed及脱敏原回执；保留旧密文，不调用模型、供应方或费用任务
+- 授权：permission：superadmin；rule：仅已通过公共入口即时授权的admin+superadmin；可信主密钥引用仅来自本域启动装配，不接受浏览器路径。
+- 并发：同一本域SQL事务严格epoch、7天HMAC回执、全部屏障、真实凭据与供应方双版本CAS、历史唯一性、密文、平台outbox和回执；主密钥文件在事务之前只读，不执行网络IO。
+- 幂等：siteId+actorId+函数ID+key唯一，7天同代同HMAC返回完整原结果；摘要以同一部署主密钥域分离派生，异输入/异代或换主密钥导致摘要不匹配均CONFLICT；过期仅成功新事务替换。
+- 依赖：`model-gateway.writeCredential`
 
 ## model-gateway.RotateCredential
 
@@ -507,11 +613,16 @@ func RotateCredential(ctx context.Context, op OperationContext, input RotateCred
 
 **步骤**
 
-1. 加密新secret
-2. CAS替换active版本
-3. 已派发调用保留旧版本引用
-4. 最后引用释放后销毁旧密文
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受已通过公共入口即时授权的admin+superadmin，不重复schema/服务身份/deadline校验；禁止记录secret或请求正文。
+2. 从已安装Store取得可信masterKeyRef；仅本凭据写入按私有路径、O_NOFOLLOW/文件身份与33字节有界读取验证恰好32字节部署主密钥。配置可缺省；缺失/不可读取失败关闭，不影响免费任务读取。
+3. 规范输入以主密钥派生的域分离HMAC-SHA256形成敏感摘要，绑定callerService/dataEpoch/函数/providerId/expectedVersion/secret；明文、可离线猜测的普通SHA和masterKey不入持久记录。7天回执协议固定同一部署主密钥，本轮不是主密钥轮换，换键导致旧回执不能匹配时CONFLICT，不自动覆盖。
+4. 同一SQL事务严格核非空当前epoch，再读取site/actor/函数/key的7天原结果；同代同HMAC返回原结果，不重核后来供应方/屏障；异输入/异代CONFLICT，时间或原结果损坏INTEGRITY_ERROR；过期只读未命中。
+5. 新操作拒绝所有非released本地屏障；读取同代provider及其真实version/credential_version，expectedVersion只比较当前凭据版本。不存在NOT_FOUND，旧代或CAS变化VERSION_MISMATCH；不得复用已存在历史版本，历史冲突INTEGRITY_ERROR。
+6. 新credentialVersion=expectedVersion+1；每次新操作随机96bit nonce，AES-256-GCM以规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}作完整AAD。只写nonce/ciphertext/dataEpoch，不解密或连接供应方。
+7. providers更新同时条件绑定providerId/version/credential_version/dataEpoch，provider.version递增；密文、active指针、provider.changed/v1最小元数据及完整脱敏原结果回执同事务提交。只成功的新配置事务替换过期键，失败回滚，Commit未知不自行重试。
+8. 保留全部旧密文供既有派发引用；不因当前invocations为空推断可销毁。临时可变key/plaintext/HMAC规范编码字节清零，不承诺擦除immutable Go string或标准库内部副本。
+9. RotateCredential要求expectedVersion>=1且当前active凭据存在、同代且nonce/ciphertext长度完整；返回新credentialVersion和retiredVersion，保留旧密文。
+10. 最后引用释放后销毁旧密文属于本函数既有生命周期责任；派发/引用计数与释放尚未交付，本轮只实现新版本切换，此函数整体partial，不执行销毁。
 
 **错误**
 
@@ -524,12 +635,365 @@ func RotateCredential(ctx context.Context, op OperationContext, input RotateCred
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
-- 副作用：密钥版本切换；不重复派发供应方请求
-- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 副作用：同事务增加AES-GCM密文、推进供应方active指针/版本、平台provider.changed及脱敏原回执；保留旧密文，不调用模型、供应方或费用任务
+- 授权：permission：superadmin；rule：仅已通过公共入口即时授权的admin+superadmin；可信主密钥引用仅来自本域启动装配，不接受浏览器路径。
+- 并发：同一本域SQL事务严格epoch、7天HMAC回执、全部屏障、真实凭据与供应方双版本CAS、历史唯一性、密文、平台outbox和回执；主密钥文件在事务之前只读，不执行网络IO。
+- 幂等：siteId+actorId+函数ID+key唯一，7天同代同HMAC返回完整原结果；摘要以同一部署主密钥域分离派生，异输入/异代或换主密钥导致摘要不匹配均CONFLICT；过期仅成功新事务替换。
+- 依赖：`model-gateway.writeCredential`
+
+## model-gateway.writeCredential
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：共用凭据密文与原结果事务
+
+```go
+func writeCredential(ctx context.Context, op OperationContext, input credentialCommand) (credentialWriteResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅已验证的本域凭据写入链路 |
+| `op` | `OperationContext` | 可信主体与epoch | 仅已验证的本域凭据写入链路 |
+| `input` | `credentialCommand` | Put或Rotate不可持久明文命令 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `credentialWriteResult` | 脱敏结果 | 失败结果不可用，不输出明文或私有路径 |
+| `err` | `error` | 公共错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 落实Put/Rotate共同步骤：只读主密钥、HMAC敏感摘要、严格epoch/回执/屏障、真实provider及凭据CAS、历史唯一性、AES-GCM、同事务outbox和脱敏回执。
+2. Rotate额外核active材料；任何分支均不删除旧密文。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.Store.MasterKeyRef`、`model-gateway.Store.BeginTx`、`model-gateway.loadCredentialMasterKey`、`model-gateway.credentialDigest`、`model-gateway.credentialFingerprint`、`model-gateway.readCredentialReceipt`、`model-gateway.credentialStorageError`
+
+## model-gateway.loadCredentialMasterKey
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：只在凭据写入安全有界读取主密钥
+
+```go
+func loadCredentialMasterKey(ref string) ([]byte, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ref` | `string` | 已装配部署secret引用 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `bytes` | 恰好32字节可变缓冲，由上层清零 | 失败结果不可用，不输出明文或私有路径 |
+| `err` | `error` | 公共错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 引用必须非空绝对路径；复用平台ValidatePrivatePath拒绝符号链接/多硬链接并核regular-file。
+2. Lstat后O_RDONLY/O_NOFOLLOW/O_CLOEXEC/O_NONBLOCK打开，核SameFile；读取最多33字节，必须32；末次再核路径/打开文件身份、长度和mtime未变，失败关闭且清临时字节。
+3. 不记录引用或密钥，不在免费读取/启动时读密钥。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：`platform.ValidatePrivatePath`
+
+## model-gateway.credentialDigest
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：生成不可离线猜测的域分离敏感摘要
+
+```go
+func credentialDigest(key []byte, purpose string, value any) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `bytes` | 32字节主密钥 | 仅已验证的本域凭据写入链路 |
+| `purpose` | `string` | 固定域分离用途 | 仅已验证的本域凭据写入链路 |
+| `value` | `any` | 待摘要规范对象 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `digest` | `string` | HMAC十六进制摘要 | 失败结果不可用，不输出明文或私有路径 |
+| `err` | `error` | 公共错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. CanonicalJSON产生临时字节，HMAC-SHA256先按固定purpose派生子键，再对规范输入HMAC；清零临时编码和子键。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
 - 依赖：无
+
+## model-gateway.credentialFingerprint
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：生成不会完整回显短密钥的脱敏指纹
+
+```go
+func credentialFingerprint(key []byte, providerID, secret string) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `bytes` | 32字节主密钥 | 仅已验证的本域凭据写入链路 |
+| `providerID` | `string` | 供应方范围 | 仅已验证的本域凭据写入链路 |
+| `secret` | `string` | 本次不可持久明文 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `fingerprint` | `string` | 掩码与截短HMAC | 失败结果不可用，不输出明文或私有路径 |
+| `err` | `error` | 公共错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. fingerprint域HMAC绑定providerId/secret；显示12个十六进制摘要字符；secret超过8个Unicode字符才保留末4位，否则全掩码。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：`model-gateway.credentialDigest`
+
+## model-gateway.readCredentialReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：只读7天凭据脱敏原结果并失败关闭
+
+```go
+func readCredentialReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, functionID, key, digest string, expectedJSON []byte) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 仅已验证的本域凭据写入链路 |
+| `op` | `OperationContext` | 可信范围 | 仅已验证的本域凭据写入链路 |
+| `tx` | `SQLTransaction` | 当前同代事务 | 仅已验证的本域凭据写入链路 |
+| `functionID` | `string` | Put或Rotate函数ID | 仅已验证的本域凭据写入链路 |
+| `key` | `string` | 幂等键 | 仅已验证的本域凭据写入链路 |
+| `digest` | `string` | 域分离HMAC | 仅已验证的本域凭据写入链路 |
+| `expectedJSON` | `bytes` | 确定脱敏原结果编码 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `found` | `bool` | 是否存在有效精确原结果 | 失败结果不可用，不输出明文或私有路径 |
+| `err` | `error` | 公共错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 同scope/函数/key只读HMAC、result_json与created_at；坏时间失败，过期只返回未命中不删除。
+2. 有效HMAC不匹配CONFLICT，脱敏原结果精确字节不符INTEGRITY_ERROR；命中不执行后续写屏障/供应方查询。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：`model-gateway.credentialStorageError`
+
+## model-gateway.credentialStorageError
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：映射本域凭据存储未知与取消
+
+```go
+func credentialStorageError(err error) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 下游错误 | 仅已验证的本域凭据写入链路 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 保留取消/截止的脱敏错误 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 保留已脱敏公共错误；原始context取消/截止分别映射公共CANCELLED/DEADLINE_EXCEEDED，其余SQL错误统一DEPENDENCY_UNAVAILABLE，不输出原SQL/秘密。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：无
+
+## model-gateway.NewCredentialHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/credential.go`
+- 作用：装配凭据写入真实HTTP映射
+
+```go
+func NewCredentialHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `CredentialHandlers` | 真实Put/Rotate HTTP映射 | 失败结果不可用，不输出明文或私有路径 |
+
+**步骤**
+
+1. 仅putCredential/rotateCredential；取平台可信op并绑定已严格校验的JSON。
+2. 核providerId路径/正文和非空Idempotency-Key头/正文一致；调用真实Put/Rotate；响应no-store、Put 201、Rotate 200与公共Problem。
+3. 授权由公共ServiceBoundaryConfig.Authorize即时核superadmin一次，不记录正文，不构造部分可运行服务。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
+- 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
+- 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
+- 依赖：`model-gateway.PutCredential`、`model-gateway.RotateCredential`
 
 ## model-gateway.PutModel
 
@@ -3702,7 +4166,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -3717,7 +4181,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

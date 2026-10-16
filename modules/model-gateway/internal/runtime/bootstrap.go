@@ -18,11 +18,7 @@ import (
 	gatewaymigrations "nice-wiki/modules/model-gateway/migrations"
 )
 
-const (
-	databaseName      = "model-gateway.db"
-	maxMasterKeyBytes = 32
-	minMasterKeyBytes = 32
-)
+const databaseName = "model-gateway.db"
 
 // OperationContext 是服务间可信操作上下文的本域别名。
 type OperationContext = platform.OperationContext
@@ -30,7 +26,7 @@ type OperationContext = platform.OperationContext
 // LoadRuntimeInput 是启动时由部署装配注入的私有目录和主密钥引用。
 type LoadRuntimeInput struct {
 	ServiceID     string `json:"serviceId"`
-	MasterKeyRef  string `json:"masterKeyRef"`
+	MasterKeyRef  string `json:"masterKeyRef,omitempty"`
 	DataDirectory string `json:"dataDirectory"`
 }
 
@@ -45,6 +41,7 @@ type LoadRuntimeResult struct {
 type Store struct {
 	db             *sql.DB
 	dataDirectory  string
+	masterKeyRef   string
 	catalogVersion int64
 	mu             sync.RWMutex
 	closed         bool
@@ -56,28 +53,25 @@ var activeStore struct {
 }
 
 // LoadRuntime 只建立本域私有持久化和迁移；不探测模型、不发起供应方请求。
-// 主密钥引用必须指向恰好32字节的部署secret，读取后只保留在临时缓冲中。
+// 可选主密钥只装配可信引用，secret仅在凭据写入时读取。
 func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInput) (LoadRuntimeResult, error) {
 	if err := contextError(ctx); err != nil {
 		return LoadRuntimeResult{}, err
 	}
-	if input.ServiceID != "model-gateway" || input.MasterKeyRef == "" || input.DataDirectory == "" {
+	if input.ServiceID != "model-gateway" || input.DataDirectory == "" {
 		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "model-gateway运行参数不完整")
 	}
-	if !filepath.IsAbs(input.MasterKeyRef) || !filepath.IsAbs(input.DataDirectory) {
+	if (input.MasterKeyRef != "" && !filepath.IsAbs(input.MasterKeyRef)) || !filepath.IsAbs(input.DataDirectory) {
 		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "model-gateway路径必须为绝对路径")
 	}
 	if !platform.ValidIdentifier(op.DataEpoch) && op.DataEpoch != "" {
 		return LoadRuntimeResult{}, platform.NewError(platform.CodeValidation, false, "运行代次不合法")
 	}
-	if err := readMasterKey(input.MasterKeyRef); err != nil {
-		return LoadRuntimeResult{}, err
-	}
 	store, err := OpenDatabase(input.DataDirectory)
 	if err != nil {
 		return LoadRuntimeResult{}, err
 	}
-	InstallStore(store)
+	InstallStore(store, input.MasterKeyRef)
 	return LoadRuntimeResult{Ready: true, CatalogVersion: store.catalogVersion}, nil
 }
 
@@ -125,7 +119,8 @@ func CurrentStore() *Store {
 }
 
 // InstallStore 仅供可信启动装配安装已打开的本域库；不读取主密钥或写代次。
-func InstallStore(store *Store) {
+func InstallStore(store *Store, masterKeyRef string) {
+	store.masterKeyRef = masterKeyRef
 	activeStore.Lock()
 	activeStore.store = store
 	activeStore.Unlock()
@@ -282,20 +277,8 @@ func (s *Store) runMigrations() error {
 	return nil
 }
 
-func readMasterKey(path string) error {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关主密钥不可用")
-	}
-	valid := len(raw) >= minMasterKeyBytes && len(raw) <= maxMasterKeyBytes && len(raw) == minMasterKeyBytes
-	for i := range raw {
-		raw[i] = 0
-	}
-	if !valid {
-		return platform.NewError(platform.CodeValidation, false, "模型网关主密钥长度不合法")
-	}
-	return nil
-}
+// MasterKeyRef只返回可信启动保存的引用，不读取secret。
+func (s *Store) MasterKeyRef() string { return s.masterKeyRef }
 
 func contextError(ctx context.Context) error {
 	if ctx == nil {

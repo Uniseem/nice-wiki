@@ -227,3 +227,11 @@
 复用002的profiles及001的operation_receipts，不新增迁移。profile.costClass是目标配置类别，不覆盖可信op.costClass。profileId、当前version和dataEpoch共同做条件CAS；同代costClass+tier只允许一个profileId占用，迁移到已有槽返回CONFLICT，空槽允许。orderedModelIds最多256且保序唯一，空数组只清候选、保留行。
 
 7天回执摘要绑定callerService/dataEpoch/profile/expectedVersion，有效原结果先于新写屏障、候选与CAS检查返回；过期只在成功新配置事务替换。配置、profile.changed/v1与完整PutProfileResult回执同事务；事件taskIds来自根目录旧/新tier筛选并去重排序；旧/新含fast时保守包含vision/rerank回退任务，即使独立槽已配置，不广播候选、费用或秘密。
+
+## 凭据密文与敏感原回执
+
+复用002 credentials，providerId/credentialVersion是不可复用历史键；nonce固定12字节，AES-256-GCM AAD为规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}。active指针只由专用凭据事务推进，providers.version同时递增；PutProvider创建只能0、编辑保留真实指针。旧密文保留，引用释放与销毁尚未交付。
+
+operation_receipts.input_hash对于凭据写入是同一部署主密钥域分离派生HMAC，绑定caller/epoch/function/provider/version/secret，不是普通secret SHA。回执只含脱敏响应，fingerprint为掩码/截短HMAC，短secret不完整回显。主密钥不入库，换主密钥属于另行迁移协议，不能静默重签旧回执。
+
+第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后根全量生成/编译/结构检查通过，证据见本轮交付记录。
