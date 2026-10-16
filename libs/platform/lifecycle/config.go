@@ -273,6 +273,8 @@ func applyEnv(env []string, config *platform.ServiceConfig) error {
 			config.SigningKeyRef = value
 		case "DELEGATION_KEY_REF":
 			config.DelegationKeyRef = value
+		case "MASTER_KEY_REF":
+			config.MasterKeyRef = value
 		case "PUBLIC_BASE_URL":
 			config.PublicBaseURL = value
 		case "TRUSTED_PROXY_CIDRS":
@@ -322,6 +324,9 @@ func validateConfig(config platform.ServiceConfig) error {
 	}
 	if config.DelegationKeyRef != "" && !filepath.IsAbs(config.DelegationKeyRef) {
 		return platform.NewError(platform.CodeValidation, false, "委托私钥引用必须为绝对路径")
+	}
+	if config.MasterKeyRef != "" && !filepath.IsAbs(config.MasterKeyRef) {
+		return platform.NewError(platform.CodeValidation, false, "主密钥引用必须为绝对路径")
 	}
 	if len(config.Dependencies) > maxDependencies {
 		return platform.NewError(platform.CodeValidation, false, "依赖地址数量超限")

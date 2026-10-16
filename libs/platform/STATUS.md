@@ -1,3 +1,7 @@
+# 两轮并行第二轮公共前置（2026-10-16，待VPS检查）
+
+ServiceConfig新增可选masterKeyRef及NW_MASTER_KEY_REF覆盖，非空仅校验绝对路径。加载配置不读取主密钥，model-gateway的免费读取可独立；密钥实际读取和加密由该域凭据用例负责。无新增函数、路径或依赖；待根VPS生成/编译/check后回填源码SHA，不进行真实密钥读取或行为验收。
+
 # platform 状态
 
 第四轮公共CanonicalJSON、有界写窗口/恢复循环与后台安全关闭已完成，源码9ff93ae。公共源和jobs分别集成后实际树均通过VPS docs/gen、14模块readonly build/vet/gofmt及完整check，最终858文件/1105函数/379操作/2253类型，生成零变化；调用方Home Go仍待完整检查，不称行为验收或部署。逐项以progress.json为准。下述早期过程记录保留溯源。

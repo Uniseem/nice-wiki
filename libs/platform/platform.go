@@ -483,6 +483,7 @@ type ServiceConfig struct {
 	TrustAnchorRef    string            `json:"trustAnchorRef"`
 	SigningKeyRef     string            `json:"signingKeyRef"`
 	DelegationKeyRef  string            `json:"delegationKeyRef,omitempty"`
+	MasterKeyRef      string            `json:"masterKeyRef,omitempty"`
 	Dependencies      map[string]string `json:"dependencies"`
 	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`
 	AllowLocalHTTP    bool              `json:"allowLocalHTTP,omitempty"`

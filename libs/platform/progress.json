@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "b9fc6705d498d86ceb9a91c8fb8d4cbab5b39c7ba65134da6a9bb6b935f262cf",
+  "contractSha256": "561edc88877a089a967a69b91b6119b1058b9573d1cf2b429cf8b474f65eadd8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "第五轮公共JSON SSE机制",
   "branch": "codex/r1-round4-integration",
@@ -112,13 +112,13 @@
     },
     {
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "两轮并行第二轮：可信masterKeyRef配置扩展等待VPS检查"
     },
     {
       "path": "libs/platform/lifecycle/runtime.go",
@@ -172,13 +172,13 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "verified",
-      "implementationCommit": "5894bfb368bfb79331709b3e0f0e5e6ed92bf098",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "两轮并行第二轮：可信masterKeyRef配置扩展等待VPS检查"
     },
     {
       "path": "libs/platform/go.mod",
@@ -326,13 +326,13 @@
     {
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
-      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "两轮并行第二轮：可信masterKeyRef配置扩展等待VPS检查"
     },
     {
       "id": "platform.ReadRuntime",
