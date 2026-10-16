@@ -1,5 +1,29 @@
 # AI 接入会话交接
 
+## 两轮并行第二轮：凭据安全持久化（待VPS检查）
+
+更新：2026-10-16。用户授权三子代理并行两轮、每轮根统一检查并普通push main；本轮是最后一轮，完成后停止。基线53acce862467dbe40b829d1984519d78ccac5608，分支codex/model-next-two-r2；公共ServiceConfig.MasterKeyRef/NW_MASTER_KEY_REF前置993904524e4d7a792a6c84a80606de6215f7ace5已正常ff合入。只拥有modules/model-gateway/，当前源码code-ready尚未提交、未记implemented/verified。
+
+实际路径：新增已登记internal/security/credential.go；修改runtime/bootstrap.go（只装配可选secret引用）、app/wire.go（可信引用和真实Put/Rotate映射）、catalog/provider.go（保护active指针及同事务严格epoch）、本域deploy配置/manifest。复用001/002既有credentials/providers/operation_receipts和平台outbox，无迁移、依赖或外部借用。四契约与文档/台账同步，生成物由根VPS回传，不手改。
+
+安全边界：主密钥只来自可信Store装配引用，仅凭据写入安全打开部署secret；平台私有路径检查、Lstat、O_NOFOLLOW/O_NONBLOCK、SameFile、有界33字节读取且恰好32、末次身份/长度/mtime核对。启动LoadRuntime不再读取secret，免费配置读取不受缺键影响。每个新写使用96bit随机nonce，AES-256-GCM AAD固定为规范JSON {format:credential-aes256gcm-v1,providerId,credentialVersion}；不解密旧密文、不探测供应方。
+
+HMAC回执：主密钥按固定用途域派生子键，再HMAC规范输入（callerService/dataEpoch/function/provider/expectedVersion/secret）；不存普通secret SHA、明文或请求体。7天键按site/actor/函数/key固定，当前同代同HMAC先返完整脱敏原结果，后续才核屏障及provider；异输入/异代或换主密钥导致HMAC不一致CONFLICT。过期只随成功新事务替换；本轮不是主密钥轮换，不静默重签旧回执。可变key/plaintext/规范编码/subkey临时字节清零，不承诺Go immutable string及库内部副本擦除。
+
+指纹：使用独立fingerprint域HMAC，固定12个十六进制摘要字符；secret超过8个Unicode字符才附末4位，否则只掩码。原回执只含Put脱敏指纹/新凭据版本或Rotate新/旧版本；事件只含providerId/version/enabled/dataEpoch，无明文、密文、指纹、HMAC或秘密路径。
+
+事务：严格非空当前epoch，所有非released屏障阻止新操作；供应方当前epoch与真实credential_version比较expectedVersion，再INSERT未使用新历史版本，UPDATE同时条件绑定providerId/provider.version/credential_version/dataEpoch并递增provider.version。密文、active、provider.changed与脱敏原结果同事务，未知Commit不重试。PutProvider创建指针必须0、编辑只能保留真实当前指针，不能绕过凭据端点回退/推进。
+
+PutCredential支持首次/替换，也可修复active材料缺失但必须沿真实版本CAS；Rotate要求已有完整同代active材料。全部旧密文保留，不能以目前invocations表空推断无引用。原Rotate“最后引用释放后销毁”生命周期尚无真实派发/引用释放依据，保留该责任并将Rotate整体in_progress/partial、credential.go整体partial；不为完成率挪走责任。完整启动/HTTP其余handler/权威epoch初始化/恢复/后台/模型费用仍未交付，BuildApplication保持blocked。
+
+检查：等待根VPS docs/gen、gofmt、14模块readonly build/vet与完整check；本机仅只读结构/git diff检查。未新增测试、mock、fixture、样例或临时业务程序；未SQL/HTTP行为、真实接口/模型、服务/镜像/部署或push。
+
+下一项仅为把第二轮最终候选交根复核/VPS检查，按精确回传收口双提交并冻结；本次两轮结束后不第三轮。后续若另有授权，先完善真实派发的凭据版本引用与释放协议，再实现最后引用后的旧密文销毁，不能把当前表空当作安全回收证据。
+
+以下为第一轮及既有交付历史。
+
+# AI 接入会话交接
+
 ## 两轮并行第一轮：档位配置写入（已交付）
 
 更新：2026-10-16。用户当次明确授权三个子代理并行写两轮，实施所需结构/契约取舍由助手决定，每轮根统一复核并普通push main，中间不询问。独占modules/model-gateway/，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357。源码提交82dee76414a823e4d2e71dd87c623d7220f8387e；本轮四个完整新/完成函数、改过的validateTaskOverride及本轮生成物通过根VPS检查并verified；整文件/完整服务缺口保持partial/blocked。
@@ -111,3 +135,5 @@ ReadTaskAssignments纯服务仅owner范围，显式未知任务VALIDATION、跨o
 ## 第四轮首页跨域只读协议
 
 新增readTaskAvailability固定QA链三任务的免费配置投影。缺价格按原产品不阻断，不查询余额，不调用供应方或模型；仅合同与生成来源，业务函数仍planned。
+
+第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后待根重新检查。

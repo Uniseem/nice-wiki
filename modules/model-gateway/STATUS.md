@@ -1,5 +1,18 @@
 # AI 接入当前进度
 
+更新：2026-10-16。第二轮（最后一轮），分支codex/model-next-two-r2，基线53acce862467dbe40b829d1984519d78ccac5608；公共可信masterKeyRef前置993904524e4d7a792a6c84a80606de6215f7ace5已正常合入。独占本域，AES-GCM PutCredential与Rotate版本切换、HMAC回执、可信引用装配和PutProvider指针保护已code-ready，等待根VPS检查，台账in_progress。
+
+- 新增已登记internal/security/credential.go，复用001/002 schema，无新迁移或依赖。主密钥只在凭据写入读取：私有路径、NOFOLLOW/SameFile、最多33字节、恰好32字节及末次文件身份核对；启动/免费配置读取只装配引用，不依赖secret文件。
+- AES-256-GCM每次新操作随机96bit nonce，完整providerId/credentialVersion规范AAD。严格同代事务核7天原结果、全部非released屏障、真实active版本和供应方双CAS、历史版本唯一，密文/active指针/provider.changed/脱敏回执同事务。未知Commit不自行重试。
+- 敏感摘要使用主密钥派生的域分离HMAC，不保存可离线猜测的普通secret SHA；同一部署主密钥是回执协议，本轮不是主密钥轮换，换键不静默改写旧回执。指纹只有截短HMAC与掩码，超过8个Unicode字符才显示末4位；短secret不完整回显。临时可变字节清零，不承诺擦除Go不可变字符串或库内部副本。
+- PutProvider创建credentialVersion只能0，编辑只能保留真实active指针，凭据端点独占版本推进。PutCredential可修复active材料缺失且沿真实版本CAS；Rotate要求既有完整active材料并保留旧密文，引用释放后销毁仍缺，Rotate与credential.go整体partial。
+- 真实putCredential/rotateCredential映射复用公共当前superadmin授权并核路径/幂等头。完整其他handler、权威epoch初始化、恢复与后台未齐，BuildApplication仍blocked；无模型/费用调用或自动重算。
+- 所有Go/gofmt/gen/编译/完整check均等待根VPS，不本机运行；未新增测试/mock/fixture/样例/临时验证程序，未运行SQL/HTTP行为、真实接口/模型、服务/镜像/部署或push。第二轮交付后停止，不启动第三轮。
+
+以下为第一轮及既有交付历史。
+
+# AI 接入当前进度
+
 更新：2026-10-16。用户授权三个子代理并行写两轮、每轮根统一检查并普通push main。当前为第一轮，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，独占本域。源码提交82dee76414a823e4d2e71dd87c623d7220f8387e，PutProfile及三个紧密辅助/真实HTTP映射、改过的模型能力校验和本轮生成物verified；profile.go及wire.go整体partial，完整服务仍blocked，业务验收未执行。
 
 - 复用001/002 schema，新增已登记实际源码internal/catalog/profile.go；同事务严格非空epoch、7天原回执、所有非released屏障、配置版本/代次条件CAS与costClass+tier唯一槽。有效原结果先返回，过期键仅随成功新配置事务替换；提交未知不自行重试。
@@ -47,3 +60,5 @@
 - 下一步：先在有Go工具链的VPS完成格式/编译验证，再接入BuildApplication与全部handler；随后实现凭据加密、档位/路由和预留账本。
 
 并行工作只改本域，公共资料交集成会话；开始与结束均同步本状态、台账与交接。
+
+第二轮收口窄修：PutProvider同代普通摘要显式绑定callerService/dataEpoch，7天原结果先于新写屏障和当前active指针返回；新写拒绝任意非released屏障，不按屏障epoch/deadline过滤。过期键仅随成功新配置事务替换，PutModel及其旧共享helper未改。readCredentialReceipt与新增渠道回执参考签名均以ctx,op开头。首次候选Go检查通过但结构check因签名顺序失败，该次不记完整通过；修后待根重新检查。

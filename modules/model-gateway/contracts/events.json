@@ -9,7 +9,7 @@
       "payloadSchema": {
         "$ref": "./types.json#/$defs/EventProviderChangedPayload"
       },
-      "purpose": "发布provider.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "purpose": "发布已提交供应方元数据版本变更（包括凭据active指针切换），载荷仅providerId/version/enabled/dataEpoch；不广播明文、密文、指纹或HMAC。",
       "delivery": "at-least-once",
       "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
       "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"

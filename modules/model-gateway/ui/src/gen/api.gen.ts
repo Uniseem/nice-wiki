@@ -14,7 +14,7 @@ export interface paths {
         get?: never;
         /**
          * CAS保存供应方
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 credentialVersion创建必须0，修改必须保留真实active指针；只能由专用凭据端点推进。 同事务7天回执摘要含callerService/dataEpoch，先返回有效原结果，新写才核所有非released屏障；不按屏障代次或deadline放行。
          */
         put: operations["putProvider"];
         post?: never;
@@ -35,7 +35,7 @@ export interface paths {
         put?: never;
         /**
          * 加密存储密钥
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 仅portal携当前superadmin委托，严格同代/屏障/真实凭据CAS。AES-256-GCM随机96bit nonce及providerId/version AAD；敏感输入只以同一部署主密钥派生的HMAC形成7天脱敏回执，同输入返原结果，换主密钥不静默改写。保留旧密文，不发供应方请求。
          */
         post: operations["putCredential"];
         delete?: never;
@@ -55,7 +55,7 @@ export interface paths {
         put?: never;
         /**
          * 轮转新请求使用的密钥
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 仅portal携当前superadmin委托，严格同代/屏障/真实凭据CAS。AES-256-GCM随机96bit nonce及providerId/version AAD；敏感输入只以同一部署主密钥派生的HMAC形成7天脱敏回执，同输入返原结果，换主密钥不静默改写。保留旧密文，不发供应方请求。
          */
         post: operations["rotateCredential"];
         delete?: never;
@@ -692,7 +692,7 @@ export interface components {
         PutCredentialResult: {
             /** @description 新版本 */
             credentialVersion: number;
-            /** @description 末4位及摘要 */
+            /** @description 掩码与截短域分离HMAC；仅secret超过8个Unicode字符时显示末4位，短secret绝不完整回显 */
             fingerprint: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -1519,8 +1519,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 已持久供应方原结果回执损坏。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本域存储或权威代次尚未知，未知查询失败关闭。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1605,8 +1623,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
+            /** @description 供应方不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 凭据/供应方版本或代次变化、幂等敏感输入或部署主密钥协议冲突，或本地写屏障未释放。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 历史/active凭据或原结果回执损坏。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1709,8 +1745,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
+            /** @description 供应方不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 凭据/供应方版本或代次变化、幂等敏感输入或部署主密钥协议冲突，或本地写屏障未释放。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 历史/active凭据或原结果回执损坏。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

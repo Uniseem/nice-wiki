@@ -15,6 +15,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/transport"
 )
 
@@ -62,7 +63,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	gatewayruntime.InstallStore(store)
+	gatewayruntime.InstallStore(store, config.MasterKeyRef)
 	defer store.Close()
 	spec, err := gen.GetSwagger()
 	if err != nil {
@@ -82,6 +83,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range catalog.NewProfileHandlers() {
 		handlers[operationID] = handler
 	}
+	for operationID, handler := range security.NewCredentialHandlers() {
+		handlers[operationID] = handler
+	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -94,6 +98,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readTaskAvailability": {"qa"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},
+			"putCredential":        {"portal"},
+			"rotateCredential":     {"portal"},
 			"readTaskAssignments":  assignmentCallers,
 		},
 	}, handlers)
