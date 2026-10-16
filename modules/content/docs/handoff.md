@@ -1,3 +1,28 @@
+# 当前工作包：第二轮真实编辑锁与文档fence前置（2026-10-16，已交付）
+
+分支codex/content-next-two-r2，基线53acce862467dbe40b829d1984519d78ccac5608，初始clean；独占modules/content。用户授权两轮并行，本轮是最后一轮，根统一检查/push后停止，不自动第三轮。
+
+- 新增实际源码internal/edit_lock_service.go、internal/document_edit_state.go与只追加migrations/0002_document_edit_state.sql；前者是既有登记路径，本轮新增2文件合同。真实documents存在/生命周期/delete_fence与隔离读取，不插入假文档，缺行NOT_FOUND。
+- 控制区flock加NOFOLLOW/PrivatePath/SameFile持有单leader，不unlink。manager life RWMutex使所有操作及返回guard持读锁，Close先排空再释放flock；所有编辑/提交/生命周期guard使用相同site/doc mutex。
+- 账户共享租约、单次boot与单调fence、2分钟TTL和LastInputAt+15分钟提醒与+17分钟绝对失效；新tab复用账户lease不重置活动。新增required heartbeatSequence/inputSequence，严格新心跳才续TTL，新输入才用服务器接收时钟更新活动；旧心跳不续、不接受lastInputAt作权威，EditLease返回最新共享序号。
+- SaveFenceGuard真实核holder/lease/boot/fence与私有文档/deleteFence/隔离，并持doc锁至Release；未来完整SQL提交仍必须同事务重查持久状态/CAS/ledger/refs/pin/receipt/outbox，当前没有DraftCommitStore占位。
+- 本轮仅参考核心，Acquire/Renew/Release/Force/Expire完整用例仍blocked：即时授权、identity安全账户名、可靠状态通知/审计与原操作回执未装配。Core返回的快照不能当作已通知或HTTP成功。Create/Trash等完整生产者未交付，0002不会制造文档。
+- 修正后的同一冻结源码已通过根VPS docs/gen、4源码gofmt、14模块readonly build/vet/gofmt与完整check（869文件/1299函数/379操作/2289类型）；本域不运行本机Go/SQL/测试。未新增测试/fixture/mock/样例/临时业务程序，未真实API/模型、服务/镜像/部署，未自行push。
+
+- 根复核定点收口：缺失doc在cell分配前NOT_FOUND，不进入后台map；拿doc锁后仍重读真实权威。提醒固定LastInputAt+15分钟，+17分钟绝对失效，不因检测延迟推后或被逾期输入续活。
+
+- 首次候选VPS gen/docs成功，但编译发现3个gen业务Input被拆分HTTP request裁剪而undefined；已按types.json在本域投影Renew/Release/ForceRelease业务输入并改核心签名，随后根已完整重跑通过，不把首次失败计为通过。未手改生成目录或扩生成器。
+
+- 源码提交41953e630843abefa15a1da7976bf49ce7c7bd35；本记录紧随源码，22新参考函数及修改的RecoverDatabaseJournal按该SHA记verified，2新完整存储文件与修改storage核心已检查。edit_lock_service整体partial、5完整锁用例及完整保存/启动仍blocked；无业务accepted，两轮后本域停止，不自动第三轮。
+
+---
+
+## 下一步（一项）
+
+本轮由根统一VPS检查、源码/记录双提交与顺序集成push后停止。下一次获授权实施完整锁用例编排：先读edit_lock_service、contracts/types与events和identity/portal协议，补即时授权与identity安全显示名、可靠通知/审计及原回执；不能把参考核心直接绑定成完整HTTP成功。SaveDraft/完整DraftCommitStore仍缺refs/pin与真实文档生命周期生产者，保持partial。
+
+---
+
 # 当前工作包：第一轮真实私有正文存储（2026-10-16，已交付）
 
 分支codex/content-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357，初始clean；独占modules/content。用户授权三个子代理并行两轮及每轮根统一检查/push，本域本轮只交付真实正文存储，第二轮待根给新基线。
