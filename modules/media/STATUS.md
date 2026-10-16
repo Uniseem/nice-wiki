@@ -1,8 +1,8 @@
 # 资源媒体当前进度
 
-## 推送前复核：SVG样式文本分片（2026-10-16，进行中）
+## 推送前复核：SVG样式文本分片（2026-10-16，已验证）
 
-集成会话在main复核本轮时发现style按XML CharData逐片校验会漏掉由CDATA或注释拆分的CSS关键字。现改为每个style合并最终文本后一次校验，并拒绝style内嵌子元素；保持原字节与既有预算。仅修改既有validateSVG、合同和台账，未加测试或样例，待VPS检查后填写交付SHA。
+集成会话在main复核本轮时发现style按XML CharData逐片校验会漏掉由CDATA或注释拆分的CSS关键字。现改为每个style合并最终文本后一次校验，并拒绝style内嵌子元素；保持原字节与既有预算。源码提交eafa9275a31b38dc02880e6339694fa1d0f4286c，仅修改既有validateSVG、合同和台账，未加测试或样例；VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过，仅为本阶段检查，业务验收未执行。
 
 ## 本轮完成上传与直接资源校验（2026-10-16，已交付冻结）
 

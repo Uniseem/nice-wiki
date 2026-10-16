@@ -3602,6 +3602,11 @@
       "path": "modules/media/internal/outbox_repository.go",
       "kind": "source",
       "purpose": "原子写最小资源状态outbox"
+    },
+    {
+      "path": "docs/push-log/2026-10-16-0002.md",
+      "kind": "documentation",
+      "purpose": "三模块并行一轮复核、SVG样式修正与授权main普通推送记录"
     }
   ]
 }

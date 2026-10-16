@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "f1ef2518f4f089d7ca8b00353ad56e81368cec13c1ce344d2f43f98491815717",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "完成上传与直接资源校验一轮",
-  "branch": "codex/media-completion-round1",
-  "baseCommit": "170c1dc9057e122e349de43db532b2c48434b6cf",
-  "deliveryCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+  "assignedSession": "推送前集成复核SVG样式文本边界",
+  "branch": "main",
+  "baseCommit": "de04c858e375cd815842e298ff831efc389b249f",
+  "deliveryCommit": "eafa9275a31b38dc02880e6339694fa1d0f4286c",
   "deployment": "not_started",
   "files": [
     {
@@ -72,11 +72,11 @@
     },
     {
       "path": "modules/media/internal/payload_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "eafa9275a31b38dc02880e6339694fa1d0f4286c",
       "verification": {
-        "state": "not_run",
-        "evidence": "推送前复核修正style分片合并，待隔离VPS格式/编译/结构检查。"
+        "state": "passed",
+        "evidence": "2026-10-16推送前SVG复核：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、payload_validator.go的gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1216函数/379操作/2271类型）。人工核对style全部CharData/CDATA拼接与注释边界、style内拒绝子元素、原字节/大小/节点/深度预算不变。未新增测试或样例，未执行真实接口、SQL/HTTP业务验收、模型或部署；verified仅代表本阶段检查。"
       },
       "blocker": null
     },
@@ -1573,11 +1573,11 @@
     {
       "id": "media.validateSVG",
       "path": "modules/media/internal/payload_validator.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "eafa9275a31b38dc02880e6339694fa1d0f4286c",
       "verification": {
-        "state": "not_run",
-        "evidence": "推送前复核修正style分片合并，待隔离VPS格式/编译/结构检查。"
+        "state": "passed",
+        "evidence": "2026-10-16推送前SVG复核：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、payload_validator.go的gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1216函数/379操作/2271类型）。人工核对style全部CharData/CDATA拼接与注释边界、style内拒绝子元素、原字节/大小/节点/深度预算不变。未新增测试或样例，未执行真实接口、SQL/HTTP业务验收、模型或部署；verified仅代表本阶段检查。"
       },
       "blocker": null
     },
