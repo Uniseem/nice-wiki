@@ -215,3 +215,9 @@
 读取一次事务先核runtime_meta当前代次，未知空水位返回503、异代返回409，不写入猜测代次。三任务按请求顺序共用该快照，仅选择任务/候选引用、启用与能力字段、凭据存在性/长度；不SELECT密文、主密钥、供应方地址、价格、预算或余额。空任务分配/QA档位为not_configured；已配置无可用候选为unavailable；未知查询或坏数据失败关闭。附加头仅核既有名称/引用数组的结构一致性，不新增secret-ref存储或证明可解密。
 
 任务覆盖替换有序列表首项，保留第二项起的原有备用顺序并去重；原列表为空时覆盖可作为唯一候选，被替换主模型不另加备用。配置数组上限为公开schema的256项；先按完整配置过滤本地eligible，执行ResolveRoute再保序返回至多16项，不能在过滤前截断。免费读取不返回候选列表，只判有无可用配置。免费读取固定选择costClass=qa档位，不要求请求op.costClass=qa；响应不含内部ID、URL、引用或费用配置，不是执行授权或在线保证。
+
+## 任务赋值写入与原结果
+
+本轮复用task_assignments及operation_receipts，不新增表或迁移。assignment.version为expectedVersion+1；首次expectedVersion=0，更新SQL以task_id/version/data_epoch作条件并核RowsAffected。任何非released本地屏障阻止新配置写入，不因其epoch或deadline过期绕过。
+
+回执主键仍为site_id/actor_id/function_id/idempotency_key；input_hash包含callerService、dataEpoch、assignment及expectedVersion，result_json保存完整PutTaskAssignmentResult。7天有效原结果在屏障与当前模型校验之前返回；坏时间/原结果失败关闭，过期查询无写入，只有成功新配置事务末尾替换旧回执。assignment.changed/v1只发布taskId/version/dataEpoch，与赋值和回执通过平台nw_outbox同事务提交。

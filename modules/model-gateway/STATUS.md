@@ -1,5 +1,16 @@
 # AI 接入当前进度
 
+更新：2026-10-16。当前单轮任务为任务分配配置读写，分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf，独占本域。核心源码已写，等待集成会话统一VPS docs/gen、make build及make check；本轮不记implemented/verified，业务验收未执行。
+
+- PutTaskAssignment落实superadmin、根唯一任务目录默认档位与覆盖能力、严格非空epoch、同代7天原始回执、非released屏障、SQL条件CAS与同事务assignment.changed平台outbox。先返回有效原回执，不因后来模型停用或本地屏障阻断同代无副作用重放；异输入/异代回执冲突，过期仅同成功新配置事务替换。
+- ReadTaskAssignments只读取根目录owner=callerService的已持久配置，显式跨owner拒绝，未配置保持空数组。portal管理员全量读取通过HTTP边界平台identity即时superadmin授权；写入由公共边界统一授权一次，SQL函数信任可信op。
+- 沿用既有task.go、wire.go及001/002持久结构；根集成会话在既有clients.gen.go生成AITaskCatalog，不手抄目录、不运行时跨域读文件。缺失assignment.changed生产契约已补最小taskId/version/dataEpoch载荷，不增加消费者。
+- 本轮未实现档位写入、凭据加密、模型/费用执行、权威epoch初始化、完整HTTP/后台或可运行服务；不以持久schema和映射冒充完整配置运行。
+- 未新增测试/mock/fixture/样例或临时验证程序，未运行本机Go/gofmt/gen/编译/vet/check、SQL业务验收、真实接口/模型、服务、部署或push。集成会话统一VPS检查后再回填证据与提交，本轮结束不自动进入下一包。
+
+以下为先前交付历史，旧停止指令由本次用户授权单轮并行实施取代。
+
+
 更新：2026-10-16。第六轮只实现QA免费任务配置可用性读取，分支codex/model-task-availability-r1，基线cbe93952464bc9bd4a159e4d870c1b191855bc3a，独占本域。源码、合同与VPS生成产物已交付，完整12项相关函数及对应完整迁移/生成文件verified；task.go和runtime/bootstrap.go各自未完成职责保持partial，完整启动仍blocked，业务验收未执行。
 
 - ReadTaskAvailability仅QA纯服务、固定三任务，一次当前epoch SQL快照；缺任务/QA档位为not_configured，已配无可用元数据候选为unavailable；空/异代、损坏与查询未知失败关闭。

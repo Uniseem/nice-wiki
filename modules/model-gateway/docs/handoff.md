@@ -1,5 +1,24 @@
 # AI 接入会话交接
 
+## 本轮任务分配配置读写（等待VPS检查）
+
+更新：2026-10-16。用户当次授权三个子代理并行编写一轮；本域独占modules/model-gateway/，worktree分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf。本轮源码尚未提交，PutTaskAssignment/ReadTaskAssignments与紧密辅助、HTTP映射均按in_progress记录，等待根集成会话统一VPS检查，不使用上一轮编译证据。
+
+实际源码改动仅internal/catalog/task.go与internal/app/wire.go；contracts/implementation.json/types.json/openapi.json/events.json同步真实职责与协议。生成文件internal/gen/clients.gen.go由根在VPS从唯一AI任务目录生成并回传，docs/functions.md/files.md/api.md/workflows.md等仍等待make docs，生成目录不手改。现有001/002 schema足够，无新实际路径、迁移或外部依赖。
+
+PutTaskAssignment检查admin+superadmin、目录任务/defaultTier及expectedVersion+1；本地事务先核非空当前epoch，再按site/actor/函数/key读7天原结果，hash额外绑定callerService和dataEpoch。同代同hash先返回持久结果，不重查后来已停用的模型；异hash为CONFLICT，坏时间/原结果不匹配为INTEGRITY_ERROR。过期读取无副作用；仅新配置事务在非released屏障均不存在、能力和条件CAS成功后替换旧回执。覆盖只读models enabled/capabilities/dataEpoch并满足目录能力，不读秘密、价格、供应方地址，不探测模型。同事务通过平台outbox写assignment.changed/v1最小taskId/version/dataEpoch，Commit未知不自行重试。
+
+ReadTaskAssignments纯服务仅owner范围，显式未知任务VALIDATION、跨owner FORBIDDEN；按taskId排序只返回已持久同代赋值，未配置保持非null空数组。portal admin+superadmin可读全部；因service权限入口不会自动查管理员权限，本域HTTP map在管理员读取分支调用平台NewIdentityAuthorizer即时授权，写入只由公共ServiceBoundaryConfig.Authorize查一次。函数内部不重复身份/schema/deadline校验。
+
+公共配合：根已确认assignment.changed按已有约束补生产方，无需新消费者；根AI目录新增tierCapabilities并由make gen生成AITaskCatalog Owner/DefaultTier/RequiredCapabilities。能力沿old：fast/accurate为chat，vision为vision，embedding为embedding，rerank为rerank，不额外强制translation标签。公共根文件、jobs生成目录由集成会话拥有；公共前置提交为ab94e1e（根集成顺序合入，不在本域未提交工作中重复合并）。
+
+检查：尚未运行本轮VPS格式/生成/编译/vet/check，严禁本机回退；未新增或运行测试、fixture、mock、样例、临时验证程序，未执行SQL行为验收、真实接口/模型、服务、镜像、部署或push。完整服务依然因未绑定其他handler、权威epoch初始化、恢复回执与后台缺失拒绝启动，档位/凭据/费用也未实现。
+
+下一项仅为集成会话完成本轮VPS docs/gen/build/check及逐函数复核，回填检查证据与交付SHA；本轮结束不自动实施后包。后续功能重新授权后可从internal/catalog/profile.go的PutProfile闭合切片开始，先读本域档位合同及任务读取依赖，保持配置与费用执行分离。
+
+以下为先前交付历史，本次授权已恢复单轮实施。
+
+
 本轮统一集成实际源码71cd82a，最终实际树6c44451通过VPS docs/gen、14模块readonly build/vet/gofmt与完整check（861/1182/379/2269），生成零变化。progress已映射主线实际SHA，后文原分支SHA保留溯源；用户要求本轮结束停止持续目标后push，本域已交付，不开展后包。
 
 ## 第六轮免费任务配置读取（已交付）
