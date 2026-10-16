@@ -194,7 +194,7 @@ reference_objects为逐资产持久deletionFence/referenceGeneration，迁移一
 
 锁顺序固定来源caller/epoch/sourceOperationId → assetId唯一升序 → 本域store提交互斥 → SQL事务，释放逆序；不持这些锁回源。新写使用公共running写窗口，旧成功仅核已打开epoch和原材料。现有delete_pending没有真实计划生产方，本轮一律LOCKED；有效人工计划取消分支仍未实现，不能称Acquire完整支持清理闭环。源决定读取不属于Acquire必要步骤，真实local pin不以content/site-config读取未实现为由返回占位成功。
 
-## 两轮并行第二轮：源决定与引用终局（2026-10-16，待统一检查）
+## 两轮并行第二轮：源决定与引用终局（2026-10-16，既有检查通过，行为未验收）
 
 0004只追加reference_sources的resolution_json/hash/resolved_at与reference_heads/reference_entries。reference_heads是sourceService/epoch/site/object的单调current水位；reference_entries只记录已确认完整集合的referenceId/assetId及current/history分类，精确不可变元数据与原pending材料永久取自该来源input_json，不能与事件另建影子权威。原pin_assets在confirmed/sealed后都不删除，是否仍为pending保护取reference_sources.state；不能只凭pin行或expiresAt自动释放。
 

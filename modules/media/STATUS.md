@@ -1,5 +1,16 @@
 # 资源媒体当前进度
 
+## 两轮并行第二轮：源决定确认/封存（2026-10-16，已交付冻结）
+
+- 基线53acce862467dbe40b829d1984519d78ccac5608，分支codex/media-next-two-r2，独占modules/media/；源码`89138f68209598b736eb9e93ad0d9717ac22fdbd`。首轮main已由根检查并push，本域本轮不自行push，由根统一集成复核与第二轮push；本轮是最后一轮，交付后停止，不展开第三轮。
+- 新增reference_decision_client.go与只追加0004_reference_resolution.sql；生成Content/SiteConfig客户端固定回源，共享ReferenceSourceDecision唯一schema进入本域OpenAPI组件，本域8字段struct仅解码投影。纯media服务op清原proof/用户委托，保留原epoch/root/deadline，逐字段核完整来源材料；404/pending/未知/到期均不能释放。
+- 源决定RPC→重新runtime窗口RPC均无业务锁；随后sourceOperation→sourceObject→旧current+新pin asset升序→store→SQL。Confirm重读来源与旧head/current逐项/完整计数及原confirmed回执，较高版本推进current并保留旧history，低版只补自身history，空集合推进head，重复原confirmed不增generation；相同水位异源、sealed/COMMITTED矛盾失败关闭。
+- Release只同材料明确aborted/rejected后，以同锁/CAS序同事务sealed/原reason/终局结果hash，pending保护退出并提升原pin资产generation；无pin也封存，不以null、404或当前asset状态证明无pin，已确认current/history不释放，异材料/reason冲突。原pin_assets和原Acquire回执永久保留，合法重复Acquire仍可核原成功，sealed始终拒迟到Acquire。
+- 新增10个完整参考助手、Release、0004及源客户端文件verified；Acquire/Confirm的真实delete_pending计划取消未实现，两者partial/in_progress；reference_service/reference_repository/transport为partial，其余handler/控制恢复/后台未齐，完整应用blocked。未执行引用链跨域业务验收，不能声称服务可运行。
+- 首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪，编译失败；现改公共唯一schema严格验证后的本域投影，未扩大生成器/造HTTP端点/手改gen。修正后根统一VPS linux/amd64 Go1.25.5、GOMAXPROCS=8完整重跑docs/gen、6源码gofmt、14现有Go模块readonly build/vet/gofmt和make check通过（867文件/1268函数/379操作/2278类型），完整49文件格式/生成快照已回传，不沿用失败结论。
+- 本域仅本地静态JSON/文件/差异/路径/隐私检查，无本机Go/完整check。无新增测试/mock/fixture/样例/临时业务程序，未运行SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。公共结构由根登记两个新路径，源码和记录提交保留用户GitHub代用身份与GPT-6署名。
+- 下一项：本轮统一检查与push结束后停止；后续新授权先补ApplyReferenceEvent空集合/完整来源机器合同（当前缺顶层object/sourceOperation材料），再实现事件幂等并复用reference_heads/reference_entries，不另建影子引用权威，不自动展开后包。
+
 ## 两轮并行第一轮：ready引用预留（2026-10-16，已交付冻结）
 
 - 基线d2161f41c441b69f080b7d8cf3d40b88afecb357，分支codex/media-next-two-r1，仅拥有modules/media/；源码提交`aab3c6edd25d0c56f677dc02ce843f7fafce5706`，本域不自行push，等待根统一集成、每轮检查与push。
