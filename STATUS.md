@@ -1,18 +1,18 @@
-# 当前状态（2026-10-16，两轮并行：第一轮已推送，第二轮实施中）
+# 当前状态（2026-10-16，两轮并行已完成实施与检查，待第二轮推送）
 
-阶段：R1分批实施。用户授权三个子代理按最新交接并行编写两轮，每轮统一检查后普通push main，结构和契约取舍自行决定，轮间不询问；第二轮结束后停止，不自动开展第三轮。
+阶段：R1分批实施。用户授权三个子代理按最新交接并行编写两轮，每轮统一检查后普通push main，结构和契约取舍自行决定。两轮实施均已结束，三个模块已冻结停止；第二轮推送后不自动开展第三轮。
 
 ## 最新事实
 
-- 本次基线d2161f41c441b69f080b7d8cf3d40b88afecb357。第一轮三个独立worktree已合入main，实际集成提交依次3a576ab、ac836fe、92b4499；用户原HTML保持未跟踪，私有配置、凭据与运行数据未同步。
-- 机器契约865文件、1258函数、379HTTP操作、2277类型。已实现或验证558函数（495 verified、63 implemented），planned 669、in_progress 8、blocked 23，台账完成率44.4%，较轮前净增43项；无业务accepted。
-- content交付真实私有SQLite、只追加迁移、原准备回执、精确COMMITTED资格、隔离和启动恢复；新库epoch与迁移原子绑定，journal文件边界与反向覆盖核对失败关闭。源码97b31b1919181a4a697c8259c85ea9575f225a4d，完整保存事务、编辑锁前置与启动仍未闭合。
-- media交付完整来源绑定、逐对象fence/generation及ready资源pin单事务，首次pin原结果不续期、sealed先于旧结果。源码aab3c6edd25d0c56f677dc02ce843f7fafce5706；Acquire仍partial，真实清理计划取消与Confirm/Release留后续，不把ready切片称为完整预留链。
-- model-gateway交付PutProfile、同代CAS/槽唯一性、7天原结果及profile.changed事务outbox。源码82dee76414a823e4d2e71dd87c623d7220f8387e；公共能力表从唯一目录生成，fast变化覆盖vision/rerank回退影响，解析与完整服务仍未完成。
-- 候选和每次实际集成树均通过隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8的14模块readonly build/vet/gofmt及make check；各包docs/gen通过。最终同树重复docs/gen零漂移，跟踪文件哈希一致，全部待推送提交及暂存/消息隐私审计通过。
-- 全部Go生成、格式、编译、vet与check仅VPS。未新增测试、fixture、mock、样例或临时业务验证程序；未执行SQL/HTTP业务验收、真实模型、服务、镜像或部署。根状态与模块partial/blocked均如实保留。
+- 两轮基线d2161f41c441b69f080b7d8cf3d40b88afecb357。第一轮普通推送35a0369，结果记录同步53acce862467dbe40b829d1984519d78ccac5608，远端已核对，old未变。第二轮实际集成依次dc5c8ce、3497f51、47b1acb，等待最终统一检查后普通推送。
+- 机器契约869文件、1299函数、379HTTP操作、2289类型。600函数已实现或验证（539 verified、61 implemented），planned 660、in_progress 11、blocked 28，完成率46.2%；两轮净增85项完成条目，第一轮43项、第二轮42项。比例只表示函数台账，无业务accepted。
+- content第一轮完成真实私有SQLite、只追加迁移、准备原结果、COMMITTED资格与隔离恢复；第二轮完成单leader共享租约核心、真实文档/delete-fence读取与短事务SaveFenceGuard。空doc不分配cell，心跳/输入独立序号、15/17分钟固定界点、Close等待guard后释放leader。源码97b31b1、41953e630843abefa15a1da7976bf49ce7c7bd35；完整锁用例、通知审计、文档创建与保存事务及启动仍blocked。
+- media第一轮完成来源绑定、ready pin与逐对象fence；第二轮完成真实源决定客户端、current/history单调确认、终局原结果和无pin也封存的Release。原pin材料保留，低水位COMMITTED只补历史，未知决定不释放。第二轮源码89138f68209598b736eb9e93ad0d9717ac22fdbd；Acquire/Confirm因真实清理计划取消未齐仍partial，完整服务未完成。
+- model-gateway第一轮完成档位配置CAS/原结果/影响范围outbox；第二轮完成AES-256-GCM凭据保存、HMAC敏感摘要、版本CAS/原结果与供应方配置指针旁路修复，旧密文保留。第二轮源码c82f663bb8f935ff67a8da9e22c463ea0765d816；Rotate引用释放销毁和完整恢复/服务仍partial。公共源码9939045仅传递可信masterKeyRef，免费配置读取不要求主密钥。
+- 每包候选和实际集成树均在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过14模块readonly build/vet/gofmt及make check，各包docs/gen通过。生成器裁剪内部DTO和一处助手签名检查失败已修正并完整重跑；一次同步未完的集成检查作废，固定快照完整重跑已通过。最终同树重复docs/gen零漂移，本地/VPS全部跟踪文件哈希一致，全部待推送提交及暂存/消息/身份隐私审计通过。
+- 全部Go生成/格式/编译/vet/check仅VPS；未新增测试、fixture、mock、样例或临时业务验证程序，未执行SQL/HTTP业务验收、真实接口/模型、服务、镜像或部署。用户原HTML未改未提交；私有连接、配置、凭据与运行数据未同步。
 
-第一轮已普通推送并核对远端35a0369b24f3d84f653164f8eecf667f0b1e3e82，old未变。当前一项：三个独立worktree已从53acce862467dbe40b829d1984519d78ccac5608开展第二轮：content真实编辑锁和文档/fence前置、media引用确认释放、model-gateway凭据加密轮换。推送结果见[第一轮记录](docs/push-log/2026-10-16-0003.md)。
+当前一项：完成第二轮最终检查、隐私审计与普通push main，登记实际结果后停止本次两轮任务。正式记录见[第一轮](docs/push-log/2026-10-16-0003.md)、[第二轮](docs/push-log/2026-10-16-0004.md)。R1整体仍未完成。
 
 ## 历史实施记录
 

@@ -579,6 +579,11 @@
       "purpose": "两轮并行第一轮交付与普通推送实际记录"
     },
     {
+      "path": "docs/push-log/2026-10-16-0004.md",
+      "kind": "documentation",
+      "purpose": "两轮并行第二轮实际交付、检查推送与停止范围"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
