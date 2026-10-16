@@ -185,3 +185,11 @@ DrawingScene的files以additionalProperties值schema及propertyNames原精确模
 同站点资源复用在SQL选择时即按hash/byteSize/mediaType/kind精确匹配；持久Asset通过唯一schema及所选asset_id/索引字段核对后才进入COMMITTED/原回执，不能在LIMIT1后丢弃不匹配kind的首行造成重复元数据。
 
 SVG的style在XML解析后按完整文本校验：合并所有CharData/CDATA片段、忽略注释边界，每个style结束时检查CSS关键字和URL；拒绝style子元素，保持原字节及既有16MiB/节点/深度上限。
+
+## 两轮并行第一轮：ready 引用预留（2026-10-16，待统一检查）
+
+只追加0003_reference_pins.sql，旧0001/0002不变。reference_sources按可信sourceService/dataEpoch/sourceOperationId唯一绑定site/object/revision/version/digest、规范完整输入及首次pin结果/hash；pending/confirmed保留原回执，sealed先于旧成功检查。源站点来自明确input.siteId并逐资源核实，纯服务Actor的system站点不能代替来源绑定。references为空也生成pin；重复同材料返回原pin/expiry，不续期、不再次增加generation。
+
+reference_objects为逐资产持久deletionFence/referenceGeneration，迁移一次回填既有资产，新ready资源在完成上传同事务建立0水位。运行时缺fence失败关闭。新pin在同事务逐对象fence和generation各加一，并以reference_pin_assets保存实际fence快照；返回pin.assets按assetId唯一升序，deletionFence只是快照最大值，空集合0，不是全局删除授权。原pin回执核其不可变逐资产保护，不因当前资源变化重建。
+
+锁顺序固定来源caller/epoch/sourceOperationId → assetId唯一升序 → 本域store提交互斥 → SQL事务，释放逆序；不持这些锁回源。新写使用公共running写窗口，旧成功仅核已打开epoch和原材料。现有delete_pending没有真实计划生产方，本轮一律LOCKED；有效人工计划取消分支仍未实现，不能称Acquire完整支持清理闭环。源决定读取不属于Acquire必要步骤，真实local pin不以content/site-config读取未实现为由返回占位成功。

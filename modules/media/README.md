@@ -2,7 +2,7 @@
 
 保持 D24/D26 与资源库产品：内容寻址上传/Range、浏览器WebP/视频封面、四平台公开信息快照、本地封面、Excalidraw三文件，文件不自动删除。
 
-当前为R1实施：私有SQLite、blob恢复与上传基础分组已交付；顺序分块/原回执恢复、Begin固定首次结果及ready资源安全元数据读取通过统一VPS生成、14模块build/vet/gofmt和完整结构检查。完整应用因其余handler/控制恢复未齐保持blocked；本轮Complete与直接MIME/SVG/scene校验已过统一VPS既有检查，完整入口仍未齐；pins及业务验收、联调和部署未完成。
+当前为R1实施：私有SQLite、blob恢复与上传基础分组已交付；顺序分块/原回执恢复、Begin固定首次结果及ready资源安全元数据读取通过统一VPS生成、14模块build/vet/gofmt和完整结构检查。完整应用因其余handler/控制恢复未齐保持blocked；本轮Complete与直接MIME/SVG/scene校验已过统一VPS既有检查，完整入口仍未齐；ready引用pin本轮代码就绪待统一VPS检查，真实清理计划取消与Confirm/Release仍未完成；业务验收、联调和部署未完成。
 
 ## 设计索引
 
