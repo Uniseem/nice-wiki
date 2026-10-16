@@ -1628,7 +1628,7 @@
             }
           },
           "409": {
-            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变",
+            "description": "CONFLICT/VERSION_MISMATCH/LOCKED：原材料、状态、修订或引用保护冲突",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1639,6 +1639,26 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：人工计划不存在",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：原扫描、批准、标记或任务回执损坏",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2389,6 +2409,12 @@
       },
       "SiteConfigReferencePage": {
         "$ref": "../../site-config/contracts/types.json#/$defs/ListResourceReferencesResult"
+      },
+      "CleanupJobReceipt": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
+      },
+      "CleanupApproval": {
+        "$ref": "types.json#/$defs/CleanupApproval"
       }
     }
   }

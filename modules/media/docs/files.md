@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 52 个：手写 42、生成 3、配置 6、迁移 1。函数 143 个：约束 36，参考 107。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 53 个：手写 43、生成 3、配置 6、迁移 1。函数 155 个：约束 36，参考 119。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -20,7 +20,7 @@
 | `modules/media/internal/reference_service.go` | 手写 | 正文/config提交前保护资源迟到引用 | `media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.validateReferenceSource`（参考）、`media.canonicalReferenceInput`（参考）、`media.referenceBindingHash`（参考） |
 | `modules/media/internal/reference_repository.go` | 手写 | 消费引用事件防重复/乱序 | `media.ApplyReferenceEvent`、`media.lockReferenceKey`（参考）、`media.lockReferenceAssets`（参考）、`media.readReferenceSource`（参考）、`media.acquireReferencePin`（参考）、`media.readReferenceAsset`（参考）、`media.readReferenceRecord`（参考）、`media.readReferenceResolution`（参考）、`media.writeReferenceResolution`（参考）、`media.referenceObjectAssets`（参考）、`media.advanceReferenceGeneration`（参考）、`media.confirmReferencePin`（参考）、`media.releaseReferencePin`（参考） |
 | `modules/media/internal/reference_reader.go` | 手写 | 两个权威源完整同水位分页与本地pending引用快照 | `media.ReadAssetReferences`、`media.readSourceReferences`（参考）、`media.pendingAssetReferences`（参考） |
-| `modules/media/internal/cleanup_service.go` | 手写 | 人工计划提案/取消、原回执及与新增引用共享的完整计划取消事务；列表/确认后续实施 | `media.ListUnusedAssets`、`media.ProposeManualCleanup`、`media.ConfirmManualCleanup`、`media.CancelManualCleanup`、`media.cleanupStore`（参考）、`media.readCleanupAsset`（参考）、`media.cleanupRequestHash`（参考）、`media.readCleanupReceipt`（参考）、`media.writeCleanupReceipt`（参考）、`media.readCleanupPlan`（参考）、`media.cancelCleanupPlan`（参考）、`media.referenceCleanupAssets`（参考）、`media.assetCleanupPlans`（参考）、`media.cancelReferenceCleanupPlans`（参考） |
+| `modules/media/internal/cleanup_service.go` | 手写 | 人工计划提案/取消、原回执及与新增引用共享的完整计划取消事务；列表/确认后续实施 | `media.ListUnusedAssets`、`media.ProposeManualCleanup`、`media.ConfirmManualCleanup`、`media.CancelManualCleanup`、`media.cleanupStore`（参考）、`media.readCleanupAsset`（参考）、`media.cleanupRequestHash`（参考）、`media.readCleanupReceipt`（参考）、`media.writeCleanupReceipt`（参考）、`media.readCleanupPlan`（参考）、`media.cancelCleanupPlan`（参考）、`media.referenceCleanupAssets`（参考）、`media.assetCleanupPlans`（参考）、`media.cancelReferenceCleanupPlans`（参考）、`media.InstallCleanupJobsClient`（参考）、`media.cleanupJobRequest`（参考）、`media.loadCleanupApproval`（参考）、`media.readCleanupApproval`（参考）、`media.scanCleanupConfirmation`（参考）、`media.blockCleanupProposal`（参考）、`media.updateCleanupState`（参考）、`media.approveCleanupPlan`（参考）、`media.checkCleanupApprovalPending`（参考）、`media.submitCleanupApproval`（参考）、`media.completeCleanupApproval`（参考）、`media.ReadCleanupApprovalObject`（参考） |
 | `modules/media/internal/cleanup_sources.go` | 手写 | 确认所有权威引用源后才认定可清理 | `media.ValidateCleanupSources`（参考） |
 | `modules/media/internal/cleanup_worker.go` | 手写 | 只执行已人工确认的安全清理计划 | `media.ExecuteManualCleanup` |
 | `modules/media/internal/range_service.go` | 手写 | 规范Range支持iOS视频 | `media.ParseByteRange`（参考） |
@@ -58,3 +58,4 @@
 | `modules/media/internal/reference_decision_client.go` | 手写 | 只经固定版本化源决定API/共享schema读取，清proof的media纯服务上下文，不持本域锁 | `media.InstallReferenceDecisionClients`（参考）、`media.readReferenceDecision`（参考） |
 | `modules/media/migrations/0004_reference_resolution.sql` | 手写 | 只追加源终局原回执、对象current水位与保留history的确认引用行，原pin保护不删除 | 无 |
 | `modules/media/migrations/0005_manual_cleanup.sql` | 手写 | 只追加人工计划、原扫描、精确pending标记及操作原回执权威表；不自动确认/删除 | 无 |
+| `modules/media/migrations/0006_cleanup_approvals.sql` | 手写 | 只追加人工计划一次批准、固定延迟任务输入、原任务回执和原waiting结果桥接；取消保留批准证据 | 无 |

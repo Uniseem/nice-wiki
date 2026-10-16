@@ -28,9 +28,9 @@
 #### `media.cleanup`
 
 - 执行函数：`media.ExecuteManualCleanup`
-- 触发：ConfirmManualCleanup创建，notBefore≥24小时
+- 触发：ConfirmManualCleanup一次人工批准后用固定CleanupApproval ObjectRef/dedupeKey和notBefore≥批准后24小时真实提交jobs；取消不删批准证据，worker必须另核当前计划
 
-1. jobs worker claim确认plan/notBefore/approvalhash，未知或未确认拒绝
+1. 同进程jobs worker claim后直接调用本域ReadCleanupApprovalObject读取真实CleanupApproval ObjectRef规范字节，核原operationId/root/dataEpoch/站点及当前计划waiting、原批准/notBefore≥24h、精确marks；未知、取消、blocked、未确认或任务原回执未落本域均拒绝。领取时建立新执行期限，不复用原批准请求短deadline
 2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
 3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
 4. 遇新引用/未知来源/readers/水位变化时计划可blocked，尚无DELETING决定的资产可保留原精确marks/delete_pending待取消；blocked不授权继续删除，也不凭状态释放标记。已有DELETING的资产按持久决定恢复，Cancel必须CONFLICT，不能声称全部可逆
@@ -61,3 +61,5 @@
 
 
 持续目标第一轮：ReadAssetReferences完整两源分页→本地pending与generation复核→ValidateCleanupSources→管理员Propose真实风险计划；只有后来明确确认才能进入delete_pending，目前确认/延迟任务/执行删除仍planned。Acquire/Confirm在任何asset锁之前扩出相交计划完整资产，再稳定锁序和SQL内完整重核→取消整份有效计划/恢复ready/提升水位→同事务pin或confirmed。持久DELETING与未知计划继续阻止，所有回源RPC无asset/store锁。
+
+持续目标第二轮：当前管理员确认原plan/revision/hash/历史风险→两源完整扫描精确匹配原材料→无锁重新写窗口→完整asset稳定锁/SQL CAS→confirmed、人工批准、固定notBefore、delete_pending及精确marks同事务→释放全部业务锁→真实jobs:createJob（固定原op/root/dedupe/inputRef/notBefore）→重新窗口/完整锁核计划与marks→原任务回执、waiting及原成功同事务。未知重试不重复批准；并发取消后的迟到任务回执仅留证据，不复活计划、不返回确认成功。最终删除与worker仍planned；本轮修订后候选已过根统一VPS既有生成/编译/结构门槛，行为验收未执行。

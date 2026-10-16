@@ -2419,6 +2419,11 @@
       "purpose": "只追加人工清理计划、逐资产扫描/删除标记与原回执"
     },
     {
+      "path": "modules/media/migrations/0006_cleanup_approvals.sql",
+      "kind": "migration",
+      "purpose": "不可变清理批准对象与固定延迟任务材料、真实任务及原确认结果回执"
+    },
+    {
       "path": "modules/media/migrations/migrations.go",
       "kind": "handwritten",
       "purpose": "内嵌media只追加SQL迁移（ADR0005），运行时唯一来源"

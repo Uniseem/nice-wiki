@@ -15,6 +15,14 @@ import (
 
 type ProposeManualCleanupInput = gen.ProposeManualCleanupInput
 type ProposeManualCleanupResult = gen.ProposeManualCleanupResult
+type ConfirmManualCleanupInput struct {
+	PlanId                 Identifier   `json:"planId"`
+	ConfirmationHash       Hash         `json:"confirmationHash"`
+	AcknowledgeHistoryLoss bool         `json:"acknowledgeHistoryLoss"`
+	ExpectedRevision       gen.Revision `json:"expectedRevision"`
+}
+type ConfirmManualCleanupResult = gen.ConfirmManualCleanupResult
+
 type CancelManualCleanupInput struct {
 	PlanId Identifier `json:"planId"`
 }
@@ -81,6 +89,13 @@ func (s *localBlobStore) readCleanupReceipt(ctx context.Context, q sqlExecer, op
 	var raw sql.NullString
 	err := q.QueryRowContext(ctx, `SELECT request_hash,kind,CASE WHEN length(CAST(result_json AS BLOB))<=16777216 THEN result_json ELSE NULL END,result_hash FROM manual_cleanup_receipts WHERE operation_id=?`, op.OperationID).Scan(&storedHash, &storedKind, &raw, &rawHash)
 	if errors.Is(err, sql.ErrNoRows) {
+		var count int
+		if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_cleanup_approvals WHERE operation_id=?`, op.OperationID).Scan(&count); err != nil {
+			return false, mapMediaDBError(err, "核对清理操作归属失败")
+		}
+		if count != 0 {
+			return true, platform.NewError(platform.CodeConflict, false, "操作已绑定人工清理批准")
+		}
 		return false, nil
 	}
 	if err != nil {
@@ -612,4 +627,538 @@ func (s *localBlobStore) cancelReferenceCleanupPlans(ctx context.Context, tx *sq
 		}
 	}
 	return nil
+}
+
+// CleanupApproval 是一次人工批准的不可变对象，计划取消后仍保留证据。
+type CleanupApproval struct {
+	SchemaVersion   int                       `json:"schemaVersion"`
+	OperationId     Identifier                `json:"operationId"`
+	RootOperationId Identifier                `json:"rootOperationId"`
+	CallerService   string                    `json:"callerService"`
+	SiteId          Identifier                `json:"siteId"`
+	DataEpoch       Identifier                `json:"dataEpoch"`
+	ApprovedBy      Identifier                `json:"approvedBy"`
+	ConfirmedAt     time.Time                 `json:"confirmedAt"`
+	RequestHash     Hash                      `json:"requestHash"`
+	Input           ConfirmManualCleanupInput `json:"input"`
+	Plan            gen.CleanupPlan           `json:"plan"`
+	Marks           []cleanupApprovalMark     `json:"marks"`
+}
+
+type cleanupApprovalMark struct {
+	AssetId             Identifier `json:"assetId"`
+	DeletionFence       int        `json:"deletionFence"`
+	ReferenceGeneration int        `json:"referenceGeneration"`
+}
+
+type cleanupJobInput struct {
+	Owner     string        `json:"owner"`
+	Type      string        `json:"type"`
+	InputRef  gen.ObjectRef `json:"inputRef"`
+	DedupeKey string        `json:"dedupeKey"`
+	NotBefore time.Time     `json:"notBefore"`
+}
+
+type cleanupJobReceipt struct {
+	Job struct {
+		JobId       Identifier `json:"jobId"`
+		OperationId Identifier `json:"operationId"`
+		State       string     `json:"state"`
+	} `json:"job"`
+}
+
+type cleanupApprovalRecord struct {
+	Approval CleanupApproval
+	Raw      string
+	Hash     Hash
+	JobInput cleanupJobInput
+	Receipt  *cleanupJobReceipt
+	Result   *ConfirmManualCleanupResult
+}
+
+type ReadCleanupApprovalObjectInput struct {
+	PlanId       Identifier   `json:"planId"`
+	Version      gen.Revision `json:"version"`
+	ExpectedHash Hash         `json:"expectedHash"`
+}
+
+type ReadCleanupApprovalObjectResult struct {
+	Object gen.ObjectRef `json:"object"`
+	UTF8   string        `json:"utf8"`
+}
+
+func InstallCleanupJobsClient(jobs *gen.JobsClient) error {
+	s, ok := currentBlobStore().(*localBlobStore)
+	if !ok || jobs == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "人工清理任务客户端未装配")
+	}
+	s.cleanupJobs = jobs
+	return nil
+}
+
+func cleanupJobRequest(approval CleanupApproval, raw string) cleanupJobInput {
+	hash := platform.HashBytes([]byte(raw))
+	return cleanupJobInput{Owner: "media", Type: "media.cleanup", InputRef: gen.ObjectRef{Owner: "media", ObjectId: approval.Plan.PlanId, Version: approval.Plan.Revision, Sha256: hash, ByteSize: len(raw), MediaType: "application/json"}, DedupeKey: "media.cleanup:" + approval.DataEpoch + ":" + approval.Plan.PlanId + ":" + hash, NotBefore: approval.Plan.NotBefore}
+}
+
+func (s *localBlobStore) loadCleanupApproval(ctx context.Context, q sqlExecer, planID Identifier) (cleanupApprovalRecord, bool, error) {
+	var approvalRaw, jobRaw, receiptRaw, resultRaw sql.NullString
+	var hash, requestHash, jobHash, operationID string
+	var receiptHash, resultHash sql.NullString
+	err := q.QueryRowContext(ctx, `SELECT operation_id,request_hash,CASE WHEN length(CAST(approval_json AS BLOB))<=16777216 THEN approval_json ELSE NULL END,approval_hash,CASE WHEN length(CAST(job_input_json AS BLOB))<=16777216 THEN job_input_json ELSE NULL END,job_input_hash,CASE WHEN length(CAST(job_receipt_json AS BLOB))<=16777216 THEN job_receipt_json ELSE NULL END,job_receipt_hash,CASE WHEN length(CAST(result_json AS BLOB))<=16777216 THEN result_json ELSE NULL END,result_hash FROM manual_cleanup_approvals WHERE plan_id=?`, planID).Scan(&operationID, &requestHash, &approvalRaw, &hash, &jobRaw, &jobHash, &receiptRaw, &receiptHash, &resultRaw, &resultHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return cleanupApprovalRecord{}, false, nil
+	}
+	if err != nil {
+		return cleanupApprovalRecord{}, false, mapMediaDBError(err, "读取人工批准桥接失败")
+	}
+	record := cleanupApprovalRecord{Raw: approvalRaw.String, Hash: hash}
+	if !approvalRaw.Valid || platform.HashBytes([]byte(approvalRaw.String)) != hash || s.validateCleanupApproval(json.RawMessage(approvalRaw.String)) != nil || json.Unmarshal([]byte(approvalRaw.String), &record.Approval) != nil {
+		return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工批准对象损坏")
+	}
+	a := record.Approval
+	canonical, err := platform.CanonicalJSON(a)
+	binding, bindErr := cleanupRequestHash(OperationContext{CallerService: a.CallerService, Actor: platform.AuthContext{SubjectID: a.ApprovedBy, SiteID: a.SiteId}, DataEpoch: a.DataEpoch}, "confirm", a.Input)
+	if err != nil || bindErr != nil || string(canonical) != approvalRaw.String || a.OperationId != operationID || a.Plan.PlanId != planID || a.Input.PlanId != planID || string(a.Plan.State) != "confirmed" || a.Input.ExpectedRevision > 9007199254740989 || a.Plan.Revision != a.Input.ExpectedRevision+1 || a.Input.ConfirmationHash != a.Plan.ConfirmationHash || a.RequestHash != requestHash || binding != requestHash || !a.Plan.NotBefore.Equal(a.ConfirmedAt.Add(24*time.Hour)) || (len(a.Plan.HistoryAffectedDocumentIds) > 0 && !a.Input.AcknowledgeHistoryLoss) || len(a.Marks) != len(a.Plan.Assets) {
+		return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工批准原输入、时间或修订绑定损坏")
+	}
+	for i, asset := range a.Plan.Assets {
+		if (i > 0 && a.Plan.Assets[i-1].AssetId >= asset.AssetId) || a.Marks[i].AssetId != asset.AssetId {
+			return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工批准完整标记集合损坏")
+		}
+	}
+	record.JobInput = cleanupJobRequest(a, approvalRaw.String)
+	jobCanonical, err := platform.CanonicalJSON(record.JobInput)
+	if err != nil || !jobRaw.Valid || platform.HashBytes([]byte(jobRaw.String)) != jobHash || string(jobCanonical) != jobRaw.String {
+		return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工批准固定任务输入损坏")
+	}
+	if receiptRaw.Valid != receiptHash.Valid || resultRaw.Valid != resultHash.Valid || (resultRaw.Valid && !receiptRaw.Valid) {
+		return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工批准回执状态损坏")
+	}
+	if receiptRaw.Valid {
+		record.Receipt = &cleanupJobReceipt{}
+		if platform.HashBytes([]byte(receiptRaw.String)) != receiptHash.String || s.validateCleanupJobReceipt(json.RawMessage(receiptRaw.String)) != nil || json.Unmarshal([]byte(receiptRaw.String), record.Receipt) != nil || record.Receipt.Job.OperationId != a.OperationId {
+			return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工清理任务原回执损坏")
+		}
+		encoded, err := platform.CanonicalJSON(record.Receipt)
+		if err != nil || string(encoded) != receiptRaw.String {
+			return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工清理任务原回执非规范")
+		}
+	}
+	if resultRaw.Valid {
+		expected := a.Plan
+		expected.State = gen.CleanupPlanState("waiting")
+		expected.Revision++
+		raw, err := platform.CanonicalJSON(ConfirmManualCleanupResult{Plan: expected})
+		if err != nil || platform.HashBytes([]byte(resultRaw.String)) != resultHash.String || string(raw) != resultRaw.String {
+			return record, true, platform.NewError(platform.CodeIntegrityError, false, "人工确认原成功结果损坏")
+		}
+		record.Result = &ConfirmManualCleanupResult{Plan: expected}
+	}
+	return record, true, nil
+}
+
+func (s *localBlobStore) readCleanupApproval(ctx context.Context, q sqlExecer, op OperationContext, requestHash Hash, input ConfirmManualCleanupInput) (cleanupApprovalRecord, bool, error) {
+	var used int
+	if err := q.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM manual_cleanup_receipts WHERE operation_id=?)+(SELECT COUNT(*) FROM manual_cleanup_approvals WHERE operation_id=? AND plan_id<>?)`, op.OperationID, op.OperationID, input.PlanId).Scan(&used); err != nil {
+		return cleanupApprovalRecord{}, false, mapMediaDBError(err, "核对人工批准操作唯一归属失败")
+	}
+	if used != 0 {
+		return cleanupApprovalRecord{}, true, platform.NewError(platform.CodeConflict, false, "操作已绑定其他清理材料")
+	}
+	record, found, err := s.loadCleanupApproval(ctx, q, input.PlanId)
+	if err != nil || !found {
+		return record, found, err
+	}
+	a := record.Approval
+	if a.OperationId != op.OperationID || a.RootOperationId != op.RootOperationID || a.RequestHash != requestHash || a.SiteId != op.Actor.SiteID || a.DataEpoch != op.DataEpoch || a.ApprovedBy != op.Actor.SubjectID || a.CallerService != op.CallerService || a.Input != input {
+		return record, true, platform.NewError(platform.CodeConflict, false, "计划已经绑定一次不同的人工批准")
+	}
+	return record, true, nil
+}
+
+// ReadCleanupApprovalObject 只读真实批准对象，不以批准对象代替当前计划执行资格。
+func ReadCleanupApprovalObject(ctx context.Context, op OperationContext, input ReadCleanupApprovalObjectInput) (ReadCleanupApprovalObjectResult, error) {
+	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
+		return ReadCleanupApprovalObjectResult{}, platform.NewError(platform.CodeForbidden, false, "仅本域任务可读取批准对象")
+	}
+	s, err := cleanupStore(op, false)
+	if err != nil {
+		return ReadCleanupApprovalObjectResult{}, err
+	}
+	record, found, err := s.loadCleanupApproval(ctx, s.db, input.PlanId)
+	if err != nil {
+		return ReadCleanupApprovalObjectResult{}, err
+	}
+	if !found {
+		return ReadCleanupApprovalObjectResult{}, platform.NewError(platform.CodeNotFound, false, "人工批准对象不存在")
+	}
+	if record.Approval.SiteId != op.Actor.SiteID || record.Approval.DataEpoch != op.DataEpoch {
+		return ReadCleanupApprovalObjectResult{}, platform.NewError(platform.CodeForbidden, false, "人工批准对象不属于当前站点或代次")
+	}
+	if input.Version != record.JobInput.InputRef.Version || input.ExpectedHash != record.Hash {
+		return ReadCleanupApprovalObjectResult{}, platform.NewError(platform.CodeVersionMismatch, false, "人工批准对象版本或摘要不符")
+	}
+	return ReadCleanupApprovalObjectResult{Object: record.JobInput.InputRef, UTF8: record.Raw}, nil
+}
+
+func ConfirmManualCleanup(ctx context.Context, op OperationContext, input ConfirmManualCleanupInput) (ConfirmManualCleanupResult, error) {
+	s, err := cleanupStore(op, true)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	hash, err := cleanupRequestHash(op, "confirm", input)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	record, found, err := s.readCleanupApproval(ctx, s.db, op, hash, input)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	if found && record.Result != nil {
+		return *record.Result, nil
+	}
+	if !found {
+		plan, err := s.readCleanupPlan(ctx, s.db, op, input.PlanId)
+		if err != nil {
+			return ConfirmManualCleanupResult{}, err
+		}
+		if string(plan.State) != "proposed" {
+			return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeConflict, false, "只有原提案可以接受人工确认")
+		}
+		if plan.Revision != input.ExpectedRevision || plan.ConfirmationHash != input.ConfirmationHash {
+			return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeVersionMismatch, false, "原提案修订或精确摘要不符")
+		}
+		if len(plan.HistoryAffectedDocumentIds) > 0 && !input.AcknowledgeHistoryLoss {
+			return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeForbidden, false, "必须明确接受历史资源缺失风险")
+		}
+		scans, err := s.scanCleanupConfirmation(ctx, op, plan)
+		if err != nil {
+			return ConfirmManualCleanupResult{}, err
+		}
+		record, err = s.approveCleanupPlan(ctx, op, hash, input, plan, scans)
+		if err != nil {
+			return ConfirmManualCleanupResult{}, err
+		}
+	}
+	if record.Result != nil {
+		return *record.Result, nil
+	}
+	return s.submitCleanupApproval(ctx, op, hash, input, record)
+}
+
+func (s *localBlobStore) scanCleanupConfirmation(ctx context.Context, op OperationContext, plan gen.CleanupPlan) ([]cleanupScan, error) {
+	scans := make([]cleanupScan, 0, len(plan.Assets))
+	for _, expected := range plan.Assets {
+		var originalRaw sql.NullString
+		var hash string
+		var fence, generation int
+		if err := s.db.QueryRowContext(ctx, `SELECT deletion_fence,reference_generation,CASE WHEN length(CAST(snapshot_json AS BLOB))<=16777216 THEN snapshot_json ELSE NULL END,snapshot_hash FROM manual_cleanup_assets WHERE plan_id=? AND asset_id=?`, plan.PlanId, expected.AssetId).Scan(&fence, &generation, &originalRaw, &hash); err != nil {
+			return nil, mapMediaDBError(err, "读取人工确认原扫描失败")
+		}
+		read, err := ValidateCleanupSources(ctx, op, ValidateCleanupSourcesInput{AssetId: expected.AssetId})
+		if err != nil {
+			return nil, err
+		}
+		if !read.SafeToDelete {
+			if err := s.blockCleanupProposal(ctx, op, plan); err != nil {
+				return nil, err
+			}
+			return nil, platform.NewError(platform.CodeLocked, false, "出现当前引用或待提交保护，原提案已阻断")
+		}
+		raw, err := platform.CanonicalJSON(read.Snapshot)
+		if err != nil {
+			return nil, err
+		}
+		if !originalRaw.Valid || platform.HashBytes([]byte(originalRaw.String)) != hash || string(raw) != originalRaw.String || read.Snapshot.ReferenceGeneration != generation {
+			return nil, platform.NewError(platform.CodeVersionMismatch, false, "完整权威引用快照已变化，请重新生成清理提案")
+		}
+		scans = append(scans, cleanupScan{expected, fence, read.Snapshot})
+	}
+	return scans, nil
+}
+
+func (s *localBlobStore) blockCleanupProposal(ctx context.Context, op OperationContext, plan gen.CleanupPlan) error {
+	work, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return err
+	}
+	defer cancel()
+	release := s.lockReferenceAssets(plan.Assets)
+	defer release()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tx, err := s.db.BeginTx(work, nil)
+	if err != nil {
+		return mapMediaDBError(err, "开始阻断清理提案失败")
+	}
+	defer tx.Rollback()
+	current, err := s.readCleanupPlan(work, tx, op, plan.PlanId)
+	if err != nil {
+		return err
+	}
+	if current.Revision != plan.Revision || string(current.State) != "proposed" {
+		return platform.NewError(platform.CodeConflict, false, "原清理提案状态已变化")
+	}
+	if plan.Revision == 9007199254740991 {
+		return platform.NewError(platform.CodeLocked, false, "计划修订已耗尽")
+	}
+	if err := s.updateCleanupState(work, tx, op, current, "blocked"); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return mapMediaDBError(err, "提交阻断提案失败")
+	}
+	return nil
+}
+
+func (s *localBlobStore) updateCleanupState(ctx context.Context, tx *sql.Tx, op OperationContext, plan gen.CleanupPlan, state string) error {
+	previousRevision, previousState := plan.Revision, plan.State
+	plan.Revision++
+	plan.State = gen.CleanupPlanState(state)
+	raw, err := platform.CanonicalJSON(plan)
+	if err != nil {
+		return err
+	}
+	changed, err := tx.ExecContext(ctx, `UPDATE manual_cleanup_plans SET state=?,revision=?,plan_json=?,plan_hash=?,updated_at=? WHERE plan_id=? AND data_epoch=? AND site_id=? AND revision=? AND state=?`, state, plan.Revision, string(raw), platform.HashBytes(raw), platform.Now(), plan.PlanId, op.DataEpoch, op.Actor.SiteID, previousRevision, previousState)
+	if err != nil {
+		return mapMediaDBError(err, "保存人工清理计划状态失败")
+	}
+	count, err := changed.RowsAffected()
+	if err != nil || count != 1 {
+		return platform.NewError(platform.CodeConflict, false, "人工清理计划修订竞争")
+	}
+	return nil
+}
+
+func (s *localBlobStore) approveCleanupPlan(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, plan gen.CleanupPlan, scans []cleanupScan) (cleanupApprovalRecord, error) {
+	work, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return cleanupApprovalRecord{}, err
+	}
+	defer cancel()
+	release := s.lockReferenceAssets(plan.Assets)
+	defer release()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tx, err := s.db.BeginTx(work, nil)
+	if err != nil {
+		return cleanupApprovalRecord{}, mapMediaDBError(err, "开始人工批准事务失败")
+	}
+	defer tx.Rollback()
+	if original, found, err := s.readCleanupApproval(work, tx, op, hash, input); found || err != nil {
+		return original, err
+	}
+	current, err := s.readCleanupPlan(work, tx, op, plan.PlanId)
+	if err != nil {
+		return cleanupApprovalRecord{}, err
+	}
+	if current.Revision != plan.Revision || string(current.State) != "proposed" || current.ConfirmationHash != plan.ConfirmationHash || !slices.Equal(current.Assets, plan.Assets) {
+		return cleanupApprovalRecord{}, platform.NewError(platform.CodeVersionMismatch, false, "人工确认期间原计划已变化")
+	}
+	if current.Revision > 9007199254740989 {
+		return cleanupApprovalRecord{}, platform.NewError(platform.CodeLocked, false, "计划修订不足以完成批准与等待")
+	}
+	now := time.Now().UTC()
+	current.NotBefore = now.Add(24 * time.Hour)
+	approval := CleanupApproval{SchemaVersion: 1, OperationId: op.OperationID, RootOperationId: op.RootOperationID, CallerService: op.CallerService, SiteId: op.Actor.SiteID, DataEpoch: op.DataEpoch, ApprovedBy: op.Actor.SubjectID, ConfirmedAt: now, RequestHash: hash, Input: input, Plan: current, Marks: make([]cleanupApprovalMark, 0, len(scans))}
+	for _, scan := range scans {
+		asset, fence, generation, err := s.readCleanupAsset(work, tx, op.Actor.SiteID, scan.Asset.AssetId)
+		if err != nil {
+			return cleanupApprovalRecord{}, err
+		}
+		if asset.Ref != scan.Asset || asset.State != gen.AssetStateReady || fence != scan.Fence || generation != scan.Snapshot.ReferenceGeneration {
+			return cleanupApprovalRecord{}, platform.NewError(platform.CodeVersionMismatch, false, "批准前精确资产或引用水位已变化")
+		}
+		var protections int
+		if err := tx.QueryRowContext(work, `SELECT (SELECT COUNT(*) FROM reference_entries WHERE asset_id=? AND kind='current')+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')+(SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=?)+(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING')`, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId).Scan(&protections); err != nil {
+			return cleanupApprovalRecord{}, mapMediaDBError(err, "核对批准前引用及删除保护失败")
+		}
+		if protections != 0 {
+			return cleanupApprovalRecord{}, platform.NewError(platform.CodeLocked, false, "批准前出现引用或删除保护")
+		}
+		if err := advanceReferenceGeneration(work, tx, scan.Asset.AssetId, true); err != nil {
+			return cleanupApprovalRecord{}, err
+		}
+		asset.State = gen.AssetState("delete_pending")
+		raw, err := platform.CanonicalJSON(asset)
+		if err != nil {
+			return cleanupApprovalRecord{}, err
+		}
+		changed, err := tx.ExecContext(work, `UPDATE assets SET state='delete_pending',asset_json=?,updated_at=? WHERE asset_id=? AND site_id=? AND state='ready'`, string(raw), platform.Now(), scan.Asset.AssetId, op.Actor.SiteID)
+		if err != nil {
+			return cleanupApprovalRecord{}, mapMediaDBError(err, "标记人工待删除资源失败")
+		}
+		count, err := changed.RowsAffected()
+		if err != nil || count != 1 {
+			return cleanupApprovalRecord{}, platform.NewError(platform.CodeConflict, false, "标记人工待删除资源发生竞争")
+		}
+		if _, err := tx.ExecContext(work, `INSERT INTO manual_cleanup_marks(asset_id,plan_id,deletion_fence,reference_generation) VALUES(?,?,?,?)`, scan.Asset.AssetId, plan.PlanId, fence+1, generation+1); err != nil {
+			return cleanupApprovalRecord{}, mapMediaDBError(err, "写入人工批准精确标记失败")
+		}
+		approval.Marks = append(approval.Marks, cleanupApprovalMark{scan.Asset.AssetId, fence + 1, generation + 1})
+	}
+	if err := s.updateCleanupState(work, tx, op, current, "confirmed"); err != nil {
+		return cleanupApprovalRecord{}, err
+	}
+	approval.Plan.State = gen.CleanupPlanState("confirmed")
+	approval.Plan.Revision++
+	raw, err := platform.CanonicalJSON(approval)
+	if err != nil {
+		return cleanupApprovalRecord{}, err
+	}
+	if len(raw) > 16<<20 || s.validateCleanupApproval(raw) != nil {
+		return cleanupApprovalRecord{}, platform.NewError(platform.CodeIntegrityError, false, "人工批准对象超出持久预算或不符合唯一schema")
+	}
+	record := cleanupApprovalRecord{Approval: approval, Raw: string(raw), Hash: platform.HashBytes(raw), JobInput: cleanupJobRequest(approval, string(raw))}
+	jobRaw, err := platform.CanonicalJSON(record.JobInput)
+	if err != nil {
+		return cleanupApprovalRecord{}, err
+	}
+	if _, err := tx.ExecContext(work, `INSERT INTO manual_cleanup_approvals(plan_id,operation_id,request_hash,approval_json,approval_hash,job_input_json,job_input_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, plan.PlanId, op.OperationID, hash, string(raw), record.Hash, string(jobRaw), platform.HashBytes(jobRaw), now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano)); err != nil {
+		return cleanupApprovalRecord{}, mapMediaDBError(err, "保存人工批准与固定任务输入失败")
+	}
+	if err := tx.Commit(); err != nil {
+		return cleanupApprovalRecord{}, mapMediaDBError(err, "提交人工批准失败")
+	}
+	return record, nil
+}
+
+// checkCleanupApprovalPending 只核完整活动计划和精确标记，不回源、不授予最终删除许可。
+func (s *localBlobStore) checkCleanupApprovalPending(ctx context.Context, q sqlExecer, op OperationContext, record cleanupApprovalRecord) error {
+	plan, err := s.readCleanupPlan(ctx, q, op, record.Approval.Plan.PlanId)
+	if err != nil {
+		return err
+	}
+	expected := record.Approval.Plan
+	actualRaw, _ := platform.CanonicalJSON(plan)
+	expectedRaw, _ := platform.CanonicalJSON(expected)
+	if string(actualRaw) != string(expectedRaw) {
+		return platform.NewError(platform.CodeConflict, false, "人工批准计划已取消、阻断或改变")
+	}
+	var count int
+	if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_cleanup_marks WHERE plan_id=?`, plan.PlanId).Scan(&count); err != nil {
+		return mapMediaDBError(err, "读取人工批准标记数量失败")
+	}
+	if count != len(record.Approval.Marks) {
+		return platform.NewError(platform.CodeIntegrityError, false, "人工批准缺完整标记")
+	}
+	for i, mark := range record.Approval.Marks {
+		asset, fence, generation, err := s.readCleanupAsset(ctx, q, op.Actor.SiteID, mark.AssetId)
+		if err != nil {
+			return err
+		}
+		var ownMarks, decisions, protections int
+		if err := q.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=? AND plan_id=? AND deletion_fence=? AND reference_generation=?),(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING'),(SELECT COUNT(*) FROM reference_entries WHERE asset_id=? AND kind='current')+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')`, mark.AssetId, plan.PlanId, mark.DeletionFence, mark.ReferenceGeneration, mark.AssetId, mark.AssetId, mark.AssetId).Scan(&ownMarks, &decisions, &protections); err != nil {
+			return mapMediaDBError(err, "核对人工批准精确标记失败")
+		}
+		if asset.Ref != plan.Assets[i] || string(asset.State) != "delete_pending" || fence != mark.DeletionFence || generation != mark.ReferenceGeneration || ownMarks != 1 || decisions != 0 || protections != 0 {
+			return platform.NewError(platform.CodeLocked, false, "人工批准标记、水位或引用保护已变化")
+		}
+	}
+	return nil
+}
+
+func (s *localBlobStore) submitCleanupApproval(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, record cleanupApprovalRecord) (ConfirmManualCleanupResult, error) {
+	if s.cleanupJobs == nil {
+		return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "人工清理任务客户端未装配")
+	}
+	// 只读事务固定整份计划快照，必须结束后才RPC；取消仍可随时撤销原计划。
+	precheck, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(err, "开始任务提交前只读快照失败")
+	}
+	pendingErr := s.checkCleanupApprovalPending(ctx, precheck, op, record)
+	releaseErr := precheck.Rollback()
+	if pendingErr != nil {
+		return ConfirmManualCleanupResult{}, pendingErr
+	}
+	if releaseErr != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(releaseErr, "结束任务提交前只读快照失败")
+	}
+	receipt := record.Receipt
+	if receipt == nil {
+		submitOp := op
+		submitOp.CallerService = "media"
+		submitOp.OperationID = record.Approval.OperationId
+		submitOp.RootOperationID = record.Approval.RootOperationId
+		submitOp.DataEpoch = record.Approval.DataEpoch
+		submitOp.Actor = platform.AuthContext{Kind: "service", SubjectID: "media", SiteID: op.Actor.SiteID, ExpiresAt: op.Deadline}
+		submitCtx := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), submitOp)
+		raw, err := s.cleanupJobs.CreateJob(submitCtx, record.JobInput, record.Approval.OperationId)
+		if err != nil {
+			return ConfirmManualCleanupResult{}, err
+		}
+		receipt = &cleanupJobReceipt{}
+		if s.validateCleanupJobReceipt(raw) != nil || json.Unmarshal(raw, receipt) != nil || receipt.Job.OperationId != record.Approval.OperationId {
+			return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeIntegrityError, false, "人工清理任务回执与原批准操作不符")
+		}
+	}
+	return s.completeCleanupApproval(ctx, op, hash, input, record, *receipt)
+}
+
+func (s *localBlobStore) completeCleanupApproval(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, record cleanupApprovalRecord, receipt cleanupJobReceipt) (ConfirmManualCleanupResult, error) {
+	work, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	defer cancel()
+	release := s.lockReferenceAssets(record.Approval.Plan.Assets)
+	defer release()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tx, err := s.db.BeginTx(work, nil)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(err, "开始人工确认任务回执事务失败")
+	}
+	defer tx.Rollback()
+	current, found, err := s.readCleanupApproval(work, tx, op, hash, input)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	if !found || current.Hash != record.Hash {
+		return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeIntegrityError, false, "人工批准原桥接缺失或改变")
+	}
+	raw, err := platform.CanonicalJSON(receipt)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	if current.Receipt != nil {
+		original, _ := platform.CanonicalJSON(current.Receipt)
+		if string(original) != string(raw) {
+			return ConfirmManualCleanupResult{}, platform.NewError(platform.CodeIntegrityError, false, "同人工批准出现不同任务回执")
+		}
+	}
+	if current.Result != nil {
+		return *current.Result, nil
+	}
+	if _, err := tx.ExecContext(work, `UPDATE manual_cleanup_approvals SET job_receipt_json=?,job_receipt_hash=?,updated_at=? WHERE plan_id=? AND operation_id=? AND approval_hash=?`, string(raw), platform.HashBytes(raw), platform.Now(), input.PlanId, op.OperationID, record.Hash); err != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(err, "保存人工清理任务原回执失败")
+	}
+	pendingErr := s.checkCleanupApprovalPending(work, tx, op, current)
+	if pendingErr != nil {
+		// 迟到任务成功也不能恢复已取消计划；仅保留真实任务回执。
+		if err := tx.Commit(); err != nil {
+			return ConfirmManualCleanupResult{}, mapMediaDBError(err, "提交迟到任务原回执失败")
+		}
+		return ConfirmManualCleanupResult{}, pendingErr
+	}
+	if err := s.updateCleanupState(work, tx, op, current.Approval.Plan, "waiting"); err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	plan := current.Approval.Plan
+	plan.State = gen.CleanupPlanState("waiting")
+	plan.Revision++
+	result := ConfirmManualCleanupResult{Plan: plan}
+	resultRaw, err := platform.CanonicalJSON(result)
+	if err != nil {
+		return ConfirmManualCleanupResult{}, err
+	}
+	if _, err := tx.ExecContext(work, `UPDATE manual_cleanup_approvals SET result_json=?,result_hash=?,updated_at=? WHERE plan_id=? AND operation_id=? AND approval_hash=?`, string(resultRaw), platform.HashBytes(resultRaw), platform.Now(), input.PlanId, op.OperationID, record.Hash); err != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(err, "保存人工确认原成功结果失败")
+	}
+	if err := tx.Commit(); err != nil {
+		return ConfirmManualCleanupResult{}, mapMediaDBError(err, "提交人工确认原成功结果失败")
+	}
+	return result, nil
 }

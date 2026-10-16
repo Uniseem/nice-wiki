@@ -84,6 +84,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := mediaDomain.InstallReferenceDecisionClients(gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), siteConfig); err != nil {
 		return nil, err
 	}
+	if err := mediaDomain.InstallCleanupJobsClient(gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)); err != nil {
+		return nil, err
+	}
 	if err := mediaDomain.ConfigureWriteWindow(platform.WriteWindowConfig{Runtime: runtimeClient.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
 		current, err := runtimeClient.ReadRuntimeState(work)
 		if err != nil {

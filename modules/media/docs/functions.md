@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 143 个函数：约束 36 个，参考 107 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 155 个函数：约束 36 个，参考 119 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1742,6 +1742,7 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 
 1. 目录/DB拒链接特殊对象，FULL同步只追加迁移，唯一生成schema校验持久Asset/UploadSession
 2. media.db打开前允许缺失、Ping后必须存在，复用ValidatePrivatePath拒硬链接/链接/特殊文件，并核既有DB前后SameFile
+3. 装配CleanupApproval与jobs CreateJobResult唯一schema校验器，不手工复制跨域校验规则
 
 **错误**
 
@@ -3382,23 +3383,30 @@ func ConfirmManualCleanup(ctx context.Context, op OperationContext, input Confir
 
 **步骤**
 
-1. 确认摘要/精确集合，历史非空必须ack
-2. 再次核current refs/pins/sourcewatermarks，一有新引用计划blocked
-3. 事务confirmed/waiting与notBefore≥24h，只有此人工批准计划可创建jobs延迟执行
-4. 从proposed确认前发现新ref/未知可置blocked但不得生成删除授权；若后续已确认计划被阻断，blocked允许保留尚未删除资产的精确marks/delete_pending，状态变blocked不等于释放引用fence或标记；人工取消须逐项按真实标记处理
+1. 当前media.manage管理员/同站点与opened epoch后，按同operationId/caller/actor/site/epoch/输入摘要读取独立批准桥接；原waiting成功只返回固定原结果，其他kind占用操作拒绝，不从mutable计划重建
+2. 新批准只接受原proposed且expectedRevision/confirmationHash精确匹配；readCleanupPlan复核原扫描摘要、历史风险集合及不可变完整资产，历史非空须明确acknowledgeHistoryLoss
+3. 所有RPC无asset/store锁：重新ValidateCleanupSources读取两源完整固定水位与本地pending；快照必须逐字节规范等于原扫描，current/pin出现则原proposed计划CAS blocked且不写批准；其他水位/历史/资产变化拒绝并要求新提案，未知绝不生成授权
+4. 重新公共running写窗口，再计划完整assetId稳定序锁→store→SQL，重读原plan/revision/精确扫描及原批准；逐资产核ready、同原fence/generation、无DELETING/任何marks/current entries/pending pins，任何变化失败关闭
+5. 同事务提升逐资产fence/generation、写delete_pending及精确manual_cleanup_marks、计划confirmed/revision+1与批准对象；批准对象绑定原输入/批准人/原root/固定UTC confirmedAt及notBefore≥confirmedAt+24h/完整精确marks；manual_cleanup_assets原扫描不覆盖
+6. 批准事务提交后释放全部业务锁；独立只读SQL快照重核完整confirmed计划/marks，显式Rollback结束后，按持久原operationId/root/dedupeKey/ObjectRef/notBefore调用jobs:createJob真实延迟入队。任何网络/提交未知保留confirmed及原批准，同键重试，绝不生成新的批准或任务输入
+7. 任务成功须唯一jobs CreateJobResult schema、queued及原operationId一致；重新写窗口及完整asset锁→store→SQL核同原批准、完整计划/marks；同事务保存原AcceptedJob并以confirmed修订CAS waiting/revision+1及固定原成功结果。并发Cancel/Acquire已取消时仅保存原任务回执，不复活计划、不返回未完成确认成功
+8. 等待任务回执期间confirmed/取消后的原批准均保留；后续worker必须再次核当前活动计划、原批准对象/notBefore/精确marks，旧对象本身不是删除许可；ExecuteManualCleanup不在本包实现
 
 **错误**
 
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `FORBIDDEN`：主体没有media.manage或跨站点（不可重试）
+- `NOT_FOUND`：原人工计划不存在（不可重试）
+- `CONFLICT`：计划非proposed、确认材料/operationId冲突或已取消（不可重试）
+- `VERSION_MISMATCH`：原扫描/expectedRevision/asset/source水位或dataEpoch变化（不可重试）
+- `LOCKED`：新引用/pending保护/标记/DELETING或水位耗尽阻止确认（不可重试）
+- `INTEGRITY_ERROR`：原扫描/批准/标记或任务回执损坏、不符合唯一schema（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖/任务提交/存储未知，不授予删除许可（可重试）
 
-- 副作用：私有事务/文件/receipt/outbox
-- 授权：media.manage
-- 并发：planCAS+assetdeletionfence
-- 幂等：同confirmationhash仅一次授权
-- 依赖：`media.ValidateCleanupSources`、`jobs:createJob`
+- 副作用：只追加人工批准与任务桥接、plan revision CAS、精确marks/delete_pending；无bytes删除
+- 授权：permission：media.manage；rule：当前同站点有media.manage或superadmin的已验证管理员，必须人工明确确认原摘要与历史风险；jobs提交派生固定media纯服务身份且清除原用户委托
+- 并发：权威/运行/jobs RPC均无asset/store锁；完整assetId稳定序→store→SQL；plan revision及逐对象fence/generation CAS
+- 幂等：一个plan只接受一次持久人工批准；同operationId/原摘要恢复原批准与同jobs dedupe，不重置notBefore；原waiting结果固定
+- 依赖：`media.cleanupStore`、`media.cleanupRequestHash`、`media.readCleanupApproval`、`media.readCleanupPlan`、`media.scanCleanupConfirmation`、`media.approveCleanupPlan`、`media.submitCleanupApproval`、`media.completeCleanupApproval`、`media.ValidateCleanupSources`、`jobs:createJob`
 
 ## media.CancelManualCleanup
 
@@ -3565,6 +3573,7 @@ func (s *localBlobStore) readCleanupReceipt(ctx context.Context, q sqlExecer, op
 **步骤**
 
 1. 核同operationId摘要及原结果/hash，提案内层schema与原revision=0，取消原成功固定；不从mutable计划重建
+2. 无旧提案/取消回执时仍核独立批准表operationId，其他kind不得复用批准操作
 
 **错误**
 
@@ -3768,6 +3777,404 @@ func (s *localBlobStore) cancelReferenceCleanupPlans(ctx context.Context, tx *sq
 - 幂等：原材料和规范摘要绑定，未知失败关闭
 - 依赖：`media.assetCleanupPlans`、`media.readCleanupPlan`、`media.cancelCleanupPlan`
 
+## media.InstallCleanupJobsClient
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：构造期装配固定生成jobs客户端，不造缺失依赖
+
+```go
+func InstallCleanupJobsClient(jobs *gen.JobsClient) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 构造期装配固定生成jobs客户端，不造缺失依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：无
+
+## media.cleanupJobRequest
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：由原批准规范字节构造精确ObjectRef/plan+epoch+hash去重键与固定notBefore；不重新选时钟
+
+```go
+func cleanupJobRequest(approval CleanupApproval, raw string) cleanupJobInput
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 由原批准规范字节构造精确ObjectRef/plan+epoch+hash去重键与固定notBefore；不重新选时钟
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：无
+
+## media.loadCleanupApproval
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：16MiB有界读取批准/固定任务输入/原jobs回执/原waiting结果；唯一schema、规范字节、摘要、原输入绑定、时间/修订/完整marks及索引逐项核对
+
+```go
+func (s *localBlobStore) loadCleanupApproval(ctx context.Context, q sqlExecer, planID Identifier) (cleanupApprovalRecord, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 16MiB有界读取批准/固定任务输入/原jobs回执/原waiting结果；唯一schema、规范字节、摘要、原输入绑定、时间/修订/完整marks及索引逐项核对
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.cleanupRequestHash`、`media.cleanupJobRequest`
+
+## media.readCleanupApproval
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：确认操作与其他清理kind互斥；原plan一次批准，caller/actor/site/epoch/op/root/输入摘要完全相同才恢复原批准或原成功
+
+```go
+func (s *localBlobStore) readCleanupApproval(ctx context.Context, q sqlExecer, op OperationContext, requestHash Hash, input ConfirmManualCleanupInput) (cleanupApprovalRecord, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 确认操作与其他清理kind互斥；原plan一次批准，caller/actor/site/epoch/op/root/输入摘要完全相同才恢复原批准或原成功
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.loadCleanupApproval`
+
+## media.scanCleanupConfirmation
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：无锁逐资产完整回源并比较原规范扫描（含两源固定watermark/历史/pending）；出现current/pin先阻断原提案，其他变化要求新提案
+
+```go
+func (s *localBlobStore) scanCleanupConfirmation(ctx context.Context, op OperationContext, plan gen.CleanupPlan) ([]cleanupScan, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 无锁逐资产完整回源并比较原规范扫描（含两源固定watermark/历史/pending）；出现current/pin先阻断原提案，其他变化要求新提案
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.ValidateCleanupSources`、`media.blockCleanupProposal`
+
+## media.blockCleanupProposal
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：已知新引用只把同原修订proposed CAS blocked，完整资产锁与SQL内重读；不写批准/marks/delete_pending
+
+```go
+func (s *localBlobStore) blockCleanupProposal(ctx context.Context, op OperationContext, plan gen.CleanupPlan) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已知新引用只把同原修订proposed CAS blocked，完整资产锁与SQL内重读；不写批准/marks/delete_pending
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.mediaWriteContext`、`media.lockReferenceAssets`、`media.readCleanupPlan`、`media.updateCleanupState`
+
+## media.updateCleanupState
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：已授权事务链按原epoch/site/revision/state精确CAS计划及规范hash；调用方已核修订未耗尽
+
+```go
+func (s *localBlobStore) updateCleanupState(ctx context.Context, tx *sql.Tx, op OperationContext, plan gen.CleanupPlan, state string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已授权事务链按原epoch/site/revision/state精确CAS计划及规范hash；调用方已核修订未耗尽
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：无
+
+## media.approveCleanupPlan
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：RPC后running窗口→完整asset锁→store→SQL；原计划/资产/fence/generation、current/pending/marks/DELETING重核，批准/精确marks/delete_pending/confirmed与固定任务输入同事务；未知Commit报错留原批准
+
+```go
+func (s *localBlobStore) approveCleanupPlan(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, plan gen.CleanupPlan, scans []cleanupScan) (cleanupApprovalRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. RPC后running窗口→完整asset锁→store→SQL；原计划/资产/fence/generation、current/pending/marks/DELETING重核，批准/精确marks/delete_pending/confirmed与固定任务输入同事务；未知Commit报错留原批准
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.mediaWriteContext`、`media.lockReferenceAssets`、`media.readCleanupApproval`、`media.readCleanupPlan`、`media.readCleanupAsset`、`media.advanceReferenceGeneration`、`media.updateCleanupState`、`media.cleanupJobRequest`
+
+## media.checkCleanupApprovalPending
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：核原confirmed规范计划与完整marks数量、逐资产待删/原fence/generation/current/pending/DELETING；只证明待提交活动计划，不能跳过最终回源
+
+```go
+func (s *localBlobStore) checkCleanupApprovalPending(ctx context.Context, q sqlExecer, op OperationContext, record cleanupApprovalRecord) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核原confirmed规范计划与完整marks数量、逐资产待删/原fence/generation/current/pending/DELETING；只证明待提交活动计划，不能跳过最终回源
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.readCleanupPlan`、`media.readCleanupAsset`
+
+## media.submitCleanupApproval
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：无asset/store锁时以独立只读SQL事务固定完整计划/marks/assets快照，显式Rollback释放后才提交固定jobs任务；未知不重批
+
+```go
+func (s *localBlobStore) submitCleanupApproval(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, record cleanupApprovalRecord) (ConfirmManualCleanupResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 无asset/store锁建立只读SQL事务，checkCleanupApprovalPending全部读取使用同一快照，避免Cancel并发被跨事务拼读为损坏；无论检查成功与否显式Rollback结束，失败返回错误，绝不把读事务带过RPC
+2. 固定原op/root/dedupe/inputRef/notBefore及纯media服务上下文，清用户proof；未知不重批，唯一schema/原op回执才进入持久完成
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.checkCleanupApprovalPending`、`media.completeCleanupApproval`、`jobs:createJob`
+
+## media.completeCleanupApproval
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：真实任务回执后重新窗口/完整asset锁→store→SQL；原批准/回执稳定，confirmed完整marks仍有效才waiting CAS和原结果同事务；已取消/阻断仅存真实回执并返回错误，绝不复活
+
+```go
+func (s *localBlobStore) completeCleanupApproval(ctx context.Context, op OperationContext, hash Hash, input ConfirmManualCleanupInput, record cleanupApprovalRecord, receipt cleanupJobReceipt) (ConfirmManualCleanupResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实任务回执后重新窗口/完整asset锁→store→SQL；原批准/回执稳定，confirmed完整marks仍有效才waiting CAS和原结果同事务；已取消/阻断仅存真实回执并返回错误，绝不复活
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信人工清理批准/任务桥接链；入口schema/身份一次，原scope/epoch/CAS/持久完整性由本函数核
+- 并发：所有RPC无asset/store锁；完整assetId稳定锁→store→SQL，锁内不补锁/回源
+- 幂等：原批准/输入/回执固定，未知失败关闭
+- 依赖：`media.mediaWriteContext`、`media.lockReferenceAssets`、`media.readCleanupApproval`、`media.checkCleanupApprovalPending`、`media.updateCleanupState`
+
+## media.ReadCleanupApprovalObject
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：同进程media worker只读精确持久人工批准对象，不注册HTTP入口
+
+```go
+func ReadCleanupApprovalObject(ctx context.Context, op OperationContext, input ReadCleanupApprovalObjectInput) (ReadCleanupApprovalObjectResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与期限传播 | 传入下游IO |
+| `op` | `OperationContext` | 可信media纯服务上下文 | 只允许media服务身份，本站活动dataEpoch |
+| `input` | `ReadCleanupApprovalObjectInput` | 精确plan/ObjectRef版本/hash | 严格schema，拒未知字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadCleanupApprovalObjectResult` | 原规范UTF8及ObjectRef | 仅返回同域原规范字节与精确ObjectRef，不含token/grants/私有路径，不作为HTTP DTO |
+| `error` | `Error` | 标准Problem，失败结果无效 | 未知失败关闭 |
+
+**步骤**
+
+1. 仅当前同进程media worker可信服务上下文、同opened epoch，读取独立真实批准桥接并严格核schema/hash/规范字节/原任务输入
+2. 逐项核批准site/dataEpoch及请求version/hash等于ObjectRef；返回原approval_json字节和精确ObjectRef，不从mutable计划构造、不产生句柄
+3. 已取消仍可读原批准证据；本读取不决定当前计划/任务执行资格，执行函数仍须完整计划、原批准/notBefore和最终回源检查
+
+**错误**
+
+- `FORBIDDEN`：非media纯服务或跨站点/代次（不可重试）
+- `NOT_FOUND`：未持久批准（不可重试）
+- `VERSION_MISMATCH`：对象版本/摘要或opened epoch不符（不可重试）
+- `INTEGRITY_ERROR`：批准/任务输入/回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：持久存储不可用（可重试）
+
+- 副作用：无
+- 授权：仅同进程media worker可信调用链；media服务subject、同site/dataEpoch及精确版本/hash；不注册HTTP/浏览器入口
+- 并发：只读持久快照；无RPC/业务资产锁，不改变计划
+- 幂等：同精确ObjectRef返回原不可变规范字节；取消不改写批准对象
+- 依赖：`media.cleanupStore`、`media.loadCleanupApproval`
+
 ## media.ValidateCleanupSources
 
 - 级别：参考
@@ -3836,7 +4243,7 @@ func ExecuteManualCleanup(ctx context.Context, op OperationContext, input Execut
 
 **步骤**
 
-1. jobs worker claim确认plan/notBefore/approvalhash，未知或未确认拒绝
+1. 同进程jobs worker claim后直接调用本域ReadCleanupApprovalObject读取真实CleanupApproval ObjectRef规范字节，核原operationId/root/dataEpoch/站点及当前计划waiting、原批准/notBefore≥24h、精确marks；未知、取消、blocked、未确认或任务原回执未落本域均拒绝。领取时建立新执行期限，不复用原批准请求短deadline
 2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
 3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
 4. 遇新引用/未知来源/readers/水位变化时计划可blocked，尚无DELETING决定的资产可保留原精确marks/delete_pending待取消；blocked不授权继续删除，也不凭状态释放标记。已有DELETING的资产按持久决定恢复，Cancel必须CONFLICT，不能声称全部可逆
@@ -3852,7 +4259,7 @@ func ExecuteManualCleanup(ctx context.Context, op OperationContext, input Execut
 - 授权：service:media worker；必须人工confirmed plan，不是自动清理
 - 并发：对象mutex/generation/fence/readers0最后检查
 - 幂等：planId/assetversion决定日志去重
-- 依赖：`media.ValidateCleanupSources`、`media.PublishAssetEvent`
+- 依赖：`media.ValidateCleanupSources`、`media.PublishAssetEvent`、`media.ReadCleanupApprovalObject`
 
 ## media.ParseByteRange
 
@@ -4748,7 +5155,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -4978,7 +5385,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.ReadAssetReferences`、`media.ProposeManualCleanup`、`media.CancelManualCleanup`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.ReadAssetReferences`、`media.ProposeManualCleanup`、`media.CancelManualCleanup`、`media.ConfirmManualCleanup`
 
 ## media.serveUploadChunk
 
@@ -5120,6 +5527,7 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
 3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
 4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+5. platform.RunWorkerLoop在同进程调用本域media.cleanup执行器；保留完整CleanupApproval ObjectRef及批准站点，直接调用本域ReadCleanupApprovalObject读取并核当前计划/原任务回执；jobs只存ObjectRef不读取owner对象，不为内部读取引入self-HTTP
 
 **错误**
 
@@ -5129,7 +5537,7 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
 - 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`media.ExecuteManualCleanup`、`platform.RunWorkerLoop`
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`media.ExecuteManualCleanup`、`platform.RunWorkerLoop`、`media.ReadCleanupApprovalObject`
 
 ## media.All
 
