@@ -204,29 +204,29 @@ func validateTaskOverride(ctx context.Context, snapshot *availabilitySnapshot, m
 	err := snapshot.tx.QueryRowContext(ctx, `SELECT enabled, capabilities_json, data_epoch FROM models WHERE model_id = ?`, modelID).
 		Scan(&enabled, &capabilitiesJSON, &epoch)
 	if errors.Is(err, sql.ErrNoRows) {
-		return platform.NewError(platform.CodeValidation, false, "任务覆盖模型不存在")
+		return platform.NewError(platform.CodeValidation, false, "所选模型不存在")
 	}
 	if err != nil {
 		return availabilityReadError(err)
 	}
 	if epoch != snapshot.epoch {
-		return platform.NewError(platform.CodeVersionMismatch, false, "任务覆盖模型代次已变化")
+		return platform.NewError(platform.CodeVersionMismatch, false, "所选模型代次已变化")
 	}
 	var capabilities []string
 	if json.Unmarshal(capabilitiesJSON, &capabilities) != nil || len(capabilities) == 0 || len(capabilities) > 256 {
-		return platform.NewError(platform.CodeIntegrityError, false, "任务覆盖模型能力损坏")
+		return platform.NewError(platform.CodeIntegrityError, false, "所选模型能力损坏")
 	}
 	for _, capability := range capabilities {
 		if !validCapability(capability) {
-			return platform.NewError(platform.CodeIntegrityError, false, "任务覆盖模型能力损坏")
+			return platform.NewError(platform.CodeIntegrityError, false, "所选模型能力损坏")
 		}
 	}
 	if !enabled {
-		return platform.NewError(platform.CodeValidation, false, "任务覆盖模型未启用")
+		return platform.NewError(platform.CodeValidation, false, "所选模型未启用")
 	}
 	for _, required := range requiredCapabilities {
 		if !hasGrant(capabilities, required) {
-			return platform.NewError(platform.CodeValidation, false, "任务覆盖模型能力不满足目录")
+			return platform.NewError(platform.CodeValidation, false, "所选模型能力不满足目录")
 		}
 	}
 	return nil

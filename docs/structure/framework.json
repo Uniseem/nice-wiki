@@ -3607,6 +3607,11 @@
       "path": "docs/push-log/2026-10-16-0002.md",
       "kind": "documentation",
       "purpose": "三模块并行一轮复核、SVG样式修正与授权main普通推送记录"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/profile.go",
+      "kind": "source",
+      "purpose": "档位配置持久写入与后续服务授权解析；保存不触发供应方或费用任务"
     }
   ]
 }

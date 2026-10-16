@@ -33,7 +33,7 @@
       "payloadSchema": {
         "$ref": "./types.json#/$defs/EventProfileChangedPayload"
       },
-      "purpose": "发布profile.changed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
+      "purpose": "发布已提交档位的profileId/version/dataEpoch与根目录中旧/新档位受影响taskIds；旧/新含fast时保守包含vision/rerank回退任务，去重排序。与配置和原结果回执同事务写平台outbox，不广播候选、费用或秘密。",
       "delivery": "at-least-once",
       "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
       "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"

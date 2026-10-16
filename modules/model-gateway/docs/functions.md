@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 80 个函数：约束 37 个，参考 43 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 83 个函数：约束 37 个，参考 46 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -658,11 +658,13 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 
 **步骤**
 
-1. 五档按能力校验
-2. orderedModelIds保留管理员顺序且去重，配置数组按公开schema最多256个；执行路由先过滤本地eligible再取至多16个候选
-3. 视觉未设可用fast中支持vision模型，rerank未设可用fast
-4. CAS保存，仅superadmin可分配。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅admin且持superadmin可写；入口即时identity授权一次。profile.version必须等于expectedVersion+1；profile.costClass为配置目标，不覆盖可信op.costClass。
+2. 复用本域Store开启同事务严格非空runtime_meta代次快照；以site/actor/函数/key读取7天原回执，hash绑定callerService/dataEpoch/profile/expectedVersion。同代同输入先返回原结果，不重查后来模型或屏障；异输入/异代CONFLICT、坏回执INTEGRITY_ERROR。
+3. 新操作拒绝任意非released本地屏障；读取profile当前version/epoch并比较CAS。未创建只允许expectedVersion=0；同代costClass+tier唯一槽已被其他profileId占用为CONFLICT，允许移动到未占用槽。
+4. orderedModelIds保留管理员给定顺序及公开schema唯一性，最多256项，空数组合法用于清配置。按根唯一目录生成AITierCapabilities逐模型核同代、enabled及全部直接能力；缺模型或停用/能力不足VALIDATION，未知查询与持久损坏失败关闭。保存不要求价格、供应方启用或凭据，不探测或调用模型。
+5. INSERT首次创建或UPDATE带profileId/expectedVersion/dataEpoch条件，RowsAffected必须1；同事务写profile.changed/v1最小profileId/version/dataEpoch及根目录中旧/新tier受影响taskIds；任一旧/新tier为fast时保守包含defaultTier为vision/rerank的回退任务，即使其当前有独立配置（去重按taskId排序），不广播候选、费用或秘密。
+6. 写入完整PutProfileResult原始回执并提交；仅成功新配置事务可替换过期回执，失败回滚；Commit未知不自动重试。只影响后续新调用，不自动重算嵌入或已有付费结果。
+7. 视觉未配时使用fast中支持vision的候选、rerank未配时由fast代替，属于ResolveProfile/ResolveRoute解析规则，不在保存时填充或新增能力硬门槛。执行路由先过滤本地eligible再取至多16个候选。
 
 **错误**
 
@@ -675,12 +677,16 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
 
-- 副作用：写profiles；费用规则只在新调用使用
-- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 副作用：同事务写profiles、平台profile.changed outbox及7天完整原结果回执；仅新调用采用配置，不启动模型、索引重建或费用任务
+- 授权：permission：superadmin；rule：仅已通过公共入口即时授权的admin+superadmin；函数核本域主体范围，不重做服务身份/schema/deadline。
+- 并发：本域单连接SQLite同事务严格epoch、7天回执、全部非released屏障、唯一费用类别/档位槽、条件CAS、平台outbox及完整回执；不持事务执行网络IO。
+- 幂等：siteId+actorId+函数ID+key唯一且保留7天；规范hash绑定callerService/dataEpoch/profile/expectedVersion。同代同hash直接返回原结果，异hash CONFLICT；过期仅在成功新配置事务中替换。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProfileReceipt`、`model-gateway.validateProfileModels`、`model-gateway.availabilityReadError`
+- 其他依赖说明：根contracts/ai-tasks.json生成AITierCapabilities与AITaskCatalog；不手抄目录
 
 ## model-gateway.ResolveProfile
 
@@ -712,8 +718,9 @@ func ResolveProfile(ctx context.Context, op OperationContext, input ResolveProfi
 1. 读取profile快照
 2. 与ctx.costClass逐字比较
 3. 校验调用服务允许能力
-4. 返回版本
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+4. 视觉或rerank档位行缺失、或候选数组为空时，其解析分别回退到fast中支持vision的候选、或fast模型代替重排；空数组不等于删除该配置行。此读取解析尚待实现，不改写已保存档位或触发付费重算。
+5. 返回版本
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -731,6 +738,135 @@ func ResolveProfile(ctx context.Context, op OperationContext, input ResolveProfi
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`identity:checkAuthorization`
+
+## model-gateway.readProfileReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：读取并核对7天档位配置原结果回执
+
+```go
+func readProfileReceipt(ctx context.Context, op OperationContext, snapshot *availabilitySnapshot, input PutProfileInput, inputHash platform.Hash) (PutProfileResult, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | IO取消 | 已通过本域档位写入授权与严格代次快照 |
+| `op` | `OperationContext` | 可信调用范围 | 已通过本域档位写入授权与严格代次快照 |
+| `snapshot` | `availabilitySnapshot` | 当前同代事务 | 已通过本域档位写入授权与严格代次快照 |
+| `input` | `PutProfileInput` | 原请求 | 已通过本域档位写入授权与严格代次快照 |
+| `inputHash` | `Hash` | 含代次与调用方摘要 | 已通过本域档位写入授权与严格代次快照 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PutProfileResult` | 原结果 | 失败结果不可使用；不输出私有原值 |
+| `found` | `bool` | 是否命中有效原回执 | 失败结果不可使用；不输出私有原值 |
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 按site/actor/PutProfile/key只读hash、result_json、created_at；缺行表示未执行。
+2. 坏时间或原结果损坏INTEGRITY_ERROR；超过7天只返回未命中且不写。有效期异hash CONFLICT；原结果逐字段等于本次规范profile才返回。
+3. 不核后来模型/屏障，不删除过期回执；仅上层成功新配置事务末尾替换。
+
+**错误**
+
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutProfile已核admin+superadmin的同事务链路。
+- 并发：共用PutProfile的同代SQL事务，不独立提交。
+- 幂等：由上层同事务原回执与CAS保证。
+- 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.validateProfileModels
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：按唯一生成目录校验档位候选直接能力
+
+```go
+func validateProfileModels(ctx context.Context, snapshot *availabilitySnapshot, profile Profile) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原入口IO取消 | 本域PutProfile已授权且输入通过公共schema |
+| `snapshot` | `availabilitySnapshot` | 严格同代SQL事务 | 本域PutProfile已授权且输入通过公共schema |
+| `profile` | `Profile` | 已验证候选与目标档位 | 本域PutProfile已授权且输入通过公共schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 从唯一根目录生成AITierCapabilities按profile.tier取直接能力；不将structured或translation等建议变成额外硬门槛。
+2. 按orderedModelIds原顺序调用已有validateTaskOverride核同代启用模型与全部能力，空数组合法、不查价格/凭据/供应方可用性。
+
+**错误**
+
+- `VALIDATION`：覆盖模型未启用或能力不满足（不可重试）
+- `VERSION_MISMATCH`：模型或回执代次不匹配（不可重试）
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutProfile已核admin+superadmin的同事务链路。
+- 并发：共用PutProfile的同代SQL事务，不做网络IO。
+- 幂等：由上层同事务原回执与CAS保证。
+- 依赖：`model-gateway.validateTaskOverride`
+
+## model-gateway.NewProfileHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：装配真实档位保存HTTP映射
+
+```go
+func NewProfileHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `ProfileHandlers` | 单项真实HTTP映射 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 仅映射putProfile；从平台取得可信OperationContext，绑定公共边界已严格验证的JSON。
+2. 核profileId路径与profile.profileId一致，非空Idempotency-Key头与正文key一致；调用真实PutProfile。
+3. 返回no-store JSON及公共Problem；写入口由公共ServiceBoundaryConfig.Authorize即时校验一次，其他handler缺失仍拒绝完整服务启动。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：交公共完整HTTP边界；具体函数分别校验QA、owner服务或superadmin范围。
+- 并发：每请求独立事务；不构造部分可运行服务。
+- 幂等：HTTP仅绑定；写入由真实函数持久回执与CAS保证。
+- 依赖：`model-gateway.PutProfile`
 
 ## model-gateway.ResolveRoute
 
@@ -2897,7 +3033,7 @@ func beginAvailabilitySnapshot(ctx context.Context, op OperationContext, store *
 - `DEADLINE_EXCEEDED`：查询已到原截止（不可重试）
 
 - 副作用：无
-- 授权：permission：service；rule：仅本域任务配置读写链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。
+- 授权：permission：service；rule：仅本域任务与档位配置链路，调用入口分别落实superadmin、owner服务或固定QA免费读取范围。
 - 并发：一次SQL事务；不持事务执行网络IO。
 - 幂等：建立事务无独立副作用；业务写入由调用方同事务决定提交或回滚。
 - 依赖：`model-gateway.Store.BeginTx`、`model-gateway.availabilityReadError`
@@ -3128,7 +3264,7 @@ func readTaskAssignmentReceipt(ctx context.Context, op OperationContext, snapsho
 
 - 级别：参考
 - 文件：`modules/model-gateway/internal/catalog/task.go`
-- 作用：校验覆盖模型同代启用与目录能力
+- 作用：校验任务覆盖或档位候选同代启用与目录能力
 
 ```go
 func validateTaskOverride(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) error
@@ -3166,8 +3302,8 @@ func validateTaskOverride(ctx context.Context, snapshot *availabilitySnapshot, m
 - `DEADLINE_EXCEEDED`：IO到截止（不可重试）
 
 - 副作用：无
-- 授权：permission：superadmin；rule：仅PutTaskAssignment已核superadmin的同事务链路。
-- 并发：与PutTaskAssignment共用当前SQL事务；不执行跨域IO。
+- 授权：permission：superadmin；rule：仅PutTaskAssignment或PutProfile已核superadmin的同事务链路。
+- 并发：与PutTaskAssignment或PutProfile共用当前SQL事务；不执行跨域IO。
 - 幂等：由上层同事务原回执与CAS保证。
 - 依赖：`model-gateway.availabilityReadError`
 
@@ -3566,7 +3702,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -3581,7 +3717,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

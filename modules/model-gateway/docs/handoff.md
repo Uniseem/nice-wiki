@@ -1,5 +1,31 @@
 # AI 接入会话交接
 
+## 两轮并行第一轮：档位配置写入（已交付）
+
+更新：2026-10-16。用户当次明确授权三个子代理并行写两轮，实施所需结构/契约取舍由助手决定，每轮根统一复核并普通push main，中间不询问。独占modules/model-gateway/，分支codex/model-next-two-r1，基线d2161f41c441b69f080b7d8cf3d40b88afecb357。源码提交82dee76414a823e4d2e71dd87c623d7220f8387e；本轮四个完整新/完成函数、改过的validateTaskOverride及本轮生成物通过根VPS检查并verified；整文件/完整服务缺口保持partial/blocked。
+
+实际范围：新增已登记internal/catalog/profile.go，实现PutProfile/readProfileReceipt/validateProfileModels/NewProfileHandlers。task.go已有validateTaskOverride复用于档位直接能力，错误说明改为所选模型；wire.go只合并真实putProfile映射与portal白名单。四契约、README/STATUS/progress与本域data/api/workflows同步；files/functions由根VPS make docs生成，生成目录只接收根VPS make gen回传。
+
+写入复用001/002原有profiles/operation_receipts与平台outbox。首先核admin+superadmin与expectedVersion+1，再同事务取得严格非空runtime_meta当前代次。输入摘要绑定callerService/dataEpoch/profile/expectedVersion，按site/actor/PutProfile/key读取7天完整原结果；同代同hash在后来模型校验、写屏障与当前CAS之前返回。异hash冲突、损坏失败关闭；过期只读视为未命中，只有后续成功的新配置事务才替换。
+
+新写拒绝任何非released屏障，不因屏障epoch/deadline变化放行。profileId+version+dataEpoch条件CAS，首次只允许expectedVersion=0；同代costClass+tier槽被其他profileId占用明确CONFLICT。允许移到空槽；profile.costClass是配置目标，不覆盖可信op.costClass。有序候选上限256且沿schema唯一性，空数组只清候选、保留配置行；按根唯一目录生成AITierCapabilities与已有validateTaskOverride只核模型同代/启用/直接能力，structured/translation等建议不新增硬门槛，不读价格、凭据或供应方可用性。
+
+profile.changed/v1最小载荷为profileId/version/dataEpoch及根AITaskCatalog旧/新tier所涉taskIds去重按ID排序；旧/新含fast时保守包含vision/rerank回退任务，即使当前独立槽已配置；与profiles和原回执同事务写平台outbox。HTTP入口核profileId路径等于正文、非空Idempotency-Key头等于正文key；portal唯一管理调用方，平台统一入口只做一次即时superadmin授权。完整其他handler、权威epoch初始化、恢复回执及后台仍缺，BuildApplication继续拒绝启动，wire.go及profile.go整体partial。
+
+保留old规则：视觉、rerank行缺失或候选为空时，后续ResolveProfile读取分别回退fast中的vision候选、或由fast代替重排；该解析仍planned，不在PutProfile悄悄填充。配置写不触发模型、费用任务、嵌入重建或自动重算已有付费结果。免费可用性读取沿既有约定空候选为已配但unavailable，不能把行称为已删除。
+
+公共配合已由根提交6b4b15b完成：scripts/gen_code.py从contracts/ai-tasks.json.tierCapabilities生成AITierCapabilities map[string][]string至既有clients.gen.go，已登记profile.go实际结构由根启用；本域不改公共目录、不手抄生成表、不争用VPS。
+
+检查：2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：初次同API候选make docs/gen通过；最终fast回退影响修正树make docs、profile.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（861文件/1219函数/379操作/2272类型），精确格式/生成物已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 本地只执行git diff --check与既有静态隐私扫描（暂存内容、提交说明和用户Git代用身份）；未改身份配置。未新增测试、mock、fixture、样例或临时业务验证程序；本域不push。
+
+第一轮源码共19个本域路径，包含四机器合同、README/STATUS/progress、api/data/files/functions/handoff/workflows、profile.go/task.go/wire.go及三个既有生成物；无未提交业务源码。
+
+下一项仅为凭据安全持久化：先读internal/security/credential.go精确合同及部署masterKey引用装配，复用现有credentials schema与严格epoch/屏障/CAS/7天回执，实施AES-GCM PutCredential/RotateCredential，不探测供应方；依赖首轮根统一集成检查、push与新的明确基线。当前冻结等待根派发，不能提前开始第二轮或完整服务。
+
+以下为既有交付历史，本次两轮授权取代旧的停止指令。
+
+# AI 接入会话交接
+
 ## 本轮任务分配配置读写（已交付）
 
 更新：2026-10-16。用户当次授权三个子代理并行编写一轮；本域独占modules/model-gateway/，分支codex/model-task-write-round1，基线170c1dc9057e122e349de43db532b2c48434b6cf。源码提交c7c1cac9e3a59a206d506083ace25fd00c077e40；deliveryCommit与本轮完整函数/文件台账均引用该实际SHA，检查后记录在后续记录提交。任务配置源码已交付，不开展后包。

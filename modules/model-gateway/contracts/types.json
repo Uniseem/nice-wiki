@@ -225,7 +225,7 @@
         },
         "costClass": {
           "$ref": "../../../contracts/common.schema.json#/$defs/CostClass",
-          "description": "可信费用类别"
+          "description": "该档位配置面向的费用类别；不覆盖可信op.costClass"
         },
         "tier": {
           "type": "string",
@@ -4332,6 +4332,12 @@
       "x-internal": true,
       "x-go-type": "func(context.Context, platform.OperationContext, string, string) error",
       "description": "平台identity即时授权回调；仅HTTP边界，不是JSON值"
+    },
+    "ProfileHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "仅真实putProfile映射，须与其他本域映射交公共完整工厂"
     }
   }
 }
