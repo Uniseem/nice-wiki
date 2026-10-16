@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 96 个函数：约束 37 个，参考 59 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 107 个函数：约束 37 个，参考 70 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2843,26 +2843,30 @@ func ReadModels(ctx context.Context, op OperationContext, input ReadModelsInput)
 
 **步骤**
 
-1. service或model.manage
-2. 仅声明无探测
-3. 返回不可变模型版本/space
-4. disabled仍可读但标不可调用
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 根任务目录owner纯服务，或portal当前model.manage管理员；HTTP映射即时核管理权限。
+2. 一次严格当前epoch快照读取真实模型声明，能力可选过滤，modelId排序，disabled仍返回；超256条报错不截断。
+3. 返回不可变模型版本/space；本轮只完成声明分支，Model无space字段与归一化规则历史缺口未修，整函数in_progress，不声称完整。
+4. 损坏或异代失败关闭，不探测、不读价格/余额/秘密。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 授权：permission：service；rule：根任务目录owner纯服务，或portal当前model.manage管理员。
+- 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.requireCatalogReader`、`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogModels`
+- 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.ReadProfiles
 
@@ -2891,26 +2895,29 @@ func ReadProfiles(ctx context.Context, op OperationContext, input ReadProfilesIn
 
 **步骤**
 
-1. 验caller capability权限
-2. 过滤allowed costClass
-3. 返回配置版本
-4. 不暴露密钥和全站余额
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 根任务目录owner纯服务只读可信op.costClass，必须已登记费用类；portal当前model.manage管理员全量，HTTP映射即时授权。
+2. 一次严格当前epoch事务，SQL按可选profileId和纯服务costClass过滤，profileId排序；返回真实版本/顺序候选/自身费用。
+3. 不合成缺失配置或回退，不暴露秘密/全站余额；超256条、损坏JSON、异代或未知存储报错。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 授权：permission：service；rule：根任务目录owner纯服务且只可信op.costClass；portal当前model.manage全量。
+- 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.requireCatalogReader`、`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogProfiles`
+- 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.ReadFeeBudgetPolicy
 
@@ -2939,28 +2946,29 @@ func ReadFeeBudgetPolicy(ctx context.Context, op OperationContext, input ReadFee
 
 **步骤**
 
-1. 校验guard.manage/siteId/active epoch
-2. 固定policy快照读取，dailyQaLimit=0不限且background独立
-3. 返回policy，不处理IP或guard频率
-4. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. portal当前guard.manage管理员，公共入口一次核身份/schema/权限/期限。
+2. 严格当前epoch快照读真实fee_budget_policy并核siteId；缺行NOT_FOUND，不合成old未明确的会话美元默认。
+3. 返回完整已存策略；daily0不限、background独立，不读取IP/guard频率/held/ledger，不探测。
 
 **错误**
 
-- `VALIDATION` / HTTP 400：（不可重试）
-- `NOT_FOUND` / HTTP 404：（不可重试）
-- `VERSION_MISMATCH` / HTTP 409：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
 
 - 副作用：无
-- 授权：guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 授权：permission：guard.manage；rule：portal当前guard.manage管理员；同siteId。
+- 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`
+- 依赖：`model-gateway.requireFeePolicyActor`、`model-gateway.beginAdminSnapshot`、`model-gateway.readFeePolicy`
+- 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.PutFeeBudgetPolicy
 
@@ -2989,29 +2997,32 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 
 **步骤**
 
-1. 若dailyQaLimit与当前值不同，另校验actor具有superadmin；普通manage_ai只能调整小时策略，不能修改old超管专属全站日费用额度。策略全量输入中的未改日额度不扩大权限。
-2. 校验guard.manage、Money/开关/倍率1..100；network默认5倍，不伪造会话额度美元默认
-3. 锁policy并CAS expectedVersion；同键同hash返回原配置，不同CONFLICT
-4. 保存新version和审计，仅影响新预留，既有held/ledger不清零
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. portal当前guard.manage管理员；原回放前公共入口仍即时核guard.manage，内部不重复schema/身份/期限；版本expectedVersion+1且安全整数。
+2. 预读事务先核7天完整原回执；摘要绑定callerService/dataEpoch/policy/expectedVersion。同hash原样返回，不受后续屏障/CAS/日额度变化影响；异hash冲突，损坏失败；过期只随成功新写替换。
+3. 预读真实policy并核site/epoch/版本；首次expectedVersion0完整创建或既有daily变化必须先结束预读事务，再调用平台identity当前superadmin，无SQL/进程锁。普通guard.manage仅保留日额度调整小时策略。
+4. 授权后开启短写事务，重新先核原回执，再核全部非released屏障、当前policy和CAS；期间需超管而未授权则VERSION_MISMATCH，不自动重试，不持事务RPC。
+5. 条件INSERT/UPDATE核RowsAffected1；策略、完整回执及本地fee_policy_audit同事务。审计仅actor/rootOperation/epoch/version/time/日额度变化标记；跨域投影仍未完成，不宣称通知analytics。
+6. 仅影响后续预留，不改held/ledger，不调用模型。Commit未知由相同键回读原结果，不自动重试提交。
 
 **错误**
 
-- `VALIDATION` / HTTP 400：（不可重试）
-- `NOT_FOUND` / HTTP 404：（不可重试）
-- `VERSION_MISMATCH` / HTTP 409：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
 
-- 副作用：更新MG fee policy与脱敏审计outbox
-- 授权：guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。；dailyQaLimit改变还需superadmin，不能以guard.manage授权日额度修改。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 副作用：同事务写fee_budget_policy/fee_policy_audit/operation_receipts，不改既有费用；整体跨域审计投影仍待实施。
+- 授权：permission：guard.manage；rule：portal当前guard.manage；首次或daily变化另无锁即时superadmin，短事务重核。
+- 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`
+- 依赖：`model-gateway.requireFeePolicyActor`、`model-gateway.beginAdminSnapshot`、`model-gateway.readFeePolicy`、`model-gateway.readFeePolicyReceipt`、`identity:checkAuthorization`
+- 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.ReadAdminCatalog
 
@@ -3040,19 +3051,559 @@ func ReadAdminCatalog(ctx context.Context, op OperationContext, input ReadAdminC
 
 **步骤**
 
-1. model.manage
-2. 同一快照读取供应方（不含密钥，只返回密钥版本与状态）、模型、档位与任务分配
-3. 附各供应方启停状态与最近连接测试结果
+1. portal当前model.manage管理员，公共HTTP边界即时授权。
+2. 同一严格当前epoch快照读取四项目录，按ID排序；只返回真实已存配置，不合成任务默认。
+3. ProviderSummary只查非秘密元数据、附加头名称、active凭据版本和材料存在/代次/长度；不SELECT秘密引用或密文正文。
+4. 附各供应方启停状态与最近连接测试结果；本轮启停/材料状态已写，最近probe生产者/投影未齐，整函数in_progress，不伪造空或成功结果。
+5. 响应上限模型1000、供应方/档位64、任务256；超限报错不截断；异代或损坏失败关闭。
 
 **错误**
 
-- `FORBIDDEN`：权限不足（不可重试）
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
 
 - 副作用：无
 - 授权：permission：model.manage；rule：后台管理员
-- 并发：只读快照
+- 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：只读
+- 依赖：`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogProviders`、`model-gateway.readCatalogModels`、`model-gateway.readCatalogProfiles`、`model-gateway.readCatalogAssignments`
+- 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
+
+## model-gateway.requireCatalogReader
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：限制目录主体
+
+```go
+func requireCatalogReader(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用链上下文；纯函数不检查取消 | 可信内部调用 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 根任务目录owner纯服务或portal model.manage/superadmin管理员，当前管理权限由HTTP映射核。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
 - 依赖：无
+
+## model-gateway.beginAdminSnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：建立严格代次快照
+
+```go
+func beginAdminSnapshot(ctx context.Context, op OperationContext) (*sql.Tx, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `tx` | `SQLTransaction` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. CurrentStore.BeginTx后同事务核非空runtime_meta等于op.dataEpoch，失败回滚，不覆盖未知水位。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.Store.BeginTx`、`model-gateway.adminStorageError`
+
+## model-gateway.readCatalogModels
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取模型声明
+
+```go
+func readCatalogModels(ctx context.Context, op OperationContext, tx *sql.Tx, capability *string, limit int) ([]gen.Model, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `capability` | `string` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `limit` | `int` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `models` | `[]Model` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 同代读取完整模型声明/能力JSON，可选能力过滤、modelId排序；超限失败，不计算缺归一化规则的space，不探测。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.readCatalogProfiles
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取范围内档位
+
+```go
+func readCatalogProfiles(ctx context.Context, op OperationContext, tx *sql.Tx, profileID, costClass *string, limit int) ([]gen.Profile, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `profileID` | `string` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `costClass` | `string` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `limit` | `int` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `profiles` | `[]Profile` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. SQL精确过滤，同代解析真实候选/版本/费用；超限失败，不合成缺失配置或全站余额。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.readCatalogProviders
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取供应方安全投影
+
+```go
+func readCatalogProviders(ctx context.Context, op OperationContext, tx *sql.Tx) ([]gen.ProviderSummary, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `providers` | `[]ProviderSummary` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 不SELECT秘密引用/nonce/密文正文，只核active材料存在/代次/长度；异代坏长度失败，材料缺失false不表示最近探测结果。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.readCatalogAssignments
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取真实任务分配
+
+```go
+func readCatalogAssignments(ctx context.Context, op OperationContext, tx *sql.Tx) ([]gen.TaskAssignment, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `assignments` | `[]TaskAssignment` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 同代/版本/defaultTier/引用完整性检查，taskId排序；缺记录不生成默认配置。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.requireFeePolicyActor
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：限制策略调用范围
+
+```go
+func requireFeePolicyActor(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用链上下文；纯函数不检查取消 | 可信内部调用 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 仅portal/admin，当前guard.manage由公共边界核；日额度特权由真实比较后即时核。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：无
+
+## model-gateway.readFeePolicy
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取真实策略归属
+
+```go
+func readFeePolicy(ctx context.Context, op OperationContext, tx *sql.Tx) (FeeBudgetPolicy, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `policy` | `FeeBudgetPolicy` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 无行NOT_FOUND；核site/epoch/版本/金额范围，不编造默认。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.readFeePolicyReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：读取完整七天原回执
+
+```go
+func readFeePolicyReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, input PutFeeBudgetPolicyInput, inputHash string) (PutFeeBudgetPolicyResult, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `op` | `OperationContext` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `tx` | `SQLTransaction` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `input` | `PutFeeBudgetPolicyInput` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+| `inputHash` | `string` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PutFeeBudgetPolicyResult` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `found` | `bool` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+| `err` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. site/actor/function/key定位，坏时间失败、过期未命中，同hash解码匹配完整原结果，异hash冲突，不改任何行。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.adminStorageError`
+
+## model-gateway.adminStorageError
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：映射脱敏持久错误
+
+```go
+func adminStorageError(err error) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `public` | `error` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. 直接委托公共platform.NormalizeIOError保留平台错误、归类取消/截止并以固定DEPENDENCY_UNAVAILABLE安全常量回退；本域不复制通用映射。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`platform.NormalizeIOError`
+
+## model-gateway.NewAdminHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/read.go`
+- 作用：装配五项真实管理HTTP映射
+
+```go
+func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `authorize` | `AdminAuthorizer` | 本域可信输入 | 已核入口身份/schema/期限，只实现本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `AdminHandlers` | 本域结果或公共错误 | 失败结果不可用，不含秘密正文 |
+
+**步骤**
+
+1. GET绑定可选查询，响应no-store，严格schema由公共入口核。
+2. readModels/readProfiles管理员即时model.manage，其余依公共边界权限核一次。
+3. Put核幂等头一致，用进程内context注入平台授权回调，供首次/日额度变化超管检查。
+4. 仅交统一服务边界，直接取得已存在的可信op；不添加不可达的缺失上下文分支。
+
+**错误**
+
+- `FORBIDDEN`：调用主体或当前权限不足（不可重试）
+- `VERSION_MISMATCH`：本地水位、配置版本/代次或预授权条件变化（不可重试）
+- `NOT_FOUND`：费用策略尚未配置（不可重试）
+- `CONFLICT`：幂等键绑定不同输入或代次（不可重试）
+- `INTEGRITY_ERROR`：持久元数据或原回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储、代次或即时授权不可用（可重试）
+- `BUDGET_EXCEEDED`：结果超过响应上限，不截断伪装完整结果（不可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+- `INTERNAL`：规范JSON编码失败（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已授权调用链
+- 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
+- 幂等：读取或映射无独立副作用。
+- 依赖：`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadAdminCatalog`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`
 
 ## model-gateway.RedactLog
 
@@ -4376,7 +4927,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

@@ -63,3 +63,9 @@ Put可首次保存/替换或修复缺失active材料；Rotate需要既有完整a
 ResolveProfile返回真实原始profile、assignment及派生顺序/能力。SelectCandidates读取全部至多256项引用，按同代启用模型、目标能力、启用供应方和active凭据元数据过滤，保留原顺序后最多取16项；后续候选仍须完成完整性/代次检查。所有eligible embedding候选必须同一现有embeddingSpaceID，异空间失败关闭。未知SQL、损坏或异代返回公共错误，不能伪造空候选；无eligible为DEPENDENCY_UNAVAILABLE。
 
 路线只含模型安全元数据及供应方/凭据版本引用，routeVersion按epoch、真实配置和最终候选的固定JSON字段顺序计算SHA256。凭据只读存在性/代次/nonce及ciphertext长度，不读取密文、主密钥、URL或价格；profile费用字段仅配置声明，不读取余额或判断费用准入。不探测、不调用模型、不获取持久派发引用；后续派发前仍需真实引用/屏障/版本及费用协议，不能把免费候选视为完整执行完成。
+
+## 费用策略配置
+
+Put预读事务先核7天完整原回执，再读真实policy和版本判断首次/daily变化；结束事务后才执行必要的当前superadmin权限RPC，不持SQL事务或进程锁。随后短写事务重新先核回执、全部非released屏障及当前policy/CAS；条件改变而未获必要超管授权则VERSION_MISMATCH，无自动重试。策略、原结果及本地脱敏审计同事务提交，既有held/ledger保留；跨域审计投影仍待实现。
+
+无初始policy不从old猜会话美元默认；只能由当前超管完整输入创建。每日0不限、background独立，小时开关关闭也不意味着清账。原回执同caller/epoch规范输入7天重放先于当前策略/CAS/屏障返回，过期只随成功新配置事务替换，未知Commit不自行重试。

@@ -2734,6 +2734,11 @@
       "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/model-gateway/internal/admin/read.go",
+      "kind": "source",
+      "purpose": "真实管理配置快照读取与费用策略持久化/原回执/当前授权"
+    },
+    {
       "path": "modules/model-gateway/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
@@ -2802,6 +2807,11 @@
       "path": "modules/model-gateway/migrations/002_task_availability.sql",
       "kind": "migration",
       "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/003_fee_budget_policy.sql",
+      "kind": "source",
+      "purpose": "只追加显式费用策略与脱敏本地审计，不插默认美元金额"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",

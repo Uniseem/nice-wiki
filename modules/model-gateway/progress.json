@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "3102680ac0c62daac23adb4e169cd4bd8d88d512dbe2c82d0d6cff1a7bd1b150",
+  "contractSha256": "fb9601756547a28f0f4c67e60593817f2903c03fe7c3c7c4f05b1e1fc6b2b969",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续目标第一轮免费路由解析",
-  "branch": "codex/model-goal-r1",
-  "baseCommit": "685db4f48bb359f79a7501098204ccc5a4cde6b2",
-  "deliveryCommit": "24e4026d452333061cad9ef6abde3050e2944101",
+  "assignedSession": "持续目标第二轮管理读取与费用策略",
+  "branch": "codex/model-goal-r2",
+  "baseCommit": "471c036082e082763d90e1080b3489d4e4531380",
+  "deliveryCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
   "deployment": "not_started",
   "files": [
     {
@@ -222,13 +222,13 @@
     },
     {
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": null
+      "blocker": "14项完整函数verified；ReadModels空间/归一化与ReadAdminCatalog最近探测分支仍partial，GetLedger/GetPriceBook仍planned，整文件partial。"
     },
     {
       "path": "modules/model-gateway/internal/security/redact.go",
@@ -393,12 +393,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮可信主密钥引用和真实凭据HTTP映射已检查；其余handler/权威epoch初始化/恢复回执/后台缺失，整文件partial且BuildApplication blocked"
+      "blocker": "新增五项真实管理HTTP映射已检查；完整handler、权威epoch初始化、恢复回执与后台仍未齐。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -523,10 +523,10 @@
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -553,10 +553,10 @@
     {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -567,6 +567,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/migrations/003_fee_budget_policy.sql",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     }
@@ -971,57 +981,57 @@
     {
       "id": "model-gateway.ReadModels",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": null
+      "blocker": "真实模型声明分支已写并通过现阶段检查；空间身份/归一化公共合同历史缺口未完成，整函数partial。"
     },
     {
       "id": "model-gateway.ReadProfiles",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
     {
       "id": "model-gateway.ReadFeeBudgetPolicy",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
     {
       "id": "model-gateway.PutFeeBudgetPolicy",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
     {
       "id": "model-gateway.ReadAdminCatalog",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": null
+      "blocker": "真实四目录快照与安全供应方投影已写并通过现阶段检查；最近probe生产者/投影未齐，整函数partial。"
     },
     {
       "id": "model-gateway.RedactLog",
@@ -1236,12 +1246,12 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 仅本轮已写切片经过检查，整函数缺口未完成。"
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "其他handler、权威epoch初始化、恢复回执和后台未齐，不能启动部分服务"
+      "blocker": "本轮新增五项真实管理HTTP映射候选；其他handler、权威epoch初始化、恢复回执及后台仍缺，完整启动拒绝。"
     },
     {
       "id": "model-gateway.Serve",
@@ -1625,6 +1635,116 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.requireCatalogReader",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.beginAdminSnapshot",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readCatalogModels",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readCatalogProfiles",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readCatalogProviders",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readCatalogAssignments",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.requireFeePolicyActor",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readFeePolicy",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readFeePolicyReceipt",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.adminStorageError",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.NewAdminHandlers",
+      "state": "verified",
+      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     }

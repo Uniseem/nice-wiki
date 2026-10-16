@@ -1941,7 +1941,7 @@
         "x-handler": "model-gateway.ReadModels",
         "x-permission": "service",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 真实模型声明已写；space/归一化历史缺口仍待后包，整函数partial。",
         "parameters": [
           {
             "name": "capability",
@@ -2040,6 +2040,46 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2056,7 +2096,7 @@
         "x-handler": "model-gateway.ReadProfiles",
         "x-permission": "service",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 根任务目录owner纯服务只读可信op.costClass，未知费用类拒绝；portal当前model.manage可全量。",
         "parameters": [
           {
             "name": "profileId",
@@ -2141,6 +2181,46 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3221,7 +3301,7 @@
         "x-handler": "model-gateway.ReadFeeBudgetPolicy",
         "x-permission": "guard.manage",
         "x-timeout-ms": 5000,
-        "description": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。",
+        "description": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -3333,6 +3413,26 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3348,7 +3448,7 @@
         "x-handler": "model-gateway.PutFeeBudgetPolicy",
         "x-permission": "guard.manage",
         "x-timeout-ms": 5000,
-        "description": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。",
+        "description": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 首次expectedVersion0且当前superadmin可完整创建；既有daily变化另即时superadmin，普通guard.manage仅保留日额度调整小时策略。原回放先核当前guard.manage；权限RPC不持SQL事务，短写事务重核回执/屏障/CAS，原结果和本地审计同事务，不改held/ledger。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -3453,6 +3553,26 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3722,7 +3842,7 @@
       "get": {
         "operationId": "readAdminCatalog",
         "summary": "读取渠道、模型、档位与任务分配",
-        "description": "读取渠道、模型、档位与任务分配",
+        "description": "读取渠道、模型、档位与任务分配 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 providers为ProviderSummary，不含秘密引用；最近探测生产者/投影仍未齐，整函数partial。",
         "x-handler": "model-gateway.ReadAdminCatalog",
         "x-permission": "model.manage",
         "responses": {
@@ -3738,6 +3858,86 @@
           },
           "403": {
             "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "公共Problem：身份、完整性、版本/幂等、容量或依赖失败。",
             "content": {
               "application/problem+json": {
                 "schema": {

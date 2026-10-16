@@ -3716,7 +3716,8 @@
         "version": {
           "type": "integer",
           "minimum": 0,
-          "description": "CAS修订"
+          "description": "CAS修订",
+          "maximum": 9007199254740991
         },
         "hourlyLimitsEnabled": {
           "type": "boolean",
@@ -3776,7 +3777,8 @@
         "expectedVersion": {
           "type": "integer",
           "minimum": 0,
-          "description": "CAS旧版本"
+          "description": "CAS旧版本",
+          "maximum": 9007199254740990
         },
         "idempotencyKey": {
           "type": "string",
@@ -4176,9 +4178,9 @@
           "type": "array",
           "maxItems": 64,
           "items": {
-            "$ref": "#/$defs/Provider"
+            "$ref": "#/$defs/ProviderSummary"
           },
-          "description": "供应方（密钥只返回版本与状态，不返回密文）"
+          "description": "真实安全供应方投影，不含秘密引用；最近探测仍待生产者。"
         },
         "models": {
           "type": "array",
@@ -4402,6 +4404,119 @@
         "credentialVersion"
       ],
       "description": "免费路线候选；未获取持久派发引用，不表示凭据可解密。"
+    },
+    "ProviderSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "adapter": {
+          "type": "string",
+          "enum": [
+            "openai_chat",
+            "anthropic_messages",
+            "gemini",
+            "openai_embeddings",
+            "gemini_embeddings",
+            "rerank"
+          ],
+          "description": "适配协议"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "HTTPS供应方API根地址"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否启用"
+        },
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "密钥版本"
+        },
+        "connectTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "连接超时上限10000"
+        },
+        "requestTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "请求超时上限180000"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "供应方显示名"
+        },
+        "extraHeaderNames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "允许附加头名"
+        },
+        "concurrencyLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "供应方并发上限"
+        },
+        "streamIdleTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "流片段间隔超时"
+        },
+        "credentialConfigured": {
+          "type": "boolean",
+          "description": "同代active凭据材料存在且长度完整；不证明可解密、在线或已经探测"
+        }
+      },
+      "required": [
+        "providerId",
+        "version",
+        "adapter",
+        "baseUrl",
+        "enabled",
+        "credentialVersion",
+        "connectTimeoutMs",
+        "requestTimeoutMs",
+        "displayName",
+        "extraHeaderNames",
+        "concurrencyLimit",
+        "streamIdleTimeoutMs",
+        "credentialConfigured"
+      ],
+      "description": "后台安全供应方投影，不含秘密引用或密文；最近探测另待实施。"
+    },
+    "AdminHandlers": {
+      "type": "object",
+      "description": "进程内map[string]http.Handler，不作HTTP DTO"
+    },
+    "AdminAuthorizer": {
+      "type": "object",
+      "description": "进程内平台identity即时授权回调，可信装配注入，不来自请求字段"
     }
   }
 }

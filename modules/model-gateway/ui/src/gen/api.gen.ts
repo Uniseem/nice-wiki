@@ -273,7 +273,7 @@ export interface paths {
         };
         /**
          * 读取模型能力声明
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 真实模型声明已写；space/归一化历史缺口仍待后包，整函数partial。
          */
         get: operations["readModels"];
         put?: never;
@@ -293,7 +293,7 @@ export interface paths {
         };
         /**
          * 读取档位声明
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 根任务目录owner纯服务只读可信op.costClass，未知费用类拒绝；portal当前model.manage可全量。
          */
         get: operations["readProfiles"];
         put?: never;
@@ -473,12 +473,12 @@ export interface paths {
         };
         /**
          * 读取费用限额配置
-         * @description guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。
+         * @description guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。
          */
         get: operations["readFeeBudgetPolicy"];
         /**
          * 维护old费用开关与会话小时、网络5倍配置
-         * @description guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。
+         * @description guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 首次expectedVersion0且当前superadmin可完整创建；既有daily变化另即时superadmin，普通guard.manage仅保留日额度调整小时策略。原回放先核当前guard.manage；权限RPC不持SQL事务，短写事务重核回执/屏障/CAS，原结果和本地审计同事务，不改held/ledger。
          */
         put: operations["putFeeBudgetPolicy"];
         post?: never;
@@ -571,7 +571,7 @@ export interface paths {
         };
         /**
          * 读取渠道、模型、档位与任务分配
-         * @description 读取渠道、模型、档位与任务分配
+         * @description 读取渠道、模型、档位与任务分配 同一严格当前epoch快照；损坏/未知失败关闭，不编造金额或探测结果。 providers为ProviderSummary，不含秘密引用；最近探测生产者/投影仍未齐，整函数partial。
          */
         get: operations["readAdminCatalog"];
         put?: never;
@@ -1405,10 +1405,45 @@ export interface components {
              */
             scope: "staged" | "before";
         };
+        /** @description 后台安全供应方投影，不含秘密引用或密文；最近探测另待实施。 */
+        ProviderSummary: {
+            /** @description 供应方ID */
+            providerId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /**
+             * @description 适配协议
+             * @enum {string}
+             */
+            adapter: "openai_chat" | "anthropic_messages" | "gemini" | "openai_embeddings" | "gemini_embeddings" | "rerank";
+            /**
+             * Format: uri
+             * @description HTTPS供应方API根地址
+             */
+            baseUrl: string;
+            /** @description 是否启用 */
+            enabled: boolean;
+            /** @description 密钥版本 */
+            credentialVersion: number;
+            /** @description 连接超时上限10000 */
+            connectTimeoutMs: number;
+            /** @description 请求超时上限180000 */
+            requestTimeoutMs: number;
+            /** @description 供应方显示名 */
+            displayName: string;
+            /** @description 允许附加头名 */
+            extraHeaderNames: string[];
+            /** @description 供应方并发上限 */
+            concurrencyLimit: number;
+            /** @description 流片段间隔超时 */
+            streamIdleTimeoutMs: number;
+            /** @description 同代active凭据材料存在且长度完整；不证明可解密、在线或已经探测 */
+            credentialConfigured: boolean;
+        };
         /** @description 读取渠道、模型、档位与任务分配的结果；不含密钥 */
         ReadAdminCatalogResult: {
-            /** @description 供应方（密钥只返回版本与状态，不返回密文） */
-            providers: components["schemas"]["Provider"][];
+            /** @description 真实安全供应方投影，不含秘密引用；最近探测仍待生产者。 */
+            providers: components["schemas"]["ProviderSummary"][];
             /** @description 模型 */
             models: components["schemas"]["Model"][];
             /** @description 档位 */
@@ -2807,6 +2842,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReadModelsResult"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
             401: {
                 headers: {
@@ -2825,6 +2869,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
                 headers: {
@@ -2834,8 +2887,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2887,6 +2958,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReadProfilesResult"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
             401: {
                 headers: {
@@ -2905,6 +2985,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
                 headers: {
@@ -2914,8 +3003,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3762,8 +3869,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3863,8 +3988,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4080,8 +4223,80 @@ export interface operations {
                     "application/json": components["schemas"]["ReadAdminCatalogResult"];
                 };
             };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

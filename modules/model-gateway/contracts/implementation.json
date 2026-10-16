@@ -5971,7 +5971,7 @@
     {
       "path": "modules/model-gateway/internal/admin/read.go",
       "kind": "handwritten",
-      "purpose": "管理端查询费用账本所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "真实安全目录读取与费用策略；账本/价格及space/最近探测分支按台账未完成。",
       "functions": [
         {
           "id": "model-gateway.GetLedger",
@@ -6211,56 +6211,78 @@
           ],
           "purpose": "读取模型能力声明",
           "steps": [
-            "1 service或model.manage",
-            "2 仅声明无探测",
-            "3 返回不可变模型版本/space",
-            "4 disabled仍可读但标不可调用",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "根任务目录owner纯服务，或portal当前model.manage管理员；HTTP映射即时核管理权限。",
+            "一次严格当前epoch快照读取真实模型声明，能力可选过滤，modelId排序，disabled仍返回；超256条报错不截断。",
+            "返回不可变模型版本/space；本轮只完成声明分支，Model无space字段与归一化规则历史缺口未修，整函数in_progress，不声称完整。",
+            "损坏或异代失败关闭，不探测、不读价格/余额/秘密。"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "when": "调用主体或当前权限不足",
               "retryable": false
             },
             {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
               "retryable": false
             },
             {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
               "retryable": false
             },
             {
               "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "when": "IO取消",
               "retryable": false
             },
             {
               "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "when": "IO到截止",
               "retryable": false
             },
             {
               "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "when": "规范JSON编码失败",
               "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "authorization": {
+            "permission": "service",
+            "rule": "根任务目录owner纯服务，或portal当前model.manage管理员。"
+          },
+          "concurrency": "严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "model-gateway.requireCatalogReader",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readCatalogModels"
+          ],
+          "resources": [
+            "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
+          ],
           "contract": "binding"
         },
         {
@@ -6303,56 +6325,77 @@
           ],
           "purpose": "读取档位声明",
           "steps": [
-            "1 验caller capability权限",
-            "2 过滤allowed costClass",
-            "3 返回配置版本",
-            "4 不暴露密钥和全站余额",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "根任务目录owner纯服务只读可信op.costClass，必须已登记费用类；portal当前model.manage管理员全量，HTTP映射即时授权。",
+            "一次严格当前epoch事务，SQL按可选profileId和纯服务costClass过滤，profileId排序；返回真实版本/顺序候选/自身费用。",
+            "不合成缺失配置或回退，不暴露秘密/全站余额；超256条、损坏JSON、异代或未知存储报错。"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "when": "调用主体或当前权限不足",
               "retryable": false
             },
             {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
               "retryable": false
             },
             {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
               "retryable": false
             },
             {
               "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "when": "IO取消",
               "retryable": false
             },
             {
               "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "when": "IO到截止",
               "retryable": false
             },
             {
               "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "when": "规范JSON编码失败",
               "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "authorization": {
+            "permission": "service",
+            "rule": "根任务目录owner纯服务且只可信op.costClass；portal当前model.manage全量。"
+          },
+          "concurrency": "严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "model-gateway.requireCatalogReader",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readCatalogProfiles"
+          ],
+          "resources": [
+            "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
+          ],
           "contract": "binding"
         },
         {
@@ -6395,75 +6438,77 @@
           ],
           "purpose": "读取费用限额配置",
           "steps": [
-            "1 校验guard.manage/siteId/active epoch",
-            "2 固定policy快照读取，dailyQaLimit=0不限且background独立",
-            "3 返回policy，不处理IP或guard频率",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "portal当前guard.manage管理员，公共入口一次核身份/schema/权限/期限。",
+            "严格当前epoch快照读真实fee_budget_policy并核siteId；缺行NOT_FOUND，不合成old未明确的会话美元默认。",
+            "返回完整已存策略；daily0不限、background独立，不读取IP/guard频率/held/ledger，不探测。"
           ],
           "errors": [
             {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
               "retryable": false
             },
             {
               "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
               "retryable": false
             },
             {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
               "retryable": false
             },
             {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
               "retryable": false
             },
             {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
               "retryable": false
             },
             {
               "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "when": "IO取消",
               "retryable": false
             },
             {
               "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "when": "IO到截止",
               "retryable": false
             },
             {
               "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "when": "规范JSON编码失败",
               "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "portal当前guard.manage管理员；同siteId。"
+          },
+          "concurrency": "严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "identity:checkAuthorization"
+            "model-gateway.requireFeePolicyActor",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readFeePolicy"
           ],
-          "resources": [],
+          "resources": [
+            "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
+          ],
           "contract": "binding"
         },
         {
@@ -6506,78 +6551,84 @@
           ],
           "purpose": "维护old费用开关与会话小时、网络5倍配置",
           "steps": [
-            "若dailyQaLimit与当前值不同，另校验actor具有superadmin；普通manage_ai只能调整小时策略，不能修改old超管专属全站日费用额度。策略全量输入中的未改日额度不扩大权限。",
-            "1 校验guard.manage、Money/开关/倍率1..100；network默认5倍，不伪造会话额度美元默认",
-            "2 锁policy并CAS expectedVersion；同键同hash返回原配置，不同CONFLICT",
-            "3 保存新version和审计，仅影响新预留，既有held/ledger不清零",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "portal当前guard.manage管理员；原回放前公共入口仍即时核guard.manage，内部不重复schema/身份/期限；版本expectedVersion+1且安全整数。",
+            "预读事务先核7天完整原回执；摘要绑定callerService/dataEpoch/policy/expectedVersion。同hash原样返回，不受后续屏障/CAS/日额度变化影响；异hash冲突，损坏失败；过期只随成功新写替换。",
+            "预读真实policy并核site/epoch/版本；首次expectedVersion0完整创建或既有daily变化必须先结束预读事务，再调用平台identity当前superadmin，无SQL/进程锁。普通guard.manage仅保留日额度调整小时策略。",
+            "授权后开启短写事务，重新先核原回执，再核全部非released屏障、当前policy和CAS；期间需超管而未授权则VERSION_MISMATCH，不自动重试，不持事务RPC。",
+            "条件INSERT/UPDATE核RowsAffected1；策略、完整回执及本地fee_policy_audit同事务。审计仅actor/rootOperation/epoch/version/time/日额度变化标记；跨域投影仍未完成，不宣称通知analytics。",
+            "仅影响后续预留，不改held/ledger，不调用模型。Commit未知由相同键回读原结果，不自动重试提交。"
           ],
           "errors": [
             {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
               "retryable": false
             },
             {
               "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
               "retryable": false
             },
             {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
               "retryable": false
             },
             {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
               "retryable": false
             },
             {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
               "retryable": false
             },
             {
               "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "when": "IO取消",
               "retryable": false
             },
             {
               "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "when": "IO到截止",
               "retryable": false
             },
             {
               "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "when": "规范JSON编码失败",
               "retryable": false
             }
           ],
           "sideEffects": [
-            "更新MG fee policy与脱敏审计outbox"
+            "同事务写fee_budget_policy/fee_policy_audit/operation_receipts，不改既有费用；整体跨域审计投影仍待实施。"
           ],
-          "authorization": "guard.manage：沿old AI设置账号可维护费用防滥用配置，identity校验；不修改渠道/密钥/档位/任务模型分配。；dailyQaLimit改变还需superadmin，不能以guard.manage授权日额度修改。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "authorization": {
+            "permission": "guard.manage",
+            "rule": "portal当前guard.manage；首次或daily变化另无锁即时superadmin，短事务重核。"
+          },
+          "concurrency": "严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
+            "model-gateway.requireFeePolicyActor",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readFeePolicy",
+            "model-gateway.readFeePolicyReceipt",
             "identity:checkAuthorization"
           ],
-          "resources": [],
+          "resources": [
+            "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
+          ],
           "contract": "binding"
         },
         {
@@ -6632,14 +6683,61 @@
           ],
           "purpose": "读取渠道、模型、档位与任务分配",
           "steps": [
-            "model.manage",
-            "同一快照读取供应方（不含密钥，只返回密钥版本与状态）、模型、档位与任务分配",
-            "附各供应方启停状态与最近连接测试结果"
+            "portal当前model.manage管理员，公共HTTP边界即时授权。",
+            "同一严格当前epoch快照读取四项目录，按ID排序；只返回真实已存配置，不合成任务默认。",
+            "ProviderSummary只查非秘密元数据、附加头名称、active凭据版本和材料存在/代次/长度；不SELECT秘密引用或密文正文。",
+            "附各供应方启停状态与最近连接测试结果；本轮启停/材料状态已写，最近probe生产者/投影未齐，整函数in_progress，不伪造空或成功结果。",
+            "响应上限模型1000、供应方/档位64、任务256；超限报错不截断；异代或损坏失败关闭。"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "when": "权限不足",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
               "retryable": false
             }
           ],
@@ -6648,11 +6746,1183 @@
             "permission": "model.manage",
             "rule": "后台管理员"
           },
-          "concurrency": "只读快照",
+          "concurrency": "严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。",
           "idempotency": "只读",
+          "dependencies": [
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readCatalogProviders",
+            "model-gateway.readCatalogModels",
+            "model-gateway.readCatalogProfiles",
+            "model-gateway.readCatalogAssignments"
+          ],
+          "resources": [
+            "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.requireCatalogReader",
+          "name": "requireCatalogReader",
+          "signature": "func requireCatalogReader(ctx context.Context, op OperationContext) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用链上下文；纯函数不检查取消",
+              "constraints": "可信内部调用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "限制目录主体",
+          "steps": [
+            "根任务目录owner纯服务或portal model.manage/superadmin管理员，当前管理权限由HTTP映射核。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
           "dependencies": [],
           "resources": [],
-          "contract": "binding"
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.beginAdminSnapshot",
+          "name": "beginAdminSnapshot",
+          "signature": "func beginAdminSnapshot(ctx context.Context, op OperationContext) (*sql.Tx, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "建立严格代次快照",
+          "steps": [
+            "CurrentStore.BeginTx后同事务核非空runtime_meta等于op.dataEpoch，失败回滚，不覆盖未知水位。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.Store.BeginTx",
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readCatalogModels",
+          "name": "readCatalogModels",
+          "signature": "func readCatalogModels(ctx context.Context, op OperationContext, tx *sql.Tx, capability *string, limit int) ([]gen.Model, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "capability",
+              "type": "string",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "models",
+              "type": "[]Model",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取模型声明",
+          "steps": [
+            "同代读取完整模型声明/能力JSON，可选能力过滤、modelId排序；超限失败，不计算缺归一化规则的space，不探测。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readCatalogProfiles",
+          "name": "readCatalogProfiles",
+          "signature": "func readCatalogProfiles(ctx context.Context, op OperationContext, tx *sql.Tx, profileID, costClass *string, limit int) ([]gen.Profile, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "profileID",
+              "type": "string",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "costClass",
+              "type": "string",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "profiles",
+              "type": "[]Profile",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取范围内档位",
+          "steps": [
+            "SQL精确过滤，同代解析真实候选/版本/费用；超限失败，不合成缺失配置或全站余额。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readCatalogProviders",
+          "name": "readCatalogProviders",
+          "signature": "func readCatalogProviders(ctx context.Context, op OperationContext, tx *sql.Tx) ([]gen.ProviderSummary, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "providers",
+              "type": "[]ProviderSummary",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取供应方安全投影",
+          "steps": [
+            "不SELECT秘密引用/nonce/密文正文，只核active材料存在/代次/长度；异代坏长度失败，材料缺失false不表示最近探测结果。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readCatalogAssignments",
+          "name": "readCatalogAssignments",
+          "signature": "func readCatalogAssignments(ctx context.Context, op OperationContext, tx *sql.Tx) ([]gen.TaskAssignment, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "assignments",
+              "type": "[]TaskAssignment",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取真实任务分配",
+          "steps": [
+            "同代/版本/defaultTier/引用完整性检查，taskId排序；缺记录不生成默认配置。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.requireFeePolicyActor",
+          "name": "requireFeePolicyActor",
+          "signature": "func requireFeePolicyActor(ctx context.Context, op OperationContext) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用链上下文；纯函数不检查取消",
+              "constraints": "可信内部调用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "限制策略调用范围",
+          "steps": [
+            "仅portal/admin，当前guard.manage由公共边界核；日额度特权由真实比较后即时核。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readFeePolicy",
+          "name": "readFeePolicy",
+          "signature": "func readFeePolicy(ctx context.Context, op OperationContext, tx *sql.Tx) (FeeBudgetPolicy, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "policy",
+              "type": "FeeBudgetPolicy",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取真实策略归属",
+          "steps": [
+            "无行NOT_FOUND；核site/epoch/版本/金额范围，不编造默认。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readFeePolicyReceipt",
+          "name": "readFeePolicyReceipt",
+          "signature": "func readFeePolicyReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, input PutFeeBudgetPolicyInput, inputHash string) (PutFeeBudgetPolicyResult, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "input",
+              "type": "PutFeeBudgetPolicyInput",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            },
+            {
+              "name": "inputHash",
+              "type": "string",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PutFeeBudgetPolicyResult",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "读取完整七天原回执",
+          "steps": [
+            "site/actor/function/key定位，坏时间失败、过期未命中，同hash解码匹配完整原结果，异hash冲突，不改任何行。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.adminStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.adminStorageError",
+          "name": "adminStorageError",
+          "signature": "func adminStorageError(err error) error",
+          "inputs": [
+            {
+              "name": "err",
+              "type": "error",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "public",
+              "type": "error",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "映射脱敏持久错误",
+          "steps": [
+            "直接委托公共platform.NormalizeIOError保留平台错误、归类取消/截止并以固定DEPENDENCY_UNAVAILABLE安全常量回退；本域不复制通用映射。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "platform.NormalizeIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.NewAdminHandlers",
+          "name": "NewAdminHandlers",
+          "signature": "func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler",
+          "inputs": [
+            {
+              "name": "authorize",
+              "type": "AdminAuthorizer",
+              "description": "本域可信输入",
+              "constraints": "已核入口身份/schema/期限，只实现本函数规则"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "AdminHandlers",
+              "description": "本域结果或公共错误",
+              "constraints": "失败结果不可用，不含秘密正文"
+            }
+          ],
+          "purpose": "装配五项真实管理HTTP映射",
+          "steps": [
+            "GET绑定可选查询，响应no-store，严格schema由公共入口核。",
+            "readModels/readProfiles管理员即时model.manage，其余依公共边界权限核一次。",
+            "Put核幂等头一致，用进程内context注入平台授权回调，供首次/日额度变化超管检查。",
+            "仅交统一服务边界，直接取得已存在的可信op；不添加不可达的缺失上下文分支。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用主体或当前权限不足",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "本地水位、配置版本/代次或预授权条件变化",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "费用策略尚未配置",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "幂等键绑定不同输入或代次",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久元数据或原回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储、代次或即时授权不可用",
+              "retryable": true
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "结果超过响应上限，不截断伪装完整结果",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "规范JSON编码失败",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已授权调用链"
+          },
+          "concurrency": "共用上层快照；纯函数无IO；权限RPC不持SQL事务。",
+          "idempotency": "读取或映射无独立副作用。",
+          "dependencies": [
+            "model-gateway.ReadModels",
+            "model-gateway.ReadProfiles",
+            "model-gateway.ReadAdminCatalog",
+            "model-gateway.ReadFeeBudgetPolicy",
+            "model-gateway.PutFeeBudgetPolicy"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -9415,7 +10685,8 @@
             "platform.NewIdentityAuthorizer",
             "identity:checkAuthorization",
             "model-gateway.NewProfileHandlers",
-            "model-gateway.NewCredentialHandlers"
+            "model-gateway.NewCredentialHandlers",
+            "model-gateway.NewAdminHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -9823,6 +11094,12 @@
       "path": "modules/model-gateway/migrations/002_task_availability.sql",
       "kind": "migration",
       "purpose": "只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/migrations/003_fee_budget_policy.sql",
+      "kind": "handwritten",
+      "purpose": "只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。",
       "functions": []
     }
   ],
