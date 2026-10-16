@@ -1,3 +1,13 @@
+# 持续目标第二轮：人工批准与jobs延迟任务桥接（2026-10-16，已交付冻结）
+
+- 基线471c036082e082763d90e1080b3489d4e4531380，分支codex/media-goal-r2，仅拥有modules/media/；源码`dc9e9f8540892a4747b8e3accbb15158a770e561`。根统一VPS/集成/本轮push，本域不自行VPS或push；源码与准确SHA记录分开提交，交付后冻结等待下一轮派发。
+- ConfirmManualCleanup完成真实人工批准：原plan/hash/revision/历史明确批准，两源完整当前/历史/pending/水位精确再扫描；完整asset稳定锁及SQL内核原水位、无DELETING，批准/confirmed/至少24h notBefore/delete_pending/精确marks同事务。原扫描不可覆盖，原blocked部分标记与整份取消语义保留。
+- 只追加根批准0006_cleanup_approvals.sql；schemaVersion=1批准对象、固定jobs ObjectRef/dedupe/notBefore、原AcceptedJob和原waiting结果独立持久。jobs真实HTTP正文不含dataEpoch，提交op固定原批准代次/op/root并清用户委托。未知只恢复原批准与同键任务，不重置24h；取消竞态迟到成功只留真实回执，不复活计划或返回未完成确认成功。
+- 提交前检查以独立只读SQL事务固定计划/marks/assets快照，显式Rollback释放后才RPC；所有RPC不持asset/store锁或读事务。ReadCleanupApprovalObject保留同域reference函数，返回真实原规范UTF8/精确ObjectRef；取消后证据可读，但不授权执行。13项完整新函数verified，修改的3项既有完整助手同步本源码SHA；blob_repository与0006完整范围verified，cleanup_service/transport仍partial，完整应用blocked。ExecuteManualCleanup/RunWorker保持planned。
+- 2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。
+- 已核实际暂存源码、中文提交信息、GitHub代用作者/提交者与GPT-6合著署名；只修改本域，无私有连接、配置、凭据、本机用户路径或真实IP。准确记录提交后本工作区clean；主线实际集成SHA由根汇总，不把源码SHA冒充实际合入SHA。
+- 下一项：等根本轮顺序集成/实际树复检/push后，在下一轮派发中实施完整ExecuteManualCleanup与紧密worker边界；先读其合同、CleanupApproval、jobs租约与删除journal，按当前waiting/原任务回执/批准/notBefore/精确marks/最终源检查闭环，不在本轮补半截不可逆删除。
+
 # 持续目标第一轮：真实来源快照与人工计划取消前置（2026-10-16，已交付冻结）
 
 - 新授权持续目标已取代旧“两轮后停止”。基线685db4f48bb359f79a7501098204ccc5a4cde6b2，分支codex/media-goal-r1，独占modules/media/；源码`9647d143173e336dee465e7c5163a4b1d95d96b3`。本域不自行VPS或push，由根统一集成、审核及本轮push；交付后冻结等待下一轮派发。
