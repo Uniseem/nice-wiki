@@ -178,17 +178,17 @@ export interface paths {
         get?: never;
         /**
          * 心跳维持锁并处理长时间无输入
-         * @description 调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 heartbeatSequence与inputSequence分别严格单调；成功返回当前共享租约的最新序号，lastInputAt仅兼容显示，不能作为可信活跃时刻。
+         * @description 调用函数 content.RenewEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 heartbeatSequence与inputSequence分别严格单调；成功返回当前共享租约的最新序号，lastInputAt仅兼容显示，不能作为可信活跃时刻。 每次即时identity权威授权；同operationId完整规范摘要回放原结果，历史lease不重建内存。通知/本地审计/原回执同事务。
          */
         put: operations["renewEditLock"];
         /**
          * 打开文档自动获得内存编辑锁
-         * @description 调用函数 content.AcquireEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 调用函数 content.AcquireEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 每次即时identity权威授权；同operationId完整规范摘要回放原结果，历史lease不重建内存。通知/本地审计/原回执同事务。 别人持锁使用200的lease与writable=false展示安全姓名；LOCKED仅文档不可编辑/维护窗口等拒绝。
          */
         post: operations["acquireEditLock"];
         /**
          * 关闭页面释放自身锁
-         * @description 调用函数 content.ReleaseEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 调用函数 content.ReleaseEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 每次即时identity权威授权；同operationId完整规范摘要回放原结果，历史lease不重建内存。通知/本地审计/原回执同事务。
          */
         delete: operations["releaseEditLock"];
         options?: never;
@@ -207,7 +207,7 @@ export interface paths {
         put?: never;
         /**
          * 只有超管强制释放别人锁
-         * @description 调用函数 content.ForceReleaseEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 调用函数 content.ForceReleaseEditLock；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 每次即时identity权威授权；同operationId完整规范摘要回放原结果，历史lease不重建内存。通知/本地审计/原回执同事务。
          */
         post: operations["forceReleaseEditLock"];
         delete?: never;
@@ -1022,7 +1022,7 @@ export interface components {
             /** @description 共享账户租约的单调输入序号；严格前进才以服务接收时钟更新活跃 */
             inputSequence: number;
         };
-        /** @description 打开文档自动获得内存编辑锁的结果 */
+        /** @description 原操作快照；别人持有有效锁时成功返回lease和writable=false，显示名按纯文本；旧boot回执不恢复锁 */
         AcquireEditLockResult: {
             /** @description EditLease */
             lease: components["schemas"]["EditLease"];
@@ -2571,6 +2571,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description UNAUTHENTICATED：当前会话或委托版本失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
                 headers: {
@@ -2580,8 +2589,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
+            /** @description NOT_FOUND：本站真实文档不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH / LOCKED：原操作摘要冲突、租约/文档/epoch变化或维护写窗口关闭 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：原回执哈希或权威安全显示名不完整 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：身份/运行权威/存储不可用或提交决定尚待确认 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2616,6 +2652,15 @@ export interface operations {
                     "application/json": components["schemas"]["AcquireEditLockResult"];
                 };
             };
+            /** @description UNAUTHENTICATED：当前会话或委托版本失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
                 headers: {
@@ -2625,7 +2670,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description NOT_FOUND：资源不存在或在当前主体作用域中不可见 */
+            /** @description NOT_FOUND：本站真实文档不存在 */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2634,8 +2679,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
+            /** @description CONFLICT / VERSION_MISMATCH / LOCKED：原操作摘要冲突、租约/文档/epoch变化或维护写窗口关闭 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：原回执哈希或权威安全显示名不完整 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：身份/运行权威/存储不可用或提交决定尚待确认 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2670,8 +2733,53 @@ export interface operations {
                     "application/json": components["schemas"]["ReleaseEditLockResult"];
                 };
             };
+            /** @description UNAUTHENTICATED：当前会话或委托版本失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：本站真实文档不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH / LOCKED：原操作摘要冲突、租约/文档/epoch变化或维护写窗口关闭 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：原回执哈希或权威安全显示名不完整 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：身份/运行权威/存储不可用或提交决定尚待确认 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2706,6 +2814,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForceReleaseEditLockResult"];
                 };
             };
+            /** @description UNAUTHENTICATED：当前会话或委托版本失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
                 headers: {
@@ -2715,8 +2832,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变 */
+            /** @description NOT_FOUND：本站真实文档不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT / VERSION_MISMATCH / LOCKED：原操作摘要冲突、租约/文档/epoch变化或维护写窗口关闭 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：原回执哈希或权威安全显示名不完整 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：身份/运行权威/存储不可用或提交决定尚待确认 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

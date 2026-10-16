@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 156 个函数：约束 42 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 166 个函数：约束 42 个，参考 124 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -436,222 +436,6 @@ func PlanOldPathRedirects(input PlanOldPathRedirectsInput) (PlanOldPathRedirects
 - 幂等：确定性输入产生确定性输出；无持久副作用
 - 依赖：无
 
-## content.AcquireEditLock
-
-- 级别：约束
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：打开文档自动获得内存编辑锁
-
-```go
-func AcquireEditLock(ctx context.Context, op OperationContext, input AcquireEditLockInput) (AcquireEditLockResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `AcquireEditLockInput` | 打开文档自动获得内存编辑锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `AcquireEditLockResult` | 打开文档自动获得内存编辑锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；NOT_FOUND: 资源不存在或在当前主体作用域中不可见 |
-
-**步骤**
-
-1. content.edit与doc状态校验；单active content leader管理锁
-2. 空/过期锁分配bootId+单调fence，期限2分钟；别人持锁返回LOCKED与safe holderName只读
-3. 同账户不同tab可共享账户锁，不能绕过draftVersion CAS
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
-
-- 副作用：本进程锁表
-- 授权：content.edit
-- 并发：docId内存mutex，content只有单写leader
-- 幂等：同account/doc有效lease复用，不换fence
-- 依赖：`content.AcquireLease`
-- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
-
-## content.RenewEditLock
-
-- 级别：约束
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：心跳维持锁并处理长时间无输入
-
-```go
-func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLockInput) (RenewEditLockResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `RenewEditLockInput` | 心跳维持锁并处理长时间无输入的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `RenewEditLockResult` | 心跳维持锁并处理长时间无输入的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
-
-**步骤**
-
-1. 核holder/lease/boot/fence当前且未到期，未知或过期不能复活
-2. heartbeatSequence严格前进才延长2分钟TTL；inputSequence严格前进才按服务接收时钟更新LastInputAt并清空空闲提醒，客户端lastInputAt仅兼容显示
-3. 等或旧心跳仅回当前快照，不续TTL/更新活动；成功响应包含当前共享账户lease的两个最新序号，同账户多tab先衔接服务序号，不拆成每tab锁
-4. 提醒界点固定LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不能延后，超过界点的新输入不能续活；实际通知/审计仍由完整业务编排可靠发送
-
-**错误**
-
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
-
-- 副作用：内存lease时间
-- 授权：content.edit
-- 并发：doc mutex
-- 幂等：共享账户lease内心跳和输入序号各自单调；旧心跳不续TTL，已释放/过期/旧boot/fence永不复活
-- 依赖：`content.RenewLease`
-- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
-
-## content.ReleaseEditLock
-
-- 级别：约束
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：关闭页面释放自身锁
-
-```go
-func ReleaseEditLock(ctx context.Context, op OperationContext, input ReleaseEditLockInput) (ReleaseEditLockResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ReleaseEditLockInput` | 关闭页面释放自身锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReleaseEditLockResult` | 关闭页面释放自身锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配 |
-
-**步骤**
-
-1. 核lease归属与boot
-2. 锁仍匹配则原子删除；缺失视已释放
-3. 发编辑状态元数据，关闭beacon失败2分钟TTL兜底
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-
-- 副作用：内存锁删除
-- 授权：content.edit自身
-- 并发：doc mutex
-- 幂等：重复release无效果
-- 依赖：`content.ReleaseLease`
-- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
-
-## content.ForceReleaseEditLock
-
-- 级别：约束
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：只有超管强制释放别人锁
-
-```go
-func ForceReleaseEditLock(ctx context.Context, op OperationContext, input ForceReleaseEditLockInput) (ForceReleaseEditLockResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ForceReleaseEditLockInput` | 只有超管强制释放别人锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ForceReleaseEditLockResult` | 只有超管强制释放别人锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变 |
-
-**步骤**
-
-1. superadmin专属，不可分配给子账号
-2. 同doc mutex核expectedLease防释放已换人锁，增加fence并删锁
-3. 发强制只读事件；已自动保存草稿保留，旧fence所有后续save拒绝
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-
-- 副作用：内存fence/锁与审计outbox
-- 授权：superadmin
-- 并发：与save登记同doc mutex
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.ForceReleaseLease`
-- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
-
-## content.ExpireIdleLocks
-
-- 级别：参考
-- 文件：`modules/content/internal/edit_lock_service.go`
-- 作用：释放失联或提示后仍空闲锁
-
-```go
-func ExpireIdleLocks(ctx context.Context, op OperationContext, input ExpireIdleLocksInput) (ExpireIdleLocksResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ExpireIdleLocksInput` | 释放失联或提示后仍空闲锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ExpireIdleLocksResult` | 释放失联或提示后仍空闲锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 |
-
-**步骤**
-
-1. 逐doc mutex检查now≥expiresAt或15分钟提示+2分钟无输入
-2. 释放提高fence，标事件给在线编辑器
-3. 进程重启所有锁清空，bootId改变拒绝旧请求
-
-**错误**
-
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-
-- 副作用：锁表与元数据事件
-- 授权：service:content内存maintenance
-- 并发：逐docmutex避免全局阻塞
-- 幂等：已释放不重复事件
-- 依赖：`content.ExpireLeases`
-- 其他依赖说明：本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked
-
 ## content.NewEditLockManager
 
 - 级别：参考
@@ -681,7 +465,7 @@ func NewEditLockManager(store *Store) (*EditLockManager,error)
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.validateEditLeader`、`platform.ValidatePrivatePath`
 - 其他依赖说明：锁核心3种业务Input在本域按types.json投影；HTTP生成request DTO拆分路径字段，未来handler经严格边界显式映射，不依赖被裁剪的gen业务Input
 
@@ -714,7 +498,7 @@ func validateEditLeader(file *os.File) error
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.lockEditCell
@@ -746,7 +530,7 @@ func (manager *EditLockManager) lockEditCell(ctx context.Context, op OperationCo
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.ReadDocumentEditState`
 
 ## content.AcquireLease
@@ -769,17 +553,17 @@ func (manager *EditLockManager) AcquireLease(ctx context.Context,op OperationCon
 
 **步骤**
 
-1. 真实文档/删除/隔离检查后分配或复用账户共享租约，其他账户只读，不因开tab重置活动
+1. 经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 授权：仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.requireEditableDocument`、`content.refreshEditLease`、`content.advanceEditFence`
+- 幂等：统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存
+- 依赖：`content.executeEditLock`
 
 ## content.RenewLease
 
@@ -801,17 +585,17 @@ func (manager *EditLockManager) RenewLease(ctx context.Context,op OperationConte
 
 **步骤**
 
-1. 严格前进心跳才续2min，严格前进输入才以服务器接收时间更新活动；旧心跳不续期
+1. 经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 授权：仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.requireEditableDocument`、`content.matchEditLease`、`content.refreshEditLease`
+- 幂等：统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存
+- 依赖：`content.executeEditLock`
 
 ## content.ReleaseLease
 
@@ -833,17 +617,17 @@ func (manager *EditLockManager) ReleaseLease(ctx context.Context,op OperationCon
 
 **步骤**
 
-1. 只释放匹配holder/lease/boot的当前内存锁并提高fence；完整通知编排另行实施
+1. 经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 授权：仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.advanceEditFence`
+- 幂等：统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存
+- 依赖：`content.executeEditLock`
 
 ## content.ForceReleaseLease
 
@@ -865,17 +649,17 @@ func (manager *EditLockManager) ForceReleaseLease(ctx context.Context,op Operati
 
 **步骤**
 
-1. 已由超管编排授权后的expectedLease匹配内存强释，不实现未交付通知/审计/原回执
+1. 经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 授权：仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.editLockSnapshot`、`content.advanceEditFence`
+- 幂等：统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存
+- 依赖：`content.executeEditLock`
 
 ## content.ExpireLeases
 
@@ -884,7 +668,7 @@ func (manager *EditLockManager) ForceReleaseLease(ctx context.Context,op Operati
 - 作用：本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达
 
 ```go
-func (manager *EditLockManager) ExpireLeases(ctx context.Context,op OperationContext) ([]EditLockSnapshot,error)
+func (manager *EditLockManager) ExpireLeases(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot,error)
 ```
 
 **输入**
@@ -897,17 +681,17 @@ func (manager *EditLockManager) ExpireLeases(ctx context.Context,op OperationCon
 
 **步骤**
 
-1. 本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达
+1. 经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更
 
 **错误**
 
 - 无
 
 - 副作用：无
-- 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
+- 授权：仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.refreshEditLease`、`content.editLockSnapshot`
+- 幂等：统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存
+- 依赖：`content.expireEditLocks`
 
 ## content.AcquireSaveFence
 
@@ -938,7 +722,7 @@ func (manager *EditLockManager) AcquireSaveFence(ctx context.Context,op Operatio
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.AcquireDocumentFence`、`content.requireEditableDocument`、`content.matchEditLease`、`content.copyEditLease`、`content.ReleaseFence`
 
 ## content.AcquireDocumentFence
@@ -961,7 +745,8 @@ func (manager *EditLockManager) AcquireDocumentFence(ctx context.Context,op Oper
 
 **步骤**
 
-1. 为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态
+1. 同doc mutex内先按真实回执解决未知提交pending，不确定则失败关闭，不允许保存跨过未确认变更
+2. 为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态
 
 **错误**
 
@@ -970,8 +755,8 @@ func (manager *EditLockManager) AcquireDocumentFence(ctx context.Context,op Oper
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
-- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
+- 依赖：`content.lockEditCell`、`content.ReadDocumentEditState`、`content.resolvePendingEditLock`
 
 ## content.DocumentState
 
@@ -1002,7 +787,7 @@ func (guard *SaveFenceGuard) DocumentState() DocumentEditState
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.GuardLease
@@ -1034,7 +819,7 @@ func (guard *SaveFenceGuard) GuardLease() *gen.EditLease
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.copyEditLease`
 
 ## content.ReleaseFence
@@ -1066,7 +851,7 @@ func (guard *SaveFenceGuard) ReleaseFence()
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.matchEditLease
@@ -1098,7 +883,7 @@ func (manager *EditLockManager) matchEditLease(cell *editLeaseCell,op OperationC
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.editLeaseExpired`
 
 ## content.requireEditableDocument
@@ -1130,7 +915,7 @@ func requireEditableDocument(state DocumentEditState) error
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.advanceEditFence
@@ -1162,7 +947,7 @@ func advanceEditFence(cell *editLeaseCell) error
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.editLeaseExpired
@@ -1194,7 +979,7 @@ func editLeaseExpired(lease *gen.EditLease,now time.Time) bool
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.refreshEditLease
@@ -1226,7 +1011,7 @@ func refreshEditLease(cell *editLeaseCell,now time.Time) (bool,string,error)
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.editLeaseExpired`、`content.advanceEditFence`
 
 ## content.copyEditLease
@@ -1258,7 +1043,7 @@ func copyEditLease(lease *gen.EditLease) *gen.EditLease
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.editLockSnapshot
@@ -1290,7 +1075,7 @@ func (manager *EditLockManager) editLockSnapshot(op OperationContext,documentID 
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：`content.copyEditLease`
 
 ## content.CloseEditLocks
@@ -1322,7 +1107,7 @@ func (manager *EditLockManager) CloseEditLocks() error
 - 副作用：无
 - 授权：受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功
 - 并发：life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO
-- 幂等：共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责
+- 幂等：共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责
 - 依赖：无
 
 ## content.ReadDraft
@@ -4710,7 +4495,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
@@ -4983,6 +4768,7 @@ func OpenDatabase(ctx context.Context, dataRoot string, epoch Identifier) (*Stor
 
 1. 只有本次O_EXCL创建的新空库可将可信openedEpoch在首个schema迁移和迁移记录的同SQL事务初始化；既有未知/异代库失败关闭
 2. 逐层ValidatePrivatePath验证active与DB/sidecar，SQLite采用WAL/foreign_keys/busy_timeout3000/synchronousFULL单连接，成功后目录fsync
+3. 校验存储活动epoch后调用平台outbox.EnsureSchema建立共享outbox定义，不在迁移复制机制
 
 **错误**
 
@@ -5862,3 +5648,592 @@ func (s *Store) ReadDocumentEditState(ctx context.Context, op OperationContext, 
 - 并发：单active content进程拥有私有根；SQLite单连接及本域互斥；不持DB事务跨文件IO
 - 幂等：原scope/摘要回放首次材料；终局不降级，不推进head、不造COMMITTED资格
 - 依赖：`content.checkRevisionScope`、`content.contentStorageError`
+
+## content.AcquireEditLock
+
+- 级别：约束
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：打开文档自动获得内存编辑锁
+
+```go
+func AcquireEditLock(ctx context.Context, op OperationContext, input AcquireEditLockInput) (AcquireEditLockResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `AcquireEditLockInput` | 打开文档自动获得内存编辑锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `AcquireEditLockResult` | 打开文档自动获得内存编辑锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；UNAUTHENTICATED: 权威会话或权限版本已撤销；CONFLICT: operationId已绑定另一动作/文档/规范摘要；VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化；DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending；INTEGRITY_ERROR: 原回执哈希或安全姓名不完整 |
+
+**步骤**
+
+1. 以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示
+2. 规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT
+3. 仅draft/published且未隔离可编辑；不存在NOT_FOUND
+4. 空/过期分配bootId+单调fence与2分钟TTL；有效别人持锁返回既有成功DTO lease+writable=false，安全姓名来自其identity授权时快照
+5. 同账户多tab共享lease，不重置活跃时刻/序号/fence，不能绕过draftVersion CAS
+6. 无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核
+7. 候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决
+8. 重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
+- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
+- `UNAUTHENTICATED`：权威会话或权限版本已撤销（不可重试）
+- `CONFLICT`：operationId已绑定另一动作/文档/规范摘要（不可重试）
+- `VERSION_MISMATCH`：doc/deleteFence/dataEpoch或待释lease已变化（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份/运行权威或私有存储不可用，未知提交保持pending（可重试）
+- `INTEGRITY_ERROR`：原回执哈希或安全姓名不完整（不可重试）
+
+- 副作用：本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head
+- 授权：permission：content.edit；rule：当前管理账户、同站点content.edit即时授权；release另核当前lease归属
+- 并发：先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决
+- 幂等：caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件
+- 依赖：`content.editLockRuntimeFromContext`、`content.authorizeEditLock`、`content.AcquireLease`
+- 其他依赖说明：完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成；身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取
+
+## content.RenewEditLock
+
+- 级别：约束
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：心跳维持锁并处理长时间无输入
+
+```go
+func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLockInput) (RenewEditLockResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `RenewEditLockInput` | 心跳维持锁并处理长时间无输入的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `RenewEditLockResult` | 心跳维持锁并处理长时间无输入的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 权威会话或权限版本已撤销；CONFLICT: operationId已绑定另一动作/文档/规范摘要；VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化；DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending；INTEGRITY_ERROR: 原回执哈希或安全姓名不完整；NOT_FOUND: 本站真实文档不存在 |
+
+**步骤**
+
+1. 以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示
+2. 规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT
+3. 核holder/lease/boot/fence当前且未到期，未知或过期不能复活
+4. heartbeatSequence严格前进才延长2分钟TTL；inputSequence严格前进才按服务接收时钟更新LastInputAt并清空空闲提醒，客户端lastInputAt仅兼容显示
+5. 等或旧心跳仅回当前快照，不续TTL/更新活动；成功响应包含当前共享账户lease的两个最新序号，同账户多tab先衔接服务序号，不拆成每tab锁
+6. 提醒界点固定LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不能延后，超过界点的新输入不能续活；实际通知/审计仍由完整业务编排可靠发送
+7. 无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核
+8. 候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决
+9. 重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成
+
+**错误**
+
+- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `UNAUTHENTICATED`：权威会话或权限版本已撤销（不可重试）
+- `CONFLICT`：operationId已绑定另一动作/文档/规范摘要（不可重试）
+- `VERSION_MISMATCH`：doc/deleteFence/dataEpoch或待释lease已变化（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份/运行权威或私有存储不可用，未知提交保持pending（可重试）
+- `INTEGRITY_ERROR`：原回执哈希或安全姓名不完整（不可重试）
+- `NOT_FOUND`：本站真实文档不存在（不可重试）
+
+- 副作用：本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head
+- 授权：permission：content.edit；rule：当前管理账户、同站点content.edit即时授权；release另核当前lease归属
+- 并发：先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决
+- 幂等：caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件
+- 依赖：`content.editLockRuntimeFromContext`、`content.authorizeEditLock`、`content.RenewLease`
+- 其他依赖说明：完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成；身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取
+
+## content.ReleaseEditLock
+
+- 级别：约束
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：关闭页面释放自身锁
+
+```go
+func ReleaseEditLock(ctx context.Context, op OperationContext, input ReleaseEditLockInput) (ReleaseEditLockResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ReleaseEditLockInput` | 关闭页面释放自身锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReleaseEditLockResult` | 关闭页面释放自身锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；UNAUTHENTICATED: 权威会话或权限版本已撤销；CONFLICT: operationId已绑定另一动作/文档/规范摘要；VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化；DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending；INTEGRITY_ERROR: 原回执哈希或安全姓名不完整；LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭；NOT_FOUND: 本站真实文档不存在 |
+
+**步骤**
+
+1. 以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示
+2. 规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT
+3. 核lease归属与boot
+4. 锁仍匹配则原子删除；缺失视已释放
+5. 发编辑状态元数据，关闭beacon失败2分钟TTL兜底
+6. 无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核
+7. 候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决
+8. 重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `UNAUTHENTICATED`：权威会话或权限版本已撤销（不可重试）
+- `CONFLICT`：operationId已绑定另一动作/文档/规范摘要（不可重试）
+- `VERSION_MISMATCH`：doc/deleteFence/dataEpoch或待释lease已变化（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份/运行权威或私有存储不可用，未知提交保持pending（可重试）
+- `INTEGRITY_ERROR`：原回执哈希或安全姓名不完整（不可重试）
+- `LOCKED`：编辑租约失效、文档不接受编辑或维护窗口关闭（不可重试）
+- `NOT_FOUND`：本站真实文档不存在（不可重试）
+
+- 副作用：本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head
+- 授权：permission：content.edit；rule：当前管理账户、同站点content.edit即时授权；release另核当前lease归属
+- 并发：先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决
+- 幂等：caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件
+- 依赖：`content.editLockRuntimeFromContext`、`content.authorizeEditLock`、`content.ReleaseLease`
+- 其他依赖说明：完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成；身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取
+
+## content.ForceReleaseEditLock
+
+- 级别：约束
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：只有超管强制释放别人锁
+
+```go
+func ForceReleaseEditLock(ctx context.Context, op OperationContext, input ForceReleaseEditLockInput) (ForceReleaseEditLockResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ForceReleaseEditLockInput` | 只有超管强制释放别人锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ForceReleaseEditLockResult` | 只有超管强制释放别人锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；UNAUTHENTICATED: 权威会话或权限版本已撤销；CONFLICT: operationId已绑定另一动作/文档/规范摘要；DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending；INTEGRITY_ERROR: 原回执哈希或安全姓名不完整；LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭；NOT_FOUND: 本站真实文档不存在 |
+
+**步骤**
+
+1. 以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示
+2. 规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT
+3. superadmin专属，不可分配给子账号
+4. 同doc mutex核expectedLease防释放已换人锁，增加fence并删锁
+5. 发强制只读事件；已自动保存草稿保留，旧fence所有后续save拒绝
+6. 无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核
+7. 候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决
+8. 重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
+- `UNAUTHENTICATED`：权威会话或权限版本已撤销（不可重试）
+- `CONFLICT`：operationId已绑定另一动作/文档/规范摘要（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份/运行权威或私有存储不可用，未知提交保持pending（可重试）
+- `INTEGRITY_ERROR`：原回执哈希或安全姓名不完整（不可重试）
+- `LOCKED`：编辑租约失效、文档不接受编辑或维护窗口关闭（不可重试）
+- `NOT_FOUND`：本站真实文档不存在（不可重试）
+
+- 副作用：本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head
+- 授权：permission：superadmin；rule：唯一超管即时权威授权；不可分配给子账号
+- 并发：先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决
+- 幂等：caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件
+- 依赖：`content.editLockRuntimeFromContext`、`content.authorizeEditLock`、`content.ForceReleaseLease`
+- 其他依赖说明：完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成；身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取
+
+## content.ExpireIdleLocks
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：释放失联或提示后仍空闲锁
+
+```go
+func ExpireIdleLocks(ctx context.Context, op OperationContext, input ExpireIdleLocksInput) (ExpireIdleLocksResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ExpireIdleLocksInput` | 释放失联或提示后仍空闲锁的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ExpireIdleLocksResult` | 释放失联或提示后仍空闲锁的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；UNAUTHENTICATED: 权威会话或权限版本已撤销；CONFLICT: operationId已绑定另一动作/文档/规范摘要；VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化；DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending；LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭；NOT_FOUND: 本站真实文档不存在 |
+
+**步骤**
+
+1. 仅本站content纯服务后台；输入now来自本域调度器服务时钟，同operationId重试保留该时刻
+2. 逐doc mutex检查expiresAt或LastInputAt+17分钟绝对界点；15分钟提醒固定LastInputAt+15分钟，检测延迟不延后
+3. 每篇候选提高fence/清租约或提醒，与本地审计/状态事件outbox/原回执同短SQL事务提交；失败不安装候选，未知提交按pending回执解决
+4. 同一后台operationId包含每篇独立scope和now摘要，局部失败重试纳入已完成文档并回放原结果；不重复事件；单次最多10000变化，后续调度继续
+5. 只枚举本站活跃cell；进程重启不从回执重建锁，bootId变化拒旧请求。通知在线消费与后台调度仍由启动装配负责
+
+**错误**
+
+- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `UNAUTHENTICATED`：权威会话或权限版本已撤销（不可重试）
+- `CONFLICT`：operationId已绑定另一动作/文档/规范摘要（不可重试）
+- `VERSION_MISMATCH`：doc/deleteFence/dataEpoch或待释lease已变化（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份/运行权威或私有存储不可用，未知提交保持pending（可重试）
+- `LOCKED`：编辑租约失效、文档不接受编辑或维护窗口关闭（不可重试）
+- `NOT_FOUND`：本站真实文档不存在（不可重试）
+
+- 副作用：本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head
+- 授权：permission：service；rule：callerService=content、actor.kind=service、actor.subjectId=content；仅本域后台且本站scope
+- 并发：先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决
+- 幂等：逐doc原scope+动作+now摘要；同操作局部重试回放已完成结果，不重复通知；重启租约保持清空
+- 依赖：`content.editLockRuntimeFromContext`、`content.ExpireLeases`
+- 其他依赖说明：完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成；身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取
+
+## content.WithEditLockRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：装配本域manager、identity客户端与平台当前写窗口，不导入他域业务
+
+```go
+func WithEditLockRuntime(ctx context.Context, runtime EditLockRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配本域manager、identity客户端与平台当前写窗口，不导入他域业务
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：无
+
+## content.editLockRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：缺依赖失败关闭，不伪造完整用例成功
+
+```go
+func editLockRuntimeFromContext(ctx context.Context) (EditLockRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 缺依赖失败关闭，不伪造完整用例成功
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：无
+
+## content.authorizeEditLock
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：即时identity授权并核同主体/site/session/权限版本；安全姓名仅identity权威且按纯文本显示
+
+```go
+func authorizeEditLock(ctx context.Context, op OperationContext, client *gen.IdentityClient, permission string, action string, documentID Identifier) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 即时identity授权并核同主体/site/session/权限版本；安全姓名仅identity权威且按纯文本显示
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`identity:checkAuthorization`
+
+## content.executeEditLock
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：原scope摘要回放→平台写窗口→同doc候选→真实事务→确认后内存安装；未知提交pending保持失败关闭
+
+```go
+func (manager *EditLockManager) executeEditLock(ctx context.Context, op OperationContext, command editLockCommand) (EditLockSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原scope摘要回放→平台写窗口→同doc候选→真实事务→确认后内存安装；未知提交pending保持失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.editLockRuntimeFromContext`、`content.lockEditCell`、`content.resolvePendingEditLock`、`content.readEditLockReceipt`、`content.ReadDocumentEditState`、`content.copyEditLease`、`content.planEditLock`、`content.commitEditLock`、`platform.NewWriteContext`
+
+## content.planEditLock
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：只改变候选：共享lease/单调序号/固定15与17分钟界点/释放及fence；不写权威内存与SQL
+
+```go
+func (manager *EditLockManager) planEditLock(op OperationContext, command editLockCommand, state DocumentEditState, candidate *editLeaseCell, now time.Time) (EditLockSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只改变候选：共享lease/单调序号/固定15与17分钟界点/释放及fence；不写权威内存与SQL
+2. 候选fence耗尽仅返回LOCKED，不安装候选或悄悄清权威lease；旧租约依原到期时间失效，保存仍纯核当前fence/期限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.requireEditableDocument`、`content.refreshEditLease`、`content.advanceEditFence`、`content.matchEditLease`、`content.editLockSnapshot`
+
+## content.resolvePendingEditLock
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：未知提交仅按原回执及候选hash安装或丢弃；读失败保留pending，不允许保存越过
+
+```go
+func (manager *EditLockManager) resolvePendingEditLock(ctx context.Context, cell *editLeaseCell) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 未知提交仅按原回执及候选hash安装或丢弃；读失败保留pending，不允许保存越过
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.readEditLockReceipt`
+
+## content.readEditLockReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：完整scope与摘要查原结果并核hash/文档/site，异摘要CONFLICT；不重建内存锁
+
+```go
+func (s *Store) readEditLockReceipt(ctx context.Context, query editLockQuery, key editLockReceiptKey) (EditLockSnapshot, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整scope与摘要查原结果并核hash/文档/site，异摘要CONFLICT；不重建内存锁
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.decodeStorageJSON`、`content.contentStorageError`
+
+## content.commitEditLock
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：短SQL事务再核全局op冲突/文档生命周期deleteFence隔离，原回执+通知+审计原子；仅Commit尝试后错误返回hash供pending解决
+
+```go
+func (s *Store) commitEditLock(ctx context.Context, key editLockReceiptKey, state DocumentEditState, snapshot EditLockSnapshot, previous *gen.EditLease) (Hash,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 短SQL事务再核全局op冲突/文档生命周期deleteFence隔离，原回执+通知+审计原子；仅Commit尝试后错误返回hash供pending解决
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.readEditLockReceipt`、`content.enqueueEditLockChange`、`content.contentStorageError`
+
+## content.enqueueEditLockChange
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：同事务递增跨boot持久事件revision并写最小状态outbox及本地审计，不含姓名/leaseId/正文
+
+```go
+func (s *Store) enqueueEditLockChange(ctx context.Context, tx *sql.Tx, op OperationContext, snapshot EditLockSnapshot, previous *gen.EditLease) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务递增跨boot持久事件revision并写最小状态outbox及本地审计，不含姓名/leaseId/正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`platform.EnqueueEvent`、`content.contentStorageError`
+
+## content.expireEditLocks
+
+- 级别：参考
+- 文件：`modules/content/internal/edit_lock_operations.go`
+- 作用：逐本站活跃doc与同操作已完成scope交集/并集回放，失败不重复已提交变化；固定调度now，最多10000个状态变化
+
+```go
+func (manager *EditLockManager) expireEditLocks(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐本站活跃doc与同操作已完成scope交集/并集回放，失败不重复已提交变化；固定调度now，最多10000个状态变化
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现
+- 并发：同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO
+- 幂等：同scope规范摘要原回执，不重建重启后租约
+- 依赖：`content.checkRevisionScope`、`content.executeEditLock`、`content.contentStorageError`

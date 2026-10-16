@@ -18,6 +18,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/content/migrations"
 )
 
@@ -103,6 +104,9 @@ func OpenDatabase(ctx context.Context, dataRoot string, epoch Identifier) (*Stor
 	var storedEpoch string
 	if err := db.QueryRowContext(ctx, `SELECT data_epoch FROM store_identity WHERE singleton=1`).Scan(&storedEpoch); err != nil || storedEpoch != epoch {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "正文库活动代次缺失或不一致")
+	}
+	if err := outbox.EnsureSchema(ctx, db); err != nil {
+		return nil, err
 	}
 	for _, name := range []string{"content.db", "content.db-wal", "content.db-shm"} {
 		if err := lifecycle.ValidatePrivatePath(filepath.Join(root, name), "regular-file", true); err != nil {

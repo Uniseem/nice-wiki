@@ -16,3 +16,6 @@ D30第一版不做批量导入；粘贴是编辑器交互。D54公开heading不�
 首个可信新库的epoch与第1迁移及记录同SQL事务提交；JSONL追加/fsync与所有journal扫描共享RWMutex，读快照与追加互斥，锁内不取SQL/Store互斥。journal使用标准NOFOLLOW并在打开前后/读写后验证SameFile及公共私有路径，不持DB事务跨文件IO。
 
 持久prepared/committed决定必须有完整同材料JSONL；Find缺日志即完整性失败。启动反向核对全部已准备/提交索引，不能只扫描现存日志而漏丢失/截空记录；唯一允许无日志的是尚未append的preparing且没有提交资格，缺日志不猜补。
+
+
+编辑锁原操作回执属于不可变历史结果，不能作为启动重建租约的来源；进程重启和恢复均清空锁并改bootId。原回执重放携旧boot不会恢复写资格。当前boot的未知SQL提交pending会阻止同doc后续编辑/保存，只有真实原回执和候选hash一致才安装，确定没有回执才丢弃。通知生产者outbox/本地审计已编写候选，完整转发与在线消费尚待后续装配，未做业务验收。

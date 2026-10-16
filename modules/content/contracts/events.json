@@ -37,6 +37,18 @@
       "delivery": "at-least-once",
       "ordering": "documentId sourceRevision单调",
       "idempotency": "eventId+sourceVersion去重"
+    },
+    {
+      "name": "content.edit-lock.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/EditLockChangedPayload"
+      },
+      "purpose": "编辑状态/15分钟提醒/强释只读元数据，原回执及本地审计同事务排队；在线消费另行装配",
+      "delivery": "at-least-once",
+      "ordering": "本站documentId的信封revision持久单调跨boot；payload fence仅本boot，不用事件替代同步保存授权",
+      "idempotency": "eventId唯一；同scope原请求回执不重发，消费者按documentId/revision去重并拒旧epoch"
     }
   ]
 }

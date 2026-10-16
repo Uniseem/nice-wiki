@@ -972,434 +972,8 @@
     {
       "path": "modules/content/internal/edit_lock_service.go",
       "kind": "handwritten",
-      "purpose": "打开文档自动获得内存编辑锁",
+      "purpose": "单leader内存租约、共享序号和同文档提交guard；改变租约统一经可靠操作事务",
       "functions": [
-        {
-          "id": "content.AcquireEditLock",
-          "name": "AcquireEditLock",
-          "signature": "func AcquireEditLock(ctx context.Context, op OperationContext, input AcquireEditLockInput) (AcquireEditLockResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "AcquireEditLockInput",
-              "description": "打开文档自动获得内存编辑锁的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "AcquireEditLockResult",
-              "description": "打开文档自动获得内存编辑锁的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
-                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见"
-              ]
-            }
-          ],
-          "purpose": "打开文档自动获得内存编辑锁",
-          "steps": [
-            "content.edit与doc状态校验；单active content leader管理锁",
-            "空/过期锁分配bootId+单调fence，期限2分钟；别人持锁返回LOCKED与safe holderName只读",
-            "同账户不同tab可共享账户锁，不能绕过draftVersion CAS"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "when": "资源不存在或在当前主体作用域中不可见",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程锁表"
-          ],
-          "authorization": "content.edit",
-          "concurrency": "docId内存mutex，content只有单写leader",
-          "idempotency": "同account/doc有效lease复用，不换fence",
-          "dependencies": [
-            "content.AcquireLease"
-          ],
-          "resources": [
-            "本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked"
-          ],
-          "contract": "binding"
-        },
-        {
-          "id": "content.RenewEditLock",
-          "name": "RenewEditLock",
-          "signature": "func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLockInput) (RenewEditLockResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "RenewEditLockInput",
-              "description": "心跳维持锁并处理长时间无输入的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "RenewEditLockResult",
-              "description": "心跳维持锁并处理长时间无输入的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
-                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值"
-              ]
-            }
-          ],
-          "purpose": "心跳维持锁并处理长时间无输入",
-          "steps": [
-            "核holder/lease/boot/fence当前且未到期，未知或过期不能复活",
-            "heartbeatSequence严格前进才延长2分钟TTL；inputSequence严格前进才按服务接收时钟更新LastInputAt并清空空闲提醒，客户端lastInputAt仅兼容显示",
-            "等或旧心跳仅回当前快照，不续TTL/更新活动；成功响应包含当前共享账户lease的两个最新序号，同账户多tab先衔接服务序号，不拆成每tab锁",
-            "提醒界点固定LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不能延后，超过界点的新输入不能续活；实际通知/审计仍由完整业务编排可靠发送"
-          ],
-          "errors": [
-            {
-              "code": "LOCKED",
-              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "内存lease时间"
-          ],
-          "authorization": "content.edit",
-          "concurrency": "doc mutex",
-          "idempotency": "共享账户lease内心跳和输入序号各自单调；旧心跳不续TTL，已释放/过期/旧boot/fence永不复活",
-          "dependencies": [
-            "content.RenewLease"
-          ],
-          "resources": [
-            "本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked"
-          ],
-          "contract": "binding"
-        },
-        {
-          "id": "content.ReleaseEditLock",
-          "name": "ReleaseEditLock",
-          "signature": "func ReleaseEditLock(ctx context.Context, op OperationContext, input ReleaseEditLockInput) (ReleaseEditLockResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ReleaseEditLockInput",
-              "description": "关闭页面释放自身锁的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReleaseEditLockResult",
-              "description": "关闭页面释放自身锁的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配"
-              ]
-            }
-          ],
-          "purpose": "关闭页面释放自身锁",
-          "steps": [
-            "核lease归属与boot",
-            "锁仍匹配则原子删除；缺失视已释放",
-            "发编辑状态元数据，关闭beacon失败2分钟TTL兜底"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "内存锁删除"
-          ],
-          "authorization": "content.edit自身",
-          "concurrency": "doc mutex",
-          "idempotency": "重复release无效果",
-          "dependencies": [
-            "content.ReleaseLease"
-          ],
-          "resources": [
-            "本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked"
-          ],
-          "contract": "binding"
-        },
-        {
-          "id": "content.ForceReleaseEditLock",
-          "name": "ForceReleaseEditLock",
-          "signature": "func ForceReleaseEditLock(ctx context.Context, op OperationContext, input ForceReleaseEditLockInput) (ForceReleaseEditLockResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ForceReleaseEditLockInput",
-              "description": "只有超管强制释放别人锁的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ForceReleaseEditLockResult",
-              "description": "只有超管强制释放别人锁的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
-                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变"
-              ]
-            }
-          ],
-          "purpose": "只有超管强制释放别人锁",
-          "steps": [
-            "superadmin专属，不可分配给子账号",
-            "同doc mutex核expectedLease防释放已换人锁，增加fence并删锁",
-            "发强制只读事件；已自动保存草稿保留，旧fence所有后续save拒绝"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "内存fence/锁与审计outbox"
-          ],
-          "authorization": "superadmin",
-          "concurrency": "与save登记同doc mutex",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": [
-            "content.ForceReleaseLease"
-          ],
-          "resources": [
-            "本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked"
-          ],
-          "contract": "binding"
-        },
-        {
-          "id": "content.ExpireIdleLocks",
-          "name": "ExpireIdleLocks",
-          "signature": "func ExpireIdleLocks(ctx context.Context, op OperationContext, input ExpireIdleLocksInput) (ExpireIdleLocksResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ExpireIdleLocksInput",
-              "description": "释放失联或提示后仍空闲锁的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ExpireIdleLocksResult",
-              "description": "释放失联或提示后仍空闲锁的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布"
-              ]
-            }
-          ],
-          "purpose": "释放失联或提示后仍空闲锁",
-          "steps": [
-            "逐doc mutex检查now≥expiresAt或15分钟提示+2分钟无输入",
-            "释放提高fence，标事件给在线编辑器",
-            "进程重启所有锁清空，bootId改变拒绝旧请求"
-          ],
-          "errors": [
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "锁表与元数据事件"
-          ],
-          "authorization": "service:content内存maintenance",
-          "concurrency": "逐docmutex避免全局阻塞",
-          "idempotency": "已释放不重复事件",
-          "dependencies": [
-            "content.ExpireLeases"
-          ],
-          "resources": [
-            "本轮仅真实参考核心；约束用例即时授权/安全账户名/可靠状态通知/审计及原回执未完成，保持blocked"
-          ],
-          "contract": "reference"
-        },
         {
           "id": "content.NewEditLockManager",
           "name": "NewEditLockManager",
@@ -1414,7 +988,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.validateEditLeader",
             "platform.ValidatePrivatePath"
@@ -1438,7 +1012,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1457,7 +1031,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.ReadDocumentEditState"
           ],
@@ -1472,20 +1046,15 @@
           "outputs": [],
           "purpose": "真实文档/删除/隔离检查后分配或复用账户共享租约，其他账户只读，不因开tab重置活动",
           "steps": [
-            "真实文档/删除/隔离检查后分配或复用账户共享租约，其他账户只读，不因开tab重置活动"
+            "经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更"
           ],
           "errors": [],
           "sideEffects": [],
-          "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
+          "authorization": "仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存",
           "dependencies": [
-            "content.lockEditCell",
-            "content.ReadDocumentEditState",
-            "content.editLockSnapshot",
-            "content.requireEditableDocument",
-            "content.refreshEditLease",
-            "content.advanceEditFence"
+            "content.executeEditLock"
           ],
           "resources": [],
           "contract": "reference"
@@ -1498,20 +1067,15 @@
           "outputs": [],
           "purpose": "严格前进心跳才续2min，严格前进输入才以服务器接收时间更新活动；旧心跳不续期",
           "steps": [
-            "严格前进心跳才续2min，严格前进输入才以服务器接收时间更新活动；旧心跳不续期"
+            "经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更"
           ],
           "errors": [],
           "sideEffects": [],
-          "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
+          "authorization": "仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存",
           "dependencies": [
-            "content.lockEditCell",
-            "content.ReadDocumentEditState",
-            "content.editLockSnapshot",
-            "content.requireEditableDocument",
-            "content.matchEditLease",
-            "content.refreshEditLease"
+            "content.executeEditLock"
           ],
           "resources": [],
           "contract": "reference"
@@ -1524,18 +1088,15 @@
           "outputs": [],
           "purpose": "只释放匹配holder/lease/boot的当前内存锁并提高fence；完整通知编排另行实施",
           "steps": [
-            "只释放匹配holder/lease/boot的当前内存锁并提高fence；完整通知编排另行实施"
+            "经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更"
           ],
           "errors": [],
           "sideEffects": [],
-          "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
+          "authorization": "仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存",
           "dependencies": [
-            "content.lockEditCell",
-            "content.ReadDocumentEditState",
-            "content.editLockSnapshot",
-            "content.advanceEditFence"
+            "content.executeEditLock"
           ],
           "resources": [],
           "contract": "reference"
@@ -1548,18 +1109,15 @@
           "outputs": [],
           "purpose": "已由超管编排授权后的expectedLease匹配内存强释，不实现未交付通知/审计/原回执",
           "steps": [
-            "已由超管编排授权后的expectedLease匹配内存强释，不实现未交付通知/审计/原回执"
+            "经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更"
           ],
           "errors": [],
           "sideEffects": [],
-          "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
+          "authorization": "仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存",
           "dependencies": [
-            "content.lockEditCell",
-            "content.ReadDocumentEditState",
-            "content.editLockSnapshot",
-            "content.advanceEditFence"
+            "content.executeEditLock"
           ],
           "resources": [],
           "contract": "reference"
@@ -1567,21 +1125,20 @@
         {
           "id": "content.ExpireLeases",
           "name": "ExpireLeases",
-          "signature": "func (manager *EditLockManager) ExpireLeases(ctx context.Context,op OperationContext) ([]EditLockSnapshot,error)",
+          "signature": "func (manager *EditLockManager) ExpireLeases(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达",
           "steps": [
-            "本域后台按真实服务时钟逐doc过期或提醒并返回实际变化，未声明通知已经送达"
+            "经完整用例即时授权后，委托统一可靠编辑操作编排，不直接暴露裸内存变更"
           ],
           "errors": [],
           "sideEffects": [],
-          "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
+          "authorization": "仅已即时授权完整本域用例，不能直接绑定HTTP；ExpireLeases仅本域后台",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "统一原scope/规范摘要回执，提交后才安装候选，未知提交pending阻止保存",
           "dependencies": [
-            "content.refreshEditLease",
-            "content.editLockSnapshot"
+            "content.expireEditLocks"
           ],
           "resources": [],
           "contract": "reference"
@@ -1600,7 +1157,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.AcquireDocumentFence",
             "content.requireEditableDocument",
@@ -1619,16 +1176,18 @@
           "outputs": [],
           "purpose": "为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态",
           "steps": [
+            "同doc mutex内先按真实回执解决未知提交pending，不确定则失败关闭，不允许保存跨过未确认变更",
             "为已授权生命周期短事务持同doc mutex与manager生命周期读锁，并读取真实持久文档状态"
           ],
           "errors": [],
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.lockEditCell",
-            "content.ReadDocumentEditState"
+            "content.ReadDocumentEditState",
+            "content.resolvePendingEditLock"
           ],
           "resources": [],
           "contract": "reference"
@@ -1647,7 +1206,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1666,7 +1225,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.copyEditLease"
           ],
@@ -1687,7 +1246,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1706,7 +1265,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.editLeaseExpired"
           ],
@@ -1727,7 +1286,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1746,7 +1305,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1765,7 +1324,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1784,7 +1343,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.editLeaseExpired",
             "content.advanceEditFence"
@@ -1806,7 +1365,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -1825,7 +1384,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [
             "content.copyEditLease"
           ],
@@ -1846,7 +1405,7 @@
           "sideEffects": [],
           "authorization": "受信已即时授权本域用例；姓名必须identity权威，核心不冒充HTTP与通知/审计成功",
           "concurrency": "life读锁→doc mutex→短SQL读取；guard持锁到Release，Close取life写锁排空后释放leader，不跨HTTP/文件IO",
-          "idempotency": "共享账户lease/boot及单调fence/心跳/输入序号，完整原回执由未完成handler编排负责",
+          "idempotency": "共享账户lease/boot与单调fence/序号；完整原回执由统一可靠用例编排负责",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -7626,7 +7185,8 @@
             "content.ConfigureRevisionStorage",
             "content.WithRevisionFileStore",
             "content.NewEditLockManager",
-            "content.CloseEditLocks"
+            "content.CloseEditLocks",
+            "content.WithEditLockRuntime"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8157,7 +7717,8 @@
           "purpose": "打开私有SQLite、核安全路径、执行只追加迁移及严格绑定dataEpoch",
           "steps": [
             "只有本次O_EXCL创建的新空库可将可信openedEpoch在首个schema迁移和迁移记录的同SQL事务初始化；既有未知/异代库失败关闭",
-            "逐层ValidatePrivatePath验证active与DB/sidecar，SQLite采用WAL/foreign_keys/busy_timeout3000/synchronousFULL单连接，成功后目录fsync"
+            "逐层ValidatePrivatePath验证active与DB/sidecar，SQLite采用WAL/foreign_keys/busy_timeout3000/synchronousFULL单连接，成功后目录fsync",
+            "校验存储活动epoch后调用平台outbox.EnsureSchema建立共享outbox定义，不在迁移复制机制"
           ],
           "errors": [],
           "sideEffects": [],
@@ -8768,6 +8329,901 @@
       "path": "modules/content/migrations/0002_document_edit_state.sql",
       "kind": "handwritten",
       "purpose": "追加documents身份/生命周期/删除fence表，不插入文档或持久租约",
+      "functions": []
+    },
+    {
+      "path": "modules/content/internal/edit_lock_operations.go",
+      "kind": "handwritten",
+      "purpose": "完整编辑锁用例、即时授权与安全姓名、可靠状态事件/本地审计/原回执及未知提交隔离",
+      "functions": [
+        {
+          "id": "content.AcquireEditLock",
+          "name": "AcquireEditLock",
+          "signature": "func AcquireEditLock(ctx context.Context, op OperationContext, input AcquireEditLockInput) (AcquireEditLockResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "AcquireEditLockInput",
+              "description": "打开文档自动获得内存编辑锁的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "AcquireEditLockResult",
+              "description": "打开文档自动获得内存编辑锁的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "NOT_FOUND: 资源不存在或在当前主体作用域中不可见",
+                "UNAUTHENTICATED: 权威会话或权限版本已撤销",
+                "CONFLICT: operationId已绑定另一动作/文档/规范摘要",
+                "VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化",
+                "DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending",
+                "INTEGRITY_ERROR: 原回执哈希或安全姓名不完整"
+              ]
+            }
+          ],
+          "purpose": "打开文档自动获得内存编辑锁",
+          "steps": [
+            "以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示",
+            "规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT",
+            "仅draft/published且未隔离可编辑；不存在NOT_FOUND",
+            "空/过期分配bootId+单调fence与2分钟TTL；有效别人持锁返回既有成功DTO lease+writable=false，安全姓名来自其identity授权时快照",
+            "同账户多tab共享lease，不重置活跃时刻/序号/fence，不能绕过draftVersion CAS",
+            "无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核",
+            "候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决",
+            "重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "权威会话或权限版本已撤销",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId已绑定另一动作/文档/规范摘要",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "doc/deleteFence/dataEpoch或待释lease已变化",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份/运行权威或私有存储不可用，未知提交保持pending",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "原回执哈希或安全姓名不完整",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head"
+          ],
+          "authorization": {
+            "permission": "content.edit",
+            "rule": "当前管理账户、同站点content.edit即时授权；release另核当前lease归属"
+          },
+          "concurrency": "先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决",
+          "idempotency": "caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.authorizeEditLock",
+            "content.AcquireLease"
+          ],
+          "resources": [
+            "完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成",
+            "身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "content.RenewEditLock",
+          "name": "RenewEditLock",
+          "signature": "func RenewEditLock(ctx context.Context, op OperationContext, input RenewEditLockInput) (RenewEditLockResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "RenewEditLockInput",
+              "description": "心跳维持锁并处理长时间无输入的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RenewEditLockResult",
+              "description": "心跳维持锁并处理长时间无输入的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+                "UNAUTHENTICATED: 权威会话或权限版本已撤销",
+                "CONFLICT: operationId已绑定另一动作/文档/规范摘要",
+                "VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化",
+                "DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending",
+                "INTEGRITY_ERROR: 原回执哈希或安全姓名不完整",
+                "NOT_FOUND: 本站真实文档不存在"
+              ]
+            }
+          ],
+          "purpose": "心跳维持锁并处理长时间无输入",
+          "steps": [
+            "以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示",
+            "规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT",
+            "核holder/lease/boot/fence当前且未到期，未知或过期不能复活",
+            "heartbeatSequence严格前进才延长2分钟TTL；inputSequence严格前进才按服务接收时钟更新LastInputAt并清空空闲提醒，客户端lastInputAt仅兼容显示",
+            "等或旧心跳仅回当前快照，不续TTL/更新活动；成功响应包含当前共享账户lease的两个最新序号，同账户多tab先衔接服务序号，不拆成每tab锁",
+            "提醒界点固定LastInputAt+15分钟，LastInputAt+17分钟绝对失效；检测延迟不能延后，超过界点的新输入不能续活；实际通知/审计仍由完整业务编排可靠发送",
+            "无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核",
+            "候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决",
+            "重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "权威会话或权限版本已撤销",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId已绑定另一动作/文档/规范摘要",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "doc/deleteFence/dataEpoch或待释lease已变化",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份/运行权威或私有存储不可用，未知提交保持pending",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "原回执哈希或安全姓名不完整",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "本站真实文档不存在",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head"
+          ],
+          "authorization": {
+            "permission": "content.edit",
+            "rule": "当前管理账户、同站点content.edit即时授权；release另核当前lease归属"
+          },
+          "concurrency": "先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决",
+          "idempotency": "caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.authorizeEditLock",
+            "content.RenewLease"
+          ],
+          "resources": [
+            "完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成",
+            "身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "content.ReleaseEditLock",
+          "name": "ReleaseEditLock",
+          "signature": "func ReleaseEditLock(ctx context.Context, op OperationContext, input ReleaseEditLockInput) (ReleaseEditLockResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReleaseEditLockInput",
+              "description": "关闭页面释放自身锁的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReleaseEditLockResult",
+              "description": "关闭页面释放自身锁的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "UNAUTHENTICATED: 权威会话或权限版本已撤销",
+                "CONFLICT: operationId已绑定另一动作/文档/规范摘要",
+                "VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化",
+                "DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending",
+                "INTEGRITY_ERROR: 原回执哈希或安全姓名不完整",
+                "LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭",
+                "NOT_FOUND: 本站真实文档不存在"
+              ]
+            }
+          ],
+          "purpose": "关闭页面释放自身锁",
+          "steps": [
+            "以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示",
+            "规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT",
+            "核lease归属与boot",
+            "锁仍匹配则原子删除；缺失视已释放",
+            "发编辑状态元数据，关闭beacon失败2分钟TTL兜底",
+            "无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核",
+            "候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决",
+            "重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "权威会话或权限版本已撤销",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId已绑定另一动作/文档/规范摘要",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "doc/deleteFence/dataEpoch或待释lease已变化",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份/运行权威或私有存储不可用，未知提交保持pending",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "原回执哈希或安全姓名不完整",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "编辑租约失效、文档不接受编辑或维护窗口关闭",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "本站真实文档不存在",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head"
+          ],
+          "authorization": {
+            "permission": "content.edit",
+            "rule": "当前管理账户、同站点content.edit即时授权；release另核当前lease归属"
+          },
+          "concurrency": "先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决",
+          "idempotency": "caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.authorizeEditLock",
+            "content.ReleaseLease"
+          ],
+          "resources": [
+            "完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成",
+            "身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "content.ForceReleaseEditLock",
+          "name": "ForceReleaseEditLock",
+          "signature": "func ForceReleaseEditLock(ctx context.Context, op OperationContext, input ForceReleaseEditLockInput) (ForceReleaseEditLockResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ForceReleaseEditLockInput",
+              "description": "只有超管强制释放别人锁的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ForceReleaseEditLockResult",
+              "description": "只有超管强制释放别人锁的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "UNAUTHENTICATED: 权威会话或权限版本已撤销",
+                "CONFLICT: operationId已绑定另一动作/文档/规范摘要",
+                "DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending",
+                "INTEGRITY_ERROR: 原回执哈希或安全姓名不完整",
+                "LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭",
+                "NOT_FOUND: 本站真实文档不存在"
+              ]
+            }
+          ],
+          "purpose": "只有超管强制释放别人锁",
+          "steps": [
+            "以identity:checkAuthorization即时核当前会话、本站功能权限与撤销版本；姓名仅取同一权威响应的accountName并按纯文本显示",
+            "规范摘要含动作和完整原输入；scope绑定caller/actor/site/epoch/operationId，先读原回执再读文档状态，同键异动作/文档/参数返回CONFLICT",
+            "superadmin专属，不可分配给子账号",
+            "同doc mutex核expectedLease防释放已换人锁，增加fence并删锁",
+            "发强制只读事件；已自动保存草稿保留，旧fence所有后续save拒绝",
+            "无原回执时经平台当前写窗口，在life读锁与同doc mutex内复制候选；真实document/state/deleteFence/隔离在短SQL事务内重核",
+            "候选状态变化与本地审计、content.edit-lock.changed v1 outbox和完整原回执同事务；提交确认后才安装内存，SQL未知提交保留pending，所有后续编辑/保存先按真实回执解决",
+            "重启只回放历史原结果，不从原回执重建租约；旧boot/fence仍永失效。事件由平台outbox经jobs投递；HTTP/在线消费装配另行完成"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "权威会话或权限版本已撤销",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId已绑定另一动作/文档/规范摘要",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份/运行权威或私有存储不可用，未知提交保持pending",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "原回执哈希或安全姓名不完整",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "编辑租约失效、文档不接受编辑或维护窗口关闭",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "本站真实文档不存在",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head"
+          ],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "唯一超管即时权威授权；不可分配给子账号"
+          },
+          "concurrency": "先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决",
+          "idempotency": "caller/actor/site/epoch/operationId唯一；动作和完整原输入规范摘要；同键同摘要回原结果，同键异摘要CONFLICT，回放不改变内存或重复事件",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.authorizeEditLock",
+            "content.ForceReleaseLease"
+          ],
+          "resources": [
+            "完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成",
+            "身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "content.ExpireIdleLocks",
+          "name": "ExpireIdleLocks",
+          "signature": "func ExpireIdleLocks(ctx context.Context, op OperationContext, input ExpireIdleLocksInput) (ExpireIdleLocksResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ExpireIdleLocksInput",
+              "description": "释放失联或提示后仍空闲锁的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ExpireIdleLocksResult",
+              "description": "释放失联或提示后仍空闲锁的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "UNAUTHENTICATED: 权威会话或权限版本已撤销",
+                "CONFLICT: operationId已绑定另一动作/文档/规范摘要",
+                "VERSION_MISMATCH: doc/deleteFence/dataEpoch或待释lease已变化",
+                "DEPENDENCY_UNAVAILABLE: 身份/运行权威或私有存储不可用，未知提交保持pending",
+                "LOCKED: 编辑租约失效、文档不接受编辑或维护窗口关闭",
+                "NOT_FOUND: 本站真实文档不存在"
+              ]
+            }
+          ],
+          "purpose": "释放失联或提示后仍空闲锁",
+          "steps": [
+            "仅本站content纯服务后台；输入now来自本域调度器服务时钟，同operationId重试保留该时刻",
+            "逐doc mutex检查expiresAt或LastInputAt+17分钟绝对界点；15分钟提醒固定LastInputAt+15分钟，检测延迟不延后",
+            "每篇候选提高fence/清租约或提醒，与本地审计/状态事件outbox/原回执同短SQL事务提交；失败不安装候选，未知提交按pending回执解决",
+            "同一后台operationId包含每篇独立scope和now摘要，局部失败重试纳入已完成文档并回放原结果；不重复事件；单次最多10000变化，后续调度继续",
+            "只枚举本站活跃cell；进程重启不从回执重建锁，bootId变化拒旧请求。通知在线消费与后台调度仍由启动装配负责"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "权威会话或权限版本已撤销",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "operationId已绑定另一动作/文档/规范摘要",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "doc/deleteFence/dataEpoch或待释lease已变化",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份/运行权威或私有存储不可用，未知提交保持pending",
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "编辑租约失效、文档不接受编辑或维护窗口关闭",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "本站真实文档不存在",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本域原操作回执/编辑状态事件outbox/本地审计与提交确认后的内存租约；不改草稿正文或head"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "callerService=content、actor.kind=service、actor.subjectId=content；仅本域后台且本站scope"
+          },
+          "concurrency": "先取公共写窗口（不持doc锁做HTTP），life读锁→同doc mutex→短私有SQL事务；同保存guard互斥；未知提交pending在保存前解决",
+          "idempotency": "逐doc原scope+动作+now摘要；同操作局部重试回放已完成结果，不重复通知；重启租约保持清空",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.ExpireLeases"
+          ],
+          "resources": [
+            "完整用例及可靠排队已实现候选，HTTP绑定/在线通知消费者/完整服务尚未装配；检查前不记完成",
+            "身份前置：identity.AuthorizationDecision必填accountName，来自同次权威会话账户读取"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "content.WithEditLockRuntime",
+          "name": "WithEditLockRuntime",
+          "signature": "func WithEditLockRuntime(ctx context.Context, runtime EditLockRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配本域manager、identity客户端与平台当前写窗口，不导入他域业务",
+          "steps": [
+            "装配本域manager、identity客户端与平台当前写窗口，不导入他域业务"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.editLockRuntimeFromContext",
+          "name": "editLockRuntimeFromContext",
+          "signature": "func editLockRuntimeFromContext(ctx context.Context) (EditLockRuntime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "缺依赖失败关闭，不伪造完整用例成功",
+          "steps": [
+            "缺依赖失败关闭，不伪造完整用例成功"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.authorizeEditLock",
+          "name": "authorizeEditLock",
+          "signature": "func authorizeEditLock(ctx context.Context, op OperationContext, client *gen.IdentityClient, permission string, action string, documentID Identifier) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "即时identity授权并核同主体/site/session/权限版本；安全姓名仅identity权威且按纯文本显示",
+          "steps": [
+            "即时identity授权并核同主体/site/session/权限版本；安全姓名仅identity权威且按纯文本显示"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "identity:checkAuthorization"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.executeEditLock",
+          "name": "executeEditLock",
+          "signature": "func (manager *EditLockManager) executeEditLock(ctx context.Context, op OperationContext, command editLockCommand) (EditLockSnapshot, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原scope摘要回放→平台写窗口→同doc候选→真实事务→确认后内存安装；未知提交pending保持失败关闭",
+          "steps": [
+            "原scope摘要回放→平台写窗口→同doc候选→真实事务→确认后内存安装；未知提交pending保持失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.editLockRuntimeFromContext",
+            "content.lockEditCell",
+            "content.resolvePendingEditLock",
+            "content.readEditLockReceipt",
+            "content.ReadDocumentEditState",
+            "content.copyEditLease",
+            "content.planEditLock",
+            "content.commitEditLock",
+            "platform.NewWriteContext"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.planEditLock",
+          "name": "planEditLock",
+          "signature": "func (manager *EditLockManager) planEditLock(op OperationContext, command editLockCommand, state DocumentEditState, candidate *editLeaseCell, now time.Time) (EditLockSnapshot, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只改变候选：共享lease/单调序号/固定15与17分钟界点/释放及fence；不写权威内存与SQL",
+          "steps": [
+            "只改变候选：共享lease/单调序号/固定15与17分钟界点/释放及fence；不写权威内存与SQL",
+            "候选fence耗尽仅返回LOCKED，不安装候选或悄悄清权威lease；旧租约依原到期时间失效，保存仍纯核当前fence/期限"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.requireEditableDocument",
+            "content.refreshEditLease",
+            "content.advanceEditFence",
+            "content.matchEditLease",
+            "content.editLockSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.resolvePendingEditLock",
+          "name": "resolvePendingEditLock",
+          "signature": "func (manager *EditLockManager) resolvePendingEditLock(ctx context.Context, cell *editLeaseCell) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "未知提交仅按原回执及候选hash安装或丢弃；读失败保留pending，不允许保存越过",
+          "steps": [
+            "未知提交仅按原回执及候选hash安装或丢弃；读失败保留pending，不允许保存越过"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.readEditLockReceipt"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readEditLockReceipt",
+          "name": "readEditLockReceipt",
+          "signature": "func (s *Store) readEditLockReceipt(ctx context.Context, query editLockQuery, key editLockReceiptKey) (EditLockSnapshot, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "完整scope与摘要查原结果并核hash/文档/site，异摘要CONFLICT；不重建内存锁",
+          "steps": [
+            "完整scope与摘要查原结果并核hash/文档/site，异摘要CONFLICT；不重建内存锁"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.decodeStorageJSON",
+            "content.contentStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.commitEditLock",
+          "name": "commitEditLock",
+          "signature": "func (s *Store) commitEditLock(ctx context.Context, key editLockReceiptKey, state DocumentEditState, snapshot EditLockSnapshot, previous *gen.EditLease) (Hash,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "短SQL事务再核全局op冲突/文档生命周期deleteFence隔离，原回执+通知+审计原子；仅Commit尝试后错误返回hash供pending解决",
+          "steps": [
+            "短SQL事务再核全局op冲突/文档生命周期deleteFence隔离，原回执+通知+审计原子；仅Commit尝试后错误返回hash供pending解决"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.readEditLockReceipt",
+            "content.enqueueEditLockChange",
+            "content.contentStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.enqueueEditLockChange",
+          "name": "enqueueEditLockChange",
+          "signature": "func (s *Store) enqueueEditLockChange(ctx context.Context, tx *sql.Tx, op OperationContext, snapshot EditLockSnapshot, previous *gen.EditLease) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同事务递增跨boot持久事件revision并写最小状态outbox及本地审计，不含姓名/leaseId/正文",
+          "steps": [
+            "同事务递增跨boot持久事件revision并写最小状态outbox及本地审计，不含姓名/leaseId/正文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "platform.EnqueueEvent",
+            "content.contentStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.expireEditLocks",
+          "name": "expireEditLocks",
+          "signature": "func (manager *EditLockManager) expireEditLocks(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "逐本站活跃doc与同操作已完成scope交集/并集回放，失败不重复已提交变化；固定调度now，最多10000个状态变化",
+          "steps": [
+            "逐本站活跃doc与同操作已完成scope交集/并集回放，失败不重复已提交变化；固定调度now，最多10000个状态变化"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证且即时授权的本域编辑调用链；权限仅完整入口判定，通用身份边界仅平台实现",
+          "concurrency": "同doc mutex保护候选和未知提交；不持SQL事务或doc guard跨HTTP/文件IO",
+          "idempotency": "同scope规范摘要原回执，不重建重启后租约",
+          "dependencies": [
+            "content.checkRevisionScope",
+            "content.executeEditLock",
+            "content.contentStorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/content/migrations/0003_edit_lock_operations.sql",
+      "kind": "handwritten",
+      "purpose": "只追加编辑原回执、跨boot状态事件修订和本地审计；不恢复权威租约",
       "functions": []
     }
   ],
