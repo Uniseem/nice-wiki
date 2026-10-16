@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 129 个函数：约束 36 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 143 个函数：约束 36 个，参考 107 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -237,6 +237,43 @@ func readUploadQuota(ctx context.Context, reader siteConfigReader, siteID Identi
 - 并发：只读远端权威，ctx取消传播
 - 幂等：只读，不触发模型/付费任务
 - 依赖：`site-config:readSiteConfig`
+
+## media.hasGrant
+
+- 级别：参考
+- 文件：`modules/media/internal/upload_service.go`
+- 作用：在可信授权集合中精确查找所需权限
+
+```go
+func hasGrant(grants []string, expected string) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `grants` | `[]string` | 边界已验证的授权条目 | 信任入口授权材料，不重新查询身份 |
+| `expected` | `string` | 本函数调用者要求的精确授权值 | 精确匹配，不支持隐式通配 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `found` | `bool` | 是否存在完全相同的授权条目 | 只比较给定集合 |
+
+**步骤**
+
+1. 遍历grants并以字符串相等匹配expected，存在返回true，否则false
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：纯规则，仅供已验证调用链使用
+- 并发：纯读取，无共享可变状态
+- 幂等：相同输入相同结果
+- 依赖：无
 
 ## media.NormalizeOriginalName
 
@@ -2169,6 +2206,40 @@ func hashFile(path string) (Hash, int64, error)
 - 幂等：相同私有文件确定结果；损坏或身份变化拒绝
 - 依赖：`platform.ValidatePrivatePath`
 
+## media.currentBlobStore
+
+- 级别：参考
+- 文件：`modules/media/internal/blob_repository.go`
+- 作用：在共享读锁下取得构造期装配的本域存储接口
+
+```go
+func currentBlobStore() blobStore
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `blobStore` | 当前本域私有上传字节读取能力，未装配为nil | 仅本域可信调用链使用，不序列化到HTTP |
+
+**步骤**
+
+1. 取得activeBlobStoreMu读锁并返回当前activeBlobStore；不造缺失存储、不执行IO
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信实现调用，不建立跨服务权限
+- 并发：activeBlobStoreMu共享读锁
+- 幂等：只读当前接口引用
+- 依赖：无
+
 ## media.ReadAsset
 
 - 级别：约束
@@ -2438,7 +2509,7 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 1. 固定注册content/site-config已认证服务；siteId与每个asset权威站点匹配，顶层sourceObjectId/sourceRevisionId/sourceVersion逐一匹配完整references元素，sourceService取caller不取冒名字段
 2. 完整引用数组按referenceId、assetId、asset.version、asset.sha256排序，空集合固定[]；用platform.CanonicalJSON编码后SHA256等于referenceDigest；输入pending_pin/confirmed=false/expiresAt=null，媒体自己确定pin到期
 3. 按caller/dataEpoch/sourceOperationId先取源互斥，核已绑定所有顶层源字段和digest；明确sealed终止来源返回CONFLICT且不创建pin；未封存的相同成功返回原pinId/原expiresAt不续期，异材料冲突
-4. 保持源互斥后按assetId稳定顺序取得对象mutex，再取本域store提交互斥，在写事务内重查来源未sealed；资产必须真实ready且站点/版本/hash/长度/MIME与唯一schema及索引一致，缺逐对象fence或delete_pending一律失败关闭，不推测尚未实现的清理计划；CAS逐对象deletionFence与referenceGeneration加一，完整来源、逐asset fence和至少24小时pending pin原回执同事务
+4. 保持源互斥，先在无asset锁状态展开相交有效人工计划的完整资产集合，再按assetId稳定锁及store互斥；SQL内重核计划代次/集合，已有DELETING或未知delete_pending失败关闭，已知可撤销计划整份cancelled/解除标记与新pin同事务；资源站点/精确版本/hash/长度/MIME及fence完整，CAS fence/generation并保存至少24h原pin，不推测缺失材料
 5. 即使references为空也生成绑定源身份的pin，以后confirm推进该对象完整集合并保留旧history；不以空数组跳过提交协议
 6. ReferencePin.assets按assetId唯一升序；deletionFence仅为本次逐asset新fence的最大值（空集合0），不是全局删除能力；原pin回放只核原材料/回执不查当前asset状态，不续期、不重复升generation
 
@@ -2456,7 +2527,7 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 - 授权：仅已认证content/site-config纯服务，Actor.SubjectID必须等于caller；来源站点来自已绑定input.siteId，不从system服务Actor.SiteID推测
 - 并发：源caller/epoch/sourceOperationId互斥先于assetId稳定顺序mutex；Acquire/Confirm/Release同序，最终delete只取asset锁/fence
 - 幂等：同源完整材料未sealed时回原pin；sealed检查先于任何旧成功快路径，终止后不再创建或返回可提交pin
-- 依赖：`platform.CanonicalJSON`、`media.validateReferenceSource`、`media.canonicalReferenceInput`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.readReferenceSource`、`media.acquireReferencePin`、`media.mediaWriteContext`
+- 依赖：`platform.CanonicalJSON`、`media.validateReferenceSource`、`media.canonicalReferenceInput`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.readReferenceSource`、`media.acquireReferencePin`、`media.mediaWriteContext`、`media.referenceCleanupAssets`
 
 ## media.ConfirmResourceReferences
 
@@ -2489,7 +2560,7 @@ func ConfirmResourceReferences(ctx context.Context, op OperationContext, input C
 2. 不持source/对象/store/SQL锁回注册源最小决定；严格公共ReferenceSourceDecision schema、当前epoch及全部site/object/revision/version/operation/digest一致，必须committed，404/pending/未知保持pin并失败关闭
 3. 回源后先以公共NewWriteContext重新取running窗口；sourceOperation互斥→sourceObject水位互斥→旧current与新pin资产唯一升序锁→store提交互斥→SQL；重读源绑定/原pin/sealed/终局及current水位
 4. 同事务持久新完整集合与confirmed原回执，较高sourceVersion推进对象水位并将旧current保留history，较低已提交版本只补history不回退；相同水位不同源材料完整性冲突，空集合仍推进并保留旧history
-5. 新引用必须ready且精确版本/hash/长度/MIME/站点及fence完整；未知delete_pending失败关闭，不猜作可撤销计划。受影响asset fence/generation只提升一次，耗尽LOCKED；confirmed后原pin_assets永久保留供Acquire合法回放，pending保护由source.state决定
+5. 新引用须精确版本/hash/长度/MIME/站点及fence完整；先在无asset锁状态展开相交计划完整锁集合，SQL内核计划代次/集合并与确认同事务取消已知可撤销计划、恢复ready；未知delete_pending或已DELETING失败关闭。受影响asset fence/generation只提升一次，耗尽LOCKED；confirmed后原pin_assets永久保留供Acquire合法回放，pending保护由source.state决定
 6. 来源sealed却源证明COMMITTED是完整性矛盾，保持封存；不因pin到期丢已提交历史；未实现的真实清理计划取消仍不宣称完成
 
 **错误**
@@ -2798,10 +2869,10 @@ func (s *localBlobStore) readReferenceSource(ctx context.Context, q sqlExecer, o
 
 - 级别：参考
 - 文件：`modules/media/internal/reference_repository.go`
-- 作用：已持source/asset锁后store串行；原回执优先，新窗口内事务核ready及逐对象fence，CAS+24h pin/原回执同事务
+- 作用：完整来源与原pin同事务持久，先取消已知相交人工计划，再逐对象提升fence/generation
 
 ```go
-func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash, assets []gen.AssetVersionRef) (AcquireResourceReferencesResult, error)
+func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationContext, input AcquireResourceReferencesInput, bindingHash Hash, assets, locked []gen.AssetVersionRef, plans []Identifier) (AcquireResourceReferencesResult, error)
 ```
 
 **输入**
@@ -2814,8 +2885,7 @@ func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationCo
 
 **步骤**
 
-1. 已持source/asset锁后store串行；原回执优先，新窗口内事务核ready及逐对象fence，CAS+24h pin/原回执同事务
-2. 逐对象fence/generation只以SQLite int64最大值为耗尽边界；达到最大值LOCKED，不把合法最大值记作损坏，不使用额外JavaScript安全整数上限
+1. 完整来源与原pin同事务持久，先取消已知相交人工计划，再逐对象提升fence/generation
 
 **错误**
 
@@ -2825,7 +2895,7 @@ func (s *localBlobStore) acquireReferencePin(ctx context.Context, op OperationCo
 - 授权：已授权本域引用链或受信装配，入口身份/schema一次
 - 并发：源锁先于asset稳定序锁，再取store提交互斥；SQL CAS失败关闭
 - 幂等：完整源材料和原回执持久绑定，不从当前状态重建
-- 依赖：`media.readReferenceSource`、`media.mediaWriteContext`、`media.readReferenceAsset`
+- 依赖：`media.readReferenceSource`、`media.mediaWriteContext`、`media.readReferenceAsset`、`media.cancelReferenceCleanupPlans`
 
 ## media.readReferenceAsset
 
@@ -3049,7 +3119,7 @@ func (s *localBlobStore) confirmReferencePin(ctx context.Context, op OperationCo
 - 授权：固定来源纯服务已在引用入口核实；schema仅边界/持久与远端材料处核
 - 并发：源决定RPC与运行窗口不持业务锁；sourceOperation→sourceObject→asset升序→store→SQL
 - 幂等：完整来源绑定与终局原回执，不从mutable状态重建
-- 依赖：`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.referenceObjectAssets`、`media.readReferenceRecord`、`media.readReferenceResolution`、`media.writeReferenceResolution`、`media.advanceReferenceGeneration`、`media.readReferenceAsset`
+- 依赖：`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.referenceObjectAssets`、`media.readReferenceRecord`、`media.readReferenceResolution`、`media.writeReferenceResolution`、`media.advanceReferenceGeneration`、`media.readReferenceAsset`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`
 
 ## media.releaseReferencePin
 
@@ -3106,25 +3176,93 @@ func ReadAssetReferences(ctx context.Context, op OperationContext, input ReadAss
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadAssetReferencesResult` | 列哪些文档当前/历史引用资源的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；VERSION_MISMATCH: 活动epoch或扫描/计划水位已改变；INTEGRITY_ERROR: 持久材料、唯一schema、计划摘要、对象fence或来源分页不一致；LOCKED: 资源引用、删除决定、对象水位或未知计划阻止操作 |
 
 **步骤**
 
-1. media.manage或本域cleanup调用
-2. 从content与site-config两个资源权威拥有源获取完整当前/历史快照和watermark；localization/public-site只派生同一不可变引用，不独立增减ref
-3. 未知/未完整返回DEPENDENCY_UNAVAILABLE，不能显示未引用；history单列风险
+1. 核media.manage管理员或本域纯服务worker与已打开epoch，读取真实同站点ready/delete_pending不可变资源及逐对象generation；不把deleted/未知当作空引用
+2. 无本地锁按固定content/site-config生成客户端读取assetId过滤的全部分页；派生media纯服务op并清原proof/用户委托，保留epoch/root/deadline；每源所有页面watermark必须一致、cursor前进、分页完整，总集合不得超唯一snapshot预算
+3. content保留retained=true的current_draft/current_published映射current、history映射history，blockId作referenceId；site-config只接受对应来源confirmed且expiresAt=null的current/history；每项精确asset相等，重复同材料去重、冲突失败关闭
+4. 回源后重新核本地asset/generation未变，合并真实pending pin原材料（过期不擅自释放）；去重身份包含sourceService/sourceObjectId/sourceRevisionId/sourceVersion/referenceId/kind，保留合法不同单调版本，只有同身份异材料才损坏；精确相同draft/published投影可合并；完整引用排序及两个complete水位通过唯一schema，未知/未完整失败关闭
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `VERSION_MISMATCH`：活动epoch或扫描/计划水位已改变（不可重试）
+- `INTEGRITY_ERROR`：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致（不可重试）
+- `LOCKED`：资源引用、删除决定、对象水位或未知计划阻止操作（不可重试）
 
 - 副作用：无
 - 授权：media.manage
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
+- 依赖：`media.cleanupStore`、`media.readCleanupAsset`、`media.readSourceReferences`、`media.pendingAssetReferences`
+
+## media.readSourceReferences
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_reader.go`
+- 作用：完整分页读取固定权威源并把已保留引用映射为本域统一引用；每源最多20000扫描行、watermark固定、完整游标前进、逐项精确asset及终局材料
+
+```go
+func (s *localBlobStore) readSourceReferences(ctx context.Context, op OperationContext, asset gen.AssetVersionRef, source string) ([]gen.AssetReference, gen.Revision, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整分页读取固定权威源并把已保留引用映射为本域统一引用；每源最多20000扫描行、watermark固定、完整游标前进、逐项精确asset及终局材料
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
 - 依赖：`content:listResourceReferences`、`site-config:listResourceReferences`
+
+## media.pendingAssetReferences
+
+- 级别：参考
+- 文件：`modules/media/internal/reference_reader.go`
+- 作用：从真实pending来源读取不可变pin回执与完整引用；即使过期仍保护，不按时间推断可释放
+
+```go
+func (s *localBlobStore) pendingAssetReferences(ctx context.Context, q sqlExecer, op OperationContext, asset gen.AssetVersionRef) ([]gen.AssetReference, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 从真实pending来源读取不可变pin回执与完整引用；即使过期仍保护，不按时间推断可释放
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：`media.readReferenceRecord`、`media.readReferenceSource`
 
 ## media.ListUnusedAssets
 
@@ -3191,13 +3329,14 @@ func ProposeManualCleanup(ctx context.Context, op OperationContext, input Propos
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ProposeManualCleanupResult` | 人工清理前生成精确风险计划的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 持久材料、唯一schema、计划摘要、对象fence或来源分页不一致；LOCKED: 资源引用、删除决定、对象水位或未知计划阻止操作 |
 
 **步骤**
 
-1. 核media.manage，读取每asset当前完整引用且无pending
-2. 列出历史涉及文档，明确清理可能让历史/回滚缺图片文件
-3. 写proposed plan+hash+source watermarks，不删bytes、不自动确认
+1. 核media.manage管理员、同站点及已打开epoch；固定caller/actor/site/epoch/完整输入规范摘要，同operationId先回原plan结果/hash，不借mutable计划重建
+2. 对assetId升序唯一精确资产逐个调用ValidateCleanupSources；仅真实ready且current/pending0、完整源水位，历史文档单独汇总风险；未知失败关闭；单计划原扫描材料合计最多16MiB，超出明确要求分批
+3. 无锁回源后先取得新running窗口，再按全部assetId稳定锁及store互斥，在SQL重核asset/ref/fence/generation与pending/current保护；任何扫描后变化拒绝
+4. 同事务写proposed plan revision=0、精确资产/逐对象fence/generation/完整source快照、confirmationHash和原结果/hash；notBefore仅提案展示值，未来确认须重定至少24h；不标delete_pending、不删bytes、不自动确认
 
 **错误**
 
@@ -3207,12 +3346,14 @@ func ProposeManualCleanup(ctx context.Context, op OperationContext, input Propos
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致（不可重试）
+- `LOCKED`：资源引用、删除决定、对象水位或未知计划阻止操作（不可重试）
 
 - 副作用：人工清理计划metadata
 - 授权：media.manage
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：operationId复用精确plan
-- 依赖：`media.ValidateCleanupSources`
+- 依赖：`media.cleanupStore`、`media.cleanupRequestHash`、`media.readCleanupReceipt`、`media.readCleanupAsset`、`media.ValidateCleanupSources`、`media.mediaWriteContext`、`media.lockReferenceAssets`、`media.writeCleanupReceipt`
 
 ## media.ConfirmManualCleanup
 
@@ -3244,6 +3385,7 @@ func ConfirmManualCleanup(ctx context.Context, op OperationContext, input Confir
 1. 确认摘要/精确集合，历史非空必须ack
 2. 再次核current refs/pins/sourcewatermarks，一有新引用计划blocked
 3. 事务confirmed/waiting与notBefore≥24h，只有此人工批准计划可创建jobs延迟执行
+4. 从proposed确认前发现新ref/未知可置blocked但不得生成删除授权；若后续已确认计划被阻断，blocked允许保留尚未删除资产的精确marks/delete_pending，状态变blocked不等于释放引用fence或标记；人工取消须逐项按真实标记处理
 
 **错误**
 
@@ -3281,24 +3423,350 @@ func CancelManualCleanup(ctx context.Context, op OperationContext, input CancelM
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `CancelManualCleanupResult` | 删除前取消人工清理的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；CONFLICT: 状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；VERSION_MISMATCH: 活动epoch或扫描/计划水位已改变；INTEGRITY_ERROR: 持久材料、唯一schema、计划摘要、对象fence或来源分页不一致；LOCKED: 资源引用、删除决定、对象水位或未知计划阻止操作；DEPENDENCY_UNAVAILABLE: 权威依赖、完整分页或存储不可用，未知失败关闭；NOT_FOUND: 精确资源或计划不存在 |
 
 **步骤**
 
-1. planstate尚非deleted
-2. 核media.manage与计划scope
-3. 改cancelled并解除标记，已deleting完成则返回CONFLICT
+1. 核media.manage管理员、已打开epoch及计划同站点；固定actor/site/epoch/planId请求摘要，已存原成功优先，同operationId异材料CONFLICT
+2. 无锁取得running窗口，按计划完整资产稳定锁及store互斥，再SQL重读原计划/修订/完整资产，deleted或任一已持久DELETING决定CONFLICT
+3. proposed只改cancelled/revision+1；confirmed/waiting要求全部精确delete_pending标记；blocked允许已阻断但仍保留部分本计划标记，逐项核精确对象fence/generation后只恢复本计划pending项，其余项须真实ready或明确属于另一计划；已有DELETING不能取消；plan.revision达公共Revision上限9007199254740991时LOCKED，不收紧逐对象int64水位
+4. 计划cancelled和原cancelled=true/hash同事务，原提案回执永久保留；不调用jobs删除，未来任务只能重读已持久取消计划拒绝执行
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
+- `VERSION_MISMATCH`：活动epoch或扫描/计划水位已改变（不可重试）
+- `INTEGRITY_ERROR`：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致（不可重试）
+- `LOCKED`：资源引用、删除决定、对象水位或未知计划阻止操作（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖、完整分页或存储不可用，未知失败关闭（可重试）
+- `NOT_FOUND`：精确资源或计划不存在（不可重试）
 
 - 副作用：私有事务/文件/receipt/outbox
 - 授权：media.manage
 - 并发：与executedelete同fence
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
+- 依赖：`media.cleanupStore`、`media.cleanupRequestHash`、`media.readCleanupReceipt`、`media.readCleanupPlan`、`media.mediaWriteContext`、`media.lockReferenceAssets`、`media.cancelCleanupPlan`、`media.writeCleanupReceipt`
+
+## media.cleanupStore
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：核管理员media.manage或仅只读本域纯服务worker及已打开epoch，不让服务身份代替人工授权
+
+```go
+func cleanupStore(op OperationContext, requireAdmin bool) (*localBlobStore, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核管理员media.manage或仅只读本域纯服务worker及已打开epoch，不让服务身份代替人工授权
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：`media.currentBlobStore`、`media.hasGrant`
+
+## media.readCleanupAsset
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：核同站点真实ready/delete_pending资产唯一schema、索引与逐对象fence/generation，未知或损坏失败关闭
+
+```go
+func (s *localBlobStore) readCleanupAsset(ctx context.Context, q sqlExecer, siteID, assetID Identifier) (gen.Asset, int, int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核同站点真实ready/delete_pending资产唯一schema、索引与逐对象fence/generation，未知或损坏失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
 - 依赖：无
+
+## media.cleanupRequestHash
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：对kind/caller/actor/site/epoch/完整输入计算固定规范摘要，排除当前时钟
+
+```go
+func cleanupRequestHash(op OperationContext, kind string, input any) (Hash, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 对kind/caller/actor/site/epoch/完整输入计算固定规范摘要，排除当前时钟
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.readCleanupReceipt
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：核同operationId摘要及原结果/hash，提案内层schema与原revision=0，取消原成功固定；不从mutable计划重建
+
+```go
+func (s *localBlobStore) readCleanupReceipt(ctx context.Context, q sqlExecer, op OperationContext, requestHash Hash, kind string, target any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核同operationId摘要及原结果/hash，提案内层schema与原revision=0，取消原成功固定；不从mutable计划重建
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.writeCleanupReceipt
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：将原成功结果与规范摘要/hash写入调用方SQL事务，未知Commit由相同operationId恢复
+
+```go
+func writeCleanupReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, requestHash Hash, kind string, planID Identifier, value any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 将原成功结果与规范摘要/hash写入调用方SQL事务，未知Commit由相同operationId恢复
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.readCleanupPlan
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：核计划代次/站点/唯一schema/hash/修订及精确完整资产与原扫描水位，重算confirmationHash与历史风险集合；扫描总材料最多16MiB
+
+```go
+func (s *localBlobStore) readCleanupPlan(ctx context.Context, q sqlExecer, op OperationContext, planID Identifier) (gen.CleanupPlan, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核计划代次/站点/唯一schema/hash/修订及精确完整资产与原扫描水位，重算confirmationHash与历史风险集合；扫描总材料最多16MiB
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.cancelCleanupPlan
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：调用方持完整计划资产锁及store互斥；SQL内核无DELETING决定和有效精确pending标记，同事务恢复ready/解除标记/提升fence与generation及取消planCAS，未知不撤销
+
+```go
+func (s *localBlobStore) cancelCleanupPlan(ctx context.Context, tx *sql.Tx, op OperationContext, plan gen.CleanupPlan) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 调用方持完整计划资产锁与store互斥；SQL核计划未deleted/无DELETING；confirmed/waiting必须完整本计划marks，blocked可能保留部分marks，逐项真实核资产/fence/generation并只解除本计划标记；无标记的delete_pending仍失败关闭；整份cancelled与ready/fence/generation同事务，plan revision按公共上限失败关闭，对象水位仍原int64边界
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：`media.readCleanupAsset`、`media.advanceReferenceGeneration`、`media.readCleanupPlan`
+
+## media.referenceCleanupAssets
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：持任何asset锁之前展开相交计划完整不可变资产集合并排序；异材料失败，后续SQL重核不在事务内补锁
+
+```go
+func (s *localBlobStore) referenceCleanupAssets(ctx context.Context, op OperationContext, siteID Identifier, requested, base []gen.AssetVersionRef) ([]gen.AssetVersionRef, []Identifier, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持任何asset锁之前展开相交计划完整不可变资产集合并排序；异材料失败，后续SQL重核不在事务内补锁
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：`media.assetCleanupPlans`、`media.readCleanupPlan`
+
+## media.assetCleanupPlans
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：只读列出相交proposed/confirmed/waiting/blocked真实计划ID，保留未知错误
+
+```go
+func (s *localBlobStore) assetCleanupPlans(ctx context.Context, q sqlExecer, assetID Identifier) ([]Identifier, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读列出相交proposed/confirmed/waiting/blocked真实计划ID，保留未知错误
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：无
+
+## media.cancelReferenceCleanupPlans
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：在SQL内核当前相交计划只属于预先扩锁集合，重读代次/修订/精确资产后与新增引用同事务取消整份计划
+
+```go
+func (s *localBlobStore) cancelReferenceCleanupPlans(ctx context.Context, tx *sql.Tx, op OperationContext, siteID Identifier, requested, locked []gen.AssetVersionRef, planIDs []Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在SQL内核当前相交计划只属于预先扩锁集合，重读代次/修订/精确资产后与新增引用同事务取消整份计划
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或已授权调用链；入口身份/schema一次，scope/epoch/CAS由本边界负责
+- 并发：本域source/object/asset稳定锁及store互斥；SQL内不得回源或补锁
+- 幂等：原材料和规范摘要绑定，未知失败关闭
+- 依赖：`media.assetCleanupPlans`、`media.readCleanupPlan`、`media.cancelCleanupPlan`
 
 ## media.ValidateCleanupSources
 
@@ -3327,9 +3795,8 @@ func ValidateCleanupSources(ctx context.Context, op OperationContext, input Vali
 
 **步骤**
 
-1. 逐source调用完整snapshot，对齐epoch与watermark；不读取对方目录
-2. current或pending任一>0返回safe=false，history仅警告
-3. 任一unknown/retryfailure/分页未完成都false且DEPENDENCY_UNAVAILABLE，不降级忽略
+1. 调用ReadAssetReferences完整读取content/site-config与本地pending保护，expectedGeneration非null必须等于真实逐对象水位
+2. snapshot恰有content/site-config两个complete水位且current集合为空才safeToDelete=true，pending_pin同样阻止；history只保留风险提示，未知/未完整不得返回safe=true
 
 **错误**
 
@@ -3372,6 +3839,7 @@ func ExecuteManualCleanup(ctx context.Context, op OperationContext, input Execut
 1. jobs worker claim确认plan/notBefore/approvalhash，未知或未确认拒绝
 2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
 3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
+4. 遇新引用/未知来源/readers/水位变化时计划可blocked，尚无DELETING决定的资产可保留原精确marks/delete_pending待取消；blocked不授权继续删除，也不凭状态释放标记。已有DELETING的资产按持久决定恢复，Cancel必须CONFLICT，不能声称全部可逆
 
 **错误**
 
@@ -4510,7 +4978,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.ReadAssetReferences`、`media.ProposeManualCleanup`、`media.CancelManualCleanup`
 
 ## media.serveUploadChunk
 

@@ -1377,6 +1377,26 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：活动epoch或扫描/计划水位已改变；LOCKED：资源引用、删除决定、对象水位或未知计划阻止操作",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -1519,7 +1539,7 @@
             }
           },
           "409": {
-            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变",
+            "description": "VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变；LOCKED：资源引用、删除决定、对象水位或未知计划阻止操作",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1530,6 +1550,16 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1677,7 +1707,37 @@
             }
           },
           "409": {
-            "description": "CONFLICT：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用",
+            "description": "CONFLICT：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用；LOCKED：资源引用、删除决定、对象水位或未知计划阻止操作",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：持久材料、唯一schema、计划摘要、对象fence或来源分页不一致",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、完整分页或存储不可用，未知失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：精确资源或计划不存在",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2323,6 +2383,12 @@
       },
       "ReferenceSourceDecision": {
         "$ref": "types.json#/$defs/ReferenceSourceDecision"
+      },
+      "ContentReferencePage": {
+        "$ref": "../../content/contracts/types.json#/$defs/ListResourceReferencesResult"
+      },
+      "SiteConfigReferencePage": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ListResourceReferencesResult"
       }
     }
   }

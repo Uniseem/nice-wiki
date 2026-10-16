@@ -36,9 +36,13 @@ func AcquireResourceReferences(ctx context.Context, op OperationContext, input A
 	if err != nil || found {
 		return result, err
 	}
-	releaseAssets := s.lockReferenceAssets(assets)
+	locked, plans, err := s.referenceCleanupAssets(ctx, op, input.SiteId, assets, assets)
+	if err != nil {
+		return AcquireResourceReferencesResult{}, err
+	}
+	releaseAssets := s.lockReferenceAssets(locked)
 	defer releaseAssets()
-	return s.acquireReferencePin(ctx, op, canonical, bindingHash, assets)
+	return s.acquireReferencePin(ctx, op, canonical, bindingHash, assets, locked, plans)
 }
 
 func validateReferenceSource(op OperationContext) error {

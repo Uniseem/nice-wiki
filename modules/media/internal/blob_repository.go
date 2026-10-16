@@ -78,6 +78,10 @@ type localBlobStore struct {
 	validatePin            func(json.RawMessage) error
 	validateReferenceInput func(json.RawMessage) error
 	validateDecision       func(json.RawMessage) error
+	validateContentPage    func(json.RawMessage) error
+	validateConfigPage     func(json.RawMessage) error
+	validateSnapshot       func(json.RawMessage) error
+	validateCleanupPlan    func(json.RawMessage) error
 	contentDecisions       *gen.ContentClient
 	configDecisions        *gen.SiteConfigClient
 	referenceLocksMu       sync.Mutex
@@ -202,6 +206,26 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		_ = db.Close()
 		return nil, err
 	}
+	store.validateContentPage, err = apivalidate.NewPayloadValidator(document, "ContentReferencePage")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateConfigPage, err = apivalidate.NewPayloadValidator(document, "SiteConfigReferencePage")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateSnapshot, err = apivalidate.NewPayloadValidator(document, "ReferenceSnapshot")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.validateCleanupPlan, err = apivalidate.NewPayloadValidator(document, "CleanupPlan")
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	if err := store.runMigrations(); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -290,6 +314,7 @@ func (s *localBlobStore) runMigrations() error {
 type sqlExecer interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
 func appendJournal(ctx context.Context, exec sqlExecer, event, siteID, uploadID Identifier, sha256Hash Hash, assetID Identifier) error {

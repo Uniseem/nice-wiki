@@ -55,9 +55,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch,
-		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
+		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "proposeManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}},
 		ServiceActorCallers:   map[string][]string{"readAsset": {"content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
-		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
+		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "cancelManualCleanup": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +170,41 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 			}
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := mediaDomain.AcquireResourceReferences(r.Context(), op, input)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readAssetReferences": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ReadAssetReferences(r.Context(), op, mediaDomain.ReadAssetReferencesInput{AssetId: r.PathValue("assetId")})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"proposeManualCleanup": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var input mediaDomain.ProposeManualCleanupInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "人工清理选择无法转换"))
+				return
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ProposeManualCleanup(r.Context(), op, input)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"cancelManualCleanup": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.CancelManualCleanup(r.Context(), op, mediaDomain.CancelManualCleanupInput{PlanId: r.PathValue("planId")})
 			if err != nil {
 				writeRequestProblem(w, r, err)
 				return
