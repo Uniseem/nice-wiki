@@ -1,18 +1,18 @@
-# 当前状态（2026-10-16，本轮收尾与停止范围）
+# 当前状态（2026-10-16，三模块并行一轮已收口）
 
-阶段：R1分批实施，整体尚未完成。用户最新要求当前轮完成后停止持续目标，再普通push并报告百分比；已启动工作包均已交付，不再自动派发或实施后包。本轮代码、台账和普通推送已收口，持续目标已暂停，后续业务须用户重新要求继续。
+阶段：R1分批实施，整体尚未完成。本次用户授权检查状态后同时启动三个子代理编写一轮；content、model-gateway、media各用独立worktree交付，已顺序合入main并逐包复核。本轮结束，不自动展开后包；未push或部署。
 
 ## 最新事实
 
-- 最新机器台账：861文件、1182函数、379HTTP操作、2269类型；472函数已实现或验证（408 verified、64 implemented），planned 680、in_progress 7、blocked 23。函数台账完成率为39.9%（472/1182）；这是已实现或验证条目比例，不是产品可用率，无业务accepted。
-- jobs完成当前具体业务权限核验的任务进度SSE、三种游标别名一致性、每主体流上限和7天持久重放时间；未知/损坏旧时间不猜测补齐，IO取消及写截止复用公共JSON SSE。
-- content完成正文规范化/块哈希、树/行内/表格/分栏语义、不可变正文准备及精确COMMITTED读回；准备原材料与旧结果稳定、历史退役ID留给head/ledger提交事务。真实私有准备/提交适配器与完整保存HTTP链仍未实现，不冒充可运行。
-- media完成有界顺序chunk、SHA/长度与原结果、PREPARED→文件fsync→SQL offset/revision CAS及COMMITTED；启动按SQL水位核前缀/截尾，未知Commit保留文件。Begin回执补齐actor/site/epoch与原快照，旧未知原结果拒绝猜测；ReadAsset读取真实ready安全元数据与精确版本。私有路径复用公共拒链接/硬链接，配额读取使用已登记的media纯服务，Complete/pin业务和完整入口仍未完成。
-- model-gateway完成QA三任务免费配置可用性读取，单次严格epoch快照，缺配置/已配置但不可用/未知分别表达；覆盖替换主项、保留有序备用。只读候选/凭据存在性，不取密文/主密钥，不探测或调用供应方，不产生费用。配置写入、权威epoch初始化、付费与完整服务机制仍未实现。
-- 第三/四轮已交付账号/会话/偏好、portal认证边界、guard登录保护、首页权威/pin恢复调用链及公共来源、路由目录、安全恢复/关闭/SSE；跨域公开链接/媒体引用生产方与QA公开能力仍按planned记录，不以契约/生成物代替真实业务。
-- 本轮新增12个实际文件（jobs2、content5、model-gateway2、media3），framework已登记。按jobs→content→model-gateway→media逐项合入后，各实际集成树均通过隔离VPS make docs/gen、14个现有Go模块make build（readonly build/vet/gofmt）与完整make check；最终6c44451生成回传零变化。public-site/data-protection仍无实际Go module。
-- 全部生成、格式、编译、vet与检查仅VPS；未新增测试/fixture/临时业务验证程序，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。
-- 本次main已普通推送并核对，持续目标已暂停，old仅核对保持不变；实际状态见[推送记录](docs/push-log/2026-10-16-0001.md)。后续不自动推进，不能把本轮停止记作R1全部完成。
+- 基线170c1dc9057e122e349de43db532b2c48434b6cf，第三包实际集成提交71776e2。机器契约现覆盖861文件、1216函数、379HTTP操作、2271类型；515函数已实现或验证（452 verified、63 implemented），planned 671、in_progress 7、blocked 23。函数台账完成率42.4%（515/1216），较轮前净增43个完成条目；这是台账比例，不是产品可用率，无业务accepted。
+- content完成整树完整性、移动整棵子树的32层约束和全部嵌套资源精确抽取，保留不同块的引用、原来源水位/分类，拒绝同资源版本元数据冲突。新增2个已登记实际源码，5函数verified；源码f7bb9b8c029f3cc6af996708d28f50492ffb0546。真实私有数据库schema/迁移/启动协议尚缺，准备、COMMITTED资格与隔离adapter及完整保存链保持blocked，未猜建表。
+- model-gateway完成任务分配配置读写、固定目录档位/覆盖能力、owner范围过滤、CAS、7天原回执和assignment.changed事务outbox；管理员读取复用平台即时授权。公共唯一任务目录经make gen生成到本域，能力门槛按旧产品保留，不额外要求translation标签或调用供应方。源码c7c1cac9e3a59a206d506083ace25fd00c077e40；权威epoch初始化、其余handler、模型/费用与完整启动仍未完成。
+- media完成CompleteUpload及MIME/容器、SVG和画板直接校验，固定首次成功/安全错误；完整字节/hash和chunk水位后，文件fsync/rename/目录fsync，再以单SQL事务提交ready、session CAS、COMMITTED、回执和新资源outbox。复用资源精确匹配站点/类别/主键/引用；未知Commit留文件，暂存路径与启动恢复一致。源码9c2521a3142db0bc2ebcf1dc2914d3aea6984b46；37项本轮完整或修改函数verified，outbox转发、全部HTTP、pins、公开bytes及后台仍未完成。
+- blocked上传保留临时文件并持续计入站点存储预留，本轮不开放Abort清理blocked，等待后续已登记临时维护明确清理，不能视为空间已释放。最终复用既有upload_receipts，未新增003迁移或第三方依赖。
+- 公共结构登记本轮7个实际源码。OpenAPI 3.0生成将propertyNames保留为扩展，DrawingScene语义精确检查原文件键规则，原3.1 schema约束不变。三个实际集成树分别在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过14模块readonly build/vet/gofmt及完整make check；各包docs/gen通过。最终同树重复docs/gen零漂移，本轮交付提交、收尾暂存与提交消息的内容/身份/AI署名隐私审计通过。
+- 全部生成、格式、编译、vet与检查在VPS执行；未新增测试、fixture、mock、样例或临时业务验证程序，未运行SQL/HTTP行为验收、真实模型、服务、镜像或部署。私有连接/配置/凭据/运行数据未同步；用户原HTML未改未提交。本轮交付与待整理记录见[会话记录](docs/push-log/_pending.md)。
+
+后续一项：先为content真实私有持久化补齐本域schema、只追加迁移与启动装配协议，结构新增按AGENTS取得授权后实施；本轮不自动开始。R1整体、业务验收及部署保持未完成。
 
 ## 历史实施记录
 
