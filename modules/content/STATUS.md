@@ -1,3 +1,21 @@
+# 当前工作包：持续目标第一轮完整编辑锁用例（2026-10-16，已交付）
+
+分支codex/content-goal-r1，基线685db4f48bb359f79a7501098204ccc5a4cde6b2，初始clean；仅拥有modules/content。用户新授权每轮三个代理编写、审核并push直到代码编写完成，已替代历史两轮后停止条款。根统一公共文件、VPS检查和push，本域不自行推送，交付后等待下一轮工作包。
+
+- 源码提交86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f；本记录紧随源码。新增已获根批准的internal/edit_lock_operations.go与只追加migrations/0003_edit_lock_operations.sql。完整Acquire/Renew/Release/Force/Expire五用例和十个参考助手、四个本轮完整源码/迁移文件按该SHA记verified；五核心委托方法、AcquireDocumentFence与OpenDatabase修改同步新SHA。业务验收未执行。
+- 每次用户用例先即时identity核当前会话/本站功能与版本。账户名仅同次权威响应并作为纯文本；identity.AuthorizationDecision必填accountName前置由根先行提交a5b6713及记录f34c565并通过VPS。别人持锁按原DTO成功返回lease+writable=false；原operationId规范摘要包含动作与完整输入，跨动作/文档复用冲突，同键回原结果不改变或复活租约。
+- 平台当前写窗口在doc锁前读取；life读锁/doc mutex内只做候选与短SQLite事务。真实文档生命周期/deleteFence/隔离在事务重核，状态事件revision跨boot持久单调，通知/本地审计/完整原回执提交后才安装内存。Commit返回未知时保留pending；编辑与保存guard只按真实原回执及hash解决，未知就失败关闭。候选错误不突变权威cell，SaveFence匹配只纯核到期，不清锁漏事件。耗尽不安装失败候选，旧lease依原界点失效。
+- 15分钟提醒与17分钟绝对失效不延后，心跳/输入共享序号分别单调；新输入清提醒发送active状态。后台只处理本站活跃cell和同操作已完成scope，使用可信调度now，逐篇原回执支持部分完成后重试。锁仍只以内存为授权权威；原回执是不可变历史结果，重启从不据此重建租约。
+- 可靠通知本轮完成content.edit-lock.changed v1生产者outbox及本地审计，outbox表由平台EnsureSchema创建；jobs目录由根生成，新事件Consumers=[]。完整RelayOutbox/HTTP绑定、portal在线消费/流、启动后台装配仍未完成；不把排队成功解释为在线只读已生效或完整服务可运行。Create/SaveDraft/完整提交事务与恢复activation仍blocked/planned。
+- 2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。
+- 首次git暂存/提交因worktree独立index位于主仓只读.git而被沙盒阻止，没有提交；取得本次已授权Git操作所需自动审查权限后重跑，17份真实暂存内容/身份/说明扫描通过并提交。不把首次空暂存扫描当通过，不改Git身份，不push。
+
+## 下一步（一项）
+
+根按源码与本记录顺序集成、复核并执行本轮已授权push；下一轮由根按新main基线派发。可直接接续既有internal/outbox_repository.go的content.RelayOutbox：先读本域合同与平台RunRelay/当前写窗口，真实装配jobs客户端，不虚构在线通知消费或全服务已启动。本域收到下一包前冻结。
+
+---
+
 # 当前工作包：第二轮真实编辑锁与文档fence前置（2026-10-16，已交付）
 
 分支codex/content-next-two-r2，基线53acce862467dbe40b829d1984519d78ccac5608，初始clean；独占modules/content。用户授权两轮并行，本轮是最后一轮，根统一检查/push后停止，不自动第三轮。
