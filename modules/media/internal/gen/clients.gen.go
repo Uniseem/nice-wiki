@@ -229,6 +229,9 @@ func (c *ContentClient) ListResourceReferences(ctx context.Context, queries ...u
 			query[key] = append(query[key], entries...)
 		}
 	}
+	if query.Get("limit") == "" {
+		query.Set("limit", "20")
+	}
 	if encoded := query.Encode(); encoded != "" {
 		requestPath += "?" + encoded
 	}
