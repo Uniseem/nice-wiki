@@ -57,7 +57,7 @@
       "payloadSchema": {
         "$ref": "types.json#/$defs/TreeChangedPayload"
       },
-      "purpose": "树移动或完整同级重排与原回执同事务通知，当前未装配在线或公开消费者",
+      "purpose": "树移动、完整重排或支持范围内metadata编辑与原回执同事务最小通知，当前未装配在线或公开消费者",
       "delivery": "at-least-once",
       "ordering": "siteId treeRevision全站单调；旧epoch失效",
       "idempotency": "固定eventId与同scope原回执，重放不重复事件"

@@ -1,6 +1,8 @@
 package content
 
 import (
+	"context"
+	"regexp"
 	"strings"
 
 	"nice-wiki/libs/platform"
@@ -80,4 +82,49 @@ func PlanOldPathRedirects(input PlanOldPathRedirectsInput) (PlanOldPathRedirects
 		result.Redirects = append(result.Redirects, gen.RouteTombstone{OldPath: path, DocumentId: document.DocumentId, Status: gen.RouteTombstoneStatus("redirect"), TargetDocumentId: &target, Revision: input.TreeRevision})
 	}
 	return result, nil
+}
+
+type ValidatePathSegmentInput struct {
+	Segment    string                 `json:"segment"`
+	ParentId   *Identifier            `json:"parentId"`
+	DocumentId Identifier             `json:"documentId"`
+	Documents  []gen.DocumentMetadata `json:"documents"`
+}
+type ValidatePathSegmentResult struct {
+	Valid bool `json:"valid"`
+}
+
+var pathSegmentPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+
+// ValidatePathSegment只消费调用方同SQL可信树，不另查身份/存储或改历史重定向。
+func ValidatePathSegment(ctx context.Context, op OperationContext, input ValidatePathSegmentInput) (ValidatePathSegmentResult, error) {
+	return validatePathSnapshot(input)
+}
+
+func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentResult, error) {
+	if len(input.Segment) < 1 || len(input.Segment) > 128 || !pathSegmentPattern.MatchString(input.Segment) {
+		return ValidatePathSegmentResult{}, platform.NewError(platform.CodeValidation, false, "文档路径名不符合英文slug规则")
+	}
+	if input.ParentId == nil && (input.Segment == "navigation" || input.Segment == "ask") {
+		return ValidatePathSegmentResult{}, platform.NewError(platform.CodeConflict, false, "根级路径与固定公开入口冲突")
+	}
+	parentFound := input.ParentId == nil
+	for _, document := range input.Documents {
+		if input.ParentId != nil && document.DocumentId == *input.ParentId {
+			parentFound = true
+			if document.State != "draft" && document.State != "published" {
+				return ValidatePathSegmentResult{}, platform.NewError(platform.CodeLocked, false, "路径父节点不是活动文档")
+			}
+		}
+		if document.DocumentId == input.DocumentId || (document.State != "draft" && document.State != "published") || !sameIdentifierPointer(document.ParentId, input.ParentId) {
+			continue
+		}
+		if document.PathSegment != nil && *document.PathSegment == input.Segment {
+			return ValidatePathSegmentResult{}, platform.NewError(platform.CodeConflict, false, "同父活动文档已使用该路径")
+		}
+	}
+	if !parentFound {
+		return ValidatePathSegmentResult{}, platform.NewError(platform.CodeNotFound, false, "路径父节点不存在")
+	}
+	return ValidatePathSegmentResult{Valid: true}, nil
 }

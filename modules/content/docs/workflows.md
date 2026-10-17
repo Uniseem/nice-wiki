@@ -84,3 +84,11 @@ COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整�
 四个树action只在core按所需功能一次即时identity，DB/锁之前执行；平台仍严格验证服务身份/委托/epoch/schema，仅对实际注册四action不重复授权RPC。trash列表需content.publish，活动读content.read，移动/重排content.edit。真实树写在锁外取得当前写窗口，短SQL做树/metadata CAS、完整原回执和最小content.tree.changed outbox（业务content.edit、jobs事件管理仍沿全域content.publish）；0006仅追加原回执，未知提交按原op查回执。重排要求完整同父活动集合，trash/purged不混入；均匀base62 key不改变slug。
 
 PlanOldPathRedirects完整规划node及所有曾发布后代的无语言前缀旧路径→稳定docId，未知祖先slug失败关闭；非空规划因真实版本化redirect manifest生产链未齐而使Move明确503、不提交，Move及文件继续partial。没有新增假manifest、发布生产者或消费者；当前事件只可靠排队，完整应用因写窗口/全量handler/恢复/后台未齐仍blocked。本轮源码已通过GitLab pipeline23生成/格式/重复生成、三并行分片14模块readonly build/vet/gofmt及完整make check；pipeline21真实编译失败、pipeline22取消均未计通过。未做业务验收或部署，缺可信写窗口在原回执后、新写前503。公共纯服务本站传递仍是后续协议前置，当前不声称跨服务来源链已联通。
+
+## 2026-10-17第三轮metadata候选
+
+元数据编辑在DB/锁前一次即时content.edit，同代完整scope+规范请求摘要优先回放完整原结果，核result_hash与严格结果schema；新写锁外取得当前平台窗口，短SQL核活动文档、真实metadata/tree CAS并提交标题/SEO/路径、原结果和最小tree.changed。人工SEO非null为manual（包括空串），null为pending；不触发模型或发布共享正文。
+
+仅根级保留navigation、ask；子级允许，同父活动slug唯一。robots.txt/llms.txt/sitemap.xml由slug字符规则自然排除，不另禁无点词、api/admin/v1等。校验使用调用方同SQL可信完整树，纯助手复用给Move，未来发布也沿同规则。PUT metadata与既有树入口均由core一次即时授权，公共边界仍校身份/epoch/schema，无私有缓存marker。
+
+只追加0007保存完整同代原回执，无影子树/正文/媒体来源。shareImage实际改变因精确metadata pin/引用源协议未齐503，原完整ref可保持；曾发布节点或后代路径变化因真实版本化redirect manifest未齐503，Update整体继续partial。当前写窗口缺失新写503，完整启动/行为验收/部署未完成；本轮候选待GitLab，生成物不手改。

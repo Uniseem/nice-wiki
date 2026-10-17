@@ -158,7 +158,7 @@ export interface paths {
         get?: never;
         /**
          * 修改标题/路径/SEO描述/分享图
-         * @description 调用函数 content.UpdateDocumentMetadata；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 一次即时content.edit、真实metadata/tree CAS与同代完整原结果回放。支持标题、人工SEO、未发布路径；仅根级navigation/ask保留。曾发布路径改变或shareImage实际改变因生产链未齐503，整体partial；不发布正文或触发AI。
          */
         put: operations["updateDocumentMetadata"];
         post?: never;
@@ -977,7 +977,7 @@ export interface components {
             /** @description CAS */
             expectedTreeRevision: components["schemas"]["Revision"];
         };
-        /** @description 修改标题/路径/SEO描述/分享图的结果 */
+        /** @description 元数据编辑原结果；曾发布路径或shareImage实际改变依赖未齐时503，整体partial，不返回虚假redirects成功 */
         UpdateDocumentMetadataResult: {
             /** @description DocumentMetadata */
             metadata: components["schemas"]["DocumentMetadata"];
@@ -2629,6 +2629,15 @@ export interface operations {
             };
             /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：持久树/回执材料矛盾 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

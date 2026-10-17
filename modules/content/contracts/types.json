@@ -2637,7 +2637,7 @@
     },
     "UpdateDocumentMetadataResult": {
       "type": "object",
-      "description": "修改标题/路径/SEO描述/分享图的结果",
+      "description": "元数据编辑原结果；曾发布路径或shareImage实际改变依赖未齐时503，整体partial，不返回虚假redirects成功",
       "additionalProperties": false,
       "properties": {
         "metadata": {
@@ -2687,13 +2687,22 @@
         "documentId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "自身"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadata"
+          },
+          "description": "调用方在本域同SQL读取的可信完整树；仅内部业务助手输入，不是浏览器请求字段"
         }
       },
       "required": [
         "segment",
         "parentId",
-        "documentId"
-      ]
+        "documentId",
+        "documents"
+      ],
+      "x-internal": true
     },
     "ValidatePathSegmentResult": {
       "type": "object",

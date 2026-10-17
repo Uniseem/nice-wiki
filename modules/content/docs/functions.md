@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 238 个函数：约束 42 个，参考 196 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 241 个函数：约束 42 个，参考 199 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -496,6 +496,7 @@ func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfi
 **步骤**
 
 1. 预装真实树依赖与完整原结果schema校验器
+2. 本轮预装UpdateDocumentMetadataResult原回执schema，不把元数据partial分支当完整服务
 
 **错误**
 
@@ -817,6 +818,7 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 **步骤**
 
 1. 规划支持范围内移动；曾发布路径变化依赖manifest失败关闭
+2. 已有slug移入根级时复用同一根级navigation/ask规则，不能用Move绕过；其他层级不额外禁名
 
 **错误**
 
@@ -826,7 +828,7 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 - 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
 - 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
 - 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
-- 依赖：`content.EnsureTreeAcyclic`、`content.PlanOldPathRedirects`、`content.sameIdentifierPointer`、`content.fractionalDocumentOrder`、`content.validateTreeSiblings`
+- 依赖：`content.EnsureTreeAcyclic`、`content.PlanOldPathRedirects`、`content.sameIdentifierPointer`、`content.fractionalDocumentOrder`、`content.validateTreeSiblings`、`content.validatePathSnapshot`
 
 ## content.planTreeReorder
 
@@ -994,9 +996,11 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 
 **步骤**
 
-1. content.edit；人工SEO标manual且进后续翻译，OG资源需ready
-2. ValidatePathSegment同父唯一，已公开path更改PlanOldPathRedirects覆盖后代
-3. metadata CAS与tree路径映射原子更新；不自动把共享draft发给访客
+1. 仅portal当前admin一次即时content.edit，在DB/锁前，先按site/epoch/operation/caller/actor及规范请求摘要回放完整原回执
+2. 锁外取当前平台写窗口；短SQL同快照核站点/epoch、完整树/head资格、活动文档、metadata expectedRevision及当前treeRevision，标题/人工SEO不触发模型或发布共享正文
+3. path改变先完整规划node及曾发布后代旧路径，未知或非空规划因真实manifest链未齐503不提交；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此保持partial/in_progress
+4. 原shareImage同一完整ref可维持；非空path走ValidatePathSegment可信同SQL树及精确根级保留名；seoDescription=null为pending，否则manual（含显式空串）
+5. 同SQL CAS metadata revision与treeRevision，更新title/path/SEO并保存同代完整原结果与最小tree.changed outbox；不改变draft/published正文、引用水位或旧历史；Commit未知只按原op回执重试
 
 **错误**
 
@@ -1007,12 +1011,78 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `CONFLICT`：同操作摘要冲突、路径保留/同父冲突或持久原结果/树资格损坏（不可重试）
+- `INTEGRITY_ERROR`：同操作摘要冲突、路径保留/同父冲突或持久原结果/树资格损坏（不可重试）
 
 - 副作用：私有事务/正文提交日志/operation receipt/outbox
 - 授权：按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.ValidatePathSegment`、`content.PlanOldPathRedirects`、`media:readAsset`
+- 并发：当前权限/写窗口锁外；Store.mu短SQL内读取当前真实parent/head、metadata/tree CAS与回执/outbox，保存并发只更新draftRevisionId不覆盖新metadata
+- 幂等：同site/epoch/operationId固定caller/actor和完整规范请求摘要，原结果及SHA256同事务追加并严格校验回放；Commit未知不重复更新或发事件
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readMetadataReceipt`、`content.readTreeSnapshot`、`content.sameMetadataAsset`、`content.PlanOldPathRedirects`、`content.ValidatePathSegment`、`platform.NewWriteContext`、`platform.EnqueueEvent`
+
+## content.readMetadataReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/metadata_service.go`
+- 作用：同代完整scope及规范摘要回放原结果；核result_hash、严格结果schema及解码，异身份摘要冲突
+
+```go
+func readMetadataReceipt(ctx context.Context, q creationQuery, op OperationContext, digest Hash, runtime TreeRuntime) (UpdateDocumentMetadataResult, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同代完整scope及规范摘要回放原结果；核result_hash、严格结果schema及解码，异身份摘要冲突
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核
+- 并发：不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算
+- 幂等：完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用
+- 依赖：`content.decodeStorageJSON`
+
+## content.sameMetadataAsset
+
+- 级别：参考
+- 文件：`modules/content/internal/metadata_service.go`
+- 作用：按nullable完整不可变资源身份比较，改变必须等真实metadata pin协议
+
+```go
+func sameMetadataAsset(a *gen.AssetVersionRef, b *gen.AssetVersionRef) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按nullable完整不可变资源身份比较，改变必须等真实metadata pin协议
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核
+- 并发：不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算
+- 幂等：完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用
+- 依赖：无
 
 ## content.ValidatePathSegment
 
@@ -1041,21 +1111,23 @@ func ValidatePathSegment(ctx context.Context, op OperationContext, input Validat
 
 **步骤**
 
-1. 正则与保留路径名检查，禁止点段/编码斜杠
-2. 查询同父活动节点排除自己
-3. 冲突CONFLICT，历史redirect不能覆写活跃目标
+1. 正则只允许小写英数与中间单连字符，拒绝点段/编码斜杠；仅parentId=null时保留navigation和ask，与public-site精确语言根路由一致，其他层级允许；不额外禁止api/admin/v1/robots/llms/sitemap
+2. 从调用方同一SQL可信完整树中核parent为活动节点、同父活动slug唯一并排除自己；纯校验不另开SQL或重复鉴权
+3. 只返回可用性，不写/覆盖历史redirect；曾发布路径改变是否可提交由调用者manifest失败关闭规则决定，未来发布必须复用同一验证
 
 **错误**
 
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
 - `CONFLICT`：状态冲突、唯一约束冲突或 operationId 被不同请求摘要复用（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `LOCKED`：可信树中父节点缺失或非活动（不可重试）
+- `NOT_FOUND`：可信树中父节点缺失或非活动（不可重试）
 
 - 副作用：无
 - 授权：content.edit或publish私有流程
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 并发：可信同SQL快照的纯业务校验，不另开SQL/重查身份；ctx/op只保留统一私有调用签名
 - 幂等：只读
-- 依赖：无
+- 依赖：`content.validatePathSnapshot`
 
 ## content.PlanOldPathRedirects
 
@@ -1099,6 +1171,38 @@ func PlanOldPathRedirects(input PlanOldPathRedirectsInput) (PlanOldPathRedirects
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
 - 依赖：`content.EnsureTreeAcyclic`、`content.treePreorder`
+
+## content.validatePathSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/path_service.go`
+- 作用：校slug正则、仅根级navigation/ask保留、活动父及同父唯一，排除自己
+
+```go
+func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 校slug正则、仅根级navigation/ask保留、活动父及同父唯一，排除自己
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核
+- 并发：不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算
+- 幂等：完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用
+- 依赖：`content.sameIdentifierPointer`
 
 ## content.NewEditLockManager
 
@@ -6494,9 +6598,10 @@ func RegisterTreeRoutes(app *Application, runtime TreeRuntime, anchors platform.
 
 **步骤**
 
-1. 仅四个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存
+1. 仅五个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存
 2. 统一边界验证服务/委托/epoch/schema，再精确映射HTTP DTO；/v1/documents只注册GET，不绕过全量handler启动门槛
 3. integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0
+4. 新增PUT metadata精确映射路径documentId与生成的严格bodyDTO；仅新增固定updateDocumentMetadata action由core一次即时content.edit，平台服务/委托/epoch/schema仍严格校验
 
 **错误**
 
@@ -6506,7 +6611,7 @@ func RegisterTreeRoutes(app *Application, runtime TreeRuntime, anchors platform.
 - 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
 - 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
 - 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
-- 依赖：`content.WithTreeRuntime`、`content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
+- 依赖：`content.WithTreeRuntime`、`content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`content.UpdateDocumentMetadata`
 
 ## content.mountModuleUI
 
