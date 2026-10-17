@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 171 个函数：约束 36 个，参考 135 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 178 个函数：约束 36 个，参考 142 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2388,7 +2388,7 @@ func ReadAsset(ctx context.Context, op OperationContext, input ReadAssetInput) (
 
 - 级别：约束
 - 文件：`modules/media/internal/asset_service.go`
-- 作用：资源库列图片/附件/视频/画板及引用摘要
+- 作用：资源库按类别列真实安全元数据，引用详情独立读取
 
 ```go
 func ListAssets(ctx context.Context, op OperationContext, input ListAssetsInput) (ListAssetsResult, error)
@@ -2400,31 +2400,228 @@ func ListAssets(ctx context.Context, op OperationContext, input ListAssetsInput)
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
 | `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ListAssetsInput` | 资源库列图片/附件/视频/画板及引用摘要的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+| `input` | `ListAssetsInput` | 资源库按类别列安全元数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `ListAssetsResult` | 资源库列图片/附件/视频/画板及引用摘要的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `result` | `ListAssetsResult` | 资源库按类别列安全元数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
 | `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
 
 **步骤**
 
-1. media.manage功能权限
-2. 一致水位按kind/createdAt/id分页
-3. 引用详情单独ReadAssetReferences按docId显示，不自动删
+1. 当前本站media.manage管理员，cleanupStore核opened epoch，受信启动已装配原服务签名key；输入边界严格limit/kind，缺省limit归一为20
+2. 平台VerifyCursor在SQL外校验专用scope绑定caller/actor/site/epoch/session及权限修订/limit/kind/普通或unused类别；严格首版规范载荷、排序位置和int64本地水位，未知或串用拒绝
+3. 短只读SQL快照读取独立asset_listing_state与最多limit+1条真实Asset/fence/generation，按kind/createdAt/assetId稳定keyset；当前站点及kind筛选，不从上传会话合成资源。游标水位变化要求从头分页，schema/索引/对象水位损坏失败关闭
+4. 只读快照显式结束后平台SignCursor签发下一页；返回原安全Asset，不泄露私有路径/句柄，不增加虚构引用摘要，引用详情独立ReadAssetReferences
+5. 不调用模型、批准、worker、清理或写入业务状态，列表从不代替人工删除授权
 
 **错误**
 
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
 
 - 副作用：无
-- 授权：media.manage
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：只读
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读一致快照；签名密钥IO在SQL外，无asset/store锁
+- 幂等：同查询同水位稳定keyset，无业务写入
+- 依赖：`media.assetListingStore`、`media.readAssetListingCursor`、`media.readAssetListingPage`、`media.assetListingPageInfo`
+
+## media.InstallAssetListingKey
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：可信启动装配已验证服务签名key，仅存内存，不持久化私钥引用
+
+```go
+func InstallAssetListingKey(key platform.SigningKey) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 可信启动装配已验证服务签名key，仅存内存，不持久化私钥引用
+
+**错误**
+
+- 无
+
+- 副作用：仅内存装配已验证签名key引用，不进入active业务库或日志
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
 - 依赖：无
+
+## media.assetListingStore
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：核当前本站media.manage/opened epoch及真实列表签名依赖
+
+```go
+func assetListingStore(op OperationContext) (*localBlobStore, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前本站media.manage/opened epoch及真实列表签名依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：`media.cleanupStore`
+
+## media.readAssetListingCursor
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：SQL外平台验签，完整scope绑定与首版规范游标载荷校验
+
+```go
+func (s *localBlobStore) readAssetListingCursor(op OperationContext, input ListAssetsInput, unused bool) (assetListingCursor, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. SQL外平台验签，完整scope绑定与首版规范游标载荷校验
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：`platform.VerifyCursor`
+
+## media.readAssetListingRevision
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：读取独立真实int64列表水位，缺失/损坏不补造
+
+```go
+func readAssetListingRevision(ctx context.Context, q sqlExecer) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取独立真实int64列表水位，缺失/损坏不补造
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：无
+
+## media.readAssetListingPage
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：短一致只读水位/Asset/fence/generation与有界lookahead，结束快照后才允许RPC/签名
+
+```go
+func (s *localBlobStore) readAssetListingPage(ctx context.Context, op OperationContext, input ListAssetsInput, position assetListingCursor, unused bool) (assetListingPage, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 短一致只读水位/Asset/fence/generation与有界lookahead，结束快照后才允许RPC/签名
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：`media.readAssetListingRevision`
+
+## media.assetListingPageInfo
+
+- 级别：参考
+- 文件：`modules/media/internal/asset_service.go`
+- 作用：用最后扫描候选产生严格前进keyset，SQL外平台签名，不把空匹配误作末页
+
+```go
+func (s *localBlobStore) assetListingPageInfo(scope string, position assetListingCursor, page assetListingPage) (gen.PageInfo, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 用最后扫描候选产生严格前进keyset，SQL外平台签名，不把空匹配误作末页
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：`platform.SignCursor`
 
 ## media.AttachImageVariants
 
@@ -3391,20 +3588,28 @@ func ListUnusedAssets(ctx context.Context, op OperationContext, input ListUnused
 
 **步骤**
 
-1. media.manage且ValidateCleanupSources完成全部source快照
-2. 当前confirmedref和pendingpin必须0；历史ref只产生历史缺图风险提示
-3. 只列表无删除副作用，不设周期自动清ready任务
+1. 使用同一真实资产目录和签名分页，保留既有可选kind，当前本站media.manage/同opened epoch；只扫描ready候选，每次最多limit条并读取一条lookahead
+2. 本地只读快照显式结束后逐候选ValidateCleanupSources(expectedGeneration)；content/site-config均完整且两个来源全页及跨页固定水位，任一来源未知、分页变化或材料错误直接失败关闭，不输出部分未引用结论
+3. current/pending非空排除；pending即使到期或expiry未知仍保护。仅safe候选加入输出，其真实content历史文档ID唯一排序汇总，不静默丢历史风险；超过10000风险响应预算明确要求减小limit
+4. 全部回源后独立本地只读快照重核列表水位及完整候选Asset/ref/revision/ready/fence/generation，变化要求从头分页；所有RPC/签名在SQL和业务锁外
+5. 游标按最后扫描候选前进，不按最后匹配资产。空匹配页可hasMore=true且nextCursor前进，最终页才hasMore=false；本地完全无候选可直接返回空，不宣称任何实际资产未引用
+6. 只展示，不生成批准/计划，不触发模型、任务或删除；后续确认/执行仍须重新完整核源及人工授权
 
 **错误**
 
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+- `NOT_FOUND`：候选资产或权威来源在回源期间消失，不能当作未引用（不可重试）
+- `LOCKED`：候选进入不可清理状态或权威源锁定，不能当作未引用（可重试）
 
 - 副作用：无
-- 授权：media.manage
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
-- 幂等：只读
-- 依赖：`media.ValidateCleanupSources`
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读快照→全部锁外源RPC→独立本地复核→SQL外签名；不用一条长事务跨RPC
+- 幂等：按候选稳定keyset，固定本地与两个来源水位，任一变化从头，不缓存删除许可
+- 依赖：`media.assetListingStore`、`media.readAssetListingCursor`、`media.readAssetListingPage`、`media.ValidateCleanupSources`、`media.recheckAssetListingPage`、`media.assetListingPageInfo`
 
 ## media.ProposeManualCleanup
 
@@ -4273,6 +4478,38 @@ func ReadCleanupApprovalObject(ctx context.Context, op OperationContext, input R
 - 并发：只读持久快照；无RPC/业务资产锁，不改变计划
 - 幂等：同精确ObjectRef返回原不可变规范字节；取消不改写批准对象
 - 依赖：`media.cleanupStore`、`media.loadCleanupApproval`
+
+## media.recheckAssetListingPage
+
+- 级别：参考
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：全部回源后新短只读快照重核本地水位及完整候选精确状态
+
+```go
+func (s *localBlobStore) recheckAssetListingPage(ctx context.Context, op OperationContext, page assetListingPage) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 全部回源后新短只读快照重核本地水位及完整候选精确状态
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：可信启动或已授权本站列表调用链；入口schema/身份一次
+- 并发：短只读快照，所有RPC与密钥IO在SQL/业务锁外
+- 幂等：保留精确水位与来源，不重置、不产生删除许可
+- 依赖：`media.readAssetListingRevision`、`media.readCleanupAsset`
 
 ## media.ValidateCleanupSources
 
@@ -5612,7 +5849,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`、`media.InstallAssetListingKey`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -5816,7 +6053,7 @@ func NewApplication(config platform.ServiceConfig,anchors platform.TrustAnchors,
 
 - 级别：参考
 - 文件：`modules/media/internal/transport/server.go`
-- 作用：真实health/ready及Begin/Read/Abort/Chunk/Complete/ReadAsset转换，不填占位
+- 作用：真实已实现上传/引用/人工计划及ListAssets/ListUnusedAssets HTTP转换，严格查询不填占位
 
 ```go
 func (a *Application) serviceHandlers() map[string]http.Handler
@@ -5832,7 +6069,8 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 
 **步骤**
 
-1. 真实health/ready及Begin/Read/Abort/Chunk/Complete/ReadAsset转换，不填占位
+1. 真实已实现上传/引用/人工计划及ListAssets/ListUnusedAssets HTTP转换，严格查询不填占位
+2. 列表limit仅转换入口已验证整数，按固定kin-openapi同base0解析，不重复schema/范围校验；省略为20
 
 **错误**
 
@@ -5842,7 +6080,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.ReadAssetReferences`、`media.ProposeManualCleanup`、`media.CancelManualCleanup`、`media.ConfirmManualCleanup`
+- 依赖：`media.Health`、`media.Ready`、`media.BeginUpload`、`media.ReadUpload`、`media.AbortUpload`、`media.serveUploadChunk`、`media.ReadAsset`、`media.writeRequestProblem`、`media.CompleteUpload`、`media.AcquireResourceReferences`、`media.ConfirmResourceReferences`、`media.ReleaseResourceReferences`、`media.ReadAssetReferences`、`media.ProposeManualCleanup`、`media.CancelManualCleanup`、`media.ConfirmManualCleanup`、`media.ListAssets`、`media.ListUnusedAssets`
 
 ## media.serveUploadChunk
 

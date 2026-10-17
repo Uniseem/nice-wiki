@@ -1,3 +1,16 @@
+# 2026-10-17第二轮：真实资源与未引用列表（GitLab检查通过，已交付冻结）
+
+- 用户再次授权一轮编写后推送，三个子代理独立worktree、全部GitLab三分片。基线8a49af65f048a6b160f963570f02d6b88db100de，分支codex/media-20261017-r2，独占modules/media/；源码`a44a13a1ab65fc19c86e032d757e570195909e22`，准确台账另提交。本域不push，交付后冻结，主线实际集成SHA由根统一记录。
+- 完整ListAssets/ListUnusedAssets、7个参考助手及已有serviceHandlers实际绑定共10函数按准确源码记verified（其中9项新完成）。asset_service/cleanup_service/blob_repository/0008四完整文件verified；app/wire与transport整体继续partial，Build/NewApplication/Ready及bytes/真实worker客户端适配/控制恢复保持blocked/planned，业务accepted为零。
+- 根批准只追加0008_asset_listing.sql，独立int64列表水位及kind/createdAt/assetId稳定索引；assets/reference_objects变更在原事务递增，缺水位/耗尽失败关闭，不重置或转浮点。源水位独立绑定，既有pin/current/history仍按原事务提升对象generation，不把本地列表水位当作引用源或删除许可。
+- ListAssets只读本站真实安全Asset，引用详情独立ReadAssetReferences，无虚构摘要。ListUnused保留既有kind query并补可选nullable输入，每页最多limit个ready候选逐项锁外ValidateCleanupSources；content/site-config完整水位必须全页和跨页相等，current/pending排除，真实历史文档风险去重排序汇总，超预算明确减小limit，未知不当空。
+- 本地候选快照结束后才RPC，全部回源后另一个短只读快照重核本地水位及每项Asset/ref/revision/ready/fence/generation；签名和验签复用平台服务key并在SQL/业务锁外。scope绑定caller/管理员/site/epoch/session及权限修订、limit/kind/mode；载荷含本地水位、unused独立两源水位及最后扫描位置。
+- unused按最后扫描候选推进，空匹配页可hasMore=true但nextCursor严格前进，末页才false；本地完全无候选不声称实际资产未引用。严格OpenAPI limit=1..100默认20、kind枚举，两GET均no-store；整数转换与固定kin-openapi入口一致采用ParseInt base0，不重做范围校验。不生成计划、批准、任务、模型或删除。
+- 最终依据GitLab pipeline23候选`e75c80f63c5424fe67960a875b6f0f70df5c91c1`：生成/格式/重复gen job112、三个同时编译分片113/114/115全部success，14Go模块readonly build/vet/gofmt与完整make check通过。根精确回传本域18路径格式/生成产物，源码未在回传后改动；只更新人类状态说明。p21整体失败（content先编译失败，media未完整执行），p22取消；均不作最终证据，亦不沿用上一轮p16/p18。
+- 只读交叉审查content树/metadata CAS、原回执、当前授权一次、发布路径503与purged/预算；最新缺window503及整数解码修正经根确认，未改对方文件。根统一交审后形成最终候选；本域本地仅静态文件/JSON/差异/路径/隐私及Git审阅，无本机或SSH Go/gen/check，无新增测试/fixture/mock/样例/临时业务程序，无实际接口、SQL行为验收、模型、worker、业务删除、应用镜像或部署。
+- 本轮18改动路径仅本域，唯一新实际路径为0008，Go源码仅既有5文件，生成物由GitLab生成不手改，保持既有GitHub代用身份及GPT-6合著署名。根顺序合入后仍需实际树复检和本次普通双推，不将候选SHA冒充主线实际SHA。
+- 下一项：根本轮统一集成检查与普通push后停止；下一轮新授权再按引用事件合同补齐顶层完整来源对象/操作材料并实施ApplyReferenceEvent，复用现有引用权威，不自动展开bytes或任务适配。
+
 # 2026-10-17补充窄修：pending双投影（GitLab pipeline16通过，最终交付冻结）
 
 - 原p13源码`3d64fbcb71bd955d431c6496ee1d27ea5014ec43`及准确记录`1a5743fd0a1d5da4868304e8b9cc6fefa672da57`保留；根随后复审发现合法远端pending无expiry、本地原pin有expiry会误报冲突。窄修追加源码`2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa`，不改写已提交历史；本记录按准确新SHA追加。

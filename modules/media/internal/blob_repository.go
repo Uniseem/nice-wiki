@@ -85,6 +85,7 @@ type localBlobStore struct {
 	validateCleanupApproval   func(json.RawMessage) error
 	validateCleanupJobReceipt func(json.RawMessage) error
 	cleanupJobs               *gen.JobsClient
+	listingKey                *platform.SigningKey
 	contentDecisions          *gen.ContentClient
 	configDecisions           *gen.SiteConfigClient
 	referenceLocksMu          sync.Mutex

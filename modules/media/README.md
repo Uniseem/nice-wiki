@@ -2,7 +2,9 @@
 
 保持 D24/D26 与资源库产品：内容寻址上传/Range、浏览器WebP/视频封面、四平台公开信息快照、本地封面、Excalidraw三文件，文件不自动删除。
 
-本轮已实现人工删除Execute、同进程worker注册、完整DELETING恢复与有限reader权威；原批准ObjectRef、任务回执、固定24小时窗口、最终完整两源及marks/readers0共同约束删除。共享bytes与Complete互斥，终局结果与deleted outbox同事务，真实取消仅凭独立只读证明。最终候选通过自部署GitLab CI生成/格式、三分片14模块readonly build/vet/gofmt及完整结构检查；业务验收未执行。
+当前第二轮已实现真实资源列表/未引用候选分页及两个HTTP，严格签名scope、独立本地和两源水位、历史风险及未知失败关闭；GitLab pipeline23生成、三分片14模块编译和完整检查通过。列表不产生人工批准或删除，业务验收仍未执行。
+
+既有实现覆盖人工删除Execute、同进程worker注册、完整DELETING恢复与有限reader权威；原批准ObjectRef、任务回执、固定24小时窗口、最终完整两源及marks/readers0共同约束删除。共享bytes与Complete互斥，终局结果与deleted outbox同事务，真实取消仅凭独立只读证明。最终候选通过自部署GitLab CI生成/格式、三分片14模块readonly build/vet/gofmt及完整结构检查；业务验收未执行。
 
 完整服务仍因真实JobsClient适配、bytes、其余HTTP/事件及控制恢复未齐保持blocked；worker与outbox整体职责继续partial。未运行服务或删除业务文件，未新增测试、真实接口、模型调用或部署。逐项状态及准确源码提交见STATUS/progress/handoff。
 
