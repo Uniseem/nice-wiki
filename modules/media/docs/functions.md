@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 178 个函数：约束 36 个，参考 142 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 183 个函数：约束 36 个，参考 147 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1743,6 +1743,7 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 1. 目录/DB拒链接特殊对象，FULL同步只追加迁移，唯一生成schema校验持久Asset/UploadSession
 2. media.db打开前允许缺失、Ping后必须存在，复用ValidatePrivatePath拒硬链接/链接/特殊文件，并核既有DB前后SameFile
 3. 装配CleanupApproval与jobs CreateJobResult唯一schema校验器，不手工复制跨域校验规则
+4. 运行校验仅使用x-runtime-payload-schemas登记并由make gen生成的PayloadValidationSpec自包含闭包，不从已被HTTP prune的GetSwagger读取孤立组件，不手写或复制schema；字段仍唯一来自contracts
 
 **错误**
 
@@ -2697,6 +2698,7 @@ func ValidateDrawingScene(ctx context.Context, op OperationContext, input Valida
 1. 原DrawingScene schema经OpenAPI components引用进入唯一生成GetSwagger，由平台NewPayloadValidator完整验证；版本只接受2，未知字段/类型/坐标原schema拒绝，files等价additionalProperties值schema+propertyNames模式不改变持久版本
 2. Drawing专属语义核文件键原精确^[A-Za-z0-9._:-]{1,128}$与key/id一致、元素ID唯一、frame/bound/container/binding/file存在与类型、frame无环、group无重复、freedraw压力长度与points一致
 3. files只受限raster base64 data URL≤32MiB，MIME与签名及元数据一致，禁止SVG/外部URL；元素链接仅http/https/mailto，不执行HTML；按原element顺序收非deleted text，≤1048576字符，不写日志
+4. 运行校验仅使用x-runtime-payload-schemas登记并由make gen生成的PayloadValidationSpec自包含闭包，不从已被HTTP prune的GetSwagger读取孤立组件，不手写或复制schema；字段仍唯一来自contracts
 
 **错误**
 
@@ -5504,7 +5506,7 @@ func PublishAssetEvent(ctx context.Context, op OperationContext, input PublishAs
 
 - 级别：约束
 - 文件：`modules/media/internal/outbox_repository.go`
-- 作用：把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环
+- 作用：本域已提交outbox的真实单批转发，机制统一由平台执行
 
 ```go
 func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error)
@@ -5527,22 +5529,24 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 
 **步骤**
 
-1. 进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务
-2. 逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq
-3. 网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除
-4. 屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准
+1. 仅可信本域media纯服务后台与opened epoch；raw jobs客户端和真实运行/写窗口已装配，不接受HTTP或用户委托触发
+2. 将本域私有SQLite outbox、真实gen.JobsClient的publishEvent端口及本域窗口装配给platform.RunRelayBatch；按公共batchLimit 1..100，本函数只执行一批，不自造调度/租约/重试机制
+3. 公共机制按已提交行领取、原eventId/dataEpoch幂等真实提交，jobs持久确认后本地标relayed；jobs序号由jobs持久权威保存，不在本域复制。失败保留/退避、冲突隔离、旧epoch处理均由平台统一
+4. 持续调度由受信背景注册以平台RunRecoveryLoop每秒串行调用本单批；调度预检窗口和批内逐IO窗口分别建立，任何RPC后本地确认仍重核窗口，不持本域业务锁跨RPC
 
 **错误**
 
-- `DEPENDENCY_UNAVAILABLE`：jobs不可用或超时；行保留待下一轮（可重试）
-- `INTEGRITY_ERROR`：同eventId异payloadHash或信封不合法；行隔离（不可重试）
-- `VERSION_MISMATCH`：dataEpoch与当前active epoch不一致；旧代行按恢复规则丢弃（不可重试）
+- `FORBIDDEN`：非本域可信纯服务后台（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：客户端/存储/窗口或jobs未知，行保留（可重试）
+- `VALIDATION`：单批参数或窗口装配不合法（不可重试）
+- `INTEGRITY_ERROR`：本域持久outbox材料损坏，未知失败关闭；成功隔离由quarantined计数报告（不可重试）
+- `VERSION_MISMATCH`：op不属于opened epoch；公共机制只在合法窗口处理旧代行（不可重试）
 
-- 副作用：读写本域outbox行状态与租约；HTTP调用jobs:publishEvent
+- 副作用：单批本域outbox租约/状态推进；仅调用版本化jobs:publishEvent，不执行ready文件删除
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`jobs:publishEvent`、`platform.RunRelayBatch`、`platform.NewEventPublisher`、`media.cleanupStore`
 
 ## media.AcquireBarrier
 
@@ -5838,6 +5842,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 受信安装opened epoch与真实running写窗口，启动核chunk水位；统一工厂只绑定真实已实现handler，缺其余操作失败并关本地库，不填占位
 8. WriteWindow回调第二次runtime读取先核DataEpoch：未知503，已知不等于Build打开epoch为409，再判phase/maintenance；不能只信NewWriteContext第一次view
+9. 真实raw jobs客户端同时用于原人工批准CreateJob和公共窄worker适配，生产者响应schema由本域规格别名提供；构造两个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，loop/relay由平台启动和停止
 
 **错误**
 
@@ -5849,7 +5854,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`、`media.InstallAssetListingKey`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`、`media.InstallAssetListingKey`、`media.NewCleanupWorkerClient`、`media.NewMediaBackgroundTasks`、`media.InstallBackgroundTasks`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve
@@ -5898,7 +5903,7 @@ func Serve(ctx context.Context, app *Application) error
 
 - 级别：约束
 - 文件：`modules/media/internal/transport/server.go`
-- 作用：停止入口并使在途操作到可恢复安全点
+- 作用：平台等待背景任务结束后关闭本域资源，重复调用返回同一次结果
 
 ```go
 func Shutdown(ctx context.Context, app *Application) error
@@ -5919,10 +5924,9 @@ func Shutdown(ctx context.Context, app *Application) error
 
 **步骤**
 
-1. CAS lifecycle ready→draining，拒新写/claim/paid步骤并关闭SSE接受新订阅
-2. 取消本域worker的新步骤；等待已有DB事务、文件journal、模型可结算阶段安全确认；不能因超时假定供应方免费或删除paid refs
-3. http.Server.Shutdown等在途响应；flush本域outbox/journal、close DB与文件句柄；正常lifecycle closed
-4. deadline未安全返回DEADLINE_EXCEEDED并保留完整journal/未决费用引用，启动恢复收敛；不清掉活跃控制记录
+1. 公共RunService先取消背景任务，再调用Drain停HTTP入口且不关库，并等待全部任务至持久安全点
+2. 平台确认背景均退出后调用本函数；同一次Drain结果优先，随后CloseLocalBlobStore关闭私有DB/句柄并标closed
+3. Drain或资源关闭失败保留恢复决定并返回真实错误；不在后台仍可能写库时抢先关闭或清理持久人工决定
 
 **错误**
 
@@ -5933,7 +5937,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：`media.CloseLocalBlobStore`
+- 依赖：`media.Drain`、`media.CloseLocalBlobStore`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## media.Health
@@ -6047,7 +6051,7 @@ func NewApplication(config platform.ServiceConfig,anchors platform.TrustAnchors,
 - 授权：受信装配或已授权调用链；入口身份/schema一次，文件/epoch/CAS由本边界负责
 - 并发：本域私有store互斥及SQL CAS
 - 幂等：原来源及规范摘要绑定，未知失败关闭
-- 依赖：`platform.NewServiceHandler`、`media.serviceHandlers`、`media.LocalStorageRecovered`
+- 依赖：`platform.NewServiceHandler`、`media.serviceHandlers`、`media.LocalStorageRecovered`、`media.BackgroundTasks`、`media.Drain`
 
 ## media.serviceHandlers
 
@@ -6146,6 +6150,103 @@ func writeRequestProblem(w http.ResponseWriter,r *http.Request,err error)
 - 幂等：原来源及规范摘要绑定，未知失败关闭
 - 依赖：无
 
+## media.InstallBackgroundTasks
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：仅完整构造成功后安装复制的背景闭包，不运行任务
+
+```go
+func (a *Application) InstallBackgroundTasks(tasks []platform.BackgroundTask)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅完整构造成功后安装复制的背景闭包，不运行任务
+
+**错误**
+
+- 无
+
+- 副作用：仅初始化时安装独立背景闭包切片，不启动任务
+- 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
+- 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
+- 幂等：保留原任务/事件/决定；不产生新人工批准，不执行时不产生业务副作用
+- 依赖：无
+
+## media.BackgroundTasks
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：公共生命周期读取已安装闭包；此处不claim、不转发、不删除
+
+```go
+func (a *Application) BackgroundTasks() []platform.BackgroundTask
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 公共生命周期读取已安装闭包；此处不claim、不转发、不删除
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
+- 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
+- 幂等：保留原任务/事件/决定；不产生新人工批准，不执行时不产生业务副作用
+- 依赖：无
+
+## media.Drain
+
+- 级别：参考
+- 文件：`modules/media/internal/transport/server.go`
+- 作用：仅排空HTTP入口，不关闭私有库；平台取消并等待背景后再Shutdown
+
+```go
+func (a *Application) Drain(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 公共RunService先取消背景任务；此方法只CAS ready→draining并http.Server.Shutdown排空在途HTTP，不关闭私有库或清理决定
+2. 同实例sync.Once保存真实排空结果；背景安全点由公共生命周期等待，完成后才Shutdown关库
+
+**错误**
+
+- 无
+
+- 副作用：HTTP入口drain与生命周期状态
+- 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
+- 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
+- 幂等：同实例返回同一次排空结果，超时保留恢复材料
+- 依赖：无
+
 ## media.ConsumeEvents
 
 - 级别：约束
@@ -6218,11 +6319,12 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 
 **步骤**
 
-1. 受信启动注入真实platform.JobsClient和maxConcurrency，缺客户端/运行权威明确DEPENDENCY_UNAVAILABLE，不造假方法，不声称完整启动
+1. 受信启动以NewCleanupWorkerClient构建真实platform.WorkerJobsClient窄端口，严格使用jobs生产方六Result schema；缺客户端/运行权威明确失败关闭，不补虚假订阅方法
 2. 只注册media.cleanup并调用platform.RunWorkerLoop；claim/start、十秒续租三十秒、取消/fence/checkLease与complete/fail全部由平台处理
 3. cleanupWorkerOperation从完整ClaimedJob.InputRef读取原批准/原AcceptedJob/waiting，绑定jobId/op/root/site/epoch；领取时新建十分钟期限及纯media主体，清proof/grants
 4. 平台向执行器保留完整ObjectRef/WorkerID/fence及CheckLease guard，同进程直接Execute；统计owner执行结果，jobs写回仍由平台真实租约核对
 5. 执行器首次批准读取、缺原材料及Execute错误统一进入cleanupWorkerFailure；仅当前task ctx已取消或公共CANCELLED cause时，用一秒独立只读快照核原批准/job/计划/execution，原完整终局优先Succeeded，无execution才Cancelled，未终局DELETING/未知不谎报安全取消；op缺失仍FORBIDDEN
+6. 公共循环每次Claim使用当前runtime及独立纯media/system服务上下文，Claim不读取本站对象；领取后cleanupWorkerOperation仍从原批准恢复真实site/epoch/root，所有任务对象RPC沿该已核上下文并由服务断言签名，不猜payload站点
 
 **错误**
 
@@ -6298,6 +6400,71 @@ func (s *localBlobStore) cleanupWorkerFailure(ctx context.Context, op OperationC
 - 并发：独立有界只读SQL快照，不持asset/store锁，不触发RPC
 - 幂等：仅报告原持久事实，不修改计划、决定或原结果
 - 依赖：`media.loadCleanupApproval`、`media.checkCleanupJobBinding`、`media.readCleanupPlan`、`media.readCleanupExecution`
+
+## media.NewCleanupWorkerClient
+
+- 级别：参考
+- 文件：`modules/media/internal/worker.go`
+- 作用：用拥有方六Result唯一schema装配公共真实worker适配，不复制协议转换
+
+```go
+func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. OpenAPI顶级x-runtime-payload-schemas显式登记jobs拥有的六Result别名；使用生成gen.PayloadValidationSpec的自包含schema闭包创建严格校验器，不借被HTTP prune裁剪的GetSwagger，不扩大HTTP DTO
+2. 按生产者六Result原名map装配platform.NewJobsClient，协议转换/租约机制由公共实现，域不手写响应投影或伪造接口
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
+- 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
+- 幂等：保留原任务/事件/决定；不产生新人工批准，不执行时不产生业务副作用
+- 依赖：`platform.NewJobsClient`
+
+## media.NewMediaBackgroundTasks
+
+- 级别：参考
+- 文件：`modules/media/internal/worker.go`
+- 作用：只构造两个可信背景任务：平台worker和统一周期调用本域relay单批，未完整装配不启动
+
+```go
+func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient) ([]platform.BackgroundTask, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只构造两个可信背景任务：平台worker和统一周期调用本域relay单批，未完整装配不启动
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
+- 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
+- 幂等：保留原任务/事件/决定；不产生新人工批准，不执行时不产生业务副作用
+- 依赖：`media.cleanupStore`、`media.RunWorker`、`media.RelayOutbox`、`platform.RunRecoveryLoop`
 
 ## media.All
 

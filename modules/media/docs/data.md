@@ -245,3 +245,8 @@ store互斥覆盖决定恢复的完整本地保护核对、generated blob身份/
 普通列表只返安全Asset；引用详情另读ReadAssetReferences。unused只扫描ready，默认20最多100条候选，候选有current/pending就不输出，历史风险明确保留；本页匹配可少于limit甚至为空，hasMore表示还有未扫描候选，nextCursor按最后扫描候选严格前进，不能把空匹配当末页。Source未知/不完整、水位全页或跨页变化、回源后本地水位/精确候选变化均失败关闭，要求从第一页重读，不返回部分结论。
 
 每页短本地快照结束后才回源，全部回源后新短快照复核本地；平台签名/验签也不持SQL或业务锁。签名scope绑定当前授权主体、站点/epoch、session与权限修订、limit/kind/mode，首版载荷含本地水位、unused两个完整来源水位和末项排序位置。游标只表示位置，不能代替当前权限，不写回或延长任何pin，也不是人工删除许可。
+
+
+## 运行校验schema闭包（2026-10-17，GitLab pipeline32检查通过）
+
+OpenAPI顶级x-runtime-payload-schemas只登记18个确实被本域运行校验使用的组件：持久Asset/Upload/Pin/引用快照/来源决定/来源分页/清理计划/批准/任务原回执/Drawing及jobs六Result，字段仍唯一来自各拥有方contracts。make gen在clients.gen.go生成PayloadValidationSpec，仅所选组件及其引用闭包、paths为空，不扩大HTTP DTO或公开接口。旧pruned GetSwagger丢失的六孤立组件不能作为运行校验来源，store/画板/任务工厂统一读取此生成常量；无新业务迁移或schemaVersion变更。

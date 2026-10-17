@@ -66,17 +66,7 @@ var sceneSchema struct {
 // ValidateDrawingScene 先使用唯一schema，再检查图元/文件引用及嵌入资源语义。
 func ValidateDrawingScene(ctx context.Context, op OperationContext, input ValidateDrawingSceneInput) (ValidateDrawingSceneResult, error) {
 	sceneSchema.Do(func() {
-		spec, err := gen.GetSwagger()
-		if err != nil {
-			sceneSchema.err = err
-			return
-		}
-		raw, err := spec.MarshalJSON()
-		if err != nil {
-			sceneSchema.err = err
-			return
-		}
-		sceneSchema.validate, sceneSchema.err = apivalidate.NewPayloadValidator(raw, "DrawingScene")
+		sceneSchema.validate, sceneSchema.err = apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "DrawingScene")
 	})
 	if sceneSchema.err != nil {
 		return ValidateDrawingSceneResult{}, platform.NewError(platform.CodeIntegrityError, false, "画板场景schema未完整装配")

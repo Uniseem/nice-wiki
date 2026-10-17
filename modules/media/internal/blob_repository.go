@@ -175,16 +175,7 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体数据库打开后身份已变化")
 	}
-	spec, err := gen.GetSwagger()
-	if err != nil {
-		_ = db.Close()
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体持久schema不可读")
-	}
-	document, err := spec.MarshalJSON()
-	if err != nil {
-		_ = db.Close()
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体持久schema无法编码")
-	}
+	document := []byte(gen.PayloadValidationSpec)
 	store.validateAsset, err = apivalidate.NewPayloadValidator(document, "Asset")
 	if err != nil {
 		_ = db.Close()

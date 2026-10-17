@@ -42,7 +42,9 @@ type Application struct {
 	serveStarted        atomic.Bool
 	shutdownOnce        sync.Once
 	shutdownErr         error
-	workerCancel        context.CancelFunc
+	backgroundTasks     []platform.BackgroundTask
+	drainOnce           sync.Once
+	drainErr            error
 	httpServer          *http.Server
 }
 
@@ -349,23 +351,14 @@ func Serve(ctx context.Context, app *Application) error {
 	return nil
 }
 
-// Shutdown 停止入口、取消本域worker并等待HTTP在途请求到达安全点。
-// 业务journal/outbox句柄在对应工作包接入后追加到同一sync.Once路径。
+// Shutdown由平台在背景任务退出后调用；先复用Drain结果，再关闭私有库。
 func Shutdown(ctx context.Context, app *Application) error {
 	if app == nil || app.httpServer == nil || ctx == nil {
 		return platform.NewError(platform.CodeValidation, false, "HTTP应用句柄不完整")
 	}
 	app.shutdownOnce.Do(func() {
-		app.state.CompareAndSwap(stateReady, stateDraining)
-		if app.workerCancel != nil {
-			app.workerCancel()
-		}
-		if err := app.httpServer.Shutdown(ctx); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				app.shutdownErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
-				return
-			}
-			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
+		if err := app.Drain(ctx); err != nil {
+			app.shutdownErr = err
 			return
 		}
 		if err := mediaDomain.CloseLocalBlobStore(); err != nil {
@@ -431,4 +424,29 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// InstallBackgroundTasks只由成功完成完整应用构造的启动链调用，不在此运行任务。
+func (a *Application) InstallBackgroundTasks(tasks []platform.BackgroundTask) {
+	a.backgroundTasks = append([]platform.BackgroundTask(nil), tasks...)
+}
+
+// BackgroundTasks供统一进程模板启动/取消与等待；返回独立切片避免运行期改注册表。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask(nil), a.backgroundTasks...)
+}
+
+// Drain仅排空HTTP，不关闭后台还可能写入的私有库；关闭顺序由平台保证。
+func (a *Application) Drain(ctx context.Context) error {
+	a.drainOnce.Do(func() {
+		a.state.CompareAndSwap(stateReady, stateDraining)
+		if err := a.httpServer.Shutdown(ctx); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				a.drainErr = platform.NewError(platform.CodeDeadlineExceeded, true, "资源入口未在关闭期限内排空")
+			} else {
+				a.drainErr = platform.NewError(platform.CodeInternal, false, "停止资源HTTP入口失败")
+			}
+		}
+	})
+	return a.drainErr
 }

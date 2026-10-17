@@ -84,7 +84,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := mediaDomain.InstallReferenceDecisionClients(gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), siteConfig); err != nil {
 		return nil, err
 	}
-	if err := mediaDomain.InstallCleanupJobsClient(gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)); err != nil {
+	jobs := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
+	if err := mediaDomain.InstallCleanupJobsClient(jobs); err != nil {
+		return nil, err
+	}
+	workerJobs, err := mediaDomain.NewCleanupWorkerClient(jobs)
+	if err != nil {
 		return nil, err
 	}
 	if err := mediaDomain.InstallAssetListingKey(key); err != nil {
@@ -122,6 +127,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	background, err := mediaDomain.NewMediaBackgroundTasks(startup, workerJobs)
+	if err != nil {
+		return nil, err
+	}
+	application.InstallBackgroundTasks(background)
 	complete = true
 	return application, nil
 }
