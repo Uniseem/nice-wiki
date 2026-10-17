@@ -2,7 +2,7 @@
 
 将 content 已发布版本渲染成可索引、可访问的完整 HTML，并提供导航、SEO、多语言路由、Markdown、llms、sitemap 与受保护预览。
 
-状态：按old已确认产品行为重建微服务设计；未实现业务代码，未创建测试样例，未执行真实接口或模型，未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+状态：启动装配和公开链接解析已编写，进程仍失败关闭；未编译，accepted 为 0，未验收，未部署。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
@@ -19,10 +19,10 @@
 - [openapi](contracts/openapi.json)
 - [events](contracts/events.json)
 
-文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。文件仅登记路径，没有创建未来源码。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
+文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。本轮已创建启动入口、装配、HTTP 生命周期、规范地址和公开链接解析；其余登记路径仍未创建。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
 
 ## 进度与新会话交接
 
 先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
 
-第四轮支援仅补site-config所需的`resolvePublishedLink`只读生产方契约；按稳定documentId/可选blockId与显式语言解析当前公开同源相对URL。本域仍无业务Go module，函数/生成物保持planned，协议生成与结构检查不代表接口已实现。
+`resolvePublishedLink` 已绑定真实 `ResolvePublishedLink`。缺处理函数或权威依赖时启动失败，不返回可运行应用。依赖未知为 503，水位变化为公共错误表 `STALE_RESULT`/409。未编译的函数保持 implemented 或 blocked，没有 verified，accepted 为 0。
