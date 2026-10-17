@@ -130,7 +130,7 @@ func (s *Store) planDocumentCreation(ctx context.Context, op OperationContext, i
 		return draftOperationPlan{}, contentStorageError()
 	}
 	defer tx.Rollback()
-	treeRevision, documents, err := readCreationTree(ctx, tx, op.Actor.SiteID)
+	treeRevision, documents, err := readCreationTree(ctx, tx, op.Actor.SiteID, nil)
 	if err != nil {
 		return draftOperationPlan{}, err
 	}
@@ -197,13 +197,17 @@ type creationQuery interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-func readCreationTree(ctx context.Context, q creationQuery, siteID Identifier) (int64, []gen.DocumentMetadata, error) {
+func readCreationTree(ctx context.Context, q creationQuery, siteID Identifier, validateMetadata func(json.RawMessage) error) (int64, []gen.DocumentMetadata, error) {
 	var version int64
 	err := q.QueryRowContext(ctx, `SELECT revision FROM content_tree_state WHERE site_id=?`, siteID).Scan(&version)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, nil, contentStorageError()
 	}
-	rows, err := q.QueryContext(ctx, `SELECT d.document_id,d.state,d.revision,m.metadata_json,EXISTS(SELECT 1 FROM document_quarantines q WHERE q.site_id=d.site_id AND q.document_id=d.document_id) FROM documents d LEFT JOIN document_metadata m ON m.site_id=d.site_id AND m.document_id=d.document_id WHERE d.site_id=?`, siteID)
+	limit, activeScan := -1, 0
+	if validateMetadata != nil {
+		limit, activeScan = 10001, 1
+	}
+	rows, err := q.QueryContext(ctx, `SELECT d.document_id,d.state,d.revision,CASE WHEN length(CAST(m.metadata_json AS BLOB))<=16777216 THEN m.metadata_json ELSE NULL END,EXISTS(SELECT 1 FROM document_quarantines q WHERE q.site_id=d.site_id AND q.document_id=d.document_id) FROM documents d LEFT JOIN document_metadata m ON m.site_id=d.site_id AND m.document_id=d.document_id WHERE d.site_id=? AND (?=0 OR d.state<>'purged') LIMIT ?`, siteID, activeScan, limit)
 	if err != nil {
 		return 0, nil, contentStorageError()
 	}
@@ -218,11 +222,17 @@ func readCreationTree(ctx context.Context, q creationQuery, siteID Identifier) (
 		if rows.Scan(&id, &state, &revision, &raw, &quarantined) != nil {
 			return 0, nil, contentStorageError()
 		}
+		if validateMetadata != nil && validateMetadata(raw) != nil {
+			return 0, nil, platform.NewError(platform.CodeIntegrityError, false, "文档树持久元数据不符合唯一schema")
+		}
 		var metadata gen.DocumentMetadata
 		if decodeStorageJSON(raw, &metadata) != nil || metadata.DocumentId != id || metadata.SiteId != siteID || string(metadata.State) != state || metadata.Revision != revision || quarantined {
 			return 0, nil, platform.NewError(platform.CodeIntegrityError, false, "文档树元数据或隔离状态不允许创建")
 		}
 		documents = append(documents, metadata)
+		if validateMetadata != nil && len(documents) > 10000 {
+			return 0, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "完整文档树超过登记扫描预算")
+		}
 	}
 	if rows.Err() != nil {
 		return 0, nil, contentStorageError()
@@ -269,7 +279,7 @@ func fractionalDocumentOrder(lower, upper string) (string, error) {
 func (t *draftCommitTransaction) validateCreateTransaction(ctx context.Context) error {
 	plan := t.store.record.Plan
 	site := t.request.Operation.Actor.SiteID
-	version, documents, err := readCreationTree(ctx, t.tx, site)
+	version, documents, err := readCreationTree(ctx, t.tx, site, nil)
 	if err != nil {
 		return err
 	}

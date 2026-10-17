@@ -2,31 +2,31 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "8222f259d624fb7c74f38889c99d758bc3e4518fdbb04db701ecb3397185ab8e",
+  "contractSha256": "5dbe947318fd89dd792eaee6ab413e6969ec2b7ec23afcad2ff9127ca83fc3c1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "content资源来源查询与单批outbox转发（已检查交付）",
-  "branch": "codex/content-20261017-r1",
-  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
-  "deliveryCommit": "16029fde3736071e1e127c87faf918305eed237a",
+  "assignedSession": "content第二轮文档树与完整重排（已检查交付）",
+  "branch": "codex/content-20261017-r2",
+  "baseCommit": "8a49af65f048a6b160f963570f02d6b88db100de",
+  "deliveryCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/content/internal/document_service.go",
       "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/tree_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 ReadTree/List/完整Reorder及参考助手完整，但Move受约束发布路径manifest分支未完成。"
       },
       "blocker": null
     },
@@ -52,11 +52,11 @@
     },
     {
       "path": "modules/content/internal/path_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 本轮PlanOldPathRedirects完整；ValidatePathSegment仍planned。"
       },
       "blocker": null
     },
@@ -423,20 +423,20 @@
     {
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 仅局部装配完整。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 缺window在新写前503而非nil回调panic，当前完整Build仍未完成。"
       },
-      "blocker": "完整编辑锁和Create/Read/Save草稿、真实引用源查询/两个只读HTTP路由及单批RelayOutbox已检查；其余完整HTTP、发布/撤回/回收站生命周期、后台循环/在线通知消费、恢复activation和epoch重绑定仍未完成，完整服务不能启动。"
+      "blocker": "真实树读取/完整重排/局部HTTP及草稿移动分支已编写检查；Move发布路径与真实redirect manifest、可信control写窗口、全量handler、恢复activation及完整后台未齐，Build只局部构造后nil/503，完整应用仍不能启动。"
     },
     {
       "path": "modules/content/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 两个真实只读资源来源路由已装配；其他HTTP、后台和完整服务尚未完成。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 四个真实树映射及既有分页整数窄修已检查；全量HTTP/后台/退出恢复仍未齐。"
       },
       "blocker": null
     },
@@ -573,10 +573,10 @@
     {
       "path": "modules/content/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
@@ -603,10 +603,10 @@
     {
       "path": "modules/content/web/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
@@ -709,6 +709,16 @@
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/content/migrations/0006_tree_operations.sql",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -756,20 +766,20 @@
     {
       "id": "content.planDocumentCreation",
       "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
     {
       "id": "content.readCreationTree",
       "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
@@ -796,44 +806,44 @@
     {
       "id": "content.ReadDocumentTree",
       "path": "modules/content/internal/tree_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
     {
       "id": "content.ListDocuments",
       "path": "modules/content/internal/tree_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
     {
       "id": "content.MoveDocument",
       "path": "modules/content/internal/tree_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 仅草稿移动/同父顺序分支及发布路径503失败关闭已检查；真实manifest提交分支未完成，整体保持partial/in_progress。"
       },
       "blocker": null
     },
     {
       "id": "content.ReorderChildren",
       "path": "modules/content/internal/tree_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
@@ -884,11 +894,11 @@
     {
       "id": "content.PlanOldPathRedirects",
       "path": "modules/content/internal/path_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     },
@@ -2242,20 +2252,20 @@
       "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 仅当前已实现启动前置或局部装配检查通过，完整应用仍blocked。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 当前仅局部入口装配检查通过。"
       },
-      "blocker": "完整编辑锁和Create/Read/Save草稿、真实引用源查询/两个只读HTTP路由及单批RelayOutbox已检查；其余完整HTTP、发布/撤回/回收站生命周期、后台循环/在线通知消费、恢复activation和epoch重绑定仍未完成，完整服务不能启动。"
+      "blocker": "真实树读取/完整重排/局部HTTP及草稿移动分支已编写检查；Move发布路径与真实redirect manifest、可信control写窗口、全量handler、恢复activation及完整后台未齐，Build只局部构造后nil/503，完整应用仍不能启动。"
     },
     {
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 仅当前已实现启动前置或局部装配检查通过，完整应用仍blocked。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 当前仅局部入口装配检查通过。"
       },
-      "blocker": "完整编辑锁和Create/Read/Save草稿、真实引用源查询/两个只读HTTP路由及单批RelayOutbox已检查；其余完整HTTP、发布/撤回/回收站生命周期、后台循环/在线通知消费、恢复activation和epoch重绑定仍未完成，完整服务不能启动。"
+      "blocker": "真实树读取/完整重排/局部HTTP及草稿移动分支已编写检查；Move发布路径与真实redirect manifest、可信control写窗口、全量handler、恢复activation及完整后台未齐，Build只局部构造后nil/503，完整应用仍不能启动。"
     },
     {
       "id": "content.Serve",
@@ -3109,13 +3119,167 @@
       "id": "content.RegisterReferenceRoutes",
       "path": "modules/content/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.NewTreeRuntime",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.WithTreeRuntime",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.treeRuntimeFromContext",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.authorizeTree",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.beginTreeRead",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.readTreeSnapshot",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.validateTreeSiblings",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.treePreorder",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.readTreeReceipt",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.executeTreeMutation",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.planTreeMove",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.planTreeReorder",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.reorderedDocumentKey",
+      "path": "modules/content/internal/tree_service.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RegisterTreeRoutes",
+      "path": "modules/content/internal/transport/server.go",
+      "state": "verified",
+      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
       "blocker": null
     }
   ],
-  "rule": "本轮根自部署GitLab CI pipeline 12生成/格式/重复生成、三个并行编译分片覆盖14模块readonly build/vet/gofmt及完整check通过。12项净新增完整函数和修改的ReadReferenceDecision按实际源码SHA记verified；不把两个只读路由或单批relay解释为全服务完成，BuildApplication/main继续blocked。业务accepted=0，未本机编译/测试或自行push，交付后冻结等根集成。"
+  "rule": "本轮GitLab pipeline23生成/格式/重复生成、三并行分片14模块readonly build/vet/gofmt与完整check通过；21个完整/修改函数按真实SHAverified，净增18项完成（177→195/238）。Move/tree_service/Plan文件整体仍partial/in_progress，Build/main blocked；缺window新写前503，已发布路径manifest未齐不假成功。accepted=0；冻结等根集成，未自行push。"
 }

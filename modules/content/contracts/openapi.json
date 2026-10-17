@@ -364,7 +364,7 @@
       "get": {
         "operationId": "listDocuments",
         "summary": "文档及回收站分页列表",
-        "description": "调用函数 content.ListDocuments；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "同站点一致前序分页，只返回metadata。draft/published需content.read，trash需content.publish；签名cursor绑定主体/会话、state、limit、treeRevision及真实全站来源水位；树、metadata/head或隔离等来源变化409从头读取。",
         "x-handler": "content.ListDocuments",
         "x-permission": "content.read",
         "security": [
@@ -376,13 +376,26 @@
         "parameters": [
           {
             "in": "query",
+            "name": "state",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "published",
+                "trash"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
             }
           },
           {
@@ -391,19 +404,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "签名不透明游标",
-              "minLength": 0,
-              "maxLength": 2048
-            }
-          },
-          {
-            "in": "query",
-            "name": "assetId",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "assetId",
-              "minLength": 0,
+              "minLength": 1,
               "maxLength": 2048
             }
           }
@@ -415,6 +416,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "types.json#/$defs/ListDocumentsResult"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
                 }
               }
             }
@@ -438,8 +447,62 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-allowed-callers": [
+          "portal"
+        ],
+        "x-data-epoch-required": true
       }
     },
     "/v1/tree": {
@@ -463,6 +526,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "types.json#/$defs/ReadDocumentTreeResult"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
                 }
               }
             }
@@ -496,15 +567,59 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-allowed-callers": [
+          "portal"
+        ],
+        "x-data-epoch-required": true
       }
     },
     "/v1/tree:move": {
       "post": {
         "operationId": "moveDocument",
         "summary": "拖拽移动层级和顺序",
-        "description": "调用函数 content.MoveDocument；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "真实树CAS及原结果回执；草稿路径可移动。影响曾发布子树路径时必须等待真实redirect manifest生产链，当前503失败关闭且不提交，不把未知published路径当空。",
         "x-handler": "content.MoveDocument",
         "x-permission": "content.edit",
         "security": [
@@ -584,6 +699,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -595,7 +720,11 @@
               }
             }
           }
-        }
+        },
+        "x-allowed-callers": [
+          "portal"
+        ],
+        "x-data-epoch-required": true
       }
     },
     "/v1/tree:reorder": {
@@ -682,6 +811,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -693,7 +832,11 @@
               }
             }
           }
-        }
+        },
+        "x-allowed-callers": [
+          "portal"
+        ],
+        "x-data-epoch-required": true
       }
     },
     "/v1/documents/{documentId}/metadata": {

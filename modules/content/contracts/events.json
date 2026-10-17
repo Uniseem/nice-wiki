@@ -49,6 +49,18 @@
       "delivery": "at-least-once",
       "ordering": "本站documentId的信封revision持久单调跨boot；payload fence仅本boot，不用事件替代同步保存授权",
       "idempotency": "eventId唯一；同scope原请求回执不重发，消费者按documentId/revision去重并拒旧epoch"
+    },
+    {
+      "name": "content.tree.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/TreeChangedPayload"
+      },
+      "purpose": "树移动或完整同级重排与原回执同事务通知，当前未装配在线或公开消费者",
+      "delivery": "at-least-once",
+      "ordering": "siteId treeRevision全站单调；旧epoch失效",
+      "idempotency": "固定eventId与同scope原回执，重放不重复事件"
     }
   ]
 }

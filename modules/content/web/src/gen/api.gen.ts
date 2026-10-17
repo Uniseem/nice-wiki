@@ -73,7 +73,7 @@ export interface paths {
         };
         /**
          * 文档及回收站分页列表
-         * @description 调用函数 content.ListDocuments；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 同站点一致前序分页，只返回metadata。draft/published需content.read，trash需content.publish；签名cursor绑定主体/会话、state、limit、treeRevision及真实全站来源水位；树、metadata/head或隔离等来源变化409从头读取。
          */
         get: operations["listDocuments"];
         put?: never;
@@ -119,7 +119,7 @@ export interface paths {
         put?: never;
         /**
          * 拖拽移动层级和顺序
-         * @description 调用函数 content.MoveDocument；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 真实树CAS及原结果回执；草稿路径可移动。影响曾发布子树路径时必须等待真实redirect manifest生产链，当前503失败关闭且不提交，不把未知published路径当空。
          */
         post: operations["moveDocument"];
         delete?: never;
@@ -945,7 +945,7 @@ export interface components {
             /** @description 路径水位 */
             revision: components["schemas"]["Revision"];
         };
-        /** @description 拖拽移动层级和顺序的结果 */
+        /** @description 移动结果；当前已发布子树改变路径依赖redirect manifest生产链而503，不能返回虚假空redirects成功 */
         MoveDocumentResult: {
             /** @description 新树 */
             treeRevision: components["schemas"]["Revision"];
@@ -972,7 +972,7 @@ export interface components {
         ReorderChildrenInput: {
             /** @description 根null */
             parentId: components["schemas"]["Identifier"] | null;
-            /** @description 全量无重复子顺序 */
+            /** @description 该parent下完整活动draft/published子节点集合，回收站/purged不属于活动排序；空集合允许 */
             orderedDocumentIds: components["schemas"]["Identifier"][];
             /** @description CAS */
             expectedTreeRevision: components["schemas"]["Revision"];
@@ -2135,10 +2135,10 @@ export interface operations {
     };
     listDocuments: {
         parameters: {
-            query?: {
-                limit?: string;
+            query: {
+                state: "draft" | "published" | "trash";
+                limit?: number;
                 cursor?: string;
-                assetId?: string;
             };
             header?: never;
             path?: never;
@@ -2149,6 +2149,7 @@ export interface operations {
             /** @description 文档及回收站分页列表的成功回执 */
             200: {
                 headers: {
+                    "Cache-Control"?: "no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -2164,8 +2165,53 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共失败关闭错误 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2274,14 +2320,51 @@ export interface operations {
             /** @description 后台读取整站文档树的成功回执 */
             200: {
                 headers: {
+                    "Cache-Control"?: "no-store";
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ReadDocumentTreeResult"];
                 };
             };
+            /** @description 公共失败关闭错误 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2376,6 +2459,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共失败关闭错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
             503: {
                 headers: {
@@ -2447,6 +2539,15 @@ export interface operations {
             };
             /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
