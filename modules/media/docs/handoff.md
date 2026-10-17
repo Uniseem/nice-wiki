@@ -1,3 +1,13 @@
+# 2026-10-17第六轮：上传分块准备决定先于水位截尾（已实现，未跑 CI）
+
+- 分支 `codex/media-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`，源码 `35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff`。独占 `modules/media/`。未 push。准确台账另提交。
+- 只调整 `media.PutUploadChunk`。同 op 先核 actor/site/epoch/upload 与稳定摘要，成功只读返回原 UploadSession，不重查配额、offset、CAS，也不消费 reader。新写或未完成先由 `lifecycle.NewWriteContext` 取得真实 running 窗口；维护或非 running 直接 LOCKED。上传独占下核 receiving、到期、offset、expectedRevision 和创建 epoch，旧 NULL epoch 不猜测继续。
+- Content-Length 仍由 HTTP 入口限定为明确的 1..8MiB，并绑定内部 `io.Reader`。有界读 length+1，精确长度与 SHA 一致才 fsync 私有暂存。摘要固定 upload/offset/length/sha/expectedRevision，不含 reader 或新时钟。PREPARED 确认影响一行后才按 SQL 权威水位截去未提交尾、追加已核分块并 fsync；随后重新取 running 窗口，offset 与 revision CAS 和 COMMITTED 原结果、hash 在同一 SQL 事务。崩溃后 `RecoverUploadChunks` 仍只按已提交水位截尾，短文件或坏材料失败关闭，PREPARED 与未知临时材料不计数、不发布 ready。
+- 复用既有 `localBlobStore` 的 upload mutex、`upload_receipts` 和 opened epoch。点名依赖都已存在：`mediaWriteContext`、`hashChunkRequest`、`readChunkOperation`、`readUploadRow`、`openMediaRoot`，以及同文件的 `reconcileUploadFile`、`writeChunkStage`、`openMediaRegular`、`chunkStageName`、`commitChunk`。没有另起存储。没有同时实现完成上传、引用确认或全量 HTTP 路由，没有发布资源或事件，没有改合同。
+- 整条 HTTP 链的硬 body 预算在分块 handler 的长度协议错误之前返回 `BUDGET_EXCEEDED`。预算内缺失、未知或不合法 Content-Length 仍是 400。`errors.json` 将该错误码映射为 HTTP 429，本操作 OpenAPI 另列 413。本轮不改 `libs/platform` 或错误表。
+- `PutUploadChunk` 与 `chunk_writer.go` 记 implemented，verification 为 not_run，evidence 写明未跑 GitLab CI。未跑 go build、go vet、gofmt、make build、make gen，未 SSH。本轮只跑了 python `make docs`，无漂移。不能记 verified 或 accepted。accepted 仍为 0。
+- 下一步：等集成会话用 GitLab CI 编译本函数后再决定能否记 verified。订阅仍不能接，因为 `content.resources.changed` 的生产方载荷和 `ApplyReferenceEventInput` 不一致。先改合同再改载荷。不要自行展开 bytes。
+
 # 2026-10-17第四轮：引用事件幂等快照（已实现，未跑 CI，订阅未接通）
 
 - 分支 `codex/media-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`（main），源码 `ff91d6aa27a8783c262b07932bbdb85bb0e4ee23`。独占 `modules/media/`。未 push。

@@ -1,3 +1,11 @@
+# 2026-10-17第六轮：上传分块准备决定先于水位截尾（已实现，未跑 CI）
+
+- 分支 `codex/media-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`，源码 `35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff`。独占 `modules/media/`。未 push。准确台账另提交。
+- 只调整 `media.PutUploadChunk`：同 op 先回放原 UploadSession，不消费分块流。新写经 `lifecycle.NewWriteContext` 取真实 running 窗口，维护直接 LOCKED。入口仍要求明确 Content-Length 1..8MiB；内部有界读 length+1，长度与 SHA 一致才 fsync。PREPARED 确认写入后再按已提交 SQL 水位截尾、追加并 CAS。不发布资源或事件。
+- 复用既有 upload mutex、创建回执和 opened epoch，以及 `mediaWriteContext`、`hashChunkRequest`、`readChunkOperation`、`readUploadRow`、`openMediaRoot`、`reconcileUploadFile`、`writeChunkStage`、`openMediaRegular`、`chunkStageName`、`commitChunk`。依赖齐全。没有另起存储，没有改合同。
+- `chunk_writer.go` 与 `PutUploadChunk` 记 implemented，verification 为 not_run。未跑 GitLab CI，不能记 verified 或 accepted。公共入口超限先返回 `BUDGET_EXCEEDED`；`errors.json` 把该码映射为 HTTP 429，本操作 OpenAPI 另列 413。本轮不改平台映射。
+- 下一步：等集成会话用 GitLab CI 编译本函数后再决定能否记 verified。订阅仍不能接，因为 `content.resources.changed` 的生产方载荷和 `ApplyReferenceEventInput` 不一致。先改合同再改载荷。不要自行展开 bytes。
+
 # 集成检查（2026-10-17）
 
 引用事件写入已合入 main，GitLab pipeline 42 把 ApplyReferenceEvent 记为 verified。生产方载荷仍未对齐，订阅没有接通。下面是合入前的模块记录。

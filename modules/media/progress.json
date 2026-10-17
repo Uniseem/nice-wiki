@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "5ed6490bb39a3a9cfca4cfe0ef66f133f86e63edf9fd0dff928e69d7c72a2af4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "引用事件幂等快照（pipeline 42 已记 verified；生产方载荷未对齐）",
-  "branch": "codex/media-20261017-r4",
-  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
+  "assignedSession": "PutUploadChunk 准备决定先于水位截尾（已实现，未跑 CI）",
+  "branch": "codex/media-20261017-r6",
+  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
+  "deliveryCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
   "deployment": "not_started",
   "files": [
     {
@@ -32,11 +32,11 @@
     },
     {
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "verified",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "state": "implemented",
+      "implementationCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "2026-10-17第六轮源码35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff：PutUploadChunk 改为 PREPARED 持久后再按已提交 SQL 水位截尾。未跑 GitLab CI，未跑 go build、go vet、gofmt、make build、make gen，未 SSH。本轮 make docs 无漂移。不能记编译通过或 verified。"
       },
       "blocker": null
     },
@@ -620,11 +620,11 @@
     {
       "id": "media.PutUploadChunk",
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "verified",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "state": "implemented",
+      "implementationCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "2026-10-17第六轮源码35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff：同 op 回放原 UploadSession；新写先取 lifecycle.NewWriteContext，维护直接 LOCKED；1..8MiB 有界读 length+1，长度与 SHA 一致才 fsync；PREPARED 先持久再按 SQL 水位截尾并 CAS。未跑 GitLab CI。不能记 verified。"
       },
       "blocker": null
     },
