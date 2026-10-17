@@ -2,7 +2,7 @@
 
 管理站点语言启停、发布内容增量翻译、人工保护、术语库、界面字符串和语言建议；翻译是绑定权威源修订的派生资产。
 
-阶段：design。所有业务源文件仅在未来文件manifest登记，本阶段不实现、不运行测试/真实模型、不推送。
+阶段：R1实施，已交付私有存储与启动骨架，翻译/任务/事件业务与完整服务仍未完成。当前免费估价计划只补统一网关token估算的未来调用契约，EstimateLanguagePlan仍planned，业务验收与部署未开始。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
