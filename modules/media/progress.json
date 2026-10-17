@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "5ed6490bb39a3a9cfca4cfe0ef66f133f86e63edf9fd0dff928e69d7c72a2af4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "PutUploadChunk 准备决定先于水位截尾（已实现，未跑 CI）",
+  "assignedSession": "PutUploadChunk 准备决定先于水位截尾（pipeline 53 记 verified）",
   "branch": "codex/media-20261017-r6",
   "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
   "deliveryCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
@@ -32,11 +32,11 @@
     },
     {
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17第六轮源码35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff：PutUploadChunk 改为 PREPARED 持久后再按已提交 SQL 水位截尾。未跑 GitLab CI，未跑 go build、go vet、gofmt、make build、make gen，未 SSH。本轮 make docs 无漂移。不能记编译通过或 verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline 53（83a435f322da98035cbe71319aee2ea8914a4534）生成 job 232 补丁 0 字节，content-media 分片 job 234 成功，覆盖 modules/media 的 readonly build、vet 与 gofmt。foundation 分片 job 233 运行完整 make check。PutUploadChunk 在 PREPARED 持久后再按已提交 SQL 水位截尾。未做行为验收，accepted 为 0。"
       },
       "blocker": null
     },
@@ -620,11 +620,11 @@
     {
       "id": "media.PutUploadChunk",
       "path": "modules/media/internal/chunk_writer.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17第六轮源码35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff：同 op 回放原 UploadSession；新写先取 lifecycle.NewWriteContext，维护直接 LOCKED；1..8MiB 有界读 length+1，长度与 SHA 一致才 fsync；PREPARED 先持久再按 SQL 水位截尾并 CAS。未跑 GitLab CI。不能记 verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline 53（83a435f322da98035cbe71319aee2ea8914a4534）生成 job 232 补丁 0 字节，content-media 分片 job 234 成功。同 op 回放原 UploadSession；新写先取 lifecycle.NewWriteContext；PREPARED 影响一行后才按已提交 SQL 水位截尾并 CAS。未做行为验收，accepted 为 0。"
       },
       "blocker": null
     },

@@ -1,3 +1,9 @@
+# 公开目录交接（2026-10-17，BuildTOC 已由 pipeline 53 记 verified）
+
+`83a435f322da98035cbe71319aee2ea8914a4534` 已由 GitLab pipeline 53 编译并双推。`BuildTOC` 与 `toc.go` 记 verified。`BuildApplication` 仍 blocked。下文写作时的“未跑 CI”只描述当时的工作树。
+
+下一步：持续编写已按用户要求停止。不要自动实现 `BuildBreadcrumbs`，也不要让 `BuildApplication` 返回可运行应用。
+
 # 公开目录交接（2026-10-17，BuildTOC 已实现，未跑 GitLab CI）
 
 ## 范围与事实

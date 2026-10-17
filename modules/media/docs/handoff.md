@@ -1,3 +1,9 @@
+# 集成核对（2026-10-17，pipeline 53）
+
+`83a435f322da98035cbe71319aee2ea8914a4534` 已由 GitLab pipeline 53 编译并双推。`PutUploadChunk` 与 `chunk_writer.go` 记 verified。订阅仍不能接。下文写作时的“未跑 CI”只描述当时的工作树。
+
+下一步：持续编写已按用户要求停止。不要自动实现下一函数，也不要在合同改载荷前接通订阅。
+
 # 2026-10-17第六轮：上传分块准备决定先于水位截尾（已实现，未跑 CI）
 
 - 分支 `codex/media-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`，源码 `35105a5561b5dc5cb8e1f4fbbe0f20d6020e2dff`。独占 `modules/media/`。未 push。准确台账另提交。

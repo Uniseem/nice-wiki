@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "8290cb801bd06127a8811c324f825e9b86d843ddb0f65373a1e56386624090a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "public-site.BuildTOC（已实现，未跑 GitLab CI；BuildApplication 仍 blocked）",
+  "assignedSession": "public-site.BuildTOC（pipeline 53 记 verified；BuildApplication 仍 blocked）",
   "branch": "codex/public-site-20261017-r6",
   "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
   "deliveryCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
@@ -62,11 +62,11 @@
     },
     {
       "path": "modules/public-site/internal/toc.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
       "verification": {
-        "state": "not_run",
-        "evidence": "未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt 或 make build。TOCItem.level 取 Heading.level，label 取 Heading.text，anchor 取 Heading.blockId。"
+        "state": "passed",
+        "evidence": "GitLab pipeline 53（83a435f322da98035cbe71319aee2ea8914a4534）生成 job 232 补丁 0 字节，ai 分片 job 235 成功，覆盖 modules/public-site 的 readonly build、vet 与 gofmt。foundation 分片 job 233 运行完整 make check。锚点使用原 blockId。未做行为验收，accepted 为 0。"
       },
       "blocker": null
     },
@@ -780,11 +780,11 @@
     {
       "id": "public-site.BuildTOC",
       "path": "modules/public-site/internal/toc.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
       "verification": {
-        "state": "not_run",
-        "evidence": "未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt 或 make build。TOCItem.level 取 Heading.level，label 取 Heading.text，anchor 取 Heading.blockId。"
+        "state": "passed",
+        "evidence": "GitLab pipeline 53（83a435f322da98035cbe71319aee2ea8914a4534）生成 job 232 补丁 0 字节，ai 分片 job 235 成功，覆盖 modules/public-site 的 readonly build、vet 与 gofmt。foundation 分片 job 233 运行完整 make check。TOCItem.level 取 Heading.level，label 取 Heading.text，anchor 取 Heading.blockId。未做行为验收，accepted 为 0。"
       },
       "blocker": null
     },
