@@ -662,9 +662,8 @@
           "steps": [
             "仅portal当前admin；content.edit在任何DB/锁前即时核一次，先查同scope动作/规范摘要完整原回执，命中回放不重做CAS",
             "当前平台窗口在Store.mu/短SQL前建立；同SQL核身份/treeRevision/metadata/head/提交资格；EnsureTreeAcyclic禁止移入自身/后代且整棵子树不超32层，新父和相邻必须属于活动树",
-            "父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭，非空redirects因真实manifest生产链未完成而503且不写任何树/回执/outbox，本函数因此保持partial/in_progress",
-            "支持的草稿路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS和parent/order更新，完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试",
-            "未来发布路径规划必须共享同一全站树CAS与Store.mu，并维护真实版本化manifest；本轮不假造发布或manifest"
+            "父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭。非空redirects写入同一事务的版本化manifest全量快照，不另造发布正文",
+            "支持的路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS、parent/order、manifest、完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试"
           ],
           "errors": [
             {
@@ -862,7 +861,7 @@
           "purpose": "预装真实树依赖与完整原结果schema校验器",
           "steps": [
             "预装真实树依赖与完整原结果schema校验器",
-            "本轮预装UpdateDocumentMetadataResult原回执schema，不把元数据partial分支当完整服务"
+            "原回执schema覆盖移动、重排、元数据、发布和撤回结果；分享图变更仍不是已完成能力"
           ],
           "errors": [],
           "sideEffects": [],
@@ -1062,6 +1061,7 @@
             "content.readTreeSnapshot",
             "content.planTreeMove",
             "content.planTreeReorder",
+            "content.commitRedirectManifest",
             "platform.NewWriteContext",
             "platform.EnqueueEvent"
           ],
@@ -1071,12 +1071,12 @@
         {
           "id": "content.planTreeMove",
           "name": "planTreeMove",
-          "signature": "func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, error)",
+          "signature": "func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, []gen.RouteTombstone, error)",
           "inputs": [],
           "outputs": [],
-          "purpose": "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭",
+          "purpose": "规划支持范围内移动，并返回曾发布旧路径供同一事务写入manifest",
           "steps": [
-            "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭",
+            "规划支持范围内移动；父变化时返回曾发布旧路径，由executeTreeMutation写入已持久化manifest",
             "已有slug移入根级时复用同一根级navigation/ask规则，不能用Move绕过；其他层级不额外禁名"
           ],
           "errors": [],
@@ -1302,7 +1302,7 @@
           "steps": [
             "仅portal当前admin一次即时content.edit，在DB/锁前，先按site/epoch/operation/caller/actor及规范请求摘要回放完整原回执",
             "锁外取当前平台写窗口；短SQL同快照核站点/epoch、完整树/head资格、活动文档、metadata expectedRevision及当前treeRevision，标题/人工SEO不触发模型或发布共享正文",
-            "path改变先完整规划node及曾发布后代旧路径，未知或非空规划因真实manifest链未齐503不提交；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此保持partial/in_progress",
+            "path改变先完整规划node及曾发布后代旧路径，未知路径失败关闭，非空规划写入同一事务的版本化manifest；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此仍不完整",
             "原shareImage同一完整ref可维持；非空path走ValidatePathSegment可信同SQL树及精确根级保留名；seoDescription=null为pending，否则manual（含显式空串）",
             "同SQL CAS metadata revision与treeRevision，更新title/path/SEO并保存同代完整原结果与最小tree.changed outbox；不改变draft/published正文、引用水位或旧历史；Commit未知只按原op回执重试"
           ],
@@ -1369,6 +1369,7 @@
             "content.sameMetadataAsset",
             "content.PlanOldPathRedirects",
             "content.ValidatePathSegment",
+            "content.commitRedirectManifest",
             "platform.NewWriteContext",
             "platform.EnqueueEvent"
           ],
@@ -1480,7 +1481,7 @@
           "steps": [
             "正则只允许小写英数与中间单连字符，拒绝点段/编码斜杠；仅parentId=null时保留navigation和ask，与public-site精确语言根路由一致，其他层级允许；不额外禁止api/admin/v1/robots/llms/sitemap",
             "从调用方同一SQL可信完整树中核parent为活动节点、同父活动slug唯一并排除自己；纯校验不另开SQL或重复鉴权",
-            "只返回可用性，不写/覆盖历史redirect；曾发布路径改变是否可提交由调用者manifest失败关闭规则决定，未来发布必须复用同一验证"
+            "只返回可用性，不写历史redirect；曾发布路径由调用者在同一事务写入版本化manifest"
           ],
           "errors": [
             {
@@ -1558,7 +1559,7 @@
             "先核完整原树无环及深度；按前序定位node及全部后代",
             "仅曾公开节点（publishedReference/lastPublishedAt/state/visibilityRevision证据）构造当前父链完整旧路径，任何祖先缺slug明确DEPENDENCY_UNAVAILABLE，绝不当空",
             "不含语言前缀，target为稳定docId而非链式URL；旧路径唯一且不超过2048字节，revision由调用方锁定treeRevision+1提供",
-            "只规划不持久化manifest；Move遇非空规划保持503/partial直到真实生产链获授权实现",
+            "只规划不持久化；持久化由commitRedirectManifest在调用者的同一SQL事务完成",
             "输入是本域可信完整树，无内部输入总量硬限制；公开输出/批次上限不改，不能借扫描预算限制Create站点总量"
           ],
           "errors": [
@@ -1607,6 +1608,49 @@
           "dependencies": [
             "content.sameIdentifierPointer"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.commitRedirectManifest",
+          "name": "commitRedirectManifest",
+          "signature": "func commitRedirectManifest(ctx context.Context, tx *sql.Tx, op OperationContext, redirects []gen.RouteTombstone, documents []gen.DocumentMetadata) ([]gen.RouteTombstone, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在调用者事务里追加一版完整重定向清单",
+          "steps": [
+            "空规划不写。同一旧路径不能改绑其他文档。旧路径若已成为该文档规范路径则移除；若属于其他文档则冲突",
+            "新版本复制保留项并CAS清单水位。缺表失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "redirect_manifest_heads、redirect_manifest_entries"
+          ],
+          "authorization": "已认证的树或发布事务",
+          "concurrency": "只写调用者已经打开的短事务",
+          "idempotency": "由调用者的原回执保证，不单独重放",
+          "dependencies": [
+            "content.canonicalDocumentPaths"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.canonicalDocumentPaths",
+          "name": "canonicalDocumentPaths",
+          "signature": "func canonicalDocumentPaths(documents []gen.DocumentMetadata) (map[string]Identifier, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从可信树计算活动文档的当前规范路径",
+          "steps": [
+            "缺slug的活动文档不进入路径表。父缺失或超深失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用者已持有可信树快照",
+          "concurrency": "纯计算",
+          "idempotency": "确定性",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -4557,9 +4601,9 @@
           ],
           "purpose": "人工优先准备首次slug和SEO",
           "steps": [
-            "人工slug/SEO优先且不被模型覆盖；已有英文slug保持",
-            "首次空slug仅在content.slug已配置时经content.InvokeModel生成并ValidatePathSegment；无模型提示补填字段，不造doc-ID/fake结果",
-            "SEO未人工设且任务可用时content.seo生成；无模型仅提示缺项/人工填写，不能以AI缺项阻塞已提供合法元数据的基础发布"
+            "人工slug/SEO优先且不被模型覆盖；已有合法英文slug保持",
+            "本轮不调用模型，不制造slug或SEO。首次空slug只返回publication.slug_missing，由发布入口提示人工补填",
+            "已有manual/generated SEO保持；否则返回publication.seo_missing。缺模型不阻塞已经提供合法元数据的基础发布。路径唯一由发布事务的可信树校验"
           ],
           "errors": [
             {
@@ -4585,7 +4629,6 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "父operationId子任务幂等；manual字段不覆写",
           "dependencies": [
-            "content.ValidatePathSegment",
             "content.InvokeModel"
           ],
           "resources": [],
@@ -4658,9 +4701,9 @@
           ],
           "purpose": "点击发布才公开精确共享草稿版本",
           "steps": [
-            "授权publish+epoch，读COMMITTED指定draft/version；PreparePublicationMetadata人工优先，resources当前ready引用pin",
-            "再次CAS metadata/draft/tree水位，CommitPublication原子选immutable发布ref、visibilityRevision/history/作者/outbox",
-            "提交后render/index/translation/data git镜像异步由jobs触发；无AI仍基础公开，optional失败不回退已发布正文"
+            "授权publish与当前写窗口在锁外完成；先读COMMITTED正文哈希，再在短事务内核对当前共享草稿",
+            "PreparePublicationMetadata后，空slug返回校验错误。CommitPublication把metadata/tree CAS、不可变快照、历史、已就绪草稿引用和outbox放进同一事务",
+            "原回执与上述写入同事务。未知Commit只回放原结果，不重复推进水位或事件。分享图非空因pin合同未齐503。提交后的渲染、索引、翻译和git镜像只排队，不回退正文"
           ],
           "errors": [
             {
@@ -4706,11 +4749,13 @@
           "concurrency": "doc/treeCAS持久事务，外部计算在事务外以源hash回验",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
+            "content.authorizePublication",
+            "content.readPublicationReceipt",
             "content.ReadRevisionBody",
             "content.PreparePublicationMetadata",
             "content.CommitPublication",
-            "media:acquireResourceReferences",
-            "media:confirmResourceReferences"
+            "content.bindPublicationTx",
+            "content.insertPublicationReceipt"
           ],
           "resources": [],
           "contract": "binding"
@@ -4775,9 +4820,9 @@
           ],
           "purpose": "撤回后回草稿并让公开页面下线",
           "steps": [
-            "publish授权核doc非trash",
-            "事务清publishedReference、state=draft、增visibilityRevision，保留共享draft和历史",
-            "同步validatePublications立即false；outbox通知所有缓存，延迟/乱序不能复活"
+            "publish授权与当前写窗口在锁外完成；同操作同摘要回放原回执",
+            "事务清除publishedReference、state改回draft、提高visibilityRevision，保留共享draft、lastPublishedAt和历史，并把当前发布引用改为history",
+            "同一事务登记withdrawn、资源引用和tree.changed。未知Commit只回放原回执，不重复推进水位"
           ],
           "errors": [
             {
@@ -4823,10 +4868,78 @@
           "concurrency": "与publish/trash同docCAS",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
-            "content.PublishContentEvent"
+            "content.authorizePublication",
+            "content.readPublicationReceipt",
+            "content.bindPublicationTx",
+            "content.archivePublishedReferences",
+            "content.listPublicationReferences",
+            "content.casPublicationIdentity",
+            "content.enqueuePublication",
+            "content.insertPublicationReceipt"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.authorizePublication",
+          "name": "authorizePublication",
+          "signature": "func authorizePublication(ctx context.Context, op OperationContext, runtime TreeRuntime, action string, documentID Identifier) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在写锁前一次核content.publish，并取同一响应中的账户显示名",
+          "steps": [
+            "仅portal当前admin。resource为空的全站权限。账户名取identity同一响应，拒绝空值和控制字符"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "content.publish",
+          "concurrency": "鉴权RPC在Store.mu和SQL事务之前",
+          "idempotency": "只读授权，不写回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readPublicationReceipt",
+          "name": "readPublicationReceipt",
+          "signature": "func readPublicationReceipt(ctx context.Context, q creationQuery, op OperationContext, action string, digest Hash, runtime TreeRuntime) (json.RawMessage, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按站点、代次、操作、调用者和摘要回放发布原结果",
+          "steps": [
+            "同键同摘要返回原JSON并核对结果哈希；同键异身份、动作或摘要冲突。发布和撤回再核唯一结果schema"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证发布调用链",
+          "concurrency": "可读取数据库或当前短事务，不跨远程IO",
+          "idempotency": "回放首次原结果",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.insertPublicationReceipt",
+          "name": "insertPublicationReceipt",
+          "signature": "func insertPublicationReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, action string, digest Hash, result any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把发布、撤回或独立提交的原结果写入当前事务",
+          "steps": [
+            "与业务CAS和outbox同一事务追加原结果及哈希"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "publication_operation_receipts"
+          ],
+          "authorization": "已认证发布调用链",
+          "concurrency": "只写调用者已经打开的短事务",
+          "idempotency": "同一操作主键只追加一次",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4891,9 +5004,9 @@
           ],
           "purpose": "原子提交当前发布快照与署名历史",
           "steps": [
-            "确认draft文件hash/ready资源pin并构造公共PublishedRevisionRef",
-            "事务CAS当前元数据，publishedReference换新、statepublished、增revision/visibility，writehistory作者账号和serverUTC",
-            "同事务发布PublicationChangedPayload+资源refs+data git镜像事件，事件未发送不影响权威公开判定"
+            "rollback直接失败关闭，不写历史回滚。publish确认当前共享草稿哈希与已就绪current_draft引用，不调用媒体pin",
+            "同一事务CAS元数据、树和文档，写入不可变快照、署名历史，并把上一份当前发布引用改为history",
+            "同一事务登记publication.changed、resources.changed和tree.changed。未知提交只回放原回执。非空分享图失败关闭"
           ],
           "errors": [
             {
@@ -4919,7 +5032,197 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
+            "content.applyPublication",
+            "content.authorizePublication",
+            "content.readPublicationReceipt",
+            "content.bindPublicationTx",
+            "content.insertPublicationReceipt",
+            "content.ReadRevisionBody"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.applyPublication",
+          "name": "applyPublication",
+          "signature": "func applyPublication(ctx context.Context, tx *sql.Tx, op OperationContext, input CommitPublicationInput) (PublishDocumentResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在调用者事务内提交当前共享草稿的发布快照",
+          "steps": [
+            "核对当前head、正文哈希、元数据CAS和英文路径。复制current_draft为current_published",
+            "曾发布路径变化时写入版本化manifest。事件与快照同一事务"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "发布快照、历史、引用、manifest和outbox"
+          ],
+          "authorization": "调用者已完成content.publish",
+          "concurrency": "不另取写锁，不在事务内读正文文件",
+          "idempotency": "由调用者的原回执保证，本函数不重复提交",
+          "dependencies": [
+            "content.loadSharedDraft",
+            "content.casPublicationIdentity",
+            "content.copyPublishedReferences",
+            "content.commitRedirectManifest",
+            "content.listPublicationReferences",
+            "content.enqueuePublication",
+            "content.enqueueTreeChanged",
+            "content.ValidatePathSegment",
+            "content.PlanOldPathRedirects"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.loadSharedDraft",
+          "name": "loadSharedDraft",
+          "signature": "func loadSharedDraft(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) (DraftRevision, int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在当前事务读取共享head对应的COMMITTED草稿和引用水位",
+          "steps": [
+            "只接受committed回执。缺失或损坏失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证发布事务",
+          "concurrency": "只读当前短事务",
+          "idempotency": "只读",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.casPublicationIdentity",
+          "name": "casPublicationIdentity",
+          "signature": "func casPublicationIdentity(ctx context.Context, tx *sql.Tx, op OperationContext, treeRevision int64, metadata gen.DocumentMetadata, expectedRevision int, previousState string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同一事务绑定站点并CAS树修订、文档状态和元数据JSON",
+          "steps": [
+            "站点、树修订和文档修订都必须恰好更新一行"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "documents、document_metadata、content_tree_state"
+          ],
+          "authorization": "已认证发布事务",
+          "concurrency": "只写当前短事务",
+          "idempotency": "CAS失败不部分保留",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.copyPublishedReferences",
+          "name": "copyPublishedReferences",
+          "signature": "func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, draftRevisionID, publishedRevisionID Identifier, referenceVersion int64) ([]gen.ResourceReference, int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把当前草稿的就绪引用复制为当前发布引用",
+          "steps": [
+            "引用水位必须等于文档reference_version。旧的current_published改为history后再插入新行"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "publication_resource_references"
+          ],
+          "authorization": "已认证发布事务",
+          "concurrency": "只写当前短事务",
+          "idempotency": "每个publishedRevisionId只插入一次",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.listPublicationReferences",
+          "name": "listPublicationReferences",
+          "signature": "func listPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) ([]gen.ResourceReference, int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取一个文档已持久化的发布引用快照",
+          "steps": [
+            "列kind为权威。超过10000条失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证发布事务",
+          "concurrency": "只读当前短事务",
+          "idempotency": "只读",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.archivePublishedReferences",
+          "name": "archivePublishedReferences",
+          "signature": "func archivePublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "撤回时把唯一的当前发布引用改为历史",
+          "steps": [
+            "必须恰好有一行current_published，否则失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "publication_resource_references"
+          ],
+          "authorization": "已认证撤回事务",
+          "concurrency": "只写当前短事务",
+          "idempotency": "重复撤回由原回执拦截",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.enqueuePublication",
+          "name": "enqueuePublication",
+          "signature": "func enqueuePublication(ctx context.Context, op OperationContext, visibility int, changed *publicationChangedPayload, withdrawn *publicationWithdrawnPayload, documentID Identifier, sourceVersion int, refs []gen.ResourceReference) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在当前业务事务登记发布变化、撤回和资源引用事件",
+          "steps": [
+            "每种载荷单独一个eventId。信封revision使用本次visibilityRevision"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "outbox"
+          ],
+          "authorization": "已认证发布事务",
+          "concurrency": "只写已绑定的业务事务",
+          "idempotency": "eventId唯一",
+          "dependencies": [
             "content.PublishContentEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.enqueueTreeChanged",
+          "name": "enqueueTreeChanged",
+          "signature": "func enqueueTreeChanged(ctx context.Context, tx *sql.Tx, op OperationContext, treeRevision int64, changed []Identifier) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "发布或撤回引起的树状态变化与原事务一起排队",
+          "steps": [
+            "沿用content.tree.changed的站点subject和树修订"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "outbox"
+          ],
+          "authorization": "已认证发布事务",
+          "concurrency": "只写当前短事务",
+          "idempotency": "eventId唯一",
+          "dependencies": [
+            "platform.EnqueueEvent"
           ],
           "resources": [],
           "contract": "reference"
@@ -5098,9 +5401,9 @@
           ],
           "purpose": "同步核公开引用是否仍可见且当前",
           "steps": [
-            "仅注册public-site/knowledge/qa/localization/site-config纯服务调用方或公开不可枚举批次；site-config仅核首页/页脚链接当前公开性，不得读草稿",
-            "一次一致txn比dataEpoch/doc状态/currentref/hash/schema与visibilityRevision",
-            "unknown/notfound返回visible=false而不暴露draft；依赖不可用不能把旧缓存当有效"
+            "仅登记的纯服务可调用，含memory，因为公开读取内部复用本函数；site-config只看可见性，不读正文",
+            "一次只读快照比较当前发布引用、快照哈希、schema和visibilityRevision",
+            "未知文档visible=false且不暴露草稿。调用方哈希或修订不当前则visible=false，不把整批当校验错误。分享图或损坏的发布权威返回依赖不可用，不能把旧缓存当有效"
           ],
           "errors": [
             {
@@ -5118,9 +5421,32 @@
           "authorization": "service已登记caller；请求refs只含曾公开对象",
           "concurrency": "同txn快照，传输开始前再核最新可见水位",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "content.readTreeSnapshot",
+            "content.readPublicationSnapshot",
+            "content.checkRevisionScope"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.readPublicationSnapshot",
+          "name": "readPublicationSnapshot",
+          "signature": "func readPublicationSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, publishedRevisionID Identifier) (storedPublication, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按站点读取一条不可变发布快照",
+          "steps": [
+            "缺失返回未找到。存储错误失败关闭，不把缺表当未发布"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已登记的只读发布调用链",
+          "concurrency": "只读当前短事务",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5218,10 +5544,34 @@
           "idempotency": "只读",
           "dependencies": [
             "content.ValidatePublications",
-            "content.ReadRevisionBody"
+            "content.ReadRevisionBody",
+            "content.loadVisiblePublication",
+            "content.checkRevisionScope"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.loadVisiblePublication",
+          "name": "loadVisiblePublication",
+          "signature": "func loadVisiblePublication(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime, documentID Identifier) (gen.DocumentMetadata, storedPublication, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取当前仍公开且快照一致的文档",
+          "steps": [
+            "非published、无当前引用或分享图未装配时失败关闭。历史修订不在这里返回正文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已登记的公开读取调用链",
+          "concurrency": "只读当前短事务",
+          "idempotency": "只读",
+          "dependencies": [
+            "content.readTreeSnapshot",
+            "content.readPublicationSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6261,9 +6611,10 @@
           "signature": "func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) error",
           "inputs": [],
           "outputs": [],
-          "purpose": "核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭",
+          "purpose": "核私有身份和草稿、发布快照的双向覆盖；分享图或不完整发布失败关闭",
           "steps": [
-            "核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭"
+            "完整已发布快照连同已提交草稿修订、历史和current_published可以接受。快照不必等于后来移动过的当前head",
+            "分享图、非活动状态、已发布但缺快照或引用、撤回后没有历史的lastPublishedAt失败关闭"
           ],
           "errors": [],
           "sideEffects": [],
@@ -6294,7 +6645,29 @@
             "content.validateDraftOperationPlan",
             "content.draftMediaReferences",
             "content.readCommittedReferenceSource",
-            "content.referenceSortKey"
+            "content.referenceSortKey",
+            "content.readPublicationReferences"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readPublicationReferences",
+          "name": "readPublicationReferences",
+          "signature": "func readPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) ([]gen.ResourceReference, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取已发布引用，并以列中的kind覆盖历史分类",
+          "steps": [
+            "与草稿历史相同的排序键只保留先读到的一条。来源必须是content且仍保留"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证的引用来源读取",
+          "concurrency": "同一SQL快照",
+          "idempotency": "只读",
+          "dependencies": [
+            "content.decodeStorageJSON"
           ],
           "resources": [],
           "contract": "reference"
@@ -6498,9 +6871,9 @@
           ],
           "purpose": "与发布/撤回提交原子登记最小事件",
           "steps": [
-            "必须且仅有一payload，禁止正文/密钥",
-            "同business事务eventId唯一outbox",
-            "只在业务事务内写outbox；提交后由content.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs；乱序由source revision拒绝"
+            "必须且仅有一种载荷，禁止正文或密钥。没有已绑定的发布事务则失败关闭",
+            "信封revision使用本次visibilityRevision。变化和撤回的发生时间取载荷时间",
+            "只在业务事务内写outbox；提交后由content.RelayOutbox经jobs至少一次投递，本函数不直接调用jobs"
           ],
           "errors": [
             {
@@ -6528,6 +6901,25 @@
           "dependencies": [
             "platform.EnqueueEvent"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.bindPublicationTx",
+          "name": "bindPublicationTx",
+          "signature": "func bindPublicationTx(ctx context.Context, tx *sql.Tx) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把当前发布事务交给同一调用链的outbox写入",
+          "steps": [
+            "只绑定调用者已经打开的事务，不提交、不另开连接"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证发布或撤回事务",
+          "concurrency": "不跨远程IO",
+          "idempotency": "绑定本身无持久副作用",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         },
@@ -8617,7 +9009,7 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务",
-            "本轮构造TreeRuntime并注册四树路由；当前没有可信control写窗口/完整后台及所有handler，仍不返回可运行Application，写窗口缺失失败关闭"
+            "本轮构造TreeRuntime并注册四树路由和四个真实发布路由。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务"
           ],
           "errors": [
             {
@@ -8669,7 +9061,8 @@
             "content.NewReferenceRuntime",
             "content.RegisterReferenceRoutes",
             "content.NewTreeRuntime",
-            "content.RegisterTreeRoutes"
+            "content.RegisterTreeRoutes",
+            "content.RegisterPublicationRoutes"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8986,6 +9379,32 @@
             "platform.NewServiceHandler",
             "platform.NewIdentityAuthorizer",
             "content.UpdateDocumentMetadata"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RegisterPublicationRoutes",
+          "name": "RegisterPublicationRoutes",
+          "signature": "func RegisterPublicationRoutes(app *Application, runtime TreeRuntime, anchors platform.TrustAnchors) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "绑定四个已实现的发布HTTP处理函数",
+          "steps": [
+            "发布和撤回由核心一次核content.publish，本注册表不再重复用户RPC。可见性与公开读取按固定调用方校验服务身份",
+            "不注册占位503。完整启动仍由BuildApplication失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信启动装配；业务权限由发布入口或服务边界执行",
+          "concurrency": "装配时不持业务事务",
+          "idempotency": "重复装配同一进程只注册一次路由表",
+          "dependencies": [
+            "content.PublishDocument",
+            "content.WithdrawDocument",
+            "content.ValidatePublications",
+            "content.ReadPublishedRevision",
+            "platform.NewServiceHandler"
           ],
           "resources": [],
           "contract": "reference"
@@ -11146,6 +11565,12 @@
       "path": "modules/content/migrations/0007_metadata_operations.sql",
       "kind": "handwritten",
       "purpose": "只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源",
+      "functions": []
+    },
+    {
+      "path": "modules/content/migrations/0008_publication_snapshots.sql",
+      "kind": "handwritten",
+      "purpose": "只追加发布快照、署名历史、已发布引用和版本化重定向清单",
       "functions": []
     }
   ],

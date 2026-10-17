@@ -1,5 +1,5 @@
 // Package app 装配 content 域的启动依赖与运行权威客户端。
-// 文档、草稿、发布、历史和事件业务由后续工作包接入，本文件不提供伪处理器。
+// 发布路由已绑定真实处理函数；完整启动仍失败关闭，本文件不提供伪处理器。
 package app
 
 import (
@@ -21,9 +21,9 @@ const ModuleSlug = "content"
 
 // BuildApplication 按服务启动蓝图校验本域启动前置条件。
 //
-// 本域已接入私有SQLite打开、迁移和正文日志恢复。完整草稿事务、
-// OpenAPI x-handler、恢复activation和后台任务尚未装配，按合同返回
-// DEPENDENCY_UNAVAILABLE，不返回不完整的Application。
+// 本域已接入私有SQLite、部分只读/树/发布路由。全量handler、恢复
+// activation和后台生命周期尚未装配，按合同返回DEPENDENCY_UNAVAILABLE，
+// 不返回不完整的Application。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -90,7 +90,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err = transport.RegisterTreeRoutes(application, treeRuntime, anchors); err != nil {
 		return nil, err
 	}
-	// 两个只读来源路由的真实装配不满足全域handler/恢复activation/后台生命周期门槛。
+	if err = transport.RegisterPublicationRoutes(application, treeRuntime, anchors); err != nil {
+		return nil, err
+	}
+	// 发布路由已绑定真实处理函数，但完整handler、恢复activation与后台生命周期仍未装配。
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务路由、恢复activation与后台生命周期尚未装配")
 }
 

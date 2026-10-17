@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 241 个函数：约束 42 个，参考 199 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 259 个函数：约束 42 个，参考 217 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -403,9 +403,8 @@ func MoveDocument(ctx context.Context, op OperationContext, input MoveDocumentIn
 
 1. 仅portal当前admin；content.edit在任何DB/锁前即时核一次，先查同scope动作/规范摘要完整原回执，命中回放不重做CAS
 2. 当前平台窗口在Store.mu/短SQL前建立；同SQL核身份/treeRevision/metadata/head/提交资格；EnsureTreeAcyclic禁止移入自身/后代且整棵子树不超32层，新父和相邻必须属于活动树
-3. 父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭，非空redirects因真实manifest生产链未完成而503且不写任何树/回执/outbox，本函数因此保持partial/in_progress
-4. 支持的草稿路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS和parent/order更新，完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试
-5. 未来发布路径规划必须共享同一全站树CAS与Store.mu，并维护真实版本化manifest；本轮不假造发布或manifest
+3. 父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭。非空redirects写入同一事务的版本化manifest全量快照，不另造发布正文
+4. 支持的路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS、parent/order、manifest、完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试
 
 **错误**
 
@@ -496,7 +495,7 @@ func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfi
 **步骤**
 
 1. 预装真实树依赖与完整原结果schema校验器
-2. 本轮预装UpdateDocumentMetadataResult原回执schema，不把元数据partial分支当完整服务
+2. 原回执schema覆盖移动、重排、元数据、发布和撤回结果；分享图变更仍不是已完成能力
 
 **错误**
 
@@ -795,16 +794,16 @@ func executeTreeMutation(ctx context.Context, op OperationContext, action string
 - 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
 - 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
 - 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
-- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readTreeReceipt`、`content.readTreeSnapshot`、`content.planTreeMove`、`content.planTreeReorder`、`platform.NewWriteContext`、`platform.EnqueueEvent`
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readTreeReceipt`、`content.readTreeSnapshot`、`content.planTreeMove`、`content.planTreeReorder`、`content.commitRedirectManifest`、`platform.NewWriteContext`、`platform.EnqueueEvent`
 
 ## content.planTreeMove
 
 - 级别：参考
 - 文件：`modules/content/internal/tree_service.go`
-- 作用：规划支持范围内移动；曾发布路径变化依赖manifest失败关闭
+- 作用：规划支持范围内移动，并返回曾发布旧路径供同一事务写入manifest
 
 ```go
-func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, error)
+func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, []gen.RouteTombstone, error)
 ```
 
 **输入**
@@ -817,7 +816,7 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 
 **步骤**
 
-1. 规划支持范围内移动；曾发布路径变化依赖manifest失败关闭
+1. 规划支持范围内移动；父变化时返回曾发布旧路径，由executeTreeMutation写入已持久化manifest
 2. 已有slug移入根级时复用同一根级navigation/ask规则，不能用Move绕过；其他层级不额外禁名
 
 **错误**
@@ -998,7 +997,7 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 
 1. 仅portal当前admin一次即时content.edit，在DB/锁前，先按site/epoch/operation/caller/actor及规范请求摘要回放完整原回执
 2. 锁外取当前平台写窗口；短SQL同快照核站点/epoch、完整树/head资格、活动文档、metadata expectedRevision及当前treeRevision，标题/人工SEO不触发模型或发布共享正文
-3. path改变先完整规划node及曾发布后代旧路径，未知或非空规划因真实manifest链未齐503不提交；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此保持partial/in_progress
+3. path改变先完整规划node及曾发布后代旧路径，未知路径失败关闭，非空规划写入同一事务的版本化manifest；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此仍不完整
 4. 原shareImage同一完整ref可维持；非空path走ValidatePathSegment可信同SQL树及精确根级保留名；seoDescription=null为pending，否则manual（含显式空串）
 5. 同SQL CAS metadata revision与treeRevision，更新title/path/SEO并保存同代完整原结果与最小tree.changed outbox；不改变draft/published正文、引用水位或旧历史；Commit未知只按原op回执重试
 
@@ -1018,7 +1017,7 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 - 授权：按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope
 - 并发：当前权限/写窗口锁外；Store.mu短SQL内读取当前真实parent/head、metadata/tree CAS与回执/outbox，保存并发只更新draftRevisionId不覆盖新metadata
 - 幂等：同site/epoch/operationId固定caller/actor和完整规范请求摘要，原结果及SHA256同事务追加并严格校验回放；Commit未知不重复更新或发事件
-- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readMetadataReceipt`、`content.readTreeSnapshot`、`content.sameMetadataAsset`、`content.PlanOldPathRedirects`、`content.ValidatePathSegment`、`platform.NewWriteContext`、`platform.EnqueueEvent`
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readMetadataReceipt`、`content.readTreeSnapshot`、`content.sameMetadataAsset`、`content.PlanOldPathRedirects`、`content.ValidatePathSegment`、`content.commitRedirectManifest`、`platform.NewWriteContext`、`platform.EnqueueEvent`
 
 ## content.readMetadataReceipt
 
@@ -1113,7 +1112,7 @@ func ValidatePathSegment(ctx context.Context, op OperationContext, input Validat
 
 1. 正则只允许小写英数与中间单连字符，拒绝点段/编码斜杠；仅parentId=null时保留navigation和ask，与public-site精确语言根路由一致，其他层级允许；不额外禁止api/admin/v1/robots/llms/sitemap
 2. 从调用方同一SQL可信完整树中核parent为活动节点、同父活动slug唯一并排除自己；纯校验不另开SQL或重复鉴权
-3. 只返回可用性，不写/覆盖历史redirect；曾发布路径改变是否可提交由调用者manifest失败关闭规则决定，未来发布必须复用同一验证
+3. 只返回可用性，不写历史redirect；曾发布路径由调用者在同一事务写入版本化manifest
 
 **错误**
 
@@ -1157,7 +1156,7 @@ func PlanOldPathRedirects(input PlanOldPathRedirectsInput) (PlanOldPathRedirects
 1. 先核完整原树无环及深度；按前序定位node及全部后代
 2. 仅曾公开节点（publishedReference/lastPublishedAt/state/visibilityRevision证据）构造当前父链完整旧路径，任何祖先缺slug明确DEPENDENCY_UNAVAILABLE，绝不当空
 3. 不含语言前缀，target为稳定docId而非链式URL；旧路径唯一且不超过2048字节，revision由调用方锁定treeRevision+1提供
-4. 只规划不持久化manifest；Move遇非空规划保持503/partial直到真实生产链获授权实现
+4. 只规划不持久化；持久化由commitRedirectManifest在调用者的同一SQL事务完成
 5. 输入是本域可信完整树，无内部输入总量硬限制；公开输出/批次上限不改，不能借扫描预算限制Create站点总量
 
 **错误**
@@ -1203,6 +1202,71 @@ func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentRe
 - 并发：不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算
 - 幂等：完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用
 - 依赖：`content.sameIdentifierPointer`
+
+## content.commitRedirectManifest
+
+- 级别：参考
+- 文件：`modules/content/internal/path_service.go`
+- 作用：在调用者事务里追加一版完整重定向清单
+
+```go
+func commitRedirectManifest(ctx context.Context, tx *sql.Tx, op OperationContext, redirects []gen.RouteTombstone, documents []gen.DocumentMetadata) ([]gen.RouteTombstone, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 空规划不写。同一旧路径不能改绑其他文档。旧路径若已成为该文档规范路径则移除；若属于其他文档则冲突
+2. 新版本复制保留项并CAS清单水位。缺表失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：redirect_manifest_heads、redirect_manifest_entries
+- 授权：已认证的树或发布事务
+- 并发：只写调用者已经打开的短事务
+- 幂等：由调用者的原回执保证，不单独重放
+- 依赖：`content.canonicalDocumentPaths`
+
+## content.canonicalDocumentPaths
+
+- 级别：参考
+- 文件：`modules/content/internal/path_service.go`
+- 作用：从可信树计算活动文档的当前规范路径
+
+```go
+func canonicalDocumentPaths(documents []gen.DocumentMetadata) (map[string]Identifier, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 缺slug的活动文档不进入路径表。父缺失或超深失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用者已持有可信树快照
+- 并发：纯计算
+- 幂等：确定性
+- 依赖：无
 
 ## content.NewEditLockManager
 
@@ -4312,9 +4376,9 @@ func PreparePublicationMetadata(ctx context.Context, op OperationContext, input 
 
 **步骤**
 
-1. 人工slug/SEO优先且不被模型覆盖；已有英文slug保持
-2. 首次空slug仅在content.slug已配置时经content.InvokeModel生成并ValidatePathSegment；无模型提示补填字段，不造doc-ID/fake结果
-3. SEO未人工设且任务可用时content.seo生成；无模型仅提示缺项/人工填写，不能以AI缺项阻塞已提供合法元数据的基础发布
+1. 人工slug/SEO优先且不被模型覆盖；已有合法英文slug保持
+2. 本轮不调用模型，不制造slug或SEO。首次空slug只返回publication.slug_missing，由发布入口提示人工补填
+3. 已有manual/generated SEO保持；否则返回publication.seo_missing。缺模型不阻塞已经提供合法元数据的基础发布。路径唯一由发布事务的可信树校验
 
 **错误**
 
@@ -4326,7 +4390,7 @@ func PreparePublicationMetadata(ctx context.Context, op OperationContext, input 
 - 授权：content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：父operationId子任务幂等；manual字段不覆写
-- 依赖：`content.ValidatePathSegment`、`content.InvokeModel`
+- 依赖：`content.InvokeModel`
 
 ## content.PublishDocument
 
@@ -4355,9 +4419,9 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 
 **步骤**
 
-1. 授权publish+epoch，读COMMITTED指定draft/version；PreparePublicationMetadata人工优先，resources当前ready引用pin
-2. 再次CAS metadata/draft/tree水位，CommitPublication原子选immutable发布ref、visibilityRevision/history/作者/outbox
-3. 提交后render/index/translation/data git镜像异步由jobs触发；无AI仍基础公开，optional失败不回退已发布正文
+1. 授权publish与当前写窗口在锁外完成；先读COMMITTED正文哈希，再在短事务内核对当前共享草稿
+2. PreparePublicationMetadata后，空slug返回校验错误。CommitPublication把metadata/tree CAS、不可变快照、历史、已就绪草稿引用和outbox放进同一事务
+3. 原回执与上述写入同事务。未知Commit只回放原结果，不重复推进水位或事件。分享图非空因pin合同未齐503。提交后的渲染、索引、翻译和git镜像只排队，不回退正文
 
 **错误**
 
@@ -4373,7 +4437,7 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 - 授权：content.publish
 - 并发：doc/treeCAS持久事务，外部计算在事务外以源hash回验
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.ReadRevisionBody`、`content.PreparePublicationMetadata`、`content.CommitPublication`、`media:acquireResourceReferences`、`media:confirmResourceReferences`
+- 依赖：`content.authorizePublication`、`content.readPublicationReceipt`、`content.ReadRevisionBody`、`content.PreparePublicationMetadata`、`content.CommitPublication`、`content.bindPublicationTx`、`content.insertPublicationReceipt`
 
 ## content.WithdrawDocument
 
@@ -4402,9 +4466,9 @@ func WithdrawDocument(ctx context.Context, op OperationContext, input WithdrawDo
 
 **步骤**
 
-1. publish授权核doc非trash
-2. 事务清publishedReference、state=draft、增visibilityRevision，保留共享draft和历史
-3. 同步validatePublications立即false；outbox通知所有缓存，延迟/乱序不能复活
+1. publish授权与当前写窗口在锁外完成；同操作同摘要回放原回执
+2. 事务清除publishedReference、state改回draft、提高visibilityRevision，保留共享draft、lastPublishedAt和历史，并把当前发布引用改为history
+3. 同一事务登记withdrawn、资源引用和tree.changed。未知Commit只回放原回执，不重复推进水位
 
 **错误**
 
@@ -4420,7 +4484,103 @@ func WithdrawDocument(ctx context.Context, op OperationContext, input WithdrawDo
 - 授权：content.publish
 - 并发：与publish/trash同docCAS
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.PublishContentEvent`
+- 依赖：`content.authorizePublication`、`content.readPublicationReceipt`、`content.bindPublicationTx`、`content.archivePublishedReferences`、`content.listPublicationReferences`、`content.casPublicationIdentity`、`content.enqueuePublication`、`content.insertPublicationReceipt`
+
+## content.authorizePublication
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_service.go`
+- 作用：在写锁前一次核content.publish，并取同一响应中的账户显示名
+
+```go
+func authorizePublication(ctx context.Context, op OperationContext, runtime TreeRuntime, action string, documentID Identifier) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅portal当前admin。resource为空的全站权限。账户名取identity同一响应，拒绝空值和控制字符
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：content.publish
+- 并发：鉴权RPC在Store.mu和SQL事务之前
+- 幂等：只读授权，不写回执
+- 依赖：无
+
+## content.readPublicationReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_service.go`
+- 作用：按站点、代次、操作、调用者和摘要回放发布原结果
+
+```go
+func readPublicationReceipt(ctx context.Context, q creationQuery, op OperationContext, action string, digest Hash, runtime TreeRuntime) (json.RawMessage, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同键同摘要返回原JSON并核对结果哈希；同键异身份、动作或摘要冲突。发布和撤回再核唯一结果schema
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证发布调用链
+- 并发：可读取数据库或当前短事务，不跨远程IO
+- 幂等：回放首次原结果
+- 依赖：`content.decodeStorageJSON`
+
+## content.insertPublicationReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_service.go`
+- 作用：把发布、撤回或独立提交的原结果写入当前事务
+
+```go
+func insertPublicationReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, action string, digest Hash, result any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与业务CAS和outbox同一事务追加原结果及哈希
+
+**错误**
+
+- 无
+
+- 副作用：publication_operation_receipts
+- 授权：已认证发布调用链
+- 并发：只写调用者已经打开的短事务
+- 幂等：同一操作主键只追加一次
+- 依赖：无
 
 ## content.CommitPublication
 
@@ -4449,9 +4609,9 @@ func CommitPublication(ctx context.Context, op OperationContext, input CommitPub
 
 **步骤**
 
-1. 确认draft文件hash/ready资源pin并构造公共PublishedRevisionRef
-2. 事务CAS当前元数据，publishedReference换新、statepublished、增revision/visibility，writehistory作者账号和serverUTC
-3. 同事务发布PublicationChangedPayload+资源refs+data git镜像事件，事件未发送不影响权威公开判定
+1. rollback直接失败关闭，不写历史回滚。publish确认当前共享草稿哈希与已就绪current_draft引用，不调用媒体pin
+2. 同一事务CAS元数据、树和文档，写入不可变快照、署名历史，并把上一份当前发布引用改为history
+3. 同一事务登记publication.changed、resources.changed和tree.changed。未知提交只回放原回执。非空分享图失败关闭
 
 **错误**
 
@@ -4463,7 +4623,264 @@ func CommitPublication(ctx context.Context, op OperationContext, input CommitPub
 - 授权：私有publish/rollbacktxn
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
+- 依赖：`content.applyPublication`、`content.authorizePublication`、`content.readPublicationReceipt`、`content.bindPublicationTx`、`content.insertPublicationReceipt`、`content.ReadRevisionBody`
+
+## content.applyPublication
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：在调用者事务内提交当前共享草稿的发布快照
+
+```go
+func applyPublication(ctx context.Context, tx *sql.Tx, op OperationContext, input CommitPublicationInput) (PublishDocumentResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核对当前head、正文哈希、元数据CAS和英文路径。复制current_draft为current_published
+2. 曾发布路径变化时写入版本化manifest。事件与快照同一事务
+
+**错误**
+
+- 无
+
+- 副作用：发布快照、历史、引用、manifest和outbox
+- 授权：调用者已完成content.publish
+- 并发：不另取写锁，不在事务内读正文文件
+- 幂等：由调用者的原回执保证，本函数不重复提交
+- 依赖：`content.loadSharedDraft`、`content.casPublicationIdentity`、`content.copyPublishedReferences`、`content.commitRedirectManifest`、`content.listPublicationReferences`、`content.enqueuePublication`、`content.enqueueTreeChanged`、`content.ValidatePathSegment`、`content.PlanOldPathRedirects`
+
+## content.loadSharedDraft
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：在当前事务读取共享head对应的COMMITTED草稿和引用水位
+
+```go
+func loadSharedDraft(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) (DraftRevision, int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受committed回执。缺失或损坏失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证发布事务
+- 并发：只读当前短事务
+- 幂等：只读
+- 依赖：`content.decodeStorageJSON`
+
+## content.casPublicationIdentity
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：同一事务绑定站点并CAS树修订、文档状态和元数据JSON
+
+```go
+func casPublicationIdentity(ctx context.Context, tx *sql.Tx, op OperationContext, treeRevision int64, metadata gen.DocumentMetadata, expectedRevision int, previousState string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 站点、树修订和文档修订都必须恰好更新一行
+
+**错误**
+
+- 无
+
+- 副作用：documents、document_metadata、content_tree_state
+- 授权：已认证发布事务
+- 并发：只写当前短事务
+- 幂等：CAS失败不部分保留
+- 依赖：无
+
+## content.copyPublishedReferences
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：把当前草稿的就绪引用复制为当前发布引用
+
+```go
+func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, draftRevisionID, publishedRevisionID Identifier, referenceVersion int64) ([]gen.ResourceReference, int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 引用水位必须等于文档reference_version。旧的current_published改为history后再插入新行
+
+**错误**
+
+- 无
+
+- 副作用：publication_resource_references
+- 授权：已认证发布事务
+- 并发：只写当前短事务
+- 幂等：每个publishedRevisionId只插入一次
+- 依赖：`content.decodeStorageJSON`
+
+## content.listPublicationReferences
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：读取一个文档已持久化的发布引用快照
+
+```go
+func listPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) ([]gen.ResourceReference, int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 列kind为权威。超过10000条失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证发布事务
+- 并发：只读当前短事务
+- 幂等：只读
+- 依赖：`content.decodeStorageJSON`
+
+## content.archivePublishedReferences
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：撤回时把唯一的当前发布引用改为历史
+
+```go
+func archivePublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 必须恰好有一行current_published，否则失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：publication_resource_references
+- 授权：已认证撤回事务
+- 并发：只写当前短事务
+- 幂等：重复撤回由原回执拦截
+- 依赖：无
+
+## content.enqueuePublication
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：在当前业务事务登记发布变化、撤回和资源引用事件
+
+```go
+func enqueuePublication(ctx context.Context, op OperationContext, visibility int, changed *publicationChangedPayload, withdrawn *publicationWithdrawnPayload, documentID Identifier, sourceVersion int, refs []gen.ResourceReference) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每种载荷单独一个eventId。信封revision使用本次visibilityRevision
+
+**错误**
+
+- 无
+
+- 副作用：outbox
+- 授权：已认证发布事务
+- 并发：只写已绑定的业务事务
+- 幂等：eventId唯一
 - 依赖：`content.PublishContentEvent`
+
+## content.enqueueTreeChanged
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_repository.go`
+- 作用：发布或撤回引起的树状态变化与原事务一起排队
+
+```go
+func enqueueTreeChanged(ctx context.Context, tx *sql.Tx, op OperationContext, treeRevision int64, changed []Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 沿用content.tree.changed的站点subject和树修订
+
+**错误**
+
+- 无
+
+- 副作用：outbox
+- 授权：已认证发布事务
+- 并发：只写当前短事务
+- 幂等：eventId唯一
+- 依赖：`platform.EnqueueEvent`
 
 ## content.ReadReferenceDecision
 
@@ -4543,9 +4960,9 @@ func ValidatePublications(ctx context.Context, op OperationContext, input Valida
 
 **步骤**
 
-1. 仅注册public-site/knowledge/qa/localization/site-config纯服务调用方或公开不可枚举批次；site-config仅核首页/页脚链接当前公开性，不得读草稿
-2. 一次一致txn比dataEpoch/doc状态/currentref/hash/schema与visibilityRevision
-3. unknown/notfound返回visible=false而不暴露draft；依赖不可用不能把旧缓存当有效
+1. 仅登记的纯服务可调用，含memory，因为公开读取内部复用本函数；site-config只看可见性，不读正文
+2. 一次只读快照比较当前发布引用、快照哈希、schema和visibilityRevision
+3. 未知文档visible=false且不暴露草稿。调用方哈希或修订不当前则visible=false，不把整批当校验错误。分享图或损坏的发布权威返回依赖不可用，不能把旧缓存当有效
 
 **错误**
 
@@ -4555,6 +4972,38 @@ func ValidatePublications(ctx context.Context, op OperationContext, input Valida
 - 副作用：无
 - 授权：service已登记caller；请求refs只含曾公开对象
 - 并发：同txn快照，传输开始前再核最新可见水位
+- 幂等：只读
+- 依赖：`content.readTreeSnapshot`、`content.readPublicationSnapshot`、`content.checkRevisionScope`
+
+## content.readPublicationSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/visibility_service.go`
+- 作用：按站点读取一条不可变发布快照
+
+```go
+func readPublicationSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, publishedRevisionID Identifier) (storedPublication, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 缺失返回未找到。存储错误失败关闭，不把缺表当未发布
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已登记的只读发布调用链
+- 并发：只读当前短事务
 - 幂等：只读
 - 依赖：无
 
@@ -4600,7 +5049,39 @@ func ReadPublishedRevision(ctx context.Context, op OperationContext, input ReadP
 - 授权：anonymous或已注册service；历史另走publisher history接口
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.ValidatePublications`、`content.ReadRevisionBody`
+- 依赖：`content.ValidatePublications`、`content.ReadRevisionBody`、`content.loadVisiblePublication`、`content.checkRevisionScope`
+
+## content.loadVisiblePublication
+
+- 级别：参考
+- 文件：`modules/content/internal/publication_reader.go`
+- 作用：读取当前仍公开且快照一致的文档
+
+```go
+func loadVisiblePublication(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime, documentID Identifier) (gen.DocumentMetadata, storedPublication, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 非published、无当前引用或分享图未装配时失败关闭。历史修订不在这里返回正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已登记的公开读取调用链
+- 并发：只读当前短事务
+- 幂等：只读
+- 依赖：`content.readTreeSnapshot`、`content.readPublicationSnapshot`
 
 ## content.TrashDocument
 
@@ -5141,7 +5622,7 @@ func readReferenceCursor(runtime ReferenceRuntime, op OperationContext, input Li
 
 - 级别：参考
 - 文件：`modules/content/internal/reference_reader.go`
-- 作用：核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭
+- 作用：核私有身份和草稿、发布快照的双向覆盖；分享图或不完整发布失败关闭
 
 ```go
 func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) error
@@ -5157,7 +5638,8 @@ func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationCont
 
 **步骤**
 
-1. 核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭
+1. 完整已发布快照连同已提交草稿修订、历史和current_published可以接受。快照不必等于后来移动过的当前head
+2. 分享图、非活动状态、已发布但缺快照或引用、撤回后没有历史的lastPublishedAt失败关闭
 
 **错误**
 
@@ -5199,7 +5681,39 @@ func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, 
 - 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
 - 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
 - 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
-- 依赖：`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.draftMediaReferences`、`content.readCommittedReferenceSource`、`content.referenceSortKey`
+- 依赖：`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.draftMediaReferences`、`content.readCommittedReferenceSource`、`content.referenceSortKey`、`content.readPublicationReferences`
+
+## content.readPublicationReferences
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：读取已发布引用，并以列中的kind覆盖历史分类
+
+```go
+func readPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) ([]gen.ResourceReference, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与草稿历史相同的排序键只保留先读到的一条。来源必须是content且仍保留
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证的引用来源读取
+- 并发：同一SQL快照
+- 幂等：只读
+- 依赖：`content.decodeStorageJSON`
 
 ## content.readCommittedReferenceSource
 
@@ -5336,9 +5850,9 @@ func PublishContentEvent(ctx context.Context, op OperationContext, input Publish
 
 **步骤**
 
-1. 必须且仅有一payload，禁止正文/密钥
-2. 同business事务eventId唯一outbox
-3. 只在业务事务内写outbox；提交后由content.RelayOutbox经jobs至少一次投递并在确认后标relayed，本函数不直接调用jobs；乱序由source revision拒绝
+1. 必须且仅有一种载荷，禁止正文或密钥。没有已绑定的发布事务则失败关闭
+2. 信封revision使用本次visibilityRevision。变化和撤回的发生时间取载荷时间
+3. 只在业务事务内写outbox；提交后由content.RelayOutbox经jobs至少一次投递，本函数不直接调用jobs
 
 **错误**
 
@@ -5351,6 +5865,38 @@ func PublishContentEvent(ctx context.Context, op OperationContext, input Publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：eventId唯一
 - 依赖：`platform.EnqueueEvent`
+
+## content.bindPublicationTx
+
+- 级别：参考
+- 文件：`modules/content/internal/outbox_repository.go`
+- 作用：把当前发布事务交给同一调用链的outbox写入
+
+```go
+func bindPublicationTx(ctx context.Context, tx *sql.Tx) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只绑定调用者已经打开的事务，不提交、不另开连接
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已认证发布或撤回事务
+- 并发：不跨远程IO
+- 幂等：绑定本身无持久副作用
+- 依赖：无
 
 ## content.RelayOutbox
 
@@ -6365,7 +6911,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务
-8. 本轮构造TreeRuntime并注册四树路由；当前没有可信control写窗口/完整后台及所有handler，仍不返回可运行Application，写窗口缺失失败关闭
+8. 本轮构造TreeRuntime并注册四树路由和四个真实发布路由。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务
 
 **错误**
 
@@ -6377,7 +6923,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`、`content.NewTreeRuntime`、`content.RegisterTreeRoutes`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`、`content.NewTreeRuntime`、`content.RegisterTreeRoutes`、`content.RegisterPublicationRoutes`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
@@ -6612,6 +7158,39 @@ func RegisterTreeRoutes(app *Application, runtime TreeRuntime, anchors platform.
 - 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
 - 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
 - 依赖：`content.WithTreeRuntime`、`content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`content.UpdateDocumentMetadata`
+
+## content.RegisterPublicationRoutes
+
+- 级别：参考
+- 文件：`modules/content/internal/transport/server.go`
+- 作用：绑定四个已实现的发布HTTP处理函数
+
+```go
+func RegisterPublicationRoutes(app *Application, runtime TreeRuntime, anchors platform.TrustAnchors) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 发布和撤回由核心一次核content.publish，本注册表不再重复用户RPC。可见性与公开读取按固定调用方校验服务身份
+2. 不注册占位503。完整启动仍由BuildApplication失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信启动装配；业务权限由发布入口或服务边界执行
+- 并发：装配时不持业务事务
+- 幂等：重复装配同一进程只注册一次路由表
+- 依赖：`content.PublishDocument`、`content.WithdrawDocument`、`content.ValidatePublications`、`content.ReadPublishedRevision`、`platform.NewServiceHandler`
 
 ## content.mountModuleUI
 

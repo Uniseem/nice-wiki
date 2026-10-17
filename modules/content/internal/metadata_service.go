@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -85,14 +86,13 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 	if !sameMetadataAsset(current.ShareImage, input.ShareImage) {
 		return UpdateDocumentMetadataResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "分享图变更依赖精确metadata资源引用与pin生产链，当前未装配")
 	}
+	var redirects []gen.RouteTombstone
 	if !sameIdentifierPointer(current.PathSegment, input.PathSegment) {
-		planned, err := PlanOldPathRedirects(PlanOldPathRedirectsInput{DocumentId: input.DocumentId, Documents: documents, TreeRevision: int(treeRevision + 1)})
-		if err != nil {
-			return UpdateDocumentMetadataResult{}, err
+		planned, planErr := PlanOldPathRedirects(PlanOldPathRedirectsInput{DocumentId: input.DocumentId, Documents: documents, TreeRevision: int(treeRevision + 1)})
+		if planErr != nil {
+			return UpdateDocumentMetadataResult{}, planErr
 		}
-		if len(planned.Redirects) != 0 {
-			return UpdateDocumentMetadataResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "曾发布路径更改依赖真实redirect manifest，当前未装配")
-		}
+		redirects = planned.Redirects
 	}
 	if input.PathSegment != nil {
 		if _, err = ValidatePathSegment(work, op, ValidatePathSegmentInput{Segment: *input.PathSegment, ParentId: current.ParentId, DocumentId: input.DocumentId, Documents: documents}); err != nil {
@@ -128,7 +128,23 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 	if _, err = tx.ExecContext(work, `UPDATE document_metadata SET metadata_json=? WHERE site_id=? AND document_id=?`, string(raw), op.Actor.SiteID, input.DocumentId); err != nil {
 		return UpdateDocumentMetadataResult{}, contentStorageError()
 	}
-	result := UpdateDocumentMetadataResult{Metadata: metadata, Redirects: []gen.RouteTombstone{}}
+	if len(redirects) > 0 {
+		next := slices.Clone(documents)
+		for i := range next {
+			if next[i].DocumentId == metadata.DocumentId {
+				next[i] = metadata
+			}
+		}
+		stored, manifestErr := commitRedirectManifest(work, tx, op, redirects, next)
+		if manifestErr != nil {
+			return UpdateDocumentMetadataResult{}, manifestErr
+		}
+		redirects = stored
+	}
+	if redirects == nil {
+		redirects = []gen.RouteTombstone{}
+	}
+	result := UpdateDocumentMetadataResult{Metadata: metadata, Redirects: redirects}
 	resultRaw, _ := json.Marshal(result)
 	if _, err = tx.ExecContext(work, `INSERT INTO metadata_operation_receipts(site_id,data_epoch,operation_id,caller_service,actor_id,request_hash,result_json,result_hash) VALUES(?,?,?,?,?,?,?,?)`, op.Actor.SiteID, op.DataEpoch, op.OperationID, op.CallerService, op.Actor.SubjectID, digest, string(resultRaw), platform.HashBytes(resultRaw)); err != nil {
 		return UpdateDocumentMetadataResult{}, contentStorageError()

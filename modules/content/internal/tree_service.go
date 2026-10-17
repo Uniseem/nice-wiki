@@ -46,7 +46,7 @@ func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfi
 		return TreeRuntime{}, platform.NewError(platform.CodeIntegrityError, false, "文档树规格无法编码")
 	}
 	validators := make(map[string]func(json.RawMessage) error)
-	for action, schema := range map[string]string{"move": "MoveDocumentResult", "reorder": "ReorderChildrenResult", "metadata": "UpdateDocumentMetadataResult"} {
+	for action, schema := range map[string]string{"move": "MoveDocumentResult", "reorder": "ReorderChildrenResult", "metadata": "UpdateDocumentMetadataResult", "publish": "PublishDocumentResult", "withdraw": "WithdrawDocumentResult"} {
 		validators[action], err = apivalidate.NewPayloadValidator(raw, schema)
 		if err != nil {
 			return TreeRuntime{}, err
@@ -59,7 +59,7 @@ func WithTreeRuntime(ctx context.Context, runtime TreeRuntime) context.Context {
 }
 func treeRuntimeFromContext(ctx context.Context) (TreeRuntime, error) {
 	runtime, ok := ctx.Value(treeRuntimeKey{}).(TreeRuntime)
-	if !ok || runtime.Reference.Store == nil || runtime.Reference.Identity == nil || runtime.Reference.validateMetadata == nil || runtime.validateResult["move"] == nil || runtime.validateResult["reorder"] == nil || runtime.validateResult["metadata"] == nil {
+	if !ok || runtime.Reference.Store == nil || runtime.Reference.Identity == nil || runtime.Reference.validateMetadata == nil || runtime.validateResult["move"] == nil || runtime.validateResult["reorder"] == nil || runtime.validateResult["metadata"] == nil || runtime.validateResult["publish"] == nil || runtime.validateResult["withdraw"] == nil {
 		return runtime, platform.NewError(platform.CodeDependencyUnavailable, true, "文档树运行依赖未装配")
 	}
 	return runtime, nil
@@ -375,10 +375,14 @@ func executeTreeMutation(ctx context.Context, op OperationContext, action string
 		return nil, platform.NewError(platform.CodeVersionMismatch, false, "文档树版本已变化或耗尽")
 	}
 	var changed []gen.DocumentMetadata
+	var redirects []gen.RouteTombstone
 	var result any
 	if action == "move" {
-		changed, err = planTreeMove(documents, input.(MoveDocumentInput), version+1)
-		result = MoveDocumentResult{TreeRevision: int(version + 1), Redirects: []gen.RouteTombstone{}}
+		changed, redirects, err = planTreeMove(documents, input.(MoveDocumentInput), version+1)
+		if redirects == nil {
+			redirects = []gen.RouteTombstone{}
+		}
+		result = MoveDocumentResult{TreeRevision: int(version + 1), Redirects: redirects}
 	} else {
 		changed, err = planTreeReorder(documents, input.(ReorderChildrenInput))
 		result = ReorderChildrenResult{TreeRevision: int(version + 1)}
@@ -422,6 +426,26 @@ func executeTreeMutation(ctx context.Context, op OperationContext, action string
 		}
 		ids = append(ids, document.DocumentId)
 	}
+	if action == "move" && len(redirects) > 0 {
+		next := slices.Clone(documents)
+		replaced := map[Identifier]gen.DocumentMetadata{}
+		for _, document := range changed {
+			replaced[document.DocumentId] = document
+		}
+		for i := range next {
+			if updated, ok := replaced[next[i].DocumentId]; ok {
+				next[i] = updated
+			}
+		}
+		stored, manifestErr := commitRedirectManifest(work, tx, op, redirects, next)
+		if manifestErr != nil {
+			return nil, manifestErr
+		}
+		if stored == nil {
+			stored = []gen.RouteTombstone{}
+		}
+		result = MoveDocumentResult{TreeRevision: int(version + 1), Redirects: stored}
+	}
 	raw, _ := json.Marshal(result)
 	if _, err = tx.ExecContext(work, `INSERT INTO tree_operation_receipts(site_id,data_epoch,operation_id,caller_service,actor_id,action,request_hash,result_json) VALUES(?,?,?,?,?,?,?,?)`, op.Actor.SiteID, op.DataEpoch, op.OperationID, op.CallerService, op.Actor.SubjectID, action, digest, string(raw)); err != nil {
 		return nil, contentStorageError()
@@ -441,8 +465,9 @@ func executeTreeMutation(ctx context.Context, op OperationContext, action string
 	return raw, nil
 }
 
-func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, error) {
+func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, []gen.RouteTombstone, error) {
 	var moving *gen.DocumentMetadata
+	redirects := []gen.RouteTombstone{}
 	for i := range documents {
 		if documents[i].DocumentId == input.DocumentId {
 			copy := documents[i]
@@ -450,29 +475,27 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 		}
 	}
 	if moving == nil {
-		return nil, platform.NewError(platform.CodeNotFound, false, "拟移动文档不存在")
+		return nil, nil, platform.NewError(platform.CodeNotFound, false, "拟移动文档不存在")
 	}
 	if moving.State != "draft" && moving.State != "published" {
-		return nil, platform.NewError(platform.CodeLocked, false, "只能移动活动文档")
+		return nil, nil, platform.NewError(platform.CodeLocked, false, "只能移动活动文档")
 	}
 	if _, err := EnsureTreeAcyclic(EnsureTreeAcyclicInput{Documents: documents, MovingID: &input.DocumentId, ParentID: input.NewParentId}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if input.NewParentId != nil {
 		for _, document := range documents {
 			if document.DocumentId == *input.NewParentId && document.State != "draft" && document.State != "published" {
-				return nil, platform.NewError(platform.CodeLocked, false, "拟父文档不是活动文档")
+				return nil, nil, platform.NewError(platform.CodeLocked, false, "拟父文档不是活动文档")
 			}
 		}
 	}
 	if !sameIdentifierPointer(moving.ParentId, input.NewParentId) {
-		redirects, err := PlanOldPathRedirects(PlanOldPathRedirectsInput{DocumentId: input.DocumentId, Documents: documents, TreeRevision: int(revision)})
+		planned, err := PlanOldPathRedirects(PlanOldPathRedirectsInput{DocumentId: input.DocumentId, Documents: documents, TreeRevision: int(revision)})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		if len(redirects.Redirects) != 0 {
-			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "已发布子树路径移动依赖真实redirect manifest提交，当前未装配")
-		}
+		redirects = planned.Redirects
 	}
 	siblings := make([]gen.DocumentMetadata, 0)
 	for _, document := range documents {
@@ -491,7 +514,7 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 			}
 		}
 		if position < 0 {
-			return nil, platform.NewError(platform.CodeValidation, false, "相邻文档必须属于新的同父活动集合")
+			return nil, nil, platform.NewError(platform.CodeValidation, false, "相邻文档必须属于新的同父活动集合")
 		}
 	}
 	lower, upper := "", ""
@@ -503,7 +526,7 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 	}
 	key, err := fractionalDocumentOrder(lower, upper)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	moving.ParentId = input.NewParentId
 	moving.OrderKey = key
@@ -514,14 +537,14 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 		}
 	}
 	if err = validateTreeSiblings(candidate); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if moving.PathSegment != nil {
 		if _, err = validatePathSnapshot(ValidatePathSegmentInput{Segment: *moving.PathSegment, ParentId: moving.ParentId, DocumentId: moving.DocumentId, Documents: candidate}); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return []gen.DocumentMetadata{*moving}, nil
+	return []gen.DocumentMetadata{*moving}, redirects, nil
 }
 
 func planTreeReorder(documents []gen.DocumentMetadata, input ReorderChildrenInput) ([]gen.DocumentMetadata, error) {
