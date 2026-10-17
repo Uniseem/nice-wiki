@@ -1,3 +1,19 @@
+# 2026-10-17 语言配置
+
+阶段：实施。分支 `codex/localization-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，源码提交 `650a1e208ff8656531aa2764dfd9e2bc4b1965b8`。部署 `not_started`。accepted 为 0。GitLab CI 未跑，未执行 go、gofmt、make build、make gen、make check 或 SSH。本轮在本域执行了 `make docs`（只调用 Python 渲染）。
+
+- `localization.PutLanguage`、`localization.SetLanguageEnabled`、`localization.ListLanguages` 记为 implemented，验证 not_run。它们读写本域 `languages` 表，核对运行权威与 `runtime_meta` 代次，拒绝非 released 的 `local_barrier`，写入保留 7 天的原回执。
+- `localization.NormalizeLanguageTag` 保持 blocked。合同没有写明大小写、脚本子标签和私用用法，函数只拒绝空标签和超过 35 的标签，其余返回 `DEPENDENCY_UNAVAILABLE`，不返回改写后的标签或方向。
+- `BuildApplication` 已绑定上述三个 HTTP 操作，仍因其余处理器、事件订阅和任务循环缺失返回 `DEPENDENCY_UNAVAILABLE`。
+- 停用只把本域 `translation_jobs` 的 queued、running、review 标为 cancelled，不调用 `jobs:cancelJob`，不删除人工译文，不调用模型，不写默认费用。
+- 新文件尚未写入根 `docs/structure/framework.json`。公共协议未改。
+
+下一步：等集成会话审核合入并跑 GitLab CI。
+
+历史记录见下文，其中的旧下一步不再执行。
+
+---
+
 # 2026-10-17第三轮公共站点协议接续（仅合同）
 
 根公共候选统一签名siteId，清proof后仍可保留已核本站，传输层删除旧proof头；无声明的旧服务控制仍兼容system。EstimateLanguagePlan的未来调用协议已同步，不能用system替代真实本站或自报未签名站点。本域函数仍planned，没有业务源码、调用或完成数提升，公共代码检查由根GitLab统一。
