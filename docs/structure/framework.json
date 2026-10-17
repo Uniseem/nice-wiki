@@ -1139,6 +1139,11 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/content/internal/metadata_service.go",
+      "kind": "source",
+      "purpose": "元数据编辑CAS与完整原回执；发布路径和分享图依赖未齐失败关闭"
+    },
+    {
       "path": "modules/content/internal/outbox_repository.go",
       "kind": "handwritten",
       "purpose": "真实平台单批事件转发装配"
@@ -1232,6 +1237,11 @@
       "path": "modules/content/migrations/0006_tree_operations.sql",
       "kind": "migration",
       "purpose": "只追加树操作完整scope摘要原回执"
+    },
+    {
+      "path": "modules/content/migrations/0007_metadata_operations.sql",
+      "kind": "migration",
+      "purpose": "只追加元数据成功操作的完整scope、请求摘要和原结果hash"
     },
     {
       "path": "modules/content/migrations/migrations.go",
