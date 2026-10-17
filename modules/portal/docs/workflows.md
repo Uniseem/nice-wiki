@@ -33,3 +33,7 @@
 上游200先有界读取、解码和构造安全session结果，再设置两枚Secure HttpOnly SameSite=Strict cookie；原始tokens/currentSessionTokens从不写浏览器正文。上游失败及敏感回执重放只返回安全Problem，不清旧cookie，也不重新发起登录/刷新。只有当前权威sessionId等于被撤销路径sessionId且收到200 revoked=true才清本设备cookie。响应已开始后取消或写失败只结束该响应，不追加第二份Problem。
 
 完整本域handler覆盖与初始化/恢复权威尚未完成，NewApplication明确失败关闭；此认证适配源码不等于完整浏览器登录链已可运行。
+
+## 访问审计脱敏
+
+`RedactRequest` 是纯函数，不调用 analytics 或其他外部服务。成功结果只含静态路由的 method、routeId，以及请求的 requestId 与体字节数。cookie 与 authorization 不进入结果。query 敏感键和路径变量敏感标识尚未写明；这些字段以及其他请求头出现时失败关闭。`EmitAccessAudit` 仍未实现。

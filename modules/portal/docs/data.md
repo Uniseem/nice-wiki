@@ -167,3 +167,9 @@ identity内部SessionTokens只在portal本次响应内存出现；本域不持�
 认证响应总界64KiB，cookie完整序列化每枚不超过4096字节。读取上游成功DTO、构造安全JSON与校验cookie全部在写头之前完成；认证成功/失败均no-store。失败不设置或清除旧cookie；敏感成功回执的CONFLICT要求重新登录。当前设备的权威撤销成功才以同属性MaxAge=-1和过去Expires删除两枚cookie；撤其他设备不清当前会话。
 
 登录/首次注册的LoginNetworkScopes只由公共PrivateNetworkScopes从真实socket RemoteAddr和受信代理后缀派生，包含当前及上一UTC日HMAC。TrustedProxyCIDRs默认空，未受信socket完全忽略XFF；受信socket缺失、损坏或超界代理链失败关闭。原始地址仅公共函数调用期间驻留内存，不进入断言、日志或JSON。摘要按日变化只用于traffic-guard网络限速，不提供跨日持久身份。
+
+## 访问审计字段
+
+`RedactedAuditRequest` 只有 `requestId`、`routeId`、`method`、`bodyBytes`。`routeId` 与 `method` 取自静态路由，`requestId` 与体字节数取自已校验请求。名为 cookie 与 authorization 的头被剥除，值不进入结果。耗时属于 `RequestOutcome`，不由 `RedactRequest` 生成。
+
+合同没有列出敏感 query 键，路由类型也没有路径变量敏感标识。出现 query、路径变量，或其他未点名的请求头时，函数返回 `VALIDATION`，不自选替换、截断或保留规则。错误说明不回显头值、query 或路径变量值。

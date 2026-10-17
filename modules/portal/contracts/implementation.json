@@ -2173,20 +2173,20 @@
               "type": "Error",
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
-                "VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值"
+                "VALIDATION: 保留字段不合法，或出现合同未写明应剥除或保留的请求头、query 与路径变量；不记录敏感原值"
               ]
             }
           ],
-          "purpose": "生成不会泄漏密码、token 或正文的访问日志字段",
+          "purpose": "按静态路由生成最小访问审计字段；未写明剥除或保留规则的字段失败关闭",
           "steps": [
-            "只登记方法、routeId、耗时与体字节数",
-            "屏蔽 cookie、authorization 与敏感 query",
-            "按路由敏感标识清理路径变量"
+            "只登记静态路由的 method 与 routeId，以及请求的 requestId 与 bodyBytes；耗时不在输入或 RedactedAuditRequest 中，不自造",
+            "剥除名为 cookie 与 authorization 的头，值不进入结果",
+            "query 敏感键与路径变量敏感标识合同未写明；出现 query、路径变量或其他请求头时失败关闭，不自选脱敏规则"
           ],
           "errors": [
             {
               "code": "VALIDATION",
-              "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+              "when": "保留字段不合法，或出现合同未写明应剥除或保留的请求头、query 与路径变量；不记录敏感原值",
               "retryable": false
             }
           ],

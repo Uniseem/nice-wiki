@@ -10,7 +10,7 @@
 | M01-R04 | 用户偏好归 identity 权威 | portal 重启无偏好丢失，入口不维护第二份业务存储 |
 | M01-R05 | 恢复维护状态来自 site-config | 恢复维护期间（暂存、切换或换回）入口不放行业务请求 |
 
-每项当前状态均为未实现、未执行验收。
+每项当前状态均为未实现、未执行验收。`RedactRequest` 只落实 M01-R01 里“凭据不进入日志”的最小字段边界，不把整项需求标为完成。
 
 
 来源：[产品保持矩阵](../../../docs/product-preservation.md)、[冻结产品基线](../../../docs/product-baseline/README.md)；具体产品来源与ADR在README来源索引和本域operations列出。所有需求状态未执行，不能以合同数量视为完成业务。

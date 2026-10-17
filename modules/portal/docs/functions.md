@@ -1320,7 +1320,7 @@ func CollectReadiness(ctx context.Context, op OperationContext, input CollectRea
 
 - 级别：参考
 - 文件：`modules/portal/internal/audit_redaction.go`
-- 作用：生成不会泄漏密码、token 或正文的访问日志字段
+- 作用：按静态路由生成最小访问审计字段；未写明剥除或保留规则的字段失败关闭
 
 ```go
 func RedactRequest(input RedactRequestInput) (RedactRequestResult, error)
@@ -1337,17 +1337,17 @@ func RedactRequest(input RedactRequestInput) (RedactRequestResult, error)
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `RedactRequestResult` | 生成不会泄漏密码、token 或正文的访问日志字段的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 保留字段不合法，或出现合同未写明应剥除或保留的请求头、query 与路径变量；不记录敏感原值 |
 
 **步骤**
 
-1. 只登记方法、routeId、耗时与体字节数
-2. 屏蔽 cookie、authorization 与敏感 query
-3. 按路由敏感标识清理路径变量
+1. 只登记静态路由的 method 与 routeId，以及请求的 requestId 与 bodyBytes；耗时不在输入或 RedactedAuditRequest 中，不自造
+2. 剥除名为 cookie 与 authorization 的头，值不进入结果
+3. query 敏感键与路径变量敏感标识合同未写明；出现 query、路径变量或其他请求头时失败关闭，不自选脱敏规则
 
 **错误**
 
-- `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `VALIDATION`：保留字段不合法，或出现合同未写明应剥除或保留的请求头、query 与路径变量；不记录敏感原值（不可重试）
 
 - 副作用：无
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
