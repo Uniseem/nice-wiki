@@ -2,12 +2,12 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "60d3db0b33aba00b30071bd6ac5d4093d32188f1b5528a16efa9a5aba2f3266b",
+  "contractSha256": "675b37335181011b0f83cd99fc0a24a2fa32f085d54d940a538d8d96ca9cc87b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第四轮公共偏好目录与导航消费",
-  "branch": "codex/r1-round4-integration",
-  "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+  "assignedSession": "portal RedactRequest 实施（独立 worktree，未跑 CI）",
+  "branch": "codex/portal-20261017-r5",
+  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
+  "deliveryCommit": "767972fc930319699187a13c44274d721b017c8d",
   "deployment": "not_started",
   "files": [
     {
@@ -102,13 +102,13 @@
     },
     {
       "path": "modules/portal/internal/audit_redaction.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "767972fc930319699187a13c44274d721b017c8d",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "RedactRequest 已实现但未编译。EmitAccessAudit 仍 planned。GitLab CI 未跑，不能记 verified。"
     },
     {
       "path": "modules/portal/web/src/api/api-client.ts",
@@ -659,13 +659,13 @@
     {
       "id": "portal.RedactRequest",
       "path": "modules/portal/internal/audit_redaction.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "767972fc930319699187a13c44274d721b017c8d",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "未执行 go、gofmt、make build 或 GitLab CI，不能记 verified。accepted 保持 0。"
     },
     {
       "id": "portal.EmitAccessAudit",
@@ -1097,6 +1097,6 @@
       "blocker": null
     }
   ],
-  "rule": "第三轮已交付源码a5dbc2f28c74872a0bf7ef498cd522eb51460326；完整已实现认证适配/参考函数通过统一VPS与人工复读并标verified。完整应用/就绪、ProxyRequest准入审计与Serve恢复监听仍blocked；未执行业务验收或部署，不开展后包。",
+  "rule": "RedactRequest 源码为 767972fc930319699187a13c44274d721b017c8d，状态 implemented，验证 not_run，不记 verified。EmitAccessAudit 仍 planned。accepted 为 0。新文件待集成会话登记 framework.json。未执行业务验收或部署。",
   "publicBaselineCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f"
 }

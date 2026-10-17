@@ -1,3 +1,18 @@
+# 2026-10-17 访问审计脱敏
+
+阶段：实施。分支 `codex/portal-20261017-r5`，基线 `a3e6af980d5288e42bc8d023410faf8923ff21e8`，源码提交 `767972fc930319699187a13c44274d721b017c8d`。部署 `not_started`。accepted 为 0。未执行 go、gofmt、make build、make gen、GitLab CI 或 SSH。本轮在本域执行了 `make docs`。
+
+- `portal.RedactRequest` 记为 implemented，验证 not_run。它按静态路由写入 `requestId`、`routeId`、`method`、`bodyBytes`，剥除 cookie 与 authorization。query 敏感键、路径变量敏感标识和其他请求头未写明时返回 `VALIDATION`。
+- `portal.EmitAccessAudit` 仍为 planned。文件 `internal/audit_redaction.go` 记为 in_progress。
+- 新文件尚未写入根 `docs/structure/framework.json`。本地 `make check` 只因此失败。未改其他模块或公共代码。
+- 业务验收未执行。
+
+下一步：等集成会话登记新文件并跑 GitLab CI。通过前不要把本函数记为 verified 或 accepted。
+
+历史记录见下文，其中的旧下一步不再执行。
+
+---
+
 # 主系统当前进度
 
 最新任务（2026-10-15）：持续实施第三轮portal浏览器认证边界。分支codex/portal-auth-boundary-r1，基线9acad1ab56532521222f592af0d4b3a849792db5，接续公共918dd6369ea7a33bf9296949c8b5441a08d1e88f。仅拥有modules/portal/。
