@@ -736,7 +736,7 @@
             "2 复用beginAvailabilitySnapshot在同一事务严格核非空runtime_meta当前代次；普通非秘密输入摘要绑定callerService/dataEpoch/provider/expectedVersion。",
             "3 先按site/actor/函数/key读取7天原回执：同代同hash返回首次规范结果，不核后来的指针或屏障；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR。过期只读未命中，不能提前删除。",
             "4 新操作在同一事务拒绝任何state非released屏障，不按屏障epoch或deadline过滤；不改PutModel或其旧共享屏障helper。",
-            "5 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。推进或回退只由专用凭据端点事务负责，普通编辑不能改写凭据。",
+            "5 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。条件UPSERT绑定version/data_epoch/credential_version且RowsAffected恰好1，推进或回退只由专用凭据端点事务负责。enabled直接保存，停用只阻止后续路由，不改既有invocations、预留或账本。",
             "6 同事务写provider配置、provider.changed平台outbox和完整原结果回执；仅成功新事务末尾替换过期回执，失败回滚；不读取secret或调用供应方。"
           ],
           "errors": [
@@ -817,129 +817,16 @@
             "更新providers并发出provider.changed"
           ],
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；配置、平台outbox和回执一起提交，不做网络IO。",
+          "concurrency": "同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；条件UPSERT及RowsAffected核对，配置、平台outbox和回执一起提交，不做网络IO。",
           "idempotency": "siteId+actorId+函数ID+key唯一、7天有效；普通配置hash绑定callerService/dataEpoch/provider/expectedVersion，同代同hash返回首次规范结果，异hash CONFLICT。过期仅成功新配置事务替换，不因后续屏障/指针阻断有效无副作用重放。",
           "dependencies": [
             "model-gateway.ValidateProvider",
-            "model-gateway.SetProviderEnabled",
             "model-gateway.CurrentStore",
             "model-gateway.beginAvailabilitySnapshot",
             "model-gateway.readProviderReceipt"
           ],
           "resources": [],
           "contract": "binding"
-        },
-        {
-          "id": "model-gateway.SetProviderEnabled",
-          "name": "SetProviderEnabled",
-          "signature": "func SetProviderEnabled(ctx context.Context, op OperationContext, input SetProviderEnabledInput) (SetProviderEnabledResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "SetProviderEnabledInput",
-              "description": "封闭业务输入；逐字段见types $defs/SetProviderEnabledInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SetProviderEnabledResult",
-              "description": "成功结果；逐字段见types $defs/SetProviderEnabledResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "启停新调用入口",
-          "steps": [
-            "1 读取供应方",
-            "2 CAS版本",
-            "3 disabled禁止新路由",
-            "4 保留正在执行调用记录",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写enabled与版本，不终止已接受供应方请求"
-          ],
-          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
         },
         {
           "id": "model-gateway.readProviderReceipt",
@@ -1045,6 +932,40 @@
           "idempotency": "同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。",
           "dependencies": [
             "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.NewCatalogHandlers",
+          "name": "NewCatalogHandlers",
+          "signature": "func NewCatalogHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "CatalogHandlers",
+              "description": "两项真实HTTP映射",
+              "constraints": "错误时不使用结果；不暴露私有配置原值"
+            }
+          ],
+          "purpose": "绑定既有供应方与模型配置保存及enabled启停",
+          "steps": [
+            "仅映射既有putProvider/putModel，从平台取得可信OperationContext并绑定已生成严格校验JSON。",
+            "核providerId/modelId路径与正文对象ID一致，非空Idempotency-Key头与正文key一致；分别调用真实PutProvider/PutModel。",
+            "返回no-store JSON及公共Problem；统一入口即时superadmin授权一次。缺其他handler仍拒绝完整服务启动，不新增启停HTTP。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "交公共完整HTTP边界；具体函数分别校验QA、owner服务或superadmin范围。"
+          },
+          "concurrency": "每请求独立事务；不构造部分可运行服务。",
+          "idempotency": "HTTP仅绑定；写入由真实函数持久回执与CAS保证。",
+          "dependencies": [
+            "model-gateway.PutProvider",
+            "model-gateway.PutModel"
           ],
           "resources": [],
           "contract": "reference"
@@ -2264,11 +2185,12 @@
           ],
           "purpose": "保存不可变模型身份版本",
           "steps": [
-            "1 核查provider存在",
-            "2 校验能力与维度",
-            "3 供应方模型版本/预处理变化创建新modelId",
-            "4 CAS保存",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "1 公共入口即时校验superadmin，内部信任严格生成校验过的输入与可信op；model.version必须expectedVersion+1且不超过安全整数上限。",
+            "2 beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。",
+            "3 新写拒绝任意state非released屏障，不按epoch或deadline过滤。capabilities含embedding的创建/编辑/启停统一DEPENDENCY_UNAVAILABLE：M07-R06归一化空间身份与公共schema尚未收口，本轮不猜默认，不计算或发布未确认space。非embedding由ValidateModel校验；provider必须真实存在且同代，不要求启用/凭据/价格/在线，不探测。",
+            "4 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。",
+            "5 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。",
+            "6 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。"
           ],
           "errors": [
             {
@@ -2324,16 +2246,44 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域存储或权威代次未知，失败关闭。",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等输入不一致或同modelId不可变身份变化。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "已持久模型原结果或回执时间损坏。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "embedding归一化空间身份合同待确认，新的配置禁止写入；需完成设计后继续，不能自动重试。",
+              "retryable": false
             }
           ],
           "sideEffects": [
-            "写models及model.changed"
+            "同事务写models、model.changed平台outbox与7天完整回执；enabled停用不改在途调用或费用状态。"
           ],
           "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "concurrency": "同一严格当前代次事务先回执后全屏障/真实provider与model身份/CAS；条件UPSERT及RowsAffected核对，配置/事件/回执原子提交，无跨域IO。",
+          "idempotency": "siteId/actorId/函数/key唯一，7天原结果；hash绑定callerService/dataEpoch/model/expectedVersion，有效同hash先返回，异hash CONFLICT。旧格式hash不默认为新摘要；过期仅随成功新事务替换。",
           "dependencies": [
-            "model-gateway.ValidateModel"
+            "model-gateway.ValidateModel",
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot",
+            "model-gateway.readModelReceipt",
+            "model-gateway.availabilityReadError"
           ],
           "resources": [],
           "contract": "binding"
@@ -2435,6 +2385,114 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.readModelReceipt",
+          "name": "readModelReceipt",
+          "signature": "func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Model) (PutModelResult, bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "原入口取消",
+              "constraints": "已授权PutModel当前同代事务"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信范围",
+              "constraints": "已授权PutModel当前同代事务"
+            },
+            {
+              "name": "tx",
+              "type": "SQLTransaction",
+              "description": "当前事务",
+              "constraints": "已授权PutModel当前同代事务"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "幂等键",
+              "constraints": "已授权PutModel当前同代事务"
+            },
+            {
+              "name": "inputHash",
+              "type": "Hash",
+              "description": "含caller和epoch摘要",
+              "constraints": "已授权PutModel当前同代事务"
+            },
+            {
+              "name": "expected",
+              "type": "Model",
+              "description": "输入模型完整原结果",
+              "constraints": "已授权PutModel当前同代事务"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PutModelResult",
+              "description": "原结果",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "found",
+              "type": "bool",
+              "description": "是否命中有效原回执",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "脱敏公共错误",
+              "constraints": "失败结果不可使用；不输出私有原值"
+            }
+          ],
+          "purpose": "只读7天模型配置原结果并核同代普通输入摘要",
+          "steps": [
+            "同scope/函数/key只读hash/created_at/result_json；坏时间失败，过期未命中不写。",
+            "有效hash不匹配CONFLICT；完整规范结果编码必须与持久原结果精确一致，否则INTEGRITY_ERROR。",
+            "命中先返原结果，不做后续写屏障/当前指针/CAS校验；仅上层成功新事务替换过期键。"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "when": "幂等输入不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久模型能力或回执损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本域查询未知",
+              "retryable": true
+            },
+            {
+              "code": "CANCELLED",
+              "when": "IO取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "IO到截止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "仅PutModel已核superadmin的同代事务链路。"
+          },
+          "concurrency": "共用PutModel的同代SQL事务，只读原回执，不独立提交。",
+          "idempotency": "同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。",
+          "dependencies": [
+            "model-gateway.availabilityReadError"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -10634,7 +10692,7 @@
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
             "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。",
+            "本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
@@ -10686,7 +10744,8 @@
             "identity:checkAuthorization",
             "model-gateway.NewProfileHandlers",
             "model-gateway.NewCredentialHandlers",
-            "model-gateway.NewAdminHandlers"
+            "model-gateway.NewAdminHandlers",
+            "model-gateway.NewCatalogHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",

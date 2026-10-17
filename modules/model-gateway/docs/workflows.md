@@ -69,3 +69,13 @@ ResolveProfile返回真实原始profile、assignment及派生顺序/能力。Sel
 Put预读事务先核7天完整原回执，再读真实policy和版本判断首次/daily变化；结束事务后才执行必要的当前superadmin权限RPC，不持SQL事务或进程锁。随后短写事务重新先核回执、全部非released屏障及当前policy/CAS；条件改变而未获必要超管授权则VERSION_MISMATCH，无自动重试。策略、原结果及本地脱敏审计同事务提交，既有held/ledger保留；跨域审计投影仍待实现。
 
 无初始policy不从old猜会话美元默认；只能由当前超管完整输入创建。每日0不限、background独立，小时开关关闭也不意味着清账。原回执同caller/epoch规范输入7天重放先于当前策略/CAS/屏障返回，过期只随成功新配置事务替换，未知Commit不自行重试。
+
+## 供应方与模型配置写入闭环
+
+启停沿既有PutProvider/PutModel.enabled字段，无独立启停API；内部未实现SetProviderEnabled参考项已合并到PutProvider。供应方条件UPSERT同时绑定真实version/epoch/credentialVersion，RowsAffected必须恰好1；凭据active指针仍只由凭据端点推进。
+
+PutModel在同一严格当前代次事务先核7天原结果，再核所有非released屏障、真实同代provider及model版本。现有modelId的providerId/providerModelVersion/dimension/preprocessorVersion不可变化，变化须新ID；条件UPSERT只改可变元数据与enabled，并核RowsAffected。停用不清任务分配/档位，不改在途调用、held或ledger，后续路由读取真实enabled拒绝新候选。
+
+模型回执摘要绑定callerService/dataEpoch/model/expectedVersion，完整原结果早于当前配置/屏障返回。旧摘要不能默认为新摘要；7天内hash不匹配CONFLICT，不重签旧结果。过期仅成功新事务替换；配置、现有model.changed平台outbox与回执原子提交。现有嵌入space算法与归一化迁移缺口本轮未扩写。HTTP核路径和非空幂等头与正文一致，由公共入口即时superadmin授权；完整服务缺其他handler仍拒绝启动。
+
+M07-R06要求归一化参与空间身份，但现公共schema与旧算法只含五字段，缺确认规则与迁移。新PutModel对embedding创建/编辑/启停明确返回DEPENDENCY_UNAVAILABLE（合同待确认，非运行服务故障），在写库/回执/outbox前拒绝；有效原回执仍先行，非embedding配置照常。完整PutModel/model.go保持partial，不发布未收口的空间身份。

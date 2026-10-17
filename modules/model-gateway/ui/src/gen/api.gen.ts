@@ -74,7 +74,7 @@ export interface paths {
         get?: never;
         /**
          * 保存不可变模型身份版本
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前代次事务先返回7天caller/epoch/输入摘要匹配的完整原结果，再核任意非released屏障及CAS。已有modelId不可改providerId/providerModelVersion/dimension/preprocessorVersion，身份变化须新ID；enabled停用只影响后续路由，保留在途调用和费用记录。 M07-R06归一化身份与公共schema尚未收口，新的embedding创建/编辑/启停统一503 DEPENDENCY_UNAVAILABLE且不写库或outbox；已有有效完整原回执先行。非embedding配置照常，非运行服务故障。
          */
         put: operations["putModel"];
         post?: never;
@@ -1911,8 +1911,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
+            /** @description 版本、dataEpoch、模型不可变身份或幂等输入冲突；具体code见公共Problem。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 模型回执完整性损坏。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1922,6 +1931,15 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 权威存储/当前代次未知，或embedding归一化身份合同待确认而明确阻止新配置；具体code见公共Problem。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

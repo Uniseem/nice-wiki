@@ -18,6 +18,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -110,7 +111,7 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if input.ExpectedVersion < 0 || input.IdempotencyKey == "" || !validBoundedString(input.IdempotencyKey, 65536) {
 		return PutProviderResult{}, platform.NewError(platform.CodeValidation, false, "供应方保存幂等参数不合法")
 	}
-	if input.Provider.Version != input.ExpectedVersion+1 {
+	if input.ExpectedVersion >= 9007199254740991 || input.Provider.Version != input.ExpectedVersion+1 {
 		return PutProviderResult{}, platform.NewError(platform.CodeVersionMismatch, false, "供应方版本必须为预期版本加一")
 	}
 	store := gatewayruntime.CurrentStore()
@@ -175,7 +176,7 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 
 	names, _ := json.Marshal(provider.ExtraHeaderNames)
 	refs, _ := json.Marshal(provider.ExtraHeaderSecretRefs)
-	if _, err := tx.ExecContext(operationCtx, `
+	saved, err := tx.ExecContext(operationCtx, `
 		INSERT INTO providers (
 			provider_id, version, adapter, base_url, enabled, credential_version,
 			connect_timeout_ms, request_timeout_ms, display_name,
@@ -189,12 +190,19 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 			display_name = excluded.display_name, extra_header_names_json = excluded.extra_header_names_json,
 			extra_header_secret_refs_json = excluded.extra_header_secret_refs_json,
 			concurrency_limit = excluded.concurrency_limit, stream_idle_timeout_ms = excluded.stream_idle_timeout_ms,
-			data_epoch = excluded.data_epoch, updated_at = excluded.updated_at`,
+			updated_at = excluded.updated_at
+		WHERE providers.version = ? AND providers.data_epoch = ? AND providers.credential_version = ?`,
 		string(provider.ProviderId), provider.Version, string(provider.Adapter), provider.BaseUrl,
 		boolInt(provider.Enabled), provider.CredentialVersion, provider.ConnectTimeoutMs,
 		provider.RequestTimeoutMs, provider.DisplayName, names, refs, provider.ConcurrencyLimit,
-		provider.StreamIdleTimeoutMs, string(op.DataEpoch), string(platform.Now())); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, true, "保存供应方配置失败"))
+		provider.StreamIdleTimeoutMs, string(op.DataEpoch), string(platform.Now()), input.ExpectedVersion, op.DataEpoch, currentCredentialVersion)
+	if err != nil {
+		return rollback(availabilityReadError(err))
+	}
+	if count, err := saved.RowsAffected(); err != nil {
+		return rollback(availabilityReadError(err))
+	} else if count != 1 {
+		return rollback(platform.NewError(platform.CodeVersionMismatch, false, "供应方保存条件已变化"))
 	}
 
 	payload, err := json.Marshal(struct {
@@ -337,17 +345,6 @@ func normalizeProviderURL(raw string) (string, error) {
 	return u.String(), nil
 }
 
-func rejectDrainingBarrier(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier) error {
-	var count int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM barriers WHERE state <> 'released' AND (data_epoch = ? OR data_epoch = '')`, string(dataEpoch)).Scan(&count); err != nil {
-		return platform.NewError(platform.CodeInternal, true, "读取模型网关屏障失败")
-	}
-	if count > 0 {
-		return platform.NewError(platform.CodeLocked, false, "模型网关屏障正在排空")
-	}
-	return nil
-}
-
 func hashJSON(value any) (platform.Hash, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {
@@ -393,4 +390,49 @@ func boolInt(value bool) int {
 		return 1
 	}
 	return 0
+}
+
+// NewCatalogHandlers 绑定既有供应方和模型保存入口，启停沿配置enabled字段写入。
+func NewCatalogHandlers() map[string]http.Handler {
+	handlers := make(map[string]http.Handler, 2)
+	for _, operationID := range []string{"putProvider", "putModel"} {
+		handlers[operationID] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, ok := platform.OperationContextFrom(r.Context())
+			if !ok {
+				_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeUnauthenticated, false, "缺少可信服务操作上下文"), platform.NewIdentifier()))
+				return
+			}
+			var result any
+			var err error
+			switch operationID {
+			case "putProvider":
+				var input PutProviderInput
+				if json.NewDecoder(r.Body).Decode(&input) != nil {
+					err = platform.NewError(platform.CodeValidation, false, "供应方输入不可读")
+				} else if r.PathValue("providerId") != input.Provider.ProviderId || (r.Header.Get("Idempotency-Key") != "" && r.Header.Get("Idempotency-Key") != input.IdempotencyKey) {
+					err = platform.NewError(platform.CodeValidation, false, "供应方路径或幂等头与正文不一致")
+				} else {
+					result, err = PutProvider(r.Context(), op, input)
+				}
+			case "putModel":
+				var input PutModelInput
+				if json.NewDecoder(r.Body).Decode(&input) != nil {
+					err = platform.NewError(platform.CodeValidation, false, "模型输入不可读")
+				} else if r.PathValue("modelId") != input.Model.ModelId || (r.Header.Get("Idempotency-Key") != "" && r.Header.Get("Idempotency-Key") != input.IdempotencyKey) {
+					err = platform.NewError(platform.CodeValidation, false, "模型路径或幂等头与正文不一致")
+				} else {
+					result, err = PutModel(r.Context(), op, input)
+				}
+			}
+			if err != nil {
+				_ = problem.WriteProblem(w, problem.FromError(err, op.RequestID))
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			_ = json.NewEncoder(w).Encode(result)
+		})
+	}
+	return handlers
 }
