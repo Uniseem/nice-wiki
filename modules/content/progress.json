@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "e9d1f13c63192306029f0c459a1a5e0e6a3ed63275e3caf389860c5924def470",
+  "contractSha256": "4837b8778295161397b9958c4514052335da836de48707e12e34c2d652b04980",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "content第四轮发布快照（已编写，未跑CI）",
+  "assignedSession": "content第四轮发布快照（pin已接回，已编写，未跑CI）",
   "branch": "codex/content-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+  "deliveryCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
   "deployment": "not_started",
   "files": [
     {
@@ -23,10 +23,10 @@
     {
       "path": "modules/content/internal/tree_service.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -173,20 +173,20 @@
     {
       "path": "modules/content/internal/publication_service.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -423,12 +423,12 @@
     {
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
-      "blocker": "发布路由已绑定真实处理函数，但完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "path": "modules/content/internal/transport/server.go",
@@ -1852,10 +1852,10 @@
       "id": "content.PublishDocument",
       "path": "modules/content/internal/publication_service.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -1874,10 +1874,10 @@
       "id": "content.CommitPublication",
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -2274,18 +2274,18 @@
         "state": "passed",
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 当前仅局部入口装配检查通过。"
       },
-      "blocker": "发布路由已绑定真实处理函数，但完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
-      "blocker": "发布路由已绑定真实处理函数，但完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "id": "content.Serve",
@@ -3392,10 +3392,10 @@
       "id": "content.applyPublication",
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3425,10 +3425,32 @@
       "id": "content.copyPublishedReferences",
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.preparePublicationPin",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.pinPublicationReferences",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3532,5 +3554,5 @@
       "blocker": null
     }
   ],
-  "rule": "第四轮发布快照已按源码 b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5 记 implemented，未跑 GitLab CI，不记 verified。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"
+  "rule": "第四轮发布快照按源码 7edca48674a7287cb9fc454fa509164e61d71fd2 记 implemented。非空就绪引用已接回现有 MediaClient，先 acquire 再 confirm，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"
 }

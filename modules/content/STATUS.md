@@ -1,3 +1,17 @@
+# 当前工作包：发布资源 pin 接回（2026-10-17第四轮审核退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `7edca48674a7287cb9fc454fa509164e61d71fd2`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 非空就绪引用已接回现有 MediaClient：发布事务开始前先 acquire 再 confirm，跨服务调用不持有本地 SQL 锁。pin 失败则整次发布失败，不先公开。空引用仍可发布，不造空 pin。
+- 分享图非空继续 503，不猜测 metadata pin 协议。Update 仍 in_progress。完整启动仍 blocked。
+- 函数完成数 225/259 变为 227/261：新增 preparePublicationPin、pinPublicationReferences，均记 implemented。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：发布快照闭环（2026-10-17第四轮，已编写，未跑 CI）
 
 分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，初始干净。源码 `b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
