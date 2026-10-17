@@ -1,3 +1,38 @@
+# 2026-10-17 EmitAccessAudit 交接
+
+- 分支：`codex/portal-20261017-r6`
+- 基线：`9a10eff89c91095670f7d336e84e7a010348adc6`
+- 源码 SHA：`d2d2d8d393f1c5118671293ab29ebdd26c71316b`
+- 独占范围：`modules/portal/`
+- 函数：`portal.EmitAccessAudit` 保持 blocked，不记 implemented、verified 或 accepted
+- 合同：未改
+- 新文件：无。函数写在已有的 `modules/portal/internal/audit_redaction.go`
+- 检查：`python3 scripts/render_docs.py --check` 无过期文档。`python3 scripts/check_docs.py` 通过（889 文件 / 1516 函数 / 380 操作 / 2355 类型），只证明设计结构。未跑 go build、go vet、gofmt、make build、make gen，未 SSH，未 push。accepted 为 0。未做业务验收。
+
+## 行为
+
+输入已经是 `RedactedAuditRequest` 与 `RequestOutcome`。函数不再读取原始 HTTP，不把 cookie、authorization、正文或原始地址写入结果或日志。`RedactRequest` 的失败关闭行为未改。
+
+`analytics:appendAudit` 的请求体 `AppendAuditRequestBody` 必填 `auditId`、`action`、`resourceId`、`resultCode`、`metadata`。这些字段与 `RedactedAuditRequest` 的 `requestId`、`routeId`、`method`、`bodyBytes`，以及 `RequestOutcome` 的 `status`、`durationMs`、`code` 没有已写明的一一映射。`analytics.RedactAuditMetadata` 只允许 metadata 中的 `revision`、`fromState`、`toState`、`count`，也不覆盖上述访问字段。因此不构造请求体，不调用 `AppendAudit`，返回可重试的 `DEPENDENCY_UNAVAILABLE`。
+
+合同只写明 `requestId` 可传给 `AppendAudit` 的 `idempotencyKey`。不能把 `requestId` 写成请求体字段，也不自建内存去重表。
+
+`EmitAccessAuditResult` 只有 `accepted`。步骤里的“投递失败标记 degraded”没有 `degraded` 字段。不新增字段或内存状态，不用 `accepted=false` 表示投递失败。
+
+仓库里没有不记录正文的结构化日志函数。未新写日志框架。日志缺口单独不阻止投递，但请求体映射缺失时不能完成投递。
+
+## blocker
+
+analytics:appendAudit 的请求体 AppendAuditRequestBody 必填 auditId、action、resourceId、resultCode、metadata。这些字段与 RedactedAuditRequest 的 requestId、routeId、method、bodyBytes，以及 RequestOutcome 的 status、durationMs、code 没有已写明的一一映射。analytics.RedactAuditMetadata 只允许 metadata 中的 revision、fromState、toState、count，也不覆盖上述访问字段。合同只写明 requestId 可传给 AppendAudit 的 idempotencyKey，不能把它写成请求体字段。因此不构造请求体、不调用 AppendAudit，返回可重试的 DEPENDENCY_UNAVAILABLE。EmitAccessAuditResult 只有 accepted，没有 degraded 字段；不用 accepted=false 表示投递失败，也不新增字段或内存状态。仓库里没有不记录正文的结构化日志函数，未新写日志框架。日志缺口单独不阻止投递，但请求体映射缺失时函数保持 blocked。verification.state 为 not_run。合同未改。
+
+## 下一步（一项）
+
+在获得授权后，写明 `AppendAuditRequestBody` 与 `RedactedAuditRequest`、`RequestOutcome` 的一一字段映射，并让 metadata 白名单覆盖被映射的访问字段。然后在 `modules/portal/internal/audit_redaction.go` 的 `portal.EmitAccessAudit` 中，只把已有 `requestId` 作为 `AppendAudit` 的 `idempotencyKey` 完成投递。映射写明前保持 blocked，不要猜字段。
+
+下文是历史交接，其中的下一步不再执行。
+
+---
+
 # 2026-10-17 RedactRequest 交接
 
 - 分支：`codex/portal-20261017-r5`

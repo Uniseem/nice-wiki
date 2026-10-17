@@ -1,12 +1,13 @@
-# 2026-10-17 访问审计脱敏
+# 2026-10-17 访问审计投递
 
-阶段：实施。源码提交 `767972fc930319699187a13c44274d721b017c8d`。部署 `not_started`。accepted 为 0。pipeline 48 已覆盖本函数的 readonly 编译，未做业务验收。
+阶段：实施。源码提交 `d2d2d8d393f1c5118671293ab29ebdd26c71316b`。部署 `not_started`。accepted 为 0。`python3 scripts/check_docs.py` 通过，只证明设计结构。本函数未编译，verification.state 为 not_run，未做业务验收。
 
-- `portal.RedactRequest` 记为 verified。它按静态路由写入 `requestId`、`routeId`、`method`、`bodyBytes`，剥除 cookie 与 authorization。query 敏感键、路径变量敏感标识和其他请求头未写明时返回 `VALIDATION`。
-- `portal.EmitAccessAudit` 仍为 planned。文件 `internal/audit_redaction.go` 记为 in_progress。
-- 新文件已登记。业务验收未执行。
+- `portal.RedactRequest` 仍为 verified。失败关闭行为未改。
+- `portal.EmitAccessAudit` 保持 blocked。`AppendAuditRequestBody` 与 `RedactedAuditRequest`、`RequestOutcome` 没有已写明的一一映射，函数返回 `DEPENDENCY_UNAVAILABLE`，不构造请求体。
+- 结果只有 `accepted`。没有 `degraded` 字段，不用 `accepted=false` 表示投递失败。
+- 合同未改。业务验收未执行。
 
-下一步：实现合同已写明的 `portal.EmitAccessAudit`。
+下一步：在获得授权后写明 `AppendAuditRequestBody` 与 `RedactedAuditRequest`、`RequestOutcome` 的一一字段映射，再完成投递。映射写明前保持 blocked。
 
 历史记录见下文，其中的旧下一步不再执行。
 

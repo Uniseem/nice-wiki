@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "675b37335181011b0f83cd99fc0a24a2fa32f085d54d940a538d8d96ca9cc87b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "portal请求脱敏（pipeline 48 已记 verified；EmitAccessAudit 仍 planned）",
-  "branch": "codex/portal-20261017-r5",
-  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
-  "deliveryCommit": "767972fc930319699187a13c44274d721b017c8d",
+  "assignedSession": "portal EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked",
+  "branch": "codex/portal-20261017-r6",
+  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
+  "deliveryCommit": "d2d2d8d393f1c5118671293ab29ebdd26c71316b",
   "deployment": "not_started",
   "files": [
     {
@@ -103,12 +103,12 @@
     {
       "path": "modules/portal/internal/audit_redaction.go",
       "state": "in_progress",
-      "implementationCommit": "767972fc930319699187a13c44274d721b017c8d",
+      "implementationCommit": "d2d2d8d393f1c5118671293ab29ebdd26c71316b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "RedactRequest 已由 pipeline 48 记 verified。EmitAccessAudit 仍 planned，整文件保持 in_progress。"
+      "blocker": "RedactRequest 仍为 verified。EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked，verification.state 为 not_run。"
     },
     {
       "path": "modules/portal/web/src/api/api-client.ts",
@@ -670,13 +670,13 @@
     {
       "id": "portal.EmitAccessAudit",
       "path": "modules/portal/internal/audit_redaction.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d2d2d8d393f1c5118671293ab29ebdd26c71316b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "analytics:appendAudit 的请求体 AppendAuditRequestBody 必填 auditId、action、resourceId、resultCode、metadata。这些字段与 RedactedAuditRequest 的 requestId、routeId、method、bodyBytes，以及 RequestOutcome 的 status、durationMs、code 没有已写明的一一映射。analytics.RedactAuditMetadata 只允许 metadata 中的 revision、fromState、toState、count，也不覆盖上述访问字段。合同只写明 requestId 可传给 AppendAudit 的 idempotencyKey，不能把它写成请求体字段。因此不构造请求体、不调用 AppendAudit，返回可重试的 DEPENDENCY_UNAVAILABLE。EmitAccessAuditResult 只有 accepted，没有 degraded 字段；不用 accepted=false 表示投递失败，也不新增字段或内存状态。仓库里没有不记录正文的结构化日志函数，未新写日志框架。日志缺口单独不阻止投递，但请求体映射缺失时函数保持 blocked。verification.state 为 not_run。合同未改。"
     },
     {
       "id": "portal.sendApi",
@@ -1097,6 +1097,6 @@
       "blocker": null
     }
   ],
-  "rule": "RedactRequest 源码为 767972fc930319699187a13c44274d721b017c8d，状态 implemented，验证 not_run，不记 verified。EmitAccessAudit 仍 planned。accepted 为 0。新文件待集成会话登记 framework.json。未执行业务验收或部署。",
+  "rule": "EmitAccessAudit 源码为 d2d2d8d393f1c5118671293ab29ebdd26c71316b，状态 blocked，verification.state 为 not_run，不记 implemented、verified 或 accepted。appendAudit 请求体与 RedactedAuditRequest、RequestOutcome 没有已写明的一一映射。accepted 为 0。未执行业务验收或部署。合同未改。",
   "publicBaselineCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f"
 }

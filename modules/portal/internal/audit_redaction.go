@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"strings"
 
 	"nice-wiki/libs/platform"
@@ -106,4 +107,32 @@ func classifyAuditPathVariables(route ResolvedRoute) error {
 		return platform.NewError(platform.CodeValidation, false, "路径变量的敏感标识合同未写明")
 	}
 	return nil
+}
+
+// RequestOutcome 是已结束请求的结果。成功时 Code 为 nil。
+type RequestOutcome struct {
+	Status     int
+	DurationMs int64
+	Code       *string
+}
+
+// EmitAccessAuditInput 只接受已经脱敏的访问字段和结果。
+type EmitAccessAuditInput struct {
+	Request RedactedAuditRequest
+	Outcome RequestOutcome
+}
+
+// EmitAccessAuditResult 只有 accepted。合同里的 degraded 没有对应字段。
+type EmitAccessAuditResult struct {
+	Accepted bool
+}
+
+// EmitAccessAudit 投递入口访问结果。
+// 输入已经是 RedactedAuditRequest，不再读取原始 HTTP，也不把 cookie、authorization、正文或原始地址写入结果。
+// analytics:appendAudit 的请求体必填 auditId、action、resourceId、resultCode、metadata，
+// 与 requestId、routeId、method、bodyBytes、status、durationMs、code 没有已写明的一一映射。
+// 因此不构造请求体，也不调用客户端。requestId 只在映射写明后才能作为 idempotencyKey。
+// 结果没有 degraded 字段；失败返回错误，不用 accepted=false 表示成功。
+func EmitAccessAudit(ctx context.Context, op OperationContext, input EmitAccessAuditInput) (EmitAccessAuditResult, error) {
+	return EmitAccessAuditResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "appendAudit 请求体与 RedactedAuditRequest、RequestOutcome 没有已写明的一一映射")
 }
