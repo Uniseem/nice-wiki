@@ -2372,6 +2372,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/usage",
+      "owner": "model-gateway",
+      "operationId": "queryUsage",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/usage:reconcile",
       "owner": "analytics",
