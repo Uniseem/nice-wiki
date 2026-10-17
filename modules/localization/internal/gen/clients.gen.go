@@ -428,22 +428,6 @@ func (c *ModelGatewayClient) ReadInference(ctx context.Context, invocationId str
 	return c.do(ctx, http.MethodGet, "/v1/inferences/"+url.PathEscape(invocationId)+"", nil, "")
 }
 
-// ReadProfiles GET /v1/profiles（model-gateway:readProfiles）。
-// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
-func (c *ModelGatewayClient) ReadProfiles(ctx context.Context, queries ...url.Values) (json.RawMessage, error) {
-	requestPath := "/v1/profiles"
-	query := url.Values{}
-	for _, values := range queries {
-		for key, entries := range values {
-			query[key] = append(query[key], entries...)
-		}
-	}
-	if encoded := query.Encode(); encoded != "" {
-		requestPath += "?" + encoded
-	}
-	return c.do(ctx, http.MethodGet, requestPath, nil, "")
-}
-
 // ResumeInference GET /v1/inferences/{invocationId}/events（model-gateway:resumeInference）。
 // queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
 func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId string, lastEventId string, queries ...url.Values) (platform.ModelEventStream, error) {

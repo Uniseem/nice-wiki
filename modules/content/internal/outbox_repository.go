@@ -61,12 +61,12 @@ type publicationWithdrawnPayload struct {
 }
 
 type resourceReferencesChangedPayload struct {
-	SiteID               Identifier              `json:"siteId"`
-	DocumentID           Identifier              `json:"documentId"`
-	SourceRevision       int                     `json:"sourceRevision"`
-	References           []gen.ResourceReference `json:"references"`
-	RemovedReferenceIDs  []Identifier            `json:"removedReferenceIds"`
-	DataEpoch            Identifier              `json:"dataEpoch"`
+	SiteID              Identifier              `json:"siteId"`
+	DocumentID          Identifier              `json:"documentId"`
+	SourceRevision      int                     `json:"sourceRevision"`
+	References          []gen.ResourceReference `json:"references"`
+	RemovedReferenceIDs []Identifier            `json:"removedReferenceIds"`
+	DataEpoch           Identifier              `json:"dataEpoch"`
 }
 
 type PublishContentEventInput struct {
