@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "db8221b1d1198ee1f3113aef570dd7cb4dddb379a6fc4d895438fb11ecbe5533",
+  "contractSha256": "c561f95fb0905a1f4c375f5f82f84e0ddaf77107f9a14ecca8cb908feec86c87",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "content第三轮metadata明确分支与路径验证（已检查交付）",
-  "branch": "codex/content-20261017-r3",
-  "baseCommit": "d760e39194156403e2b82430d5018fa9f4425e19",
-  "deliveryCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+  "assignedSession": "content第四轮发布快照（confirm用来源已提交草稿保存，已编写，未跑CI）",
+  "branch": "codex/content-20261017-r4",
+  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
+  "deliveryCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
   "deployment": "not_started",
   "files": [
     {
@@ -22,11 +22,11 @@
     },
     {
       "path": "modules/content/internal/tree_service.go",
-      "state": "in_progress",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。 本轮结果schema与Move保留名复用已检查；完整Move及应用仍未齐，文件partial。"
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -43,20 +43,20 @@
     {
       "path": "modules/content/internal/metadata_service.go",
       "state": "in_progress",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。 metadata已明确编辑与原回执助手已检查；Update受约束manifest/shareImage变更未完成，文件partial。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
-      "blocker": null
+      "blocker": "分享图实际变更仍因精确 metadata pin 与引用源合同未齐返回 503，完整 Update 未完成。曾发布路径已写入可读取的版本化 manifest。"
     },
     {
       "path": "modules/content/internal/path_service.go",
-      "state": "verified",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -162,51 +162,51 @@
     },
     {
       "path": "modules/content/internal/publication_metadata.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/publication_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/publication_repository.go",
-      "state": "in_progress",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "state": "implemented",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 仅ReadReferenceDecision完整；CommitPublication仍planned。"
+        "state": "not_run",
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/visibility_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/content/internal/publication_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -242,11 +242,11 @@
     },
     {
       "path": "modules/content/internal/reference_reader.go",
-      "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -262,11 +262,11 @@
     },
     {
       "path": "modules/content/internal/outbox_repository.go",
-      "state": "in_progress",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。 仅RelayOutbox与其运行依赖完整；PublishContentEvent及完整后台生命周期仍未完成。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -423,20 +423,20 @@
     {
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 缺window在新写前503而非nil回调panic，当前完整Build仍未完成。"
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
-      "blocker": "metadata及既有树局部映射不代表完整服务；真实manifest、metadata分享图精确pin/引用、可信control写窗口、全量handler、恢复activation与完整后台仍未完成，缺写窗口新写503。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "path": "modules/content/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。 本轮第五固定metadata映射已检查；全量HTTP及完整服务未完成，文件partial。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -729,6 +729,16 @@
         "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/content/migrations/0008_publication_snapshots.sql",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -838,11 +848,11 @@
     {
       "id": "content.MoveDocument",
       "path": "modules/content/internal/tree_service.go",
-      "state": "in_progress",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。 Move的真实manifest分支未齐，整体仍partial。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -883,12 +893,12 @@
       "id": "content.UpdateDocumentMetadata",
       "path": "modules/content/internal/metadata_service.go",
       "state": "in_progress",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。 Update已发布路径manifest及shareImage实际变更生产链未齐503，整体仍partial。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
-      "blocker": null
+      "blocker": "分享图实际变更仍因精确 metadata pin 与引用源合同未齐返回 503，完整 Update 未完成。曾发布路径已写入可读取的版本化 manifest。"
     },
     {
       "id": "content.ValidatePathSegment",
@@ -1830,44 +1840,44 @@
     {
       "id": "content.PreparePublicationMetadata",
       "path": "modules/content/internal/publication_metadata.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.PublishDocument",
       "path": "modules/content/internal/publication_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.WithdrawDocument",
       "path": "modules/content/internal/publication_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.CommitPublication",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -1884,22 +1894,22 @@
     {
       "id": "content.ValidatePublications",
       "path": "modules/content/internal/visibility_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.ReadPublishedRevision",
       "path": "modules/content/internal/publication_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -2016,11 +2026,11 @@
     {
       "id": "content.PublishContentEvent",
       "path": "modules/content/internal/outbox_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -2264,18 +2274,18 @@
         "state": "passed",
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 当前仅局部入口装配检查通过。"
       },
-      "blocker": "metadata及既有树局部映射不代表完整服务；真实manifest、metadata分享图精确pin/引用、可信control写窗口、全量handler、恢复activation与完整后台仍未完成，缺写窗口新写503。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "id": "content.BuildApplication",
       "path": "modules/content/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。 当前仅局部入口装配检查通过。"
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
-      "blocker": "metadata及既有树局部映射不代表完整服务；真实manifest、metadata分享图精确pin/引用、可信control写窗口、全量handler、恢复activation与完整后台仍未完成，缺写窗口新写503。"
+      "blocker": "正文就绪引用已接回现有客户端，仍未编译。完整启动仍失败关闭。缺可信写窗口的新写返回 503。分享图 metadata pin、全量 handler、恢复 activation、后台生命周期、回收站、历史回滚和预览仍未交付。"
     },
     {
       "id": "content.Serve",
@@ -3073,22 +3083,22 @@
     {
       "id": "content.validateReferenceCoverage",
       "path": "modules/content/internal/reference_reader.go",
-      "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.readReferenceSources",
       "path": "modules/content/internal/reference_reader.go",
-      "state": "verified",
-      "implementationCommit": "16029fde3736071e1e127c87faf918305eed237a",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3139,11 +3149,11 @@
     {
       "id": "content.NewTreeRuntime",
       "path": "modules/content/internal/tree_service.go",
-      "state": "verified",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3161,11 +3171,11 @@
     {
       "id": "content.treeRuntimeFromContext",
       "path": "modules/content/internal/tree_service.go",
-      "state": "verified",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3238,22 +3248,22 @@
     {
       "id": "content.executeTreeMutation",
       "path": "modules/content/internal/tree_service.go",
-      "state": "verified",
-      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
     {
       "id": "content.planTreeMove",
       "path": "modules/content/internal/tree_service.go",
-      "state": "verified",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3322,7 +3332,227 @@
         "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
       },
       "blocker": null
+    },
+    {
+      "id": "content.commitRedirectManifest",
+      "path": "modules/content/internal/path_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.canonicalDocumentPaths",
+      "path": "modules/content/internal/path_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.authorizePublication",
+      "path": "modules/content/internal/publication_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.readPublicationReceipt",
+      "path": "modules/content/internal/publication_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.insertPublicationReceipt",
+      "path": "modules/content/internal/publication_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.applyPublication",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.loadSharedDraft",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.casPublicationIdentity",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.copyPublishedReferences",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.preparePublicationPin",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.pinPublicationReferences",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
+      "verification": {
+        "state": "not_run",
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.listPublicationReferences",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.archivePublishedReferences",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.enqueuePublication",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.enqueueTreeChanged",
+      "path": "modules/content/internal/publication_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.readPublicationSnapshot",
+      "path": "modules/content/internal/visibility_service.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.loadVisiblePublication",
+      "path": "modules/content/internal/publication_reader.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.readPublicationReferences",
+      "path": "modules/content/internal/reference_reader.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.bindPublicationTx",
+      "path": "modules/content/internal/outbox_repository.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "content.RegisterPublicationRoutes",
+      "path": "modules/content/internal/transport/server.go",
+      "state": "implemented",
+      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+      },
+      "blocker": null
     }
   ],
-  "rule": "第三轮根GitLab pipeline32生成/重复生成、三并行分片14模块readonly build/vet/gofmt及完整check全过；8个本轮完整/修改函数verified，净增4（195→199/241），Update及Move继续in_progress，完整应用blocked。p30取消/p31结构检查失败如实记录，未声称行为验收、部署或跨域运行成功；交付后冻结，不自行push。"
+  "rule": "第四轮发布快照按源码 67f35e4857ee66970b3ff6b84184d7e9eb92c447 记 implemented。非空引用的 confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"
 }

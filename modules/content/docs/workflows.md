@@ -12,6 +12,8 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 
 业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。
 
+当前发布只公开精确共享草稿：人工slug/SEO优先，本轮不调用模型也不制造slug或SEO；首次空slug提示补填，已有合法元数据不因缺模型而阻塞。非空就绪引用在本地SQL锁之外，用来源身份为已提交草稿保存操作，经现有媒体客户端先acquire再confirm；找不到该决定或摘要不一致则整次失败。空引用不造pin，pin失败则整次发布失败。原回执、metadata/tree或发布CAS、快照、引用和outbox同一事务；未知提交只回放原回执。曾发布路径写入私有SQL版本化redirect manifest，Move/Update读取同一清单。分享图实际变更仍因精确metadata pin合同未齐返回503。历史回滚、回收站、预览、屏障和完整启动仍未交付。下文较早轮次记录保留当时的检查结论。
+
 <!-- flows:start -->
 ## 入口与后台流程
 
@@ -83,7 +85,7 @@ COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整�
 
 四个树action只在core按所需功能一次即时identity，DB/锁之前执行；平台仍严格验证服务身份/委托/epoch/schema，仅对实际注册四action不重复授权RPC。trash列表需content.publish，活动读content.read，移动/重排content.edit。真实树写在锁外取得当前写窗口，短SQL做树/metadata CAS、完整原回执和最小content.tree.changed outbox（业务content.edit、jobs事件管理仍沿全域content.publish）；0006仅追加原回执，未知提交按原op查回执。重排要求完整同父活动集合，trash/purged不混入；均匀base62 key不改变slug。
 
-PlanOldPathRedirects完整规划node及所有曾发布后代的无语言前缀旧路径→稳定docId，未知祖先slug失败关闭；非空规划因真实版本化redirect manifest生产链未齐而使Move明确503、不提交，Move及文件继续partial。没有新增假manifest、发布生产者或消费者；当前事件只可靠排队，完整应用因写窗口/全量handler/恢复/后台未齐仍blocked。本轮源码已通过GitLab pipeline23生成/格式/重复生成、三并行分片14模块readonly build/vet/gofmt及完整make check；pipeline21真实编译失败、pipeline22取消均未计通过。未做业务验收或部署，缺可信写窗口在原回执后、新写前503。公共纯服务本站传递仍是后续协议前置，当前不声称跨服务来源链已联通。
+PlanOldPathRedirects完整规划node及所有曾发布后代的无语言前缀旧路径→稳定docId，未知祖先slug失败关闭；该轮非空规划曾因manifest未齐503。当前已把可读取的版本化manifest写入移动事务；分享图实际变更仍503；当前事件只可靠排队，完整应用因写窗口/全量handler/恢复/后台未齐仍blocked。本轮源码已通过GitLab pipeline23生成/格式/重复生成、三并行分片14模块readonly build/vet/gofmt及完整make check；pipeline21真实编译失败、pipeline22取消均未计通过。未做业务验收或部署，缺可信写窗口在原回执后、新写前503。公共纯服务本站传递仍是后续协议前置，当前不声称跨服务来源链已联通。
 
 ## 2026-10-17第三轮metadata
 
@@ -91,4 +93,4 @@ PlanOldPathRedirects完整规划node及所有曾发布后代的无语言前缀�
 
 仅根级保留navigation、ask；子级允许，同父活动slug唯一。robots.txt/llms.txt/sitemap.xml由slug字符规则自然排除，不另禁无点词、api/admin/v1等。校验使用调用方同SQL可信完整树，纯助手复用给Move，未来发布也沿同规则。PUT metadata与既有树入口均由core一次即时授权，公共边界仍校身份/epoch/schema，无私有缓存marker。
 
-只追加0007保存完整同代原回执，无影子树/正文/媒体来源。shareImage实际改变因精确metadata pin/引用源协议未齐503，原完整ref可保持；曾发布节点或后代路径变化因真实版本化redirect manifest未齐503，Update整体继续partial。当前写窗口缺失新写503，完整启动/行为验收/部署未完成；本轮已通过GitLab pipeline32生成/重复生成、三个并行分片14模块readonly build/vet/gofmt与完整check；pipeline30取消、31 Go过但缺两类型导致整体检查失败均如实记录，生成物精确回传不手改。根同轮补可信服务本站签名与jobs控制proof清理，只是源码/结构证据，未运行真实跨域或业务验收。
+只追加0007保存完整同代原回执，无影子树/正文/媒体来源。shareImage实际改变因精确metadata pin/引用源协议未齐503，原完整ref可保持；曾发布路径现写入版本化manifest；分享图实际变更仍503，Update因此仍不完整。当前写窗口缺失新写503，完整启动/行为验收/部署未完成；本轮已通过GitLab pipeline32生成/重复生成、三个并行分片14模块readonly build/vet/gofmt与完整check；pipeline30取消、31 Go过但缺两类型导致整体检查失败均如实记录，生成物精确回传不手改。根同轮补可信服务本站签名与jobs控制proof清理，只是源码/结构证据，未运行真实跨域或业务验收。

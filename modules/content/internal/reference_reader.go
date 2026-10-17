@@ -216,12 +216,19 @@ func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationCont
 		return contentStorageError()
 	}
 	var unknown int
-	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM documents d LEFT JOIN document_metadata m ON m.site_id=d.site_id AND m.document_id=d.document_id LEFT JOIN draft_heads h ON h.site_id=d.site_id AND h.document_id=d.document_id LEFT JOIN draft_resource_references f ON f.site_id=h.site_id AND f.document_id=h.document_id AND f.revision_id=h.revision_id AND f.kind='current_draft' WHERE d.site_id=? AND (m.document_id IS NULL OR h.document_id IS NULL OR f.document_id IS NULL OR d.reference_version<1 OR f.source_version<>d.reference_version OR json_extract(m.metadata_json,'$.siteId') IS NOT d.site_id OR json_extract(m.metadata_json,'$.documentId') IS NOT d.document_id OR json_extract(m.metadata_json,'$.draftRevisionId') IS NOT h.revision_id OR json_extract(m.metadata_json,'$.state') IS NOT d.state OR d.state NOT IN ('draft','trash') OR json_extract(m.metadata_json,'$.publishedReference') IS NOT NULL OR json_extract(m.metadata_json,'$.lastPublishedAt') IS NOT NULL OR json_extract(m.metadata_json,'$.shareImage') IS NOT NULL)`, op.Actor.SiteID).Scan(&unknown)
+	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM documents d LEFT JOIN document_metadata m ON m.site_id=d.site_id AND m.document_id=d.document_id LEFT JOIN draft_heads h ON h.site_id=d.site_id AND h.document_id=d.document_id LEFT JOIN draft_resource_references f ON f.site_id=h.site_id AND f.document_id=h.document_id AND f.revision_id=h.revision_id AND f.kind='current_draft' WHERE d.site_id=? AND (m.document_id IS NULL OR h.document_id IS NULL OR f.document_id IS NULL OR d.reference_version<1 OR f.source_version<>d.reference_version OR json_extract(m.metadata_json,'$.siteId') IS NOT d.site_id OR json_extract(m.metadata_json,'$.documentId') IS NOT d.document_id OR json_extract(m.metadata_json,'$.draftRevisionId') IS NOT h.revision_id OR json_extract(m.metadata_json,'$.state') IS NOT d.state OR json_extract(m.metadata_json,'$.shareImage') IS NOT NULL OR d.state NOT IN ('draft','trash','published') OR (d.state<>'published' AND json_extract(m.metadata_json,'$.publishedReference') IS NOT NULL) OR (json_extract(m.metadata_json,'$.lastPublishedAt') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM publication_history y WHERE y.site_id=d.site_id AND y.document_id=d.document_id)) OR (d.state='published' AND (json_extract(m.metadata_json,'$.publishedReference.documentId') IS NOT d.document_id OR NOT EXISTS (SELECT 1 FROM publication_snapshots s WHERE s.site_id=d.site_id AND s.published_revision_id=json_extract(m.metadata_json,'$.publishedReference.publishedRevisionId') AND s.document_id=d.document_id AND s.content_hash=json_extract(m.metadata_json,'$.publishedReference.contentHash') AND s.schema_version=json_extract(m.metadata_json,'$.publishedReference.schemaVersion') AND s.revision=json_extract(m.metadata_json,'$.publishedReference.revision') AND s.visibility_revision=json_extract(m.metadata_json,'$.visibilityRevision') AND s.data_epoch=json_extract(m.metadata_json,'$.publishedReference.dataEpoch') AND EXISTS (SELECT 1 FROM committed_revisions c WHERE c.site_id=s.site_id AND c.document_id=s.document_id AND c.revision_id=s.draft_revision_id AND c.state='committed' AND c.data_epoch=s.data_epoch)) OR NOT EXISTS (SELECT 1 FROM publication_history y WHERE y.site_id=d.site_id AND y.published_revision_id=json_extract(m.metadata_json,'$.publishedReference.publishedRevisionId')) OR NOT EXISTS (SELECT 1 FROM publication_resource_references p WHERE p.site_id=d.site_id AND p.document_id=d.document_id AND p.published_revision_id=json_extract(m.metadata_json,'$.publishedReference.publishedRevisionId') AND p.kind='current_published'))))`, op.Actor.SiteID).Scan(&unknown)
 	if err != nil {
 		return contentStorageError()
 	}
 	if unknown != 0 {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "引用来源存在缺失或尚未支持的发布及元数据资格")
+	}
+	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM publication_resource_references p LEFT JOIN document_metadata m ON m.site_id=p.site_id AND m.document_id=p.document_id WHERE p.site_id=? AND (json_extract(m.metadata_json,'$.documentId') IS NOT p.document_id OR NOT EXISTS (SELECT 1 FROM publication_snapshots s WHERE s.site_id=p.site_id AND s.published_revision_id=p.published_revision_id AND s.document_id=p.document_id AND s.draft_revision_id=p.revision_id) OR (p.kind='current_published' AND (json_extract(m.metadata_json,'$.state') IS NOT 'published' OR json_extract(m.metadata_json,'$.publishedReference.publishedRevisionId') IS NOT p.published_revision_id)))`, op.Actor.SiteID).Scan(&unknown)
+	if err != nil {
+		return contentStorageError()
+	}
+	if unknown != 0 {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "已发布资源引用与当前快照不一致")
 	}
 	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM committed_revisions c LEFT JOIN revision_preparations p ON p.commit_id=c.commit_id LEFT JOIN draft_commit_receipts r ON r.commit_id=c.commit_id LEFT JOIN draft_operation_intents i ON i.site_id=p.site_id AND i.data_epoch=p.data_epoch AND i.operation_id=p.operation_id LEFT JOIN draft_resource_references f ON f.site_id=c.site_id AND f.document_id=c.document_id AND f.revision_id=c.revision_id WHERE c.site_id=? AND (c.data_epoch<>? OR p.commit_id IS NULL OR r.commit_id IS NULL OR i.operation_id IS NULL OR f.document_id IS NULL)`, op.Actor.SiteID, op.DataEpoch).Scan(&unknown)
 	if err != nil {
@@ -314,6 +321,64 @@ func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, 
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "引用来源完整集合超出登记预算")
 			}
 		}
+	}
+	published, err := readPublicationReferences(ctx, tx, op, runtime)
+	if err != nil {
+		return nil, err
+	}
+	for _, ref := range published {
+		raw, err := json.Marshal(ref)
+		if err != nil || runtime.validateReference(raw) != nil {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "已发布引用来源条目不符合唯一schema")
+		}
+		key := referenceSortKey(ref)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, ref)
+		if len(result) > referenceScanBudget {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "引用来源完整集合超出登记预算")
+		}
+	}
+	return result, nil
+}
+
+func readPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) ([]gen.ResourceReference, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT document_id,revision_id,source_version,kind,CASE WHEN length(CAST(references_json AS BLOB))<=16777216 THEN references_json ELSE NULL END FROM publication_resource_references WHERE site_id=? ORDER BY document_id,published_revision_id LIMIT ?`, op.Actor.SiteID, referenceScanBudget+1)
+	if err != nil {
+		return nil, contentStorageError()
+	}
+	defer rows.Close()
+	result := make([]gen.ResourceReference, 0)
+	rowsSeen := 0
+	for rows.Next() {
+		var documentID, revisionID Identifier
+		var sourceVersion int
+		var kind string
+		var raw []byte
+		if err = rows.Scan(&documentID, &revisionID, &sourceVersion, &kind, &raw); err != nil {
+			return nil, contentStorageError()
+		}
+		rowsSeen++
+		if rowsSeen > referenceScanBudget {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "已发布引用来源完整扫描超出登记预算")
+		}
+		var refs []gen.ResourceReference
+		if raw == nil || decodeStorageJSON(raw, &refs) != nil {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "已发布引用来源损坏")
+		}
+		for i := range refs {
+			service, _ := refs[i].SourceService.(string)
+			if service != "content" || refs[i].DocumentId != documentID || refs[i].SourceRevisionId != revisionID || refs[i].SourceVersion != sourceVersion || !refs[i].Retained {
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "已发布引用来源身份矛盾")
+			}
+			refs[i].Kind = gen.ResourceReferenceKind(kind)
+			result = append(result, refs[i])
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, contentStorageError()
 	}
 	return result, nil
 }

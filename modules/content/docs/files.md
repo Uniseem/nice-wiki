@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 72 个：手写 45、UI 12、生成 5、配置 10。函数 241 个：约束 42，参考 199。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 73 个：手写 46、UI 12、生成 5、配置 10。函数 261 个：约束 42，参考 219。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,7 +10,7 @@
 | `modules/content/internal/tree_service.go` | 手写 | 后台读取整站文档树 | `content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`content.NewTreeRuntime`（参考）、`content.WithTreeRuntime`（参考）、`content.treeRuntimeFromContext`（参考）、`content.authorizeTree`（参考）、`content.beginTreeRead`（参考）、`content.readTreeSnapshot`（参考）、`content.validateTreeSiblings`（参考）、`content.treePreorder`（参考）、`content.readTreeReceipt`（参考）、`content.executeTreeMutation`（参考）、`content.planTreeMove`（参考）、`content.planTreeReorder`（参考）、`content.reorderedDocumentKey`（参考） |
 | `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考）、`content.documentTreeDepths`（参考） |
 | `modules/content/internal/metadata_service.go` | 手写 | 修改标题/路径/SEO描述/分享图 | `content.UpdateDocumentMetadata`、`content.readMetadataReceipt`（参考）、`content.sameMetadataAsset`（参考） |
-| `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考）、`content.validatePathSnapshot`（参考） |
+| `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考）、`content.validatePathSnapshot`（参考）、`content.commitRedirectManifest`（参考）、`content.canonicalDocumentPaths`（参考） |
 | `modules/content/internal/edit_lock_service.go` | 手写 | 单leader内存租约、共享序号和同文档提交guard；改变租约统一经可靠操作事务 | `content.NewEditLockManager`（参考）、`content.validateEditLeader`（参考）、`content.lockEditCell`（参考）、`content.AcquireLease`（参考）、`content.RenewLease`（参考）、`content.ReleaseLease`（参考）、`content.ForceReleaseLease`（参考）、`content.ExpireLeases`（参考）、`content.AcquireSaveFence`（参考）、`content.AcquireDocumentFence`（参考）、`content.DocumentState`（参考）、`content.ReleaseFence`（参考）、`content.matchEditLease`（参考）、`content.requireEditableDocument`（参考）、`content.advanceEditFence`（参考）、`content.editLeaseExpired`（参考）、`content.refreshEditLease`（参考）、`content.copyEditLease`（参考）、`content.editLockSnapshot`（参考）、`content.CloseEditLocks`（参考） |
 | `modules/content/internal/draft_service.go` | 手写 | 读取全篇共享草稿及编辑状态 | `content.ReadDraft`、`content.SaveDraft`、`content.readDraftSnapshot`（参考）、`content.planDraftSave`（参考）、`content.executeDraftCommit`（参考）、`content.draftMediaReferences`（参考）、`content.draftPinSource`（参考）、`content.acquireDraftPin`（参考）、`content.confirmDraftPin`（参考）、`content.replaySavedDraft`（参考）、`content.abortDraftOperation`（参考）、`content.releaseDraftPin`（参考）、`content.isolateAbortedDraft`（参考）、`content.checkPendingDraftSave`（参考）、`content.finishDraftSaveFailure`（参考） |
 | `modules/content/internal/block_validator.go` | 手写 | 验证全部Tiptap块及稳定ID | `content.ValidateBlockTree`（参考）、`content.ValidateInline`（参考）、`content.visit`（参考）、`content.validateInlineNodes`（参考）、`content.validateContentLink`（参考）、`content.validateContentMath`（参考）、`content.contentInteger`（参考）、`content.contentNumber`（参考） |
@@ -22,16 +22,16 @@
 | `modules/content/internal/revision_repository.go` | 手写 | 原子提交共享草稿head | `content.CommitDraftJournal`（参考）、`content.WithDraftCommitStore`（参考）、`content.draftCommitStoreFromContext`（参考）、`content.validateDraftCommitInput`（参考）、`content.validateDraftCommitStore`（参考）、`content.verifyPreparedRevisionFile`（参考）、`content.checkDraftCommitIOContext`（参考）、`content.draftCommitDigest`（参考）、`content.sameIdentifierPointer`（参考）、`content.normalizeDraftCommitError`（参考） |
 | `modules/content/internal/revision_reader.go` | 手写 | 读取COMMITTED正文并核真相 | `content.ReadRevisionBody`（参考）、`content.revisionFileStoreFromContext`（参考）、`content.revisionFileLocation`（参考）、`content.validateCommittedMaterial`（参考）、`content.readImmutableRevision`（参考）、`content.Read`（参考）、`content.decodeStoredBody`（参考）、`content.isolateRevisionRead`（参考）、`content.WithRevisionFileStore`（参考） |
 | `modules/content/internal/publication_metadata.go` | 手写 | 人工优先准备首次slug和SEO | `content.PreparePublicationMetadata`（参考） |
-| `modules/content/internal/publication_service.go` | 手写 | 点击发布才公开精确共享草稿版本 | `content.PublishDocument`、`content.WithdrawDocument` |
-| `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.ReadReferenceDecision` |
-| `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications` |
-| `modules/content/internal/publication_reader.go` | 手写 | 获取仍公开的精确正文快照 | `content.ReadPublishedRevision` |
+| `modules/content/internal/publication_service.go` | 手写 | 点击发布才公开精确共享草稿版本 | `content.PublishDocument`、`content.WithdrawDocument`、`content.authorizePublication`（参考）、`content.readPublicationReceipt`（参考）、`content.insertPublicationReceipt`（参考） |
+| `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.applyPublication`（参考）、`content.loadSharedDraft`（参考）、`content.casPublicationIdentity`（参考）、`content.preparePublicationPin`（参考）、`content.pinPublicationReferences`（参考）、`content.copyPublishedReferences`（参考）、`content.listPublicationReferences`（参考）、`content.archivePublishedReferences`（参考）、`content.enqueuePublication`（参考）、`content.enqueueTreeChanged`（参考）、`content.ReadReferenceDecision` |
+| `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications`、`content.readPublicationSnapshot`（参考） |
+| `modules/content/internal/publication_reader.go` | 手写 | 获取仍公开的精确正文快照 | `content.ReadPublishedRevision`、`content.loadVisiblePublication`（参考） |
 | `modules/content/internal/trash_service.go` | 手写 | 删除进回收站，可选旧URL替代跳转 | `content.TrashDocument`、`content.RestoreDocument`、`content.PurgeDocuments` |
 | `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.RollbackPublishedRevision` |
 | `modules/content/internal/preview_service.go` | 手写 | 管理员预览草稿公开样式 | `content.CreatePreviewGrant`、`content.ValidatePreviewGrant` |
-| `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
+| `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readPublicationReferences`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
 | `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |
-| `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.RelayOutbox`、`content.WithRelayRuntime`（参考） |
+| `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.bindPublicationTx`（参考）、`content.RelayOutbox`、`content.WithRelayRuntime`（参考） |
 | `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
 | `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
 | `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath` |
@@ -48,7 +48,7 @@
 | `modules/content/web/src/editor/columns-resizer.ts` | UI | 调整2–4栏宽比例 | `content.resizeColumns`（参考） |
 | `modules/content/cmd/content/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `content.main` |
 | `modules/content/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `content.BuildApplication` |
-| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考）、`content.RegisterTreeRoutes`（参考） |
+| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考）、`content.RegisterTreeRoutes`（参考）、`content.RegisterPublicationRoutes`（参考） |
 | `modules/content/go.mod` | 配置 | 独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/content/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/content/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -78,3 +78,4 @@
 | `modules/content/migrations/0005_reference_snapshots.sql` | 手写 | 只追加全站来源扫描单调水位；触发器在原来源事务内推进，耗尽回滚；不持久化读快照 | 无 |
 | `modules/content/migrations/0006_tree_operations.sql` | 手写 | 只追加树操作完整scope/动作/摘要与原结果回执；不另建影子树或虚假manifest | 无 |
 | `modules/content/migrations/0007_metadata_operations.sql` | 手写 | 只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源 | 无 |
+| `modules/content/migrations/0008_publication_snapshots.sql` | 手写 | 只追加发布快照、署名历史、已发布引用和版本化重定向清单 | 无 |

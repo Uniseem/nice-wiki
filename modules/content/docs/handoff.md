@@ -1,3 +1,91 @@
+# 当前工作包：发布确认改用已提交草稿来源（2026-10-17第四轮再退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`。基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `67f35e4857ee66970b3ff6b84184d7e9eb92c447`。未跑 GitLab CI，未运行 gofmt、build、vet 或 make check，不记 verified，accepted 为 0。
+
+审核再退回后已修正：非空引用不再把当次发布的 operationId 当作 sourceOperationId。confirm 使用已提交草稿保存操作的来源身份，也就是同一 document、revision、sourceVersion、referenceDigest 上，revision_preparations 与 action 为 save 且 state 为 committed 的 draft_operation_intents。媒体调用仍在本地 SQL 锁之外。找不到该决定或摘要不一致则整次发布失败，不先公开。空引用不调媒体、不造空 pin。分享图非空仍 503。已确认 pin 按媒体现有幂等回放。ReadReferenceDecision 查询范围未改。源码仍未编译。
+
+完成并记 implemented：PreparePublicationMetadata、PublishDocument、WithdrawDocument、CommitPublication、ValidatePublications、ReadPublishedRevision，以及 preparePublicationPin、pinPublicationReferences。
+
+仍不完整：
+
+- UpdateDocumentMetadata 与 metadata 文件保持 in_progress。分享图实际变更仍 503，因为精确 metadata pin 合同未齐。
+- BuildApplication 与 main 保持 blocked。完整启动仍返回 nil 和 503。
+- 回收站、历史回滚、预览、屏障、快照导出、编辑器 UI 和 InvokeModel 未实现。
+
+`make docs` 只跑了 Python 渲染，没有调用 go。
+
+需要集成会话处理的公共事项：把以下新文件登记进 `docs/structure/framework.json`。不要在本域会话里改这个公共文件。
+
+- `modules/content/internal/publication_metadata.go`
+- `modules/content/internal/publication_service.go`
+- `modules/content/internal/visibility_service.go`
+- `modules/content/internal/publication_reader.go`
+- `modules/content/migrations/0008_publication_snapshots.sql`
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
+# 当前工作包：发布资源 pin 接回（2026-10-17第四轮审核退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`。基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `7edca48674a7287cb9fc454fa509164e61d71fd2`。未跑 GitLab CI，未运行 gofmt、build、vet 或 make check，不记 verified，accepted 为 0。
+
+审核退回后已修正：PublishDocument 与 CommitPublication 恢复依赖 `media:acquireResourceReferences` 和 `media:confirmResourceReferences`。非空就绪引用按草稿提交已有的 MediaClient 调用方式，用来源身份先 acquire 再 confirm；本地 SQL 锁不跨这次调用。空引用不造 pin。pin 失败则整次发布失败，不先公开再补 pin。分享图非空继续 503。pin 已接回现有客户端，源码仍未编译。
+
+完成并记 implemented：PreparePublicationMetadata、PublishDocument、WithdrawDocument、CommitPublication、ValidatePublications、ReadPublishedRevision，以及 preparePublicationPin、pinPublicationReferences。
+
+仍不完整：
+
+- UpdateDocumentMetadata 与 metadata 文件保持 in_progress。分享图实际变更仍 503，因为精确 metadata pin 合同未齐，本轮不猜测该协议。
+- BuildApplication 与 main 保持 blocked。已配置 media 端点时挂上现有客户端，但完整启动仍返回 nil 和 503。缺可信写窗口的新写继续 503。
+- 回收站、历史回滚、预览、屏障、快照导出、编辑器 UI 和 InvokeModel 未实现。
+
+`make docs` 只跑了 Python 渲染，没有调用 go。
+
+需要集成会话处理的公共事项：把以下新文件登记进 `docs/structure/framework.json`，否则结构检查会报未登记文件。不要在本域会话里改这个公共文件。
+
+- `modules/content/internal/publication_metadata.go`
+- `modules/content/internal/publication_service.go`
+- `modules/content/internal/visibility_service.go`
+- `modules/content/internal/publication_reader.go`
+- `modules/content/migrations/0008_publication_snapshots.sql`
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
+# 当前工作包：发布快照闭环（2026-10-17第四轮，已编写，未跑 CI）
+
+分支 `codex/content-20261017-r4`。基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5`。未跑 GitLab CI，未运行 gofmt、build、vet 或 make check，不记 verified，accepted 为 0。
+
+完成并记 implemented 的目标函数：PreparePublicationMetadata、PublishDocument、WithdrawDocument、CommitPublication、ValidatePublications、ReadPublishedRevision。同一闭环还包括原回执、outbox、只追加 0008，以及 Move 读取真实 manifest。PublishContentEvent 只在已绑定的业务事务里登记一种载荷。
+
+仍不完整：
+
+- UpdateDocumentMetadata 与 metadata 文件保持 in_progress。曾发布路径已走 manifest；分享图实际变更仍 503，因为精确 metadata pin 与引用源合同未齐，本轮不猜测 pin 协议。
+- BuildApplication 与 main 保持 blocked。四个发布路由已绑定真实处理函数，但完整启动仍返回 nil 和 503。缺可信写窗口的新写继续 503。
+- 回收站、历史回滚、预览、屏障、快照导出、编辑器 UI 和 InvokeModel 未实现。CommitPublication 遇到 rollback 直接失败关闭。
+
+合同同步：Prepare 本轮不制造 slug/SEO；发布不再依赖媒体 acquire/confirm；Move、Update 和引用来源改为读写已持久化的发布快照与 manifest；新增参考助手和 0008。`make docs` 只跑了 Python 渲染，没有调用 go。
+
+需要集成会话处理的公共事项：把以下新文件登记进 `docs/structure/framework.json`，否则结构检查会报未登记文件。不要在本域会话里改这个公共文件。
+
+- `modules/content/internal/publication_metadata.go`
+- `modules/content/internal/publication_service.go`
+- `modules/content/internal/visibility_service.go`
+- `modules/content/internal/publication_reader.go`
+- `modules/content/migrations/0008_publication_snapshots.sql`
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：元数据编辑与精确路径校验（2026-10-17第三轮，已检查交付）
 
 分支codex/content-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，初始clean；独占modules/content。用户再授权一轮三个子代理同时编写，根统一GitLab生成/格式/三分片编译/check及普通双推；本域不本机/SSH Go、不自行push。

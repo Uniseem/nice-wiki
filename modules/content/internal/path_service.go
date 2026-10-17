@@ -2,6 +2,8 @@ package content
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"regexp"
 	"strings"
 
@@ -127,4 +129,147 @@ func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentRe
 		return ValidatePathSegmentResult{}, platform.NewError(platform.CodeNotFound, false, "路径父节点不存在")
 	}
 	return ValidatePathSegmentResult{Valid: true}, nil
+}
+
+// commitRedirectManifest把本轮旧路径并入新的完整清单版本。调用方必须已持有同一业务事务。
+func commitRedirectManifest(ctx context.Context, tx *sql.Tx, op OperationContext, redirects []gen.RouteTombstone, documents []gen.DocumentMetadata) ([]gen.RouteTombstone, error) {
+	if len(redirects) == 0 {
+		return []gen.RouteTombstone{}, nil
+	}
+	var head int64
+	err := tx.QueryRowContext(ctx, `SELECT revision FROM redirect_manifest_heads WHERE site_id=?`, op.Actor.SiteID).Scan(&head)
+	if errors.Is(err, sql.ErrNoRows) {
+		head = 0
+	} else if err != nil {
+		return nil, contentStorageError()
+	}
+	if head >= maxEditFence {
+		return nil, platform.NewError(platform.CodeVersionMismatch, false, "重定向清单水位耗尽")
+	}
+	current := map[string]gen.RouteTombstone{}
+	if head > 0 {
+		rows, queryErr := tx.QueryContext(ctx, `SELECT old_path,document_id,status,target_document_id,tree_revision FROM redirect_manifest_entries WHERE site_id=? AND manifest_revision=?`, op.Actor.SiteID, head)
+		if queryErr != nil {
+			return nil, contentStorageError()
+		}
+		for rows.Next() {
+			var path, documentID, status string
+			var target sql.NullString
+			var treeRevision int
+			if rows.Scan(&path, &documentID, &status, &target, &treeRevision) != nil {
+				rows.Close()
+				return nil, contentStorageError()
+			}
+			entry := gen.RouteTombstone{OldPath: path, DocumentId: documentID, Status: gen.RouteTombstoneStatus(status), Revision: treeRevision}
+			if target.Valid {
+				id := target.String
+				entry.TargetDocumentId = &id
+			}
+			current[path] = entry
+		}
+		if rows.Err() != nil {
+			rows.Close()
+			return nil, contentStorageError()
+		}
+		rows.Close()
+	}
+	for _, redirect := range redirects {
+		if previous, found := current[redirect.OldPath]; found && previous.DocumentId != redirect.DocumentId {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "同一旧路径绑定了不同文档")
+		}
+		current[redirect.OldPath] = redirect
+	}
+	canonical, err := canonicalDocumentPaths(documents)
+	if err != nil {
+		return nil, err
+	}
+	for path, entry := range current {
+		owner, taken := canonical[path]
+		if !taken {
+			continue
+		}
+		if owner == entry.DocumentId {
+			delete(current, path)
+			continue
+		}
+		return nil, platform.NewError(platform.CodeConflict, false, "旧路径已成为其他文档的规范路径")
+	}
+	next := head + 1
+	if head == 0 {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO redirect_manifest_heads(site_id,revision) VALUES(?,?)`, op.Actor.SiteID, next); err != nil {
+			return nil, contentStorageError()
+		}
+	} else {
+		updated, updateErr := tx.ExecContext(ctx, `UPDATE redirect_manifest_heads SET revision=? WHERE site_id=? AND revision=?`, next, op.Actor.SiteID, head)
+		if updateErr != nil {
+			return nil, contentStorageError()
+		}
+		if err = onePublicationRow(updated, "重定向清单CAS失败"); err != nil {
+			return nil, err
+		}
+	}
+	kept := make([]gen.RouteTombstone, 0, len(redirects))
+	seen := map[string]bool{}
+	for path, entry := range current {
+		var target any
+		if entry.TargetDocumentId != nil {
+			target = *entry.TargetDocumentId
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO redirect_manifest_entries(site_id,manifest_revision,old_path,document_id,status,target_document_id,tree_revision,data_epoch) VALUES(?,?,?,?,?,?,?,?)`, op.Actor.SiteID, next, path, entry.DocumentId, string(entry.Status), target, entry.Revision, op.DataEpoch); err != nil {
+			return nil, contentStorageError()
+		}
+		seen[path] = true
+	}
+	for _, redirect := range redirects {
+		if seen[redirect.OldPath] {
+			kept = append(kept, redirect)
+		}
+	}
+	return kept, nil
+}
+
+func canonicalDocumentPaths(documents []gen.DocumentMetadata) (map[string]Identifier, error) {
+	index := make(map[Identifier]gen.DocumentMetadata, len(documents))
+	for _, document := range documents {
+		index[document.DocumentId] = document
+	}
+	paths := map[string]Identifier{}
+	for _, document := range documents {
+		if document.State != gen.DocumentMetadataStateDraft && document.State != gen.DocumentMetadataStatePublished {
+			continue
+		}
+		segments := make([]string, 0, 8)
+		current := document
+		complete := true
+		for depth := 0; depth < 32; depth++ {
+			if current.PathSegment == nil {
+				complete = false
+				break
+			}
+			segments = append(segments, *current.PathSegment)
+			if current.ParentId == nil {
+				break
+			}
+			parent, found := index[*current.ParentId]
+			if !found {
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "规范路径缺少父文档")
+			}
+			current = parent
+			if depth == 31 && current.ParentId != nil {
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "规范路径超过树深限制")
+			}
+		}
+		if !complete {
+			continue
+		}
+		for i, j := 0, len(segments)-1; i < j; i, j = i+1, j-1 {
+			segments[i], segments[j] = segments[j], segments[i]
+		}
+		path := "/" + strings.Join(segments, "/")
+		if previous, found := paths[path]; found && previous != document.DocumentId {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "不同文档计算出同一规范路径")
+		}
+		paths[path] = document.DocumentId
+	}
+	return paths, nil
 }

@@ -367,3 +367,109 @@ func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors p
 	mux.Handle("PUT /v1/documents/{documentId}/metadata", handler)
 	return nil
 }
+
+// RegisterPublicationRoutes注册四个已实现的发布路由。启动仍由BuildApplication失败关闭。
+func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, anchors platform.TrustAnchors) error {
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "发布HTTP规格不可读")
+	}
+	keep := map[string]bool{
+		"/v1/documents/{documentId}:publish":   true,
+		"/v1/documents/{documentId}:withdraw":  true,
+		"/v1/publications:validate":            true,
+		"/v1/documents/{documentId}/published": true,
+	}
+	for path := range spec.Paths.Map() {
+		if !keep[path] {
+			spec.Paths.Delete(path)
+		}
+	}
+	handlers := map[string]http.Handler{
+		"publishDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.PublishDocumentRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "发布参数无法转换"))
+				return
+			}
+			input := content.PublishDocumentInput{DocumentId: r.PathValue("documentId"), DraftRevisionId: body.DraftRevisionId, ExpectedDraftVersion: body.ExpectedDraftVersion, ExpectedRevision: body.ExpectedRevision, ManualPathSegment: body.ManualPathSegment, ManualSEO: body.ManualSEO}
+			result, err := content.PublishDocument(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"withdrawDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.WithdrawDocumentRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "撤回参数无法转换"))
+				return
+			}
+			result, err := content.WithdrawDocument(content.WithTreeRuntime(r.Context(), runtime), op, content.WithdrawDocumentInput{DocumentId: r.PathValue("documentId"), ExpectedRevision: body.ExpectedRevision})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"validatePublications": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.ValidatePublicationsInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "发布校验参数无法转换"))
+				return
+			}
+			result, err := content.ValidatePublications(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readPublishedRevision": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var published *content.Identifier
+			if value := r.URL.Query().Get("publishedRevisionId"); value != "" {
+				id := content.Identifier(value)
+				published = &id
+			}
+			result, err := content.ReadPublishedRevision(content.WithTreeRuntime(r.Context(), runtime), op, content.ReadPublishedRevisionInput{DocumentId: r.PathValue("documentId"), PublishedRevisionId: published})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+	}
+	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
+		switch action {
+		case "content:publishDocument", "content:withdrawDocument":
+			return nil
+		}
+		return platform.NewError(platform.CodeForbidden, false, "发布路由没有该操作的用户授权")
+	}
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, Authorize: authorize,
+		AllowedCallers: map[string][]string{
+			"publishDocument":       {"portal"},
+			"withdrawDocument":      {"portal"},
+			"validatePublications":  {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
+			"readPublishedRevision": {"public-site", "knowledge", "qa", "localization", "memory"},
+		},
+		MaintenanceOperations: map[string]bool{"validatePublications": true, "readPublishedRevision": true}}, handlers)
+	if err != nil {
+		return err
+	}
+	mux := app.httpServer.Handler.(*http.ServeMux)
+	mux.Handle("POST /v1/documents/{documentId}:publish", handler)
+	mux.Handle("POST /v1/documents/{documentId}:withdraw", handler)
+	mux.Handle("POST /v1/publications:validate", handler)
+	mux.Handle("GET /v1/documents/{documentId}/published", handler)
+	return nil
+}

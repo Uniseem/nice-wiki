@@ -1,3 +1,48 @@
+# 当前工作包：发布确认改用已提交草稿来源（2026-10-17第四轮再退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `67f35e4857ee66970b3ff6b84184d7e9eb92c447`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 非空引用的 confirm 使用已提交草稿保存操作的来源身份：同一 document、revision、sourceVersion 和 referenceDigest，来自 revision_preparations 与 action 为 save 且已 committed 的 draft_operation_intents。已确认 pin 按媒体原绑定幂等回放。
+- 找不到这条决定，或摘要与当前引用不一致，整次发布失败，不先公开。空引用仍不调媒体。分享图非空仍 503。媒体调用仍在本地 SQL 锁之外。
+- 函数完成数仍是 227/261。ReadReferenceDecision 的查询范围未改。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
+# 当前工作包：发布资源 pin 接回（2026-10-17第四轮审核退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `7edca48674a7287cb9fc454fa509164e61d71fd2`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 非空就绪引用已接回现有 MediaClient：发布事务开始前先 acquire 再 confirm，跨服务调用不持有本地 SQL 锁。pin 失败则整次发布失败，不先公开。空引用仍可发布，不造空 pin。
+- 分享图非空继续 503，不猜测 metadata pin 协议。Update 仍 in_progress。完整启动仍 blocked。
+- 函数完成数 225/259 变为 227/261：新增 preparePublicationPin、pinPublicationReferences，均记 implemented。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
+# 当前工作包：发布快照闭环（2026-10-17第四轮，已编写，未跑 CI）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，初始干净。源码 `b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 发布、撤回、提交、可见性校验和公开读取已按约束级步骤落地。人工 slug/SEO 优先，本轮不调用模型，不制造 slug 或 SEO。首次空 slug 在发布时要求人工填写，不因缺模型阻塞已有合法元数据。
+- 原回执、metadata/tree 或发布 CAS、正文引用、快照、历史和 outbox 同一事务。未知提交只回放原结果，不重复推进水位或事件。历史回滚直接失败关闭。
+- 曾发布路径写入私有 SQL 版本化 manifest，Move 与 Update 在同一事务读取。分享图实际变更仍因精确 pin 合同未齐返回 503，Update 继续 in_progress。
+- 四个已有发布 HTTP 操作绑定真实处理函数。BuildApplication 仍返回 nil 和 503，缺可信写窗口的新写继续 503。回收站、历史回滚、预览、屏障和编辑器 UI 未做。
+- 函数完成数 199/241 变为 225/259：本轮 32 个函数记 implemented。其中 6 个原先 verified 的函数因源码有变，改回 implemented。
+- 集成会话需把本轮新文件登记进结构清单后再跑检查和 GitLab CI。本域不自行修改公共文件，不 push。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：元数据编辑与精确路径校验（2026-10-17第三轮，已检查交付）
 
 分支codex/content-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，初始clean；独占modules/content。用户再授权一轮三个子代理同时编写，根统一GitLab生成/格式/三分片编译/check及普通双推；本域不本机/SSH Go、不自行push。
