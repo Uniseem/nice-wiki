@@ -7,7 +7,8 @@ portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接�
 - data-protection 源码 d03bad4：启动入口建立数据目录并绑定 27 个路由。换目录缺少回执事实时失败关闭；备份、恢复和镜像返回依赖不可用。pipeline 48 已编译该包，六个启动函数仍 blocked。
 - public-site：`ResolvePublishedLink` 读取站点、启用语言和公开树，块锚点按正文哈希核验。依赖未知返回 503，水位变化返回 `STALE_RESULT`/409。`main`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 与该函数记 verified。`BuildApplication` 缺处理函数时不返回可运行应用，保持 blocked。
 - analytics 源码 1101401：`BucketLatency` 只使用五个闭区间桶，60000 落入 `3000+`。`CheckPrivacyFields` 只允许 `requestId` 与 `errorCode`，合同原文中的八个禁止名返回禁止。`RedactAuditMetadata` 因动作白名单和 metadata 编码未写明保持 blocked。这两个新文件已登记，尚未经 GitLab 编译，不记 verified。
-- 当前 1516 函数中 893 个完成（833 verified、60 implemented），planned 575、in_progress 14、blocked 34，完成率 58.9%。相对第四轮推送净增 10 项完成。`EmitAccessAudit` 与 `RedactAuditMetadata` 改为 blocked，不计入完成数。
+- public-site 源码 7cb0bb9：`BuildTOC` 只收 H2–H4，锚点用原 blockId。`maxDepth` 不是 4 或级别超出 1–4 时返回校验错误。重复 blockId 返回完整性错误。已登记，尚未经 GitLab 编译，不记 verified。
+- 当前 1516 函数中 894 个完成（833 verified、61 implemented），planned 574、in_progress 14、blocked 34，完成率 59.0%。相对第四轮推送净增 11 项完成。`EmitAccessAudit` 与 `RedactAuditMetadata` 改为 blocked，不计入完成数。
 - 未在本机或 SSH 编译。未新增测试、fixture、mock、样例或临时程序。
 
 以下是已经双推的第四轮记录。

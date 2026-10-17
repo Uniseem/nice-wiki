@@ -3439,6 +3439,11 @@
       "purpose": "用已读取的 publicBaseURL 拼接规范地址，不另读配置对象"
     },
     {
+      "path": "modules/public-site/internal/toc.go",
+      "kind": "handwritten",
+      "purpose": "按 H2–H4 生成目录，锚点使用原稳定 blockId"
+    },
+    {
       "path": "modules/public-site/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP 生命周期、匿名健康与就绪；缺路由时不安装部分路由"

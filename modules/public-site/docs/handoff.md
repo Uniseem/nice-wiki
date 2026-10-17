@@ -10,11 +10,7 @@
 
 ## 检查
 
-未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt、make build、make gen。已运行 `python3 scripts/render_docs.py`，合同未改，生成文档无差异。新文件 `modules/public-site/internal/toc.go` 尚未写入根 `docs/structure/framework.json`，本会话不改该文件；集成会话登记前，`make check` 的结构核对会报未登记文件。
-
-## 请集成会话登记
-
-- `modules/public-site/internal/toc.go`
+未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt、make build、make gen。已运行 `python3 scripts/render_docs.py`，合同未改，生成文档无差异。`modules/public-site/internal/toc.go` 已写入根 `docs/structure/framework.json`。这次提交还没有新的 GitLab 编译，不要把 `BuildTOC` 记为 verified。
 
 ## 下一步（一项）
 
