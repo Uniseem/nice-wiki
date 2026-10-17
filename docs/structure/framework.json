@@ -19,6 +19,11 @@
       "purpose": "仓库根.gitignore框架约定或工程入口"
     },
     {
+      "path": ".gitlab-ci.yml",
+      "kind": "tool",
+      "purpose": "自部署GitLab生成与三分片readonly编译结构检查，不含私有接入材料"
+    },
+    {
       "path": "AGENTS.md",
       "kind": "documentation",
       "purpose": "仓库根AGENTS.md框架约定或工程入口"
@@ -594,6 +599,11 @@
       "purpose": "持续代码目标第二轮交付、检查推送与最新暂停范围"
     },
     {
+      "path": "docs/push-log/2026-10-17-0001.md",
+      "kind": "documentation",
+      "purpose": "三个子代理单轮交付、自部署GitLab检查与双远程推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
@@ -1119,6 +1129,11 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/content/internal/outbox_repository.go",
+      "kind": "handwritten",
+      "purpose": "真实平台单批事件转发装配"
+    },
+    {
       "path": "modules/content/internal/publication_repository.go",
       "kind": "handwritten",
       "purpose": "同代资源来源决定读取；完整发布仓库尚未实施"
@@ -1127,6 +1142,11 @@
       "path": "modules/content/internal/reference_extractor.go",
       "kind": "source",
       "purpose": "扫描所有嵌套块资源引用"
+    },
+    {
+      "path": "modules/content/internal/reference_reader.go",
+      "kind": "handwritten",
+      "purpose": "固定全站引用水位与签名分页来源查询"
     },
     {
       "path": "modules/content/internal/revision_files.go",
@@ -1182,6 +1202,11 @@
       "path": "modules/content/migrations/0004_draft_commits.sql",
       "kind": "migration",
       "purpose": "文档引用水位、真实树和元数据、草稿意图、稳定ID及引用权威表"
+    },
+    {
+      "path": "modules/content/migrations/0005_reference_snapshots.sql",
+      "kind": "handwritten",
+      "purpose": "全站资源引用单调水位与只追加触发器"
     },
     {
       "path": "modules/content/migrations/migrations.go",
@@ -2349,6 +2374,11 @@
       "purpose": "当前与历史引用的完整权威清理判定"
     },
     {
+      "path": "modules/media/internal/cleanup_worker.go",
+      "kind": "handwritten",
+      "purpose": "人工清理批准校验、持久DELETING与原结果恢复"
+    },
+    {
       "path": "modules/media/internal/drawing_validator.go",
       "kind": "source",
       "purpose": "校验Excalidraw场景和提取文字"
@@ -2382,6 +2412,11 @@
       "path": "modules/media/internal/payload_validator.go",
       "kind": "source",
       "purpose": "验证SVG/场景/附件/视频安全交付"
+    },
+    {
+      "path": "modules/media/internal/reader_lease.go",
+      "kind": "handwritten",
+      "purpose": "与删除互斥的真实有限读者租约"
     },
     {
       "path": "modules/media/internal/reference_decision_client.go",
@@ -2424,6 +2459,11 @@
       "purpose": "清理展示文件名而不用于路径"
     },
     {
+      "path": "modules/media/internal/worker.go",
+      "kind": "handwritten",
+      "purpose": "装配平台清理执行器与有界只读安全取消证明"
+    },
+    {
       "path": "modules/media/migrations/0001_domain.sql",
       "kind": "migration",
       "purpose": "media私有SQLite初始权威表：上传会话、回执、资源与blob日志"
@@ -2452,6 +2492,11 @@
       "path": "modules/media/migrations/0006_cleanup_approvals.sql",
       "kind": "migration",
       "purpose": "不可变清理批准对象与固定延迟任务材料、真实任务及原确认结果回执"
+    },
+    {
+      "path": "modules/media/migrations/0007_cleanup_execution.sql",
+      "kind": "handwritten",
+      "purpose": "人工删除持久执行决定与读者租约权威"
     },
     {
       "path": "modules/media/migrations/migrations.go",
@@ -2779,6 +2824,11 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/model-gateway/internal/billing/quote.go",
+      "kind": "source",
+      "purpose": "真实不可变价目读取与整数免费报价"
+    },
+    {
       "path": "modules/model-gateway/internal/catalog/model.go",
       "kind": "handwritten",
       "purpose": "模型目录字段与纯规则校验"
@@ -2829,6 +2879,11 @@
       "purpose": "凭据AES-GCM密文、敏感输入HMAC原回执与active版本CAS；旧引用生命周期回收尚未交付"
     },
     {
+      "path": "modules/model-gateway/internal/tokens/budget.go",
+      "kind": "source",
+      "purpose": "免费文本令牌预算与已登记嵌入空间函数"
+    },
+    {
       "path": "modules/model-gateway/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
@@ -2847,6 +2902,11 @@
       "path": "modules/model-gateway/migrations/003_fee_budget_policy.sql",
       "kind": "source",
       "purpose": "只追加显式费用策略与脱敏本地审计，不插默认美元金额"
+    },
+    {
+      "path": "modules/model-gateway/migrations/004_price_book.sql",
+      "kind": "migration",
+      "purpose": "只追加真实人工价目，不设置默认金额"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",
@@ -3767,51 +3827,6 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
-    },
-    {
-      "path": ".gitlab-ci.yml",
-      "kind": "tool",
-      "purpose": "自部署GitLab生成与三分片readonly编译结构检查，不含私有接入材料"
-    },
-    {
-      "path": "modules/content/internal/reference_reader.go",
-      "kind": "handwritten",
-      "purpose": "固定全站引用水位与签名分页来源查询"
-    },
-    {
-      "path": "modules/content/internal/outbox_repository.go",
-      "kind": "handwritten",
-      "purpose": "真实平台单批事件转发装配"
-    },
-    {
-      "path": "modules/content/migrations/0005_reference_snapshots.sql",
-      "kind": "handwritten",
-      "purpose": "全站资源引用单调水位与只追加触发器"
-    },
-    {
-      "path": "modules/media/internal/cleanup_worker.go",
-      "kind": "handwritten",
-      "purpose": "人工清理批准校验、持久DELETING与原结果恢复"
-    },
-    {
-      "path": "modules/media/internal/reader_lease.go",
-      "kind": "handwritten",
-      "purpose": "与删除互斥的真实有限读者租约"
-    },
-    {
-      "path": "modules/media/internal/worker.go",
-      "kind": "handwritten",
-      "purpose": "装配平台清理执行器与有界只读安全取消证明"
-    },
-    {
-      "path": "modules/media/migrations/0007_cleanup_execution.sql",
-      "kind": "handwritten",
-      "purpose": "人工删除持久执行决定与读者租约权威"
-    },
-    {
-      "path": "docs/push-log/2026-10-17-0001.md",
-      "kind": "documentation",
-      "purpose": "三个子代理单轮交付、自部署GitLab检查与双远程推送记录"
     }
   ]
 }
