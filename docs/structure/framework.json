@@ -3772,6 +3772,21 @@
       "path": ".gitlab-ci.yml",
       "kind": "tool",
       "purpose": "自部署GitLab生成与三分片readonly编译结构检查，不含私有接入材料"
+    },
+    {
+      "path": "modules/content/internal/reference_reader.go",
+      "kind": "handwritten",
+      "purpose": "固定全站引用水位与签名分页来源查询"
+    },
+    {
+      "path": "modules/content/internal/outbox_repository.go",
+      "kind": "handwritten",
+      "purpose": "真实平台单批事件转发装配"
+    },
+    {
+      "path": "modules/content/migrations/0005_reference_snapshots.sql",
+      "kind": "handwritten",
+      "purpose": "全站资源引用单调水位与只追加触发器"
     }
   ]
 }
