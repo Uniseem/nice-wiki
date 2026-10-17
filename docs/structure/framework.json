@@ -609,6 +609,11 @@
       "purpose": "追加三模块单轮的授权、交付检查与普通双远程推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-17-0003.md",
+      "kind": "documentation",
+      "purpose": "第三轮三代理与公共前置的授权、真实交付检查和普通双远程推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
