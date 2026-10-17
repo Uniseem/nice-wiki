@@ -2514,6 +2514,11 @@
       "purpose": "人工删除持久执行决定与读者租约权威"
     },
     {
+      "path": "modules/media/migrations/0008_asset_listing.sql",
+      "kind": "migration",
+      "purpose": "资源与对象变更的独立单调列表水位和稳定分页索引"
+    },
+    {
       "path": "modules/media/migrations/migrations.go",
       "kind": "handwritten",
       "purpose": "内嵌media只追加SQL迁移（ADR0005），运行时唯一来源"
