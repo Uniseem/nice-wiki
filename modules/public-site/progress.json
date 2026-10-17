@@ -558,7 +558,7 @@
         "state": "not_run",
         "evidence": "已写入 Go 1.25.0 与版本化依赖。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": "有依赖但缺少 go mod tidy 生成的 go.sum，且未编译。"
+      "blocker": "go.sum 已由 go mod tidy 生成。GitLab readonly 编译尚未覆盖。"
     },
     {
       "path": "modules/public-site/go.sum",
@@ -568,7 +568,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "须由 go mod tidy 生成；本会话不手写、不跑 go。"
+      "blocker": "go.sum 已由 go mod tidy 生成。GitLab readonly 编译尚未覆盖，不能记 verified。"
     },
     {
       "path": "modules/public-site/Dockerfile",

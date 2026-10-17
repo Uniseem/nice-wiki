@@ -27,4 +27,4 @@
 
 ## 下一步（一项）
 
-集成会话把上面六个路径登记进 `docs/structure/framework.json`，在 CI 用 `go mod tidy` 生成 `go.sum`，并运行 `make gen` 刷新公开链接规格嵌入；编译通过之前不要把这些函数记 verified。
+六个新路径已登记，`go.sum` 已由 `go mod tidy` 生成，并加入 GitLab 的 ai 编译分片。公开链接 OpenAPI 说明已改为 409/503，生成目录里的嵌入规格还要等 `make gen`。这次还没有跑该分片。编译通过之前不要把这些函数记 verified。

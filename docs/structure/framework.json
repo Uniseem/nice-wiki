@@ -3309,6 +3309,11 @@
       "purpose": "public-site人类进度摘要，与台账/交接一致"
     },
     {
+      "path": "modules/public-site/cmd/public-site/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一 Go 可执行入口；只装配平台进程模板"
+    },
+    {
       "path": "modules/public-site/contracts/events.json",
       "kind": "contract",
       "purpose": "public-site唯一机器events契约，后续先改契约再实现"
@@ -3379,6 +3384,21 @@
       "purpose": "public-site分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/public-site/go.mod",
+      "kind": "config",
+      "purpose": "独立 module nice-wiki/modules/public-site；固定 Go 工具链和本域实际库依赖"
+    },
+    {
+      "path": "modules/public-site/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod 依赖校验锁；由 go mod tidy 生成"
+    },
+    {
+      "path": "modules/public-site/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "启动装配；缺处理函数、journal 或换目录回执时不返回可运行应用"
+    },
+    {
       "path": "modules/public-site/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -3392,6 +3412,21 @@
       "path": "modules/public-site/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/public-site/internal/links.go",
+      "kind": "handwritten",
+      "purpose": "按文档和块 ID 解析当前安全公开链接；水位变化返回 STALE_RESULT"
+    },
+    {
+      "path": "modules/public-site/internal/seo.go",
+      "kind": "handwritten",
+      "purpose": "用已读取的 publicBaseURL 拼接规范地址，不另读配置对象"
+    },
+    {
+      "path": "modules/public-site/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP 生命周期、匿名健康与就绪；缺路由时不安装部分路由"
     },
     {
       "path": "modules/public-site/progress.json",

@@ -150,7 +150,7 @@ func requireEndpoints(config platform.ServiceConfig) error {
 	required := []string{"content", "site-config", "localization", "identity", "media", "jobs", "data-protection"}
 	for _, name := range required {
 		if err := requireEndpoint(config.Dependencies[name]); err != nil {
-			return platform.NewError(platform.CodeDependencyUnavailable, true, "缺少" + name + "依赖地址")
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "缺少%s依赖地址", name)
 		}
 	}
 	if raw := config.Dependencies["analytics"]; raw != "" {

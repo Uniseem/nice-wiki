@@ -1,6 +1,6 @@
 # 重建计划
 
-当前第二轮局部合入（2026-10-17）：portal.RedactRequest 已本地合入，记 implemented、未跑 CI。qa.EvaluateCacheEligibility 因指代残留没有可执行判定保持 blocked，不返回 eligible=true。data-protection 启动入口已合入，六个启动函数保持 blocked；备份与恢复未实现时失败关闭。884/1516 函数完成（825 verified、59 implemented，58.3%），planned 587、blocked 31，accepted 为零。这些提交还没有新的 GitLab 编译，不记 verified。public-site 尚未合入。
+当前第二轮局部合入（2026-10-17）：portal.RedactRequest 已本地合入，记 implemented、未跑 CI。qa.EvaluateCacheEligibility 因指代残留没有可执行判定保持 blocked，不返回 eligible=true。data-protection 启动入口已合入，六个启动函数保持 blocked；备份与恢复未实现时失败关闭。public-site 的真实公开链接解析已合入，水位变化用 STALE_RESULT/409；BuildApplication 在缺处理函数时失败关闭并保持 blocked。891/1516 函数完成（825 verified、66 implemented，58.8%），planned 579、blocked 32，accepted 为零。这些提交还没有新的 GitLab 编译，不记 verified。
 
 当前第四轮（2026-10-17）：用户要求多个子代理并行编写，审核后提交，并授权用自建 GitLab 做生成、编译和检查，通过后双推。content 发布快照、media 引用事件、jobs 五段调度、site-config 品牌/页脚/横幅/历史、identity 超管重置、localization 语言配置已合入。883/1516 函数完成（825 verified、58 implemented，58.2%，净增 53），accepted 为零。pipeline 42 生成补丁 0 字节，三个编译分片和完整 make check 通过。结果记录 pipeline 43 同样通过，其提交 `e39c314f986bc05da2f0aad6cab628319aebb53f` 已双推。分享图、引用事件载荷、语言归一化、费用预留和完整启动仍未完成。
 
