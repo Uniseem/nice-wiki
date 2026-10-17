@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -328,4 +329,191 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 		return RequeueDueResult{}, mapQueueDBError(err)
 	}
 	return RequeueDueResult{Count: int64(len(jobs))}, nil
+}
+
+// TickSchedulesInput 是一次定时扫描的时刻和当前代次。
+type TickSchedulesInput struct {
+	Now       time.Time
+	DataEpoch platform.Identifier
+}
+
+// TickSchedulesResult 只统计本次新插入的任务，去重复用不再计数。
+type TickSchedulesResult struct {
+	CreatedCount int64 `json:"createdCount"`
+}
+
+type dueSchedule struct {
+	id       string
+	owner    string
+	jobType  string
+	inputRef string
+	cron     string
+	timezone string
+	revision int64
+	nextAt   time.Time
+}
+
+// TickSchedules 在维护或安全点期间不生成新tick。到期项只合并最后一次，
+// 去重键为scheduleId/tick/epoch，并在独立事务里推进nextAt。
+// 已有租约回收和重排逻辑不在这里改动。
+func TickSchedules(ctx context.Context, op OperationContext, in TickSchedulesInput) (TickSchedulesResult, error) {
+	if err := contextError(ctx); err != nil {
+		return TickSchedulesResult{}, err
+	}
+	if op.CallerService != "jobs" {
+		return TickSchedulesResult{}, platform.NewError(platform.CodeForbidden, false, "仅jobs后台可以触发定时")
+	}
+	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
+	if err != nil {
+		return TickSchedulesResult{}, err
+	}
+	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
+		work.close()
+		return TickSchedulesResult{}, nil
+	}
+	due, readErr := readDueSchedules(ctx, work, in)
+	work.close()
+	if readErr != nil {
+		return TickSchedulesResult{}, readErr
+	}
+	var created int64
+	var failed error
+	for _, row := range due {
+		if err := contextError(ctx); err != nil {
+			return TickSchedulesResult{}, err
+		}
+		count, err := fireSchedule(ctx, op, in.DataEpoch, in.Now, row)
+		if isScheduleLocked(err) {
+			if failed != nil {
+				return TickSchedulesResult{}, failed
+			}
+			return TickSchedulesResult{CreatedCount: created}, nil
+		}
+		if err != nil {
+			if failed == nil {
+				failed = err
+			}
+			continue
+		}
+		created += count
+	}
+	if failed != nil {
+		return TickSchedulesResult{}, failed
+	}
+	return TickSchedulesResult{CreatedCount: created}, nil
+}
+
+// lastDueTick 计算不晚于now的最后一次匹配。nextAt尚未到期时返回false。
+func lastDueTick(expression, timezone string, nextAt, now time.Time) (time.Time, bool, error) {
+	if nextAt.After(now) {
+		return time.Time{}, false, nil
+	}
+	tick, ok, err := latestCronMatch(expression, timezone, nextAt, now)
+	if err != nil {
+		return time.Time{}, false, err
+	}
+	if !ok {
+		return time.Time{}, false, platform.NewError(platform.CodeIntegrityError, false, "到期定时没有可证明的触发时刻")
+	}
+	return tick, true, nil
+}
+
+func readDueSchedules(ctx context.Context, work *leaseOperation, in TickSchedulesInput) ([]dueSchedule, error) {
+	rows, err := work.tx.QueryContext(ctx, `SELECT schedule_id, owner, job_type, input_ref, cron, timezone, revision, next_fire_at
+		FROM schedules WHERE data_epoch=? AND enabled=1 ORDER BY schedule_id`, in.DataEpoch)
+	if err != nil {
+		return nil, mapQueueDBError(err)
+	}
+	defer rows.Close()
+	due := make([]dueSchedule, 0)
+	for rows.Next() {
+		var row dueSchedule
+		var nextText string
+		if err := rows.Scan(&row.id, &row.owner, &row.jobType, &row.inputRef, &row.cron, &row.timezone, &row.revision, &nextText); err != nil {
+			return nil, mapQueueDBError(err)
+		}
+		nextAt, err := time.Parse(time.RFC3339Nano, nextText)
+		if err != nil {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "定时触发时刻损坏")
+		}
+		if !nextAt.After(in.Now) {
+			row.nextAt = nextAt
+			due = append(due, row)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, mapQueueDBError(err)
+	}
+	return due, nil
+}
+
+func fireSchedule(ctx context.Context, op OperationContext, epoch platform.Identifier, now time.Time, row dueSchedule) (int64, error) {
+	tick, ok, err := lastDueTick(row.cron, row.timezone, row.nextAt, now)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, nil
+	}
+	next, err := NextFireAt(ctx, op, NextFireAtInput{Expression: row.cron, Timezone: row.timezone, After: tick})
+	if err != nil {
+		return 0, err
+	}
+	var ref ObjectRef
+	if row.inputRef == "" || json.Unmarshal([]byte(row.inputRef), &ref) != nil || ref.Owner != row.owner {
+		return 0, platform.NewError(platform.CodeIntegrityError, false, "定时输入引用损坏")
+	}
+	// 调度器在进程内以任务owner调用已有CreateJob，满足owner校验；这不是接受客户端声明的调用方。
+	// Claim拒绝空根操作，因此本次生成的操作号同时作为根。去重键仍阻止重复任务。
+	createOp := op
+	createOp.CallerService = row.owner
+	createOp.OperationID = platform.NewIdentifier()
+	createOp.RootOperationID = createOp.OperationID
+	createOp.DataEpoch = epoch
+	tickUTC := tick.UTC()
+	dedupeKey := row.id + "/" + tickUTC.Format(time.RFC3339Nano) + "/" + string(epoch)
+	result, err := CreateJob(ctx, createOp, CreateJobInput{
+		Owner: row.owner, Type: row.jobType, InputRef: ref, DedupeKey: dedupeKey, DataEpoch: epoch, NotBefore: &tickUTC,
+	})
+	if err != nil {
+		return 0, err
+	}
+	created := int64(0)
+	if result.Job.OperationId == createOp.OperationID {
+		created = 1
+	}
+	if err := advanceSchedule(ctx, op, epoch, row, next.NextAt, tickUTC); err != nil {
+		return 0, err
+	}
+	return created, nil
+}
+
+func advanceSchedule(ctx context.Context, op OperationContext, epoch platform.Identifier, row dueSchedule, nextAt, tick time.Time) error {
+	work, err := beginLeaseOperation(ctx, op, epoch)
+	if err != nil {
+		return err
+	}
+	defer work.close()
+	updated, err := work.tx.ExecContext(ctx, `UPDATE schedules SET next_fire_at=?, last_tick=?, revision=revision+1
+		WHERE schedule_id=? AND data_epoch=? AND revision=? AND enabled=1`,
+		nextAt.UTC().Format(time.RFC3339Nano), tick.UTC().Format(time.RFC3339Nano), row.id, epoch, row.revision)
+	if err != nil {
+		return mapQueueDBError(err)
+	}
+	count, err := updated.RowsAffected()
+	if err != nil {
+		return mapQueueDBError(err)
+	}
+	if count != 1 {
+		return nil
+	}
+	if err := work.tx.Commit(); err != nil {
+		return mapQueueDBError(err)
+	}
+	return nil
+}
+
+func isScheduleLocked(err error) bool {
+	var problem *platform.Error
+	return errors.As(err, &problem) && problem.Code == platform.CodeLocked
 }

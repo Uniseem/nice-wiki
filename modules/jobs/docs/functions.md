@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 112 个函数：约束 34 个，参考 78 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 114 个函数：约束 34 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1393,12 +1393,56 @@ func TickSchedules(ctx context.Context, op OperationContext, in TickSchedulesInp
 
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：QUEUE_FULL：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：调用方不是jobs后台（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写jobs/schedule tick
 - 授权：permission：service；rule：service scheduler
 - 并发：schedule revision CAS，多scheduler不双造任务
 - 幂等：tick dedupeKey幂等
-- 依赖：`jobs.CreateJob`、`jobs.NextFireAt`
+- 依赖：`jobs.CreateJob`、`jobs.NextFireAt`、`jobs.lastDueTick`
+
+## jobs.lastDueTick
+
+- 级别：参考
+- 文件：`modules/jobs/internal/scheduler.go`
+- 作用：计算到期定时的最后一次触发
+
+```go
+func lastDueTick(expression string, timezone string, nextAt time.Time, now time.Time) (time.Time, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `expression` | `string` | 已保存的定时表达式 | 仅本域内部使用 |
+| `timezone` | `string` | 已保存的IANA时区 | 仅本域内部使用 |
+| `nextAt` | `time.Time` | 当前保存的下次触发 | 仅本域内部使用 |
+| `now` | `time.Time` | 本次扫描时刻 | 仅本域内部使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `tick` | `time.Time` | 最后一次已到期触发 | 成功有效，失败不返回半结果 |
+| `ok` | `bool` | nextAt尚未到期时为false | 成功有效，失败不返回半结果 |
+| `err` | `error` | 表达式或记录无法证明触发时刻 | 成功有效，失败不返回半结果 |
+
+**步骤**
+
+1. nextAt晚于now时未到期
+2. 在366天窗口内按与NextFireAt相同的本地分钟规则取最后一次匹配
+3. 窗口之外只接受原nextAt本身仍匹配的时刻
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅TickSchedules使用
+- 并发：纯函数，迭代上限527040
+- 幂等：同表达式、时区、nextAt和now得到同一次tick
+- 依赖：`jobs.NextFireAt`
 
 ## jobs.collectOrphans
 
@@ -2876,6 +2920,8 @@ func CreateSchedule(ctx context.Context, op OperationContext, in CreateScheduleI
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_CRON：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：同operationId不同inputHash（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：当前代次定时数量达到1000（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写schedule/outbox
 - 授权：permission：job.manage；rule：job.manage
@@ -2958,12 +3004,49 @@ func ListSchedules(ctx context.Context, op OperationContext, input ListSchedules
 **错误**
 
 - `FORBIDDEN`：权限不足（不可重试）
+- `VALIDATION`：当前代次超过256条，失败关闭且不截断（不可重试）
 
 - 副作用：无
 - 授权：permission：job.manage；rule：后台管理员
 - 并发：只读快照
 - 幂等：只读
 - 依赖：无
+
+## jobs.NewScheduleHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/schedule_store.go`
+- 作用：绑定真实定时管理路由到统一服务入口
+
+```go
+func NewScheduleHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | createSchedule、updateSchedule、listSchedules的真实HTTP映射 | 只交统一NewServiceHandler，不独立裸挂 |
+
+**步骤**
+
+1. createSchedule绑定CreateScheduleRequestBody，dataEpoch只来自可信op
+2. updateSchedule从路径取scheduleId，正文不重复声明
+3. listSchedules无正文；成功200，错误经既有统一Problem写出
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：创建和修改沿用operationId回执，列表只读
+- 依赖：`jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules`、`jobs.writeEventResponse`
 
 ## jobs.CoordinateBarrier
 
@@ -3698,6 +3781,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 7. 实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE
 8. 私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked
 9. 合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败
+10. 合并NewScheduleHandlers真实createSchedule/updateSchedule/listSchedules映射；createSchedule允许portal和管理员路径以及带系统默认定时的owner服务，list/update仅portal；其余handler、存储安装、control和后台循环未齐仍使完整启动失败
 
 **错误**
 
@@ -3709,7 +3793,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve

@@ -23,8 +23,8 @@ const ModuleSlug = "jobs"
 // BuildApplication 验证本域启动前置条件，建立 active/control/restore
 // 目录布局，加载服务身份材料，读取运行权威并执行恢复换目录。
 //
-// 任务/事件核心与管理切片已有实现，其余handler及控制/后台装配未齐，不能以空 handler
-// 冒充完整路由。因此在完成平台前置装配后按合同返回
+// 任务、事件、管理和定时路由已有真实映射。其余handler及控制/后台装配未齐，
+// 不能以这组映射冒充完整服务。因此在完成平台前置装配后仍返回
 // DEPENDENCY_UNAVAILABLE，交由进程守护重试。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
@@ -85,14 +85,24 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for id, handler := range jobs.NewProgressHandlers() {
 		handlers[id] = handler
 	}
+	for id, handler := range jobs.NewScheduleHandlers() {
+		handlers[id] = handler
+	}
 	queueCallers := make([]string, 0)
 	queueOwners := make(map[string]bool)
+	scheduleOwners := make([]string, 0)
+	seenScheduleOwner := map[string]bool{}
 	for _, definition := range gen.JobTypes {
 		if !queueOwners[definition.Owner] {
 			queueOwners[definition.Owner] = true
 			queueCallers = append(queueCallers, definition.Owner)
 		}
+		if definition.Schedule != "" && !seenScheduleOwner[definition.Owner] {
+			seenScheduleOwner[definition.Owner] = true
+			scheduleOwners = append(scheduleOwners, definition.Owner)
+		}
 	}
+	createScheduleCallers := append([]string{"portal"}, scheduleOwners...)
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -106,14 +116,20 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"listDeliveries": {"portal"},
 			"retryJob":       {"portal"},
 			"streamProgress": {"portal"},
+			"createSchedule": createScheduleCallers,
+			"listSchedules":  {"portal"},
+			"updateSchedule": {"portal"},
 		},
-		ServiceActorCallers: map[string][]string{"createJob": queueCallers},
-		Authorize:           apivalidate.NewIdentityAuthorizer(identity),
+		ServiceActorCallers: map[string][]string{
+			"createJob":      queueCallers,
+			"createSchedule": scheduleOwners,
+		},
+		Authorize: apivalidate.NewIdentityAuthorizer(identity),
 	}, handlers)
 	if err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "jobs任务、事件、死信、定时和屏障处理尚未装配")
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "定时HTTP已绑定，其余handler、存储安装、control和后台循环仍未齐")
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，供进程模板的运行

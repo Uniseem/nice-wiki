@@ -16,7 +16,7 @@
 
 - `deliveries(event_id, consumer_id, state, attempt, retry_at; PK event_id/consumer_id)`
 
-- `schedules(schedule_id PK, owner, cron, timezone, revision, enabled, next_fire_at, last_tick)`
+- `schedules(schedule_id PK, owner, cron, timezone, revision, enabled, next_fire_at, last_tick, job_type, input_ref, data_epoch)`
 
 - `barriers(barrier_id PK, state, domain_status_json, data_epoch, deadline)`
 
@@ -56,3 +56,5 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 进度本身是持久权威，不由通用事件的全局eventSeq替代。当前只限制SSE可读范围，不物理删除历史；未来清理必须另存job进度seq水位，不能因MAX(seq)归零复用游标。首次0只取当前保留项；正游标必须可连续续接且不超过已登记水位。每批最多64行、每帧重新核当前业务权限和epoch，权限IO及空闲等待无SQL/进程锁。只投影jobId/seq/phase/计数，不读输入或结果正文/原始错误。actor/site配额仅内存10连接，Close幂等取消读取并归还。
 
 延迟创建补充：CreateJobInput.notBefore可选且不接受null，显式值归UTC RFC3339Nano参与原请求摘要并写已有jobs.not_before；省略时摘要编码不增加字段，首次not_before取当前时间。显式过去时刻立即可领，同键不同显式时刻CONFLICT。not_before只管最早领取，不使用创建RPC的短op.deadline限制未来执行；worker在领取时建立自己的执行期限。
+
+定时调度补充：`0008_schedules.sql`只追加`job_type`、`input_ref`、`data_epoch`，以及`schedule_operations(caller, data_epoch, operation_id, request_hash, result_json, created_at)`和当前代次启用索引。不重建schedules，不删除已有行；旧行新增列为空，当前代次筛选自然排除。到期判断先把`next_fire_at`按RFC3339Nano解析后再比较，不用TEXT顺序。tick去重键为`scheduleId/tick/epoch`，生成任务走CreateJob，并带非空dedupeKey和该tick的notBefore。审计事件`jobs.schedule-changed.v1`只在创建、修改和代次续登时写入outbox，不携带表达式或输入引用正文。

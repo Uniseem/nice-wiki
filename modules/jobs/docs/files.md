@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 56 个：手写 27、UI 4、生成 8、配置 10、迁移 7。函数 112 个：约束 34，参考 78。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 57 个：手写 27、UI 4、生成 8、配置 10、迁移 8。函数 114 个：约束 34，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -11,7 +11,7 @@
 | `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.beginLeaseOperation`（参考）、`jobs.close`（参考）、`jobs.readLease`（参考）、`jobs.claimCandidates`（参考）、`jobs.receipt`（参考）、`jobs.saveReceipt`（参考）、`jobs.enqueueState`（参考）、`jobs.leaseLost`（参考）、`jobs.countActiveLeases`（参考） |
 | `modules/jobs/internal/results.go` | 手写 | 提交成功结果；同文件职责限本域以下登记函数 | `jobs.CompleteJob`、`jobs.readJobRecord`（参考）、`jobs.terminalReplay`（参考）、`jobs.saveTerminal`（参考）、`jobs.mergePaidResults`（参考）、`jobs.finishJob`（参考） |
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
-| `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
+| `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.lastDueTick`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
 | `modules/jobs/internal/cancellation.go` | 手写 | 请求取消任务；同文件职责限本域以下登记函数 | `jobs.RequestCancel`、`jobs.ConfirmCancelled`（参考） |
 | `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考）、`jobs.jobManagementPermission`（参考） |
 | `modules/jobs/internal/progress.go` | 手写 | 持久进度安全点；同文件职责限本域以下登记函数 | `jobs.AppendProgress`（参考） |
@@ -20,7 +20,7 @@
 | `modules/jobs/internal/event_store.go` | 手写 | 持久接收事件；同文件职责限本域以下登记函数 | `jobs.PublishEvent`、`jobs.encodeEvent`（参考）、`jobs.readEventRecord`（参考）、`jobs.requireEventWrite`（参考）、`jobs.eventReceipt`（参考）、`jobs.saveEventReceipt`（参考）、`jobs.RelayOutbox` |
 | `modules/jobs/internal/event_delivery.go` | 手写 | 至少一次投递；同文件职责限本域以下登记函数 | `jobs.RequeueExpiredDeliveries`（参考）、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery`、`jobs.readDeliveryRecord`（参考）、`jobs.advanceConsumerOffset`（参考）、`jobs.authorizeDeliveryManagement`（参考） |
 | `modules/jobs/internal/cron.go` | 手写 | 严格解析定时表达式；同文件职责限本域以下登记函数 | `jobs.ValidateCron`（参考）、`jobs.NextFireAt`（参考） |
-| `modules/jobs/internal/schedule_store.go` | 手写 | 创建定时任务；同文件职责限本域以下登记函数 | `jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules` |
+| `modules/jobs/internal/schedule_store.go` | 手写 | 创建定时任务；同文件职责限本域以下登记函数 | `jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules`、`jobs.NewScheduleHandlers`（参考） |
 | `modules/jobs/internal/barrier_coordinator.go` | 手写 | 等待全域安全点；同文件职责限本域以下登记函数 | `jobs.CoordinateBarrier` |
 | `modules/jobs/internal/barrier.go` | 手写 | 取得jobs本域屏障；同文件职责限本域以下登记函数 | `jobs.EnterBarrier`、`jobs.ReleaseBarrier` |
 | `modules/jobs/internal/retention.go` | 手写 | 清理已完成记录；同文件职责限本域以下登记函数 | `jobs.PurgeExpiredHistory`（参考） |
@@ -62,3 +62,4 @@
 | `modules/jobs/internal/http_events.go` | 手写 | 已实现事件HTTP绑定组，交公共NewServiceHandler统一边界；其余handler未完成不伪造完整Application | `jobs.NewEventHandlers`（参考）、`jobs.writeEventResponse`（参考）、`jobs.NewManagementHandlers`（参考） |
 | `modules/jobs/migrations/0006_job_management.sql` | 迁移 | 仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态 | 无 |
 | `modules/jobs/migrations/0007_progress_retention.sql` | 迁移 | 只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间 | 无 |
+| `modules/jobs/migrations/0008_schedules.sql` | 迁移 | 只追加定时任务的类型、输入引用、代次、操作回执和到期索引；不重建schedules，不删除已有行 | 无 |
