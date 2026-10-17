@@ -2695,7 +2695,7 @@ func ValidateDrawingScene(ctx context.Context, op OperationContext, input Valida
 
 **步骤**
 
-1. 原DrawingScene schema经OpenAPI components引用进入唯一生成GetSwagger，由平台NewPayloadValidator完整验证；版本只接受2，未知字段/类型/坐标原schema拒绝，files等价additionalProperties值schema+propertyNames模式不改变持久版本
+1. 原DrawingScene schema经OpenAPI components引用进入唯一生成PayloadValidationSpec，由平台NewPayloadValidator完整验证；版本只接受2，未知字段/类型/坐标原schema拒绝，files等价additionalProperties值schema+propertyNames模式不改变持久版本
 2. Drawing专属语义核文件键原精确^[A-Za-z0-9._:-]{1,128}$与key/id一致、元素ID唯一、frame/bound/container/binding/file存在与类型、frame无环、group无重复、freedraw压力长度与points一致
 3. files只受限raster base64 data URL≤32MiB，MIME与签名及元数据一致，禁止SVG/外部URL；元素链接仅http/https/mailto，不执行HTML；按原element顺序收非deleted text，≤1048576字符，不写日志
 4. 运行校验仅使用x-runtime-payload-schemas登记并由make gen生成的PayloadValidationSpec自包含闭包，不从已被HTTP prune的GetSwagger读取孤立组件，不手写或复制schema；字段仍唯一来自contracts
