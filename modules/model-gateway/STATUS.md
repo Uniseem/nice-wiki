@@ -1,3 +1,16 @@
+# 单轮供应方与非嵌入模型配置写入已交付
+
+更新：2026-10-17。分支codex/model-20261017-r1，基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，独占modules/model-gateway/。源码提交0d0b76649bc8ccad043e4e3f4fcd545e28201258；用户当次授权三个子代理并行一轮，根统一检查及普通推送。本轮3项完整函数及provider.go和两份生成物verified；PutModel/model.go因embedding设计护栏整体in_progress/partial，BuildApplication保持blocked，accepted为零。
+
+- 沿既有PutProvider/PutModel.enabled保存配置与启停，不增HTTP。SetProviderEnabled未实现参考职责整合到PutProvider，删除死合同/台账；新增NewCatalogHandlers真实putProvider/putModel映射，公共入口即时superadmin授权一次，核路径与幂等头，no-store。
+- PutProvider保持7天完整原结果、严格同代/凭据active指针与全屏障，补version/epoch/credentialVersion条件UPSERT及RowsAffected。停用不改变在途调用或费用记录。
+- PutModel先核caller/epoch/完整输入摘要及7天原结果，再核所有非released屏障、同代provider/model与CAS。同modelId的providerId/providerModelVersion/dimension/preprocessorVersion不可变化，身份变化要求新ID；非embedding配置、完整回执与model.changed平台outbox同事务，过期键仅成功新写替换。旧hash不默认为新摘要，仍有效的旧键冲突，不静默重签或删除。
+- M07-R06归一化参与空间身份要求与公共五字段schema未收口。本轮有效原回执先行，新的embedding创建/编辑/启停统一DEPENDENCY_UNAVAILABLE、retryable=false，明确合同待确认，写库/回执/outbox前拒绝；不默认归一化、不发布未确认空间，不自动重算付费结果。ValidateModel源码未改，保留其原SHA/partial。
+- 2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。
+- 检查均按用户本轮指定在自部署GitLab CI执行；此前VPS握手断开，未回退本机。未新增测试/mock/fixture/样例/临时业务程序，无新路径/迁移/外部依赖；未运行真实接口/模型、服务或部署。本域不push，交付后冻结。源提交暂存/说明/作者/提交者及GPT-6署名已静态隐私扫描，保持既有GitHub代用身份。
+
+本轮下一项：由集成会话顺序合入源码和记录，复核实际集成树并按当次授权普通推送；本域冻结。后续若派发模型空间工作包，先由根收口M07-R06与contracts/common.schema.json、现有空间迁移决策，再实现本域声明/算法；本轮不提前编写。
+
 # 持续目标第二轮：管理读取与费用策略已交付
 
 更新：2026-10-16。分支codex/model-goal-r2，基线471c036082e082763d90e1080b3489d4e4531380，独占本域。源码提交14c5d80cb05d28f345c0db84916deb75dd92ec3e，根VPS生成/编译/结构检查与交叉审读通过；本轮14项完整函数verified，ReadModels和ReadAdminCatalog仍in_progress，admin/read.go整体partial，BuildApplication仍blocked。业务验收与部署未开始。

@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "fb9601756547a28f0f4c67e60593817f2903c03fe7c3c7c4f05b1e1fc6b2b969",
+  "contractSha256": "2220c7896ebfbfb7fc32ea230ff1476b2f5872444b6694cc000e3f380b297f24",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续目标第二轮管理读取与费用策略",
-  "branch": "codex/model-goal-r2",
-  "baseCommit": "471c036082e082763d90e1080b3489d4e4531380",
-  "deliveryCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+  "assignedSession": "2026-10-17单轮供应方与模型配置写入",
+  "branch": "codex/model-20261017-r1",
+  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
+  "deliveryCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "in_progress",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "state": "verified",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮PutProvider/原回执辅助已verified，SetProviderEnabled仍planned，整文件partial"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
@@ -42,13 +42,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "implemented",
-      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
+      "state": "in_progress",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "真实模型目录刷新、连接探测和调用流程未实现；本机无Go工具链"
+      "blocker": "M07-R06归一化身份与公共schema未收口，新的embedding创建/编辑/启停统一DEPENDENCY_UNAVAILABLE，不写库/回执/outbox；非embedding分支已通过本阶段检查，整文件partial。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
@@ -393,12 +393,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "新增五项真实管理HTTP映射已检查；完整handler、权威epoch初始化、恢复回执与后台仍未齐。"
+      "blocker": "本轮两项真实HTTP映射已接；其余handler、权威epoch初始化、恢复回执与后台循环未齐，完整启动blocked，整文件partial。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -523,10 +523,10 @@
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -553,10 +553,10 @@
     {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -608,21 +608,10 @@
       "id": "model-gateway.PutProvider",
       "path": "modules/model-gateway/internal/catalog/provider.go",
       "state": "verified",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
-      },
-      "blocker": null
-    },
-    {
-      "id": "model-gateway.SetProviderEnabled",
-      "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
     },
@@ -651,24 +640,24 @@
     {
       "id": "model-gateway.PutModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "implemented",
-      "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
+      "state": "in_progress",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "完整handler、模型目录刷新和Go编译验证尚未完成"
+      "blocker": "非embedding新写、原回执/条件CAS及身份不可变检查已通过本阶段检查；M07-R06归一化身份与公共schema未收口，新的embedding创建/编辑/启停统一DEPENDENCY_UNAVAILABLE，不写库或outbox，整函数partial。"
     },
     {
       "id": "model-gateway.ValidateModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "implemented",
+      "state": "in_progress",
       "implementationCommit": "4eec945320f8cf20bfc6673a8c3c8490385aca2f",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "EmbeddingSpace规范缺少独立归一化规则字段，当前仅按现有合同字段计算；行为验收未运行"
+      "blocker": "现有嵌入空间算法缺独立归一化身份合同与迁移决策，整函数partial；本轮源码未改，保留原实现SHA，不将新配置护栏当作算法收口。"
     },
     {
       "id": "model-gateway.PutProfile",
@@ -1246,12 +1235,12 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
-      "blocker": "本轮新增五项真实管理HTTP映射候选；其他handler、权威epoch初始化、恢复回执及后台仍缺，完整启动拒绝。"
+      "blocker": "本轮既有putProvider/putModel映射已接；其余handler、权威epoch初始化、恢复回执和后台循环未齐，完整应用继续拒绝启动。"
     },
     {
       "id": "model-gateway.Serve",
@@ -1747,6 +1736,28 @@
         "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
       },
       "blocker": null
+    },
+    {
+      "id": "model-gateway.NewCatalogHandlers",
+      "state": "verified",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null,
+      "path": "modules/model-gateway/internal/catalog/provider.go"
+    },
+    {
+      "id": "model-gateway.readModelReceipt",
+      "state": "verified",
+      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+      },
+      "blocker": null,
+      "path": "modules/model-gateway/internal/catalog/model.go"
     }
   ],
   "rule": "持续目标第一轮源码24e4026：ResolveProfile、ResolveRoute、SelectCandidates及3项新助手、修改readAvailabilityCandidate和3个完整文件按根VPS检查verified；PutProfile本轮源码未修改，保留原实际SHA。仅免费同代路由元数据，不表示费用/派发/凭据引用生命周期、完整服务或业务验收完成。无新增测试、模型调用或部署；本域冻结等根顺序集成及下一轮派发，不自行push。"
