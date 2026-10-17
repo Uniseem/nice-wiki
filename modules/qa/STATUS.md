@@ -1,5 +1,20 @@
 # 问答与缓存当前进度
 
+更新：2026-10-17。阶段：实施中。分支 `codex/qa-20261017-r5`，基线 `a3e6af980d5288e42bc8d023410faf8923ff21e8`，源码提交 `7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe`。部署 `not_started`。accepted 为 0。
+
+- `qa.EvaluateCacheEligibility` 与 `modules/qa/internal/cache/eligibility.go` 保持 blocked。已补全、非个性化、非敏感动态、仍依赖页面和 out_of_scope 按已有字段拒绝共享缓存。指代残留没有可执行规则，函数不扫描问题文本；上述字段都通过时仍返回 eligible=false、reason=ambiguous。未接语义缓存、嵌入、真实模型或持久化。
+- 验证状态为 not_run。本轮未跑 GitLab CI，未执行 go、gofmt、make build、make gen、make check 或 SSH。本域执行了 `make docs`（只调用 Python 渲染）。
+- `qa.NormalizeQuestion` 仍为 implemented，验证 not_run。其余函数与文件保持原状态。
+- 新文件尚未写入根 `docs/structure/framework.json`，由集成会话登记。
+
+下一步：等合同写明独立问题残留这/它或未命名第二步来源的可执行判定后，再打开 eligible=true。在此之前不要自选文本规则，也不要把本函数记成 verified 或 accepted。
+
+历史记录见下文，其中的旧下一步不再执行。
+
+---
+
+# 问答与缓存当前进度
+
 更新：2026-10-15。阶段：R1-16 实施中；本域业务验收与部署未开始。
 
 - 2026-10-15 集成复核修复：`NormalizeQuestion` 先按 BCP 47 规范化语言标签再计算问题哈希，无法解析的标签按 VALIDATION 拒绝。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
