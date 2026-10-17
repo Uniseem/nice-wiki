@@ -413,6 +413,11 @@ func (c *ModelGatewayClient) CreateInference(ctx context.Context, body any) (jso
 	return c.do(ctx, http.MethodPost, "/v1/inferences", body, "")
 }
 
+// EstimateTokens POST /v1/token-estimates（model-gateway:estimateTokens）。
+func (c *ModelGatewayClient) EstimateTokens(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/token-estimates", body, "")
+}
+
 // QuoteCost POST /v1/cost-quotes（model-gateway:quoteCost）。
 func (c *ModelGatewayClient) QuoteCost(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/cost-quotes", body, "")
