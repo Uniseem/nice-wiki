@@ -2499,7 +2499,45 @@
       },
       "CleanupApproval": {
         "$ref": "types.json#/$defs/CleanupApproval"
+      },
+      "JobsClaimJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/ClaimJobResult"
+      },
+      "JobsStartJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/StartJobResult"
+      },
+      "JobsHeartbeatJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/HeartbeatJobResult"
+      },
+      "JobsCheckLeaseResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CheckLeaseResult"
+      },
+      "JobsCompleteJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CompleteJobResult"
+      },
+      "JobsFailJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/FailJobResult"
       }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "Asset",
+    "UploadSession",
+    "AcquireResourceReferencesResult",
+    "AcquireResourceReferencesInput",
+    "ReferenceSourceDecision",
+    "ContentReferencePage",
+    "SiteConfigReferencePage",
+    "ReferenceSnapshot",
+    "CleanupPlan",
+    "CleanupApproval",
+    "CleanupJobReceipt",
+    "DrawingScene",
+    "JobsClaimJobResult",
+    "JobsStartJobResult",
+    "JobsHeartbeatJobResult",
+    "JobsCheckLeaseResult",
+    "JobsCompleteJobResult",
+    "JobsFailJobResult"
+  ]
 }

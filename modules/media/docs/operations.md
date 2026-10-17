@@ -12,6 +12,13 @@ snapshot包含所有COMMITTEDblob/meta/refWatermarks/确认人工plans和journal
 
 ## 本轮人工删除代码边界
 
-media.cleanup由RunWorker注册到platform.RunWorkerLoop。只接受受信装配注入的真实platform.JobsClient；本域不复制claim/续租/取消/fence机制，不造接口空方法。完整ClaimedJob ObjectRef和原任务回执绑定原批准站点/op/root/epoch，领取时新建十分钟执行期限。完整服务仍因真实适配、bytes、其他HTTP/事件/控制恢复未齐而blocked；本轮没有运行worker、真实接口、SQL行为验收或删除任何业务文件。
+media.cleanup由RunWorker注册到platform.RunWorkerLoop。只接受受信装配注入的真实platform.WorkerJobsClient；本域不复制claim/续租/取消/fence机制，不造接口空方法。完整ClaimedJob ObjectRef和原任务回执绑定原批准站点/op/root/epoch，领取时新建十分钟执行期限。真实适配与单批周期装配通过本轮GitLab pipeline32既有检查；完整服务因bytes、其他HTTP/事件/控制恢复未齐继续blocked；本轮没有运行worker、真实接口、SQL行为验收或删除任何业务文件。
 
 任务取消只报告可证明安全点：ctx取消或公共CANCELLED cause后，一秒独立只读快照核原任务/批准/计划与execution；已有完整终局优先成功，无execution才能JobCancelled，未终局DELETING与读取未知保持决定，不谎报安全取消。该证明不执行写入或RPC，jobs最后写回仍受平台有效fence约束。
+
+
+## 真实任务与背景关闭装配（2026-10-17，GitLab pipeline32检查通过）
+
+域仅构建jobs拥有的六Result校验器，公共窄WorkerJobsClient适配负责真实HTTP转换；Claim使用system服务范围，领取后精确原批准恢复真实本站对象范围。背景任务只有worker和单批relay的统一周期包装，完整应用门槛未齐时不安装运行。producer事件广播可用system基础op，数据仅来自已提交outbox；不从任意payload指定RPC站点。
+
+背景关闭统一为取消→HTTP Drain→等待背景安全点→Shutdown关库，不能先关DB再等任务。RelayOutbox只单批，平台RunRecoveryLoop每秒串行触发，网络/行租约/退避/隔离仍由RunRelayBatch处理；本批计数不代表全域已转发。所有runtime校验schema显式由OpenAPI manifest选取并生成自包含闭包，避免HTTP prune导致运行初始化缺规格，不把编译成功当行为验收。

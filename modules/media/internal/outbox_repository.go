@@ -32,3 +32,25 @@ func PublishAssetEvent(ctx context.Context, op OperationContext, input PublishAs
 	}
 	return outbox.EnqueueEvent(input.Tx, platform.EventEnvelope{EventID: input.EventID, EventType: "media.asset.changed", EventVersion: 1, Producer: "media", SubjectID: input.Asset.Ref.AssetId, Revision: platform.Revision(input.Asset.Revision), OccurredAt: input.OccurredAt, DataEpoch: op.DataEpoch, Payload: payload})
 }
+
+// RelayOutboxInput按公共单批合同装配，不接受HTTP任意触发。
+type RelayOutboxInput struct {
+	BatchLimit int `json:"batchLimit"`
+}
+type RelayOutboxResult = platform.RelayBatchResult
+
+// RelayOutbox只把本域私有outbox与真实生成客户端交给平台单批机制。
+func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error) {
+	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
+		return RelayOutboxResult{}, platform.NewError(platform.CodeForbidden, false, "资源事件转发仅允许本域可信后台")
+	}
+	s, err := cleanupStore(op, false)
+	if err != nil {
+		return RelayOutboxResult{}, err
+	}
+	if s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
+		return RelayOutboxResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "资源事件转发依赖未装配")
+	}
+	work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+	return outbox.RunRelayBatch(work, outbox.NewStore(s.db), outbox.NewEventPublisher(s.cleanupJobs), platform.RelayConfig{BatchLimit: input.BatchLimit, PollMillis: 1000, Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow})
+}

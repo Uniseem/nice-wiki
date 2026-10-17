@@ -8,13 +8,16 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
+	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/worker"
+	"nice-wiki/modules/media/internal/gen"
 )
 
 // WorkerLoopInput 的Client只接受受信装配，不从HTTP或任务对象反序列化。
 type WorkerLoopInput struct {
-	MaxConcurrency int                 `json:"maxConcurrency"`
-	Client         platform.JobsClient `json:"-"`
+	MaxConcurrency int                       `json:"maxConcurrency"`
+	Client         platform.WorkerJobsClient `json:"-"`
 }
 type WorkerLoopResult struct {
 	Completed int64 `json:"completed"`
@@ -82,7 +85,7 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 		completed.Add(1)
 		return platform.JobExecutionResult{State: platform.JobSucceeded}, nil
 	}}
-	err = worker.RunWorkerLoop(platform.WithPortalProof(ctx, ""), input.Client, config, executors)
+	err = worker.RunWorkerLoop(platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op), input.Client, config, executors)
 	return WorkerLoopResult{completed.Load(), failed.Load()}, err
 }
 
@@ -131,4 +134,49 @@ func (s *localBlobStore) cleanupWorkerFailure(ctx context.Context, op OperationC
 		return platform.JobExecutionResult{}, executeErr
 	}
 	return platform.JobExecutionResult{State: platform.JobCancelled, ErrorCode: platform.CodeCancelled}, nil
+}
+
+// NewCleanupWorkerClient只装配生产方schema，HTTP字段转换和租约机制统一由平台负责。
+func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, error) {
+	if client == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源任务真实jobs客户端未装配")
+	}
+	document := []byte(gen.PayloadValidationSpec)
+	validators := make(worker.ResponseValidators, 6)
+	for _, name := range []string{"ClaimJobResult", "StartJobResult", "HeartbeatJobResult", "CheckLeaseResult", "CompleteJobResult", "FailJobResult"} {
+		validate, err := apivalidate.NewPayloadValidator(document, "Jobs"+name)
+		if err != nil {
+			return nil, err
+		}
+		validators[name] = validate
+	}
+	return worker.NewJobsClient(client, validators)
+}
+
+// NewMediaBackgroundTasks仅构造闭包，完整应用门槛失败时不会启动任何业务后台。
+func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient) ([]platform.BackgroundTask, error) {
+	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
+		return nil, platform.NewError(platform.CodeForbidden, false, "资源后台装配仅接受本域可信启动")
+	}
+	s, err := cleanupStore(op, false)
+	if err != nil {
+		return nil, err
+	}
+	if jobs == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源后台真实客户端或窗口未装配")
+	}
+	return []platform.BackgroundTask{
+		{Name: "media.RunWorker", Run: func(ctx context.Context) error {
+			_, err := RunWorker(ctx, op, WorkerLoopInput{MaxConcurrency: 2, Client: jobs})
+			return err
+		}},
+		{Name: "media.RelayOutbox", Run: func(ctx context.Context) error {
+			work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+			return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow, Recover: func(batchCtx context.Context) error {
+				batchOp, _ := platform.OperationContextFrom(batchCtx)
+				_, err := RelayOutbox(batchCtx, batchOp, RelayOutboxInput{BatchLimit: 100})
+				return err
+			}})
+		}},
+	}, nil
 }

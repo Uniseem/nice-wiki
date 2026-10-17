@@ -45,7 +45,7 @@
 |---|---|---|
 | `media.RecoverBlobJournal` | 启动时（入口开放前） | 恢复blob完成/删除持久日志 |
 | `media.ExpireUploadSessions` | 每10分钟 | 仅回收过期未完成临时字节 |
-| `media.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
+| `media.RelayOutbox` | 启动后持续，空闲每1秒 | 本域已提交outbox的真实单批转发，机制统一由平台执行 |
 | `media.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `media.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
 <!-- flows:end -->

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 55 个：手写 45、生成 3、配置 6、迁移 1。函数 178 个：约束 36，参考 142。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 55 个：手写 45、生成 3、配置 6、迁移 1。函数 183 个：约束 36，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -39,7 +39,7 @@
 | `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `media.ExportSnapshot`、`media.StageSnapshot`、`media.DiscardSnapshot` |
 | `modules/media/cmd/media/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `media.main` |
 | `modules/media/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `media.BuildApplication` |
-| `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready`、`media.NewApplication`（参考）、`media.serviceHandlers`（参考）、`media.serveUploadChunk`（参考）、`media.writeRequestProblem`（参考） |
+| `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready`、`media.NewApplication`（参考）、`media.serviceHandlers`（参考）、`media.serveUploadChunk`（参考）、`media.writeRequestProblem`（参考）、`media.InstallBackgroundTasks`（参考）、`media.BackgroundTasks`（参考）、`media.Drain`（参考） |
 | `modules/media/go.mod` | 配置 | 独立module nice-wiki/modules/media；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/media/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/media/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/media；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -47,9 +47,9 @@
 | `modules/media/config/service.defaults.json` | 配置 | ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/media/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
 | `modules/media/internal/event_subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `media.ConsumeEvents` |
-| `modules/media/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `media.RunWorker`、`media.cleanupWorkerOperation`（参考）、`media.cleanupWorkerFailure`（参考） |
+| `modules/media/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `media.RunWorker`、`media.cleanupWorkerOperation`（参考）、`media.cleanupWorkerFailure`（参考）、`media.NewCleanupWorkerClient`（参考）、`media.NewMediaBackgroundTasks`（参考） |
 | `modules/media/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
-| `modules/media/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
+| `modules/media/internal/gen/clients.gen.go` | 生成 | 生成的版本化客户端及显式runtime schema闭包；不手改，不扩大HTTP DTO | 无 |
 | `modules/media/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/media/migrations/0001_domain.sql` | 迁移 | 初始权威表（ADR0005私有SQLite）：upload_sessions、upload_receipts、assets、blob_journal与schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/media/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `media.All`（参考） |
