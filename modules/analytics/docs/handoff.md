@@ -17,12 +17,9 @@
 
 证据：未跑 GitLab CI。
 
-### 请集成会话登记
+### 登记
 
-以下新文件尚未写入 `docs/structure/framework.json`：
-
-- `modules/analytics/internal/buckets.go`
-- `modules/analytics/internal/privacy.go`
+`modules/analytics/internal/buckets.go` 与 `modules/analytics/internal/privacy.go` 已写入根 `docs/structure/framework.json`。GitLab 编译还没有覆盖这次提交，不要把这两个已写函数记为 verified。
 
 ### 下一步（一项）
 

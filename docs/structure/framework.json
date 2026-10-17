@@ -939,6 +939,11 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/analytics/internal/buckets.go",
+      "kind": "handwritten",
+      "purpose": "把毫秒耗时分入合同写明的五个闭区间桶"
+    },
+    {
       "path": "modules/analytics/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -952,6 +957,11 @@
       "path": "modules/analytics/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/analytics/internal/privacy.go",
+      "kind": "handwritten",
+      "purpose": "核对日志字段名；审计元数据在动作白名单写明前拒绝"
     },
     {
       "path": "modules/analytics/internal/transport/server.go",
