@@ -82,7 +82,7 @@ func Serve(ctx context.Context, app *Application) error {
 	}
 	go func() {
 		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		_ = Shutdown(shutdownCtx, app)
 	}()

@@ -449,7 +449,7 @@ export interface paths {
         put?: never;
         /**
          * 按文档及块ID解析当前安全公开链接
-         * @description 仅site-config已认证纯服务主体，不接受访客、其他服务或用户委托。只读当前epoch公开链接；调用方已按baseLanguage补齐language。已启用语言缺译时保留该语言URL。依赖未知或权威变化503，不伪造不可见；禁止递归site-config.readPublicHome。
+         * @description 仅site-config已认证纯服务主体，不接受访客、其他服务或用户委托。只读当前epoch公开链接；调用方已按baseLanguage补齐language。已启用语言缺译时保留该语言URL。依赖未知返回503；权威水位变化返回STALE_RESULT/409，不伪造不可见；禁止递归site-config.readPublicHome。
          */
         post: operations["resolvePublishedLink"];
         delete?: never;
@@ -1763,7 +1763,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description VERSION_MISMATCH：请求dataEpoch与当前权威不一致 */
+            /** @description VERSION_MISMATCH：请求dataEpoch与当前权威不一致；STALE_RESULT：公开引用或水位已变化 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1772,7 +1772,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description DEPENDENCY_UNAVAILABLE或STALE_RESULT：权威未知或最终路径/发布/配置/语言水位变化 */
+            /** @description DEPENDENCY_UNAVAILABLE：content、配置或启用语言权威未知或不可达 */
             503: {
                 headers: {
                     [name: string]: unknown;

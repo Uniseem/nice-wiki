@@ -83,7 +83,7 @@ func joinBaseOnce(basePath, canonicalPath string) (string, error) {
 		return canonicalPath, nil
 	}
 	basePath = strings.TrimRight(basePath, "/")
-	if canonicalPath == basePath || strings.HasPrefix(canonicalPath, basePath + "/") {
+	if canonicalPath == basePath || strings.HasPrefix(canonicalPath, basePath+"/") {
 		return "", platform.NewError(platform.CodeValidation, false, "规范路径已含基址")
 	}
 	return basePath + canonicalPath, nil

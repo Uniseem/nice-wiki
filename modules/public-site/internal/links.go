@@ -372,13 +372,13 @@ func orderMarks(value any, depth int) error {
 			})
 		}
 		for _, child := range node {
-			if err := orderMarks(child, depth + 1); err != nil {
+			if err := orderMarks(child, depth+1); err != nil {
 				return err
 			}
 		}
 	case []any:
 		for _, child := range node {
-			if err := orderMarks(child, depth + 1); err != nil {
+			if err := orderMarks(child, depth+1); err != nil {
 				return err
 			}
 		}
@@ -417,13 +417,13 @@ func walkBlockIDs(value any, depth int, counts map[string]int) error {
 			}
 		}
 		for _, child := range node {
-			if err := walkBlockIDs(child, depth + 1, counts); err != nil {
+			if err := walkBlockIDs(child, depth+1, counts); err != nil {
 				return err
 			}
 		}
 	case []any:
 		for _, child := range node {
-			if err := walkBlockIDs(child, depth + 1, counts); err != nil {
+			if err := walkBlockIDs(child, depth+1, counts); err != nil {
 				return err
 			}
 		}
@@ -432,7 +432,7 @@ func walkBlockIDs(value any, depth int, counts map[string]int) error {
 }
 
 func relativeLink(ctx context.Context, op platform.OperationContext, baseURL, language, canonicalPath, blockID string) (string, error) {
-	if canonicalPath == "/" + language || strings.HasPrefix(canonicalPath, "/" + language + "/") {
+	if canonicalPath == "/"+language || strings.HasPrefix(canonicalPath, "/"+language+"/") {
 		return "", dependency("公开规范路径含语言前缀")
 	}
 	built, err := BuildCanonical(ctx, op, BuildCanonicalInput{
