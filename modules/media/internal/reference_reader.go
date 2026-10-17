@@ -165,12 +165,22 @@ func (s *localBlobStore) readSourceReferences(ctx context.Context, op OperationC
 				if json.Unmarshal(rawRef, &item) != nil || item.SourceService != source || item.Asset != asset {
 					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "文档引用源或不可变资产不匹配")
 				}
+				if item.Kind == "pending_pin" && !item.Retained {
+					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "待提交引用必须保留保护")
+				}
 				if !item.Retained {
 					continue
 				}
 				ref = gen.AssetReference{SourceService: gen.AssetReferenceSourceService(source), SourceObjectId: item.DocumentId, SourceRevisionId: item.SourceRevisionId, SourceVersion: item.SourceVersion, ReferenceId: item.BlockId, Asset: item.Asset, Kind: gen.Current, Confirmed: true}
-				if item.Kind == "history" {
+				switch item.Kind {
+				case "current_draft", "current_published":
+				case "history":
 					ref.Kind = gen.History
+				case "pending_pin":
+					ref.Kind = gen.PendingPin
+					ref.Confirmed = false
+				default:
+					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "文档引用源kind未登记")
 				}
 			} else if json.Unmarshal(rawRef, &ref) != nil || string(ref.SourceService) != source || ref.Asset != asset || !ref.Confirmed || ref.ExpiresAt != nil || (ref.Kind != gen.Current && ref.Kind != gen.History) {
 				return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "配置引用来源、终局或资产不匹配")

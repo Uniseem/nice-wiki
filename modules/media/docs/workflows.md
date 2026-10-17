@@ -30,10 +30,14 @@
 - 执行函数：`media.ExecuteManualCleanup`
 - 触发：ConfirmManualCleanup一次人工批准后用固定CleanupApproval ObjectRef/dedupeKey和notBefore≥批准后24小时真实提交jobs；取消不删批准证据，worker必须另核当前计划
 
-1. 同进程jobs worker claim后直接调用本域ReadCleanupApprovalObject读取真实CleanupApproval ObjectRef规范字节，核原operationId/root/dataEpoch/站点及当前计划waiting、原批准/notBefore≥24h、精确marks；未知、取消、blocked、未确认或任务原回执未落本域均拒绝。领取时建立新执行期限，不复用原批准请求短deadline
-2. ValidateCleanupSources全量权威检查；assetmutex再CAS generation/fence，pendingpin/newref/activeReader出现取消该asset
-3. 先持久delete决定再unlink本服务generated blob；dedup其他asset/ref非0不删共享bytes；journal恢复补删，事件deleted
-4. 遇新引用/未知来源/readers/水位变化时计划可blocked，尚无DELETING决定的资产可保留原精确marks/delete_pending待取消；blocked不授权继续删除，也不凭状态释放标记。已有DELETING的资产按持久决定恢复，Cancel必须CONFLICT，不能声称全部可逆
+1. 仅本域纯media worker及平台CheckLease guard；完整JobExecutionInput保留原ObjectRef/jobId/workerId/fence，ReadCleanupApprovalObject精确读取原规范字节，核原operationId/root/dataEpoch/站点、原AcceptedJob与固定waiting结果；领取时新建十分钟执行期限
+2. 终局原结果只回放，原DELETING只收敛；新执行只接受当前完整计划规范字节等于原waiting、notBefore=confirmedAt+24h且已到期、完整精确marks，取消/blocked/未知均拒绝
+3. 所有RPC无asset/store/SQL锁；逐资产ValidateCleanupSources取得两源固定水位完整分页及本地pending；新current/pending或原批准历史风险变化则整份CAS blocked并保留marks；未知失败关闭
+4. 最终平台CheckLease与公共running写窗口后，完整assetId稳定序锁→store→SQL；核原waiting/完整marks/fence/generation、最终快照generation、无current/pending/DELETING和activeReader及资源/计划修订空间，变化失败关闭
+5. 同一事务固定schemaVersion=1执行材料、原批准摘要/job/op/root/site/epoch/waiting修订/decidedAt及全部逐资产决定与DELETING journal；同站点同SHA计划外任一未删除asset存在保留共享bytes，否则仅一项拥有bytes删除；未知Commit不unlink
+6. 原决定恢复前完整核批准/marks/资产/水位及保护，store互斥覆盖generated blob普通文件/身份/SHA/长度核对、unlink/目录fsync及终局SQL；Complete同store互斥且未完成同SHA决定阻止新bytes提交/复用
+7. 仅原持久决定允许缺失blob恢复；deleted/revision+1、精确mark解除、真实generation的deleted outbox、计划终局及完整原结果/hash同事务。Cancel遇任一DELETING始终CONFLICT，提交未知保留材料
+8. 启动exclusive先恢复同opened epoch明确批准决定再核COMMITTED；deleted必须具完整原终局证明，未知/孤立DELETING失败关闭，不扫描ready自动产生授权
 
 ### 后台任务
 

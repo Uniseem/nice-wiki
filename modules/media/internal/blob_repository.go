@@ -659,6 +659,14 @@ func (s *localBlobStore) AbortUpload(ctx context.Context, siteID, uploadID Ident
 
 // CommitVerifiedBlob 在调用方持有上传互斥锁时提交文件与完成事务。
 func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, op OperationContext, input CommitAssetBlobInput) (gen.Asset, error) {
+	// Complete持store互斥；未完成DELETING决定存在时不得复用或重建相同bytes。
+	var deleting int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_cleanup_deletions d JOIN manual_cleanup_executions e ON e.plan_id=d.plan_id JOIN assets a ON a.asset_id=d.asset_id WHERE a.site_id=? AND a.sha256=? AND e.result_json IS NULL`, op.Actor.SiteID, input.SHA256).Scan(&deleting); err != nil {
+		return gen.Asset{}, mapMediaDBError(err, "核对共享blob删除决定失败")
+	}
+	if deleting != 0 {
+		return gen.Asset{}, platform.NewError(platform.CodeLocked, false, "共享blob的人工删除决定尚未完成")
+	}
 	record, found, err := readUploadRow(ctx, s.db, input.UploadID, s.validateUpload)
 	if err != nil {
 		return gen.Asset{}, err
