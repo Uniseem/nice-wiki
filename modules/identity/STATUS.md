@@ -1,3 +1,21 @@
+# 超管重置文件（2026-10-17，未跑 CI）
+
+分支 `codex/identity-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码提交 `709eeae3e37c8aa7e1da1ab04a61759f9011686a`。
+
+已实现 `ObserveSuperadminResetFile`、`ApplySuperadminReset`，以及闭环参考助手 `readSuperadminResetFile`、`readUniqueSuperadmin`、`consumeSuperadminResetFile`，都在 `internal/server_recovery.go`。五者记 implemented，verification 为 not_run。未跑 GitLab CI，也未跑 go、gofmt、make build、make gen、make check，不能记 verified。accepted=0。
+
+固定路径是 identity 私有 `control/reset-superadmin.txt`。合同未写死八进制文件模式，沿用本文件既有控制文件规则：普通文件，拒绝符号链接和组/其他可访问，并经平台私有路径校验。一次性消费按合同：提交回执后只删除该固定文件；删除失败时，下次读到同一 fileHash 回执只补删，不重复重置。
+
+当前唯一 active 超管是凭据权威。口令走既有 HashPassword；凭据 CAS 后 `must_change_password=1`，不提升 account.revision。同一事务调用既有 RevokeAllSessions，原因为 server_reset。幂等记录是既有 operation_receipts 上的 fileHash 回执，结果只含 completed，不含口令。未新增决定日志种类：未登记的开放决定会使启动恢复失败关闭，而本轮不展开完整启动。
+
+BuildApplication 与 main 仍失败关闭，未接每 5 秒观察，未实现屏障、快照或 RelayOutbox。未新增迁移、测试或样例。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。不要自行展开屏障或完整启动。
+
+---
+
 # 持续实施第一轮：授权安全显示名（2026-10-16，VPS检查通过）
 
 用户重新授权每轮三子代理编写、审核并push至R1代码完成。集成会话为content编辑锁补齐公共前置：AuthorizationDecision追加当前已校验主体的accountName，readSessionSnapshot同一账户JOIN读取不可变账号名，不新增任意账户读取能力、不改变grants。来源685db4f，独占本次identity修改；本域原后续服务器重置工作包仍未实施。

@@ -2,12 +2,12 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "1c05ee8489ef896a860a1f40a2ac04b3e421d7662d6f109f1eccae19543cbda4",
+  "contractSha256": "ff3fb8e8db1ecf36e27ba72e152e2a5742ddffbec94fcce162cec73d2531f9ef",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第四轮身份本人后台偏好紧密函数组",
-  "branch": "codex/identity-preferences-r1",
-  "baseCommit": "de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1",
-  "deliveryCommit": "d6a453a83c864b91c6af0d58ac12b55f804e59ee",
+  "assignedSession": "超管重置文件紧密函数组",
+  "branch": "codex/identity-20261017-r4",
+  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
+  "deliveryCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
   "deployment": "not_started",
   "files": [
     {
@@ -112,13 +112,13 @@
     },
     {
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "in_progress",
-      "implementationCommit": "9d3f89c2b49a05de8f5d634bd5ce88c1ded406ac",
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本轮索引检查与恢复通过现阶段检查；ObserveSuperadminResetFile/ApplySuperadminReset仍未实现"
+      "blocker": "超管重置已提交但未跑 GitLab CI，不能记 verified；既有账号索引函数仍保留各自已通过的函数级证据。每5秒观察未接入 BuildApplication"
     },
     {
       "path": "modules/identity/internal/operation_repository.go",
@@ -694,8 +694,8 @@
     {
       "id": "identity.ObserveSuperadminResetFile",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -705,8 +705,41 @@
     {
       "id": "identity.ApplySuperadminReset",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.readSuperadminResetFile",
+      "path": "modules/identity/internal/server_recovery.go",
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.readUniqueSuperadmin",
+      "path": "modules/identity/internal/server_recovery.go",
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.consumeSuperadminResetFile",
+      "path": "modules/identity/internal/server_recovery.go",
+      "state": "implemented",
+      "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -854,7 +887,7 @@
         "state": "passed",
         "evidence": "2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。已人工核对当前本人站点/会话、受限会话拒绝、固定默认、原完整成功先于CAS和新目标页核权、每新成功偏好版本加1、公共目录权威与无账号/认证事件副作用。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。"
       },
-      "blocker": "本人偏好、既有认证/账号管理handler已通过现阶段检查；服务器重置、屏障/备份恢复与后台装配仍未齐，完整启动继续失败关闭；无行为验收"
+      "blocker": "超管重置函数已实现但未接入启动与每5秒观察；屏障、快照、outbox转发与后台装配仍未齐，完整启动继续失败关闭；未跑本轮 GitLab CI，无行为验收"
     },
     {
       "id": "identity.BuildApplication",
@@ -865,7 +898,7 @@
         "state": "passed",
         "evidence": "2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。已人工核对当前本人站点/会话、受限会话拒绝、固定默认、原完整成功先于CAS和新目标页核权、每新成功偏好版本加1、公共目录权威与无账号/认证事件副作用。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。"
       },
-      "blocker": "本人偏好、既有认证/账号管理handler已通过现阶段检查；服务器重置、屏障/备份恢复与后台装配仍未齐，完整启动继续失败关闭；无行为验收"
+      "blocker": "超管重置函数已实现但未接入启动与每5秒观察；屏障、快照、outbox转发与后台装配仍未齐，完整启动继续失败关闭；未跑本轮 GitLab CI，无行为验收"
     },
     {
       "id": "identity.Serve",
@@ -1506,5 +1539,5 @@
       "blocker": null
     }
   ],
-  "rule": "用户持续实施授权下，第四轮本人后台偏好紧密函数组已按独立冻结快照通过VPS检查；完整用例/助手verified，整体服务与部分装配继续真实blocked/in_progress，行为验收和部署未开始；交付后冻结，未启动下一包。"
+  "rule": "超管重置文件观察与一次性口令恢复已实现但未跑 GitLab CI，只记 implemented；完整启动、屏障、快照与 outbox 转发仍 blocked，行为验收未开始，accepted=0。"
 }
