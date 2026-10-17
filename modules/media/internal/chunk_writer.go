@@ -253,7 +253,9 @@ func (s *localBlobStore) verifyUploadChunks(ctx context.Context, file *os.File, 
 	return nil
 }
 
-// PutUploadChunk 先回放原成功，再在独占上传边界准备和提交新分块。
+// PutUploadChunk 同操作先回放原 UploadSession，不消费分块流。
+// 新写先取真实运行窗口；私有暂存长度与 SHA 一致并 fsync 后先落 PREPARED，
+// 再按已提交 SQL 水位截尾、追加并 CAS。不发布资源或事件。
 func PutUploadChunk(ctx context.Context, op OperationContext, input PutUploadChunkInput) (PutUploadChunkResult, error) {
 	if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || (!hasGrant(op.Actor.Grants, "media.upload") && !hasGrant(op.Actor.Grants, "superadmin")) {
 		return PutUploadChunkResult{}, platform.NewError(platform.CodeForbidden, false, "当前会话没有上传权限")
@@ -321,11 +323,7 @@ func PutUploadChunk(ctx context.Context, op OperationContext, input PutUploadChu
 		return PutUploadChunkResult{}, err
 	}
 	defer root.Close()
-	file, err := s.reconcileUploadFile(work, op, root, record, false)
-	if err != nil {
-		return PutUploadChunkResult{}, err
-	}
-	defer file.Close()
+	// 有界读 length+1；长度或 SHA 不符不留下 PREPARED，也不改上传文件。
 	stageID, err := writeChunkStage(work, root, input.Chunk)
 	if err != nil {
 		return PutUploadChunkResult{}, err
@@ -335,14 +333,25 @@ func PutUploadChunk(ctx context.Context, op OperationContext, input PutUploadChu
 		return PutUploadChunkResult{}, err
 	}
 	defer prepareCancel()
+	var prepared sql.Result
 	if !found {
-		_, err = s.db.ExecContext(prepareCtx, `INSERT INTO upload_chunks(operation_id,upload_id,site_id,actor_id,data_epoch,request_hash,expected_revision,byte_offset,byte_length,sha256,stage_id,state,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,'PREPARED',?)`, op.OperationID, input.UploadId, op.Actor.SiteID, op.Actor.SubjectID, op.DataEpoch, hash, input.ExpectedRevision, input.Chunk.Offset, input.Chunk.Length, input.Chunk.SHA256, stageID, platform.Now())
+		prepared, err = s.db.ExecContext(prepareCtx, `INSERT INTO upload_chunks(operation_id,upload_id,site_id,actor_id,data_epoch,request_hash,expected_revision,byte_offset,byte_length,sha256,stage_id,state,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,'PREPARED',?)`, op.OperationID, input.UploadId, op.Actor.SiteID, op.Actor.SubjectID, op.DataEpoch, hash, input.ExpectedRevision, input.Chunk.Offset, input.Chunk.Length, input.Chunk.SHA256, stageID, platform.Now())
 	} else {
-		_, err = s.db.ExecContext(prepareCtx, `UPDATE upload_chunks SET stage_id=? WHERE operation_id=? AND state='PREPARED' AND request_hash=?`, stageID, op.OperationID, hash)
+		prepared, err = s.db.ExecContext(prepareCtx, `UPDATE upload_chunks SET stage_id=? WHERE operation_id=? AND state='PREPARED' AND request_hash=?`, stageID, op.OperationID, hash)
 	}
 	if err != nil {
 		return PutUploadChunkResult{}, mapMediaDBError(err, "持久化分块准备决定失败")
 	}
+	preparedRows, rowsErr := prepared.RowsAffected()
+	if rowsErr != nil || preparedRows != 1 {
+		return PutUploadChunkResult{}, platform.NewError(platform.CodeConflict, false, "分块准备决定已变化")
+	}
+	// PREPARED 已提交后才按 SQL 水位截去未提交尾。崩溃恢复同样只认已提交水位。
+	file, err := s.reconcileUploadFile(prepareCtx, op, root, record, false)
+	if err != nil {
+		return PutUploadChunkResult{}, err
+	}
+	defer file.Close()
 	stage, err := openMediaRegular(root, s.root, chunkStageName(stageID), os.O_RDONLY)
 	if err != nil {
 		return PutUploadChunkResult{}, err
