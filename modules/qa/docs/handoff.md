@@ -1,3 +1,45 @@
+# 2026-10-17 缓存准入交接
+
+- 分支：`codex/qa-20261017-r5`
+- 基线：`a3e6af980d5288e42bc8d023410faf8923ff21e8`
+- 源码 SHA：`7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe`
+- 独占范围：`modules/qa/`
+- 函数：`qa.EvaluateCacheEligibility` 保持 blocked，验证 not_run。accepted 为 0。
+- 未跑 CI：未执行 GitLab CI、go、gofmt、make build、make gen、make check、SSH。本域执行了 `make docs`。源码提交前 `python scripts/check_docs.py --privacy-only` 通过。
+
+## 行为
+
+`EvaluateCacheEligibility` 是纯计算，不读写缓存，不调用嵌入、语义缓存或模型。
+
+按已写明字段拒绝共享：
+
+- `plan.complete` 不为 true：eligible=false，reason=ambiguous
+- `privateContextDependent` 为 true：eligible=false，reason=private
+- `currentPageDependent` 为 true：eligible=false，reason=ambiguous
+- `classification` 为 out_of_scope：eligible=false，reason=out_of_scope
+- `plan.cacheEligible` 不为 true：eligible=false，reason=ambiguous
+
+`firstTurn`、风险、子问题和问题原文不参与判定。独立 canonical 问题是否残留这/它或未命名第二步来源没有可执行规则。这些输入即使都通过，仍返回 eligible=false、reason=ambiguous。函数不返回 eligible=true。
+
+入口之后信任已校验的 input 与 op，不重复检查截止、身份、dataEpoch 或屏障。
+
+## 合同
+
+`implementation.json` 的步骤与文件职责已写成上述行为。`types.json`、OpenAPI、events 未改。`make docs` 重写了 `docs/functions.md` 与 `docs/files.md`。
+
+## 需要集成处理
+
+- 把 `modules/qa/internal/cache/eligibility.go` 登记进根 `docs/structure/framework.json`。
+- 审核后跑 GitLab CI。不要把本函数记为 verified 或 accepted。
+
+## 下一步（一项）
+
+等合同写明“独立 canonical 问题不残留这/它/未命名第二步来源”的可执行判定后，再让 `qa.EvaluateCacheEligibility` 返回 eligible=true。在此之前不要扫描问题文本，也不要把该函数记成完成。
+
+下文是历史交接，其中的下一步不再执行。
+
+---
+
 # 问答与缓存会话交接
 
 ## 集成复核修复（2026-10-15，main）

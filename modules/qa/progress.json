@@ -2,12 +2,12 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "5d32a52021a7350cbc75e27f34dcefa36ae7bea7bcff3c9b5bac2e3c58c54045",
+  "contractSha256": "ff571ac266f56816b246dd120b77ee4821bb97cc0dc7cb524751bdb96dc62dd4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-16（NormalizeQuestion纯规则切片）",
-  "branch": "main",
-  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
-  "deliveryCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
+  "assignedSession": "2026-10-17 qa缓存准入（EvaluateCacheEligibility确定性拒绝）",
+  "branch": "codex/qa-20261017-r5",
+  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
+  "deliveryCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
   "deployment": "not_started",
   "files": [
     {
@@ -392,13 +392,13 @@
     },
     {
       "path": "modules/qa/internal/cache/eligibility.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "指代残留没有可执行规则，文件不返回 eligible=true。GitLab CI 未跑。新文件尚未写入根 framework.json。"
     },
     {
       "path": "modules/qa/internal/cache/query-embedding.go",
@@ -1210,13 +1210,13 @@
     {
       "id": "qa.EvaluateCacheEligibility",
       "path": "modules/qa/internal/cache/eligibility.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "独立问题是否残留这/它或未命名第二步来源没有可执行规则。函数只按 plan.complete、privateContextDependent、currentPageDependent、classification=out_of_scope 和 plan.cacheEligible 拒绝共享，不扫描问题文本，不返回 eligible=true。未编译，不记 verified。"
     },
     {
       "id": "qa.AcquireQueryEmbedding",
@@ -1438,5 +1438,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "2026-10-17缓存准入：EvaluateCacheEligibility与eligibility.go因指代残留规则未写明保持blocked，不返回eligible=true。未跑GitLab CI，不记verified。NormalizeQuestion仍为implemented且verification为not_run。其余函数与文件保持原状态。accepted为0。"
 }

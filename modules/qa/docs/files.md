@@ -44,7 +44,7 @@
 | `modules/qa/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `qa.SubmitPrimaryEdit`（参考） |
 | `modules/qa/internal/context/page.go` | 手写 | 验证当前页面上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ResolveCurrentPageHint`（参考） |
 | `modules/qa/internal/context/preflight.go` | 手写 | 补全问题、分类、风险与缓存资格所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PlanQuestion`（参考） |
-| `modules/qa/internal/cache/eligibility.go` | 手写 | 严格缓存完整问题门所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.EvaluateCacheEligibility`（参考） |
+| `modules/qa/internal/cache/eligibility.go` | 手写 | 严格缓存完整问题门；指代残留未写明，不返回可共享资格。Go包，禁止直接访问其他域私有存储。 | `qa.EvaluateCacheEligibility`（参考） |
 | `modules/qa/internal/cache/query-embedding.go` | 手写 | 同查询只生成一次嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.AcquireQueryEmbedding`（参考） |
 | `modules/qa/internal/answer/inspect.go` | 手写 | 快速检索员有限核查所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.InspectEvidence`（参考） |
 | `modules/qa/internal/cache/automatic.go` | 手写 | 按old语义自动保存合格答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.WriteAutomaticCache`（参考） |
