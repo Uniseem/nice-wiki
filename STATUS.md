@@ -1,6 +1,6 @@
 # 当前状态（2026-10-17，第四轮 GitLab 检查通过）
 
-用户授权 push 和测试，测试只走自建 GitLab。第四轮六个模块已合入。pipeline 40 的三个编译分片因 vet 失败；修正非常量错误格式和未生成的语言标签类型后，pipeline 41 编译通过。生成补丁回传后，pipeline 42（`2e282a31a5ce739886eed9807fc5efcfac44989c`）生成补丁 0 字节，job 188 与三个分片 189、190、191 全部成功，14 个 Go 模块 readonly build/vet/gofmt 和完整 make check 通过。本轮因此从 implemented 改记 verified 的函数有 67 个。accepted 仍为 0。本结果记录先走隔离分支检查，通过后才双推 main。
+用户授权 push 和测试，测试只走自建 GitLab。第四轮六个模块已合入。pipeline 40 的三个编译分片因 vet 失败；修正非常量错误格式和未生成的语言标签类型后，pipeline 41 编译通过。生成补丁回传后，pipeline 42（`2e282a31a5ce739886eed9807fc5efcfac44989c`）生成补丁 0 字节，job 188 与三个分片 189、190、191 全部成功，14 个 Go 模块 readonly build/vet/gofmt 和完整 make check 通过。本轮因此从 implemented 改记 verified 的函数有 67 个。accepted 仍为 0。结果记录 pipeline 43 的提交 `e39c314f986bc05da2f0aad6cab628319aebb53f` 已普通双推；当时两个远程 main 都核对为这个 SHA，old 仍是 `272bddc9b9f023b0bb9b4623e245522d98971b48`。
 
 - 当前 889 契约文件、1516 函数、380 HTTP 操作、2355 类型；883 函数完成（825 verified、58 implemented），planned 595、in_progress 14、blocked 24，完成率 58.2%。相对第三轮净增 53 项完成。
 - identity 源码 709eeae、合入 e0e56d4：超管重置文件在唯一活动超管上改口令并撤销会话。硬链接拒绝。5 秒监视和完整启动仍未接上。
