@@ -1,3 +1,20 @@
+# 当前工作包：发布快照闭环（2026-10-17第四轮，已编写，未跑 CI）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，初始干净。源码 `b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 发布、撤回、提交、可见性校验和公开读取已按约束级步骤落地。人工 slug/SEO 优先，本轮不调用模型，不制造 slug 或 SEO。首次空 slug 在发布时要求人工填写，不因缺模型阻塞已有合法元数据。
+- 原回执、metadata/tree 或发布 CAS、正文引用、快照、历史和 outbox 同一事务。未知提交只回放原结果，不重复推进水位或事件。历史回滚直接失败关闭。
+- 曾发布路径写入私有 SQL 版本化 manifest，Move 与 Update 在同一事务读取。分享图实际变更仍因精确 pin 合同未齐返回 503，Update 继续 in_progress。
+- 四个已有发布 HTTP 操作绑定真实处理函数。BuildApplication 仍返回 nil 和 503，缺可信写窗口的新写继续 503。回收站、历史回滚、预览、屏障和编辑器 UI 未做。
+- 函数完成数 199/241 变为 225/259：本轮 32 个函数记 implemented。其中 6 个原先 verified 的函数因源码有变，改回 implemented。
+- 集成会话需把本轮新文件登记进结构清单后再跑检查和 GitLab CI。本域不自行修改公共文件，不 push。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：元数据编辑与精确路径校验（2026-10-17第三轮，已检查交付）
 
 分支codex/content-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，初始clean；独占modules/content。用户再授权一轮三个子代理同时编写，根统一GitLab生成/格式/三分片编译/check及普通双推；本域不本机/SSH Go、不自行push。
