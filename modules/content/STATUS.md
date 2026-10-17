@@ -1,3 +1,22 @@
+# 当前工作包：元数据编辑与精确路径校验（2026-10-17第三轮，已检查交付）
+
+分支codex/content-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，初始clean；独占modules/content。用户再授权一轮三个子代理同时编写，根统一GitLab生成/格式/三分片编译/check及普通双推；本域不本机/SSH Go、不自行push。
+
+- 源码327f70e0da5080aa9a36fe0316cbf58e5d4c699e，本记录紧随源码。8个本轮完整/修改函数按该SHA verified，净增4项完成，195→199/241；路径文件及0007完整。Update、metadata/tree/transport文件仍partial/in_progress，Move真实manifest分支未齐，完整Build/main blocked，业务accepted=0。
+- Update明确分支在DB/锁前一次即时content.edit，同代完整scope/规范请求摘要原回执优先，核原结果hash及严格结果schema。锁外当前写窗口，短SQL读取当前metadata expectedRevision与真实treeRevision双CAS，标题/人工SEO/未发布路径、完整原结果及既有tree.changed outbox同事务。Commit未知只按原op回放，不重复改修订或事件，不发布正文/不触发模型。
+- 根批准0007仅追加metadata原回执，不建正文、影子树或媒体来源。分享图同一完整ref可维持，实际改变因精确metadata pin/引用源合同未齐503。曾发布node或后代路径改变因真实manifest未齐503，未知旧路径不当空；不能把支持分支记成完整受约束Update。
+- ValidatePathSegment消费调用方同SQL可信完整树，纯助手不另开SQL或重复身份RPC；正则、活动父与同父活动唯一并排除自己。根级仅保留navigation/ask，对应public-site精确语言根路由；子级允许，不禁api/admin/v1/robots/llms/sitemap。私有助手同样用于Move，不能用移动到根绕过；未来发布须沿同规则。
+- PUT metadata复用真实RegisterTreeRoutes，五个实际固定action由core一次即时鉴权，平台服务/委托/epoch/schema仍严格执行；路径documentId精确合并生成严格请求DTO。完整启动仍未齐，缺可信写窗口新写503，不运行半成品服务。
+- 2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。
+- 已只读交叉审根公共签名siteId、委托同站点与独立Claim/真实jobs adapter，确认旧HTTP proof头会清除；提出控制链可能继承旧proof后，根统一在workerControlContext剥离，保留原root/site/费用/截止。并只读审model r3 owner多root/同站同代、未知金额、charge_unknown证据及精确UTC纳秒keyset，无阻断。根本轮已补公共可信本站传递，替代上轮尚缺前置；仅当前源码/合同及CI证据，不声称真实跨域调用链已运行或费用验收。
+- 两次实际暂存内容、中文说明、既有GitHub代用作者/提交者与GPT-6 trailer隐私扫描通过；源码18路径、本记录7份模块文档/台账。无其他域或公共文件改动，未自行push；交付后冻结。
+
+## 下一步（一项）
+
+根按源码及记录顺序集成，检查实际合并树后执行本轮已授权普通双推；本域交付后冻结，不自行扩manifest/分享图引用或完整启动。后续只按根新工作包继续。
+
+---
+
 # 当前工作包：文档树读取与完整同级重排（2026-10-17第二轮，已检查交付）
 
 分支codex/content-20261017-r2，基线8a49af65f048a6b160f963570f02d6b88db100de，初始clean，独占modules/content。用户再授权三个子代理同时编写一轮后普通推送；全部Go/生成/格式/编译/check由根自部署GitLab三分片执行，本域不本机/SSH编译、不自行push。

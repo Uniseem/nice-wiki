@@ -861,7 +861,8 @@
           "outputs": [],
           "purpose": "预装真实树依赖与完整原结果schema校验器",
           "steps": [
-            "预装真实树依赖与完整原结果schema校验器"
+            "预装真实树依赖与完整原结果schema校验器",
+            "本轮预装UpdateDocumentMetadataResult原回执schema，不把元数据partial分支当完整服务"
           ],
           "errors": [],
           "sideEffects": [],
@@ -1075,7 +1076,8 @@
           "outputs": [],
           "purpose": "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭",
           "steps": [
-            "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭"
+            "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭",
+            "已有slug移入根级时复用同一根级navigation/ask规则，不能用Move绕过；其他层级不额外禁名"
           ],
           "errors": [],
           "sideEffects": [],
@@ -1087,7 +1089,8 @@
             "content.PlanOldPathRedirects",
             "content.sameIdentifierPointer",
             "content.fractionalDocumentOrder",
-            "content.validateTreeSiblings"
+            "content.validateTreeSiblings",
+            "content.validatePathSnapshot"
           ],
           "resources": [],
           "contract": "reference"
@@ -1297,9 +1300,11 @@
           ],
           "purpose": "修改标题/路径/SEO描述/分享图",
           "steps": [
-            "content.edit；人工SEO标manual且进后续翻译，OG资源需ready",
-            "ValidatePathSegment同父唯一，已公开path更改PlanOldPathRedirects覆盖后代",
-            "metadata CAS与tree路径映射原子更新；不自动把共享draft发给访客"
+            "仅portal当前admin一次即时content.edit，在DB/锁前，先按site/epoch/operation/caller/actor及规范请求摘要回放完整原回执",
+            "锁外取当前平台写窗口；短SQL同快照核站点/epoch、完整树/head资格、活动文档、metadata expectedRevision及当前treeRevision，标题/人工SEO不触发模型或发布共享正文",
+            "path改变先完整规划node及曾发布后代旧路径，未知或非空规划因真实manifest链未齐503不提交；shareImage实际改变因精确metadata资源pin/引用源合同未齐503不提交，完整Update因此保持partial/in_progress",
+            "原shareImage同一完整ref可维持；非空path走ValidatePathSegment可信同SQL树及精确根级保留名；seoDescription=null为pending，否则manual（含显式空串）",
+            "同SQL CAS metadata revision与treeRevision，更新title/path/SEO并保存同代完整原结果与最小tree.changed outbox；不改变draft/published正文、引用水位或旧历史；Commit未知只按原op回执重试"
           ],
           "errors": [
             {
@@ -1336,21 +1341,79 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同操作摘要冲突、路径保留/同父冲突或持久原结果/树资格损坏",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同操作摘要冲突、路径保留/同父冲突或持久原结果/树资格损坏",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "私有事务/正文提交日志/operation receipt/outbox"
           ],
           "authorization": "按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
-          "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
+          "concurrency": "当前权限/写窗口锁外；Store.mu短SQL内读取当前真实parent/head、metadata/tree CAS与回执/outbox，保存并发只更新draftRevisionId不覆盖新metadata",
+          "idempotency": "同site/epoch/operationId固定caller/actor和完整规范请求摘要，原结果及SHA256同事务追加并严格校验回放；Commit未知不重复更新或发事件",
           "dependencies": [
-            "content.ValidatePathSegment",
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.checkRevisionScope",
+            "content.draftRequestDigest",
+            "content.readMetadataReceipt",
+            "content.readTreeSnapshot",
+            "content.sameMetadataAsset",
             "content.PlanOldPathRedirects",
-            "media:readAsset"
+            "content.ValidatePathSegment",
+            "platform.NewWriteContext",
+            "platform.EnqueueEvent"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.readMetadataReceipt",
+          "name": "readMetadataReceipt",
+          "signature": "func readMetadataReceipt(ctx context.Context, q creationQuery, op OperationContext, digest Hash, runtime TreeRuntime) (UpdateDocumentMetadataResult, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同代完整scope及规范摘要回放原结果；核result_hash、严格结果schema及解码，异身份摘要冲突",
+          "steps": [
+            "同代完整scope及规范摘要回放原结果；核result_hash、严格结果schema及解码，异身份摘要冲突"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核",
+          "concurrency": "不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算",
+          "idempotency": "完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用",
+          "dependencies": [
+            "content.decodeStorageJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.sameMetadataAsset",
+          "name": "sameMetadataAsset",
+          "signature": "func sameMetadataAsset(a *gen.AssetVersionRef, b *gen.AssetVersionRef) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按nullable完整不可变资源身份比较，改变必须等真实metadata pin协议",
+          "steps": [
+            "按nullable完整不可变资源身份比较，改变必须等真实metadata pin协议"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核",
+          "concurrency": "不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算",
+          "idempotency": "完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1415,9 +1478,9 @@
           ],
           "purpose": "校验英文可读路径与同父唯一",
           "steps": [
-            "正则与保留路径名检查，禁止点段/编码斜杠",
-            "查询同父活动节点排除自己",
-            "冲突CONFLICT，历史redirect不能覆写活跃目标"
+            "正则只允许小写英数与中间单连字符，拒绝点段/编码斜杠；仅parentId=null时保留navigation和ask，与public-site精确语言根路由一致，其他层级允许；不额外禁止api/admin/v1/robots/llms/sitemap",
+            "从调用方同一SQL可信完整树中核parent为活动节点、同父活动slug唯一并排除自己；纯校验不另开SQL或重复鉴权",
+            "只返回可用性，不写/覆盖历史redirect；曾发布路径改变是否可提交由调用者manifest失败关闭规则决定，未来发布必须复用同一验证"
           ],
           "errors": [
             {
@@ -1434,13 +1497,25 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "可信树中父节点缺失或非活动",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "可信树中父节点缺失或非活动",
+              "retryable": false
             }
           ],
           "sideEffects": [],
           "authorization": "content.edit或publish私有流程",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "concurrency": "可信同SQL快照的纯业务校验，不另开SQL/重查身份；ctx/op只保留统一私有调用签名",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "content.validatePathSnapshot"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -1510,6 +1585,27 @@
           "dependencies": [
             "content.EnsureTreeAcyclic",
             "content.treePreorder"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.validatePathSnapshot",
+          "name": "validatePathSnapshot",
+          "signature": "func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "校slug正则、仅根级navigation/ask保留、活动父及同父唯一，排除自己",
+          "steps": [
+            "校slug正则、仅根级navigation/ask保留、活动父及同父唯一，排除自己"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证本域metadata调用链或可信同SQL树；业务权限由入口在SQL/锁前一次即时核",
+          "concurrency": "不另查身份/当前窗口；短SQL内读取持久结果或对可信快照纯计算",
+          "idempotency": "完整scope/请求摘要及结果hash回放首次原值；纯函数无副作用",
+          "dependencies": [
+            "content.sameIdentifierPointer"
           ],
           "resources": [],
           "contract": "reference"
@@ -8871,9 +8967,10 @@
           "outputs": [],
           "purpose": "注册四个真实树映射及统一身份/epoch/schema边界",
           "steps": [
-            "仅四个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存",
+            "仅五个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存",
             "统一边界验证服务/委托/epoch/schema，再精确映射HTTP DTO；/v1/documents只注册GET，不绕过全量handler启动门槛",
-            "integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0"
+            "integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0",
+            "新增PUT metadata精确映射路径documentId与生成的严格bodyDTO；仅新增固定updateDocumentMetadata action由core一次即时content.edit，平台服务/委托/epoch/schema仍严格校验"
           ],
           "errors": [],
           "sideEffects": [],
@@ -8887,7 +8984,8 @@
             "content.MoveDocument",
             "content.ReorderChildren",
             "platform.NewServiceHandler",
-            "platform.NewIdentityAuthorizer"
+            "platform.NewIdentityAuthorizer",
+            "content.UpdateDocumentMetadata"
           ],
           "resources": [],
           "contract": "reference"
@@ -11042,6 +11140,12 @@
       "path": "modules/content/migrations/0006_tree_operations.sql",
       "kind": "handwritten",
       "purpose": "只追加树操作完整scope/动作/摘要与原结果回执；不另建影子树或虚假manifest",
+      "functions": []
+    },
+    {
+      "path": "modules/content/migrations/0007_metadata_operations.sql",
+      "kind": "handwritten",
+      "purpose": "只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源",
       "functions": []
     }
   ],

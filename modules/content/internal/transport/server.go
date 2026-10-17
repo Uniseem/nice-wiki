@@ -258,20 +258,36 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 	return nil
 }
 
-// RegisterTreeRoutes只注册四个已实际实现核心入口；即时权限由核心在任何DB前核一次。
+// RegisterTreeRoutes只注册五个已实际实现核心入口；即时权限由核心在任何DB前核一次。
 func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors platform.TrustAnchors) error {
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "文档树HTTP规格不可读")
 	}
 	for path := range spec.Paths.Map() {
-		if path != "/v1/documents" && path != "/v1/tree" && path != "/v1/tree:move" && path != "/v1/tree:reorder" {
+		if path != "/v1/documents" && path != "/v1/tree" && path != "/v1/tree:move" && path != "/v1/tree:reorder" && path != "/v1/documents/{documentId}/metadata" {
 			spec.Paths.Delete(path)
 		}
 	}
 	// /v1/documents共享GET/POST，只装本轮真实GET；其余完整handler仍由BuildApplication关闭启动。
 	spec.Paths.Value("/v1/documents").Post = nil
 	handlers := map[string]http.Handler{
+		"updateDocumentMetadata": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.UpdateDocumentMetadataRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "元数据编辑参数无法转换"))
+				return
+			}
+			input := content.UpdateDocumentMetadataInput{DocumentId: r.PathValue("documentId"), Title: body.Title, PathSegment: body.PathSegment, SeoDescription: body.SeoDescription, ShareImage: body.ShareImage, ExpectedRevision: body.ExpectedRevision}
+			result, err := content.UpdateDocumentMetadata(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
 		"readDocumentTree": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := content.ReadDocumentTree(content.WithTreeRuntime(r.Context(), runtime), op, content.ReadDocumentTreeInput{})
@@ -328,17 +344,17 @@ func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors p
 		}),
 	}
 	generalAuthorize := apivalidate.NewIdentityAuthorizer(runtime.Reference.Identity)
-	// 根已确认这四个固定action在真实核心中按state选择read/publish并即时核权威一次；
+	// 根已确认这五个固定action在真实核心中按state选择read/publish并即时核权威一次；
 	// 仅对本注册表跳过平台的重复RPC，服务身份/epoch/schema仍在统一边界严格执行。
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
 		switch action {
-		case "content:readDocumentTree", "content:listDocuments", "content:moveDocument", "content:reorderChildren":
+		case "content:readDocumentTree", "content:listDocuments", "content:moveDocument", "content:reorderChildren", "content:updateDocumentMetadata":
 			return nil
 		}
 		return generalAuthorize(ctx, op, permission, action)
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, Authorize: authorize,
-		AllowedCallers:        map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}},
+		AllowedCallers:        map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}, "updateDocumentMetadata": {"portal"}},
 		MaintenanceOperations: map[string]bool{"readDocumentTree": true, "listDocuments": true}}, handlers)
 	if err != nil {
 		return err
@@ -348,5 +364,6 @@ func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors p
 	mux.Handle("GET /v1/documents", handler)
 	mux.Handle("POST /v1/tree:move", handler)
 	mux.Handle("POST /v1/tree:reorder", handler)
+	mux.Handle("PUT /v1/documents/{documentId}/metadata", handler)
 	return nil
 }

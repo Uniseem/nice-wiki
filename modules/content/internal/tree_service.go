@@ -46,7 +46,7 @@ func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfi
 		return TreeRuntime{}, platform.NewError(platform.CodeIntegrityError, false, "文档树规格无法编码")
 	}
 	validators := make(map[string]func(json.RawMessage) error)
-	for action, schema := range map[string]string{"move": "MoveDocumentResult", "reorder": "ReorderChildrenResult"} {
+	for action, schema := range map[string]string{"move": "MoveDocumentResult", "reorder": "ReorderChildrenResult", "metadata": "UpdateDocumentMetadataResult"} {
 		validators[action], err = apivalidate.NewPayloadValidator(raw, schema)
 		if err != nil {
 			return TreeRuntime{}, err
@@ -59,7 +59,7 @@ func WithTreeRuntime(ctx context.Context, runtime TreeRuntime) context.Context {
 }
 func treeRuntimeFromContext(ctx context.Context) (TreeRuntime, error) {
 	runtime, ok := ctx.Value(treeRuntimeKey{}).(TreeRuntime)
-	if !ok || runtime.Reference.Store == nil || runtime.Reference.Identity == nil || runtime.Reference.validateMetadata == nil || runtime.validateResult["move"] == nil || runtime.validateResult["reorder"] == nil {
+	if !ok || runtime.Reference.Store == nil || runtime.Reference.Identity == nil || runtime.Reference.validateMetadata == nil || runtime.validateResult["move"] == nil || runtime.validateResult["reorder"] == nil || runtime.validateResult["metadata"] == nil {
 		return runtime, platform.NewError(platform.CodeDependencyUnavailable, true, "文档树运行依赖未装配")
 	}
 	return runtime, nil
@@ -515,6 +515,11 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 	}
 	if err = validateTreeSiblings(candidate); err != nil {
 		return nil, err
+	}
+	if moving.PathSegment != nil {
+		if _, err = validatePathSnapshot(ValidatePathSegmentInput{Segment: *moving.PathSegment, ParentId: moving.ParentId, DocumentId: moving.DocumentId, Documents: candidate}); err != nil {
+			return nil, err
+		}
 	}
 	return []gen.DocumentMetadata{*moving}, nil
 }
