@@ -123,6 +123,76 @@ func (s *Store) DB() *sql.DB {
 	return s.db
 }
 
+var (
+	languageGatewayMu      sync.Mutex
+	languageGatewayStore   *Store
+	languageGatewayRuntime platform.SiteConfigClient
+)
+
+// InstallLanguageGateway 把已打开的业务库和运行权威交给语言配置函数。
+// 调用方仍负责最终关闭存储。
+func InstallLanguageGateway(store *Store, runtimeClient platform.SiteConfigClient) {
+	languageGatewayMu.Lock()
+	defer languageGatewayMu.Unlock()
+	languageGatewayStore = store
+	languageGatewayRuntime = runtimeClient
+}
+
+// ClearLanguageGateway 在启动失败关闭前解除语言配置引用。
+func ClearLanguageGateway() {
+	languageGatewayMu.Lock()
+	defer languageGatewayMu.Unlock()
+	languageGatewayStore = nil
+	languageGatewayRuntime = nil
+}
+
+// LanguageGateway 返回当前语言配置使用的存储和运行权威。
+func LanguageGateway() (*Store, platform.SiteConfigClient) {
+	languageGatewayMu.Lock()
+	defer languageGatewayMu.Unlock()
+	return languageGatewayStore, languageGatewayRuntime
+}
+
+// SetDataEpoch 在迁移完成后写入本域代次水位。已有不同水位时拒绝覆盖。
+func (s *Store) SetDataEpoch(ctx context.Context, dataEpoch platform.Identifier) error {
+	if s == nil || s.db == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "本域代次水位存储未装配")
+	}
+	if !platform.ValidIdentifier(dataEpoch) {
+		return platform.NewError(platform.CodeValidation, false, "当前数据代次不合法")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return platform.NewError(platform.CodeInternal, true, "开始代次水位事务失败")
+	}
+	defer func() { _ = tx.Rollback() }()
+	var current string
+	if err := tx.QueryRowContext(ctx, `SELECT data_epoch FROM runtime_meta WHERE singleton = 1`).Scan(&current); err != nil {
+		return platform.NormalizeIOError(err, platform.CodeIntegrityError, false, "本域代次水位不可读")
+	}
+	if current == string(dataEpoch) {
+		return nil
+	}
+	if current != "" {
+		return platform.NewError(platform.CodeVersionMismatch, false, "本域代次水位与运行权威不一致")
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE runtime_meta SET data_epoch = ?, updated_at = ? WHERE singleton = 1 AND data_epoch = ''`, string(dataEpoch), string(platform.Now()))
+	if err != nil {
+		return platform.NormalizeIOError(err, platform.CodeInternal, false, "写入本域代次水位失败")
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return platform.NormalizeIOError(err, platform.CodeInternal, false, "写入本域代次水位失败")
+	}
+	if changed != 1 {
+		return platform.NewError(platform.CodeVersionMismatch, false, "本域代次水位已变化")
+	}
+	if err := tx.Commit(); err != nil {
+		return platform.NormalizeIOError(err, platform.CodeInternal, false, "提交代次水位失败")
+	}
+	return nil
+}
+
 // LoadRuntime 执行启动时schema、默认语言、术语代数和journal完整性检查。
 // 未传入store时函数自持有并关闭临时句柄；BuildApplication传入store时，
 // 成功后由应用生命周期负责关闭。
@@ -291,6 +361,9 @@ func validateSchema(ctx context.Context, db *sql.DB) error {
 		"approved_proposals":        {"proposal_id", "proposal_hash", "state"},
 		"cache_answer_translations": {"translation_id", "answer_revision", "state"},
 		"schema_migrations":         {"version", "name", "applied_at"},
+		"operation_receipts":        {"site_id", "actor_id", "function_id", "input_hash"},
+		"runtime_meta":              {"singleton", "data_epoch", "updated_at"},
+		"local_barrier":             {"singleton", "state", "data_epoch"},
 	}
 	for table, columns := range required {
 		if err := checkContext(ctx); err != nil {

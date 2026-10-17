@@ -1,3 +1,54 @@
+# 2026-10-17 语言配置交接
+
+- 分支：`codex/localization-20261017-r4`
+- 基线：`a080a6c918e31d272c7a91368f59d5ad51d5f458`
+- 源码 SHA：`650a1e208ff8656531aa2764dfd9e2bc4b1965b8`
+- 完成函数：`localization.PutLanguage`、`localization.SetLanguageEnabled`、`localization.ListLanguages`（implemented，未验证）
+- 仍 blocked：`localization.NormalizeLanguageTag`。大小写映射、脚本子标签和私用用法没有可执行规则；函数不自选 BCP 47 方言，不返回规范标签或方向。
+- 未跑 CI：未执行 GitLab CI、go、gofmt、make build、make gen、make check、SSH。本域执行了 `make docs`。
+
+## 行为
+
+写入和列表使用 `languages` 私有表。标签按原文保存。第一个连字符前的原文与 `ar`、`he`、`fa`、`ur` 逐字相同才要求 rtl，其余要求 ltr，不折叠大小写。`profileId` 只检查标识声明，不读档位目录，不调用模型，不写默认费用。
+
+代次必须同时等于 site-config 当前代次和本域 `runtime_meta`。水位只在为空时写入；已有不同代次拒绝覆盖。维护阶段，以及 `local_barrier` 不是 released，都会拒绝。`local_barrier` 初始为 released，只是读侧，不是 `AcquireBarrier`，也不在 control 区。
+
+原回执按站点、主体、函数和幂等键保留 7 天。同一规范输入返回原结果；未过期而摘要不同返回 `CONFLICT`。过期视为未命中，成功提交时才替换。回执重放发生在代次和维护检查之后、本地屏障检查之前。
+
+已有其他默认语言时 `PutLanguage` 返回 `CONFLICT`，不在一次写入里转移默认语言。直接 `SetLanguageEnabled(enabled=true)` 遇到已经打开的自动翻译返回 `CONFLICT`，不清除该标志。停用默认语言返回 `CONFLICT`。停用只取消本域该语言当前代次的 queued、running、review 任务，不碰 `translation_units`，不调用 `jobs:cancelJob`。
+
+缺少已核本站，或站点为未签名占位 `system`，返回 `DEPENDENCY_UNAVAILABLE`。本包不跨域调用，未改公共协议。
+
+`ListLanguagesInput` 写在业务包内。列表没有请求体，OpenAPI 生成物只有查询参数。
+
+参考助手在 `internal/language/guard.go`，未逐个登记为函数：`requireActor`、`requireIdempotencyKey`、`acceptStoredTag`、`openLanguage`、`rejectHeldBarrier`、`digestInput`、`readReceipt`、`writeReceipt`、`scanLanguage`、`loadLanguage`、`enqueueLanguageChanged`。`config.go` 另有 `rejectOtherDefault`。`http.go` 的 `NewLanguageHandlers` 绑定三个已有 operation。
+
+`migrations/migrations.go` 源码未改，其旧验证不覆盖 `002_language_config.sql`。
+
+## 合同变更
+
+- `NormalizeLanguageTag`：写明未规范的归一化失败关闭，并登记不可重试的 `DEPENDENCY_UNAVAILABLE`。
+- `PutLanguage`：改为原文标签、主子标签方向、档位只声明、CAS、7 天回执和 `localization.language.changed`。依赖改为空。补 `CONFLICT` 与可重试的 `DEPENDENCY_UNAVAILABLE`。
+- `SetLanguageEnabled`：停用只改本域任务行。去掉 `jobs:cancelJob` 依赖。补 `VALIDATION` 与可重试的 `DEPENDENCY_UNAVAILABLE`。
+- `ListLanguages`：补代次、维护、`local_barrier` 和已核本站。补 `VERSION_MISMATCH` 与可重试的 `DEPENDENCY_UNAVAILABLE`。
+- 新增文件登记：`guard.go`、`http.go`、`migrations/002_language_config.sql`。`NormalizeLanguageTag` 仍由 `EstimateLanguagePlan` 依赖，因此设计图仍可达。
+
+## 需要集成处理
+
+- 把新文件登记进根 `docs/structure/framework.json`。
+- 翻译执行接入时，若需要同步取消 jobs 任务，把 `jobs:cancelJob` 加回 `SetLanguageEnabled` 并在同一次业务里调用。
+- 完整屏障协议、control 区放置、跨代次水位迁移都不在本切片。
+- 三个语言操作已绑定，但 `BuildApplication` 仍失败关闭。
+- 审核后跑 GitLab CI。不要把本切片记为 verified 或 accepted。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+下文是历史交接，其中的下一步不再执行。
+
+---
+
 # 2026-10-17第三轮公共站点协议接续（仅合同）
 
 根公共候选统一签名siteId，清proof后仍可保留已核本站，传输层删除旧proof头；无声明的旧服务控制仍兼容system。EstimateLanguagePlan的未来调用协议已同步，不能用system替代真实本站或自报未签名站点。本域函数仍planned，没有业务源码、调用或完成数提升，公共代码检查由根GitLab统一。

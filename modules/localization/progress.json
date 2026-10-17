@@ -2,53 +2,73 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "88fa5b67b3c274f3a816c19226bdb31cd8ff22bb9cbd42047a0bffb9925dddbc",
+  "contractSha256": "287b2b97ce1b2dcf88c53da11416f8e26db05571f86472c6632006b7d3eff994",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-15（Codex，本域私有持久化与启动恢复）",
-  "branch": "main",
-  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
-  "deliveryCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+  "assignedSession": "语言配置实施（独立 worktree，未跑 CI）",
+  "branch": "codex/localization-20261017-r4",
+  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
+  "deliveryCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/localization/internal/runtime/bootstrap.go",
       "state": "implemented",
-      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机无 Go/gofmt，未编译或格式化验证。"
+      "blocker": "本次增加代次水位与新表校验，尚未编译；GitLab CI 未跑。"
     },
     {
       "path": "modules/localization/internal/language/tag.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。GitLab CI 未跑。"
     },
     {
       "path": "modules/localization/internal/language/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "path": "modules/localization/internal/language/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+    },
+    {
+      "path": "modules/localization/internal/language/guard.go",
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+    },
+    {
+      "path": "modules/localization/internal/language/http.go",
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "path": "modules/localization/internal/events/publication.go",
@@ -481,6 +501,16 @@
       "blocker": "本机无 Go/gofmt，未执行迁移编译验证。"
     },
     {
+      "path": "modules/localization/migrations/002_language_config.sql",
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+    },
+    {
       "path": "modules/localization/migrations/migrations.go",
       "state": "verified",
       "implementationCommit": "978e0cee659dc342650193c628710ff75115add5",
@@ -503,12 +533,12 @@
     {
       "path": "modules/localization/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "按合同对未实现的业务 handler、存储、journal、outbox、订阅和任务依赖返回 DEPENDENCY_UNAVAILABLE；未编译。"
+      "blocker": "putLanguage、setLanguageEnabled、listLanguages 已绑定真实处理函数。其余 OpenAPI 操作、事件订阅与任务循环仍未实现，BuildApplication 继续返回 DEPENDENCY_UNAVAILABLE。GitLab CI 未跑。"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
@@ -706,56 +736,56 @@
       "id": "localization.LoadRuntime",
       "path": "modules/localization/internal/runtime/bootstrap.go",
       "state": "implemented",
-      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本机无 Go/gofmt；运行时行为尚未验收。"
+      "blocker": "本次增加代次水位与新表校验，尚未编译；GitLab CI 未跑。"
     },
     {
       "id": "localization.NormalizeLanguageTag",
       "path": "modules/localization/internal/language/tag.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。GitLab CI 未跑。"
     },
     {
       "id": "localization.PutLanguage",
       "path": "modules/localization/internal/language/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "id": "localization.SetLanguageEnabled",
       "path": "modules/localization/internal/language/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "id": "localization.ListLanguages",
       "path": "modules/localization/internal/language/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "id": "localization.HandlePublication",
@@ -1344,12 +1374,12 @@
       "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "cf841ca3fd6a8a0dcf45cecc3bf9a6b95c228148",
+      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "已接入本域SQLite/journal启动校验；OpenAPI业务handler、事件订阅、outbox与任务循环仍未实现，按合同返回 DEPENDENCY_UNAVAILABLE；本机未编译。"
+      "blocker": "语言配置三个操作已绑定。其余处理器、事件订阅与任务循环缺失，函数仍返回 DEPENDENCY_UNAVAILABLE。GitLab CI 未跑。"
     },
     {
       "id": "localization.Serve",
@@ -1451,5 +1481,5 @@
       "blocker": null
     }
   ],
-  "rule": "本次仅完成启动与契约生成准备；除登记的启动/UI基础文件外，所有业务文件与函数保持planned。实现状态不等于编译验证或行为验收。"
+  "rule": "语言配置写入与列表已实现但未编译、未验收。NormalizeLanguageTag 因归一化规则未写明保持 blocked。BuildApplication 仍因其余依赖失败关闭。accepted 为 0。"
 }

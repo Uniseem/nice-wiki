@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/modules/localization/internal/gen"
+	"nice-wiki/modules/localization/internal/language"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"nice-wiki/modules/localization/internal/transport"
 )
@@ -22,9 +25,8 @@ const ModuleSlug = "localization"
 // BuildApplication 验证本域配置，建立 active/control/restore 目录布局，
 // 加载服务身份材料，读取运行权威并执行恢复换目录，然后装配 HTTP 容器。
 //
-// 本启动工作包不创建业务数据库、不绑定翻译与事件 handler，也不启动
-// worker。缺少这些合同依赖时必须返回 DEPENDENCY_UNAVAILABLE，不能用
-// 空处理器或占位结果伪装成可用服务。
+// 语言配置的三个操作会绑定真实处理函数。其余 OpenAPI 操作、事件订阅、
+// outbox 转发和任务循环仍未实现，因此本函数继续失败关闭。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -73,13 +75,41 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 		return nil, err
 	}
-	_ = store.Close()
-
-	// OpenAPI handler、业务存储、journal、outbox、订阅和任务循环尚未
-	// 完整装配。持久化启动校验已完成，但缺少这些合同依赖时仍必须
-	// 保持启动失败，避免健康路由掩盖不完整的服务装配。
-	_ = transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域业务处理器与持久化依赖尚未实现")
+	if err := store.SetDataEpoch(ctx, view.DataEpoch); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	localizationruntime.InstallLanguageGateway(store, runtimeAuthority)
+	defer func() {
+		localizationruntime.ClearLanguageGateway()
+		_ = store.Close()
+	}()
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
+	}
+	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+		Self:    ModuleSlug,
+		Anchors: anchors,
+		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
+		},
+		OpenedDataEpoch: view.DataEpoch,
+		Authorize:       apivalidate.NewIdentityAuthorizer(identity),
+		ServiceActorCallers: map[string][]string{
+			"listLanguages": {"public-site"},
+		},
+		AllowedCallers: map[string][]string{
+			"putLanguage":        {"portal"},
+			"setLanguageEnabled": {"portal"},
+			"listLanguages":      {"portal", "public-site"},
+		},
+	}, language.NewLanguageHandlers())
+	if err != nil {
+		return nil, err
+	}
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域其余业务处理器、事件订阅与任务循环尚未实现")
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，供进程模板与 Ready
