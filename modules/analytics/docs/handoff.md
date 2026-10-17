@@ -1,6 +1,34 @@
 # 统计与审计会话交接
 
-## 集成复核修复（2026-10-15，main）
+## 纯函数切片（2026-10-17）
+
+### 范围与事实
+
+- 分支 `codex/analytics-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`。只改 `modules/analytics/`。未 push。
+- 源码提交 `11014011ce1a008d4a829dfeb388f9328fcfc1c0`。progress.json 的 implementationCommit 与 deliveryCommit 写这个源码 SHA。合同未改。
+- 未改根 STATUS、plan、framework.json、`.gitlab-ci.yml`、libs/platform 或其他模块。未新增测试、fixture、mock 或样例。
+- 未执行 go build、go vet、gofmt、make build、make gen，未 SSH。`python3 scripts/render_docs.py --check` 无漂移。
+
+### 函数
+
+- `analytics.BucketLatency`（`modules/analytics/internal/buckets.go`）：implemented，verification not_run。桶标签只有 `0..99`、`100..499`、`500..999`、`1000..2999`、`3000+`。0 到 60000 含端点按闭区间分桶，60000 为 `3000+`。小于 0 或大于 60000 返回 VALIDATION。不读取 ctx 或 op。
+- `analytics.CheckPrivacyFields`（`modules/analytics/internal/privacy.go`）：implemented，verification not_run。允许名只有 requestId 与 errorCode。空列表 allowed 为 true 且 forbidden 为空。错误表把禁止名定为 FORBIDDEN。出现 ip、peer、question、prompt、apiKey、token、referrer、query（区分大小写）时返回该错误和零值。其余非允许名进入 forbidden，只含字段名，allowed 为 false，不返回错误。
+- `analytics.RedactAuditMetadata`：blocked。审计动作白名单与 metadata 编码都没有写明。对任何输入返回 FORBIDDEN，原文不进入 safeMetadata 或错误 detail。
+
+证据：未跑 GitLab CI。
+
+### 请集成会话登记
+
+以下新文件尚未写入 `docs/structure/framework.json`：
+
+- `modules/analytics/internal/buckets.go`
+- `modules/analytics/internal/privacy.go`
+
+### 下一步（一项）
+
+由合同所有者先写明审计动作登记表的动作名枚举，以及 `analytics.RedactAuditMetadata` 的 metadata 编码。写明前该函数保持 blocked，不要猜测 JSON 或编造动作名。
+
+## 历史：集成复核修复（2026-10-15，main）
 
 云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
 
@@ -57,8 +85,8 @@
 
 因此本次没有创建 `migrations/0001_domain.sql`，没有新增 `internal/storage.go` 或 `internal/journal.go`，也没有接线 `BuildApplication`；否则会把未定义行为藏入实现，违反本域 AGENTS.md 的“缺约束先修契约”要求。需要公共/本域合同所有者先登记该切片后，才能继续编码。
 
-## 阻塞与下一项
+## 历史：存储合同阻塞（2026-10-15）
 
-阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。本次提交只有台账记录，没有业务验收结论。
+当时的阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。该次提交只有台账记录，没有业务验收结论。
 
-下一项：由合同所有者先登记 SQLite/journal 切片（目标文件、约束级函数/签名、迁移版本、journal状态机、错误与恢复边界）；登记完成后再按 `data.md`、ADR0003 和该合同实现 `migrations/0001_domain.sql`、私有存储/journal，并回到 `analytics.BuildApplication` 接入。完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。
+当时的下一项：由合同所有者先登记 SQLite/journal 切片（目标文件、约束级函数/签名、迁移版本、journal状态机、错误与恢复边界）；登记完成后再按 `data.md`、ADR0003 和该合同实现 `migrations/0001_domain.sql`、私有存储/journal，并回到 `analytics.BuildApplication` 接入。完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。当前下一步以上文 2026-10-17 一节为准。
