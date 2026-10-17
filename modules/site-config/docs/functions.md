@@ -678,7 +678,7 @@ func (s *ActiveStore) readHomeReferenceIntent(ctx context.Context, q ReadTransac
 
 **步骤**
 
-1. 有界读取本域refs/pin材料并核hash、source、候选kind及pin完整性
+1. 有界读取本域refs/pin材料并核hash、source、候选kind及pin完整性；home与branding复用同一决定表，来源对象按种类区分
 
 **错误**
 
@@ -2275,9 +2275,9 @@ func CommitAnnouncementHead(ctx context.Context, op OperationContext, input Comm
 
 **步骤**
 
-1. 确认PREPARED banner正文fsync/hash
-2. 在UpdateBanner提交事务CAS唯一currentBanner/head、COMMITTED journal和config revision
-3. 失败文件不公开，后续recover隔离
+1. 确认PREPARED正文文件已fsync且hash一致；单独调用只核head预期，不提前公开
+2. 配置提交的同一SQLite事务内追加COMMITTED行、替换head并写入announcement_heads；回执与outbox仍由CommitConfigHead提交
+3. 正文缺失或hash不符失败关闭，不伪造旧快照；失败后的JSONL与head由既有恢复按最新COMMITTED核验
 
 **错误**
 
@@ -2760,9 +2760,9 @@ func UpdateBranding(ctx context.Context, op OperationContext, input UpdateBrandi
 
 **步骤**
 
-1. 核ready同站点资源与格式，权限site.manage
-2. acquire pins后生成不可变新config
-3. CommitConfigHead CAS并confirm资源，ConfigChanged触发翻译/历史镜像
+1. 核ready同站点图片资源与#RRGGBB；权限site.manage；合同未写明的资源引用失败关闭
+2. 品牌logo/favicon/分享图复用首页home_reference_decisions与acquire/confirm/release及失败封存；来源对象为HashBytes(site-config.branding.v1|siteId)，不与首页来源混用；空引用仍走空pin
+3. CommitConfigHead同一事务写CAS、历史、回执与outbox；confirm阶段由既有首页引用恢复循环收敛
 
 **错误**
 
@@ -3024,17 +3024,20 @@ func ReadConfigHistory(ctx context.Context, op OperationContext, input ReadConfi
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ReadConfigHistoryResult` | 读取可回滚的站点设置历史的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 分页参数或游标不合法；VERSION_MISMATCH: dataEpoch已变化；INTEGRITY_ERROR: 历史journal或不可变文件损坏；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
 
 **步骤**
 
 1. site.manage检查
-2. 从本域COMMITTED journal稳定分页
-3. 返回不可变文件和作者元数据，data git由data-protection镜像
+2. 从本域COMMITTED journal稳定分页；游标绑定主体、站点、代次与页大小
+3. 返回不可变文件和作者元数据，损坏记录失败关闭；data git由data-protection镜像
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `VALIDATION`：分页参数或游标不合法（不可重试）
+- `VERSION_MISMATCH`：dataEpoch已变化（不可重试）
+- `INTEGRITY_ERROR`：历史journal或不可变文件损坏（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 
 - 副作用：无
@@ -3070,9 +3073,9 @@ func RestoreConfigRevision(ctx context.Context, op OperationContext, input Resto
 
 **步骤**
 
-1. 核历史config hash与当前epoch，保留不可变siteId/baseLanguage/initialized控制字段
-2. 重新核媒体存在，已手动清理文件明确列缺失且拒绝无确认回滚
-3. 生成新config版本而不改旧历史，CAS提交并发翻译/历史镜像
+1. 核历史COMMITTED文件hash与当前epoch；只保留当前siteId/baseLanguage/initialized，不伪造旧快照
+2. 用media readAsset重核首页与品牌资源；缺失或未就绪整单拒绝并列出引用角色；无确认字段，不获取新pin
+3. 生成新config版本而不改旧历史；公告正文只复用真实存在的文件；CAS提交并发翻译/历史镜像
 
 **错误**
 

@@ -1,5 +1,12 @@
 # 站点配置与初始化当前进度
 
+## 品牌、页脚、横幅与配置历史（2026-10-17，implemented）
+
+- 分支 `codex/site-config-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，源码 `37097fce696c8d0093bd58476f385d142ab536d8`。独占 `modules/site-config/`。未跑 GitLab CI，未编译，不记 verified，accepted=0。
+- 完成 UpdateBranding、UpdateFooter、UpdateBanner、ReadConfigHistory、RestoreConfigRevision，以及闭环 ValidateAnnouncementBody、WriteAnnouncementRevision、CommitAnnouncementHead。原回执、配置 CAS、历史与 outbox 仍走既有 settings 提交；品牌 pin 复用首页 `home_reference_decisions` 与失败封存，来源为 `HashBytes("site-config.branding.v1|"+siteId)`。
+- 仍失败关闭：合同未写明的资源引用、favicon 超出 image 前缀与 kind=image、恢复时媒体未就绪或公告正文缺失、空 pin 被媒体拒绝、清横幅、无 head 的当前横幅，以及公告 JSONL/head 已写而 SQL 未提交的崩溃窗口。恢复不获取新 pin，不解析文档链接。完整 BuildApplication 继续拒绝启动。
+- 新文件 `internal/branding_service.go`、`internal/footer_service.go`、`internal/banner_service.go`、`internal/config_history.go`、`internal/announcement_validator.go` 待根登记。OpenAPI 的 changedSections 仍待 `make gen`。无新迁移、无新测试。
+
 ## 第四轮首页权威组（2026-10-15，已交付）
 
 - 源码提交 `aa96f429e0eecc45cf6a6c51773a8b1892bde648`；合同-only原提交 `fa2d1b7b738c25dbd38daebc4149a8c9a2181c67` 已由根集成。分支codex/site-config-home-r1，基线de21a2bcb5e1a8b25e41ec84ba3734fc163b5ab1，仅拥有modules/site-config/；主线cherry-pick SHA由根统一映射。

@@ -1,5 +1,24 @@
 # 站点配置与初始化会话交接
 
+分支 `codex/site-config-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，源码 `37097fce696c8d0093bd58476f385d142ab536d8`。未跑 GitLab CI，未编译，不记 verified。
+
+完成函数：UpdateBranding、UpdateFooter、UpdateBanner、ReadConfigHistory、RestoreConfigRevision；闭环助手 ValidateAnnouncementBody、WriteAnnouncementRevision、CommitAnnouncementHead。
+
+仍失败关闭的资源引用：合同未写明的品牌资源（favicon 只接受 `image/` 与 kind=image，不猜测 MIME，无确认字段，不读原始字节）；恢复只 `readAsset`、不获取新 pin、不解析文档链接；空品牌 pin 若媒体拒绝则封存；公告正文缺失或不一致则拒绝回滚；清横幅、当前横幅无 head、JSONL/head 已写而配置 SQL 未提交的窗口沿既有恢复失败关闭。完整启动继续失败关闭。
+
+### 下一项（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+## 集成需处理（不是本域下一步）
+
+- 在根 `docs/structure/framework.json` 登记五个新文件：`internal/branding_service.go`、`internal/footer_service.go`、`internal/banner_service.go`、`internal/config_history.go`、`internal/announcement_validator.go`。
+- `make gen` 后 OpenAPI 的 `changedSections` 才包含 branding、footer、banner，且 maxItems 为 9。本域 journal 手写校验已按九组失败关闭。
+- 品牌 confirm 走既有首页引用恢复循环；pin 封存可能返回 CONFLICT，这是首页协议，不是第二套 pin。
+- 不要在本域展开公告产品或补齐 BuildApplication。快照、屏障、资源引用列表、RelayOutbox 与恢复回执仍缺真实 handler。
+
+以下为历史交接。旧“下一项”已由本轮承接，不能再当继续授权。
+
 集成实际源码ce37652，记录7addf01；root实际树88210ba已在VPS通过docs/gen、14模块readonly build/vet/gofmt与完整check（858/1109/379/2256），生成零变化。progress已映射实际SHA；后文aa96f42/92caa2b保留原分支溯源。
 
 ## 第四轮首页权威与引用恢复（2026-10-15，已交付冻结）
@@ -13,7 +32,7 @@
 - 最终统一VPS linux/amd64 Go1.25.5 GOMAXPROCS=8：docs/gen、14模块readonly build/vet/gofmt、完整check通过（858文件/1109函数/379操作/2256类型），纳入全部Home Go/0005/最终修正，0回传冲突；已实现完整函数/文件记verified。没有行为验收、联调或真实服务启动，不扩展结论。
 - 新实际文件3个：internal/home_service.go、internal/home_validator.go、internal/migrations/active/0005_home_reference_decisions.sql，根统一登记。公共依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22及后续media封存/SSE，由根合成；gen/docs为VPS回传。无新库/测试/mock/fixture/样例/临时业务验证程序，无本机Go工具、真实接口/模型、服务、部署或push。
 
-### 下一项（一项，按集成调度开始）
+### 历史下一项（已由本轮承接）
 
 推进UpdateBranding品牌权威组：先核机器合同和本轮固定候选/来源决定机制，明确品牌资源的media pin来源与失败封存恢复，再接既有settings不可变提交链；公共协议缺口先交根统一收口，不复制机制。当前本域交付后冻结，不自行展开该包。
 

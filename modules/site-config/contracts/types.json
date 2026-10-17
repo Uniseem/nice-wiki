@@ -852,15 +852,18 @@
             "description": "字段组",
             "enum": [
               "identity",
+              "branding",
               "home",
               "seo",
               "security",
               "limits",
-              "language"
+              "language",
+              "footer",
+              "banner"
             ]
           },
           "minItems": 1,
-          "maxItems": 6
+          "maxItems": 9
         },
         "occurredAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -2419,15 +2422,18 @@
             "description": "字段组",
             "enum": [
               "identity",
+              "branding",
               "home",
               "seo",
               "security",
               "limits",
-              "language"
+              "language",
+              "footer",
+              "banner"
             ]
           },
           "minItems": 1,
-          "maxItems": 6
+          "maxItems": 9
         }
       },
       "required": [
