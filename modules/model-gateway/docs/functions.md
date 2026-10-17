@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 115 个函数：约束 38 个，参考 77 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 124 个函数：约束 38 个，参考 86 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3072,27 +3072,29 @@ func GetLedger(ctx context.Context, op OperationContext, input GetLedgerInput) (
 
 **步骤**
 
-1. 核验model.billing.read
-2. 限制时间窗≤90天
-3. 按createdAt/entryId keyset分页
-4. 返回价目可追溯记录
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅portal后台admin，经公共入口当前model.manage授权一次；不存在model.billing.read新grant。时间窗[from,until)必须正且最多90天。
+2. SQL外验签专用scope游标，绑定caller/actor/site/epoch/session及权限修订、查询窗/limit/costClass；载荷首版/规范编码/精确UTC纳秒位置和int64账本水位。
+3. 同一严格当前epoch只读快照先核旧账本/预留归属覆盖：孤立子行422，缺owner/site/created_at/epoch或空固定价目前置503，禁止回填、忽略或当空。UTC账本时间损坏422；读取水位不存在/耗尽失败关闭。 UTC历法/整秒用SQLite内建+0 seconds规范化往返，非法元数据view与部分索引覆盖窗外坏行；只检查小数1..9位，不手写日历或用日期浮点处理纳秒。
+4. 筛本站和查询时间窗，精确UTC秒/补齐九位纳秒/entryId keyset取limit+1并验证全部候选；不可变账单与调用原价目全值逐条投影，不按现价重算。游标水位变化409从头；未知金额省略actualCost，不伪造0。
+5. 显式结束SQL后才签下一游标，末页省略nextCursor。只读费用事实，不写审计、状态、调用、预留或账单；实际付费生产链仍planned。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
 - `VALIDATION` / HTTP 400：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
 
-- 副作用：只读且审计读取
-- 授权：权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 副作用：无
+- 授权：permission：model.manage；rule：HTTP仅portal，公共Authorize当前校验一次；内部只读本站真实账本。
+- 并发：验签/签名IO均在SQL外；每页固定只读快照及水位，不持事务跨网络。
+- 幂等：同查询/同水位稳定keyset，变更后旧游标409；无写入。
+- 依赖：`model-gateway.readLedgerPage`
 
 ## model-gateway.GetPriceBook
 
@@ -4011,27 +4013,457 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 
 **步骤**
 
-1. 仅调用服务自有rootOperationId或model.manage
-2. 固定ledger读快照
-3. 将settled与held分别聚合
-4. unknown不能折算零费
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 公共入口model.manage：portal后台admin即时授权；ServiceActorCallers只允许根AI任务owner纯服务。域内核SubjectID=CallerService及catalog owner，不能靠传root取得权限。
+2. 单一严格当前epoch只读快照完整读取请求root的全部调用，最多256，逐条核真实owner/site/epoch/created_at/固定价目；无root404，缺前置503、损坏422。纯服务要求全部root同caller，跨owner即403；任何跨站拒绝，不过滤成部分结果。
+3. 调用created_at落在[from,until)且当前held的预留汇总为held；ledger.created_at落在窗内账单汇总为settled，均是当前快照，不声称历史时点余额。金额用big.Int精确累加，超Money安全整数或256响应预算失败，不截断。 同root全部预留先核状态只为held/settled/released；非法状态422，不当空；合法非held不汇总，也不套用held金额规则。
+4. 某组任一金额未知则整项heldCost或settledCost省略，禁止返回部分已知和冒充总额；unknownInvocationIds包括窗内当前charge_unknown调用、未知held和未知账单，完整去重排序；已知空集合显式0仅表示实际空的已知组。 窗内charge_unknown调用必须有实际held行或未知金额账单证明；缺任一必要证据503，不返回无证据held=0。
+5. 返回每条账单原固定priceSnapshot全值，不按当前价重算；只读且无模型、额度、预留、账本或审计副作用。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：（不可重试）
 - `VALIDATION` / HTTP 400：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 授权：permission：model.manage；rule：portal当前model.manage或列入平台ServiceActorCallers的AI task owner纯服务；纯服务root全部持久归属必须同caller/site/epoch。
+- 并发：整个查询共享一次严格当前epoch的SQL读快照，不跨RPC。
+- 幂等：只读当前快照，不补旧归属、重算价格或生成费用状态。
+- 依赖：`model-gateway.ledgerRuntime`、`model-gateway.beginAdminSnapshot`、`model-gateway.validateLedgerCoverage`、`model-gateway.readRootMetadata`、`model-gateway.readLedgerEntries`、`model-gateway.sumLedgerMoney`
+
+## model-gateway.ledgerRuntime
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：读取真实签名与价目schema依赖
+
+```go
+func ledgerRuntime(ctx context.Context, op OperationContext) (ledgerReadRuntime, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `runtime` | `LedgerReadRuntime` | 真实只读依赖 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 读取真实签名与价目schema依赖
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
+
+## model-gateway.validateLedgerCoverage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：核账本/预留到调用的完整覆盖、旧行必要归属和UTC时刻，缺前置不伪空
+
+```go
+func validateLedgerCoverage(ctx context.Context, op OperationContext, tx *sql.Tx) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `tx` | `SQLTransaction` | 当前快照 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 核账本/预留到调用的完整覆盖、旧行必要归属和UTC时刻，缺前置不伪空
+2. 只查非法UTC时间元数据view/部分索引；SQLite内建strftime取前19位加0秒规范化往返，单独核小数ASCII位与末Z；不得因时间窗过滤隐去坏行，不扫描正文。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.readLedgerRevision
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：读真实int64分页水位，不猜补缺失
+
+```go
+func readLedgerRevision(ctx context.Context, op OperationContext, tx *sql.Tx) (int64, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `tx` | `SQLTransaction` | 当前快照 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `revision` | `int64` | 固定水位 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 读真实int64分页水位，不猜补缺失
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.readLedgerMetadata
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：一次核持久调用归属/时刻/状态及原价目，缺前置503、矛盾422
+
+```go
+func readLedgerMetadata(ctx context.Context, op OperationContext, runtime ledgerReadRuntime, id, owner, site, epoch, root, costClass, state, created string, price []byte) (ledgerReadMetadata, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `runtime` | `LedgerReadRuntime` | 本域schema | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `id` | `string` | 调用ID | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `owner` | `string` | 原owner | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `site` | `string` | 原站点 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `epoch` | `string` | 原代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `root` | `string` | 原根 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `costClass` | `string` | 可信费用类 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `state` | `string` | 原状态 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `created` | `string` | 原创建时刻 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `price` | `JSONBytes` | 原固定价目 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `metadata` | `LedgerReadMetadata` | 已核持久归属投影 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 一次核持久调用归属/时刻/状态及原价目，缺前置503、矛盾422
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.readLedgerEntries
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：读取并一次投影真实账单和调用原价目；所有业务筛选值参数绑定
+
+```go
+func readLedgerEntries(ctx context.Context, op OperationContext, tx *sql.Tx, runtime ledgerReadRuntime, condition string, args []any, limit int) ([]gen.LedgerEntry, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `tx` | `SQLTransaction` | 当前快照 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `runtime` | `LedgerReadRuntime` | schema依赖 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `condition` | `string` | 本域固定SQL片段 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `args` | `LedgerReadArguments` | 参数值 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `limit` | `int` | 含lookahead的上限 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `entries` | `LedgerReadEntries` | 完整真实条目 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 读取并一次投影真实账单和调用原价目；所有业务筛选值参数绑定
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.readLedgerMetadata`
+
+## model-gateway.readLedgerPage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：验签绑定游标、严格同代固定水位精确keyset、SQL外签下一页
+
+```go
+func readLedgerPage(ctx context.Context, op OperationContext, input GetLedgerInput) (GetLedgerResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `input` | `GetLedgerInput` | 可信查询 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `GetLedgerResult` | 分页 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 验签绑定游标、严格同代固定水位精确keyset、SQL外签下一页
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.ledgerRuntime`、`model-gateway.beginAdminSnapshot`、`model-gateway.validateLedgerCoverage`、`model-gateway.readLedgerRevision`、`model-gateway.readLedgerEntries`
+
+## model-gateway.readRootMetadata
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：完整root最多256，逐全部归属核同站点/epoch，服务多owner拒绝
+
+```go
+func readRootMetadata(ctx context.Context, op OperationContext, tx *sql.Tx, runtime ledgerReadRuntime, root string) ([]ledgerReadMetadata, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `tx` | `SQLTransaction` | 当前快照 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `runtime` | `LedgerReadRuntime` | schema依赖 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `root` | `string` | 请求根 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `metadata` | `LedgerReadMetadataList` | 完整根归属 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 完整root最多256，逐全部归属核同站点/epoch，服务多owner拒绝
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.readLedgerMetadata`
+
+## model-gateway.sumLedgerMoney
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：仅将精确非负且不超安全整数的总和投影Money
+
+```go
+func sumLedgerMoney(ctx context.Context, op OperationContext, total *big.Int) (*gen.Money, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿IO取消 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `op` | `OperationContext` | 可信当前主体/站点/代次 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+| `total` | `LedgerInteger` | 精确已知总和 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `money` | `Money` | 完整已知总额 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 仅将精确非负且不超安全整数的总和投影Money
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.NewLedgerHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/usage.go`
+- 作用：构造价目持久schema与真实HTTP绑定，不在领域重复公共授权
+
+```go
+func NewLedgerHandlers(key platform.SigningKey) (map[string]http.Handler, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信启动签名引用 | 来自可信调用链或本次私有持久快照；不从浏览器猜补归属 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `LedgerReadHandlers` | 两项真实HTTP映射 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 构造价目持久schema与真实HTTP绑定，不在领域重复公共授权
+2. limit按与kin-openapi入口一致的ParseInt(raw,0,64)转换已验证整数，避免十六进制/八进制输入被转成0或不同值。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.GetLedger`、`model-gateway.QueryUsage`
 
 ## model-gateway.AcquireBarrier
 
@@ -5242,7 +5674,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。 本轮合并NewPriceHandlers的quoteCost（根AI任务owner纯服务），getPriceBook仅portal，estimateTokens仅localization。 通过NewTokenHandlers绑定estimateTokens，不复制造假调用或影子入口。
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。 本轮合并NewPriceHandlers的quoteCost（根AI任务owner纯服务），getPriceBook仅portal，estimateTokens仅localization。 通过NewTokenHandlers绑定estimateTokens，不复制造假调用或影子入口。 本轮NewLedgerHandlers装配getLedger和queryUsage；getLedger仅portal，queryUsage对portal当前model.manage授权，根AI任务owner纯服务列入ServiceActorCallers并逐root核归属；不装配Reserve/Create。
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -5257,7 +5689,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

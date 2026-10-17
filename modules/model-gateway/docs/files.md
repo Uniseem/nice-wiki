@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 37、UI 3、生成 5、配置 10、迁移 3。函数 115 个：约束 38，参考 77。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 37、UI 3、生成 5、配置 10、迁移 4。函数 124 个：约束 38，参考 86。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,7 +29,7 @@
 | `modules/model-gateway/internal/runtime/recovery.go` | 手写 | 恢复崩溃中的调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RecoverLeases`（参考） |
 | `modules/model-gateway/internal/admin/read.go` | 手写 | 真实安全目录读取与费用策略；账本/价格及space/最近探测分支按台账未完成。 | `model-gateway.GetLedger`、`model-gateway.GetPriceBook`、`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.ReadAdminCatalog`、`model-gateway.requireCatalogReader`（参考）、`model-gateway.beginAdminSnapshot`（参考）、`model-gateway.readCatalogModels`（参考）、`model-gateway.readCatalogProfiles`（参考）、`model-gateway.readCatalogProviders`（参考）、`model-gateway.readCatalogAssignments`（参考）、`model-gateway.requireFeePolicyActor`（参考）、`model-gateway.readFeePolicy`（参考）、`model-gateway.readFeePolicyReceipt`（参考）、`model-gateway.adminStorageError`（参考）、`model-gateway.NewAdminHandlers`（参考） |
 | `modules/model-gateway/internal/security/redact.go` | 手写 | 生成最小运行日志所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RedactLog`（参考） |
-| `modules/model-gateway/internal/admin/usage.go` | 手写 | 跨服务读取权威费用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QueryUsage` |
+| `modules/model-gateway/internal/admin/usage.go` | 手写 | 跨服务读取权威费用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QueryUsage`、`model-gateway.ledgerRuntime`（参考）、`model-gateway.validateLedgerCoverage`（参考）、`model-gateway.readLedgerRevision`（参考）、`model-gateway.readLedgerMetadata`（参考）、`model-gateway.readLedgerEntries`（参考）、`model-gateway.readLedgerPage`（参考）、`model-gateway.readRootMetadata`（参考）、`model-gateway.sumLedgerMoney`（参考）、`model-gateway.NewLedgerHandlers`（参考） |
 | `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireBarrier`、`model-gateway.ReleaseBarrier`、`model-gateway.ExportSnapshot`、`model-gateway.StageSnapshot`、`model-gateway.DiscardSnapshot` |
 | `modules/model-gateway/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.LoadAdminOverview`（参考） |
 | `modules/model-gateway/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.SubmitPrimaryEdit`（参考） |
@@ -64,3 +64,4 @@
 | `modules/model-gateway/migrations/002_task_availability.sql` | 迁移 | 只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。 | 无 |
 | `modules/model-gateway/migrations/003_fee_budget_policy.sql` | 手写 | 只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。 | 无 |
 | `modules/model-gateway/migrations/004_price_book.sql` | 迁移 | 只追加不可变人工价目历史，无价格种子、目录来源伪造或费用状态。 | 无 |
+| `modules/model-gateway/migrations/005_ledger_reads.sql` | 迁移 | 仅追加nullable调用归属/created_at与真实读取水位、触发器、精确分页索引；不回填、不造费用事实。 | 无 |

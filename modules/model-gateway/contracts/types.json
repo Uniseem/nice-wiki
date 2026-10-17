@@ -461,6 +461,10 @@
         "pricingKnown": {
           "type": "boolean",
           "description": "最终金额是否已知"
+        },
+        "priceSnapshot": {
+          "$ref": "#/$defs/PriceSnapshot",
+          "description": "调用创建时固定的真实价目全值，不按当前价重新计算历史账单"
         }
       },
       "required": [
@@ -472,7 +476,8 @@
         "status",
         "createdAt",
         "attemptId",
-        "pricingKnown"
+        "pricingKnown",
+        "priceSnapshot"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2728,11 +2733,11 @@
         },
         "heldCost": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Money",
-          "description": "仍held总额"
+          "description": "调用created_at位于查询窗内、当前held的完整总额；任一held金额未知则整项省略，非历史时点余额"
         },
         "settledCost": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Money",
-          "description": "已结算总额"
+          "description": "ledger.created_at位于查询窗内的完整已结算总额；任一账单金额未知则整项省略"
         },
         "unknownInvocationIds": {
           "type": "array",
@@ -2741,13 +2746,11 @@
           },
           "maxItems": 256,
           "uniqueItems": true,
-          "description": "未知收费调用"
+          "description": "本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断"
         }
       },
       "required": [
         "entries",
-        "heldCost",
-        "settledCost",
         "unknownInvocationIds"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
@@ -4515,6 +4518,66 @@
       "x-internal": true,
       "x-go-type": "map[string]http.Handler",
       "description": "localization免费文本预算HTTP映射"
+    },
+    "LedgerReadRuntime": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "ledgerReadRuntime",
+      "description": "只读账本内部投影/依赖，不从HTTP构造归属"
+    },
+    "LedgerReadMetadata": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "ledgerReadMetadata",
+      "description": "只读账本内部投影/依赖，不从HTTP构造归属"
+    },
+    "LedgerReadCursor": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "ledgerReadCursor",
+      "description": "只读账本内部投影/依赖，不从HTTP构造归属"
+    },
+    "LedgerReadHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "只读账本内部投影/依赖，不从HTTP构造归属"
+    },
+    "JSONBytes": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "[]byte",
+      "description": "只读账本内部精确投影，不作为HTTP字段"
+    },
+    "LedgerReadArguments": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "[]any",
+      "description": "只读账本内部精确投影，不作为HTTP字段"
+    },
+    "LedgerReadEntries": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "[]gen.LedgerEntry",
+      "description": "只读账本内部精确投影，不作为HTTP字段"
+    },
+    "LedgerReadMetadataList": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "[]ledgerReadMetadata",
+      "description": "只读账本内部精确投影，不作为HTTP字段"
+    },
+    "LedgerInteger": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*big.Int",
+      "description": "只读账本内部精确投影，不作为HTTP字段"
+    },
+    "SigningKey": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "platform.SigningKey",
+      "description": "仅可信进程装配传入的平台服务签名引用；真实Go类型platform.SigningKey，不从HTTP构造、不生成密钥输入字段、不持久化私有引用。"
     }
   }
 }
