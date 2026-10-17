@@ -1,3 +1,16 @@
+# 2026-10-17一轮：人工删除执行与worker边界（GitLab既有检查通过，已交付冻结）
+
+- 基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，分支codex/media-20261017-r1，独占modules/media/；源码`3d64fbcb71bd955d431c6496ee1d27ea5014ec43`，准确台账另提交。用户授权本轮三个子代理并行编写并由根统一普通推送；本域不push，交付后冻结，主线实际集成SHA由根汇总。
+- 完整23函数通过本阶段检查：Execute、RunWorker、有限reader、恢复/Complete/事件/引用投影7项及16参考助手（含3项既有助手补登记）。新增既有登记cleanup_worker.go/worker.go/reader_lease.go及根批准只追加0007；blob_repository/reference_reader/cleanup_worker/reader_lease/blob_recovery/0007完整文件verified，worker/outbox整体仍partial，原cleanup_service/reference_repository/transport及完整启动缺项不冒充完成。accepted为零。
+- Execute精确绑定原批准ObjectRef、jobId/op/root/site/epoch、原AcceptedJob及固定waiting，保留批准后24小时窗口。最终两源完整分页及原历史风险、pending/readers/generation/全部marks重核后，整计划DELETING和共享bytes决定同事务；任一新引用/历史风险变化阻断整份计划，未知Commit不unlink。任一决定后Cancel均CONFLICT，避免部分不可逆删除误报可逆。
+- 原决定恢复在完整资产锁/store下先核全部原材料及唯一精确DELETING，再做generated blob身份/SHA/长度检查、unlink/目录fsync；deleted/精确marks解除/真实generation outbox/计划终局及固定原结果同事务。Complete同store互斥，未完成同SHA决定阻止提交/复用，计划外任一未删除共享asset保留bytes。启动只恢复同opened epoch明确批准决定，不扫描ready自动授权；历史COMMITTED的deleted资产核原终局证明。
+- worker只装配platform.RunWorkerLoop，完整ObjectRef/WorkerID/fence/CheckLease及准确租约到期由根公共机制提供；领取时新建十分钟执行期限，保留原root/站点，使用登记background费用类别。执行器首次批准读取及Execute错误统一走真实取消证明：ctx取消/公共CANCELLED cause后一秒独立只读同快照，原完整终局优先成功，无execution才安全JobCancelled；未终局DELETING或读取未知不声称安全取消。证明不RPC、不写入。
+- reader权威为有限持久租约及Release回调，未来bytes必须以其期限断流并close释放；当前bytes入口仍planned。content的pending_pin转未confirmed且未知expiry仍保护，矛盾retained=false与未知kind失败关闭；两源服务未就绪不假造空集合或联调成功。真实JobsClient适配、其余HTTP/事件/控制恢复与完整服务仍blocked/planned。
+- 最终依据为自部署GitLab CI pipeline13候选`d2e2d55ed9f8c0797037d55551f10840f0bd43f7`：golang:1.25.5-bookworm，生成/格式及重复docs/gen一致，三个同时分片覆盖14个Go模块readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成快照，三候选交叉复审通过。本地仅静态JSON/文件/差异/范围/隐私核对，无本机Go或完整check；用户最新指令已覆盖原VPS执行规则。
+- 失败如实保留：p11生成/格式/重复gen及AI分片通过，但content缺RelayOutbox→jobs:publishEvent依赖导致生成器裁掉客户端，基础check另发现CI身份环境顺序、ClaimedJob类型与实际文件/CI结构登记缺项，整体失败。均修正后p12全通过；p12尚未含首次批准读取取消的最后窄修，p13包含该窄修再次全通过，不把p11或p12当最终树证据。
+- 未新增测试/fixture/mock/样例或临时业务验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署。源码与准确记录分开提交，保持既有GitHub代用身份及GPT-6合著署名；无私有连接、配置、凭据或用户数据，所有改动仅本域。生成clients由根CI产出，未手改。
+- 下一项：本轮根统一集成检查和普通push后停止；下一轮新授权再处理引用事件ApplyReferenceEvent，先读其函数/事件/类型合同并补齐空集合所需顶层完整来源对象与操作材料，再复用reference_heads/reference_entries实现幂等，不另建引用权威。
+
 # 持续目标第二轮：人工批准与jobs延迟任务桥接（2026-10-16，已交付冻结）
 
 - 基线471c036082e082763d90e1080b3489d4e4531380，分支codex/media-goal-r2，仅拥有modules/media/；源码`dc9e9f8540892a4747b8e3accbb15158a770e561`。根统一VPS/集成/本轮push，本域不自行VPS或push；源码与准确SHA记录分开提交，交付后冻结等待下一轮派发。
