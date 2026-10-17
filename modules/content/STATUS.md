@@ -1,3 +1,17 @@
+# 当前工作包：发布确认改用已提交草稿来源（2026-10-17第四轮再退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `67f35e4857ee66970b3ff6b84184d7e9eb92c447`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。
+
+- 非空引用的 confirm 使用已提交草稿保存操作的来源身份：同一 document、revision、sourceVersion 和 referenceDigest，来自 revision_preparations 与 action 为 save 且已 committed 的 draft_operation_intents。已确认 pin 按媒体原绑定幂等回放。
+- 找不到这条决定，或摘要与当前引用不一致，整次发布失败，不先公开。空引用仍不调媒体。分享图非空仍 503。媒体调用仍在本地 SQL 锁之外。
+- 函数完成数仍是 227/261。ReadReferenceDecision 的查询范围未改。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：发布资源 pin 接回（2026-10-17第四轮审核退回，已编写，未编译）
 
 分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `7edca48674a7287cb9fc454fa509164e61d71fd2`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。

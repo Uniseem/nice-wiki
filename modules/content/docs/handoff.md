@@ -1,3 +1,33 @@
+# 当前工作包：发布确认改用已提交草稿来源（2026-10-17第四轮再退回，已编写，未编译）
+
+分支 `codex/content-20261017-r4`。基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `67f35e4857ee66970b3ff6b84184d7e9eb92c447`。未跑 GitLab CI，未运行 gofmt、build、vet 或 make check，不记 verified，accepted 为 0。
+
+审核再退回后已修正：非空引用不再把当次发布的 operationId 当作 sourceOperationId。confirm 使用已提交草稿保存操作的来源身份，也就是同一 document、revision、sourceVersion、referenceDigest 上，revision_preparations 与 action 为 save 且 state 为 committed 的 draft_operation_intents。媒体调用仍在本地 SQL 锁之外。找不到该决定或摘要不一致则整次发布失败，不先公开。空引用不调媒体、不造空 pin。分享图非空仍 503。已确认 pin 按媒体现有幂等回放。ReadReferenceDecision 查询范围未改。源码仍未编译。
+
+完成并记 implemented：PreparePublicationMetadata、PublishDocument、WithdrawDocument、CommitPublication、ValidatePublications、ReadPublishedRevision，以及 preparePublicationPin、pinPublicationReferences。
+
+仍不完整：
+
+- UpdateDocumentMetadata 与 metadata 文件保持 in_progress。分享图实际变更仍 503，因为精确 metadata pin 合同未齐。
+- BuildApplication 与 main 保持 blocked。完整启动仍返回 nil 和 503。
+- 回收站、历史回滚、预览、屏障、快照导出、编辑器 UI 和 InvokeModel 未实现。
+
+`make docs` 只跑了 Python 渲染，没有调用 go。
+
+需要集成会话处理的公共事项：把以下新文件登记进 `docs/structure/framework.json`。不要在本域会话里改这个公共文件。
+
+- `modules/content/internal/publication_metadata.go`
+- `modules/content/internal/publication_service.go`
+- `modules/content/internal/visibility_service.go`
+- `modules/content/internal/publication_reader.go`
+- `modules/content/migrations/0008_publication_snapshots.sql`
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 当前工作包：发布资源 pin 接回（2026-10-17第四轮审核退回，已编写，未编译）
 
 分支 `codex/content-20261017-r4`。基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `7edca48674a7287cb9fc454fa509164e61d71fd2`。未跑 GitLab CI，未运行 gofmt、build、vet 或 make check，不记 verified，accepted 为 0。

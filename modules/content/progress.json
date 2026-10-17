@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "4837b8778295161397b9958c4514052335da836de48707e12e34c2d652b04980",
+  "contractSha256": "c561f95fb0905a1f4c375f5f82f84e0ddaf77107f9a14ecca8cb908feec86c87",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "content第四轮发布快照（pin已接回，已编写，未跑CI）",
+  "assignedSession": "content第四轮发布快照（confirm用来源已提交草稿保存，已编写，未跑CI）",
   "branch": "codex/content-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+  "deliveryCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
   "deployment": "not_started",
   "files": [
     {
@@ -183,10 +183,10 @@
     {
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -1852,10 +1852,10 @@
       "id": "content.PublishDocument",
       "path": "modules/content/internal/publication_service.go",
       "state": "implemented",
-      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -1874,10 +1874,10 @@
       "id": "content.CommitPublication",
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3447,10 +3447,10 @@
       "id": "content.pinPublicationReferences",
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
+      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
         "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
       },
       "blocker": null
     },
@@ -3554,5 +3554,5 @@
       "blocker": null
     }
   ],
-  "rule": "第四轮发布快照按源码 7edca48674a7287cb9fc454fa509164e61d71fd2 记 implemented。非空就绪引用已接回现有 MediaClient，先 acquire 再 confirm，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"
+  "rule": "第四轮发布快照按源码 67f35e4857ee66970b3ff6b84184d7e9eb92c447 记 implemented。非空引用的 confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"
 }
