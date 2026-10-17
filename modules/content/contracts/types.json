@@ -2421,7 +2421,7 @@
     },
     "MoveDocumentResult": {
       "type": "object",
-      "description": "拖拽移动层级和顺序的结果",
+      "description": "移动结果；当前已发布子树改变路径依赖redirect manifest生产链而503，不能返回虚假空redirects成功",
       "additionalProperties": false,
       "properties": {
         "treeRevision": {
@@ -2463,7 +2463,7 @@
         },
         "orderedDocumentIds": {
           "type": "array",
-          "description": "全量无重复子顺序",
+          "description": "该parent下完整活动draft/published子节点集合，回收站/purged不属于活动排序；空集合允许",
           "items": {
             "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
             "description": "所有当前子节点"
@@ -2503,13 +2503,12 @@
       "properties": {
         "documents": {
           "type": "array",
-          "description": "树",
+          "description": "本域提供的可信完整树；内部纯规划不把读取预算解释为站点业务配额",
           "items": {
             "$ref": "#/$defs/DocumentMetadata",
             "description": "DocumentMetadata"
           },
-          "minItems": 0,
-          "maxItems": 10000
+          "minItems": 0
         },
         "movingId": {
           "anyOf": [
@@ -2721,18 +2720,22 @@
         },
         "documents": {
           "type": "array",
-          "description": "变更前树",
+          "description": "本域提供的可信完整树；内部纯规划不把读取预算解释为站点业务配额",
           "items": {
             "$ref": "#/$defs/DocumentMetadata",
             "description": "DocumentMetadata"
           },
-          "minItems": 0,
-          "maxItems": 10000
+          "minItems": 0
+        },
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "拟提交的新全站路径水位，调用方从锁定树版本加一提供"
         }
       },
       "required": [
         "documentId",
-        "documents"
+        "documents",
+        "treeRevision"
       ]
     },
     "PlanOldPathRedirectsResult": {
@@ -6529,6 +6532,52 @@
       "additionalProperties": false,
       "properties": {},
       "required": []
+    },
+    "TreeRuntime": {
+      "type": "object",
+      "x-internal": true,
+      "description": "真实ReferenceRuntime、结果schema校验器与当前平台写窗口；树操作不虚构编辑锁",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "treeListCursor": {
+      "type": "object",
+      "x-internal": true,
+      "description": "签名分页位置、全站treeRevision与真实reference_scan_state来源水位；后者覆盖metadata/head/隔离变化，绑定主体、会话、状态与limit",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "TreeChangedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "只有文档ID与树水位的最小树变化通知；不含正文、路径、账户或密钥",
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "changedDocumentIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "siteId",
+        "treeRevision",
+        "changedDocumentIds",
+        "dataEpoch"
+      ]
     }
   }
 }

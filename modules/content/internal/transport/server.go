@@ -216,7 +216,8 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 			op, _ := platform.OperationContextFrom(r.Context())
 			limit := 20
 			if value := r.URL.Query().Get("limit"); value != "" {
-				limit, _ = strconv.Atoi(value)
+				parsed, _ := strconv.ParseInt(value, 0, 64)
+				limit = int(parsed)
 			}
 			input := content.ListResourceReferencesInput{Page: content.ReferencePageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}}
 			if value := r.URL.Query().Get("documentId"); value != "" {
@@ -254,5 +255,98 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 	mux := app.httpServer.Handler.(*http.ServeMux)
 	mux.Handle("GET /v1/resource-references", handler)
 	mux.Handle("GET /v1/reference-decisions/{sourceOperationId}", handler)
+	return nil
+}
+
+// RegisterTreeRoutes只注册四个已实际实现核心入口；即时权限由核心在任何DB前核一次。
+func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors platform.TrustAnchors) error {
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "文档树HTTP规格不可读")
+	}
+	for path := range spec.Paths.Map() {
+		if path != "/v1/documents" && path != "/v1/tree" && path != "/v1/tree:move" && path != "/v1/tree:reorder" {
+			spec.Paths.Delete(path)
+		}
+	}
+	// /v1/documents共享GET/POST，只装本轮真实GET；其余完整handler仍由BuildApplication关闭启动。
+	spec.Paths.Value("/v1/documents").Post = nil
+	handlers := map[string]http.Handler{
+		"readDocumentTree": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := content.ReadDocumentTree(content.WithTreeRuntime(r.Context(), runtime), op, content.ReadDocumentTreeInput{})
+			w.Header().Set("Cache-Control", "no-store")
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"listDocuments": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			limit := 20
+			if value := r.URL.Query().Get("limit"); value != "" {
+				parsed, _ := strconv.ParseInt(value, 0, 64)
+				limit = int(parsed)
+			}
+			input := content.ListDocumentsInput{State: r.URL.Query().Get("state"), Page: content.ReferencePageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}}
+			result, err := content.ListDocuments(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			w.Header().Set("Cache-Control", "no-store")
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"moveDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.MoveDocumentInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "移动文档参数无法转换"))
+				return
+			}
+			result, err := content.MoveDocument(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"reorderChildren": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.ReorderChildrenInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "重排文档参数无法转换"))
+				return
+			}
+			result, err := content.ReorderChildren(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+	}
+	generalAuthorize := apivalidate.NewIdentityAuthorizer(runtime.Reference.Identity)
+	// 根已确认这四个固定action在真实核心中按state选择read/publish并即时核权威一次；
+	// 仅对本注册表跳过平台的重复RPC，服务身份/epoch/schema仍在统一边界严格执行。
+	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
+		switch action {
+		case "content:readDocumentTree", "content:listDocuments", "content:moveDocument", "content:reorderChildren":
+			return nil
+		}
+		return generalAuthorize(ctx, op, permission, action)
+	}
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, Authorize: authorize,
+		AllowedCallers:        map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}},
+		MaintenanceOperations: map[string]bool{"readDocumentTree": true, "listDocuments": true}}, handlers)
+	if err != nil {
+		return err
+	}
+	mux := app.httpServer.Handler.(*http.ServeMux)
+	mux.Handle("GET /v1/tree", handler)
+	mux.Handle("GET /v1/documents", handler)
+	mux.Handle("POST /v1/tree:move", handler)
+	mux.Handle("POST /v1/tree:reorder", handler)
 	return nil
 }

@@ -312,12 +312,13 @@
         {
           "id": "content.readCreationTree",
           "name": "readCreationTree",
-          "signature": "func readCreationTree(ctx context.Context,q creationQuery,siteID Identifier) (int64,[]gen.DocumentMetadata,error)",
+          "signature": "func readCreationTree(ctx context.Context, q creationQuery, siteID Identifier, validateMetadata func(json.RawMessage) error) (int64, []gen.DocumentMetadata, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "读取完整站点树版本与文档元数据一致快照",
           "steps": [
-            "读取完整站点树版本与文档元数据一致快照"
+            "读取完整站点树版本与文档元数据一致快照",
+            "可选持久metadata schema在原JSON解码前只校验一次；仅新树查询/操作分支排除purged墓碑并扫描最多10001行，超过10000明确503而不截断；旧Create nil回调保持原无新增总量限制，不新增站点业务配额"
           ],
           "errors": [],
           "sideEffects": [],
@@ -435,9 +436,9 @@
           ],
           "purpose": "后台读取整站文档树",
           "steps": [
-            "检查content.read",
-            "按parent/orderKey构建一致前序，保留draft徽标，回收站独立读取",
-            "验证无环；损坏不输出部分伪树"
+            "仅portal当前admin，即时content.read一次且在DB前；平台服务/epoch/schema边界仍严格执行",
+            "同SQL核持久站点/代次、treeRevision、原始metadata schema、metadata/head/COMMITTED资格和完整树；无环/深度32/同父活动key和slug唯一，最多10000节点，损坏不输出部分伪树",
+            "按parent/orderKey/ID构建活动draft/published前序，回收站独立ListDocuments，no-store不返回正文"
           ],
           "errors": [
             {
@@ -454,6 +455,21 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "当前会话或委托无效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "当前代次/树/元数据CAS已变化或耗尽",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同操作动作/摘要复用或同父路径冲突",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -461,7 +477,11 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
           "dependencies": [
-            "content.EnsureTreeAcyclic"
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.beginTreeRead",
+            "content.readTreeSnapshot",
+            "content.treePreorder"
           ],
           "resources": [],
           "contract": "binding"
@@ -521,9 +541,10 @@
           ],
           "purpose": "文档及回收站分页列表",
           "steps": [
-            "按功能权限content.read或publish读取相应状态",
-            "签名cursor绑定site/state/tree watermark",
-            "不在列表返回正文"
+            "仅portal当前admin；draft/published需content.read，trash需content.publish，在DB前一次即时授权",
+            "同SQL完整读取真实树/元数据/head资格并核treeRevision，按一致前序筛state；不返回正文，最多100项，no-store",
+            "签名cursor绑定site/epoch/caller/actor/会话/权限版本/state/limit及treeRevision/reference_scan_state来源水位/位置；同一SQL读取两个真实水位，跨页任一水位变化409首批重读，末页省略cursor；签名私钥IO前释放SQL",
+            "0005来源触发器覆盖documents/state、document_metadata全部字段（含title/draftRevisionId）、draft_heads、提交资格/原回执/preparations、隔离及持久身份；SaveDraft不推进treeRevision时由来源水位保证完整metadata分页不混快照。来源非metadata变化也可保守拒旧页，不新增公共机制/持久读快照"
           ],
           "errors": [
             {
@@ -535,13 +556,47 @@
               "code": "VALIDATION",
               "when": "字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
               "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "当前会话或委托无效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "当前代次/树/元数据CAS已变化或耗尽",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久树、原回执或正文资格不完整",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖或完整树预算不可用",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同操作动作/摘要复用或同父路径冲突",
+              "retryable": false
             }
           ],
           "sideEffects": [],
           "authorization": "content.read；trash需content.publish",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.beginTreeRead",
+            "content.readTreeSnapshot",
+            "content.treePreorder",
+            "content.decodeStorageJSON",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -605,9 +660,11 @@
           ],
           "purpose": "拖拽移动层级和顺序",
           "steps": [
-            "锁tree水位，EnsureTreeAcyclic防移入自己后代、检查同父slug唯一",
-            "PlanOldPathRedirects捕获已公开节点及全部后代旧路径→docId",
-            "事务更新parent/order/treeRevision/redirect manifest并outbox，链接因docId不失效"
+            "仅portal当前admin；content.edit在任何DB/锁前即时核一次，先查同scope动作/规范摘要完整原回执，命中回放不重做CAS",
+            "当前平台窗口在Store.mu/短SQL前建立；同SQL核身份/treeRevision/metadata/head/提交资格；EnsureTreeAcyclic禁止移入自身/后代且整棵子树不超32层，新父和相邻必须属于活动树",
+            "父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭，非空redirects因真实manifest生产链未完成而503且不写任何树/回执/outbox，本函数因此保持partial/in_progress",
+            "支持的草稿路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS和parent/order更新，完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试",
+            "未来发布路径规划必须共享同一全站树CAS与Store.mu，并维护真实版本化manifest；本轮不假造发布或manifest"
           ],
           "errors": [
             {
@@ -644,15 +701,27 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久树、原回执或正文资格不完整",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同操作动作/摘要复用或同父路径冲突",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "私有事务/正文提交日志/operation receipt/outbox"
           ],
           "authorization": "按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope",
-          "concurrency": "全站树事务CAS，移动和发布路径规划同一tree锁",
+          "concurrency": "全站Store.mu短SQL/树CAS；不持SQL或mutex跨鉴权/当前平台窗口RPC；Save只改draft head字段，不覆盖本事务新parent/order",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
           "dependencies": [
+            "content.executeTreeMutation",
+            "content.decodeStorageJSON",
             "content.EnsureTreeAcyclic",
             "content.PlanOldPathRedirects"
           ],
@@ -719,9 +788,10 @@
           ],
           "purpose": "拖拽调整同级顺序",
           "steps": [
-            "核完整集合与parent关系，拒绝缺失/重复/跨层",
-            "fracdex生成顺序，不改变slug",
-            "事务CAS treeRevision，前后篇按新树排序"
+            "仅portal当前admin，content.edit在DB前一次即时核；同scope动作/摘要原结果优先回放",
+            "核parent活动且完整draft/published子集合，拒缺失/重复/跨层；trash/purged不混入活动排序，空集合允许",
+            "在现有base62字典序协议以6位均匀key重排并保留插入间隔，不改变slug；同SQL核树CAS和metadata revision CAS、站点/代次，保存完整原回执及content.tree.changed outbox",
+            "当前写窗口在锁外；Commit未知不推定失败，重试查原结果不重复推进水位或事件"
           ],
           "errors": [
             {
@@ -758,6 +828,16 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "持久树、原回执或正文资格不完整",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同操作动作/摘要复用或同父路径冲突",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -766,9 +846,292 @@
           "authorization": "按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT",
-          "dependencies": [],
+          "dependencies": [
+            "content.executeTreeMutation",
+            "content.decodeStorageJSON"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.NewTreeRuntime",
+          "name": "NewTreeRuntime",
+          "signature": "func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfig) (TreeRuntime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "预装真实树依赖与完整原结果schema校验器",
+          "steps": [
+            "预装真实树依赖与完整原结果schema校验器"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "platform.NewPayloadValidator"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.WithTreeRuntime",
+          "name": "WithTreeRuntime",
+          "signature": "func WithTreeRuntime(ctx context.Context, runtime TreeRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配受信树运行依赖",
+          "steps": [
+            "装配受信树运行依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.treeRuntimeFromContext",
+          "name": "treeRuntimeFromContext",
+          "signature": "func treeRuntimeFromContext(ctx context.Context) (TreeRuntime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "取得完整真实树依赖",
+          "steps": [
+            "取得完整真实树依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.WithTreeRuntime"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.authorizeTree",
+          "name": "authorizeTree",
+          "signature": "func authorizeTree(ctx context.Context, op OperationContext, runtime TreeRuntime, permission string, action string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅portal管理主体，一次即时全站功能授权",
+          "steps": [
+            "仅portal管理主体，一次即时全站功能授权"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "platform.NewIdentityAuthorizer"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.beginTreeRead",
+          "name": "beginTreeRead",
+          "signature": "func beginTreeRead(ctx context.Context, op OperationContext, runtime TreeRuntime) (*sql.Tx, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核本域作用域后建立只读一致SQL快照",
+          "steps": [
+            "核本域作用域后建立只读一致SQL快照"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.checkRevisionScope"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readTreeSnapshot",
+          "name": "readTreeSnapshot",
+          "signature": "func readTreeSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime) (int64, []gen.DocumentMetadata, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核当前身份、完整元数据/head资格及全树结构",
+          "steps": [
+            "核当前身份、完整元数据/head资格及全树结构"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.readCreationTree",
+            "content.EnsureTreeAcyclic",
+            "content.validateTreeSiblings"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.validateTreeSiblings",
+          "name": "validateTreeSiblings",
+          "signature": "func validateTreeSiblings(documents []gen.DocumentMetadata) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核活动父关系及同父orderKey/slug唯一",
+          "steps": [
+            "核活动父关系及同父orderKey/slug唯一"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.treePreorder",
+          "name": "treePreorder",
+          "signature": "func treePreorder(documents []gen.DocumentMetadata, includeInactive bool) []gen.DocumentMetadata",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在已核无环深度受限树按parent/orderKey/ID返回确定性前序",
+          "steps": [
+            "在已核无环深度受限树按parent/orderKey/ID返回确定性前序"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readTreeReceipt",
+          "name": "readTreeReceipt",
+          "signature": "func readTreeReceipt(ctx context.Context, q creationQuery, op OperationContext, action string, digest Hash, runtime TreeRuntime) (json.RawMessage, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按完整身份动作摘要读取严格schema原结果，异材料冲突",
+          "steps": [
+            "按完整身份动作摘要读取严格schema原结果，异材料冲突"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.executeTreeMutation",
+          "name": "executeTreeMutation",
+          "signature": "func executeTreeMutation(ctx context.Context, op OperationContext, action string, input any, expected int) (json.RawMessage, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原回执优先；锁外当前写窗口后短SQL提交树/metadata CAS、原结果与outbox",
+          "steps": [
+            "原回执优先；锁外当前写窗口后短SQL提交树/metadata CAS、原结果与outbox",
+            "原回执优先回放后，新写前必须已装配Runtime/WriteWindow两个可信回调；缺失明确503，不能调用nil回调；只读和历史回执不依赖新写窗口"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.checkRevisionScope",
+            "content.draftRequestDigest",
+            "content.readTreeReceipt",
+            "content.readTreeSnapshot",
+            "content.planTreeMove",
+            "content.planTreeReorder",
+            "platform.NewWriteContext",
+            "platform.EnqueueEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.planTreeMove",
+          "name": "planTreeMove",
+          "signature": "func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭",
+          "steps": [
+            "规划支持范围内移动；曾发布路径变化依赖manifest失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.EnsureTreeAcyclic",
+            "content.PlanOldPathRedirects",
+            "content.sameIdentifierPointer",
+            "content.fractionalDocumentOrder",
+            "content.validateTreeSiblings"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.planTreeReorder",
+          "name": "planTreeReorder",
+          "signature": "func planTreeReorder(documents []gen.DocumentMetadata, input ReorderChildrenInput) ([]gen.DocumentMetadata, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核完整活动同级集合并生成均匀base62排序",
+          "steps": [
+            "核完整活动同级集合并生成均匀base62排序"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.sameIdentifierPointer",
+            "content.reorderedDocumentKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.reorderedDocumentKey",
+          "name": "reorderedDocumentKey",
+          "signature": "func reorderedDocumentKey(index int) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "给不超过10000节点生成6位base62均匀有间隔key",
+          "steps": [
+            "给不超过10000节点生成6位base62均匀有间隔key"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1117,22 +1480,37 @@
           ],
           "purpose": "规划301旧路径→文档ID",
           "steps": [
-            "前序取已公开节点及后代完整旧path",
-            "不含语言前缀，因为所有语言共slug",
-            "记录docId而不链式URL；公开解析当前路径避免跳转环"
+            "先核完整原树无环及深度；按前序定位node及全部后代",
+            "仅曾公开节点（publishedReference/lastPublishedAt/state/visibilityRevision证据）构造当前父链完整旧路径，任何祖先缺slug明确DEPENDENCY_UNAVAILABLE，绝不当空",
+            "不含语言前缀，target为稳定docId而非链式URL；旧路径唯一且不超过2048字节，revision由调用方锁定treeRevision+1提供",
+            "只规划不持久化manifest；Move遇非空规划保持503/partial直到真实生产链获授权实现",
+            "输入是本域可信完整树，无内部输入总量硬限制；公开输出/批次上限不改，不能借扫描预算限制Create站点总量"
           ],
           "errors": [
             {
               "code": "INTEGRITY_ERROR",
               "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
               "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "节点缺失或曾发布路径权威未知",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "节点缺失或曾发布路径权威未知",
+              "retryable": true
             }
           ],
           "sideEffects": [],
           "authorization": "纯函数",
           "concurrency": "纯函数，输入视为不可变；可以并发调用",
           "idempotency": "确定性输入产生确定性输出；无持久副作用",
-          "dependencies": [],
+          "dependencies": [
+            "content.EnsureTreeAcyclic",
+            "content.treePreorder"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -8142,7 +8520,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务"
+            "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务",
+            "本轮构造TreeRuntime并注册四树路由；当前没有可信control写窗口/完整后台及所有handler，仍不返回可运行Application，写窗口缺失失败关闭"
           ],
           "errors": [
             {
@@ -8192,7 +8571,9 @@
             "content.WithEditLockRuntime",
             "content.WithDraftRuntime",
             "content.NewReferenceRuntime",
-            "content.RegisterReferenceRoutes"
+            "content.RegisterReferenceRoutes",
+            "content.NewTreeRuntime",
+            "content.RegisterTreeRoutes"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8465,7 +8846,8 @@
           "outputs": [],
           "purpose": "在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界",
           "steps": [
-            "在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界"
+            "在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界",
+            "integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0"
           ],
           "errors": [],
           "sideEffects": [],
@@ -8477,6 +8859,35 @@
             "content.ListResourceReferences",
             "content.ReadReferenceDecision",
             "platform.NewServiceHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.RegisterTreeRoutes",
+          "name": "RegisterTreeRoutes",
+          "signature": "func RegisterTreeRoutes(app *Application, runtime TreeRuntime, anchors platform.TrustAnchors) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "注册四个真实树映射及统一身份/epoch/schema边界",
+          "steps": [
+            "仅四个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存",
+            "统一边界验证服务/委托/epoch/schema，再精确映射HTTP DTO；/v1/documents只注册GET，不绕过全量handler启动门槛",
+            "integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入",
+          "concurrency": "不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL",
+          "idempotency": "同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务",
+          "dependencies": [
+            "content.WithTreeRuntime",
+            "content.ReadDocumentTree",
+            "content.ListDocuments",
+            "content.MoveDocument",
+            "content.ReorderChildren",
+            "platform.NewServiceHandler",
+            "platform.NewIdentityAuthorizer"
           ],
           "resources": [],
           "contract": "reference"
@@ -10625,6 +11036,12 @@
       "path": "modules/content/migrations/0005_reference_snapshots.sql",
       "kind": "handwritten",
       "purpose": "只追加全站来源扫描单调水位；触发器在原来源事务内推进，耗尽回滚；不持久化读快照",
+      "functions": []
+    },
+    {
+      "path": "modules/content/migrations/0006_tree_operations.sql",
+      "kind": "handwritten",
+      "purpose": "只追加树操作完整scope/动作/摘要与原结果回执；不另建影子树或虚假manifest",
       "functions": []
     }
   ],

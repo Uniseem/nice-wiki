@@ -32,3 +32,11 @@ current_draft与history取真实索引分类；pending_pin来自Acquire前已持
 
 
 COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的媒体保护。当前正文读取仍拒绝隔离，缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort。
+
+## 2026-10-17第二轮文档树候选
+
+文档树同快照核真实站点/代次、树水位、原始metadata schema、head/COMMITTED资格、无环与活动父/同父orderKey及slug唯一；活动树按parent/orderKey/ID前序，回收站独立列表，签名cursor绑定主体/会话/权限版本/state/limit、树水位及真实reference_scan_state来源水位，任一水位变化409从头；既有0005触发器覆盖metadata/title/state/head/隔离写，确保SaveDraft仅推进head时也不混完整metadata快照。10000仅为新树查询/操作的明确扫描/输出预算，purged墓碑不计入；超限503不截断。旧Create nil回调无新增总量限制，内部Ensure/Plan可信完整树输入取消maxItems，不新增站点配额。
+
+四个树action只在core按所需功能一次即时identity，DB/锁之前执行；平台仍严格验证服务身份/委托/epoch/schema，仅对实际注册四action不重复授权RPC。trash列表需content.publish，活动读content.read，移动/重排content.edit。真实树写在锁外取得当前写窗口，短SQL做树/metadata CAS、完整原回执和最小content.tree.changed outbox（业务content.edit、jobs事件管理仍沿全域content.publish）；0006仅追加原回执，未知提交按原op查回执。重排要求完整同父活动集合，trash/purged不混入；均匀base62 key不改变slug。
+
+PlanOldPathRedirects完整规划node及所有曾发布后代的无语言前缀旧路径→稳定docId，未知祖先slug失败关闭；非空规划因真实版本化redirect manifest生产链未齐而使Move明确503、不提交，Move及文件继续partial。没有新增假manifest、发布生产者或消费者；当前事件只可靠排队，完整应用因写窗口/全量handler/恢复/后台未齐仍blocked。本轮源码候选待GitLab，未做业务验收或部署。

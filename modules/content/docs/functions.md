@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 224 个函数：约束 42 个，参考 182 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 238 个函数：约束 42 个，参考 196 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -190,7 +190,7 @@ func (s *Store) planDocumentCreation(ctx context.Context,op OperationContext,inp
 - 作用：读取完整站点树版本与文档元数据一致快照
 
 ```go
-func readCreationTree(ctx context.Context,q creationQuery,siteID Identifier) (int64,[]gen.DocumentMetadata,error)
+func readCreationTree(ctx context.Context, q creationQuery, siteID Identifier, validateMetadata func(json.RawMessage) error) (int64, []gen.DocumentMetadata, error)
 ```
 
 **输入**
@@ -204,6 +204,7 @@ func readCreationTree(ctx context.Context,q creationQuery,siteID Identifier) (in
 **步骤**
 
 1. 读取完整站点树版本与文档元数据一致快照
+2. 可选持久metadata schema在原JSON解码前只校验一次；仅新树查询/操作分支排除purged墓碑并扫描最多10001行，超过10000明确503而不截断；旧Create nil回调保持原无新增总量限制，不新增站点业务配额
 
 **错误**
 
@@ -306,21 +307,24 @@ func ReadDocumentTree(ctx context.Context, op OperationContext, input ReadDocume
 
 **步骤**
 
-1. 检查content.read
-2. 按parent/orderKey构建一致前序，保留draft徽标，回收站独立读取
-3. 验证无环；损坏不输出部分伪树
+1. 仅portal当前admin，即时content.read一次且在DB前；平台服务/epoch/schema边界仍严格执行
+2. 同SQL核持久站点/代次、treeRevision、原始metadata schema、metadata/head/COMMITTED资格和完整树；无环/深度32/同父活动key和slug唯一，最多10000节点，损坏不输出部分伪树
+3. 按parent/orderKey/ID构建活动draft/published前序，回收站独立ListDocuments，no-store不返回正文
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `UNAUTHENTICATED`：当前会话或委托无效（不可重试）
+- `VERSION_MISMATCH`：当前代次/树/元数据CAS已变化或耗尽（不可重试）
+- `CONFLICT`：同操作动作/摘要复用或同父路径冲突（不可重试）
 
 - 副作用：无
 - 授权：content.read
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.EnsureTreeAcyclic`
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.beginTreeRead`、`content.readTreeSnapshot`、`content.treePreorder`
 
 ## content.ListDocuments
 
@@ -349,20 +353,26 @@ func ListDocuments(ctx context.Context, op OperationContext, input ListDocuments
 
 **步骤**
 
-1. 按功能权限content.read或publish读取相应状态
-2. 签名cursor绑定site/state/tree watermark
-3. 不在列表返回正文
+1. 仅portal当前admin；draft/published需content.read，trash需content.publish，在DB前一次即时授权
+2. 同SQL完整读取真实树/元数据/head资格并核treeRevision，按一致前序筛state；不返回正文，最多100项，no-store
+3. 签名cursor绑定site/epoch/caller/actor/会话/权限版本/state/limit及treeRevision/reference_scan_state来源水位/位置；同一SQL读取两个真实水位，跨页任一水位变化409首批重读，末页省略cursor；签名私钥IO前释放SQL
+4. 0005来源触发器覆盖documents/state、document_metadata全部字段（含title/draftRevisionId）、draft_heads、提交资格/原回执/preparations、隔离及持久身份；SaveDraft不推进treeRevision时由来源水位保证完整metadata分页不混快照。来源非metadata变化也可保守拒旧页，不新增公共机制/持久读快照
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `UNAUTHENTICATED`：当前会话或委托无效（不可重试）
+- `VERSION_MISMATCH`：当前代次/树/元数据CAS已变化或耗尽（不可重试）
+- `INTEGRITY_ERROR`：持久树、原回执或正文资格不完整（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖或完整树预算不可用（可重试）
+- `CONFLICT`：同操作动作/摘要复用或同父路径冲突（不可重试）
 
 - 副作用：无
 - 授权：content.read；trash需content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.beginTreeRead`、`content.readTreeSnapshot`、`content.treePreorder`、`content.decodeStorageJSON`、`platform.SignCursor`、`platform.VerifyCursor`
 
 ## content.MoveDocument
 
@@ -391,9 +401,11 @@ func MoveDocument(ctx context.Context, op OperationContext, input MoveDocumentIn
 
 **步骤**
 
-1. 锁tree水位，EnsureTreeAcyclic防移入自己后代、检查同父slug唯一
-2. PlanOldPathRedirects捕获已公开节点及全部后代旧路径→docId
-3. 事务更新parent/order/treeRevision/redirect manifest并outbox，链接因docId不失效
+1. 仅portal当前admin；content.edit在任何DB/锁前即时核一次，先查同scope动作/规范摘要完整原回执，命中回放不重做CAS
+2. 当前平台窗口在Store.mu/短SQL前建立；同SQL核身份/treeRevision/metadata/head/提交资格；EnsureTreeAcyclic禁止移入自身/后代且整棵子树不超32层，新父和相邻必须属于活动树
+3. 父改变先PlanOldPathRedirects完整规划曾发布节点和后代旧路径；未知路径失败关闭，非空redirects因真实manifest生产链未完成而503且不写任何树/回执/outbox，本函数因此保持partial/in_progress
+4. 支持的草稿路径或同父顺序分支复用有界base62 fractional order，并核同父活动slug唯一；同SQL treeRevision CAS、metadata revision CAS和parent/order更新，完整原回执与content.tree.changed outbox原子提交；未知Commit只凭原回执重试
+5. 未来发布路径规划必须共享同一全站树CAS与Store.mu，并维护真实版本化manifest；本轮不假造发布或manifest
 
 **错误**
 
@@ -404,12 +416,14 @@ func MoveDocument(ctx context.Context, op OperationContext, input MoveDocumentIn
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久树、原回执或正文资格不完整（不可重试）
+- `CONFLICT`：同操作动作/摘要复用或同父路径冲突（不可重试）
 
 - 副作用：私有事务/正文提交日志/operation receipt/outbox
 - 授权：按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope
-- 并发：全站树事务CAS，移动和发布路径规划同一tree锁
+- 并发：全站Store.mu短SQL/树CAS；不持SQL或mutex跨鉴权/当前平台窗口RPC；Save只改draft head字段，不覆盖本事务新parent/order
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`content.EnsureTreeAcyclic`、`content.PlanOldPathRedirects`
+- 依赖：`content.executeTreeMutation`、`content.decodeStorageJSON`、`content.EnsureTreeAcyclic`、`content.PlanOldPathRedirects`
 
 ## content.ReorderChildren
 
@@ -438,9 +452,10 @@ func ReorderChildren(ctx context.Context, op OperationContext, input ReorderChil
 
 **步骤**
 
-1. 核完整集合与parent关系，拒绝缺失/重复/跨层
-2. fracdex生成顺序，不改变slug
-3. 事务CAS treeRevision，前后篇按新树排序
+1. 仅portal当前admin，content.edit在DB前一次即时核；同scope动作/摘要原结果优先回放
+2. 核parent活动且完整draft/published子集合，拒缺失/重复/跨层；trash/purged不混入活动排序，空集合允许
+3. 在现有base62字典序协议以6位均匀key重排并保留插入间隔，不改变slug；同SQL核树CAS和metadata revision CAS、站点/代次，保存完整原回执及content.tree.changed outbox
+4. 当前写窗口在锁外；Commit未知不推定失败，重试查原结果不重复推进水位或事件
 
 **错误**
 
@@ -451,11 +466,430 @@ func ReorderChildren(ctx context.Context, op OperationContext, input ReorderChil
 - `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
 - `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：持久树、原回执或正文资格不完整（不可重试）
+- `CONFLICT`：同操作动作/摘要复用或同父路径冲突（不可重试）
 
 - 副作用：私有事务/正文提交日志/operation receipt/outbox
 - 授权：按D35功能：content.edit编辑，content.publish发布/撤回/回收站恢复/回滚；全站功能无文档scope
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
+- 依赖：`content.executeTreeMutation`、`content.decodeStorageJSON`
+
+## content.NewTreeRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：预装真实树依赖与完整原结果schema校验器
+
+```go
+func NewTreeRuntime(reference ReferenceRuntime, window platform.WriteWindowConfig) (TreeRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 预装真实树依赖与完整原结果schema校验器
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`platform.NewPayloadValidator`
+
+## content.WithTreeRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：装配受信树运行依赖
+
+```go
+func WithTreeRuntime(ctx context.Context, runtime TreeRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配受信树运行依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：无
+
+## content.treeRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：取得完整真实树依赖
+
+```go
+func treeRuntimeFromContext(ctx context.Context) (TreeRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取得完整真实树依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.WithTreeRuntime`
+
+## content.authorizeTree
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：仅portal管理主体，一次即时全站功能授权
+
+```go
+func authorizeTree(ctx context.Context, op OperationContext, runtime TreeRuntime, permission string, action string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅portal管理主体，一次即时全站功能授权
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`platform.NewIdentityAuthorizer`
+
+## content.beginTreeRead
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：核本域作用域后建立只读一致SQL快照
+
+```go
+func beginTreeRead(ctx context.Context, op OperationContext, runtime TreeRuntime) (*sql.Tx, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核本域作用域后建立只读一致SQL快照
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.checkRevisionScope`
+
+## content.readTreeSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：核当前身份、完整元数据/head资格及全树结构
+
+```go
+func readTreeSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime) (int64, []gen.DocumentMetadata, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前身份、完整元数据/head资格及全树结构
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.readCreationTree`、`content.EnsureTreeAcyclic`、`content.validateTreeSiblings`
+
+## content.validateTreeSiblings
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：核活动父关系及同父orderKey/slug唯一
+
+```go
+func validateTreeSiblings(documents []gen.DocumentMetadata) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核活动父关系及同父orderKey/slug唯一
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：无
+
+## content.treePreorder
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：在已核无环深度受限树按parent/orderKey/ID返回确定性前序
+
+```go
+func treePreorder(documents []gen.DocumentMetadata, includeInactive bool) []gen.DocumentMetadata
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在已核无环深度受限树按parent/orderKey/ID返回确定性前序
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：无
+
+## content.readTreeReceipt
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：按完整身份动作摘要读取严格schema原结果，异材料冲突
+
+```go
+func readTreeReceipt(ctx context.Context, q creationQuery, op OperationContext, action string, digest Hash, runtime TreeRuntime) (json.RawMessage, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按完整身份动作摘要读取严格schema原结果，异材料冲突
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：无
+
+## content.executeTreeMutation
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：原回执优先；锁外当前写窗口后短SQL提交树/metadata CAS、原结果与outbox
+
+```go
+func executeTreeMutation(ctx context.Context, op OperationContext, action string, input any, expected int) (json.RawMessage, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原回执优先；锁外当前写窗口后短SQL提交树/metadata CAS、原结果与outbox
+2. 原回执优先回放后，新写前必须已装配Runtime/WriteWindow两个可信回调；缺失明确503，不能调用nil回调；只读和历史回执不依赖新写窗口
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.checkRevisionScope`、`content.draftRequestDigest`、`content.readTreeReceipt`、`content.readTreeSnapshot`、`content.planTreeMove`、`content.planTreeReorder`、`platform.NewWriteContext`、`platform.EnqueueEvent`
+
+## content.planTreeMove
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：规划支持范围内移动；曾发布路径变化依赖manifest失败关闭
+
+```go
+func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, revision int64) ([]gen.DocumentMetadata, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 规划支持范围内移动；曾发布路径变化依赖manifest失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.EnsureTreeAcyclic`、`content.PlanOldPathRedirects`、`content.sameIdentifierPointer`、`content.fractionalDocumentOrder`、`content.validateTreeSiblings`
+
+## content.planTreeReorder
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：核完整活动同级集合并生成均匀base62排序
+
+```go
+func planTreeReorder(documents []gen.DocumentMetadata, input ReorderChildrenInput) ([]gen.DocumentMetadata, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核完整活动同级集合并生成均匀base62排序
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.sameIdentifierPointer`、`content.reorderedDocumentKey`
+
+## content.reorderedDocumentKey
+
+- 级别：参考
+- 文件：`modules/content/internal/tree_service.go`
+- 作用：给不超过10000节点生成6位base62均匀有间隔key
+
+```go
+func reorderedDocumentKey(index int) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 给不超过10000节点生成6位base62均匀有间隔key
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
 - 依赖：无
 
 ## content.EnsureTreeAcyclic
@@ -648,19 +1082,23 @@ func PlanOldPathRedirects(input PlanOldPathRedirectsInput) (PlanOldPathRedirects
 
 **步骤**
 
-1. 前序取已公开节点及后代完整旧path
-2. 不含语言前缀，因为所有语言共slug
-3. 记录docId而不链式URL；公开解析当前路径避免跳转环
+1. 先核完整原树无环及深度；按前序定位node及全部后代
+2. 仅曾公开节点（publishedReference/lastPublishedAt/state/visibilityRevision证据）构造当前父链完整旧路径，任何祖先缺slug明确DEPENDENCY_UNAVAILABLE，绝不当空
+3. 不含语言前缀，target为稳定docId而非链式URL；旧路径唯一且不超过2048字节，revision由调用方锁定treeRevision+1提供
+4. 只规划不持久化manifest；Move遇非空规划保持503/partial直到真实生产链获授权实现
+5. 输入是本域可信完整树，无内部输入总量硬限制；公开输出/批次上限不改，不能借扫描预算限制Create站点总量
 
 **错误**
 
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `NOT_FOUND`：节点缺失或曾发布路径权威未知（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：节点缺失或曾发布路径权威未知（可重试）
 
 - 副作用：无
 - 授权：纯函数
 - 并发：纯函数，输入视为不可变；可以并发调用
 - 幂等：确定性输入产生确定性输出；无持久副作用
-- 依赖：无
+- 依赖：`content.EnsureTreeAcyclic`、`content.treePreorder`
 
 ## content.NewEditLockManager
 
@@ -5823,6 +6261,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务
+8. 本轮构造TreeRuntime并注册四树路由；当前没有可信control写窗口/完整后台及所有handler，仍不返回可运行Application，写窗口缺失失败关闭
 
 **错误**
 
@@ -5834,7 +6273,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`、`content.NewTreeRuntime`、`content.RegisterTreeRoutes`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
@@ -6023,6 +6462,7 @@ func RegisterReferenceRoutes(app *Application, runtime ReferenceRuntime, anchors
 **步骤**
 
 1. 在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界
+2. integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0
 
 **错误**
 
@@ -6033,6 +6473,40 @@ func RegisterReferenceRoutes(app *Application, runtime ReferenceRuntime, anchors
 - 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
 - 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
 - 依赖：`content.WithReferenceRuntime`、`content.ListResourceReferences`、`content.ReadReferenceDecision`、`platform.NewServiceHandler`
+
+## content.RegisterTreeRoutes
+
+- 级别：参考
+- 文件：`modules/content/internal/transport/server.go`
+- 作用：注册四个真实树映射及统一身份/epoch/schema边界
+
+```go
+func RegisterTreeRoutes(app *Application, runtime TreeRuntime, anchors platform.TrustAnchors) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅四个已实际注册固定action由核心即时鉴权一次，core按state选read/publish；其他action正常通用Authorize，不使用私有marker/缓存
+2. 统一边界验证服务/委托/epoch/schema，再精确映射HTTP DTO；/v1/documents只注册GET，不绕过全量handler启动门槛
+3. integer查询参数按统一kin-openapi严格边界的基数0 ParseInt转换，兼容已允许的十六/八进制表示，不使用十进制Atoi误转0
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：受信装配或当前已认证树入口；即时权限在DB/锁之前，内部信任schema输入
+- 并发：不持SQL或互斥跨远程IO；写窗口在锁外，当前元数据与CAS同SQL
+- 幂等：同scope动作摘要回原结果；纯函数无副作用，未知提交不重复业务
+- 依赖：`content.WithTreeRuntime`、`content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`
 
 ## content.mountModuleUI
 

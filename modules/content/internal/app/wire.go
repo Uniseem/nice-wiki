@@ -83,6 +83,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err = transport.RegisterReferenceRoutes(application, referenceRuntime, anchors); err != nil {
 		return nil, err
 	}
+	treeRuntime, err := content.NewTreeRuntime(referenceRuntime, platform.WriteWindowConfig{})
+	if err != nil {
+		return nil, err
+	}
+	if err = transport.RegisterTreeRoutes(application, treeRuntime, anchors); err != nil {
+		return nil, err
+	}
 	// 两个只读来源路由的真实装配不满足全域handler/恢复activation/后台生命周期门槛。
 	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务路由、恢复activation与后台生命周期尚未装配")
 }

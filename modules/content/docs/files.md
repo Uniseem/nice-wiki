@@ -2,12 +2,12 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 70 个：手写 43、UI 12、生成 5、配置 10。函数 224 个：约束 42，参考 182。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 71 个：手写 44、UI 12、生成 5、配置 10。函数 238 个：约束 42，参考 196。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/content/internal/document_service.go` | 手写 | 新建共享草稿文档 | `content.CreateDocument`、`content.draftWriteContext`（参考）、`content.contentServiceContext`（参考）、`content.readDraftSiteConfig`（参考）、`content.planDocumentCreation`（参考）、`content.readCreationTree`（参考）、`content.fractionalDocumentOrder`（参考）、`content.validateCreateTransaction`（参考） |
-| `modules/content/internal/tree_service.go` | 手写 | 后台读取整站文档树 | `content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren` |
+| `modules/content/internal/tree_service.go` | 手写 | 后台读取整站文档树 | `content.ReadDocumentTree`、`content.ListDocuments`、`content.MoveDocument`、`content.ReorderChildren`、`content.NewTreeRuntime`（参考）、`content.WithTreeRuntime`（参考）、`content.treeRuntimeFromContext`（参考）、`content.authorizeTree`（参考）、`content.beginTreeRead`（参考）、`content.readTreeSnapshot`（参考）、`content.validateTreeSiblings`（参考）、`content.treePreorder`（参考）、`content.readTreeReceipt`（参考）、`content.executeTreeMutation`（参考）、`content.planTreeMove`（参考）、`content.planTreeReorder`（参考）、`content.reorderedDocumentKey`（参考） |
 | `modules/content/internal/tree_validator.go` | 手写 | 检查树无环和层级约束 | `content.EnsureTreeAcyclic`（参考）、`content.documentTreeDepths`（参考） |
 | `modules/content/internal/metadata_service.go` | 手写 | 修改标题/路径/SEO描述/分享图 | `content.UpdateDocumentMetadata` |
 | `modules/content/internal/path_service.go` | 手写 | 校验英文可读路径与同父唯一 | `content.ValidatePathSegment`（参考）、`content.PlanOldPathRedirects`（参考） |
@@ -48,7 +48,7 @@
 | `modules/content/web/src/editor/columns-resizer.ts` | UI | 调整2–4栏宽比例 | `content.resizeColumns`（参考） |
 | `modules/content/cmd/content/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `content.main` |
 | `modules/content/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `content.BuildApplication` |
-| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考） |
+| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考）、`content.RegisterTreeRoutes`（参考） |
 | `modules/content/go.mod` | 配置 | 独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/content/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/content/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -76,3 +76,4 @@
 | `modules/content/internal/draft_commit_store.go` | 手写 | 真实延迟草稿SQL事务、创建保存意图和稳定ID/引用/完整回执原子提交 | `content.WithDraftRuntime`（参考）、`content.draftRuntimeFromContext`（参考）、`content.readDraftOperation`（参考）、`content.prepareDraftOperation`（参考）、`content.draftRequestDigest`（参考）、`content.RevisionSiteID`（参考）、`content.BeginDraftCommit`（参考）、`content.FindReceipt`（参考）、`content.ValidateFence`（参考）、`content.validateDraftTransaction`（参考）、`content.Commit`（参考）、`content.commitStableIDs`（参考）、`content.releaseDraftTransaction`（参考）、`content.Rollback`（参考）、`content.validateDraftOperationPlan`（参考）、`content.readDraftOperationFrom`（参考） |
 | `modules/content/migrations/0004_draft_commits.sql` | 手写 | 只追加站点树版本、元数据、草稿意图、历史IDledger与引用权威表 | 无 |
 | `modules/content/migrations/0005_reference_snapshots.sql` | 手写 | 只追加全站来源扫描单调水位；触发器在原来源事务内推进，耗尽回滚；不持久化读快照 | 无 |
+| `modules/content/migrations/0006_tree_operations.sql` | 手写 | 只追加树操作完整scope/动作/摘要与原结果回执；不另建影子树或虚假manifest | 无 |
