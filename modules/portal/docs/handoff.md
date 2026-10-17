@@ -1,3 +1,38 @@
+# 2026-10-17 RedactRequest 交接
+
+- 分支：`codex/portal-20261017-r5`
+- 基线：`a3e6af980d5288e42bc8d023410faf8923ff21e8`
+- 源码 SHA：`767972fc930319699187a13c44274d721b017c8d`
+- 独占范围：`modules/portal/`
+- 完成函数：`portal.RedactRequest`（implemented，验证 not_run）
+- 未完成：`portal.EmitAccessAudit` 仍为 planned
+- 未跑 CI：未执行 GitLab CI、go、gofmt、make build、make gen 或 SSH。本域执行了 `make docs`。本地 `make check` 只因新文件尚未写入根 `docs/structure/framework.json` 失败，其余文档、契约摘要和隐私检查通过。accepted 为 0。
+
+## 行为
+
+`RedactRequest` 是纯函数，不调用外部服务。成功结果只有静态路由的 `method`、`routeId`，以及请求的 `requestId` 与 `bodyBytes`。耗时不在本函数的输入或 `RedactedAuditRequest` 中，没有自造字段。
+
+名为 cookie 与 authorization 的头被剥除，值不进入结果，错误说明也不回显。合同没有敏感 query 键名单，也没有路径变量敏感标识。出现 query、路径变量，或其他未点名的请求头时返回不可重试的 `VALIDATION`。不自选替换、截断或保留规则。
+
+未导出助手 `classifyAuditHeaders`、`classifyAuditQuery`、`classifyAuditPathVariables` 只服务于该函数，未另登记。
+
+## 合同
+
+`portal.RedactRequest` 的步骤改为上述保留、剥除和失败关闭规则。错误仍只有 `VALIDATION`。`EmitAccessAudit` 合同未改。
+
+## 需要集成处理
+
+- 把新文件 `modules/portal/internal/audit_redaction.go` 登记进根 `docs/structure/framework.json`。本域未改该文件。
+- 审核后跑 GitLab CI。不要把未编译的 `RedactRequest` 记为 verified 或 accepted。
+
+## 下一步（一项）
+
+等集成会话登记 `modules/portal/internal/audit_redaction.go` 并跑 GitLab CI。通过前不要开始 `portal.EmitAccessAudit`，也不要把本函数记为 verified 或 accepted。
+
+下文是历史交接，其中的下一步不再执行。
+
+---
+
 # 主系统会话交接
 
 ## 第四轮公共偏好目录消费（已有检查通过）
