@@ -91,7 +91,7 @@
 | ConfirmResourceReferencesResult | 源提交后确认pin为引用的结果 |
 | ReleaseResourceReferencesInput | 仅明确源未提交才释放pin的输入 |
 | ReleaseResourceReferencesResult | 仅明确源未提交才释放pin的结果 |
-| ApplyReferenceEventInput | 消费引用事件防重复/乱序的输入 |
+| ApplyReferenceEventInput | 消费引用事件的完整快照。来源身份与pin相同，空集合也必须带齐；另保留eventId，不另造来源键 |
 | ApplyReferenceEventResult | 消费引用事件防重复/乱序的结果 |
 | ReadAssetReferencesInput | 列哪些文档当前/历史引用资源的输入 |
 | ReadAssetReferencesResult | 列哪些文档当前/历史引用资源的结果 |
@@ -197,6 +197,8 @@ reference_objects为逐资产持久deletionFence/referenceGeneration，迁移一
 ## 两轮并行第二轮：源决定与引用终局（2026-10-16，既有检查通过，行为未验收）
 
 0004只追加reference_sources的resolution_json/hash/resolved_at与reference_heads/reference_entries。reference_heads是sourceService/epoch/site/object的单调current水位；reference_entries只记录已确认完整集合的referenceId/assetId及current/history分类，精确不可变元数据与原pending材料永久取自该来源input_json，不能与事件另建影子权威。原pin_assets在confirmed/sealed后都不删除，是否仍为pending保护取reference_sources.state；不能只凭pin行或expiresAt自动释放。
+
+引用事件输入与Acquire共用同一套来源键：sourceOperationId、siteId、sourceObjectId、sourceRevisionId、sourceVersion、referenceDigest，空集合也必须带齐，并保留eventId。引用集合的规范摘要算法与pin相同。current/history只写进既有reference_entries，不另建引用表。content.resources.changed的生产方载荷仍没有sourceOperationId和referenceDigest，因此该输入还不能从现有事件直接解码。
 
 Confirm无锁回源核共享最小决定的完整材料和committed；当前epoch/running窗口重新取得后，sourceOperation→sourceObject→旧current与新pin资产升序→store→SQL。旧head必须是原confirmed来源且当前行逐项/总数完整；较高版本把旧current转history并提升head，较低已提交版本只补history，空集合也有真实head。只对实际变化资产提升generation/fence，重复原confirmed不再改变水位。当前只接受ready；未知delete_pending拒绝，真实清理计划取消未实现，Confirm保持partial。
 

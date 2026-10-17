@@ -3972,12 +3972,12 @@
     },
     "ApplyReferenceEventInput": {
       "type": "object",
-      "description": "消费引用事件防重复/乱序的输入",
+      "description": "消费引用事件的完整快照。来源身份与pin相同，空集合也必须带齐；另保留eventId，不另造来源键",
       "additionalProperties": false,
       "properties": {
         "references": {
           "type": "array",
-          "description": "完整该sourceversion refs",
+          "description": "与pin相同的完整来源引用集合，空数组合法；current/history由条目分类，不另做摘要",
           "items": {
             "$ref": "#/$defs/AssetReference",
             "description": "AssetReference"
@@ -3991,9 +3991,26 @@
           "minLength": 1,
           "maxLength": 64
         },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "来源操作"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceObjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
         "sourceVersion": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "版本"
+        },
+        "referenceDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "完整引用集合摘要"
         },
         "eventId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -4003,7 +4020,12 @@
       "required": [
         "references",
         "sourceService",
+        "sourceOperationId",
+        "siteId",
+        "sourceObjectId",
+        "sourceRevisionId",
         "sourceVersion",
+        "referenceDigest",
         "eventId"
       ]
     },

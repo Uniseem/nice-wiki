@@ -3049,9 +3049,9 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 
 **步骤**
 
-1. 验证producer与payloadschema/epoch
-2. eventId去重，sourceVersion低于当前只ack不覆写
-3. 事务应用完整snapshot与history分类，增generation并取消冲突清理计划
+1. 验证生产方为已登记content、活动epoch，并用平台校验器核与pin相同的完整来源身份和引用schema；空集合也必须带sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest，另保留eventId
+2. 同一事务调用platform.ClaimInbox按eventId与subject修订去重；sourceVersion低于当前水位只确认不覆写
+3. 事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划
 4. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
 
 **错误**
@@ -3060,11 +3060,11 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `STALE_RESULT`：事件/计算针对已过期源版本，拒绝覆盖新状态（不可重试）
 
-- 副作用：私有事务/文件/receipt/outbox
+- 副作用：本域inbox与reference_heads/reference_entries同事务；不写删除许可
 - 授权：service:jobs可信事件投递
-- 并发：sourceaggregate+asset锁稳定排序
+- 并发：sourceOperation→sourceObject→asset升序→store→SQL
 - 幂等：eventId唯一+sourceversion单调
-- 依赖：`platform.ClaimInbox`
+- 依赖：`platform.ClaimInbox`、`media.mediaWriteContext`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.canonicalReferenceInput`、`media.referenceBindingHash`、`media.referenceObjectAssets`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`、`media.readReferenceRecord`、`media.readReferenceAsset`、`media.advanceReferenceGeneration`、`media.writeReferenceResolution`
 
 ## media.lockReferenceKey
 

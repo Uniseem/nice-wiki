@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/modules/media/internal/gen"
 )
 
@@ -610,4 +611,363 @@ func (s *localBlobStore) releaseReferencePin(ctx context.Context, op OperationCo
 		return ReleaseResourceReferencesResult{}, mapMediaDBError(err, "提交来源封存失败")
 	}
 	return ReleaseResourceReferencesResult{Released: true}, nil
+}
+
+// ApplyReferenceEventInput 与 pin 使用同一套来源键，并保留事件去重标识。
+type ApplyReferenceEventInput struct {
+	References        []gen.AssetReference `json:"references"`
+	SourceService     string               `json:"sourceService"`
+	SourceOperationId Identifier           `json:"sourceOperationId"`
+	SiteId            Identifier           `json:"siteId"`
+	SourceObjectId    Identifier           `json:"sourceObjectId"`
+	SourceRevisionId  Identifier           `json:"sourceRevisionId"`
+	SourceVersion     gen.Revision         `json:"sourceVersion"`
+	ReferenceDigest   Hash                 `json:"referenceDigest"`
+	EventId           Identifier           `json:"eventId"`
+}
+
+// ApplyReferenceEventResult 只表示本域引用水位是否被这次投递推进。
+type ApplyReferenceEventResult struct {
+	Applied    bool         `json:"applied"`
+	Generation gen.Revision `json:"generation"`
+}
+
+type referenceHeadView struct {
+	OperationID Identifier
+	RevisionID  Identifier
+	Version     int
+	Digest      Hash
+}
+
+// ApplyReferenceEvent 把完整来源快照写入既有 reference_heads/reference_entries。
+// 订阅循环尚未接通：生产方载荷还不能解码成这个输入。
+func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyReferenceEventInput) (ApplyReferenceEventResult, error) {
+	if err := authorizeReferenceEvent(op, input); err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	s, ok := currentBlobStore().(*localBlobStore)
+	if !ok {
+		return ApplyReferenceEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "引用事件存储未装配")
+	}
+	if op.DataEpoch != s.openedEpoch {
+		return ApplyReferenceEventResult{}, platform.NewError(platform.CodeStaleResult, false, "引用事件不属于已打开数据代次")
+	}
+	sourceOp := op
+	sourceOp.CallerService = input.SourceService
+	material, binding, assets, err := prepareReferenceEvent(s, sourceOp, input)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	work, cancel, err := s.mediaWriteContext(ctx, op)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	defer cancel()
+	releaseSource := s.lockReferenceKey("source\x00" + sourceOp.CallerService + "\x00" + sourceOp.DataEpoch + "\x00" + material.SourceOperationId)
+	defer releaseSource()
+	releaseObject := s.lockReferenceKey("object\x00" + sourceOp.CallerService + "\x00" + sourceOp.DataEpoch + "\x00" + material.SiteId + "\x00" + material.SourceObjectId)
+	defer releaseObject()
+	affected, err := s.referenceObjectAssets(work, sourceOp, material, assets)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	locked, plans, err := s.referenceCleanupAssets(work, sourceOp, material.SiteId, assets, affected)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	releaseAssets := s.lockReferenceAssets(locked)
+	defer releaseAssets()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.commitReferenceEvent(work, sourceOp, input, material, binding, assets, affected, locked, plans)
+}
+
+func authorizeReferenceEvent(op OperationContext, input ApplyReferenceEventInput) error {
+	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
+		return platform.NewError(platform.CodeForbidden, false, "引用事件只接受本域受信的jobs投递")
+	}
+	if input.SourceService != "content" {
+		return platform.NewError(platform.CodeForbidden, false, "引用事件生产方不是已登记的content")
+	}
+	if !platform.ValidIdentifier(input.EventId) {
+		return platform.NewError(platform.CodeValidation, false, "引用事件标识不合法")
+	}
+	return nil
+}
+
+func prepareReferenceEvent(s *localBlobStore, op OperationContext, input ApplyReferenceEventInput) (AcquireResourceReferencesInput, Hash, []gen.AssetVersionRef, error) {
+	material := AcquireResourceReferencesInput{References: append([]gen.AssetReference{}, input.References...), SourceOperationId: input.SourceOperationId, SiteId: input.SiteId, SourceObjectId: input.SourceObjectId, SourceRevisionId: input.SourceRevisionId, SourceVersion: input.SourceVersion, ReferenceDigest: input.ReferenceDigest}
+	raw, err := platform.CanonicalJSON(material)
+	if err != nil {
+		return material, "", nil, err
+	}
+	if s.validateReferenceInput == nil {
+		return material, "", nil, platform.NewError(platform.CodeDependencyUnavailable, true, "引用事件schema校验器未装配")
+	}
+	if err := s.validateReferenceInput(json.RawMessage(raw)); err != nil {
+		return material, "", nil, err
+	}
+	return canonicalReferenceInput(op, material)
+}
+
+func (s *localBlobStore) commitReferenceEvent(ctx context.Context, op OperationContext, input ApplyReferenceEventInput, material AcquireResourceReferencesInput, binding Hash, assets, affected, locked []gen.AssetVersionRef, plans []Identifier) (ApplyReferenceEventResult, error) {
+	payloadInput := input
+	payloadInput.References = material.References
+	payload, err := platform.CanonicalJSON(payloadInput)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	// OccurredAt只满足信封格式；ClaimInbox的去重哈希只覆盖规范后的消费者输入。
+	envelope := platform.EventEnvelope{EventID: input.EventId, EventType: "content.resources.changed", EventVersion: 1, Producer: input.SourceService, SubjectID: input.SourceObjectId, Revision: int64(input.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: json.RawMessage(payload)}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ApplyReferenceEventResult{}, mapMediaDBError(err, "开始引用事件事务失败")
+	}
+	defer tx.Rollback()
+	fresh, err := inbox.ClaimInbox(tx, envelope)
+	if err != nil {
+		var claim *platform.Error
+		if errors.As(err, &claim) && claim.Code == platform.CodeIntegrityError {
+			if commitErr := tx.Commit(); commitErr != nil {
+				return ApplyReferenceEventResult{}, mapMediaDBError(commitErr, "提交事件隔离失败")
+			}
+		}
+		return ApplyReferenceEventResult{}, err
+	}
+	if !fresh {
+		generation, err := objectReferenceGeneration(ctx, tx, op, material.SiteId, material.SourceObjectId)
+		if err != nil {
+			return ApplyReferenceEventResult{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return ApplyReferenceEventResult{}, mapMediaDBError(err, "确认重复引用事件失败")
+		}
+		return ApplyReferenceEventResult{Applied: false, Generation: generation}, nil
+	}
+	record, found, err := s.readReferenceRecord(ctx, tx, op, material.SourceOperationId)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	if found && record.BindingHash != binding {
+		return ApplyReferenceEventResult{}, platform.NewError(platform.CodeIntegrityError, false, "来源操作已经绑定其他完整材料")
+	}
+	head, hasHead, err := readReferenceHead(ctx, tx, op, material.SiteId, material.SourceObjectId)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	var currentCount int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM reference_entries e JOIN reference_sources s ON s.pin_id=e.pin_id WHERE s.source_service=? AND s.data_epoch=? AND s.site_id=? AND s.source_object_id=? AND e.kind='current'`, op.CallerService, op.DataEpoch, material.SiteId, material.SourceObjectId).Scan(&currentCount); err != nil {
+		return ApplyReferenceEventResult{}, mapMediaDBError(err, "读取当前引用完整性失败")
+	}
+	if !hasHead && currentCount != 0 {
+		return ApplyReferenceEventResult{}, platform.NewError(platform.CodeIntegrityError, false, "没有对象水位却存在当前引用")
+	}
+	sealed, err := referenceRevisionSealed(ctx, tx, op, material.SiteId, material.SourceObjectId, material.SourceRevisionId)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	apply, err := referenceEventDecision(record, found, head, hasHead, sealed, material.SourceVersion)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	if apply {
+		if err := s.writeReferenceEventSnapshot(ctx, tx, op, material, binding, assets, affected, locked, plans, record, found, hasHead, head); err != nil {
+			return ApplyReferenceEventResult{}, err
+		}
+	}
+	generation, err := objectReferenceGeneration(ctx, tx, op, material.SiteId, material.SourceObjectId)
+	if err != nil {
+		return ApplyReferenceEventResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return ApplyReferenceEventResult{}, mapMediaDBError(err, "提交引用事件失败")
+	}
+	return ApplyReferenceEventResult{Applied: apply, Generation: generation}, nil
+}
+
+func referenceEventDecision(record referenceRecord, found bool, head referenceHeadView, hasHead, sealed bool, version int) (bool, error) {
+	if hasHead && head.Version > version {
+		return false, nil
+	}
+	if hasHead && head.Version == version {
+		if found && record.State == "confirmed" && head.OperationID == record.Material.SourceOperationId && head.RevisionID == record.Material.SourceRevisionId && head.Digest == record.Material.ReferenceDigest {
+			return false, nil
+		}
+		return false, platform.NewError(platform.CodeIntegrityError, false, "同一对象水位绑定了不同确认来源")
+	}
+	if sealed || (found && record.State == "sealed") {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "已封存的同源修订不能被迟到事件复活")
+	}
+	if found && record.State == "confirmed" {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "已确认来源与对象水位矛盾")
+	}
+	if found && record.State != "pending" {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "引用来源状态不能接受事件快照")
+	}
+	return true, nil
+}
+
+func readReferenceHead(ctx context.Context, q sqlExecer, op OperationContext, siteID, objectID Identifier) (referenceHeadView, bool, error) {
+	var head referenceHeadView
+	var sourceState, sourceSite, sourceObject, sourceRevision, sourceDigest string
+	var sourceVersion int
+	err := q.QueryRowContext(ctx, `SELECT h.source_operation_id,h.source_revision_id,h.source_version,h.reference_digest,s.state,s.site_id,s.source_object_id,s.source_version,s.source_revision_id,s.reference_digest FROM reference_heads h JOIN reference_sources s ON s.source_service=h.source_service AND s.data_epoch=h.data_epoch AND s.source_operation_id=h.source_operation_id WHERE h.source_service=? AND h.data_epoch=? AND h.site_id=? AND h.source_object_id=?`, op.CallerService, op.DataEpoch, siteID, objectID).Scan(&head.OperationID, &head.RevisionID, &head.Version, &head.Digest, &sourceState, &sourceSite, &sourceObject, &sourceVersion, &sourceRevision, &sourceDigest)
+	if errors.Is(err, sql.ErrNoRows) {
+		return head, false, nil
+	}
+	if err != nil {
+		return head, false, mapMediaDBError(err, "读取对象当前引用水位失败")
+	}
+	if sourceState != "confirmed" || sourceSite != siteID || sourceObject != objectID || sourceVersion != head.Version || sourceRevision != head.RevisionID || sourceDigest != head.Digest || head.Version < 0 {
+		return head, true, platform.NewError(platform.CodeIntegrityError, false, "对象当前引用水位与持久来源矛盾")
+	}
+	return head, true, nil
+}
+
+func referenceRevisionSealed(ctx context.Context, q sqlExecer, op OperationContext, siteID, objectID, revisionID Identifier) (bool, error) {
+	var count int
+	if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM reference_sources WHERE source_service=? AND data_epoch=? AND site_id=? AND source_object_id=? AND source_revision_id=? AND state='sealed'`, op.CallerService, op.DataEpoch, siteID, objectID, revisionID).Scan(&count); err != nil {
+		return false, mapMediaDBError(err, "读取已封存来源修订失败")
+	}
+	return count > 0, nil
+}
+
+func objectReferenceGeneration(ctx context.Context, q sqlExecer, op OperationContext, siteID, objectID Identifier) (int, error) {
+	var generation sql.NullInt64
+	err := q.QueryRowContext(ctx, `SELECT MAX(o.reference_generation) FROM reference_entries e JOIN reference_sources s ON s.pin_id=e.pin_id JOIN reference_objects o ON o.asset_id=e.asset_id WHERE s.source_service=? AND s.data_epoch=? AND s.site_id=? AND s.source_object_id=?`, op.CallerService, op.DataEpoch, siteID, objectID).Scan(&generation)
+	if err != nil {
+		return 0, mapMediaDBError(err, "读取对象引用水位失败")
+	}
+	if !generation.Valid {
+		return 0, nil
+	}
+	if generation.Int64 < 0 || generation.Int64 > int64(math.MaxInt) {
+		return 0, platform.NewError(platform.CodeIntegrityError, false, "对象引用水位损坏")
+	}
+	return int(generation.Int64), nil
+}
+
+func (s *localBlobStore) writeReferenceEventSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, material AcquireResourceReferencesInput, binding Hash, assets, affected, locked []gen.AssetVersionRef, plans []Identifier, record referenceRecord, found, hasHead bool, head referenceHeadView) error {
+	if err := s.cancelReferenceCleanupPlans(ctx, tx, op, material.SiteId, assets, locked, plans); err != nil {
+		return err
+	}
+	if found {
+		return s.confirmPendingReferenceEvent(ctx, tx, op, material, record, assets, affected, hasHead, head)
+	}
+	return s.insertReferenceEventSource(ctx, tx, op, material, binding, assets, affected, hasHead, head)
+}
+
+func (s *localBlobStore) confirmPendingReferenceEvent(ctx context.Context, tx *sql.Tx, op OperationContext, material AcquireResourceReferencesInput, record referenceRecord, assets, affected []gen.AssetVersionRef, hasHead bool, head referenceHeadView) error {
+	for _, asset := range assets {
+		if _, err := s.readReferenceAsset(ctx, tx, material.SiteId, asset); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE reference_entries SET kind='history' WHERE kind='current' AND pin_id IN (SELECT pin_id FROM reference_sources WHERE source_service=? AND data_epoch=? AND site_id=? AND source_object_id=?)`, op.CallerService, op.DataEpoch, material.SiteId, material.SourceObjectId); err != nil {
+		return mapMediaDBError(err, "保留旧当前引用为历史失败")
+	}
+	var existingEntries int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM reference_entries WHERE pin_id=?`, record.PinID).Scan(&existingEntries); err != nil {
+		return mapMediaDBError(err, "读取待确认引用完整性失败")
+	}
+	if existingEntries != 0 {
+		return platform.NewError(platform.CodeIntegrityError, false, "待确认来源已经存在确认引用")
+	}
+	for _, ref := range material.References {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO reference_entries(pin_id,reference_id,asset_id,kind) VALUES(?,?,?,'current')`, record.PinID, ref.ReferenceId, ref.Asset.AssetId); err != nil {
+			return mapMediaDBError(err, "保存完整确认引用集合失败")
+		}
+	}
+	for _, asset := range affected {
+		if err := advanceReferenceGeneration(ctx, tx, asset.AssetId, true); err != nil {
+			return err
+		}
+	}
+	changed, err := tx.ExecContext(ctx, `UPDATE reference_sources SET state='confirmed' WHERE source_service=? AND data_epoch=? AND source_operation_id=? AND binding_hash=? AND state='pending'`, op.CallerService, op.DataEpoch, material.SourceOperationId, record.BindingHash)
+	if err != nil {
+		return mapMediaDBError(err, "确认来源CAS失败")
+	}
+	count, err := changed.RowsAffected()
+	if err != nil || count != 1 {
+		return platform.NewError(platform.CodeConflict, false, "来源确认状态已改变")
+	}
+	if err := upsertReferenceHead(ctx, tx, op, material, hasHead, head); err != nil {
+		return err
+	}
+	return writeReferenceResolution(ctx, tx, op, record, "confirm")
+}
+
+func (s *localBlobStore) insertReferenceEventSource(ctx context.Context, tx *sql.Tx, op OperationContext, material AcquireResourceReferencesInput, binding Hash, assets, affected []gen.AssetVersionRef, hasHead bool, head referenceHeadView) error {
+	fences := make([]int, len(assets))
+	for i, asset := range assets {
+		fence, err := s.readReferenceAsset(ctx, tx, material.SiteId, asset)
+		if err != nil {
+			return err
+		}
+		fences[i] = fence
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE reference_entries SET kind='history' WHERE kind='current' AND pin_id IN (SELECT pin_id FROM reference_sources WHERE source_service=? AND data_epoch=? AND site_id=? AND source_object_id=?)`, op.CallerService, op.DataEpoch, material.SiteId, material.SourceObjectId); err != nil {
+		return mapMediaDBError(err, "保留旧当前引用为历史失败")
+	}
+	for _, asset := range affected {
+		if err := advanceReferenceGeneration(ctx, tx, asset.AssetId, true); err != nil {
+			return err
+		}
+	}
+	maximumFence := 0
+	for i := range fences {
+		fences[i]++
+		maximumFence = max(maximumFence, fences[i])
+	}
+	now := time.Now().UTC()
+	result := AcquireResourceReferencesResult{Pin: gen.ReferencePin{PinId: platform.NewIdentifier(), Assets: assets, ExpiresAt: now.Add(24 * time.Hour), DeletionFence: maximumFence}}
+	inputRaw, err := platform.CanonicalJSON(material)
+	if err != nil {
+		return err
+	}
+	resultRaw, err := platform.CanonicalJSON(result)
+	if err != nil {
+		return err
+	}
+	if s.validatePin == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "引用事件原pin校验器未装配")
+	}
+	if err := s.validatePin(json.RawMessage(resultRaw)); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO reference_sources(source_service,data_epoch,source_operation_id,site_id,source_object_id,source_revision_id,source_version,reference_digest,binding_hash,input_json,state,pin_id,expires_at,result_json,result_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,'confirmed',?,?,?,?,?)`, op.CallerService, op.DataEpoch, material.SourceOperationId, material.SiteId, material.SourceObjectId, material.SourceRevisionId, material.SourceVersion, material.ReferenceDigest, binding, string(inputRaw), result.Pin.PinId, result.Pin.ExpiresAt.Format(time.RFC3339Nano), string(resultRaw), platform.HashBytes(resultRaw), now.Format(time.RFC3339Nano)); err != nil {
+		return mapMediaDBError(err, "保存引用事件来源失败")
+	}
+	for i, asset := range assets {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO reference_pin_assets(pin_id,asset_id,deletion_fence) VALUES(?,?,?)`, result.Pin.PinId, asset.AssetId, fences[i]); err != nil {
+			return mapMediaDBError(err, "保存引用事件逐资产保护失败")
+		}
+	}
+	for _, ref := range material.References {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO reference_entries(pin_id,reference_id,asset_id,kind) VALUES(?,?,?,'current')`, result.Pin.PinId, ref.ReferenceId, ref.Asset.AssetId); err != nil {
+			return mapMediaDBError(err, "保存引用事件完整集合失败")
+		}
+	}
+	if err := upsertReferenceHead(ctx, tx, op, material, hasHead, head); err != nil {
+		return err
+	}
+	return writeReferenceResolution(ctx, tx, op, referenceRecord{Material: material}, "confirm")
+}
+
+func upsertReferenceHead(ctx context.Context, tx *sql.Tx, op OperationContext, material AcquireResourceReferencesInput, hasHead bool, head referenceHeadView) error {
+	if !hasHead {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO reference_heads(source_service,data_epoch,site_id,source_object_id,source_operation_id,source_revision_id,source_version,reference_digest) VALUES(?,?,?,?,?,?,?,?)`, op.CallerService, op.DataEpoch, material.SiteId, material.SourceObjectId, material.SourceOperationId, material.SourceRevisionId, material.SourceVersion, material.ReferenceDigest); err != nil {
+			return mapMediaDBError(err, "推进对象完整引用水位失败")
+		}
+		return nil
+	}
+	updated, err := tx.ExecContext(ctx, `UPDATE reference_heads SET source_operation_id=?,source_revision_id=?,source_version=?,reference_digest=? WHERE source_service=? AND data_epoch=? AND site_id=? AND source_object_id=? AND source_version=? AND source_operation_id=?`, material.SourceOperationId, material.SourceRevisionId, material.SourceVersion, material.ReferenceDigest, op.CallerService, op.DataEpoch, material.SiteId, material.SourceObjectId, head.Version, head.OperationID)
+	if err != nil {
+		return mapMediaDBError(err, "推进对象完整引用水位失败")
+	}
+	matched, err := updated.RowsAffected()
+	if err != nil || matched != 1 {
+		return platform.NewError(platform.CodeConflict, false, "对象引用水位CAS冲突")
+	}
+	return nil
 }
