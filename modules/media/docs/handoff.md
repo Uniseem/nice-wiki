@@ -1,3 +1,16 @@
+# 2026-10-17第三轮：真实worker/relay与runtime schema（GitLab检查通过，已交付冻结）
+
+- 用户再授权一轮三个代理并行、检查通过后双推；基线d760e39194156403e2b82430d5018fa9f4425e19，分支codex/media-20261017-r3，独占modules/media/。源码`b439c516fcf58d7df32d6227dc6df18ceb0871ce`，准确台账另提交；无新实际路径/迁移，不展开bytes或模糊引用事件。
+- 本轮10个完整函数按真实源码记verified；worker/outbox/blob_repository/drawing_validator及两个精确生成文件verified，app/wire与transport整文件继续partial；Build/NewApplication/Ready及完整服务、bytes、引用事件/其余HTTP、控制恢复与其他后台保持blocked/planned。183函数中160 implemented/verified、154 verified、4 blocked、19 planned；55文件中36 implemented/verified、29 verified、3 partial(in_progress)、1 blocked、15 planned；accepted仍为零。
+- NewCleanupWorkerClient仅从jobs拥有的六Result schema构建validator map交公共worker.NewJobsClient窄六方法，协议转换、心跳/租约/取消/终局与paid refs均由平台负责。Claim以最新runtime的纯media/system作用域领取；随后不可变原批准/原任务回执/waiting恢复真实site/epoch/root，所有对象RPC依该已核上下文签名，不读未签名头或猜payload。
+- RelayOutbox只执行真实单批SQLite outbox→jobs publish，持久确认后本地标relayed，不复制jobs序号；持续包装仅用根批准RunRecoveryLoop每秒串行调用，公共预检与批内IO写窗口保留。relay基础system仅为producer广播，事件来自已提交outbox，未从任意payload选择RPC站点。
+- 完整HTTP/恢复门槛成功后才装配两个背景闭包，不在构造中运行。公共生命周期先取消、Drain仅停HTTP、等待所有背景退出后Shutdown关DB；现完整门槛仍未齐，不运行部分服务或清理未知决定。
+- 基线生成Swagger的旧六孤立组件被prune仅为静态发现，旧编译不能当运行初始化/行为通过。显式manifest登记store11+Drawing1+jobs六Result共18及引用闭包；工厂/store/drawing均读取生成PayloadValidationSpec，字段仍唯一来自contracts，无手写schema或扩大HTTP DTO。
+- 最终完整依据GitLab pipeline32候选`ae7b334dbd9f7c102ade242afe8be6c4ccd676f9`：生成/重复生成job148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt和完整make check通过，最终生成补丁0。根精确回传本域19路径（含p31格式/生成）；p30取消，p31三个Go分片通过但整体check缺两个类型，均不作最终完整证据。
+- 只读交审公共生成器的显式闭包及jobs六协议、paid refs；发现adapter按领域Input多发Claim dataEpoch与lease jobId/dataEpoch，根最小修为HTTP RequestBody、jobId仅path/epoch仅可信头，复审确认，无其余阻塞。回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案GetSwagger→PayloadValidationSpec；未手改生成docs/functions，根实际公共+media集成CI会重新make docs并覆盖该纯说明差异后记录最终证据。
+- 本地仅静态JSON/依赖/范围/隐私与Git核对，保持原GitHub代用身份及GPT-6合著。无本机/SSH Go/gen/check，无新增测试/fixture/mock/样例/临时业务程序，无SQL/HTTP业务执行、真实接口/模型、worker/删除、启动、应用镜像或部署。本域不push，交付后冻结，主线实际SHA与双远程推送由根记录。
+- 下一项：根完成实际公共+media集成检查、其余域顺序集成与普通双推后停止；下轮须新授权再沿现有工作包继续，不自动展开bytes或引用事件。
+
 # 2026-10-17第二轮：真实资源与未引用列表（GitLab检查通过，已交付冻结）
 
 - 用户再次授权一轮编写后推送，三个子代理独立worktree、全部GitLab三分片。基线8a49af65f048a6b160f963570f02d6b88db100de，分支codex/media-20261017-r2，独占modules/media/；源码`a44a13a1ab65fc19c86e032d757e570195909e22`，准确台账另提交。本域不push，交付后冻结，主线实际集成SHA由根统一记录。
