@@ -1,4 +1,4 @@
-# 公开交付启动装配交接（2026-10-17，已编写，未编译）
+# 公开交付启动装配交接（2026-10-17，pipeline 48 已编译）
 
 ## 范围与事实
 
@@ -8,11 +8,11 @@
 - `BuildCanonical` 只使用调用方传入的 `publicBaseURL` 和规范路径。输入没有配置对象 ID，所以不调用 `readConfigObject`。
 - `BuildApplication` 校验 module、监听、数据目录、信任锚和签名引用，并要求 content、site-config、localization、identity、media、jobs、data-protection 为 http(s) 端点。analytics 可缺。换目录结果不是 none，或任一登记操作没有处理函数时，启动失败。schema 迁移、journal、activation 回执字段和后台循环都还没有写清的实现，函数保持 blocked，不返回可运行应用。
 - `Serve`、`Shutdown`、`Health`、`Ready` 已按已写清的生命周期步骤实现。`Ready` 在 journal、恢复控制或业务路由未就绪时返回 503。运行状态的五秒轮询仍由平台 `RunService` 负责。
-- `RewriteInternalLinks` 以及其余页面、恢复、事件和 worker 函数仍为 planned。accepted 为 0。没有任何函数记 verified。
+- `RewriteInternalLinks` 以及其余页面、恢复、事件和 worker 函数仍为 planned。accepted 为 0。`main`、`ResolvePublishedLink`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 已由 pipeline 48 记 verified。
 
 ## 检查
 
-本会话跑了 python 的 `make docs` 和 `make check`。没有跑 go、gofmt、make build、make gen 或 SSH。`make check` 只失败在六份新文件未进 `docs/structure/framework.json`，以及 `modules/public-site/go.mod` 有依赖但缺少 `go.sum`。`go.sum` 不能手写。OpenAPI 里公开链接的状态说明已改为 409/503，生成目录里的嵌入规格还是旧句，需要 `make gen` 后才会跟上。
+pipeline 47 编译通过，生成补丁已回传。pipeline 48 生成补丁为 0，三个分片成功。下面的登记清单现已完成。
 
 ## 请集成会话登记
 
@@ -27,4 +27,4 @@
 
 ## 下一步（一项）
 
-六个新路径已登记，`go.sum` 已由 `go mod tidy` 生成，并加入 GitLab 的 ai 编译分片。公开链接 OpenAPI 说明已改为 409/503，生成目录里的嵌入规格还要等 `make gen`。这次还没有跑该分片。编译通过之前不要把这些函数记 verified。
+pipeline 48 已把公开链接和已写清的生命周期函数记 verified。`BuildApplication` 仍 blocked。下一步补齐 journal、schema 迁移和其余处理函数，不要在缺处理函数时返回可运行应用。

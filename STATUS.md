@@ -1,13 +1,13 @@
-# 当前状态（2026-10-17，第二轮四个模块已本地合入）
+# 当前状态（2026-10-17，第二轮 GitLab 检查通过）
 
-portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接解析已审核合入本地 main。尚未推送，也还没有覆盖这些提交的 GitLab 编译。accepted 仍为 0。
+portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接解析已审核合入。pipeline 47 编译通过并回传 10300 字节生成补丁。pipeline 48（`24ff6942329d68e0ff81d7f71d59e9b7e499c228`）生成补丁 0 字节，job 212 与三个分片 213、214、215 全部成功。accepted 仍为 0。本记录还要再跑一次隔离检查，通过后才双推 main。
 
-- portal 源码 767972f、台账 60573c4：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。记 implemented，不记 verified。`EmitAccessAudit` 仍 planned。
-- qa 源码 7ef0cfb、台账 1d2d523：`EvaluateCacheEligibility` 只按已写明字段拒绝共享。指代残留没有可执行判定，任何输入都不返回 eligible=true，函数保持 blocked。
-- data-protection 源码 d03bad4、台账 8b64110：启动入口建立数据目录并绑定 27 个路由。换目录缺少回执事实时失败关闭；备份、恢复和镜像返回依赖不可用，不返回空成功。六个启动函数因尚未编译保持 blocked。`go.sum` 已由 `go mod tidy` 生成，并加入 content-media 编译分片，该分片还没跑。
-- public-site 源码 1a126fd、台账 fbd6d11：`ResolvePublishedLink` 读取站点、启用语言和公开树，块锚点按正文哈希核验。依赖未知返回 503，水位变化返回 `STALE_RESULT`/409，已知撤回才返回不可见。缺登记处理函数时 `BuildApplication` 不返回可运行应用，该函数保持 blocked。其余已写的启动和链接函数记 implemented，不记 verified。`go.sum` 已由 `go mod tidy` 生成，并加入 ai 编译分片，该分片还没跑。生成目录里的公开链接说明仍待 `make gen`。
-- 当前 1516 函数中 891 个完成（825 verified、66 implemented），planned 579、in_progress 14、blocked 32，完成率 58.8%。相对第四轮推送净增 8 项完成。
-- 未运行 go build、vet 或 gofmt。
+- portal 源码 767972f：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。pipeline 48 记 verified。`EmitAccessAudit` 仍 planned。
+- qa 源码 7ef0cfb：`EvaluateCacheEligibility` 只按已写明字段拒绝共享。指代残留没有可执行判定，任何输入都不返回 eligible=true。pipeline 48 已编译该包，函数保持 blocked。
+- data-protection 源码 d03bad4：启动入口建立数据目录并绑定 27 个路由。换目录缺少回执事实时失败关闭；备份、恢复和镜像返回依赖不可用。pipeline 48 已编译该包，六个启动函数仍 blocked。
+- public-site：`ResolvePublishedLink` 读取站点、启用语言和公开树，块锚点按正文哈希核验。依赖未知返回 503，水位变化返回 `STALE_RESULT`/409。`main`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 与该函数记 verified。`BuildApplication` 缺处理函数时不返回可运行应用，保持 blocked。
+- 当前 1516 函数中 891 个完成（833 verified、58 implemented），planned 579、in_progress 14、blocked 32，完成率 58.8%。相对第四轮推送净增 8 项完成，其中 8 个新完成函数记 verified。
+- 未在本机或 SSH 编译。未新增测试、fixture、mock、样例或临时程序。
 
 以下是已经双推的第四轮记录。
 

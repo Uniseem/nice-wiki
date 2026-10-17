@@ -5,7 +5,7 @@
 - 源码 SHA：`7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe`
 - 独占范围：`modules/qa/`
 - 函数：`qa.EvaluateCacheEligibility` 保持 blocked，验证 not_run。accepted 为 0。
-- 未跑 CI：未执行 GitLab CI、go、gofmt、make build、make gen、make check、SSH。本域执行了 `make docs`。源码提交前 `python scripts/check_docs.py --privacy-only` 通过。
+- 检查：pipeline 48 已编译该包。函数仍 blocked，accepted 为 0。未做业务验收。
 
 ## 行为
 
@@ -34,7 +34,7 @@
 
 ## 下一步（一项）
 
-`modules/qa/internal/cache/eligibility.go` 已登记。GitLab CI 还没覆盖这次提交。指代残留没有可执行判定之前，不要让 `qa.EvaluateCacheEligibility` 返回 eligible=true，也不要扫描问题文本。
+pipeline 48 已编译 `EvaluateCacheEligibility`。指代残留没有可执行判定之前，不要让它返回 eligible=true，也不要扫描问题文本。
 
 下文是历史交接，其中的下一步不再执行。
 

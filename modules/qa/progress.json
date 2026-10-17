@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "ff571ac266f56816b246dd120b77ee4821bb97cc0dc7cb524751bdb96dc62dd4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17 qa缓存准入（EvaluateCacheEligibility确定性拒绝）",
+  "assignedSession": "qa缓存准入（pipeline 48 已编译；指代规则未写明，仍 blocked）",
   "branch": "codex/qa-20261017-r5",
   "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
   "deliveryCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
@@ -398,7 +398,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "指代残留没有可执行规则，文件不返回 eligible=true。GitLab CI 未跑。新文件尚未写入根 framework.json。"
+      "blocker": "指代残留没有可执行规则，文件不返回 eligible=true。pipeline 48 已编译该包，函数仍 blocked。"
     },
     {
       "path": "modules/qa/internal/cache/query-embedding.go",
@@ -1216,7 +1216,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "独立问题是否残留这/它或未命名第二步来源没有可执行规则。函数只按 plan.complete、privateContextDependent、currentPageDependent、classification=out_of_scope 和 plan.cacheEligible 拒绝共享，不扫描问题文本，不返回 eligible=true。未编译，不记 verified。"
+      "blocker": "独立问题是否残留这/它或未命名第二步来源没有可执行规则。函数只按 plan.complete、privateContextDependent、currentPageDependent、classification=out_of_scope 和 plan.cacheEligible 拒绝共享，不扫描问题文本，不返回 eligible=true。pipeline 48 已编译该包，仍不记 verified。"
     },
     {
       "id": "qa.AcquireQueryEmbedding",

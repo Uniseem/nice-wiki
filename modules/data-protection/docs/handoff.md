@@ -15,15 +15,15 @@
 
 ## 台账
 
-`progress.json` 的 phase 为 `implementation`。配置和部署文件 5 个为 `implemented`，验证仍是 `not_run`。`main`、`BuildApplication`、`Serve`、`Shutdown`、`Health`、`Ready` 以及对应 Go 文件为 `blocked`：源码已提交，但未编译，不能记 `implemented` 或 `verified`。`go.sum` 与 `migrations/0001_domain.sql` 为 `blocked`。其余业务文件和函数保持 `planned`。`accepted` 为 0。合同未改，`contractSha256` 仍是 `97a61469c575aea0e0c3c341b8c8a70e358c8f480782de68e15a237a7df20c1f`。
+`progress.json` 的 phase 为 `implementation`。配置和部署文件为 `implemented`。`go.mod` 与 `go.sum` 已由 pipeline 48 的 readonly 编译使用。`main`、`BuildApplication`、`Serve`、`Shutdown`、`Health`、`Ready` 以及对应 Go 文件仍为 `blocked`：包已编译，协议未齐，不记 verified。`migrations/0001_domain.sql` 仍为 `blocked`。其余业务文件和函数保持 `planned`。`accepted` 为 0。合同未改，`contractSha256` 仍是 `97a61469c575aea0e0c3c341b8c8a70e358c8f480782de68e15a237a7df20c1f`。
 
 ## 检查
 
 - `make docs`：通过，合同未改，生成文档无漂移。
 - 默认配置与 manifest 的 JSON 解析：通过。
 - 生成 `ServerInterface` 的 27 个方法与手写路由方法一致。
-- 未运行 GitLab CI、`go`、`gofmt`、`make build`、`make gen`、SSH、真实接口、真实模型或业务验收。
-- `go.sum` 未创建。`check_docs.py` 会因有 `go.mod` 依赖却没有工具生成的 `go.sum` 而失败；完整结构检查也会因下列文件尚未进入根 `framework.json` 而失败。这两项都留给集成会话，本域不改根文件。
+- pipeline 48 已对本包做 readonly build、vet 和 gofmt。未运行真实接口、真实模型或业务验收。
+- 新文件和 `go.sum` 已登记。下面的登记清单是当时交给集成会话的列表，现已完成。
 
 ## 需要集成会话登记
 
@@ -51,6 +51,6 @@
 
 ## 下一步（一项）
 
-8 个新文件已登记，`go.sum` 已由 `go mod tidy` 生成，并加入 GitLab 的 content-media 编译分片。这次还没有跑该分片。CI 通过前，不把启动函数记为 verified，也不实现备份业务。
+pipeline 48 已编译启动包。六个启动函数仍 blocked。下一步不要实现备份业务，先补齐 journal、迁移执行器和激活回执字段。
 
 详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。

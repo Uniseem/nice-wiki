@@ -4,9 +4,9 @@
 - 基线：`a3e6af980d5288e42bc8d023410faf8923ff21e8`
 - 源码 SHA：`767972fc930319699187a13c44274d721b017c8d`
 - 独占范围：`modules/portal/`
-- 完成函数：`portal.RedactRequest`（implemented，验证 not_run）
+- 完成函数：`portal.RedactRequest`（verified，pipeline 48）
 - 未完成：`portal.EmitAccessAudit` 仍为 planned
-- 未跑 CI：未执行 GitLab CI、go、gofmt、make build、make gen 或 SSH。本域执行了 `make docs`。本地 `make check` 只因新文件尚未写入根 `docs/structure/framework.json` 失败，其余文档、契约摘要和隐私检查通过。accepted 为 0。
+- 检查：pipeline 48 的 readonly 编译已覆盖本文件。accepted 为 0。未做业务验收。
 
 ## 行为
 
@@ -27,7 +27,7 @@
 
 ## 下一步（一项）
 
-`modules/portal/internal/audit_redaction.go` 已登记。GitLab CI 还没覆盖这次提交，不要把 `RedactRequest` 记为 verified 或 accepted。下一步实现合同已写明的 `portal.EmitAccessAudit`。
+`RedactRequest` 已由 pipeline 48 记 verified。下一步实现合同已写明的 `portal.EmitAccessAudit`。
 
 下文是历史交接，其中的下一步不再执行。
 

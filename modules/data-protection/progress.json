@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "97a61469c575aea0e0c3c341b8c8a70e358c8f480782de68e15a237a7df20c1f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "data-protection-20261017-r5",
+  "assignedSession": "data-protection启动（pipeline 48 已编译；备份协议未齐，启动函数仍 blocked）",
   "branch": "codex/data-protection-20261017-r5",
   "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
   "deliveryCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
@@ -408,7 +408,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。"
     },
     {
       "path": "modules/data-protection/internal/app/wire.go",
@@ -418,7 +418,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
     },
     {
       "path": "modules/data-protection/internal/transport/server.go",
@@ -428,27 +428,27 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
     },
     {
       "path": "modules/data-protection/go.mod",
       "state": "implemented",
-      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+      "implementationCommit": "b7eb1ce57bba8997a3fb6fa35fd705d3281df243",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "path": "modules/data-protection/go.sum",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "b7eb1ce57bba8997a3fb6fa35fd705d3281df243",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
-      "blocker": "go.sum 已由 go mod tidy 生成。GitLab readonly 编译尚未覆盖，不能记 verified。"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/Dockerfile",
@@ -1250,7 +1250,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。"
     },
     {
       "id": "data-protection.BuildApplication",
@@ -1261,7 +1261,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
     },
     {
       "id": "data-protection.Serve",
@@ -1272,7 +1272,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
     },
     {
       "id": "data-protection.Shutdown",
@@ -1283,7 +1283,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 优雅关闭已写。本阶段没有数据库、journal 或 outbox；关闭时不删除 control 记录，也不把未实现费用记为免费。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。HTTP 优雅关闭已写。本阶段没有数据库、journal 或 outbox；关闭时不删除 control 记录，也不把未实现费用记为免费。"
     },
     {
       "id": "data-protection.Health",
@@ -1294,7 +1294,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。只读进程生命周期，不查询远程依赖、数据库或模型。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。只读进程生命周期，不查询远程依赖、数据库或模型。"
     },
     {
       "id": "data-protection.Ready",
@@ -1305,7 +1305,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。journal 未恢复、业务处理未实现或运行视图没有修订号时返回 DEPENDENCY_UNAVAILABLE，不把 publicRequestsAllowed 报成 true。"
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。journal 未恢复、业务处理未实现或运行视图没有修订号时返回 DEPENDENCY_UNAVAILABLE，不把 publicRequestsAllowed 报成 true。"
     },
     {
       "id": "data-protection.mountModuleUI",

@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "675b37335181011b0f83cd99fc0a24a2fa32f085d54d940a538d8d96ca9cc87b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "portal RedactRequest 实施（独立 worktree，未跑 CI）",
+  "assignedSession": "portal请求脱敏（pipeline 48 已记 verified；EmitAccessAudit 仍 planned）",
   "branch": "codex/portal-20261017-r5",
   "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
   "deliveryCommit": "767972fc930319699187a13c44274d721b017c8d",
@@ -108,7 +108,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "RedactRequest 已实现但未编译。EmitAccessAudit 仍 planned。GitLab CI 未跑，不能记 verified。"
+      "blocker": "RedactRequest 已由 pipeline 48 记 verified。EmitAccessAudit 仍 planned，整文件保持 in_progress。"
     },
     {
       "path": "modules/portal/web/src/api/api-client.ts",
@@ -659,13 +659,13 @@
     {
       "id": "portal.RedactRequest",
       "path": "modules/portal/internal/audit_redaction.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "767972fc930319699187a13c44274d721b017c8d",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
-      "blocker": "未执行 go、gofmt、make build 或 GitLab CI，不能记 verified。accepted 保持 0。"
+      "blocker": null
     },
     {
       "id": "portal.EmitAccessAudit",
