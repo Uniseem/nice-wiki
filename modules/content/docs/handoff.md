@@ -1,3 +1,25 @@
+# 当前工作包：文档树读取与完整同级重排（2026-10-17第二轮，已检查交付）
+
+分支codex/content-20261017-r2，基线8a49af65f048a6b160f963570f02d6b88db100de，初始clean，独占modules/content。用户再授权三个子代理同时编写一轮后普通推送；全部Go/生成/格式/编译/check由根自部署GitLab三分片执行，本域不本机/SSH编译、不自行push。
+
+- 源码91f6f0d3246e50281f81f138f3fedcbf70b6e17b，本记录紧随源码；21个本轮完整/修改函数按该SHA verified，净增18项完成，177→195/238。MoveDocument及tree_service整体仍partial/in_progress，path_service仅Plan完整、ValidatePathSegment仍planned，BuildApplication/main blocked，业务accepted=0。
+- ReadDocumentTree/ListDocuments同SQL核站点/epoch、原始metadata schema、共享head/COMMITTED资格、无环/深度32、活动父及同父key/slug唯一，确定性前序且不返正文；trash需content.publish，其他读content.read。列表签名cursor绑定主体/会话/权限版本/state/limit、treeRevision和同SQL读取的reference_scan_state来源水位，任一变化409首批重读；0005覆盖metadata/title/state/head/隔离变化，SaveDraft不推进树水位也不混完整metadata快照。
+- 完整ReorderChildren要求完整同父活动draft/published子集合，排除trash/purged，6位均匀base62 key保留插入间隔，空集合允许；即时content.edit和平台当前窗口均在锁外，短SQL复核树CAS、metadata CAS，更新真实parent/order并提交完整原结果及content.tree.changed/v1 outbox。Commit未知重试只凭原回执，不重复推进水位/事件。
+- 根批准0006仅追加完整scope/动作/摘要原回执，无影子树/假manifest；新事件只含site/treeRevision/changed IDs/epoch，当前Consumers=[]。业务生产权限content.edit，jobs事件管理仍沿既有全域content.publish，没有宣称公开缓存或在线UI已消费。
+- 10000仅为新树查询/操作明确扫描/输出预算，purged墓碑不计入，超限503不截断。已按根裁定撤回候选提出的Create新增总量拒绝，旧readCreationTree nil回调保持原无新增总量限制；内部Ensure/Plan可信完整树输入取消maxItems，不新增maxDocuments或永久业务配额。
+- Plan完整规划node及全部曾发布后代旧路径，未知祖先slug明确503；非空规划因真实版本化manifest生产链未齐使Move返回503、不提交。因此不能把草稿移动分支当完整受约束Move，发布与manifest继续未完成。
+- 四个实际树action由core在schema之后、DB/锁之前按state做一次即时identity；平台Authorize仅这四固定action不重复RPC，其他action保留通用授权，服务/委托/epoch/schema仍严格执行。列表integer适配与kin-openapi基数0 ParseInt一致，本文件既有资源分页亦窄修，不把允许的0x10/010误转0。
+- Build只局部构造仍nil/503；新写在原回执回放后显式核Runtime/WriteWindow回调齐全，缺失503，修复候选曾直接调用nil回调会panic的部分装配错误。没有伪造control写窗口、全量handler、恢复activation或后台生命周期。
+- 2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。
+- 已交叉只读复审model价目整数、未知价、旧摘要兼容、纯服务与无正文持久化，无本轮阻断。另发现既有纯服务HTTP会把Actor.SiteID固定system，不能兑现清portal proof后保留真实本站；根已将可信本站传递列入localization未来合同/交接前置，EstimateLanguagePlan仍planned。本轮不扩共享签名协议，content/media真实来源链不声称已联通或已行为验收。
+- 实际暂存内容、中文说明、既有GitHub代用身份及GPT-6 trailer隐私扫描通过；源码19路径，无其他域或公共文件改动；本域没有运行本机Go、真实接口或push。
+
+## 下一步（一项）
+
+根按源码及记录顺序集成，检查实际合并树后执行本轮已授权普通推送；本域交付后冻结，不自行扩发布/manifest或共享站点协议。后续只按新工作包继续。
+
+---
+
 # 当前工作包：资源来源查询与单批事件转发（2026-10-17，已检查交付）
 
 分支codex/content-20261017-r1，基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，初始clean；独占modules/content。用户授权三个子代理同时编写一轮后普通push，并最新要求全部编译改走自部署GitLab、尽量三个并行任务。根统一公共机制、CI与最终推送；本域不自行push。
