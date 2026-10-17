@@ -4702,7 +4702,7 @@
           "purpose": "点击发布才公开精确共享草稿版本",
           "steps": [
             "授权publish与当前写窗口在锁外完成；先读COMMITTED正文哈希，再读取就绪引用",
-            "引用集非空时，先acquire再confirm当前来源身份；跨服务调用不持有本地SQL锁。引用集为空则不造pin。pin失败则整次发布失败，不先公开",
+            "引用集非空时，用来源身份必须是同一document、revision、sourceVersion和referenceDigest上已经committed的草稿保存操作，先acquire再confirm；跨服务调用不持有本地SQL锁。找不到该决定或摘要不一致则整次失败。引用集为空则不造pin。pin失败则整次发布失败，不先公开",
             "PreparePublicationMetadata后，空slug返回校验错误。确认pin之后，CommitPublication才把metadata/tree CAS、不可变快照、历史、引用和outbox放进同一事务",
             "原回执与上述写入同事务。未知Commit只回放原结果，不重复推进水位或事件。分享图非空因metadata pin合同未齐503。提交后的渲染、索引、翻译和git镜像只排队，不回退正文"
           ],
@@ -5009,7 +5009,7 @@
           ],
           "purpose": "原子提交当前发布快照与署名历史",
           "steps": [
-            "rollback直接失败关闭，不写历史回滚。独立提交在本地锁之外先完成与Publish相同的资源pin；已绑定事务只接受锁外已经确认的同一引用摘要",
+            "rollback直接失败关闭，不写历史回滚。独立提交在本地锁之外先完成与Publish相同的资源pin，来源身份同样是已提交草稿保存操作；已绑定事务只接受锁外已经确认的同一引用摘要",
             "非空引用必须匹配已确认pin后才写入发布快照。空引用不造pin。pin失败或摘要变化则整次失败，不先公开",
             "同一事务CAS元数据、树和文档，写入不可变快照、署名历史，并把上一份当前发布引用改为history",
             "同一事务登记publication.changed、resources.changed和tree.changed。未知提交只回放原回执。非空分享图失败关闭"
@@ -5157,7 +5157,8 @@
           "outputs": [],
           "purpose": "用现有媒体客户端先预留再确认发布快照的来源引用",
           "steps": [
-            "空引用直接返回，不发送空pin。非空时按草稿提交同一请求形状调用acquire，核对资产后再confirm",
+            "空引用直接返回，不发送空pin。非空时先读取revision_preparations与action为save且已committed的draft_operation_intents，核对document、revision、sourceVersion和referenceDigest",
+            "找不到这条已提交草稿决定，或摘要与当前引用不一致，则返回错误且不调用媒体。一致时用该sourceOperationId按草稿提交同一请求形状先acquire再confirm；已确认pin由媒体按原绑定幂等回放",
             "任一调用失败则返回错误，调用方不得提交公开事务"
           ],
           "errors": [],
@@ -5166,7 +5167,7 @@
           ],
           "authorization": "已认证发布调用链，以本域服务身份调用媒体",
           "concurrency": "不持有本地SQL锁",
-          "idempotency": "同一operationId复用媒体侧原pin；本地不把失败记成已发布",
+          "idempotency": "已确认pin按草稿保存操作的原sourceOperationId幂等回放；发布操作号不是引用源，失败不记成已发布",
           "dependencies": [
             "media:acquireResourceReferences",
             "media:confirmResourceReferences"

@@ -470,13 +470,49 @@ func loadCurrentDraftReferences(ctx context.Context, tx *sql.Tx, op OperationCon
 	return refs, sourceVersion, nil
 }
 
+// loadCommittedDraftSaveOperation只读取已经committed的草稿保存来源，不另造决定。
+func loadCommittedDraftSaveOperation(ctx context.Context, db *sql.DB, op OperationContext, documentID, revisionID Identifier, sourceVersion int, digest Hash) (Identifier, error) {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return "", contentStorageError()
+	}
+	defer tx.Rollback()
+	var operationID Identifier
+	var planRaw []byte
+	err = tx.QueryRowContext(ctx, `SELECT i.operation_id,CASE WHEN length(CAST(i.plan_json AS BLOB))<=16777216 THEN i.plan_json ELSE NULL END FROM revision_preparations p JOIN committed_revisions c ON c.commit_id=p.commit_id AND c.site_id=p.site_id AND c.document_id=p.document_id AND c.revision_id=p.revision_id AND c.data_epoch=p.data_epoch AND c.state='committed' JOIN draft_commit_receipts r ON r.commit_id=c.commit_id AND r.site_id=c.site_id AND r.data_epoch=c.data_epoch AND r.operation_id=p.operation_id JOIN draft_operation_intents i ON i.site_id=p.site_id AND i.data_epoch=p.data_epoch AND i.operation_id=p.operation_id AND i.action='save' AND i.state='committed' WHERE p.site_id=? AND p.data_epoch=? AND p.document_id=? AND p.revision_id=? AND p.state='committed'`, op.Actor.SiteID, op.DataEpoch, documentID, revisionID).Scan(&operationID, &planRaw)
+	if errors.Is(err, sql.ErrNoRows) {
+		var other int
+		if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM revision_preparations p JOIN draft_operation_intents i ON i.site_id=p.site_id AND i.data_epoch=p.data_epoch AND i.operation_id=p.operation_id AND i.action='save' WHERE p.site_id=? AND p.document_id=? AND p.revision_id=? AND p.data_epoch<>?`, op.Actor.SiteID, documentID, revisionID, op.DataEpoch).Scan(&other); err != nil {
+			return "", contentStorageError()
+		}
+		if other > 0 {
+			return "", platform.NewError(platform.CodeVersionMismatch, false, "已提交草稿决定属于其他数据代次")
+		}
+		return "", platform.NewError(platform.CodeIntegrityError, false, "当前共享草稿缺少已提交的资源决定")
+	}
+	if err != nil {
+		return "", contentStorageError()
+	}
+	if planRaw == nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "已提交草稿决定损坏")
+	}
+	var plan draftOperationPlan
+	if decodeStorageJSON(planRaw, &plan) != nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "已提交草稿决定损坏")
+	}
+	if err = validateDraftOperationPlan("save", plan); err != nil {
+		return "", err
+	}
+	if plan.DocumentID != documentID || plan.RevisionID != revisionID || plan.SourceVersion != sourceVersion || plan.ReferenceDigest != digest || !platform.ValidIdentifier(operationID) {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "发布资源引用与已提交草稿决定不一致")
+	}
+	return operationID, nil
+}
+
 // pinPublicationReferences只对非空就绪引用调用现有媒体客户端。失败则发布尚未开始。
 func pinPublicationReferences(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, sourceVersion int, refs []gen.ResourceReference) (Hash, bool, error) {
 	if len(refs) == 0 {
 		return "", false, nil
-	}
-	if runtime.Media == nil {
-		return "", false, platform.NewError(platform.CodeDependencyUnavailable, true, "发布资源pin依赖未装配")
 	}
 	for _, ref := range refs {
 		if ref.DocumentId != documentID || ref.SourceRevisionId != revisionID || ref.SourceVersion != sourceVersion || ref.Kind != gen.CurrentDraft || !ref.Retained {
@@ -487,10 +523,17 @@ func pinPublicationReferences(ctx context.Context, op OperationContext, runtime 
 	if err != nil {
 		return "", false, err
 	}
+	sourceOperationID, err := loadCommittedDraftSaveOperation(ctx, runtime.Reference.Store.db, op, documentID, revisionID, sourceVersion, digest)
+	if err != nil {
+		return "", false, err
+	}
+	if runtime.Media == nil {
+		return "", false, platform.NewError(platform.CodeDependencyUnavailable, true, "发布资源pin依赖未装配")
+	}
 	request := struct {
 		draftPinMaterial
 		References []draftMediaReference `json:"references"`
-	}{draftPinMaterial{op.OperationID, op.Actor.SiteID, documentID, revisionID, sourceVersion, digest}, mediaRefs}
+	}{draftPinMaterial{sourceOperationID, op.Actor.SiteID, documentID, revisionID, sourceVersion, digest}, mediaRefs}
 	raw, err := runtime.Media.AcquireResourceReferences(contentServiceContext(ctx, op), request)
 	if err != nil {
 		return "", false, err
