@@ -1,3 +1,46 @@
+# 定时调度（已实现，未编译，未验收）
+
+分支 `codex/jobs-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，源码 `d7a03b2540a178e9d086277b697fbf6fbb6e5f77`。独占 `modules/jobs/`。本轮未跑 GitLab CI，未 push，accepted 未推进。台账随后单独提交。检查只跑了 make docs（python 渲染函数与文件目录）；未跑 go、gofmt、make build、make gen、make check，也未 SSH。未授权新增测试、真实接口或部署。
+
+完成并记 implemented、不记 verified：ValidateCron、NextFireAt、CreateSchedule、UpdateSchedule、ListSchedules、TickSchedules。闭环另登记 lastDueTick、NewScheduleHandlers，同样 implemented。SaveSchedule 仍是 `web/src/ScheduleEditor.vue`，本轮不做界面，保持 planned。
+
+## 仍未写明的 cron 语义
+
+函数本身不是 blocked。合同写明恰好 5 个字段、拒绝秒字段、IANA 时区必须真实存在、分钟最小间隔 1。产品默认时区只是缺省配置，输入里的时区不能省略，也不强制改写成该默认值。下面这些没有合同句子，遇到就返回 INVALID_CRON，不自选某一种方言：
+
+- 步长、列表、范围记号没有合同句子。分钟最小间隔 1 只约束已经接受的写法，不定义步长语法。
+- 周字段编号没有合同句子，不知道 0 或 7 是否周日、1 是否周一。非星号的周字段一律非法。
+- 日和周同时受限时是 OR 还是 AND，没有合同句子。周只能是星号，这种组合不会进入匹配。
+- 英文月名、星期名没有合同句子。字母、at 宏、H 或 R 随机一并拒绝。
+
+已接受子集覆盖登记的系统表达式：`10 0 * * *`、`5 * * * *`、`20 * * * *`、`30 3 * * *`、`0 4 * * *`。
+
+DST 合同只说重复的本地分钟只取第一次，没有最大折返时长。实现在向前搜索前先观察 24 小时；超过 24 小时的折返没有合同句子，不当作第二次。向前搜索上限 366 天。窗口内没有下一次触发返回 NO_NEXT_FIRE。到期之后仍算不出下一次时，该条失败关闭，不发明更远的地平线。
+
+## 行为与启动缺口
+
+TickSchedules 在维护或安全点暂停，不生成新 tick。到期只取最后一次，去重键为 scheduleId、tick、epoch，调用已有 CreateJob，dedupeKey 非空，notBefore 为该 tick，然后另开事务用 revision CAS 推进 nextAt。去重复用不计入 createdCount。QUEUE_FULL 在合同里出现，但没有容量句子，不自造队列上限；CreateJob 的其他错误原样返回。
+
+同代次重复登记系统定时时，在校验新表达式之前返回原记录。跨代次保持原标识，把 dataEpoch 改到当前代，按已存表达式重算未来 nextAt，不补历史任务；请求表达式必须与目录的规范化结果一致。管理员创建和修订使用原操作回执：同键同哈希返回原结果，同键不同哈希冲突。停用只停止新 tick，不删除已排队任务。当前代次超过 1000 拒绝新增；1000 只计当前 dataEpoch。列表结果上限 256，超过则失败关闭且不截断。
+
+createSchedule、listSchedules、updateSchedule 已绑真实 handler。createSchedule 允许 portal 以及带系统默认定时的 owner 服务；list 和 update 只允许 portal。管理员仍走 job.manage。其余 operation 未绑定，工厂继续失败关闭。未调用存储安装。BuildApplication 与 main 仍 blocked，不宣称可启动。未实现屏障协调、保留清理、快照、进度 SSE 和界面。
+
+既有 ReapExpiredLeases、collectOrphans、reconcileOrphan、RequeueDue 未改职责，函数级 verified 记录保留。scheduler.go 因为加入 Tick，文件级改为 implemented，验证 not_run。未单独登记的助手只被上列函数调用：表达式编译、本地分钟观察、回执、单条推进和到期读取。
+
+## 需要集成处理
+
+- 根框架尚未登记 `modules/jobs/internal/cron.go`、`modules/jobs/internal/schedule_store.go`、`modules/jobs/migrations/0008_schedules.sql`。本域不改公共框架清单。
+- 新增发布事件 `jobs.schedule-changed.v1`，只含标识、owner、类型、启用、修订和下一次时刻，不含表达式或输入正文。生成目录未手改。发布侧要等集成运行 make gen，EventTypes 才会包含该类型。
+- 列表 256 与每站点 1000 是合同张力，超过 256 失败关闭。
+- 366 天内没有下一次触发时，该 tick 失败关闭；同一次调用里其他到期项仍先处理，最终返回错误和空结果。已提交的前序项靠去重恢复。
+- 提交说明按本次要求附带合著者行。隐私检查白名单尚未包含该代用域名；若 CI 扫描提交说明，需要集成补白名单。本域不改根脚本。
+
+## 下一步
+
+等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 持续目标第二轮公共前置：延迟任务创建（已检查）
 
 集成会话独占本次jobs公共API配合，基线471c036。CreateJobRequestBody和内部CreateJobInput新增可选notBefore，显式UTC时刻纳入去重并写既有not_before；省略保持旧hash和首次立即可领。新增真实createJob映射，仅生成任务owner可调用，dataEpoch只取可信op；ClaimJob已有真实时间筛选，无新迁移/外部依赖/路径。任务执行期限由owner领取时建立，不沿用创建RPC短截止。

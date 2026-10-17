@@ -2427,6 +2427,13 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "调用方不是jobs后台",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
             }
           ],
           "sideEffects": [
@@ -2440,6 +2447,77 @@
           "idempotency": "tick dedupeKey幂等",
           "dependencies": [
             "jobs.CreateJob",
+            "jobs.NextFireAt",
+            "jobs.lastDueTick"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.lastDueTick",
+          "name": "lastDueTick",
+          "signature": "func lastDueTick(expression string, timezone string, nextAt time.Time, now time.Time) (time.Time, bool, error)",
+          "inputs": [
+            {
+              "name": "expression",
+              "type": "string",
+              "description": "已保存的定时表达式",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "timezone",
+              "type": "string",
+              "description": "已保存的IANA时区",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "nextAt",
+              "type": "time.Time",
+              "description": "当前保存的下次触发",
+              "constraints": "仅本域内部使用"
+            },
+            {
+              "name": "now",
+              "type": "time.Time",
+              "description": "本次扫描时刻",
+              "constraints": "仅本域内部使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "tick",
+              "type": "time.Time",
+              "description": "最后一次已到期触发",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "ok",
+              "type": "bool",
+              "description": "nextAt尚未到期时为false",
+              "constraints": "成功有效，失败不返回半结果"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "表达式或记录无法证明触发时刻",
+              "constraints": "成功有效，失败不返回半结果"
+            }
+          ],
+          "purpose": "计算到期定时的最后一次触发",
+          "steps": [
+            "nextAt晚于now时未到期",
+            "在366天窗口内按与NextFireAt相同的本地分钟规则取最后一次匹配",
+            "窗口之外只接受原nextAt本身仍匹配的时刻"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅TickSchedules使用"
+          },
+          "concurrency": "纯函数，迭代上限527040",
+          "idempotency": "同表达式、时区、nextAt和now得到同一次tick",
+          "dependencies": [
             "jobs.NextFireAt"
           ],
           "resources": [],
@@ -5056,6 +5134,20 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "同operationId不同inputHash",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "当前代次定时数量达到1000",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
             }
           ],
           "sideEffects": [
@@ -5210,6 +5302,11 @@
               "code": "FORBIDDEN",
               "when": "权限不足",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "when": "当前代次超过256条，失败关闭且不截断",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -5222,6 +5319,39 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "jobs.NewScheduleHandlers",
+          "name": "NewScheduleHandlers",
+          "signature": "func NewScheduleHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "createSchedule、updateSchedule、listSchedules的真实HTTP映射",
+              "constraints": "只交统一NewServiceHandler，不独立裸挂"
+            }
+          ],
+          "purpose": "绑定真实定时管理路由到统一服务入口",
+          "steps": [
+            "createSchedule绑定CreateScheduleRequestBody，dataEpoch只来自可信op",
+            "updateSchedule从路径取scheduleId，正文不重复声明",
+            "listSchedules无正文；成功200，错误经既有统一Problem写出"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "创建和修改沿用operationId回执，列表只读",
+          "dependencies": [
+            "jobs.CreateSchedule",
+            "jobs.UpdateSchedule",
+            "jobs.ListSchedules",
+            "jobs.writeEventResponse"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6534,7 +6664,8 @@
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE",
             "私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked",
-            "合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败"
+            "合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败",
+            "合并NewScheduleHandlers真实createSchedule/updateSchedule/listSchedules映射；createSchedule允许portal和管理员路径以及带系统默认定时的owner服务，list/update仅portal；其余handler、存储安装、control和后台循环未齐仍使完整启动失败"
           ],
           "errors": [
             {
@@ -6586,7 +6717,8 @@
             "jobs.NewProgressHandlers",
             "jobs.OpenDatabase",
             "jobs.Store.Close",
-            "jobs.NewQueueHandlers"
+            "jobs.NewQueueHandlers",
+            "jobs.NewScheduleHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8630,6 +8762,12 @@
       "path": "modules/jobs/migrations/0007_progress_retention.sql",
       "kind": "migration",
       "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间",
+      "functions": []
+    },
+    {
+      "path": "modules/jobs/migrations/0008_schedules.sql",
+      "kind": "migration",
+      "purpose": "只追加定时任务的类型、输入引用、代次、操作回执和到期索引；不重建schedules，不删除已有行",
       "functions": []
     }
   ],
