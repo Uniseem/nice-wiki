@@ -10,6 +10,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -37,9 +38,10 @@ type ValidateModelResult struct {
 }
 
 type PutModelInput struct {
-	Model           Model  `json:"model"`
-	ExpectedVersion int    `json:"expectedVersion"`
-	IdempotencyKey  string `json:"idempotencyKey"`
+	Model           Model                `json:"model"`
+	ExpectedVersion int                  `json:"expectedVersion"`
+	IdempotencyKey  string               `json:"idempotencyKey"`
+	ManualPrice     *billing.ManualPrice `json:"manualPrice,omitempty"`
 }
 
 type PutModelResult struct {
@@ -133,11 +135,12 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 	tx := snapshot.tx
 	defer tx.Rollback()
 	inputHash, err := hashJSON(struct {
-		CallerService   string              `json:"callerService"`
-		DataEpoch       platform.Identifier `json:"dataEpoch"`
-		Model           Model               `json:"model"`
-		ExpectedVersion int                 `json:"expectedVersion"`
-	}{op.CallerService, op.DataEpoch, input.Model, input.ExpectedVersion})
+		CallerService   string               `json:"callerService"`
+		DataEpoch       platform.Identifier  `json:"dataEpoch"`
+		Model           Model                `json:"model"`
+		ExpectedVersion int                  `json:"expectedVersion"`
+		ManualPrice     *billing.ManualPrice `json:"manualPrice,omitempty"`
+	}{op.CallerService, op.DataEpoch, input.Model, input.ExpectedVersion, input.ManualPrice})
 	if err != nil {
 		return PutModelResult{}, platform.NewError(platform.CodeInternal, false, "模型输入摘要计算失败")
 	}
@@ -226,6 +229,11 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 		OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload,
 	}); err != nil {
 		return PutModelResult{}, availabilityReadError(err)
+	}
+	if input.ManualPrice != nil {
+		if err := billing.SaveManualPrice(ctx, op, tx, model.ModelId, model.Version, *input.ManualPrice); err != nil {
+			return PutModelResult{}, err
+		}
 	}
 	result := PutModelResult{Model: model}
 	resultJSON, err := json.Marshal(result)

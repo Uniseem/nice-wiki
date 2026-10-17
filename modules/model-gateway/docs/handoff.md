@@ -1,3 +1,16 @@
+# 第二轮真实人工价目与免费报价已交付
+
+更新：2026-10-17。分支codex/model-20261017-r2，基线8a49af65f048a6b160f963570f02d6b88db100de，独占本域。源码提交bea6446d28ed38841aa5b2cb4782209324c2135a，用户本轮授权三个代理并行后由根普通推送。10项首次完成函数及改过的NewAdminHandlers verified（本轮11项完整函数记录）；quote.go、004迁移和两份生成物verified。PutModel/model.go、tokens/budget.go和admin/read.go继续partial，完整应用blocked，accepted为零。
+
+- 新增获根批准004_price_book.sql，无价目种子、默认美元值或费用表。PutModelInput.manualPrice是真实人工价目生产入口；省略保持已有价且摘要JSON字节兼容原协议，对象整份替换，三个USD费率都显式才已知，缺项/空对象明确unknown且不回退，显式0合法。服务器有效时刻、不可变价目与模型CAS/原回执同事务，历史不覆盖；没有伪造remote/bundled生产者。
+- QuoteCost严格同代只读，manual>remote>bundled，同source按秒/纳秒及模型版本取最新；输入费/输出费分别大整数向上计算再加显式fixed，超安全整数失败。缺价maximumCost省略并warning；无配置用持久模型版本/updated_at给确定性unknown全值，不登记为历史价目。报价不写缓存、额度、held或ledger，不要求启用/凭据/在线，不调用供应方。
+- GetPriceBook只允许portal当前model.manage（由公共Authorize即时校验，非只限超管），按effectiveAt读真实历史，缺价404。QuoteCost只允许根AI任务owner纯服务，核Actor.Kind/SubjectID与CallerService。新POST /v1/token-estimates只localization纯服务；按合同使用不查ModelId存在的通用UTF8 fallback，累计texts/content/text parts，ceil(bytes/2)+32*消息数后乘6/5向上，明确算法版本；图像缺算法503，不伪造上限，不存正文。
+- GitLab流水线21首次AI分片失败：MakePriceSnapshot把RFC3339字符串赋给gen.Timestamp（time.Time）；最小修为显式gen.Timestamp(effectiveAt.UTC())。流水线22未包含修复并已取消，不记通过；流水线23完整成功。未手改生成物，根已精确回传。
+- 2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。
+- 根/代理静态交叉审查已核权限、完整/缺失价格、整数取整、人工优先、只读无费用副作用和既有embedding护栏。本域另只读复审media列表游标、空过滤页、水位和RPC前后快照，未编辑他域。所有Go生成/格式/编译/check均GitLab，未本机或SSH执行；未新增测试/fixture/mock/样例/临时业务程序，未真实接口/模型、worker或部署。暂存/提交说明/作者/提交者及GPT-6署名已静态隐私扫描，保持既有GitHub代用身份，本域不push。
+
+下一项：根顺序合入本域源码与记录，复核实际集成树后按本轮授权普通推送；本域交付后冻结，不提前推进目录刷新、费用执行或归一化设计。
+
 # 单轮供应方与非嵌入模型配置写入已交付
 
 更新：2026-10-17。分支codex/model-20261017-r1，基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，独占modules/model-gateway/。源码提交0d0b76649bc8ccad043e4e3f4fcd545e28201258；用户当次授权三个子代理并行一轮，根统一检查及普通推送。本轮3项完整函数及provider.go和两份生成物verified；PutModel/model.go因embedding设计护栏整体in_progress/partial，BuildApplication保持blocked，accepted为零。

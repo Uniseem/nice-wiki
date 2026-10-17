@@ -79,3 +79,11 @@ PutModel在同一严格当前代次事务先核7天原结果，再核所有非re
 模型回执摘要绑定callerService/dataEpoch/model/expectedVersion，完整原结果早于当前配置/屏障返回。旧摘要不能默认为新摘要；7天内hash不匹配CONFLICT，不重签旧结果。过期仅成功新事务替换；配置、现有model.changed平台outbox与回执原子提交。现有嵌入space算法与归一化迁移缺口本轮未扩写。HTTP核路径和非空幂等头与正文一致，由公共入口即时superadmin授权；完整服务缺其他handler仍拒绝启动。
 
 M07-R06要求归一化参与空间身份，但现公共schema与旧算法只含五字段，缺确认规则与迁移。新PutModel对embedding创建/编辑/启停明确返回DEPENDENCY_UNAVAILABLE（合同待确认，非运行服务故障），在写库/回执/outbox前拒绝；有效原回执仍先行，非embedding配置照常。完整PutModel/model.go保持partial，不发布未收口的空间身份。
+
+## 第二轮价目与免费预算
+
+004只追加不可变price_book_entries，无价目种子。真实人工生产沿PutModelInput.manualPrice：省略保留，传对象整份替换，所有费率显式USD才已知；缺项（含固定费）unknown且不回退其他source，显式0合法。服务器取有效秒/纳秒，与模型CAS/回执同事务；省略新字段时摘要JSON旧字节不变。目录刷新未实现，不造remote/bundled数据。
+
+读取manual优先，其次remote/bundled，同source取不晚于目标时刻的最新秒/纳秒和版本。GetPriceBook无历史404；QuoteCost无配置用模型持久版本/updated_at构造确定性unknown，不当历史记录。全程只读报价，不占额度或写账。已知价格用大整数分别ceil(inputTokens*inputRate/1000000)、ceil(maxOutputTokens*outputRate/1000000)，再加显式fixed，超安全整数失败；缺价省略maximumCost并warning，不伪造零。
+
+/v1/token-estimates仅localization纯服务。无内置tokenizer时，累计texts/消息content/text parts的UTF8字节，ceil(bytes/2)+32*消息数后乘6/5向上，返回固定算法版本；message.content遵守64KiB字节预算，图片算法未确认返回503。不联网或保留输入，新增入口由真实本地化估算依赖调用。

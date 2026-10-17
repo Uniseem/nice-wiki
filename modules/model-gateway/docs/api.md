@@ -18,7 +18,7 @@
 | GET `/v1/inferences/{invocationId}/events` | `resumeInference` | `model-gateway.ResumeStream` | `service` | `—` → 200 `string` | 重连读取原流 | `HTTP 403`、`HTTP 404`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/admin/invocations/{invocationId}/reconcile` | `reconcileCharge` | `model-gateway.ReconcileCharge` | `model.manage` | `ReconcileChargeInput` → 200 `ReconcileChargeResult` | 证据驱动完成未知费用对账 | `HTTP 422`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/admin/ledger` | `getLedger` | `model-gateway.GetLedger` | `model.manage` | `—` → 200 `GetLedgerResult` | 管理端查询费用账本 | `HTTP 403`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| GET `/v1/admin/prices/{modelId}` | `getPriceBook` | `model-gateway.GetPriceBook` | `model.manage` | `—` → 200 `GetPriceBookResult` | 读取历史固定价目 | `HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| GET `/v1/admin/prices/{modelId}` | `getPriceBook` | `model-gateway.GetPriceBook` | `model.manage` | `—` → 200 `GetPriceBookResult` | 读取历史固定价目 | `HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 400`、`HTTP 404`、`HTTP 422` |
 | GET `/v1/usage` | `queryUsage` | `model-gateway.QueryUsage` | `service` | `—` → 200 `QueryUsageResult` | 跨服务读取权威费用状态 | `HTTP 403`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/models` | `readModels` | `model-gateway.ReadModels` | `service` | `—` → 200 `ReadModelsResult` | 读取模型能力声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
 | GET `/v1/profiles` | `readProfiles` | `model-gateway.ReadProfiles` | `service` | `—` → 200 `ReadProfilesResult` | 读取档位声明 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
@@ -29,7 +29,7 @@
 | GET `/v1/task-assignments` | `readTaskAssignments` | `model-gateway.ReadTaskAssignments` | `service` | `—` → 200 `ReadTaskAssignmentsResult` | 读取任务模型映射 | `HTTP 403`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/catalog:refresh` | `refreshModelCatalog` | `model-gateway.RefreshModelCatalog` | `superadmin` | `RefreshModelCatalogInput` → 200 `RefreshModelCatalogResult` | 刷新公开模型目录 | `HTTP 503`、`HTTP 422`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/providers/{providerId}:probe` | `createConnectionProbe` | `model-gateway.CreateConnectionProbe` | `superadmin` | `CreateConnectionProbeInput` → 202 `CreateConnectionProbeResult` | 显式测试连接 | `HTTP 403`、`HTTP 503`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
-| POST `/v1/cost-quotes` | `quoteCost` | `model-gateway.QuoteCost` | `service` | `QuoteCostInput` → 200 `QuoteCostResult` | 计算可保守预留的最大费用 | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| POST `/v1/cost-quotes` | `quoteCost` | `model-gateway.QuoteCost` | `service` | `QuoteCostInput` → 200 `QuoteCostResult` | 计算可保守预留的最大费用 | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 404`、`HTTP 422` |
 | GET `/v1/budget-policy` | `readFeeBudgetPolicy` | `model-gateway.ReadFeeBudgetPolicy` | `guard.manage` | `—` → 200 `ReadFeeBudgetPolicyResult` | 读取费用限额配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 429`、`HTTP 503` |
 | PUT `/v1/budget-policy` | `putFeeBudgetPolicy` | `model-gateway.PutFeeBudgetPolicy` | `guard.manage` | `PutFeeBudgetPolicyInput` → 200 `PutFeeBudgetPolicyResult` | 维护old费用开关与会话小时、网络5倍配置 | `HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 429`、`HTTP 503` |
 | GET `/healthz` | `health` | `model-gateway.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
@@ -38,6 +38,7 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `model-gateway.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/admin/catalog` | `readAdminCatalog` | `model-gateway.ReadAdminCatalog` | `model.manage` | `—` → 200 `ReadAdminCatalogResult` | 读取渠道、模型、档位与任务分配 | `FORBIDDEN`、`HTTP 400`、`HTTP 401`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 500`、`HTTP 503`、`HTTP 504` |
 | POST `/v1/task-availability:read` | `readTaskAvailability` | `model-gateway.ReadTaskAvailability` | `service` | `ReadTaskAvailabilityInput` → 200 `ReadTaskAvailabilityResult` | 免费读取QA任务配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 500`、`HTTP 504` |
+| POST `/v1/token-estimates` | `estimateTokens` | `model-gateway.EstimateTokens` | `service` | `EstimateTokensInput` → 200 `EstimateTokensResult` | 免费保守估算文本token | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

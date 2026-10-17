@@ -74,7 +74,7 @@ export interface paths {
         get?: never;
         /**
          * 保存不可变模型身份版本
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前代次事务先返回7天caller/epoch/输入摘要匹配的完整原结果，再核任意非released屏障及CAS。已有modelId不可改providerId/providerModelVersion/dimension/preprocessorVersion，身份变化须新ID；enabled停用只影响后续路由，保留在途调用和费用记录。 M07-R06归一化身份与公共schema尚未收口，新的embedding创建/编辑/启停统一503 DEPENDENCY_UNAVAILABLE且不写库或outbox；已有有效完整原回执先行。非embedding配置照常，非运行服务故障。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同一严格当前代次事务先返回7天caller/epoch/输入摘要匹配的完整原结果，再核任意非released屏障及CAS。已有modelId不可改providerId/providerModelVersion/dimension/preprocessorVersion，身份变化须新ID；enabled停用只影响后续路由，保留在途调用和费用记录。 M07-R06归一化身份与公共schema尚未收口，新的embedding创建/编辑/启停统一503 DEPENDENCY_UNAVAILABLE且不写库或outbox；已有有效完整原回执先行。非embedding配置照常，非运行服务故障。 可选manualPrice整份替换人工价目，与模型CAS同事务；省略保留旧价，空对象明确unknown，时刻只取服务器。
          */
         put: operations["putModel"];
         post?: never;
@@ -233,7 +233,7 @@ export interface paths {
         };
         /**
          * 读取历史固定价目
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同代只读真实价目，manual优先且缺项不回退；报价不写额度或账本。
          */
         get: operations["getPriceBook"];
         put?: never;
@@ -455,7 +455,7 @@ export interface paths {
         put?: never;
         /**
          * 计算可保守预留的最大费用
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同代只读真实价目，manual优先且缺项不回退；报价不写额度或账本。
          */
         post: operations["quoteCost"];
         delete?: never;
@@ -596,6 +596,26 @@ export interface paths {
          * @description 只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。
          */
         post: operations["readTaskAvailability"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/token-estimates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 免费保守估算文本token
+         * @description 仅localization纯服务；明确UTF8 fallback版本，图片无算法则503，不联网、不记账或记录正文。
+         */
+        post: operations["estimateTokens"];
         delete?: never;
         options?: never;
         head?: never;
@@ -759,20 +779,6 @@ export interface components {
             /** @description 新模型 */
             model: components["schemas"]["Model"];
         };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        PutModelInput: {
-            /** @description 模型配置 */
-            model: components["schemas"]["Model"];
-            /** @description 预期版本 */
-            expectedVersion: number;
-            /** @description 幂等键 */
-            idempotencyKey: string;
-        };
-        /**
-         * @description 可信服务上下文决定，公开请求不能指定
-         * @enum {string}
-         */
-        CostClass: "qa" | "background" | "admin-probe";
         /** @description 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限 */
         Money: {
             /**
@@ -783,6 +789,28 @@ export interface components {
             /** @description 百万分之一美元，整数，禁止浮点累计 */
             micros: number;
         };
+        /** @description 整份人工价目；三费率均显式USD才已知，缺项为unknown，显式0合法；空对象清为明确unknown，省略manualPrice则保留原价目。 */
+        ManualPrice: {
+            inputPerMillionCost?: components["schemas"]["Money"];
+            outputPerMillionCost?: components["schemas"]["Money"];
+            fixedCost?: components["schemas"]["Money"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        PutModelInput: {
+            /** @description 模型配置 */
+            model: components["schemas"]["Model"];
+            /** @description 预期版本 */
+            expectedVersion: number;
+            /** @description 幂等键 */
+            idempotencyKey: string;
+            /** @description 可选完整人工价目替换；生效时间只由服务器生成，与模型CAS事务持久；省略保持原价目。 */
+            manualPrice?: components["schemas"]["ManualPrice"];
+        };
+        /**
+         * @description 可信服务上下文决定，公开请求不能指定
+         * @enum {string}
+         */
+        CostClass: "qa" | "background" | "admin-probe";
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Profile: {
             /** @description 档位ID */
@@ -1469,6 +1497,22 @@ export interface components {
         /** @description 仅QA服务可读的固定任务集合 */
         ReadTaskAvailabilityInput: {
             taskIds: ("qa.preflight" | "qa.inspect" | "qa.answer")[];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        EstimateTokensResult: {
+            /** @description 保守token */
+            inputTokens: number;
+            /** @description 估算算法 */
+            estimatorVersion: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        EstimateTokensInput: {
+            /** @description 模型 */
+            modelId: components["schemas"]["Identifier"];
+            /** @description 输入文本 */
+            texts: string[];
+            /** @description 消息 */
+            messages: components["schemas"]["GatewayMessage"][];
         };
     };
     responses: never;
@@ -2678,6 +2722,15 @@ export interface operations {
                     "application/json": components["schemas"]["GetPriceBookResult"];
                 };
             };
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
             401: {
                 headers: {
@@ -2696,8 +2749,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2714,7 +2785,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -3745,7 +3816,7 @@ export interface operations {
                     "application/json": components["schemas"]["QuoteCostResult"];
                 };
             };
-            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3772,8 +3843,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3790,7 +3879,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
+            /** @description 输入、价目或代次读取失败，具体见公共Problem。 */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -4412,6 +4501,105 @@ export interface operations {
             };
             /** @description 公共入口或IO取消/截止失败关闭 */
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    estimateTokens: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateTokensInput"];
+            };
+        };
+        responses: {
+            /** @description 计算可保守预留的最大费用成功；202仅accepted，不保证模型完成或收费已结算。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstimateTokensResult"];
+                };
+            };
+            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

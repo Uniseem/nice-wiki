@@ -15,6 +15,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -520,10 +521,32 @@ func readFeePolicyReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, 
 	return result, true, nil
 }
 
+type GetPriceBookInput struct {
+	ModelId     string `json:"modelId"`
+	EffectiveAt string `json:"effectiveAt"`
+}
+type GetPriceBookResult = gen.GetPriceBookResult
+
+// GetPriceBook 只读取不晚于指定时刻的真实不可变价目，不触发报价或模型。
+func GetPriceBook(ctx context.Context, op OperationContext, input GetPriceBookInput) (GetPriceBookResult, error) {
+	if op.CallerService != "portal" || op.Actor.Kind != "admin" {
+		return GetPriceBookResult{}, platform.NewError(platform.CodeForbidden, false, "价目管理读取要求当前后台账户")
+	}
+	effectiveAt, err := platform.ParseTimestamp(input.EffectiveAt)
+	if err != nil {
+		return GetPriceBookResult{}, platform.NewError(platform.CodeValidation, false, "价目读取时刻不可用")
+	}
+	snapshot, err := billing.ReadPriceSnapshot(ctx, op, input.ModelId, effectiveAt, false)
+	if err != nil {
+		return GetPriceBookResult{}, err
+	}
+	return GetPriceBookResult{PriceSnapshot: snapshot}, nil
+}
+
 // NewAdminHandlers 绑定真实HTTP输入与平台已验证上下文；费用权限只在入口核一次。
 func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler {
 	handlers := make(map[string]http.Handler)
-	for _, operationID := range []string{"readModels", "readProfiles", "readAdminCatalog", "readFeeBudgetPolicy", "putFeeBudgetPolicy"} {
+	for _, operationID := range []string{"readModels", "readProfiles", "readAdminCatalog", "readFeeBudgetPolicy", "putFeeBudgetPolicy", "getPriceBook"} {
 		handlers[operationID] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store")
 			op, _ := platform.OperationContextFrom(r.Context())
@@ -540,6 +563,8 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler {
 			var result any
 			var err error
 			switch operationID {
+			case "getPriceBook":
+				result, err = GetPriceBook(r.Context(), op, GetPriceBookInput{ModelId: r.PathValue("modelId"), EffectiveAt: r.URL.Query().Get("effectiveAt")})
 			case "readModels":
 				var input ReadModelsInput
 				if query := r.URL.Query(); query.Has("capability") {

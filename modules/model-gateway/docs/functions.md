@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 108 个函数：约束 37 个，参考 71 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 115 个函数：约束 38 个，参考 77 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1008,11 +1008,11 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 **步骤**
 
 1. 公共入口即时校验superadmin，内部信任严格生成校验过的输入与可信op；model.version必须expectedVersion+1且不超过安全整数上限。
-2. beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。
+2. beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。 可选manualPrice以omitempty字段追加规范摘要尾部；省略时旧JSON字节不变，兼容原回执。
 3. 新写拒绝任意state非released屏障，不按epoch或deadline过滤。capabilities含embedding的创建/编辑/启停统一DEPENDENCY_UNAVAILABLE：M07-R06归一化空间身份与公共schema尚未收口，本轮不猜默认，不计算或发布未确认space。非embedding由ValidateModel校验；provider必须真实存在且同代，不要求启用/凭据/价格/在线，不探测。
 4. 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。
 5. 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。
-6. 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。
+6. 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。 可选manualPrice对象是整份人工价目替换，三个费率可缺（unknown不回退），服务器当前有效时刻，SaveManualPrice与模型CAS/事件/原回执同事务；省略不写价目。
 
 **错误**
 
@@ -1034,7 +1034,7 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：同一严格当前代次事务先回执后全屏障/真实provider与model身份/CAS；条件UPSERT及RowsAffected核对，配置/事件/回执原子提交，无跨域IO。
 - 幂等：siteId/actorId/函数/key唯一，7天原结果；hash绑定callerService/dataEpoch/model/expectedVersion，有效同hash先返回，异hash CONFLICT。旧格式hash不默认为新摘要；过期仅随成功新事务替换。
-- 依赖：`model-gateway.ValidateModel`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readModelReceipt`、`model-gateway.availabilityReadError`
+- 依赖：`model-gateway.ValidateModel`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readModelReceipt`、`model-gateway.availabilityReadError`、`model-gateway.SaveManualPrice`
 
 ## model-gateway.ValidateModel
 
@@ -1647,11 +1647,11 @@ func QuoteCost(ctx context.Context, op OperationContext, input QuoteCostInput) (
 
 **步骤**
 
-1. 读取manual优先目录价目
-2. 有完整费率用整数向上取整
-3. 缺费率固定price_unknown快照且保留usage，不伪造0成本或阻止调用
-4. warning说明未知价调用无法完整受正金额额度约束。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受根目录登记的AI任务owner纯服务，同一次严格当前epoch快照核真实模型及已持久价目，不要求供应方在线/启用/凭据，不联网。
+2. 同model/epoch读取不晚于服务器当前时刻的manual>remote>bundled首条不可变价目；同source取最新秒/纳秒与模型版本。manual不完整也不回退；缺生产来源不合成目录价。
+3. 三费率都显式USD且非负安全整数才pricingKnown=true；输入项与输出项各用大整数计算ceil(tokens*每百万micros/1000000)，再加显式fixed，结果超安全整数返回VALIDATION，不溢出或浮点。
+4. 缺项/无价目返回pricingKnown=false及明确warning，maximumCost省略，不伪造零；已存不可变价目直接返回全值，无配置使用模型持久updated_at/版本构造确定性unknown全值，不把它当作已登记历史价目。
+5. 全链只读，不写价目/报价记录、不占额度、不碰held/ledger或模型；上下文由入口建立并传给SQL。
 
 **错误**
 
@@ -1663,12 +1663,264 @@ func QuoteCost(ctx context.Context, op OperationContext, input QuoteCostInput) (
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
-- 副作用：写price snapshot的内容寻址记录
+- 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 并发：同一次严格当前epoch只读SQL快照，无外部IO；免费报价不受业务写屏障拦截，不做额度准入。
+- 幂等：读取固定不可变价目全值；未配置unknown身份由持久模型版本/updated_at/epoch确定，不生成随机ID或新写。
+- 依赖：`model-gateway.ReadPriceSnapshot`、`model-gateway.RequirePriceCaller`
+
+## model-gateway.ReadPriceSnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：严格同代读取真实模型和manual优先的不可变历史价目；无配置仅报价允许确定性unknown
+
+```go
+func ReadPriceSnapshot(ctx context.Context, op OperationContext, modelID string, effectiveAt time.Time, allowUnknown bool) (PriceSnapshot, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿取消 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `op` | `OperationContext` | 可信操作上下文 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `modelID` | `string` | 真实模型ID | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `effectiveAt` | `TimeInstant` | 截止生效时刻 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `allowUnknown` | `bool` | 无价目是否允许确定性unknown | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `snapshot` | `PriceSnapshot` | 不可变价目全值 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 严格同代读取真实模型和manual优先的不可变历史价目；无配置仅报价允许确定性unknown
+
+**错误**
+
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：`model-gateway.beginPriceSnapshot`、`model-gateway.MakePriceSnapshot`
+
+## model-gateway.SaveManualPrice
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：模型CAS事务内按服务器当前时刻追加完整人工价目替换；不写其他source
+
+```go
+func SaveManualPrice(ctx context.Context, op OperationContext, tx *sql.Tx, modelID string, modelVersion int, price ManualPrice) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿取消 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `op` | `OperationContext` | 可信操作上下文 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `tx` | `SQLTransaction` | 模型CAS事务 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `modelID` | `string` | 真实模型ID | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `modelVersion` | `int` | CAS后模型版本 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `price` | `ManualPrice` | 完整人工替换 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 模型CAS事务内按服务器当前时刻追加完整人工价目替换；不写其他source
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：仅在模型CAS事务中追加price_book_entries，不更新历史或费用状态
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：`model-gateway.MakePriceSnapshot`
+
+## model-gateway.MakePriceSnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：构造规范不可变价目全值及域分离内容摘要；缺任一费率为unknown
+
+```go
+func MakePriceSnapshot(ctx context.Context, op OperationContext, modelID string, modelVersion int, source string, effectiveAt time.Time, price ManualPrice) (PriceSnapshot, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿取消 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `op` | `OperationContext` | 可信操作上下文 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `modelID` | `string` | 模型ID | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `modelVersion` | `int` | 价目生成模型版本 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `source` | `string` | 受信来源 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `effectiveAt` | `TimeInstant` | 服务器或已存时刻 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `price` | `ManualPrice` | 完整费率投影 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `snapshot` | `PriceSnapshot` | 确定性不可变全值 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 构造规范不可变价目全值及域分离内容摘要；缺任一费率为unknown
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
 - 依赖：无
+
+## model-gateway.beginPriceSnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：同事务核非空runtime_meta当前代次
+
+```go
+func beginPriceSnapshot(ctx context.Context, op OperationContext) (*sql.Tx, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿取消 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `op` | `OperationContext` | 可信操作上下文 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `tx` | `SQLTransaction` | 当前代次快照 | 失败时结果不可用，不含秘密或正文 |
+| `err` | `error` | 公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 同事务核非空runtime_meta当前代次
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：`model-gateway.CurrentStore`
+
+## model-gateway.RequirePriceCaller
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：仅根AI任务目录owner纯服务可读取免费报价
+
+```go
+func RequirePriceCaller(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 贯穿取消 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+| `op` | `OperationContext` | 可信操作上下文 | 可信入口/调用链已建立结构与身份；持久材料完整性按本函数规则 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `err` | `error` | 无权限公共错误 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 仅根AI任务目录owner纯服务可读取免费报价
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：无
+
+## model-gateway.NewPriceHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：绑定既有quoteCost与可信OperationContext/no-store
+
+```go
+func NewPriceHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `PriceHandlers` | 真实报价HTTP映射 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 绑定既有quoteCost与可信OperationContext/no-store
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：`model-gateway.QuoteCost`
 
 ## model-gateway.CreateInvocation
 
@@ -2417,7 +2669,7 @@ func GetInvocation(ctx context.Context, op OperationContext, input GetInvocation
 
 ## model-gateway.EstimateTokens
 
-- 级别：参考
+- 级别：约束
 - 文件：`modules/model-gateway/internal/tokens/budget.go`
 - 作用：保守估算请求预算
 
@@ -2442,11 +2694,9 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 
 **步骤**
 
-1. 使用声明tokenizer版本
-2. 未内置tokenizer则ceil(UTF8 bytes/2)+消息开销32
-3. 乘1.2向上取整
-4. 不调用供应方
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅localization纯服务经生成严格HTTP校验，使用现有无内置tokenizer的明确fallback版本utf8-half-message32-six-fifths-v1；不查秘密或调用供应方。
+2. 累计texts、每条message.content及text parts的UTF8字节；message.content额外遵守64KiB字节上限，图片无确认算法返回DEPENDENCY_UNAVAILABLE且不伪造文本预算。
+3. base=ceil(累计UTF8bytes/2)+32*消息条数，inputTokens=ceil(base*6/5)，完全整数计算；返回估算器版本，不落正文或估算结果。
 
 **错误**
 
@@ -2457,11 +2707,15 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 授权：permission：service；rule：仅localization纯服务且SubjectID=CallerService，可信入口验证一次；纯计算不重做身份或取消轮询。
+- 并发：纯函数；ctx只保持统一签名，无IO、锁或取消检查。
+- 幂等：同文本/消息给同估算；不存正文或结果。
 - 依赖：无
 
 ## model-gateway.ValidateEmbeddingSpace
@@ -2512,6 +2766,40 @@ func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input Vali
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+
+## model-gateway.NewTokenHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/tokens/budget.go`
+- 作用：装配localization免费文本预算真实HTTP入口
+
+```go
+func NewTokenHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `TokenHandlers` | 真实文本预算HTTP映射 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 公共入口固定localization纯服务，绑定严格JSON后调用EstimateTokens，no-store及公共Problem；不存正文或估算结果。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
+- 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
+- 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
+- 依赖：`model-gateway.EstimateTokens`
 
 ## model-gateway.AcquireProviderSlot
 
@@ -2833,11 +3121,9 @@ func GetPriceBook(ctx context.Context, op OperationContext, input GetPriceBookIn
 
 **步骤**
 
-1. 查不晚于effectiveAt最新不可变价目
-2. 缺少不猜测价格
-3. 返回快照ID
-4. 读取不触发报价
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 公共入口对portal当前model.manage一次授权；本函数只接受后台admin委托。
+2. 严格当前epoch只读快照核真实模型与价目历史；按不晚于effectiveAt的manual>remote>bundled优先，同source最新生效秒/纳秒/模型版本选择，缺行NOT_FOUND，不猜价格。
+3. 读取不可变完整快照并核规范编码/hash、模型/epoch/生效时刻和完整率；unknown仍保持金额缺失和warning；不修改或新增报价记录。
 
 **错误**
 
@@ -2848,12 +3134,16 @@ func GetPriceBook(ctx context.Context, op OperationContext, input GetPriceBookIn
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
 
 - 副作用：无
 - 授权：权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 并发：同一严格当前epoch快照只读历史，无供应方IO或业务写入。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.ReadPriceSnapshot`
 
 ## model-gateway.ReadModels
 
@@ -3624,6 +3914,7 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler
 2. readModels/readProfiles管理员即时model.manage，其余依公共边界权限核一次。
 3. Put核幂等头一致，用进程内context注入平台授权回调，供首次/日额度变化超管检查。
 4. 仅交统一服务边界，直接取得已存在的可信op；不添加不可达的缺失上下文分支。
+5. getPriceBook绑定modelId路径与effectiveAt查询，公共入口即时model.manage授权，no-store。
 
 **错误**
 
@@ -3642,7 +3933,7 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler
 - 授权：permission：service；rule：仅本域已授权调用链
 - 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
 - 幂等：读取或映射无独立副作用。
-- 依赖：`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadAdminCatalog`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`
+- 依赖：`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadAdminCatalog`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.GetPriceBook`
 
 ## model-gateway.RedactLog
 
@@ -4951,7 +5242,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。 本轮合并NewPriceHandlers的quoteCost（根AI任务owner纯服务），getPriceBook仅portal，estimateTokens仅localization。 通过NewTokenHandlers绑定estimateTokens，不复制造假调用或影子入口。
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -4966,7 +5257,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve
