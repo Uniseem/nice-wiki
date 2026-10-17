@@ -1,3 +1,12 @@
+# 2026-10-17补充窄修：pending双投影（GitLab pipeline16通过，最终交付冻结）
+
+- 原p13源码`3d64fbcb71bd955d431c6496ee1d27ea5014ec43`及准确记录`1a5743fd0a1d5da4868304e8b9cc6fefa672da57`保留；根随后复审发现合法远端pending无expiry、本地原pin有expiry会误报冲突。窄修追加源码`2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa`，不改写已提交历史；本记录按准确新SHA追加。
+- ReadAssetReferences按完整来源身份（含sourceVersion）先合并再分类。仅两项均未confirmed的pending允许expiry投影差异，去expiry后其他全部规范字段尤其完整Asset必须一致；任一未知expiry保留nil，两者已知取真实较晚时间仅供展示，不写回、延长或按到期释放原pin，过期仍持续保护。current/history及其他矛盾仍严格失败关闭。
+- 本窄修最终依据自部署GitLab CI pipeline16候选`8d142bc2dea0877f3b2439f8697e78b64d5865da`全部通过：生成/格式与重复gen一致，三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整makecheck（878文件/1435函数/379HTTP/2328类型）。根已精确回传reference_reader.go与functions.md；不以p13给窄修后树背书，不推定其他未说明候选失败。
+- 仅ReadAssetReferences及reference_reader.go按新准确SHA恢复verified；其他p13通过范围保留。worker/outbox整体partial、真实JobsClient适配/bytes/控制恢复及完整服务blocked/planned不变，业务accepted为零。无新增路径、助手、测试/fixture/mock/样例/临时业务程序，无本机或旧VPS编译，无实际接口、SQL行为验收、worker/服务、业务删除、模型调用、应用镜像或部署。
+- 当前分支codex/media-20261017-r1，基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，最终四提交交付仅modules/media/；源码和准确记录分开提交，保持既有GitHub代用身份及GPT-6合著署名。本域不push，根统一合入、实际树复检和本轮普通推送，主线实际SHA由根汇总。
+- 下一项：本轮根完成集成与普通push后停止；下一轮新授权再按原交接补完整引用事件来源材料并实施ApplyReferenceEvent，不自动展开后包。
+
 # 2026-10-17一轮：人工删除执行与worker边界（GitLab既有检查通过，已交付冻结）
 
 - 基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，分支codex/media-20261017-r1，独占modules/media/；源码`3d64fbcb71bd955d431c6496ee1d27ea5014ec43`，准确台账另提交。用户授权本轮三个子代理并行编写并由根统一普通推送；本域不push，交付后冻结，主线实际集成SHA由根汇总。

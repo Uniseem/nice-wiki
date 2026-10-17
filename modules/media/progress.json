@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "cecd87fde49a4e17934a28e70c77de71453020587aec02973f0ce3248ddfa033",
+  "contractSha256": "4d4286a18034cf63dca96c4ce428ace06d0744bf1a17a3af99a891f045abed81",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17一轮：media人工删除执行与worker边界已交付冻结",
+  "assignedSession": "2026-10-17一轮：media人工删除与pending窄修已交付冻结，最终依据GitLab pipeline16",
   "branch": "codex/media-20261017-r1",
   "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
-  "deliveryCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+  "deliveryCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
   "deployment": "not_started",
   "files": [
     {
@@ -143,10 +143,10 @@
     {
       "path": "modules/media/internal/reference_reader.go",
       "state": "verified",
-      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "implementationCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+        "evidence": "2026-10-17自部署GitLab CI最终pending窄修pipeline16候选8d142bc2dea0877f3b2439f8697e78b64d5865da全部通过：生成/格式与重复gen一致，三个同时分片覆盖14Go模块-mod=readonly build/vet/gofmt及完整makecheck（878文件/1435函数/379HTTP/2328类型）；精确reference_reader.go与functions.md已由根回传。本次新源码2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa，保留此前p13交付历史，不沿用p13证明窄修后树。仅静态及既有检查，无新增测试/fixture/mock/样例/临时业务程序，无实际接口/SQL行为验收/worker或业务删除/模型/部署，无本机或旧VPS编译。"
       },
       "blocker": null
     },
@@ -765,10 +765,10 @@
       "id": "media.ReadAssetReferences",
       "path": "modules/media/internal/reference_reader.go",
       "state": "verified",
-      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "implementationCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pending窄修pipeline16候选8d142bc2dea0877f3b2439f8697e78b64d5865da全部通过：生成/格式与重复gen一致，三个同时分片覆盖14Go模块-mod=readonly build/vet/gofmt及完整makecheck（878文件/1435函数/379HTTP/2328类型）；精确reference_reader.go与functions.md已由根回传。本次新源码2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa，保留此前p13交付历史，不沿用p13证明窄修后树。仅静态及既有检查，无新增测试/fixture/mock/样例/临时业务程序，无实际接口/SQL行为验收/worker或业务删除/模型/部署，无本机或旧VPS编译。"
       },
       "blocker": null
     },
