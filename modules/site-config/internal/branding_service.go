@@ -114,7 +114,7 @@ func validateMediaAssets(ctx context.Context, op platform.OperationContext, site
 		return err
 	}
 	if len(missing) > 0 {
-		return platform.NewError(platform.CodeValidation, false, "资源引用缺失或未就绪："+strings.Join(missing, "、"))
+		return platform.NewError(platform.CodeValidation, false, "资源引用缺失或未就绪：%s", strings.Join(missing, "、"))
 	}
 	return nil
 }

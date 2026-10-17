@@ -192,7 +192,7 @@ func saveReferenceIntent(ctx context.Context, op platform.OperationContext, tx *
 		if kind == "branding" {
 			detail = "保存品牌引用获取决定失败"
 		}
-		return platform.NewError(platform.CodeDependencyUnavailable, true, detail)
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "%s", detail)
 	}
 	return nil
 }
@@ -387,14 +387,14 @@ func (s *ActiveStore) checkHomeConfigCommit(ctx context.Context, tx *sql.Tx, rec
 		subject = "品牌"
 	}
 	if !committed && (intent.Decision == "aborted" || intent.Decision == "rejected") {
-		return platform.NewError(platform.CodeConflict, false, subject+"资源来源已终止，不能迟到提交")
+		return platform.NewError(platform.CodeConflict, false, "%s资源来源已终止，不能迟到提交", subject)
 	}
 	_, digest, err := referenceMaterial(intent.Kind, config, record.RevisionID)
 	if err != nil || intent.SourceRevisionID != record.RevisionID || intent.SourceVersion != record.Object.Version || intent.ReferenceDigest != digest || intent.Pin == nil {
-		return platform.NewError(platform.CodeIntegrityError, false, subject+"提交缺少匹配的持久pin")
+		return platform.NewError(platform.CodeIntegrityError, false, "%s提交缺少匹配的持久pin", subject)
 	}
 	if !committed && !intent.Pin.ExpiresAt.After(time.Now()) {
-		return platform.NewError(platform.CodeConflict, false, subject+"引用pin已到期，须用新操作保存")
+		return platform.NewError(platform.CodeConflict, false, "%s引用pin已到期，须用新操作保存", subject)
 	}
 	return nil
 }
@@ -814,7 +814,7 @@ func homeTerminatedError(intent homeReferenceIntent) error {
 	if intent.Kind == "branding" {
 		subject = "品牌"
 	}
-	return platform.NewError(code, false, subject+"操作未提交且已终止，请使用新的操作保存")
+	return platform.NewError(code, false, "%s操作未提交且已终止，请使用新的操作保存", subject)
 }
 
 func (s *ActiveStore) finishHomeFailure(ctx context.Context, op platform.OperationContext, cause error) error {

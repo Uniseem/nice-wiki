@@ -375,7 +375,7 @@ func casPublicationIdentity(ctx context.Context, tx *sql.Tx, op OperationContext
 func onePublicationRow(result sql.Result, mismatch string) error {
 	count, err := result.RowsAffected()
 	if err != nil || count != 1 {
-		return platform.NewError(platform.CodeVersionMismatch, false, mismatch)
+		return platform.NewError(platform.CodeVersionMismatch, false, "%s", mismatch)
 	}
 	return nil
 }

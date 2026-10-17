@@ -6,17 +6,21 @@ import (
 	"context"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/modules/localization/internal/gen"
 )
 
 // OperationContext 是平台可信执行上下文的本域别名。
 type OperationContext = platform.OperationContext
 
-// NormalizeLanguageTagInput 与生成类型一致，避免另写一份字段。
-type NormalizeLanguageTagInput = gen.NormalizeLanguageTagInput
+// NormalizeLanguageTagInput 对应 types.json。该函数没有 HTTP 操作，生成客户端不包含这个类型。
+type NormalizeLanguageTagInput struct {
+	Tag string `json:"tag"`
+}
 
-// NormalizeLanguageTagResult 与生成类型一致。
-type NormalizeLanguageTagResult = gen.NormalizeLanguageTagResult
+// NormalizeLanguageTagResult 对应 types.json。失败时结果无效。
+type NormalizeLanguageTagResult struct {
+	Tag       string `json:"tag"`
+	Direction string `json:"direction"`
+}
 
 // NormalizeLanguageTag 拒绝空标签和超过 35 的标签。
 // 合同没有写明大小写、脚本子标签和私用用法如何变成规范形式，
