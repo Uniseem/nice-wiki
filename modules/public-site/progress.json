@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "8290cb801bd06127a8811c324f825e9b86d843ddb0f65373a1e56386624090a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "public-site公开链接（pipeline 48 已记 verified；BuildApplication 仍 blocked）",
-  "branch": "codex/public-site-20261017-r5",
-  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
-  "deliveryCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
+  "assignedSession": "public-site.BuildTOC（已实现，未跑 GitLab CI；BuildApplication 仍 blocked）",
+  "branch": "codex/public-site-20261017-r6",
+  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
+  "deliveryCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
   "deployment": "not_started",
   "files": [
     {
@@ -62,11 +62,11 @@
     },
     {
       "path": "modules/public-site/internal/toc.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt 或 make build。TOCItem.level 取 Heading.level，label 取 Heading.text，anchor 取 Heading.blockId。"
       },
       "blocker": null
     },
@@ -780,11 +780,11 @@
     {
       "id": "public-site.BuildTOC",
       "path": "modules/public-site/internal/toc.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt 或 make build。TOCItem.level 取 Heading.level，label 取 Heading.text，anchor 取 Heading.blockId。"
       },
       "blocker": null
     },

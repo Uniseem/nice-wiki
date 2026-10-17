@@ -1,30 +1,21 @@
-# 公开交付启动装配交接（2026-10-17，pipeline 48 已编译）
+# 公开目录交接（2026-10-17，BuildTOC 已实现，未跑 GitLab CI）
 
 ## 范围与事实
 
-- 分支 `codex/public-site-20261017-r5`，基线 `a3e6af980d5288e42bc8d023410faf8923ff21e8`，源码提交 `1a126fd06bdbebe7c02e0306ea3b99e635a19b3a`。只改 `modules/public-site/`。未 push。
-- 入口 `cmd/public-site/main.go` 只装配本域参数，进程生命周期交给 `platform.RunService`。`go.mod` 固定 Go 1.25.0，以及 kin-openapi v0.133.0、oapi-codegen/runtime v1.1.2、`nice-wiki/libs/platform`。
-- `ResolvePublishedLink` 已绑定真实函数，只接受 site-config 纯服务。它读取 site-config、启用语言和 content 公开树；块 ID 非空时核验当前公开正文的 schema、hash 和稳定块 ID。已知撤回返回 `unavailable`。依赖未知返回 503。水位变化返回公共错误表 `STALE_RESULT`/409。成功响应 `no-store`。不调用 `readPublicHome` 或 `readTranslation`。
-- `BuildCanonical` 只使用调用方传入的 `publicBaseURL` 和规范路径。输入没有配置对象 ID，所以不调用 `readConfigObject`。
-- `BuildApplication` 校验 module、监听、数据目录、信任锚和签名引用，并要求 content、site-config、localization、identity、media、jobs、data-protection 为 http(s) 端点。analytics 可缺。换目录结果不是 none，或任一登记操作没有处理函数时，启动失败。schema 迁移、journal、activation 回执字段和后台循环都还没有写清的实现，函数保持 blocked，不返回可运行应用。
-- `Serve`、`Shutdown`、`Health`、`Ready` 已按已写清的生命周期步骤实现。`Ready` 在 journal、恢复控制或业务路由未就绪时返回 503。运行状态的五秒轮询仍由平台 `RunService` 负责。
-- `RewriteInternalLinks` 以及其余页面、恢复、事件和 worker 函数仍为 planned。accepted 为 0。`main`、`ResolvePublishedLink`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 已由 pipeline 48 记 verified。
+- 分支 `codex/public-site-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`，源码提交 `7cb0bb9562bc7e332e120eaaed44268a38df3b5a`。只改 `modules/public-site/`。未 push。
+- `BuildTOC` 是纯函数。`ctx` 与 `op` 不参与判断。H1 不进入目录。H2–H4 按输入顺序逐项保留原文，锚点字段使用原稳定 `blockId`，不使用输入 `anchor`，也不从文本生成 slug。
+- `maxDepth` 只有 4 这一已写明刻度。不是 4 时返回 `VALIDATION`，条件名 `INVALID_TOC_DEPTH`，不按更小深度截断。级别为 1 时跳过。级别为 5、6 或不在 1..6 时同样返回 `INVALID_TOC_DEPTH`。级别都合法之后，任意重复 `blockId`（包括只出现在 H1 上的重复）返回 `INTEGRITY_ERROR`。失败返回零值。
+- `TOCItem` 必填字段都能从标题得到：`level` 取 `Heading.level`，`label` 取 `Heading.text`，`anchor` 取 `Heading.blockId`。函数记 implemented，blocker 为空。verification 为 not_run，证据写明未跑 GitLab CI。未记 verified 或 accepted。
+- `BuildApplication` 仍 blocked，不返回可运行应用。`main`、`ResolvePublishedLink`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 维持 pipeline 48 的 verified。accepted 为 0。
 
 ## 检查
 
-pipeline 47 编译通过，生成补丁已回传。pipeline 48 生成补丁为 0，三个分片成功。下面的登记清单现已完成。
+未跑 GitLab CI。未在本机或 SSH 执行 go build、go vet、gofmt、make build、make gen。已运行 `python3 scripts/render_docs.py`，合同未改，生成文档无差异。新文件 `modules/public-site/internal/toc.go` 尚未写入根 `docs/structure/framework.json`，本会话不改该文件；集成会话登记前，`make check` 的结构核对会报未登记文件。
 
 ## 请集成会话登记
 
-以下新文件只存在于本域，尚未写入 `docs/structure/framework.json`：
-
-- `modules/public-site/go.mod`
-- `modules/public-site/cmd/public-site/main.go`
-- `modules/public-site/internal/app/wire.go`
-- `modules/public-site/internal/transport/server.go`
-- `modules/public-site/internal/links.go`
-- `modules/public-site/internal/seo.go`
+- `modules/public-site/internal/toc.go`
 
 ## 下一步（一项）
 
-pipeline 48 已把公开链接和已写清的生命周期函数记 verified。`BuildApplication` 仍 blocked。下一步补齐 journal、schema 迁移和其余处理函数，不要在缺处理函数时返回可运行应用。
+实现 `public-site.BuildBreadcrumbs`，文件 `modules/public-site/internal/breadcrumbs.go`。先读 implementation.json 的步骤与错误码，以及 types.json 的 `BuildBreadcrumbsInput`、`BuildBreadcrumbsResult` 和 `Breadcrumb`。不要改 `BuildApplication`，不要让它返回可运行应用。未跑 GitLab CI 前不要记 verified 或 accepted。
