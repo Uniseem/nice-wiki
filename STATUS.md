@@ -1,3 +1,20 @@
+# 当前状态（2026-10-17，第四轮已本地合入，未跑 CI）
+
+用户要求每轮多个子代理同时编写，父会话审核后提交，循环到合同代码写完。本轮开了六个互斥模块，审核后顺序合入本地 main。本地 `make docs` 与 `make check` 通过。没有推送，所以 GitLab 生成和三分片编译还没跑，本轮新代码保持 implemented，不记 verified，accepted 仍为 0。
+
+- 当前889契约文件、1516函数、380HTTP操作、2355类型；883函数完成（758 verified、125 implemented），planned 595、in_progress 14、blocked 24，完成率58.2%。相对第三轮台账净增53项完成。14个此前 verified 的函数因本轮改到同一实现，改记 implemented，旧 CI 证据不再覆盖这次提交。
+- identity 源码709eeae、记录b0d2a38，合入e0e56d4：超管重置文件只在唯一活动超管上改口令并撤销会话。硬链接拒绝。5秒监视和完整启动仍未接上。
+- media 源码ff91d6a、记录148b06a，合入ef72ead：引用事件在本域按来源身份幂等写入。content 生产方载荷仍缺 sourceOperationId、referenceDigest，引用项也还不是 AssetReference，订阅没有接通。
+- jobs 源码d7a03b2、记录d0d7850，合入3bf8605：五段 cron、调度存储和到期 tick。步长、名单、范围、名字、宏和非星号星期失败关闭。新事件 jobs.schedule-changed.v1 要等 `make gen`。
+- localization 源码650a1e2、记录7fa6a55，合入c46fb7a：语言按原文保存和列出。NormalizeLanguageTag 仍 blocked，不自选大小写、脚本或私用规则。停用只取消本域任务行。
+- content 源码67f35e4、记录ff13bf3，合入9637b9b：发布快照、历史和 manifest 同一事务。非空引用先用已经提交的草稿保存操作做资源 pin，确认失败则整次发布失败。分享图仍 503。完整启动仍 blocked。
+- site-config 源码37097fc、记录d2f7845，合入2ea92ce：品牌复用首页 pin 决定表，来源对象与首页分开；页脚、横幅和配置历史走既有提交链。恢复只 readAsset，不取新 pin。changedSections 的 branding、footer、banner 要等 `make gen`。完整启动仍 blocked。
+- 未本机或 SSH 编译，未新增测试、fixture、mock、样例或临时程序，未做 SQL/HTTP 验收、模型、worker、服务或部署。原 HTML 保持未跟踪。推送未授权，verified 不能提前标上。
+
+以下是此前轮次的历史记录。第三轮已结束并双推，不能把它的停止说明当成这一轮的范围。
+
+---
+
 # 当前状态（2026-10-17，第三轮已普通双推并结束）
 
 用户再次要求一轮后推送、继续三个子代理同时编写，编译检查全部经GitLab，通过后双推。基线d760e39194156403e2b82430d5018fa9f4425e19，三个独占worktree交付并冻结；根统一公共机制、顺序集成与最终推送。当前已顺序合入main，最终根汇总pipeline36完整通过且生成零漂移，16个代码交付提交隐私审计通过。已普通双推并逐个核对GitHub/GitLab main共同代码交付cc60a9c9b9fa6114ddfff44d4962f85d69cca291，old未变；本结果记录先经GitLab检查再按同次授权普通同步。本轮已结束，不自动下一轮，R1仍未完成。

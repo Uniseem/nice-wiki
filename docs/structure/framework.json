@@ -1159,9 +1159,24 @@
       "purpose": "基于可信完整树规划真实曾发布旧路径"
     },
     {
+      "path": "modules/content/internal/publication_metadata.go",
+      "kind": "handwritten",
+      "purpose": "发布前合并人工路径与SEO，不制造slug"
+    },
+    {
+      "path": "modules/content/internal/publication_reader.go",
+      "kind": "handwritten",
+      "purpose": "读取已发布修订与可见性快照"
+    },
+    {
       "path": "modules/content/internal/publication_repository.go",
       "kind": "handwritten",
-      "purpose": "同代资源来源决定读取；完整发布仓库尚未实施"
+      "purpose": "发布快照、历史、manifest与已提交草稿来源的资源pin"
+    },
+    {
+      "path": "modules/content/internal/publication_service.go",
+      "kind": "handwritten",
+      "purpose": "发布与撤回的授权、回执和写窗口"
     },
     {
       "path": "modules/content/internal/reference_extractor.go",
@@ -1206,12 +1221,17 @@
     {
       "path": "modules/content/internal/tree_service.go",
       "kind": "source",
-      "purpose": "一致树读取、分页与原子同级重排，发布移动保持partial"
+      "purpose": "一致树读取、分页与原子同级重排，发布移动读取真实manifest"
     },
     {
       "path": "modules/content/internal/tree_validator.go",
       "kind": "source",
       "purpose": "检查树无环和层级约束"
+    },
+    {
+      "path": "modules/content/internal/visibility_service.go",
+      "kind": "handwritten",
+      "purpose": "校验已发布文档的可见性与分享图失败关闭"
     },
     {
       "path": "modules/content/migrations/0001_domain.sql",
@@ -1247,6 +1267,11 @@
       "path": "modules/content/migrations/0007_metadata_operations.sql",
       "kind": "migration",
       "purpose": "只追加元数据成功操作的完整scope、请求摘要和原结果hash"
+    },
+    {
+      "path": "modules/content/migrations/0008_publication_snapshots.sql",
+      "kind": "migration",
+      "purpose": "只追加发布快照、署名历史、已发布引用和版本化重定向清单"
     },
     {
       "path": "modules/content/migrations/migrations.go",
@@ -1774,6 +1799,11 @@
       "purpose": "请求取消任务；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/jobs/internal/cron.go",
+      "kind": "handwritten",
+      "purpose": "只接受五段cron；步长、名单、范围、名字、宏和非星号星期失败关闭"
+    },
+    {
       "path": "modules/jobs/internal/event_delivery.go",
       "kind": "source",
       "purpose": "至少一次投递；同文件职责限本域以下登记函数"
@@ -1859,9 +1889,14 @@
       "purpose": "固定错误重试分类；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/jobs/internal/schedule_store.go",
+      "kind": "handwritten",
+      "purpose": "调度记录的创建、更新、列表和到期水位"
+    },
+    {
       "path": "modules/jobs/internal/scheduler.go",
       "kind": "source",
-      "purpose": "到期重排；同文件职责限本域以下登记函数"
+      "purpose": "到期重排与调度tick；维护期暂停，只触发最后一次到期"
     },
     {
       "path": "modules/jobs/internal/transport/server.go",
@@ -1907,6 +1942,11 @@
       "path": "modules/jobs/migrations/0007_progress_retention.sql",
       "kind": "migration",
       "purpose": "只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间"
+    },
+    {
+      "path": "modules/jobs/migrations/0008_schedules.sql",
+      "kind": "migration",
+      "purpose": "只追加调度表；不改既有任务队列"
     },
     {
       "path": "modules/jobs/migrations/migrations.go",
@@ -2199,6 +2239,31 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/localization/internal/language/config.go",
+      "kind": "handwritten",
+      "purpose": "按原文保存和启停语言，不改写标签"
+    },
+    {
+      "path": "modules/localization/internal/language/guard.go",
+      "kind": "handwritten",
+      "purpose": "语言写入的代次、回执、屏障读侧和本域任务取消"
+    },
+    {
+      "path": "modules/localization/internal/language/http.go",
+      "kind": "handwritten",
+      "purpose": "绑定已有语言配置HTTP操作"
+    },
+    {
+      "path": "modules/localization/internal/language/read.go",
+      "kind": "handwritten",
+      "purpose": "按权限列出语言；公开站点只看已启用项"
+    },
+    {
+      "path": "modules/localization/internal/language/tag.go",
+      "kind": "handwritten",
+      "purpose": "拒绝空标签和超长标签；未写明的归一化失败关闭"
+    },
+    {
       "path": "modules/localization/internal/runtime/bootstrap.go",
       "kind": "handwritten",
       "purpose": "本地化运行时私有持久化与启动恢复"
@@ -2212,6 +2277,11 @@
       "path": "modules/localization/migrations/001_initial.sql",
       "kind": "migration",
       "purpose": "本地化域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/localization/migrations/002_language_config.sql",
+      "kind": "migration",
+      "purpose": "只追加语言配置原回执、代次水位和本地屏障读侧"
     },
     {
       "path": "modules/localization/migrations/migrations.go",
@@ -3534,14 +3604,34 @@
       "purpose": "持久写不可变公告正文文件"
     },
     {
+      "path": "modules/site-config/internal/announcement_validator.go",
+      "kind": "handwritten",
+      "purpose": "校验公告正文为schemaVersion 1的纯文本和已有链接"
+    },
+    {
       "path": "modules/site-config/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/site-config/internal/banner_service.go",
+      "kind": "handwritten",
+      "purpose": "把横幅正文写入不可变文件并随配置提交"
+    },
+    {
+      "path": "modules/site-config/internal/branding_service.go",
+      "kind": "handwritten",
+      "purpose": "品牌资源复用首页pin决定表，来源对象与首页分开"
+    },
+    {
       "path": "modules/site-config/internal/config_files.go",
       "kind": "source",
       "purpose": "写权威版本化站点设置文件"
+    },
+    {
+      "path": "modules/site-config/internal/config_history.go",
+      "kind": "handwritten",
+      "purpose": "枚举真实COMMITTED配置历史并恢复为新版本"
     },
     {
       "path": "modules/site-config/internal/config_service.go",
@@ -3552,6 +3642,11 @@
       "path": "modules/site-config/internal/config_validator.go",
       "kind": "source",
       "purpose": "校验配置所有字段和关联约束"
+    },
+    {
+      "path": "modules/site-config/internal/footer_service.go",
+      "kind": "handwritten",
+      "purpose": "只改页脚字段并走既有设置回执与CAS"
     },
     {
       "path": "modules/site-config/internal/gen/clients.gen.go",
