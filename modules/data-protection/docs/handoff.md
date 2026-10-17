@@ -51,6 +51,6 @@
 
 ## 下一步（一项）
 
-等集成会话登记上面 8 个文件、生成 `go.sum` 并完成 GitLab CI。CI 通过前，本域不把启动函数记为 verified，也不实现备份业务。
+8 个新文件已登记，`go.sum` 已由 `go mod tidy` 生成，并加入 GitLab 的 content-media 编译分片。这次还没有跑该分片。CI 通过前，不把启动函数记为 verified，也不实现备份业务。
 
 详见根 [交接流程](../../../docs/playbooks/handoff.md) 与 [并行规则](../../../docs/playbooks/parallel-development.md)。

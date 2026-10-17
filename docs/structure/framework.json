@@ -1299,6 +1299,16 @@
       "purpose": "data-protection分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/data-protection/Dockerfile",
+      "kind": "config",
+      "purpose": "本域多阶段独立镜像；当前没有界面产物，只带服务与默认配置"
+    },
+    {
+      "path": "modules/data-protection/Makefile",
+      "kind": "config",
+      "purpose": "generate、build、run、verify；界面构建在 lockfile 出现前失败关闭"
+    },
+    {
       "path": "modules/data-protection/README.md",
       "kind": "documentation",
       "purpose": "data-protection分级规格/实现约束/文档索引"
@@ -1307,6 +1317,16 @@
       "path": "modules/data-protection/STATUS.md",
       "kind": "documentation",
       "purpose": "data-protection人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/data-protection/cmd/data-protection/main.go",
+      "kind": "handwritten",
+      "purpose": "本域唯一Go可执行入口；不放产品算法"
+    },
+    {
+      "path": "modules/data-protection/config/defaults.json",
+      "kind": "config",
+      "purpose": "平台 ServiceConfig 默认值；secret 只保留外部引用"
     },
     {
       "path": "modules/data-protection/contracts/events.json",
@@ -1327,6 +1347,11 @@
       "path": "modules/data-protection/contracts/types.json",
       "kind": "contract",
       "purpose": "data-protection唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/data-protection/deploy/manifest.json",
+      "kind": "config",
+      "purpose": "服务 slug、端口 8113、数据卷、secret 引用、依赖地址和探针"
     },
     {
       "path": "modules/data-protection/docs/acceptance.md",
@@ -1379,6 +1404,21 @@
       "purpose": "data-protection分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/data-protection/go.mod",
+      "kind": "config",
+      "purpose": "独立 module nice-wiki/modules/data-protection；固定 Go 工具链和本域实际库依赖"
+    },
+    {
+      "path": "modules/data-protection/go.sum",
+      "kind": "generated",
+      "purpose": "go.mod 依赖校验锁；由 go mod tidy 生成"
+    },
+    {
+      "path": "modules/data-protection/internal/app/wire.go",
+      "kind": "handwritten",
+      "purpose": "本域依赖装配和完整 HTTP 路由绑定；不共享存储"
+    },
+    {
       "path": "modules/data-protection/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -1392,6 +1432,11 @@
       "path": "modules/data-protection/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/data-protection/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "HTTP 生命周期、优雅关闭、匿名健康与就绪；业务路由失败关闭"
     },
     {
       "path": "modules/data-protection/progress.json",

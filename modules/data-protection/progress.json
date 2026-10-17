@@ -448,7 +448,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "须由 go mod tidy 生成，禁止手写。本会话未运行 go，因此没有校验锁，readonly 构建不能通过。"
+      "blocker": "go.sum 已由 go mod tidy 生成。GitLab readonly 编译尚未覆盖，不能记 verified。"
     },
     {
       "path": "modules/data-protection/Dockerfile",

@@ -59,7 +59,7 @@ variables:
         BUILD_MODULES: libs/platform modules/identity modules/site-config modules/jobs modules/portal
         CHECK_DOCS: "1"
       - BUILD_GROUP: content-media
-        BUILD_MODULES: modules/content modules/media modules/traffic-guard modules/analytics
+        BUILD_MODULES: modules/content modules/media modules/traffic-guard modules/analytics modules/data-protection
         CHECK_DOCS: "0"
       - BUILD_GROUP: ai
         BUILD_MODULES: modules/model-gateway modules/knowledge modules/memory modules/localization modules/qa

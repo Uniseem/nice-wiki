@@ -1,11 +1,12 @@
-# 当前状态（2026-10-17，第二轮 portal 与 qa 已本地合入）
+# 当前状态（2026-10-17，第二轮 portal、qa 与 data-protection 已本地合入）
 
-portal 请求脱敏与 qa 缓存准入已审核合入本地 main，尚未推送，也还没有新的 GitLab 编译。accepted 仍为 0。
+portal 请求脱敏、qa 缓存准入和数据保护启动入口已审核合入本地 main。尚未推送，也还没有覆盖这些提交的 GitLab 编译。accepted 仍为 0。
 
 - portal 源码 767972f、台账 60573c4：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。记 implemented，不记 verified。`EmitAccessAudit` 仍 planned。
 - qa 源码 7ef0cfb、台账 1d2d523：`EvaluateCacheEligibility` 只按已写明字段拒绝共享。指代残留没有可执行判定，任何输入都不返回 eligible=true，函数保持 blocked。
-- 当前 1516 函数中 884 个完成（825 verified、59 implemented），planned 593、in_progress 14、blocked 25，完成率 58.3%。相对第四轮推送净增 1 项完成。
-- public-site 与 data-protection 仍在各自 worktree，不在这次合入里。未在本机或 SSH 编译。
+- data-protection 源码 d03bad4、台账 8b64110：启动入口建立数据目录并绑定 27 个路由。换目录缺少回执事实时失败关闭；备份、恢复和镜像返回依赖不可用，不返回空成功。六个启动函数因尚未编译保持 blocked。`go.sum` 已由 `go mod tidy` 生成，并加入 content-media 编译分片，该分片还没跑。
+- 当前 1516 函数中 884 个完成（825 verified、59 implemented），planned 587、in_progress 14、blocked 31，完成率 58.3%。相对第四轮推送净增 1 项完成。
+- public-site 仍有未提交文件，不在这次合入里。未运行 go build、vet 或 gofmt。
 
 以下是已经双推的第四轮记录。
 
