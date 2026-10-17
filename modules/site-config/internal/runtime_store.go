@@ -80,6 +80,8 @@ type ActiveStore struct {
 	homeRecovered    bool
 	homeRuntime      HomeRuntime
 	configRecovered  bool
+	cursorKey        platform.SigningKey
+	cursorReady      bool
 
 	stateMu          sync.RWMutex
 	journalRecovered bool

@@ -74,6 +74,7 @@ type homeReferenceIntent struct {
 	RootOperationID  string
 	ActorID          string
 	RequestHash      string
+	Kind             string
 	SiteID           string
 	DataEpoch        string
 	SourceObjectID   string
@@ -111,6 +112,29 @@ func homeSourceObjectID(siteID string) string {
 	return platform.HashBytes([]byte("site-config.home.v1|" + siteID))
 }
 
+// referenceSourceObjectID 复用首页 pin 协议，只按种类区分来源对象，避免确认时互相覆盖。
+func referenceSourceObjectID(kind, siteID string) string {
+	switch kind {
+	case "home":
+		return homeSourceObjectID(siteID)
+	case "branding":
+		return platform.HashBytes([]byte("site-config.branding.v1|" + siteID))
+	default:
+		return ""
+	}
+}
+
+func referenceMaterial(kind string, config gen.SiteConfig, revisionID string) ([]homeResourceReference, string, error) {
+	switch kind {
+	case "home":
+		return homeReferenceMaterial(config, revisionID)
+	case "branding":
+		return brandingReferenceMaterial(config, revisionID)
+	default:
+		return nil, "", platform.NewError(platform.CodeIntegrityError, false, "资源引用候选种类不合法")
+	}
+}
+
 func homeReferenceMaterial(config gen.SiteConfig, revisionID string) ([]homeResourceReference, string, error) {
 	_, uses, err := validateHomeStructure(config.Home)
 	if err != nil {
@@ -143,9 +167,18 @@ func homeReferenceMaterial(config gen.SiteConfig, revisionID string) ([]homeReso
 
 // saveHomeReferenceIntent 与候选材料同事务，先持久acquire intent才允许远端请求。
 func saveHomeReferenceIntent(ctx context.Context, op platform.OperationContext, tx *sql.Tx, config gen.SiteConfig, revisionID string) error {
-	references, digest, err := homeReferenceMaterial(config, revisionID)
+	return saveReferenceIntent(ctx, op, tx, "home", config, revisionID)
+}
+
+// saveReferenceIntent 把首页或品牌候选写入同一张决定表；来源对象按种类分开。
+func saveReferenceIntent(ctx context.Context, op platform.OperationContext, tx *sql.Tx, kind string, config gen.SiteConfig, revisionID string) error {
+	references, digest, err := referenceMaterial(kind, config, revisionID)
 	if err != nil {
 		return err
+	}
+	sourceID := referenceSourceObjectID(kind, config.SiteId)
+	if sourceID == "" {
+		return platform.NewError(platform.CodeIntegrityError, false, "资源引用候选种类不合法")
 	}
 	raw, err := platform.CanonicalJSON(references)
 	if err != nil {
@@ -153,9 +186,13 @@ func saveHomeReferenceIntent(ctx context.Context, op platform.OperationContext, 
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO home_reference_decisions(operation_id,root_operation_id,site_id,data_epoch,source_object_id,source_revision_id,source_version,reference_digest,references_json,decision,phase,created_at)
         VALUES(?,?,?,?,?,?,?,?,?,'pending','acquire_pending',?)`, op.OperationID, op.RootOperationID, config.SiteId, op.DataEpoch,
-		homeSourceObjectID(config.SiteId), revisionID, config.Revision, digest, string(raw), config.UpdatedAt.UTC().Format(time.RFC3339Nano))
+		sourceID, revisionID, config.Revision, digest, string(raw), config.UpdatedAt.UTC().Format(time.RFC3339Nano))
 	if err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "保存首页引用获取决定失败")
+		detail := "保存首页引用获取决定失败"
+		if kind == "branding" {
+			detail = "保存品牌引用获取决定失败"
+		}
+		return platform.NewError(platform.CodeDependencyUnavailable, true, detail)
 	}
 	return nil
 }
@@ -176,21 +213,26 @@ func (s *ActiveStore) readHomeReferenceIntent(ctx context.Context, q ReadTransac
 		if readErr != nil && !errors.Is(readErr, sql.ErrNoRows) {
 			return intent, platform.NewError(platform.CodeDependencyUnavailable, true, "配置候选来源不可读")
 		}
-		if candidateKind == "home" {
+		switch candidateKind {
+		case "home":
 			return intent, platform.NewError(platform.CodeIntegrityError, false, "首页候选缺少持久引用决定")
+		case "branding":
+			return intent, platform.NewError(platform.CodeIntegrityError, false, "品牌候选缺少持久引用决定")
 		}
 		return intent, platform.NewError(platform.CodeNotFound, false, "首页引用来源操作不存在")
 	}
 	if err != nil {
 		return intent, platform.NewError(platform.CodeDependencyUnavailable, true, "首页引用来源决定不可读")
 	}
-	if !kind.Valid || kind.String != "home" || !references.Valid || decodeConfigJSON([]byte(references.String), &intent.References) != nil || intent.References == nil {
-		return intent, platform.NewError(platform.CodeIntegrityError, false, "首页引用材料缺失或损坏")
+	intent.Kind = kind.String
+	if (intent.Kind != "home" && intent.Kind != "branding") || !references.Valid || decodeConfigJSON([]byte(references.String), &intent.References) != nil || intent.References == nil {
+		return intent, platform.NewError(platform.CodeIntegrityError, false, "资源引用材料缺失或损坏")
 	}
 	raw, err := platform.CanonicalJSON(intent.References)
-	if err != nil || platform.HashBytes(raw) != intent.ReferenceDigest || intent.SourceObjectID != homeSourceObjectID(intent.SiteID) ||
+	expectedSource := referenceSourceObjectID(intent.Kind, intent.SiteID)
+	if err != nil || expectedSource == "" || platform.HashBytes(raw) != intent.ReferenceDigest || intent.SourceObjectID != expectedSource ||
 		intent.SourceRevisionID != configRevisionID(intent.DataEpoch, intent.SiteID, operationID) {
-		return intent, platform.NewError(platform.CodeIntegrityError, false, "首页引用材料摘要或来源不一致")
+		return intent, platform.NewError(platform.CodeIntegrityError, false, "资源引用材料摘要或来源不一致")
 	}
 	for _, reference := range intent.References {
 		if reference.SourceService != "site-config" || reference.SourceObjectID != intent.SourceObjectID || reference.SourceRevisionID != intent.SourceRevisionID ||
@@ -282,7 +324,7 @@ func (s *ActiveStore) verifyHomeCommittedReference(ctx context.Context, intent h
 	if err != nil {
 		return false, err
 	}
-	_, digest, err := homeReferenceMaterial(config, record.RevisionID)
+	_, digest, err := referenceMaterial(intent.Kind, config, record.RevisionID)
 	if err != nil || digest != intent.ReferenceDigest {
 		return false, platform.NewError(platform.CodeIntegrityError, false, "首页COMMITTED引用摘要不一致")
 	}
@@ -340,15 +382,19 @@ func (s *ActiveStore) checkHomeConfigCommit(ctx context.Context, tx *sql.Tx, rec
 	if err != nil {
 		return err
 	}
-	if !committed && (intent.Decision == "aborted" || intent.Decision == "rejected") {
-		return platform.NewError(platform.CodeConflict, false, "首页资源来源已终止，不能迟到提交")
+	subject := "首页"
+	if intent.Kind == "branding" {
+		subject = "品牌"
 	}
-	_, digest, err := homeReferenceMaterial(config, record.RevisionID)
+	if !committed && (intent.Decision == "aborted" || intent.Decision == "rejected") {
+		return platform.NewError(platform.CodeConflict, false, subject+"资源来源已终止，不能迟到提交")
+	}
+	_, digest, err := referenceMaterial(intent.Kind, config, record.RevisionID)
 	if err != nil || intent.SourceRevisionID != record.RevisionID || intent.SourceVersion != record.Object.Version || intent.ReferenceDigest != digest || intent.Pin == nil {
-		return platform.NewError(platform.CodeIntegrityError, false, "首页提交缺少匹配的持久pin")
+		return platform.NewError(platform.CodeIntegrityError, false, subject+"提交缺少匹配的持久pin")
 	}
 	if !committed && !intent.Pin.ExpiresAt.After(time.Now()) {
-		return platform.NewError(platform.CodeConflict, false, "首页引用pin已到期，须用新操作保存")
+		return platform.NewError(platform.CodeConflict, false, subject+"引用pin已到期，须用新操作保存")
 	}
 	return nil
 }
@@ -591,8 +637,8 @@ func RecoverHomeReferences(ctx context.Context, op platform.OperationContext, in
 		return RecoverHomeReferencesResult{}, platform.NewError(platform.CodeVersionMismatch, false, "首页恢复不属于当前打开代次")
 	}
 	var missing int
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM config_operation_materials m JOIN config_operations o ON o.operation_id=m.operation_id LEFT JOIN home_reference_decisions h ON h.operation_id=m.operation_id WHERE m.kind='home' AND o.data_epoch=? AND h.operation_id IS NULL`, op.DataEpoch).Scan(&missing); err != nil || missing != 0 {
-		return RecoverHomeReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "首页操作缺少持久引用intent")
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM config_operation_materials m JOIN config_operations o ON o.operation_id=m.operation_id LEFT JOIN home_reference_decisions h ON h.operation_id=m.operation_id WHERE m.kind IN ('home','branding') AND o.data_epoch=? AND h.operation_id IS NULL`, op.DataEpoch).Scan(&missing); err != nil || missing != 0 {
+		return RecoverHomeReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "首页或品牌操作缺少持久引用intent")
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT operation_id FROM home_reference_decisions WHERE data_epoch=? AND phase NOT IN ('confirmed','released') ORDER BY source_version,operation_id LIMIT 100`, op.DataEpoch)
 	if err != nil {
@@ -764,7 +810,11 @@ func homeTerminatedError(intent homeReferenceIntent) error {
 	if _, ok := platform.ProblemHTTPStatus[code]; !ok {
 		return platform.NewError(platform.CodeIntegrityError, false, "首页终局缺少有效失败回执")
 	}
-	return platform.NewError(code, false, "首页操作未提交且已终止，请使用新的操作保存")
+	subject := "首页"
+	if intent.Kind == "branding" {
+		subject = "品牌"
+	}
+	return platform.NewError(code, false, subject+"操作未提交且已终止，请使用新的操作保存")
 }
 
 func (s *ActiveStore) finishHomeFailure(ctx context.Context, op platform.OperationContext, cause error) error {
@@ -1001,8 +1051,8 @@ func (s *ActiveStore) RecoverHomeReferenceState(ctx context.Context, op platform
 		return platform.NewError(platform.CodeVersionMismatch, false, "首页恢复不属于已打开活动代次")
 	}
 	var missing int
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM config_operation_materials m JOIN config_operations o ON o.operation_id=m.operation_id LEFT JOIN home_reference_decisions h ON h.operation_id=m.operation_id WHERE m.kind='home' AND o.data_epoch=? AND h.operation_id IS NULL`, epoch).Scan(&missing); err != nil || missing != 0 {
-		return platform.NewError(platform.CodeIntegrityError, false, "首页操作缺少持久引用intent")
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM config_operation_materials m JOIN config_operations o ON o.operation_id=m.operation_id LEFT JOIN home_reference_decisions h ON h.operation_id=m.operation_id WHERE m.kind IN ('home','branding') AND o.data_epoch=? AND h.operation_id IS NULL`, epoch).Scan(&missing); err != nil || missing != 0 {
+		return platform.NewError(platform.CodeIntegrityError, false, "首页或品牌操作缺少持久引用intent")
 	}
 	paths, err := configJournalPaths(s.activeRoot, "COMMITTED")
 	if err != nil {

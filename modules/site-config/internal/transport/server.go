@@ -72,7 +72,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			"readPublicHome":            {"portal", "public-site"},
 		},
 		MaintenanceOperations: map[string]bool{"readRuntimeState": true, "transitionRuntimeState": true, "registerActivation": true, "readInitializationStatus": true,
-			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true, "updateHome": true, "readHomeReferenceDecision": true},
+			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true, "updateHome": true, "updateBranding": true, "updateFooter": true, "updateBanner": true, "restoreConfigRevision": true, "readHomeReferenceDecision": true},
 		Authorize: authorize,
 	}, application.serviceHandlers())
 	if err != nil {
@@ -132,6 +132,11 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"readSiteConfig":           serveJSON(siteconfig.ReadSiteConfig),
 		"updateSiteConfig":         serveJSON(siteconfig.UpdateSiteConfig),
 		"updateHome":               serveJSON(siteconfig.UpdateHome),
+		"updateBranding":           serveJSON(siteconfig.UpdateBranding),
+		"updateFooter":             serveJSON(siteconfig.UpdateFooter),
+		"updateBanner":             serveJSON(siteconfig.UpdateBanner),
+		"readConfigHistory":        http.HandlerFunc(serveConfigHistory),
+		"restoreConfigRevision":    http.HandlerFunc(serveRestoreConfigRevision),
 		"readRuntimeState":         serveJSON(siteconfig.ReadRuntimeState),
 		"transitionRuntimeState":   serveJSON(siteconfig.TransitionRuntimeState),
 		"registerActivation":       serveJSON(siteconfig.RegisterActivation),
@@ -185,6 +190,47 @@ func serveJSON[Input, Result any](handler func(context.Context, platform.Operati
 		}
 		writeJSON(w, http.StatusOK, result)
 	})
+}
+
+func serveConfigHistory(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	var limit *int
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "历史分页参数不合法"))
+			return
+		}
+		limit = &value
+	}
+	page := siteconfig.ConfigPageRequest{}
+	if limit != nil {
+		page.Limit = *limit
+	}
+	if raw := r.URL.Query().Get("cursor"); raw != "" {
+		page.Cursor = raw
+	}
+	result, err := siteconfig.ReadConfigHistory(r.Context(), op, siteconfig.ReadConfigHistoryInput{Page: page})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func serveRestoreConfigRevision(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	var body gen.RestoreConfigRevisionRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "请求正文无法转换"))
+		return
+	}
+	result, err := siteconfig.RestoreConfigRevision(r.Context(), op, siteconfig.RestoreConfigRevisionInput{RevisionID: r.PathValue("revisionId"), ExpectedRevision: body.ExpectedRevision})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func serveConfigObject(w http.ResponseWriter, r *http.Request) {

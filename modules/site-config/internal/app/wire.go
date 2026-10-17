@@ -98,6 +98,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		homeRuntime.QA = gen.NewQaClient(base, ModuleSlug, key)
 	}
 	activeStore.ConfigureHome(homeRuntime)
+	activeStore.ConfigureCursorKey(key)
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",

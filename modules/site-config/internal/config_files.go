@@ -401,6 +401,9 @@ func (s *ActiveStore) applyConfigCommit(ctx context.Context, tx *sql.Tx, record 
 	if err := markHomeConfigCommitted(ctx, tx, record.OperationID); err != nil {
 		return err
 	}
+	if err := s.finishAnnouncementCommit(ctx, tx, record, config); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE config_operations SET state='committed',result_revision=? WHERE operation_id=? AND request_hash=?`, config.Revision, record.OperationID, record.RequestHash); err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "保存配置回执失败")
 	}
@@ -539,14 +542,14 @@ func readConfigRecord(path string) (configJournalRecord, error) {
 	if record.SchemaVersion != configSchemaVersion || (record.State != "PREPARED" && record.State != "COMMITTED") || !configPathID(record.SiteID) || !configPathID(record.RevisionID) || record.Object.ObjectId != record.RevisionID || record.Object.Owner != "site-config" || !platform.ValidHash(record.Object.Sha256) || record.Object.ByteSize < 1 || record.Object.Version < 1 {
 		return record, platform.NewError(platform.CodeIntegrityError, false, "配置journal字段不合法")
 	}
-	if record.State == "COMMITTED" && (!platform.ValidIdentifier(record.OperationID) || !platform.ValidIdentifier(record.ActorID) || !platform.ValidHash(record.RequestHash) || !platform.ValidIdentifier(record.DataEpoch) || record.ExpectedRevision+1 != record.Object.Version || len(record.ChangedSections) == 0 || len(record.ChangedSections) > 6) {
+	if record.State == "COMMITTED" && (!platform.ValidIdentifier(record.OperationID) || !platform.ValidIdentifier(record.ActorID) || !platform.ValidHash(record.RequestHash) || !platform.ValidIdentifier(record.DataEpoch) || record.ExpectedRevision+1 != record.Object.Version || len(record.ChangedSections) == 0 || len(record.ChangedSections) > 9) {
 		return record, platform.NewError(platform.CodeIntegrityError, false, "配置COMMITTED决定不完整")
 	}
 	if record.State == "COMMITTED" {
 		sections := map[string]bool{}
 		for _, section := range record.ChangedSections {
 			switch section {
-			case "identity", "home", "seo", "security", "limits", "language":
+			case "identity", "branding", "home", "seo", "security", "limits", "language", "footer", "banner":
 			default:
 				return record, platform.NewError(platform.CodeIntegrityError, false, "配置变更组不合法")
 			}
