@@ -2259,11 +2259,14 @@ func EvaluateCacheEligibility(ctx context.Context, op OperationContext, input Ev
 
 **步骤**
 
-1. 必须plan.complete
-2. 独立canonicalQuestion不残留这/它/第二步未命名来源
-3. private/dynamic上下文拒绝共享
-4. out_of_scope不写可回答cache
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 已补全：plan.complete不为true则eligible=false，reason=ambiguous
+2. 非个性化：privateContextDependent为true则eligible=false，reason=private
+3. 仍依赖页面的动态上下文：currentPageDependent为true则eligible=false，reason=ambiguous
+4. out_of_scope不写可回答cache：classification为out_of_scope则eligible=false，reason=out_of_scope
+5. 非敏感动态：plan.cacheEligible不为true则eligible=false，reason=ambiguous
+6. 独立canonicalQuestion是否残留这/它/未命名第二步来源，合同没有可执行判定
+7. 未写明前失败关闭：不扫描问题文本，不自选指代或敏感词，不因firstTurn放行；上述均通过时仍返回eligible=false、reason=ambiguous，不返回eligible=true
+8. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
