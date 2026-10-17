@@ -3807,6 +3807,11 @@
       "path": "modules/media/migrations/0007_cleanup_execution.sql",
       "kind": "handwritten",
       "purpose": "人工删除持久执行决定与读者租约权威"
+    },
+    {
+      "path": "docs/push-log/2026-10-17-0001.md",
+      "kind": "documentation",
+      "purpose": "三个子代理单轮交付、自部署GitLab检查与双远程推送记录"
     }
   ]
 }
