@@ -1,3 +1,22 @@
+# 当前工作包：资源来源查询与单批事件转发（2026-10-17，已检查交付）
+
+分支codex/content-20261017-r1，基线e0f307f8c99f7d0a60443d9d81590bdfa6c572db，初始clean；独占modules/content。用户授权三个子代理同时编写一轮后普通push，并最新要求全部编译改走自部署GitLab、尽量三个并行任务。根统一公共机制、CI与最终推送；本域不自行push。
+
+- 源码提交16029fde3736071e1e127c87faf918305eed237a，本记录紧随源码。12项净新增完整函数及修改的ReadReferenceDecision按该SHA记verified；函数完成数165→177（总224）。独立reference_reader与0005迁移完整；outbox_repository/publication_repository/transport仍partial，BuildApplication/main继续blocked，未实现发布及全量HTTP不提前完成。业务accepted=0。
+- 独立ReferenceRuntime使查询不依赖编辑锁；List每页同一SQL快照完整核元数据/head、COMMITTED/原回执/精确引用双向覆盖，包含current_draft/history及Acquire前已持久pending_pin。历史按真实索引分类投影，pending_pin的retained=true仅表示保护；明确终止且无COMMITTED才排除。
+- 已获根批准的只追加0005仅维护全站单调来源水位与覆盖来源权威的事务触发器，不持久化读快照。签名游标绑定过滤/limit/caller/actor/site/epoch/session及版本、水位和位置；跨页变化409从头。触发器耗尽回滚原写入。材料逐源读取，完整源操作、文档和引用各20000预算，超限503而不伪报完成；SQL在签名私钥IO前释放。
+- 当前真实元数据出现尚未支持的published/分享图来源时503，不将未知当完整空集。正文schemaVersion、JSONL原格式未变。根已协调媒体消费者接受pending_pin并投影未确认保护。COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销精确资格/回执/refs保护，当前正文读取仍拒绝隔离，材料矛盾422不降pending/abort；曾提出隔离一律422的审查意见已撤回。
+- 两个真实只读HTTP路由使用平台统一服务身份、当前epoch和schema边界；列表限定固定纯服务或portal即时content.read，决定限定media纯服务。BuildApplication真实构造局部路由后仍因其他handler、恢复activation和后台生命周期未齐返回nil/503，不运行半成品服务。
+- RelayOutbox仅装配真实同库outbox.NewStore、版本化JobsClient与根公共RunRelayBatch；行租约、确认、退避、隔离、恢复丢弃和当前安全窗口由平台实现。单批计数不表示全域已送达，完整后台循环未完成。
+- 2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。
+- 实际暂存源码、中文提交说明、既有作者/提交者GitHub代用邮箱及GPT-6 trailer经隐私扫描通过；未修改Git身份。源码18路径、本记录更新7份模块文档/台账；无其他域或公共文件改动。
+
+## 下一步（一项）
+
+根按源码及记录提交顺序集成，检查实际合并树并执行用户本轮已授权普通推送；本域交付后冻结，不自行开始发布/全量HTTP或部署。后续只在根新工作包下继续。
+
+---
+
 # 当前工作包：持续目标第二轮真实共享草稿闭环（2026-10-16，已交付）
 
 分支codex/content-goal-r2，基线471c036082e082763d90e1080b3489d4e4531380，初始clean；独占modules/content。根批准internal/draft_commit_store.go及只追加0004迁移，统一公共结构、VPS生成/检查和push；本域不自行推送。

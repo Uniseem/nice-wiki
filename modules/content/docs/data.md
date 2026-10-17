@@ -281,3 +281,14 @@ Create/Save在draft_operation_intents先固定动作、caller/actor/site/epoch/o
 文档资源来源水位使用documents.reference_version，独立于draftVersion。创建初始化为1；保存首次意图固定ExpectedReferenceVersion/SourceVersion，最终同head/ledger/refs事务CAS并推进。发布/撤回等后续引用生产者也必须使用同一水位，不能按草稿版本推导；公共Revision上限耗尽失败。旧行默认0只表示无本轮引用资格，存在旧head却无真实水位时失败关闭，禁止从文件/JSONL猜补；原op重试保持原来源材料，不重新分配水位或Acquire替代pin。
 
 保存首次新操作在持久intent或Acquire pin前读取当前正文限额并按规范UTF8长度拒绝超额请求；COMMITTED原回执仍优先，已prepared材料不因后来降低配额重做。pending重试在任何续作RPC/文件IO前短核原真实租约及head/引用CAS，返回时释放guard；明确失败经统一无COMMITTED证明后封存并Release nullable原pin，未知或正文完整性错误保持资源保护。
+
+## 2026-10-17资源来源查询
+
+只追加0005维护全站reference_scan_state；来源表的插入/更新/删除与原事务一起推进水位，耗尽回滚。每页同SQL快照完整核元数据/head/COMMITTED/回执/引用覆盖，并在签名前释放SQL；签名游标固定过滤、分页大小、主体/会话/代次、水位和位置。跨页水位变化409必须从头，不拼接快照、不持久化读快照。来源扫描各20000预算超限503，不把不完整扫描解释为空。
+
+current_draft与history取真实索引分类；pending_pin来自Acquire前已持久的完整保存意图，retained=true只表示保护，不是COMMITTED。精确COMMITTED资格优先，即使原intent终态尚未补齐；明确aborted/rejected且无COMMITTED才排除。未知已发布/分享图生产资格、缺索引、缺原回执或坏材料均失败关闭。本轮没有实现发布或元数据分享图生产者，也不通过空结果掩盖它们。
+
+两个只读来源HTTP路由使用平台统一服务身份/当前epoch/schema边界；media源决定限定纯服务，列表固定media/site-config/data-protection纯服务或portal即时content.read。RelayOutbox只把真实本域outbox与jobs客户端交给平台单批机制；后台循环和完整启动继续未完成。本轮源码已通过根自部署GitLab CI pipeline 12生成/格式/重复生成、三个实际同时分片覆盖14模块readonly build/vet/gofmt及完整make check（878文件/1435函数/379HTTP/2328类型），未执行SQL/HTTP行为验收或部署。
+
+
+COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的媒体保护。当前正文读取仍拒绝隔离，缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort。

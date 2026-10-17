@@ -21,3 +21,14 @@ D30第一版不做批量导入；粘贴是编辑器交互。D54公开heading不�
 编辑锁原操作回执属于不可变历史结果，不能作为启动重建租约的来源；进程重启和恢复均清空锁并改bootId。原回执重放携旧boot不会恢复写资格。当前boot的未知SQL提交pending会阻止同doc后续编辑/保存，只有真实原回执和候选hash一致才安装，确定没有回执才丢弃。通知生产者outbox/本地审计已编写候选，完整转发与在线消费尚待后续装配，未做业务验收。
 
 第二轮真实共享草稿实现增加0004只追加迁移；未知既有文档缺完整元数据或站点treeRevision时停止该业务，不推测修复。COMMITTED正文资格、完整原回执和源引用决定同SQL提交；SQL Commit错误不推定失败、不释放pin。最终冻结源码已通过根统一VPS make docs/gen、8源码gofmt、14模块readonly build/vet/gofmt与完整make check（876文件/1403函数/379HTTP/2317类型）；仅证明编译及设计结构。业务验收、全部HTTP/后台/恢复activation及完整启动未完成。
+
+## 2026-10-17资源来源查询
+
+只追加0005维护全站reference_scan_state；来源表的插入/更新/删除与原事务一起推进水位，耗尽回滚。每页同SQL快照完整核元数据/head/COMMITTED/回执/引用覆盖，并在签名前释放SQL；签名游标固定过滤、分页大小、主体/会话/代次、水位和位置。跨页水位变化409必须从头，不拼接快照、不持久化读快照。来源扫描各20000预算超限503，不把不完整扫描解释为空。
+
+current_draft与history取真实索引分类；pending_pin来自Acquire前已持久的完整保存意图，retained=true只表示保护，不是COMMITTED。精确COMMITTED资格优先，即使原intent终态尚未补齐；明确aborted/rejected且无COMMITTED才排除。未知已发布/分享图生产资格、缺索引、缺原回执或坏材料均失败关闭。本轮没有实现发布或元数据分享图生产者，也不通过空结果掩盖它们。
+
+两个只读来源HTTP路由使用平台统一服务身份/当前epoch/schema边界；media源决定限定纯服务，列表固定media/site-config/data-protection纯服务或portal即时content.read。RelayOutbox只把真实本域outbox与jobs客户端交给平台单批机制；后台循环和完整启动继续未完成。本轮源码已通过根自部署GitLab CI pipeline 12生成/格式/重复生成、三个实际同时分片覆盖14模块readonly build/vet/gofmt及完整make check（878文件/1435函数/379HTTP/2328类型），未执行SQL/HTTP行为验收或部署。
+
+
+COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的媒体保护。当前正文读取仍拒绝隔离，缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort。

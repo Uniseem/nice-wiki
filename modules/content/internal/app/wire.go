@@ -12,6 +12,7 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	content "nice-wiki/modules/content/internal"
+	"nice-wiki/modules/content/internal/gen"
 	"nice-wiki/modules/content/internal/transport"
 )
 
@@ -30,7 +31,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
-	if _, err := loadTrustAnchors(config.TrustAnchorRef); err != nil {
+	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
+	if err != nil {
 		return nil, err
 	}
 
@@ -65,7 +67,24 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务处理器、草稿事务与后台装配尚未实现")
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
+		return nil, err
+	}
+	var identity *gen.IdentityClient
+	if endpoint := config.Dependencies["identity"]; endpoint != "" {
+		identity = gen.NewIdentityClient(endpoint, ModuleSlug, key)
+	}
+	referenceRuntime, err := content.NewReferenceRuntime(store, identity, key)
+	if err != nil {
+		return nil, err
+	}
+	application := transport.NewApplication(config, runtimeClient, runtimeView.DataEpoch, true, false, false)
+	if err = transport.RegisterReferenceRoutes(application, referenceRuntime, anchors); err != nil {
+		return nil, err
+	}
+	// 两个只读来源路由的真实装配不满足全域handler/恢复activation/后台生命周期门槛。
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务路由、恢复activation与后台生命周期尚未装配")
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端；只保存外部引用，

@@ -7,13 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
+	content "nice-wiki/modules/content/internal"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -195,4 +198,61 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
+}
+
+// RegisterReferenceRoutes只装配本轮两个真实只读路由，完整应用仍由BuildApplication门槛决定。
+func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime, anchors platform.TrustAnchors) error {
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "引用来源HTTP规格不可读")
+	}
+	for path := range spec.Paths.Map() {
+		if path != "/v1/resource-references" && path != "/v1/reference-decisions/{sourceOperationId}" {
+			spec.Paths.Delete(path)
+		}
+	}
+	handlers := map[string]http.Handler{
+		"listResourceReferences": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			limit := 20
+			if value := r.URL.Query().Get("limit"); value != "" {
+				limit, _ = strconv.Atoi(value)
+			}
+			input := content.ListResourceReferencesInput{Page: content.ReferencePageRequest{Limit: limit, Cursor: r.URL.Query().Get("cursor")}}
+			if value := r.URL.Query().Get("documentId"); value != "" {
+				input.DocumentId = &value
+			}
+			if value := r.URL.Query().Get("assetId"); value != "" {
+				input.AssetId = &value
+			}
+			result, err := content.ListResourceReferences(content.WithReferenceRuntime(r.Context(), runtime), op, input)
+			w.Header().Set("Cache-Control", "no-store")
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readReferenceDecision": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := content.ReadReferenceDecision(content.WithReferenceRuntime(r.Context(), runtime), op, content.ReadReferenceDecisionInput{SourceOperationId: r.PathValue("sourceOperationId")})
+			w.Header().Set("Cache-Control", "no-store")
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+	}
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch,
+		AllowedCallers:        map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection", "portal"}, "readReferenceDecision": {"media"}},
+		ServiceActorCallers:   map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection"}},
+		MaintenanceOperations: map[string]bool{"listResourceReferences": true, "readReferenceDecision": true}}, handlers)
+	if err != nil {
+		return err
+	}
+	mux := app.httpServer.Handler.(*http.ServeMux)
+	mux.Handle("GET /v1/resource-references", handler)
+	mux.Handle("GET /v1/reference-decisions/{sourceOperationId}", handler)
+	return nil
 }
