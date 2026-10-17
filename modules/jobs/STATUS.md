@@ -1,3 +1,15 @@
+# 定时调度（已实现，未编译，未验收）
+
+分支 `codex/jobs-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `d7a03b2540a178e9d086277b697fbf6fbb6e5f77`。accepted 未推进。本轮未跑 GitLab CI，未 push。
+
+已记 implemented、不记 verified：ValidateCron、NextFireAt、CreateSchedule、UpdateSchedule、ListSchedules、TickSchedules，以及闭环用的 lastDueTick、NewScheduleHandlers。SaveSchedule 仍是界面函数，保持 planned。BuildApplication 与 main 仍 blocked：定时三条管理路由已绑真实 handler，其余 operation 未齐，工厂继续失败关闭，不宣称可启动。
+
+cron 按已写明的 5 字段、IANA 时区和分钟最小间隔 1 实现。步长、列表、范围、周字段编号、日周组合、英文名称和宏没有合同句子，一律按非法表达式失败关闭，不自选方言。已接受子集覆盖五条系统表达式。DST 折返只观察 24 小时；合同没有更长折返的句子。到期任务走已有 CreateJob，去重键为 scheduleId/tick/epoch。
+
+既有租约回收与重排函数级记录保持 verified。公共缺口只在本域交接：根框架尚未登记新的 cron、schedule_store 和 0008 迁移；新事件要等集成 make gen。下一步只一项：等集成会话审核合入并跑 GitLab CI。
+
+---
+
 # 持续目标第二轮公共前置：延迟任务创建（已检查）
 
 集成会话独占本次jobs公共API配合，基线471c036。CreateJobRequestBody和内部CreateJobInput新增可选notBefore，显式UTC时刻纳入去重并写既有not_before；省略保持旧hash和首次立即可领。新增真实createJob映射，仅生成任务owner可调用，dataEpoch只取可信op；ClaimJob已有真实时间筛选，无新迁移/外部依赖/路径。任务执行期限由owner领取时建立，不沿用创建RPC短截止。
