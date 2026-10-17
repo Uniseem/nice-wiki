@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "b5e05b8e8437567bc3b2f7b2901e4ebbe4f7ed82685043d76f796db8a5a4fdb7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "analytics-r1-storage-contract-audit",
-  "branch": "codex/analytics-r1-storage-contract-audit",
-  "baseCommit": "3db911390e35a07007d70a1d2f5cc15fe4092667",
-  "deliveryCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+  "assignedSession": "analytics-20261017-r6",
+  "branch": "codex/analytics-20261017-r6",
+  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
+  "deliveryCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
   "deployment": "not_started",
   "files": [
     {
@@ -22,23 +22,23 @@
     },
     {
       "path": "modules/analytics/internal/buckets.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。未执行 go build、go vet、gofmt、make build、make gen，也未通过本机或 SSH 编译。"
       },
       "blocker": null
     },
     {
       "path": "modules/analytics/internal/privacy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。CheckPrivacyFields 已实现；RedactAuditMetadata 仍 blocked；HashDayToken 尚未实现，整文件不能记 implemented。"
       },
-      "blocker": null
+      "blocker": "审计动作白名单与 metadata 编码都没有写明，analytics.RedactAuditMetadata 保持 blocked。同文件 analytics.HashDayToken 尚未实现，整文件不能记 implemented。"
     },
     {
       "path": "modules/analytics/internal/http_beacons.go",
@@ -546,11 +546,11 @@
     {
       "id": "analytics.BucketLatency",
       "path": "modules/analytics/internal/buckets.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。未执行 go build、go vet、gofmt、make build、make gen，也未通过本机或 SSH 编译。"
       },
       "blocker": null
     },
@@ -568,22 +568,22 @@
     {
       "id": "analytics.RedactAuditMetadata",
       "path": "modules/analytics/internal/privacy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。函数对任何输入返回 FORBIDDEN，未做行为验收。"
       },
-      "blocker": null
+      "blocker": "审计动作白名单与 metadata 编码都没有写明。不解析 metadata，不编造动作名，原文不进入 safeMetadata 或错误 detail。"
     },
     {
       "id": "analytics.CheckPrivacyFields",
       "path": "modules/analytics/internal/privacy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "未跑 GitLab CI。未执行 go build、go vet、gofmt、make build、make gen，也未通过本机或 SSH 编译。"
       },
       "blocker": null
     },

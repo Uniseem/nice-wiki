@@ -1,13 +1,12 @@
 # 统计与审计当前进度
 
-更新：2026-10-15。阶段：implementation；本域业务尚未验收、尚未部署。
+更新：2026-10-17。阶段：implementation；本域业务尚未验收、尚未部署。accepted 为 0。
 
-- 2026-10-15 集成复核修复：site-config 运行状态适配改为解开 `{"state": RuntimeState}` 外层，此前字段全空会被平台按“运行状态不完整”拒绝启动。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
-- 本次复核基线为 `3db911390e35a07007d70a1d2f5cc15fe4092667`，独占分支为 `codex/analytics-r1-storage-contract-audit`；本次无业务代码交付，未 push。
-- 已建立 `cmd/analytics` 入口、应用装配、HTTP 生命周期、匿名 health/ready 路由、独立 Go module、默认配置、镜像和部署 manifest。生成目录未手改。
-- 所有已登记 OpenAPI 路由均绑定到生成 server interface；beacon、审计、访问/费用汇总、导出、屏障和快照业务尚未实现，统一按合同返回 `DEPENDENCY_UNAVAILABLE`，不返回伪造成功结果。
-- 本次按交接复核 `migrations/0001_domain.sql` 与私有存储/journal切片时发现合同缺口：`implementation.json` 未登记 SQLite 打开/迁移执行、control journal 恢复、fsync/完整性收敛所需的文件、函数、签名、错误、副作用与调用边界；`types.json` 也没有对应内部接口。按 AGENTS.md 约定停止实现，不猜测实现，不创建半套迁移。
-- `BuildApplication` 与 `Ready` 的域存储/journal、恢复激活回执、后台任务/事件循环和真实业务 handler 仍阻塞；就绪不会把未恢复的本域能力报告为可用。逐项事实见 [progress.json](progress.json)。
-- 已通过 JSON 解析、生成 handler 覆盖静态核对、隐私检查和 `git diff --check`；本机没有 Go、gofmt 或 make，未执行编译、格式化、`make gen` 及业务验收。
+- 分支 `codex/analytics-20261017-r6`，基线 `9a10eff89c91095670f7d336e84e7a010348adc6`。源码提交 `11014011ce1a008d4a829dfeb388f9328fcfc1c0`。未 push。
+- `analytics.BucketLatency` 与 `analytics.CheckPrivacyFields` 已实现，verification 为 not_run。未跑 GitLab CI，未在本机或 SSH 执行编译。
+- `analytics.RedactAuditMetadata` 保持 blocked：审计动作白名单与 metadata 编码都没有写明。对任何输入返回 FORBIDDEN，不解析原文。
+- 合同未改。根 STATUS、plan、framework.json、`.gitlab-ci.yml`、libs/platform 及其他模块未改。
+- 新文件 `modules/analytics/internal/buckets.go` 与 `modules/analytics/internal/privacy.go` 尚未写入根 framework.json，由集成会话登记。
+- 其余文件与函数保持原台账。启动存储与 journal 仍缺合同，业务路由仍失败关闭；`BuildApplication` 与 `Ready` 的既有阻塞未在本次解除。逐项见 [progress.json](progress.json) 与 [handoff](docs/handoff.md)。
 
-并行工作只改本域，公共资料由集成会话维护；本次仅更新本域台账，未修改根文件、公共契约、生成物、其他模块、测试、样例、真实接口或模型。
+下一项：由合同所有者写明审计动作登记表的动作名枚举和 metadata 编码后，再实现 `analytics.RedactAuditMetadata` 的白名单脱敏。写明前不要按猜测解析 metadata。
