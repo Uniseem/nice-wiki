@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "data-protection",
-  "phase": "design",
+  "phase": "implementation",
   "contractSha256": "97a61469c575aea0e0c3c341b8c8a70e358c8f480782de68e15a237a7df20c1f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": null,
-  "branch": null,
-  "baseCommit": null,
-  "deliveryCommit": null,
+  "assignedSession": "data-protection-20261017-r5",
+  "branch": "codex/data-protection-20261017-r5",
+  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
+  "deliveryCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
   "deployment": "not_started",
   "files": [
     {
@@ -382,8 +382,8 @@
     },
     {
       "path": "modules/data-protection/config/defaults.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -392,48 +392,48 @@
     },
     {
       "path": "modules/data-protection/migrations/0001_domain.sql",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "implementation.json 只登记迁移文件用途，没有迁移执行器的约束级函数、签名和错误。缺合同就不猜测 SQL，本轮也没有打开私有库。"
     },
     {
       "path": "modules/data-protection/cmd/data-protection/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。"
     },
     {
       "path": "modules/data-protection/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
     },
     {
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
     },
     {
       "path": "modules/data-protection/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -442,18 +442,18 @@
     },
     {
       "path": "modules/data-protection/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "须由 go mod tidy 生成，禁止手写。本会话未运行 go，因此没有校验锁，readonly 构建不能通过。"
     },
     {
       "path": "modules/data-protection/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -462,8 +462,8 @@
     },
     {
       "path": "modules/data-protection/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -472,8 +472,8 @@
     },
     {
       "path": "modules/data-protection/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1244,68 +1244,68 @@
     {
       "id": "data-protection.main",
       "path": "modules/data-protection/cmd/data-protection/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。"
     },
     {
       "id": "data-protection.BuildApplication",
       "path": "modules/data-protection/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
     },
     {
       "id": "data-protection.Serve",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
     },
     {
       "id": "data-protection.Shutdown",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。HTTP 优雅关闭已写。本阶段没有数据库、journal 或 outbox；关闭时不删除 control 记录，也不把未实现费用记为免费。"
     },
     {
       "id": "data-protection.Health",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。只读进程生命周期，不查询远程依赖、数据库或模型。"
     },
     {
       "id": "data-protection.Ready",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。未执行 GitLab CI、go build 或 gofmt，不能记 implemented 或 verified。journal 未恢复、业务处理未实现或运行视图没有修订号时返回 DEPENDENCY_UNAVAILABLE，不把 publicRequestsAllowed 报成 true。"
     },
     {
       "id": "data-protection.mountModuleUI",
@@ -1330,5 +1330,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮只有规格。所有业务文件/函数planned，后续实现会话认领一项并记录提交/检查证据，不能批量宣称已完成。"
+  "rule": "启动入口与部署配置已提交，Go 函数因未编译保持 blocked，不得记 verified。accepted 保持 0。备份、恢复和镜像业务仍是 planned。"
 }
