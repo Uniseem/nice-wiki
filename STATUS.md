@@ -2,11 +2,11 @@
 
 portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接解析已审核合入。pipeline 47 编译通过并回传 10300 字节生成补丁。pipeline 48（`24ff6942329d68e0ff81d7f71d59e9b7e499c228`）生成补丁 0 字节，job 212 与三个分片 213、214、215 全部成功。台账提交 `a7ed3b8707eed718c18bb12e7eea395fb9b8d21e` 再经 pipeline 49，生成 job 216 补丁 0 字节，分片 217、218、219 成功，并已普通双推。accepted 仍为 0。
 
-- portal 源码 767972f：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。pipeline 48 记 verified。`EmitAccessAudit` 仍 planned。
+- portal 源码 767972f：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。pipeline 48 记 verified。`EmitAccessAudit` 源码 d2d2d8d 已合入：appendAudit 请求体与脱敏字段没有写明映射，函数保持 blocked，返回依赖不可用。
 - qa 源码 7ef0cfb：`EvaluateCacheEligibility` 只按已写明字段拒绝共享。指代残留没有可执行判定，任何输入都不返回 eligible=true。pipeline 48 已编译该包，函数保持 blocked。
 - data-protection 源码 d03bad4：启动入口建立数据目录并绑定 27 个路由。换目录缺少回执事实时失败关闭；备份、恢复和镜像返回依赖不可用。pipeline 48 已编译该包，六个启动函数仍 blocked。
 - public-site：`ResolvePublishedLink` 读取站点、启用语言和公开树，块锚点按正文哈希核验。依赖未知返回 503，水位变化返回 `STALE_RESULT`/409。`main`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 与该函数记 verified。`BuildApplication` 缺处理函数时不返回可运行应用，保持 blocked。
-- 当前 1516 函数中 891 个完成（833 verified、58 implemented），planned 579、in_progress 14、blocked 32，完成率 58.8%。相对第四轮推送净增 8 项完成，其中 8 个新完成函数记 verified。
+- 当前 1516 函数中 891 个完成（833 verified、58 implemented），planned 578、in_progress 14、blocked 33，完成率 58.8%。相对第四轮推送净增 8 项完成，其中 8 个新完成函数记 verified。`EmitAccessAudit` 从 planned 改为 blocked，不增加完成数。
 - 未在本机或 SSH 编译。未新增测试、fixture、mock、样例或临时程序。
 
 以下是已经双推的第四轮记录。
