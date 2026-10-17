@@ -1,6 +1,6 @@
 # 当前状态（2026-10-17，第二轮 GitLab 检查通过）
 
-portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接解析已审核合入。pipeline 47 编译通过并回传 10300 字节生成补丁。pipeline 48（`24ff6942329d68e0ff81d7f71d59e9b7e499c228`）生成补丁 0 字节，job 212 与三个分片 213、214、215 全部成功。accepted 仍为 0。本记录还要再跑一次隔离检查，通过后才双推 main。
+portal 请求脱敏、qa 缓存准入、数据保护启动和公开站点链接解析已审核合入。pipeline 47 编译通过并回传 10300 字节生成补丁。pipeline 48（`24ff6942329d68e0ff81d7f71d59e9b7e499c228`）生成补丁 0 字节，job 212 与三个分片 213、214、215 全部成功。台账提交 `a7ed3b8707eed718c18bb12e7eea395fb9b8d21e` 再经 pipeline 49，生成 job 216 补丁 0 字节，分片 217、218、219 成功，并已普通双推。accepted 仍为 0。
 
 - portal 源码 767972f：`RedactRequest` 只保留 requestId、routeId、method 和体字节数，剥除 cookie 与 authorization。query、路径变量和其他请求头没有合同规则，出现时返回 VALIDATION。pipeline 48 记 verified。`EmitAccessAudit` 仍 planned。
 - qa 源码 7ef0cfb：`EvaluateCacheEligibility` 只按已写明字段拒绝共享。指代残留没有可执行判定，任何输入都不返回 eligible=true。pipeline 48 已编译该包，函数保持 blocked。
