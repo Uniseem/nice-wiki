@@ -1,3 +1,7 @@
+# 集成检查（2026-10-17）
+
+引用事件写入已合入 main，GitLab pipeline 42 把 ApplyReferenceEvent 记为 verified。生产方载荷仍未对齐，订阅没有接通。下面是合入前的模块记录。
+
 # 2026-10-17第四轮：引用事件幂等快照（已实现，未跑 CI，订阅未接通）
 
 - 分支 `codex/media-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`（main），源码 `ff91d6aa27a8783c262b07932bbdb85bb0e4ee23`。独占 `modules/media/`。未 push。准确台账另提交。

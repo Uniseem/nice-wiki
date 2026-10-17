@@ -1,6 +1,21 @@
-# 当前状态（2026-10-17，第四轮已本地合入，未跑 CI）
+# 当前状态（2026-10-17，第四轮 GitLab 检查通过）
 
-用户要求每轮多个子代理同时编写，父会话审核后提交，循环到合同代码写完。本轮开了六个互斥模块，审核后顺序合入本地 main。本地 `make docs` 与 `make check` 通过。没有推送，所以 GitLab 生成和三分片编译还没跑，本轮新代码保持 implemented，不记 verified，accepted 仍为 0。
+用户授权 push 和测试，测试只走自建 GitLab。第四轮六个模块已合入。pipeline 40 的三个编译分片因 vet 失败；修正非常量错误格式和未生成的语言标签类型后，pipeline 41 编译通过。生成补丁回传后，pipeline 42（`2e282a31a5ce739886eed9807fc5efcfac44989c`）生成补丁 0 字节，job 188 与三个分片 189、190、191 全部成功，14 个 Go 模块 readonly build/vet/gofmt 和完整 make check 通过。本轮因此从 implemented 改记 verified 的函数有 67 个。accepted 仍为 0。本结果记录先走隔离分支检查，通过后才双推 main。
+
+- 当前 889 契约文件、1516 函数、380 HTTP 操作、2355 类型；883 函数完成（825 verified、58 implemented），planned 595、in_progress 14、blocked 24，完成率 58.2%。相对第三轮净增 53 项完成。
+- identity 源码 709eeae、合入 e0e56d4：超管重置文件在唯一活动超管上改口令并撤销会话。硬链接拒绝。5 秒监视和完整启动仍未接上。
+- media 源码 ff91d6a、合入 ef72ead：引用事件在本域按来源身份幂等写入。content 生产方载荷仍缺 sourceOperationId、referenceDigest，引用项也还不是 AssetReference，订阅没有接通。
+- jobs 源码 d7a03b2、合入 3bf8605：五段 cron、调度存储和到期 tick。步长、名单、范围、名字、宏和非星号星期失败关闭。jobs.schedule-changed.v1 已进入生成的 EventTypes。
+- localization 源码 650a1e2、合入 c46fb7a：语言按原文保存和列出。NormalizeLanguageTag 仍 blocked。停用只取消本域任务行。
+- content 源码 67f35e4、合入 9637b9b：发布快照、历史和 manifest 同一事务。非空引用先用已经提交的草稿保存操作做资源 pin。分享图仍 503。完整启动仍 blocked。
+- site-config 源码 37097fc、合入 2ea92ce：品牌复用首页 pin 决定表；页脚、横幅和配置历史走既有提交链。恢复只 readAsset。changedSections 已含 branding、footer、banner，maxItems 为 9。完整启动仍 blocked。
+- 未在本机或 SSH 编译，未新增测试、fixture、mock、样例或临时程序，未做 SQL/HTTP 验收、模型、worker、服务或部署。原 HTML 保持未跟踪。第二轮四个工作区不在这次推送里。
+
+以下是合入当时的记录，其中“未跑 CI、不记 verified”已被上面的 pipeline 42 取代。
+
+# 第四轮合入时的记录（2026-10-17）
+
+用户要求每轮多个子代理同时编写，父会话审核后提交，循环到合同代码写完。本轮开了六个互斥模块，审核后顺序合入本地 main。本地 `make docs` 与 `make check` 通过。合入当时还没有推送。
 
 - 当前889契约文件、1516函数、380HTTP操作、2355类型；883函数完成（758 verified、125 implemented），planned 595、in_progress 14、blocked 24，完成率58.2%。相对第三轮台账净增53项完成。14个此前 verified 的函数因本轮改到同一实现，改记 implemented，旧 CI 证据不再覆盖这次提交。
 - identity 源码709eeae、记录b0d2a38，合入e0e56d4：超管重置文件只在唯一活动超管上改口令并撤销会话。硬链接拒绝。5秒监视和完整启动仍未接上。

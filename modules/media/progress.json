@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "5ed6490bb39a3a9cfca4cfe0ef66f133f86e63edf9fd0dff928e69d7c72a2af4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17第四轮：ApplyReferenceEvent已实现未检查，生产方事件载荷未对齐，待集成审核合入",
+  "assignedSession": "引用事件幂等快照（pipeline 42 已记 verified；生产方载荷未对齐）",
   "branch": "codex/media-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
   "deliveryCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
@@ -763,11 +763,11 @@
     {
       "id": "media.ApplyReferenceEvent",
       "path": "modules/media/internal/reference_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17第四轮源码ff91d6aa27a8783c262b07932bbdb85bb0e4ee23已按补齐后的输入实现幂等快照。未跑go、gofmt、make build、make gen、make check，未SSH。make docs只重写本域functions.md。content.resources.changed仍缺sourceOperationId与referenceDigest，订阅未接通。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },

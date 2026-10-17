@@ -1,3 +1,7 @@
+# 集成检查（2026-10-17）
+
+发布快照已合入 main，GitLab pipeline 42 把本轮函数记为 verified。分享图仍 503，完整启动仍 blocked。下面是合入前的模块记录。
+
 # 当前工作包：发布确认改用已提交草稿来源（2026-10-17第四轮再退回，已编写，未编译）
 
 分支 `codex/content-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `67f35e4857ee66970b3ff6b84184d7e9eb92c447`。独占 `modules/content`。未跑 GitLab CI，未编译，不记 verified，accepted 为 0。

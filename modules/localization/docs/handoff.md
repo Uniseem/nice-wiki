@@ -43,7 +43,7 @@
 
 ## 下一步（一项）
 
-等集成会话审核合入并跑 GitLab CI。
+语言读写已由 GitLab pipeline 42 记 verified。NormalizeLanguageTag 仍 blocked，不要自选大小写、脚本或私用规则。下一步从合同步骤已经写明的其他 planned 函数继续。
 
 下文是历史交接，其中的下一步不再执行。
 

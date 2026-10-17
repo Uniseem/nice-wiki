@@ -1,3 +1,7 @@
+# 集成检查（2026-10-17）
+
+定时调度已合入 main，GitLab pipeline 42 把本轮函数记为 verified。jobs.schedule-changed.v1 已进入生成目录。完整启动仍 blocked。下面是合入前的模块记录。
+
 # 定时调度（已实现，未编译，未验收）
 
 分支 `codex/jobs-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`。源码 `d7a03b2540a178e9d086277b697fbf6fbb6e5f77`。accepted 未推进。本轮未跑 GitLab CI，未 push。

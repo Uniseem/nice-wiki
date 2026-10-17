@@ -37,7 +37,7 @@ createSchedule、listSchedules、updateSchedule 已绑真实 handler。createSch
 
 ## 下一步
 
-等集成会话审核合入并跑 GitLab CI。
+定时调度已由 GitLab pipeline 42 记 verified，jobs.schedule-changed.v1 已在生成的 EventTypes 里。新文件已登记进根框架。下一步不要重做 cron，也不要补未写明的方言；从仍为 planned、步骤已经写明的函数继续。完整启动仍失败关闭。
 
 ---
 

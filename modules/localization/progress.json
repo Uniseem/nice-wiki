@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "287b2b97ce1b2dcf88c53da11416f8e26db05571f86472c6632006b7d3eff994",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "语言配置实施（独立 worktree，未跑 CI）",
+  "assignedSession": "语言配置（pipeline 42 已记 verified；NormalizeLanguageTag 仍 blocked）",
   "branch": "codex/localization-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
   "deliveryCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
@@ -752,38 +752,38 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。GitLab CI 未跑。"
+      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。"
     },
     {
       "id": "localization.PutLanguage",
       "path": "modules/localization/internal/language/config.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "id": "localization.SetLanguageEnabled",
       "path": "modules/localization/internal/language/config.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },
     {
       "id": "localization.ListLanguages",
       "path": "modules/localization/internal/language/read.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": "GitLab CI 未跑，未做编译或行为验收。"
     },

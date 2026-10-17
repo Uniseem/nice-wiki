@@ -8,7 +8,7 @@
 
 ### 下一项（一项）
 
-等集成会话审核合入并跑 GitLab CI。
+品牌、页脚、横幅和配置历史已由 GitLab pipeline 42 记 verified。changedSections 已含 branding、footer、banner。下一步不要补完整启动；从合同步骤已经写明、仍为 planned 的函数继续。恢复继续只 readAsset。
 
 ## 集成需处理（不是本域下一步）
 

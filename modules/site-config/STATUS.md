@@ -1,3 +1,7 @@
+# 集成检查（2026-10-17）
+
+品牌、页脚、横幅和配置历史已合入 main，GitLab pipeline 42 把本轮函数记为 verified。changedSections 已含 branding、footer、banner。完整启动仍 blocked。下面是合入前的模块记录。
+
 # 站点配置与初始化当前进度
 
 ## 品牌、页脚、横幅与配置历史（2026-10-17，implemented）

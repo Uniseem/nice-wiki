@@ -1,3 +1,7 @@
+# 集成检查（2026-10-17）
+
+语言读写已合入 main，GitLab pipeline 42 把本轮函数记为 verified。NormalizeLanguageTag 仍 blocked。下面是合入前的模块记录。
+
 # 2026-10-17 语言配置
 
 阶段：实施。分支 `codex/localization-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`，源码提交 `650a1e208ff8656531aa2764dfd9e2bc4b1965b8`。部署 `not_started`。accepted 为 0。GitLab CI 未跑，未执行 go、gofmt、make build、make gen、make check 或 SSH。本轮在本域执行了 `make docs`（只调用 Python 渲染）。

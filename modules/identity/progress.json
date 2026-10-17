@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "ff3fb8e8db1ecf36e27ba72e152e2a5742ddffbec94fcce162cec73d2531f9ef",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "超管重置文件紧密函数组",
+  "assignedSession": "超管重置文件（pipeline 42 已记 verified；5秒监视未接入）",
   "branch": "codex/identity-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
   "deliveryCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
@@ -694,55 +694,55 @@
     {
       "id": "identity.ObserveSuperadminResetFile",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "identity.ApplySuperadminReset",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "identity.readSuperadminResetFile",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "identity.readUniqueSuperadmin",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "identity.consumeSuperadminResetFile",
       "path": "modules/identity/internal/server_recovery.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "709eeae3e37c8aa7e1da1ab04a61759f9011686a",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },

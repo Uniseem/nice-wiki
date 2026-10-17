@@ -7,7 +7,7 @@
 - 事件 payload 仍未对齐，订阅不能声称已接通。`content.resources.changed` 的 `ResourceReferencesChangedPayload` 目前是 `siteId`、`documentId`、`sourceRevision`、`references`、`removedReferenceIds`、`dataEpoch`。引用项是 `ResourceReference`（`documentId`、`blockId`、`kind`、`retained`），不是 pin 形态的 `AssetReference`。该 payload 没有 `sourceOperationId`，也没有 `referenceDigest`。生产方载荷与消费方 `ApplyReferenceEventInput` 不一致，现有事件不能直接解码成该函数输入。
 - `platform.ClaimInbox` 按现有签名 `(tx, envelope) (bool, error)` 使用，没有另造 inbox。函数收不到生产方原始信封；去重哈希是规范后的消费者输入，不是生产方 payload 哈希。`OccurredAt` 只填处理时刻以满足信封格式。因此签名对得上也不能把订阅记成已接通。
 - 低于当前 `sourceVersion` 只确认不覆写。事务写入既有 `reference_heads`/`reference_entries`，旧 current 转为 history，新快照为 current，并提升 generation。只取消已经存在的相交人工清理计划，不写删除许可。已 sealed 的同源修订若仍要写入，返回 `INTEGRITY_ERROR` 并回滚本次 inbox，原引用保护保留。
-- 下一步：等集成会话审核合入，并让 `content.resources.changed` 的生产方载荷与 `ApplyReferenceEventInput` 一致。不要自行展开 bytes。
+- 下一步：ApplyReferenceEvent 已由 GitLab pipeline 42 记 verified。订阅仍不能接，因为 `content.resources.changed` 的生产方载荷和 `ApplyReferenceEventInput` 不一致。先改合同再改载荷。不要自行展开 bytes。
 
 # 2026-10-17第三轮：真实worker/relay与runtime schema（GitLab检查通过，已交付冻结）
 

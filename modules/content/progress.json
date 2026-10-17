@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "c561f95fb0905a1f4c375f5f82f84e0ddaf77107f9a14ecca8cb908feec86c87",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "content第四轮发布快照（confirm用来源已提交草稿保存，已编写，未跑CI）",
+  "assignedSession": "content第四轮发布快照（pipeline 42 已记 verified；分享图仍 503）",
   "branch": "codex/content-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
   "deliveryCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
@@ -848,11 +848,11 @@
     {
       "id": "content.MoveDocument",
       "path": "modules/content/internal/tree_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -1840,44 +1840,44 @@
     {
       "id": "content.PreparePublicationMetadata",
       "path": "modules/content/internal/publication_metadata.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.PublishDocument",
       "path": "modules/content/internal/publication_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
-        "state": "not_run",
-        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.WithdrawDocument",
       "path": "modules/content/internal/publication_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.CommitPublication",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
-        "state": "not_run",
-        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -1894,22 +1894,22 @@
     {
       "id": "content.ValidatePublications",
       "path": "modules/content/internal/visibility_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.ReadPublishedRevision",
       "path": "modules/content/internal/publication_reader.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -2026,11 +2026,11 @@
     {
       "id": "content.PublishContentEvent",
       "path": "modules/content/internal/outbox_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -3083,22 +3083,22 @@
     {
       "id": "content.validateReferenceCoverage",
       "path": "modules/content/internal/reference_reader.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.readReferenceSources",
       "path": "modules/content/internal/reference_reader.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -3149,11 +3149,11 @@
     {
       "id": "content.NewTreeRuntime",
       "path": "modules/content/internal/tree_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -3171,11 +3171,11 @@
     {
       "id": "content.treeRuntimeFromContext",
       "path": "modules/content/internal/tree_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -3248,22 +3248,22 @@
     {
       "id": "content.executeTreeMutation",
       "path": "modules/content/internal/tree_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.planTreeMove",
       "path": "modules/content/internal/tree_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -3336,220 +3336,220 @@
     {
       "id": "content.commitRedirectManifest",
       "path": "modules/content/internal/path_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.canonicalDocumentPaths",
       "path": "modules/content/internal/path_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.authorizePublication",
       "path": "modules/content/internal/publication_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.readPublicationReceipt",
       "path": "modules/content/internal/publication_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.insertPublicationReceipt",
       "path": "modules/content/internal/publication_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.applyPublication",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.loadSharedDraft",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.casPublicationIdentity",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.copyPublishedReferences",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.preparePublicationPin",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "7edca48674a7287cb9fc454fa509164e61d71fd2",
       "verification": {
-        "state": "not_run",
-        "evidence": "资源pin已接回现有 MediaClient，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.pinPublicationReferences",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
       "verification": {
-        "state": "not_run",
-        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.listPublicationReferences",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.archivePublishedReferences",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.enqueuePublication",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.enqueueTreeChanged",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.readPublicationSnapshot",
       "path": "modules/content/internal/visibility_service.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.loadVisiblePublication",
       "path": "modules/content/internal/publication_reader.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.readPublicationReferences",
       "path": "modules/content/internal/reference_reader.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.bindPublicationTx",
       "path": "modules/content/internal/outbox_repository.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "content.RegisterPublicationRoutes",
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     }

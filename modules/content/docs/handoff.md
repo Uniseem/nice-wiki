@@ -24,7 +24,7 @@
 
 ## 下一步（一项）
 
-等集成会话审核合入并跑 GitLab CI。
+发布快照已由 GitLab pipeline 42 记 verified。下一步继续合同已写明的 UpdateDocumentMetadata；分享图精确 pin 没有合同句子，保持 503。不要改 content.resources.changed 的载荷。
 
 ---
 

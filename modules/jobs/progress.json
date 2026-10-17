@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "51243ba6654ae6eb45e58631f2003b43bd96ea1b1f83fca8f69515dbb6811451",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "定时调度实施",
+  "assignedSession": "定时调度（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/jobs-20261017-r4",
   "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
   "deliveryCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
@@ -717,11 +717,11 @@
     {
       "id": "jobs.TickSchedules",
       "path": "modules/jobs/internal/scheduler.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -838,66 +838,66 @@
     {
       "id": "jobs.ValidateCron",
       "path": "modules/jobs/internal/cron.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "jobs.NextFireAt",
       "path": "modules/jobs/internal/cron.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "jobs.CreateSchedule",
       "path": "modules/jobs/internal/schedule_store.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "jobs.UpdateSchedule",
       "path": "modules/jobs/internal/schedule_store.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "jobs.ListSchedules",
       "path": "modules/jobs/internal/schedule_store.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
     {
       "id": "jobs.NewScheduleHandlers",
       "path": "modules/jobs/internal/schedule_store.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
@@ -1311,11 +1311,11 @@
     {
       "id": "jobs.lastDueTick",
       "path": "modules/jobs/internal/scheduler.go",
-      "state": "implemented",
+      "state": "verified",
       "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+        "state": "passed",
+        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
     },
