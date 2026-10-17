@@ -489,7 +489,7 @@ export interface paths {
         };
         /**
          * 向资源库列出哪些文档引用文件
-         * @description 调用函数 content.ListResourceReferences；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         * @description 同一全站单调来源水位分页。包含current_draft/history/pending_pin；pending_pin只表示保护。跨页来源变化409须从头读取；未知发布或缺失来源资格失败关闭，不能认定完整空集。固定服务纯服务调用，portal必须即时content.read授权。
          */
         get: operations["listResourceReferences"];
         put?: never;
@@ -1768,7 +1768,7 @@ export interface components {
             /** @description 已登录主体 */
             accountId: components["schemas"]["Identifier"];
         };
-        /** @description 当前/历史引用分开，历史引用不自动清理阻塞提示 */
+        /** @description 当前、历史与待提交保护分开；pending_pin不表示COMMITTED，历史引用不自动清理 */
         ResourceReference: {
             /** @constant */
             sourceService: "content";
@@ -1782,18 +1782,18 @@ export interface components {
              * @description 引用分类
              * @enum {string}
              */
-            kind: "current_draft" | "current_published" | "history";
+            kind: "current_draft" | "current_published" | "history" | "pending_pin";
             /** @description 块 */
             blockId: components["schemas"]["Identifier"];
             asset: components["schemas"]["AssetVersionRef"];
-            /** @description 该版本仍保留 */
+            /** @description 该来源仍保留或待提交受保护；pending_pin时true只表示保护，不是已提交资格 */
             retained: boolean;
         };
         /** @description 向资源库列出哪些文档引用文件的结果 */
         ListResourceReferencesResult: {
             /** @description 当前与历史分开 */
             references: components["schemas"]["ResourceReference"][];
-            /** @description 源版本 */
+            /** @description 全站引用来源快照单调水位；分页固定水位，任一来源变化必须从头读取 */
             watermark: components["schemas"]["Revision"];
             /** @description PageInfo */
             pageInfo: components["schemas"]["PageInfo"];
@@ -3818,9 +3818,10 @@ export interface operations {
     listResourceReferences: {
         parameters: {
             query?: {
-                limit?: string;
+                limit?: number;
                 cursor?: string;
-                assetId?: string;
+                documentId?: components["schemas"]["Identifier"];
+                assetId?: components["schemas"]["Identifier"];
             };
             header?: never;
             path?: never;
@@ -3831,10 +3832,29 @@ export interface operations {
             /** @description 向资源库列出哪些文档引用文件的成功回执 */
             200: {
                 headers: {
+                    "Cache-Control"?: "no-store";
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ListResourceReferencesResult"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
@@ -3846,7 +3866,25 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            /** @description 公共失败关闭错误 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共失败关闭错误 */
             503: {
                 headers: {
                     [name: string]: unknown;

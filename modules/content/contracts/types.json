@@ -1971,7 +1971,7 @@
     },
     "ResourceReference": {
       "type": "object",
-      "description": "当前/历史引用分开，历史引用不自动清理阻塞提示",
+      "description": "当前、历史与待提交保护分开；pending_pin不表示COMMITTED，历史引用不自动清理",
       "additionalProperties": false,
       "properties": {
         "sourceService": {
@@ -1995,7 +1995,8 @@
           "enum": [
             "current_draft",
             "current_published",
-            "history"
+            "history",
+            "pending_pin"
           ]
         },
         "blockId": {
@@ -2007,7 +2008,7 @@
         },
         "retained": {
           "type": "boolean",
-          "description": "该版本仍保留"
+          "description": "该来源仍保留或待提交受保护；pending_pin时true只表示保护，不是已提交资格"
         }
       },
       "required": [
@@ -4405,7 +4406,7 @@
         },
         "watermark": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "源版本"
+          "description": "全站引用来源快照单调水位；分页固定水位，任一来源变化必须从头读取"
         },
         "pageInfo": {
           "$ref": "#/$defs/PageInfo",
@@ -6485,6 +6486,46 @@
       "type": "object",
       "x-internal": true,
       "description": "同一真实DB或短SQL事务的草稿原记录只读查询句柄；不跨RPC/文件IO",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReferenceRuntime": {
+      "type": "object",
+      "x-internal": true,
+      "description": "真实Store、可选identity、签名密钥引用与生产方持久来源schema校验器；只读查询不依赖编辑锁",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ReferencePageRequest": {
+      "type": "object",
+      "x-internal": true,
+      "description": "PageRequest在本域Go输入的最小投影；limit缺省20，cursor为空表示首批",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "referenceCursor": {
+      "type": "object",
+      "x-internal": true,
+      "description": "签名游标私有载荷：全站来源水位与固定排序位置，绑定查询和主体scope",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "referenceSourceRecord": {
+      "type": "object",
+      "x-internal": true,
+      "description": "同一只读SQL快照中的源operation、动作、持久状态和不含正文的固定计划",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "RelayRuntime": {
+      "type": "object",
+      "x-internal": true,
+      "description": "真实本域Store、版本化jobs客户端及平台当前写窗口；仅后台装配",
       "additionalProperties": false,
       "properties": {},
       "required": []

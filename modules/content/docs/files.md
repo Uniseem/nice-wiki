@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 69 个：手写 42、UI 12、生成 5、配置 10。函数 214 个：约束 42，参考 172。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 70 个：手写 43、UI 12、生成 5、配置 10。函数 224 个：约束 42，参考 182。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,9 +29,9 @@
 | `modules/content/internal/trash_service.go` | 手写 | 删除进回收站，可选旧URL替代跳转 | `content.TrashDocument`、`content.RestoreDocument`、`content.PurgeDocuments` |
 | `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.RollbackPublishedRevision` |
 | `modules/content/internal/preview_service.go` | 手写 | 管理员预览草稿公开样式 | `content.CreatePreviewGrant`、`content.ValidatePreviewGrant` |
-| `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences` |
+| `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
 | `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |
-| `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.RelayOutbox` |
+| `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.RelayOutbox`、`content.WithRelayRuntime`（参考） |
 | `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
 | `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
 | `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath` |
@@ -48,7 +48,7 @@
 | `modules/content/web/src/editor/columns-resizer.ts` | UI | 调整2–4栏宽比例 | `content.resizeColumns`（参考） |
 | `modules/content/cmd/content/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `content.main` |
 | `modules/content/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `content.BuildApplication` |
-| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready` |
+| `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考） |
 | `modules/content/go.mod` | 配置 | 独立module nice-wiki/modules/content；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/content/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/content/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/content；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -75,3 +75,4 @@
 | `modules/content/migrations/0003_edit_lock_operations.sql` | 手写 | 只追加编辑原回执、跨boot状态事件修订和本地审计；不恢复权威租约 | 无 |
 | `modules/content/internal/draft_commit_store.go` | 手写 | 真实延迟草稿SQL事务、创建保存意图和稳定ID/引用/完整回执原子提交 | `content.WithDraftRuntime`（参考）、`content.draftRuntimeFromContext`（参考）、`content.readDraftOperation`（参考）、`content.prepareDraftOperation`（参考）、`content.draftRequestDigest`（参考）、`content.RevisionSiteID`（参考）、`content.BeginDraftCommit`（参考）、`content.FindReceipt`（参考）、`content.ValidateFence`（参考）、`content.validateDraftTransaction`（参考）、`content.Commit`（参考）、`content.commitStableIDs`（参考）、`content.releaseDraftTransaction`（参考）、`content.Rollback`（参考）、`content.validateDraftOperationPlan`（参考）、`content.readDraftOperationFrom`（参考） |
 | `modules/content/migrations/0004_draft_commits.sql` | 手写 | 只追加站点树版本、元数据、草稿意图、历史IDledger与引用权威表 | 无 |
+| `modules/content/migrations/0005_reference_snapshots.sql` | 手写 | 只追加全站来源扫描单调水位；触发器在原来源事务内推进，耗尽回滚；不持久化读快照 | 无 |

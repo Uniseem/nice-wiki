@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 214 个函数：约束 42 个，参考 172 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 224 个函数：约束 42 个，参考 182 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3955,6 +3955,8 @@ func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadR
 3. 源正文COMMITTED决定为权威，SQL待补不当abort；明确aborted/rejected必须持久且防迟到commit；未找到404、跨代409，未知或损坏503/422
 4. 只输出共享ReferenceSourceDecision最小字段，no-store；pending/404/timeout都不代表资源可释放，不输出文档正文或私密账户
 5. SourceVersion只取首次意图固定的独立文档引用水位并核同一COMMITTED引用记录，不能按draftVersion重算或用旧重放回退当前水位
+6. 独立只读ReferenceRuntime；同SQL联查精确来源和真实COMMITTED资格/完整回执/完整引用，复用List来源终局判定，仍不把pending/404当释放证据
+7. COMMITTED为不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的资源保护。读取当前正文仍由原隔离规则拒绝；缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort
 
 **错误**
 
@@ -3964,12 +3966,13 @@ func ReadReferenceDecision(ctx context.Context, op OperationContext, input ReadR
 - `VERSION_MISMATCH`：当前dataEpoch不匹配（不可重试）
 - `INTEGRITY_ERROR`：私有权威数据损坏（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖或存储未知（可重试）
+- `NOT_FOUND`：当前站点无该来源意图；不能作为释放证据（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：只接受已验证纯服务actor，固定调用方media；不授予模型调用或管理写入权限
 - 并发：当前权威快照一致读取；不持锁执行跨服务IO
 - 幂等：无写入或费用副作用；每次读当前权威，no-store，不创建后台任务
-- 依赖：`content.draftRuntimeFromContext`、`content.checkRevisionScope`、`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.sameStoredDraft`
+- 依赖：`content.referenceRuntimeFromContext`、`content.checkRevisionScope`、`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.readCommittedReferenceSource`
 
 ## content.ValidatePublications
 
@@ -4443,19 +4446,282 @@ func ListResourceReferences(ctx context.Context, op OperationContext, input List
 
 **步骤**
 
-1. media注册service或content.read检查
-2. 一致水位全量/分页列current_draft/current_published/history
-3. unknown/incomplete不得解释为空引用，返回水位/完成cursor
+1. 固定media/site-config/data-protection纯服务或portal当前content.read授权，读私有当前站点/打开epoch；不依赖编辑租约
+2. 每页同一只读SQL快照核全站reference_scan_state、元数据与head/COMMITTED/原回执/引用的双向覆盖；未知published/分享图生产资格、缺失或损坏失败关闭，不将未实现来源当空
+3. 完整扫描当前草稿与不可变历史，以及Acquire前已持久的pending保存意图；COMMITTED资格优先于旧intent状态，明确aborted/rejected且无资格才排除，pending_pin/retained=true仅表示保护
+4. 固定来源键排序，每页最多100项，完整源操作和引用扫描预算各20000；超限503而不返回虚假完成；过滤只在完整核对之后
+5. 签名cursor绑定过滤/limit/caller/actor/site/epoch/session及版本，记录全站水位与位置；跨页任一来源变化409须首批重读，不拼接快照；末页hasMore=false且省略cursor，返回no-store
 
 **错误**
 
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `VALIDATION`：游标签名/绑定或位置无效（不可重试）
+- `UNAUTHENTICATED`：当前后台会话已失效（不可重试）
+- `VERSION_MISMATCH`：数据代次或跨页来源水位已变化，必须从头读取（可重试）
+- `INTEGRITY_ERROR`：私有来源权威、资格或完整引用材料矛盾（不可重试）
 
 - 副作用：无
-- 授权：service:media/site-config/data-protection 或content.read
-- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 授权：permission：service或content.read；rule：media/site-config/data-protection固定纯服务；portal必须即时content.read，同站点当前epoch
+- 并发：只读SQL一致快照；跨页固定全站水位，来源变化拒绝旧游标；不持SQL跨授权HTTP或签名私钥文件读取
 - 幂等：只读
+- 依赖：`content.referenceRuntimeFromContext`、`content.authorizeEditLock`、`content.readReferenceCursor`、`content.checkRevisionScope`、`content.validateReferenceCoverage`、`content.readReferenceSources`、`content.referenceSortKey`、`platform.SignCursor`
+
+## content.NewReferenceRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：构造真实只读来源依赖及唯一持久schema校验器
+
+```go
+func NewReferenceRuntime(store *Store, identity *gen.IdentityClient, key platform.SigningKey) (ReferenceRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 构造真实只读来源依赖及唯一持久schema校验器
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`platform.NewPayloadValidator`
+
+## content.WithReferenceRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：向调用链装配本域只读来源依赖
+
+```go
+func WithReferenceRuntime(ctx context.Context, runtime ReferenceRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 向调用链装配本域只读来源依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：无
+
+## content.referenceRuntimeFromContext
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：读取已装配的真实只读来源依赖
+
+```go
+func referenceRuntimeFromContext(ctx context.Context) (ReferenceRuntime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取已装配的真实只读来源依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`content.WithReferenceRuntime`
+
+## content.readReferenceCursor
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：验证绑定查询/主体/代次的签名来源游标
+
+```go
+func readReferenceCursor(runtime ReferenceRuntime, op OperationContext, input ListResourceReferencesInput) (referenceCursor, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 验证绑定查询/主体/代次的签名来源游标
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`content.decodeStorageJSON`、`platform.VerifyCursor`
+
+## content.validateReferenceCoverage
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭
+
+```go
+func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：无
+
+## content.readReferenceSources
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：在同快照有界完整扫描源意图，核正文引用和pin摘要再投影全部保护
+
+```go
+func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) ([]gen.ResourceReference, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在同快照有界完整扫描源意图，核正文引用和pin摘要再投影全部保护
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`content.decodeStorageJSON`、`content.validateDraftOperationPlan`、`content.draftMediaReferences`、`content.readCommittedReferenceSource`、`content.referenceSortKey`
+
+## content.readCommittedReferenceSource
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：同SQL核COMMITTED优先的精确资格/原回执/完整引用；无资格的pending投影pending_pin保护
+
+```go
+func readCommittedReferenceSource(ctx context.Context, tx *sql.Tx, op OperationContext, source referenceSourceRecord, plan draftOperationPlan) ([]gen.ResourceReference, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同SQL核COMMITTED优先的精确资格/原回执/完整引用；无资格的pending投影pending_pin保护
+2. COMMITTED为不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的资源保护。读取当前正文仍由原隔离规则拒绝；缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`content.decodeStorageJSON`、`content.sameStoredDraft`
+
+## content.referenceSortKey
+
+- 级别：参考
+- 文件：`modules/content/internal/reference_reader.go`
+- 作用：生成文档/修订/水位/分类/块/精确资产的稳定分页排序键
+
+```go
+func referenceSortKey(ref gen.ResourceReference) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成文档/修订/水位/分类/块/精确资产的稳定分页排序键
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
 - 依赖：无
 
 ## content.ReadContentObject
@@ -4571,22 +4837,54 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 
 **步骤**
 
-1. 进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务
-2. 逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq
-3. 网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除
-4. 屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准
+1. 仅本域后台纯服务；从受信RelayRuntime取得真实Store、版本化JobsClient和当前平台写窗口，核打开epoch与站点
+2. 把真实outbox.NewStore及outbox.NewEventPublisher(gen.JobsClient)交给platform.RunRelayBatch，领域不复制行租约、确认、退避、隔离和恢复丢弃机制
+3. 单批至多batchLimit；网络返回后由公共机制重新取得当前安全窗口写状态；返回本批relayed/pending/quarantined计数，不代表全域已送达；后续每秒由完整启动后台调用，当前完整生命周期仍未装配
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：jobs不可用或超时；行保留待下一轮（可重试）
 - `INTEGRITY_ERROR`：同eventId异payloadHash或信封不合法；行隔离（不可重试）
 - `VERSION_MISMATCH`：dataEpoch与当前active epoch不一致；旧代行按恢复规则丢弃（不可重试）
+- `FORBIDDEN`：非本域后台纯服务调用（不可重试）
 
 - 副作用：读写本域outbox行状态与租约；HTTP调用jobs:publishEvent
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`content.WithRelayRuntime`、`content.checkRevisionScope`、`platform.RunRelayBatch`、`jobs:publishEvent`
+
+## content.WithRelayRuntime
+
+- 级别：参考
+- 文件：`modules/content/internal/outbox_repository.go`
+- 作用：向本域后台调用链装配真实outbox依赖
+
+```go
+func WithRelayRuntime(ctx context.Context, runtime RelayRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 向本域后台调用链装配真实outbox依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：无
 
 ## content.AcquireBarrier
 
@@ -5524,6 +5822,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务
 
 **错误**
 
@@ -5535,7 +5834,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve
@@ -5702,6 +6001,38 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
+
+## content.RegisterReferenceRoutes
+
+- 级别：参考
+- 文件：`modules/content/internal/transport/server.go`
+- 作用：在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界
+
+```go
+func RegisterReferenceRoutes(app *Application, runtime ReferenceRuntime, anchors platform.TrustAnchors) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格
+- 并发：同一SQL快照不跨远程IO；游标签名在读取结束后执行
+- 幂等：只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整
+- 依赖：`content.WithReferenceRuntime`、`content.ListResourceReferences`、`content.ReadReferenceDecision`、`platform.NewServiceHandler`
 
 ## content.mountModuleUI
 

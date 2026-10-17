@@ -4504,7 +4504,9 @@
             "从源操作私有pin intent读取site/object/revision/version/referenceDigest；固定材料在acquire前持久化，只有引用提交操作可查询",
             "源正文COMMITTED决定为权威，SQL待补不当abort；明确aborted/rejected必须持久且防迟到commit；未找到404、跨代409，未知或损坏503/422",
             "只输出共享ReferenceSourceDecision最小字段，no-store；pending/404/timeout都不代表资源可释放，不输出文档正文或私密账户",
-            "SourceVersion只取首次意图固定的独立文档引用水位并核同一COMMITTED引用记录，不能按draftVersion重算或用旧重放回退当前水位"
+            "SourceVersion只取首次意图固定的独立文档引用水位并核同一COMMITTED引用记录，不能按draftVersion重算或用旧重放回退当前水位",
+            "独立只读ReferenceRuntime；同SQL联查精确来源和真实COMMITTED资格/完整回执/完整引用，复用List来源终局判定，仍不把pending/404当释放证据",
+            "COMMITTED为不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的资源保护。读取当前正文仍由原隔离规则拒绝；缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort"
           ],
           "errors": [
             {
@@ -4536,6 +4538,11 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖或存储未知",
               "retryable": true
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "当前站点无该来源意图；不能作为释放证据",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -4546,11 +4553,11 @@
           "concurrency": "当前权威快照一致读取；不持锁执行跨服务IO",
           "idempotency": "无写入或费用副作用；每次读当前权威，no-store，不创建后台任务",
           "dependencies": [
-            "content.draftRuntimeFromContext",
+            "content.referenceRuntimeFromContext",
             "content.checkRevisionScope",
             "content.decodeStorageJSON",
             "content.validateDraftOperationPlan",
-            "content.sameStoredDraft"
+            "content.readCommittedReferenceSource"
           ],
           "resources": [],
           "contract": "binding"
@@ -5633,9 +5640,11 @@
           ],
           "purpose": "向资源库列出哪些文档引用文件",
           "steps": [
-            "media注册service或content.read检查",
-            "一致水位全量/分页列current_draft/current_published/history",
-            "unknown/incomplete不得解释为空引用，返回水位/完成cursor"
+            "固定media/site-config/data-protection纯服务或portal当前content.read授权，读私有当前站点/打开epoch；不依赖编辑租约",
+            "每页同一只读SQL快照核全站reference_scan_state、元数据与head/COMMITTED/原回执/引用的双向覆盖；未知published/分享图生产资格、缺失或损坏失败关闭，不将未实现来源当空",
+            "完整扫描当前草稿与不可变历史，以及Acquire前已持久的pending保存意图；COMMITTED资格优先于旧intent状态，明确aborted/rejected且无资格才排除，pending_pin/retained=true仅表示保护",
+            "固定来源键排序，每页最多100项，完整源操作和引用扫描预算各20000；超限503而不返回虚假完成；过滤只在完整核对之后",
+            "签名cursor绑定过滤/limit/caller/actor/site/epoch/session及版本，记录全站水位与位置；跨页任一来源变化409须首批重读，不拼接快照；末页hasMore=false且省略cursor，返回no-store"
           ],
           "errors": [
             {
@@ -5647,15 +5656,216 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
               "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "游标签名/绑定或位置无效",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "当前后台会话已失效",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "数据代次或跨页来源水位已变化，必须从头读取",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "私有来源权威、资格或完整引用材料矛盾",
+              "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "service:media/site-config/data-protection 或content.read",
-          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "authorization": {
+            "permission": "service或content.read",
+            "rule": "media/site-config/data-protection固定纯服务；portal必须即时content.read，同站点当前epoch"
+          },
+          "concurrency": "只读SQL一致快照；跨页固定全站水位，来源变化拒绝旧游标；不持SQL跨授权HTTP或签名私钥文件读取",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "content.referenceRuntimeFromContext",
+            "content.authorizeEditLock",
+            "content.readReferenceCursor",
+            "content.checkRevisionScope",
+            "content.validateReferenceCoverage",
+            "content.readReferenceSources",
+            "content.referenceSortKey",
+            "platform.SignCursor"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.NewReferenceRuntime",
+          "name": "NewReferenceRuntime",
+          "signature": "func NewReferenceRuntime(store *Store, identity *gen.IdentityClient, key platform.SigningKey) (ReferenceRuntime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "构造真实只读来源依赖及唯一持久schema校验器",
+          "steps": [
+            "构造真实只读来源依赖及唯一持久schema校验器"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "platform.NewPayloadValidator"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.WithReferenceRuntime",
+          "name": "WithReferenceRuntime",
+          "signature": "func WithReferenceRuntime(ctx context.Context, runtime ReferenceRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "向调用链装配本域只读来源依赖",
+          "steps": [
+            "向调用链装配本域只读来源依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.referenceRuntimeFromContext",
+          "name": "referenceRuntimeFromContext",
+          "signature": "func referenceRuntimeFromContext(ctx context.Context) (ReferenceRuntime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取已装配的真实只读来源依赖",
+          "steps": [
+            "读取已装配的真实只读来源依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "content.WithReferenceRuntime"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readReferenceCursor",
+          "name": "readReferenceCursor",
+          "signature": "func readReferenceCursor(runtime ReferenceRuntime, op OperationContext, input ListResourceReferencesInput) (referenceCursor, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "验证绑定查询/主体/代次的签名来源游标",
+          "steps": [
+            "验证绑定查询/主体/代次的签名来源游标"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "content.decodeStorageJSON",
+            "platform.VerifyCursor"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.validateReferenceCoverage",
+          "name": "validateReferenceCoverage",
+          "signature": "func validateReferenceCoverage(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭",
+          "steps": [
+            "核私有身份和所有元数据/head/提交/回执/引用双向覆盖，未知发布或分享图失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readReferenceSources",
+          "name": "readReferenceSources",
+          "signature": "func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, runtime ReferenceRuntime) ([]gen.ResourceReference, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在同快照有界完整扫描源意图，核正文引用和pin摘要再投影全部保护",
+          "steps": [
+            "在同快照有界完整扫描源意图，核正文引用和pin摘要再投影全部保护"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "content.decodeStorageJSON",
+            "content.validateDraftOperationPlan",
+            "content.draftMediaReferences",
+            "content.readCommittedReferenceSource",
+            "content.referenceSortKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.readCommittedReferenceSource",
+          "name": "readCommittedReferenceSource",
+          "signature": "func readCommittedReferenceSource(ctx context.Context, tx *sql.Tx, op OperationContext, source referenceSourceRecord, plan draftOperationPlan) ([]gen.ResourceReference, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同SQL核COMMITTED优先的精确资格/原回执/完整引用；无资格的pending投影pending_pin保护",
+          "steps": [
+            "同SQL核COMMITTED优先的精确资格/原回执/完整引用；无资格的pending投影pending_pin保护",
+            "COMMITTED为不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的资源保护。读取当前正文仍由原隔离规则拒绝；缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "content.decodeStorageJSON",
+            "content.sameStoredDraft"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.referenceSortKey",
+          "name": "referenceSortKey",
+          "signature": "func referenceSortKey(ref gen.ResourceReference) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "生成文档/修订/水位/分类/块/精确资产的稳定分页排序键",
+          "steps": [
+            "生成文档/修订/水位/分类/块/精确资产的稳定分页排序键"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5900,10 +6110,9 @@
           ],
           "purpose": "把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环",
           "steps": [
-            "进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务",
-            "逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq",
-            "网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除",
-            "屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准"
+            "仅本域后台纯服务；从受信RelayRuntime取得真实Store、版本化JobsClient和当前平台写窗口，核打开epoch与站点",
+            "把真实outbox.NewStore及outbox.NewEventPublisher(gen.JobsClient)交给platform.RunRelayBatch，领域不复制行租约、确认、退避、隔离和恢复丢弃机制",
+            "单批至多batchLimit；网络返回后由公共机制重新取得当前安全窗口写状态；返回本批relayed/pending/quarantined计数，不代表全域已送达；后续每秒由完整启动后台调用，当前完整生命周期仍未装配"
           ],
           "errors": [
             {
@@ -5920,6 +6129,11 @@
               "code": "VERSION_MISMATCH",
               "when": "dataEpoch与当前active epoch不一致；旧代行按恢复规则丢弃",
               "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "非本域后台纯服务调用",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -5933,11 +6147,32 @@
           "concurrency": "每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送",
           "idempotency": "eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认",
           "dependencies": [
-            "jobs:publishEvent",
-            "platform.RunRelay"
+            "content.WithRelayRuntime",
+            "content.checkRevisionScope",
+            "platform.RunRelayBatch",
+            "jobs:publishEvent"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.WithRelayRuntime",
+          "name": "WithRelayRuntime",
+          "signature": "func WithRelayRuntime(ctx context.Context, runtime RelayRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "向本域后台调用链装配真实outbox依赖",
+          "steps": [
+            "向本域后台调用链装配真实outbox依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7906,7 +8141,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务"
           ],
           "errors": [
             {
@@ -7954,7 +8190,9 @@
             "content.NewEditLockManager",
             "content.CloseEditLocks",
             "content.WithEditLockRuntime",
-            "content.WithDraftRuntime"
+            "content.WithDraftRuntime",
+            "content.NewReferenceRuntime",
+            "content.RegisterReferenceRoutes"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8218,6 +8456,30 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "content.RegisterReferenceRoutes",
+          "name": "RegisterReferenceRoutes",
+          "signature": "func RegisterReferenceRoutes(app *Application, runtime ReferenceRuntime, anchors platform.TrustAnchors) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界",
+          "steps": [
+            "在未启动应用装配两个真实来源HTTP路由，统一服务身份/代次/schema边界"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已验证服务边界或受信启动装配；只读取本域私有权威，不放宽来源资格",
+          "concurrency": "同一SQL快照不跨远程IO；游标签名在读取结束后执行",
+          "idempotency": "只读和依赖装配无付费或后台任务副作用；来源变化不得虚报完整",
+          "dependencies": [
+            "content.WithReferenceRuntime",
+            "content.ListResourceReferences",
+            "content.ReadReferenceDecision",
+            "platform.NewServiceHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -10357,6 +10619,12 @@
       "path": "modules/content/migrations/0004_draft_commits.sql",
       "kind": "handwritten",
       "purpose": "只追加站点树版本、元数据、草稿意图、历史IDledger与引用权威表",
+      "functions": []
+    },
+    {
+      "path": "modules/content/migrations/0005_reference_snapshots.sql",
+      "kind": "handwritten",
+      "purpose": "只追加全站来源扫描单调水位；触发器在原来源事务内推进，耗尽回滚；不持久化读快照",
       "functions": []
     }
   ],

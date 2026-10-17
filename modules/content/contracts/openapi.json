@@ -2538,7 +2538,7 @@
       "get": {
         "operationId": "listResourceReferences",
         "summary": "向资源库列出哪些文档引用文件",
-        "description": "调用函数 content.ListResourceReferences；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "同一全站单调来源水位分页。包含current_draft/history/pending_pin；pending_pin只表示保护。跨页来源变化409须从头读取；未知发布或缺失来源资格失败关闭，不能认定完整空集。固定服务纯服务调用，portal必须即时content.read授权。",
         "x-handler": "content.ListResourceReferences",
         "x-permission": "service",
         "security": [
@@ -2552,10 +2552,10 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
             }
           },
           {
@@ -2564,9 +2564,16 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "签名不透明游标",
-              "minLength": 0,
+              "minLength": 1,
               "maxLength": 2048
+            }
+          },
+          {
+            "in": "query",
+            "name": "documentId",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             }
           },
           {
@@ -2574,10 +2581,7 @@
             "name": "assetId",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "assetId",
-              "minLength": 0,
-              "maxLength": 2048
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             }
           }
         ],
@@ -2588,6 +2592,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "types.json#/$defs/ListResourceReferencesResult"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
                 }
               }
             }
@@ -2603,7 +2615,47 @@
             }
           },
           "503": {
-            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭错误",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2612,7 +2664,14 @@
               }
             }
           }
-        }
+        },
+        "x-allowed-callers": [
+          "media",
+          "site-config",
+          "data-protection",
+          "portal"
+        ],
+        "x-data-epoch-required": true
       }
     },
     "/v1/objects/{objectId}": {
