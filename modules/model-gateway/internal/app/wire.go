@@ -13,10 +13,12 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/model-gateway/internal/admin"
+	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
+	"nice-wiki/modules/model-gateway/internal/tokens"
 	"nice-wiki/modules/model-gateway/internal/transport"
 )
 
@@ -81,6 +83,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+	for operationID, handler := range billing.NewPriceHandlers() {
+		handlers[operationID] = handler
+	}
+	for operationID, handler := range tokens.NewTokenHandlers() {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range catalog.NewCatalogHandlers() {
 		handlers[operationID] = handler
 	}
@@ -103,6 +111,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Authorize:       authorize,
 		AllowedCallers: map[string][]string{
 			"readTaskAvailability": {"qa"},
+			"getPriceBook":         {"portal"},
+			"quoteCost":            assignmentCallers[1:],
+			"estimateTokens":       {"localization"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},
 			"putProvider":          {"portal"},

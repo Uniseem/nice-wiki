@@ -1173,6 +1173,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "幂等键"
+        },
+        "manualPrice": {
+          "$ref": "#/$defs/ManualPrice",
+          "description": "可选完整人工价目替换；生效时间只由服务器生成，与模型CAS事务持久；省略保持原价目。"
         }
       },
       "required": [
@@ -4476,6 +4480,41 @@
       "x-internal": true,
       "x-go-type": "map[string]http.Handler",
       "description": "既有putProvider/putModel真实HTTP映射，交公共完整工厂"
+    },
+    "ManualPrice": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "整份人工价目；三费率均显式USD才已知，缺项为unknown，显式0合法；空对象清为明确unknown，省略manualPrice则保留原价目。",
+      "properties": {
+        "inputPerMillionCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "outputPerMillionCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "fixedCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        }
+      },
+      "required": []
+    },
+    "PriceHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "仅本轮免费报价HTTP真实映射"
+    },
+    "TimeInstant": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "time.Time",
+      "description": "已解析时刻，按UTC秒与纳秒比较，避免字符串排序和UnixNano年份溢出"
+    },
+    "TokenHandlers": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "map[string]http.Handler",
+      "description": "localization免费文本预算HTTP映射"
     }
   }
 }

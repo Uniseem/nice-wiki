@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 37、UI 3、生成 5、配置 10、迁移 2。函数 108 个：约束 37，参考 71。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 37、UI 3、生成 5、配置 10、迁移 3。函数 115 个：约束 38，参考 77。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -12,7 +12,7 @@
 | `modules/model-gateway/internal/catalog/model.go` | 手写 | 保存不可变模型身份版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutModel`、`model-gateway.ValidateModel`（参考）、`model-gateway.readModelReceipt`（参考） |
 | `modules/model-gateway/internal/catalog/profile.go` | 手写 | 档位配置持久写入、真实任务档位解析与同代安全候选筛选；无供应方或费用操作 | `model-gateway.PutProfile`、`model-gateway.ResolveProfile`（参考）、`model-gateway.readProfileReceipt`（参考）、`model-gateway.validateProfileModels`（参考）、`model-gateway.NewProfileHandlers`（参考）、`model-gateway.readRouteProfile`（参考）、`model-gateway.applyTaskOverride`（参考）、`model-gateway.SelectCandidates`（参考）、`model-gateway.readRouteCandidate`（参考） |
 | `modules/model-gateway/internal/routing/route.go` | 手写 | 确定不可变调用路线所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ResolveRoute`（参考） |
-| `modules/model-gateway/internal/billing/quote.go` | 手写 | 计算可保守预留的最大费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QuoteCost` |
+| `modules/model-gateway/internal/billing/quote.go` | 手写 | 计算可保守预留的最大费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QuoteCost`、`model-gateway.ReadPriceSnapshot`（参考）、`model-gateway.SaveManualPrice`（参考）、`model-gateway.MakePriceSnapshot`（参考）、`model-gateway.beginPriceSnapshot`（参考）、`model-gateway.RequirePriceCaller`（参考）、`model-gateway.NewPriceHandlers`（参考） |
 | `modules/model-gateway/internal/invocation/create.go` | 手写 | 接受统一AI调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateInvocation` |
 | `modules/model-gateway/internal/billing/reservation.go` | 手写 | 原子扣占额度所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ReserveCost`（参考）、`model-gateway.ExtendReservation`（参考） |
 | `modules/model-gateway/internal/invocation/dispatch.go` | 手写 | 派发供应方请求所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.DispatchInvocation`（参考）、`model-gateway.ExecuteInvocation`（参考） |
@@ -23,7 +23,7 @@
 | `modules/model-gateway/internal/billing/reconcile.go` | 手写 | 保留不确定收费责任所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MarkUnknownCharge`（参考）、`model-gateway.ReconcileCharge` |
 | `modules/model-gateway/internal/invocation/cancel.go` | 手写 | 贯穿取消调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CancelInvocation` |
 | `modules/model-gateway/internal/invocation/read.go` | 手写 | 读取调用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.GetInvocation` |
-| `modules/model-gateway/internal/tokens/budget.go` | 手写 | 保守估算请求预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.EstimateTokens`（参考）、`model-gateway.ValidateEmbeddingSpace`（参考） |
+| `modules/model-gateway/internal/tokens/budget.go` | 手写 | 保守估算请求预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.EstimateTokens`、`model-gateway.ValidateEmbeddingSpace`（参考）、`model-gateway.NewTokenHandlers`（参考） |
 | `modules/model-gateway/internal/concurrency/lease.go` | 手写 | 限制供应方并发所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireProviderSlot`（参考）、`model-gateway.ReleaseProviderSlot`（参考） |
 | `modules/model-gateway/internal/events/outbox.go` | 手写 | 原子记录业务事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.EnqueueOutbox`（参考）、`model-gateway.PublishOutbox` |
 | `modules/model-gateway/internal/runtime/recovery.go` | 手写 | 恢复崩溃中的调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RecoverLeases`（参考） |
@@ -63,3 +63,4 @@
 | `modules/model-gateway/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/model-gateway/migrations/002_task_availability.sql` | 迁移 | 只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。 | 无 |
 | `modules/model-gateway/migrations/003_fee_budget_policy.sql` | 手写 | 只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。 | 无 |
+| `modules/model-gateway/migrations/004_price_book.sql` | 迁移 | 只追加不可变人工价目历史，无价格种子、目录来源伪造或费用状态。 | 无 |
