@@ -4,7 +4,7 @@
 
 当前为R1实施阶段：已有入口路由、权威access/CSRF和代理链；本轮浏览器认证cookie与可信网络scope适配已通过统一VPS生成/格式/编译/vet/结构检查，业务验收未执行。完整本域HTTP处理器与初始化/恢复就绪权威未齐时Application明确失败，不能声明整站登录已可用。业务验收与部署未执行。
 
-`portal.RedactRequest` 已按静态路由生成最小访问审计字段，并剥除 cookie 与 authorization。query 敏感键、路径变量敏感标识和其他请求头未写明时失败关闭。该函数尚未编译，不记 verified，accepted 仍为 0。
+`portal.RedactRequest` 已由 pipeline 48 记 verified。它按静态路由保留 requestId、routeId、method 与体字节数，并剥除 cookie 与 authorization。`portal.EmitAccessAudit` 因 appendAudit 请求体映射缺失保持 blocked，verification.state 为 not_run。accepted 仍为 0。
 
 ## 设计索引
 

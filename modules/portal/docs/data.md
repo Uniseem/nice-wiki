@@ -172,4 +172,6 @@ identity内部SessionTokens只在portal本次响应内存出现；本域不持�
 
 `RedactedAuditRequest` 只有 `requestId`、`routeId`、`method`、`bodyBytes`。`routeId` 与 `method` 取自静态路由，`requestId` 与体字节数取自已校验请求。名为 cookie 与 authorization 的头被剥除，值不进入结果。耗时属于 `RequestOutcome`，不由 `RedactRequest` 生成。
 
+`EmitAccessAudit` 不再读取原始 HTTP。`AppendAuditRequestBody` 的 `auditId`、`action`、`resourceId`、`resultCode`、`metadata` 与 `requestId`、`routeId`、`method`、`bodyBytes`、`status`、`durationMs`、`code` 没有已写明的一一映射。`requestId` 只写明可传给 `Idempotency-Key`。映射缺失时不生成请求体。
+
 合同没有列出敏感 query 键，路由类型也没有路径变量敏感标识。出现 query、路径变量，或其他未点名的请求头时，函数返回 `VALIDATION`，不自选替换、截断或保留规则。错误说明不回显头值、query 或路径变量值。
