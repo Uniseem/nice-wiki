@@ -89,6 +89,7 @@
           "purpose": "为一次服务间请求签发短期断言",
           "steps": [
             "校验claims：issuer为本服务slug，audience为目标服务，method/path/bodyHash齐全，有效期≤60秒",
+            "可选siteId仅为合法Identifier，绑定进同一服务签名；省略保留旧system兼容，不改变用户授权",
             "以EdDSA签名生成JWS compact，header含keyId",
             "返回token；不缓存、不记录"
           ],
@@ -164,6 +165,7 @@
           "steps": [
             "按keyId查公钥，拒绝未知key、非EdDSA算法与alg=none",
             "核audience、method、path、bodyHash、有效期（允许30秒时钟偏差）",
+            "校验签名内可选siteId合法；不存在保留旧服务调用兼容，不接受未签名站点头",
             "jti在有效期内只接受一次（进程内重放缓存）",
             "返回已验证的调用服务slug"
           ],
@@ -355,6 +357,137 @@
           "dependencies": [
             "platform.PrivateOperationDigest"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SignOutboundRequest",
+          "name": "SignOutboundRequest",
+          "signature": "func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience string, key SigningKey) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信链上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "r",
+              "type": "*http.Request",
+              "description": "本次出站请求",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "issuer",
+              "type": "string",
+              "description": "调用服务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "audience",
+              "type": "string",
+              "description": "拥有服务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "受控私钥引用",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "统一服务断言和真实站点传递",
+          "steps": [
+            "从可信op复制可选Actor.SiteID进签名claims，不读站点HTTP头；登录网络作用域仍仅portal到identity",
+            "按本次方法/path/body重新签名；保留已有root/epoch/costClass及更早截止",
+            "统一覆盖或删除X-Portal-Proof，空证明不能残留请求对象旧头；不创建用户委托"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "声明站点/时效等不合法",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "正文或私钥不可读",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读取受控服务私钥并修改出站Authorization/上下文头；正文哈希后原样回填，不执行网络"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，只取已建立可信OperationContext；签名站点不授予用户或对象权限"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "每次传输签发新jti，业务op与root不由此重建",
+          "dependencies": [
+            "platform.SignAssertion",
+            "platform.applyOperationHeaders"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.applyOperationHeaders",
+          "name": "applyOperationHeaders",
+          "signature": "func applyOperationHeaders(ctx context.Context, r *http.Request)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信链",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "r",
+              "type": "*http.Request",
+              "description": "出站请求",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [],
+          "purpose": "传递操作头并清除已撤去的用户证明",
+          "steps": [
+            "复制可信操作上下文头；proof为空时显式删除旧X-Portal-Proof"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "覆盖或删除出站请求头，不发送网络请求"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅使用可信调用链上下文，不从请求自报身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "同可信上下文产生相同操作头；空proof删除残留",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -1055,7 +1188,8 @@
             "dataEpoch取runtime当前active epoch；请求声明的epoch不一致返回VERSION_MISMATCH",
             "浏览器自报的身份、费用类别、网络作用域一律忽略",
             "先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文",
-            "从已验签portal→identity断言复制Go私有LoginNetworkScopes，不从浏览器字段/header取；已过期/非法deadline明确拒绝，不能重置为默认30秒"
+            "从已验签portal→identity断言复制Go私有LoginNetworkScopes，不从浏览器字段/header取；已过期/非法deadline明确拒绝，不能重置为默认30秒",
+            "无proof时service actor的siteId取已验签可选siteId，省略为system；有proof时若同时有签名siteId则必须与委托actor站点相等，否则FORBIDDEN；站点声明不授予任何用户或对象权限"
           ],
           "errors": [
             {
@@ -1066,6 +1200,11 @@
             {
               "code": "VERSION_MISMATCH",
               "when": "dataEpoch不一致",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "签名站点与委托站点矛盾",
               "retryable": false
             }
           ],
@@ -1824,7 +1963,7 @@
         {
           "id": "platform.RunWorkerLoop",
           "name": "RunWorkerLoop",
-          "signature": "func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, executors JobExecutorRegistry) error",
+          "signature": "func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerConfig, executors JobExecutorRegistry) error",
           "inputs": [
             {
               "name": "ctx",
@@ -1836,7 +1975,7 @@
             },
             {
               "name": "client",
-              "type": "JobsClient",
+              "type": "WorkerJobsClient",
               "description": "jobs客户端",
               "constraints": [
                 "带服务断言"
@@ -1871,6 +2010,7 @@
           ],
           "purpose": "任务领取循环的通用实现",
           "steps": [
+            "每次领取先读当前runtime，维护或空epoch暂停；以owner纯服务system建立30秒或更早父截止、独立op/root和当前epoch，清原用户proof；领取不访问本站业务对象，领取后由域factory读取真实站点/任务授权",
             "jobs:claimJob只领取登记类型；维护期间暂停",
             "jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消",
             "写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob",
@@ -1910,7 +2050,13 @@
             "platform.workerControlContext",
             "platform.newExecutionLease",
             "platform.executionLeaseContext",
-            "platform.renewExecutionLease"
+            "platform.renewExecutionLease",
+            "platform.ClaimJob",
+            "platform.StartJob",
+            "platform.HeartbeatJob",
+            "platform.CheckLease",
+            "platform.CompleteJob",
+            "platform.FailJob"
           ],
           "resources": [],
           "contract": "binding"
@@ -1949,7 +2095,8 @@
           ],
           "purpose": "为独立worker控制请求分配幂等键",
           "steps": [
-            "只更换OperationID，保留原费用根、主体、预算、截止和dataEpoch"
+            "只更换OperationID，保留原费用根、主体、预算、截止和dataEpoch",
+            "所有owner租约控制撤去上下文PortalProof，避免旧用户委托被重新发送；保留任务已核站点/root/费用和更早截止"
           ],
           "errors": [],
           "sideEffects": [],
@@ -1963,7 +2110,7 @@
         {
           "id": "platform.newExecutionLease",
           "name": "newExecutionLease",
-          "signature": "func newExecutionLease(ctx context.Context, op OperationContext, client JobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)",
+          "signature": "func newExecutionLease(ctx context.Context, op OperationContext, client WorkerJobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1983,7 +2130,7 @@
             },
             {
               "name": "client",
-              "type": "JobsClient",
+              "type": "WorkerJobsClient",
               "description": "可信租约客户端",
               "constraints": [
                 "仅可信进程内调用"
@@ -2825,7 +2972,8 @@
           "concurrency": "客户端可并发使用；缓存由ReadRuntime负责",
           "idempotency": "只读",
           "dependencies": [
-            "site-config:readRuntimeState"
+            "site-config:readRuntimeState",
+            "platform.SignOutboundRequest"
           ],
           "resources": [],
           "contract": "binding"
@@ -3825,6 +3973,755 @@
       "kind": "generated",
       "purpose": "依赖校验锁；由go mod download生成",
       "functions": []
+    },
+    {
+      "path": "libs/platform/worker/client.go",
+      "kind": "handwritten",
+      "purpose": "生成jobs HTTP端口到公共任务租约机制的一次性生产方schema适配",
+      "functions": [
+        {
+          "id": "platform.NewJobsClient",
+          "name": "NewJobsClient",
+          "signature": "func NewJobsClient(client RawJobsClient, validators ResponseValidators) (WorkerJobsClient, error)",
+          "inputs": [
+            {
+              "name": "client",
+              "type": "RawJobsClient",
+              "description": "真实生成客户端",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "validators",
+              "type": "ResponseValidators",
+              "description": "六生产方成功schema",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "client",
+              "type": "WorkerJobsClient",
+              "description": "窄机制端口",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "装配真实任务六端口",
+          "steps": [
+            "启动检查真实客户端和六Result校验器齐全，复制校验器map避免外部替换；不执行网络或业务操作"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.ClaimJob",
+            "platform.StartJob",
+            "platform.HeartbeatJob",
+            "platform.CheckLease",
+            "platform.CompleteJob",
+            "platform.FailJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.workerOperation",
+          "name": "workerOperation",
+          "signature": "func workerOperation(ctx context.Context) (OperationContext, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本次可信控制",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "取得平台任务控制上下文",
+          "steps": [
+            "缺少已装配op、operationId或当前epoch失败关闭，不从请求材料猜授权"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.decodeWorkerResponse",
+          "name": "decodeWorkerResponse",
+          "signature": "func (c *jobsClient) decodeWorkerResponse(schema string, raw json.RawMessage, result any) error",
+          "inputs": [
+            {
+              "name": "schema",
+              "type": "string",
+              "description": "六固定schema之一",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "raw",
+              "type": "bytes",
+              "description": "原始成功JSON",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "result",
+              "type": "any",
+              "description": "本方法投影目标",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "按生产方schema校验一次成功响应",
+          "steps": [
+            "先运行启动提供的严格生产方schema，再解码本方法机制投影；失败保留安全错误，不使用部分结果"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ClaimJob",
+          "name": "ClaimJob",
+          "signature": "func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]ClaimedJob, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "owner",
+              "type": "string",
+              "description": "本域owner",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "当前worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "description": "有界数量",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "jobs",
+              "type": "[]ClaimedJob",
+              "description": "完整映射",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs ClaimJob机制适配",
+          "steps": [
+            "严格ClaimJobRequestBody仅发送owner/workerId/limit；epoch只经可信上下文头传递，幂等键为本次op",
+            "严格ClaimJobResult后核owner/epoch、并行fencingTokens一致及唯一jobId，完整映射job.operationId/root/inputRef/attempt/expiresAt；不得截断多领任务"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:claimJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.StartJob",
+          "name": "StartJob",
+          "signature": "func (c *jobsClient) StartJob(ctx context.Context, jobID, workerID string, fencingToken int64) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "原任务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "原worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "fencingToken",
+              "type": "int64",
+              "description": "原fence",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs StartJob机制适配",
+          "steps": [
+            "发送完整job/worker/fence/epoch且幂等键为本次op；生产方schema后必须state=running",
+            "遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:startJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.HeartbeatJob",
+          "name": "HeartbeatJob",
+          "signature": "func (c *jobsClient) HeartbeatJob(ctx context.Context, jobID, workerID string, fencingToken int64) (HeartbeatInfo, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "原任务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "原worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "fencingToken",
+              "type": "int64",
+              "description": "原fence",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "info",
+              "type": "HeartbeatInfo",
+              "description": "到期/取消/安全点",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs HeartbeatJob机制适配",
+          "steps": [
+            "完整控制身份及epoch，严格响应保留三字段，不伪造新到期；独立本地租约截止仍由循环约束",
+            "遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:heartbeatJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CheckLease",
+          "name": "CheckLease",
+          "signature": "func (c *jobsClient) CheckLease(ctx context.Context, jobID, workerID string, fencingToken int64) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "原任务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "原worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "fencingToken",
+              "type": "int64",
+              "description": "原fence",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "valid",
+              "type": "bool",
+              "description": "真实valid",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs CheckLease机制适配",
+          "steps": [
+            "以登记query workerId/fencingToken调用原任务路径，当前epoch由可信操作头；严格响应返回真实valid"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:checkLease"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CompleteJob",
+          "name": "CompleteJob",
+          "signature": "func (c *jobsClient) CompleteJob(ctx context.Context, jobID, workerID string, fencingToken int64, result *ObjectRef, paidResultRefs []Identifier) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "原任务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "原worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "fencingToken",
+              "type": "int64",
+              "description": "原fence",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "result",
+              "type": "*ObjectRef",
+              "description": "可选真实结果",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "paidResultRefs",
+              "type": "[]Identifier",
+              "description": "已有付费结果",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs CompleteJob机制适配",
+          "steps": [
+            "发送完整job/worker/fence/epoch、可选真实result及非null paidResultRefs，幂等键为本次op；生产方成功schema后必须succeeded",
+            "遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:completeJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.FailJob",
+          "name": "FailJob",
+          "signature": "func (c *jobsClient) FailJob(ctx context.Context, jobID, workerID string, fencingToken int64, errorCode string, paidResultRefs []Identifier) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "jobID",
+              "type": "string",
+              "description": "原任务",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "原worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "fencingToken",
+              "type": "int64",
+              "description": "原fence",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "errorCode",
+              "type": "string",
+              "description": "公共安全码",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "paidResultRefs",
+              "type": "[]Identifier",
+              "description": "已有付费结果",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "真实jobs FailJob机制适配",
+          "steps": [
+            "发送完整控制身份、epoch、安全错误码和已有付费引用；严格成功响应只接cancelled/orphan/retry-wait/dead-letter，不冒称再次执行或释放费用",
+            "遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:failJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [],

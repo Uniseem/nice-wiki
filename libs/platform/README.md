@@ -13,3 +13,5 @@
 资料：[函数合同](docs/functions.md)、[文件目录](docs/files.md)、[机器合同](contracts/implementation.json)、[类型](contracts/types.json)、[进度台账](progress.json)。
 
 ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传递部署主密钥绝对路径；配置加载不打开密钥，使用域按具体加密操作读取。
+
+第三轮公共候选补签名站点传递和任务六方法窄适配，当前待根GitLab检查；状态与未完成边界见STATUS及handoff。

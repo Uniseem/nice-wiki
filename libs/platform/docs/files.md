@@ -2,11 +2,11 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 19 个：手写 17、生成 1、配置 1。函数 53 个：约束 19，参考 34。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 20 个：手写 18、生成 1、配置 1。函数 64 个：约束 19，参考 45。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `libs/platform/serviceauth/assertion.go` | 手写 | 服务断言签发与验证 | `platform.SignAssertion`、`platform.VerifyAssertion`、`platform.validLoginScopes`（参考）、`platform.PrivateNetworkScopes`（参考） |
+| `libs/platform/serviceauth/assertion.go` | 手写 | 服务断言签发与验证 | `platform.SignAssertion`、`platform.VerifyAssertion`、`platform.validLoginScopes`（参考）、`platform.PrivateNetworkScopes`（参考）、`platform.SignOutboundRequest`（参考）、`platform.applyOperationHeaders`（参考） |
 | `libs/platform/serviceauth/delegation.go` | 手写 | 用户委托验证与作用域绑定的分页游标签名 | `platform.VerifyDelegation`、`platform.SignCursor`（参考）、`platform.VerifyCursor`（参考）、`platform.SignSessionAccess`（参考）、`platform.VerifySessionAccess`（参考）、`platform.GenerateSessionSecrets`（参考）、`platform.SignDelegation`（参考）、`platform.validSessionClaims`（参考）、`platform.PrivateOperationDigest`（参考） |
 | `libs/platform/opctx/context.go` | 手写 | 可信OperationContext构建 | `platform.BuildOperationContext` |
 | `libs/platform/problem/problem.go` | 手写 | 公共Problem输出 | `platform.WriteProblem`、`platform.FromError`（参考） |
@@ -25,3 +25,4 @@
 | `libs/platform/platform.go` | 手写 | 公共契约类型、接口和确定性纯工具，禁止业务规则 | `platform.CanonicalJSON`（参考）、`platform.NormalizeIOError`（参考） |
 | `libs/platform/go.mod` | 配置 | Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用 | 无 |
 | `libs/platform/go.sum` | 生成 | 依赖校验锁；由go mod download生成 | 无 |
+| `libs/platform/worker/client.go` | 手写 | 生成jobs HTTP端口到公共任务租约机制的一次性生产方schema适配 | `platform.NewJobsClient`（参考）、`platform.workerOperation`（参考）、`platform.decodeWorkerResponse`（参考）、`platform.ClaimJob`（参考）、`platform.StartJob`（参考）、`platform.HeartbeatJob`（参考）、`platform.CheckLease`（参考）、`platform.CompleteJob`（参考）、`platform.FailJob`（参考） |

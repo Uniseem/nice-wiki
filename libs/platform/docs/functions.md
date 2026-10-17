@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 53 个函数：约束 19 个，参考 34 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 64 个函数：约束 19 个，参考 45 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,8 +33,9 @@ func SignAssertion(key SigningKey, claims AssertionClaims) (string, error)
 **步骤**
 
 1. 校验claims：issuer为本服务slug，audience为目标服务，method/path/bodyHash齐全，有效期≤60秒
-2. 以EdDSA签名生成JWS compact，header含keyId
-3. 返回token；不缓存、不记录
+2. 可选siteId仅为合法Identifier，绑定进同一服务签名；省略保留旧system兼容，不改变用户授权
+3. 以EdDSA签名生成JWS compact，header含keyId
+4. 返回token；不缓存、不记录
 
 **错误**
 
@@ -75,8 +76,9 @@ func VerifyAssertion(anchors TrustAnchors, token string, expect AssertionExpecta
 
 1. 按keyId查公钥，拒绝未知key、非EdDSA算法与alg=none
 2. 核audience、method、path、bodyHash、有效期（允许30秒时钟偏差）
-3. jti在有效期内只接受一次（进程内重放缓存）
-4. 返回已验证的调用服务slug
+3. 校验签名内可选siteId合法；不存在保留旧服务调用兼容，不接受未签名站点头
+4. jti在有效期内只接受一次（进程内重放缓存）
+5. 返回已验证的调用服务slug
 
 **错误**
 
@@ -173,6 +175,84 @@ func PrivateNetworkScopes(key SigningKey, remoteAddr, forwardedFor string, trust
 - 并发：无可写业务状态，可并发
 - 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
 - 依赖：`platform.PrivateOperationDigest`
+
+## platform.SignOutboundRequest
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：统一服务断言和真实站点传递
+
+```go
+func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience string, key SigningKey) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信链上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `r` | `*http.Request` | 本次出站请求 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `issuer` | `string` | 调用服务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `audience` | `string` | 拥有服务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `key` | `SigningKey` | 受控私钥引用 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 从可信op复制可选Actor.SiteID进签名claims，不读站点HTTP头；登录网络作用域仍仅portal到identity
+2. 按本次方法/path/body重新签名；保留已有root/epoch/costClass及更早截止
+3. 统一覆盖或删除X-Portal-Proof，空证明不能残留请求对象旧头；不创建用户委托
+
+**错误**
+
+- `VALIDATION`：声明站点/时效等不合法（不可重试）
+- `INTERNAL`：正文或私钥不可读（不可重试）
+
+- 副作用：读取受控服务私钥并修改出站Authorization/上下文头；正文哈希后原样回填，不执行网络
+- 授权：permission：service；rule：库函数，只取已建立可信OperationContext；签名站点不授予用户或对象权限
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：每次传输签发新jti，业务op与root不由此重建
+- 依赖：`platform.SignAssertion`、`platform.applyOperationHeaders`
+
+## platform.applyOperationHeaders
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：传递操作头并清除已撤去的用户证明
+
+```go
+func applyOperationHeaders(ctx context.Context, r *http.Request)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信链 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `r` | `*http.Request` | 出站请求 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复制可信操作上下文头；proof为空时显式删除旧X-Portal-Proof
+
+**错误**
+
+- 无
+
+- 副作用：覆盖或删除出站请求头，不发送网络请求
+- 授权：permission：service；rule：仅使用可信调用链上下文，不从请求自报身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：同可信上下文产生相同操作头；空proof删除残留
+- 依赖：无
 
 ## platform.VerifyDelegation
 
@@ -574,11 +654,13 @@ func BuildOperationContext(r *http.Request, anchors TrustAnchors, self string, r
 4. 浏览器自报的身份、费用类别、网络作用域一律忽略
 5. 先验证服务断言绑定当前方法/path/body，再将已认证issuer传委托验证；portal首跳核原bodyHash，后续跳不把衍生请求正文当原浏览器正文
 6. 从已验签portal→identity断言复制Go私有LoginNetworkScopes，不从浏览器字段/header取；已过期/非法deadline明确拒绝，不能重置为默认30秒
+7. 无proof时service actor的siteId取已验签可选siteId，省略为system；有proof时若同时有签名siteId则必须与委托actor站点相等，否则FORBIDDEN；站点声明不授予任何用户或对象权限
 
 **错误**
 
 - `UNAUTHENTICATED`：断言或委托无效（不可重试）
 - `VERSION_MISMATCH`：dataEpoch不一致（不可重试）
+- `FORBIDDEN`：签名站点与委托站点矛盾（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
@@ -1002,7 +1084,7 @@ func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, 
 - 作用：任务领取循环的通用实现
 
 ```go
-func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, executors JobExecutorRegistry) error
+func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerConfig, executors JobExecutorRegistry) error
 ```
 
 **输入**
@@ -1010,7 +1092,7 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
-| `client` | `JobsClient` | jobs客户端 | 带服务断言 |
+| `client` | `WorkerJobsClient` | jobs客户端 | 带服务断言 |
 | `config` | `WorkerConfig` | 本域jobTypes与并发 | 来自implementation.json |
 | `executors` | `JobExecutorRegistry` | jobType→执行函数 | 与jobTypes一致 |
 
@@ -1022,18 +1104,19 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 
 **步骤**
 
-1. jobs:claimJob只领取登记类型；维护期间暂停
-2. jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消
-3. 写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob
-4. lease过期立即停止写入，不重放已派发模型调用
-5. 写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约
-6. Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果
-7. WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作
-8. 每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认
-9. runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许
-10. 向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭
-11. 领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定
-12. executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功
+1. 每次领取先读当前runtime，维护或空epoch暂停；以owner纯服务system建立30秒或更早父截止、独立op/root和当前epoch，清原用户proof；领取不访问本站业务对象，领取后由域factory读取真实站点/任务授权
+2. jobs:claimJob只领取登记类型；维护期间暂停
+3. jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消
+4. 写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob
+5. lease过期立即停止写入，不重放已派发模型调用
+6. 写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约
+7. Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果
+8. WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作
+9. 每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认
+10. runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许
+11. 向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭
+12. 领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定
+13. executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功
 
 **错误**
 
@@ -1043,7 +1126,7 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`
 
 ## platform.workerControlContext
 
@@ -1071,6 +1154,7 @@ func workerControlContext(ctx context.Context, op OperationContext) context.Cont
 **步骤**
 
 1. 只更换OperationID，保留原费用根、主体、预算、截止和dataEpoch
+2. 所有owner租约控制撤去上下文PortalProof，避免旧用户委托被重新发送；保留任务已核站点/root/费用和更早截止
 
 **错误**
 
@@ -1089,7 +1173,7 @@ func workerControlContext(ctx context.Context, op OperationContext) context.Cont
 - 作用：建立领取结果的本地到期边界
 
 ```go
-func newExecutionLease(ctx context.Context, op OperationContext, client JobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)
+func newExecutionLease(ctx context.Context, op OperationContext, client WorkerJobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)
 ```
 
 **输入**
@@ -1098,7 +1182,7 @@ func newExecutionLease(ctx context.Context, op OperationContext, client JobsClie
 |---|---|---|---|
 | `ctx` | `context.Context` | 任务取消上下文 | 仅可信进程内调用 |
 | `op` | `OperationContext` | 原业务操作 | 仅可信进程内调用 |
-| `client` | `JobsClient` | 可信租约客户端 | 仅可信进程内调用 |
+| `client` | `WorkerJobsClient` | 可信租约客户端 | 仅可信进程内调用 |
 | `workerID` | `string` | 本次worker | 仅可信进程内调用 |
 | `job` | `ClaimedJob` | 真实完整领取材料 | 仅可信进程内调用 |
 | `cancel` | `CancelCauseFunc` | 取消当前执行 | 仅可信进程内调用 |
@@ -1568,7 +1652,7 @@ func NewSiteConfigClient(cfg ServiceConfig, key SigningKey) (SiteConfigClient, e
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：客户端可并发使用；缓存由ReadRuntime负责
 - 幂等：只读
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SignOutboundRequest`
 
 ## platform.NewWriteContext
 
@@ -2178,3 +2262,370 @@ func NormalizeIOError(err error, fallbackCode string, retryable bool, safeMessag
 - 并发：无可变共享状态
 - 幂等：纯映射
 - 依赖：无
+
+## platform.NewJobsClient
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：装配真实任务六端口
+
+```go
+func NewJobsClient(client RawJobsClient, validators ResponseValidators) (WorkerJobsClient, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `RawJobsClient` | 真实生成客户端 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `validators` | `ResponseValidators` | 六生产方成功schema | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `WorkerJobsClient` | 窄机制端口 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 启动检查真实客户端和六Result校验器齐全，复制校验器map避免外部替换；不执行网络或业务操作
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`
+
+## platform.workerOperation
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：取得平台任务控制上下文
+
+```go
+func workerOperation(ctx context.Context) (OperationContext, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `op` | `OperationContext` | 本次可信控制 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 缺少已装配op、operationId或当前epoch失败关闭，不从请求材料猜授权
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.decodeWorkerResponse
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：按生产方schema校验一次成功响应
+
+```go
+func (c *jobsClient) decodeWorkerResponse(schema string, raw json.RawMessage, result any) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `schema` | `string` | 六固定schema之一 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `raw` | `bytes` | 原始成功JSON | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `result` | `any` | 本方法投影目标 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 先运行启动提供的严格生产方schema，再解码本方法机制投影；失败保留安全错误，不使用部分结果
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.ClaimJob
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs ClaimJob机制适配
+
+```go
+func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]ClaimedJob, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `owner` | `string` | 本域owner | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 当前worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `limit` | `int` | 有界数量 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `jobs` | `[]ClaimedJob` | 完整映射 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 严格ClaimJobRequestBody仅发送owner/workerId/limit；epoch只经可信上下文头传递，幂等键为本次op
+2. 严格ClaimJobResult后核owner/epoch、并行fencingTokens一致及唯一jobId，完整映射job.operationId/root/inputRef/attempt/expiresAt；不得截断多领任务
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:claimJob`
+
+## platform.StartJob
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs StartJob机制适配
+
+```go
+func (c *jobsClient) StartJob(ctx context.Context, jobID, workerID string, fencingToken int64) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `jobID` | `string` | 原任务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 原worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `fencingToken` | `int64` | 原fence | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 发送完整job/worker/fence/epoch且幂等键为本次op；生产方schema后必须state=running
+2. 遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:startJob`
+
+## platform.HeartbeatJob
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs HeartbeatJob机制适配
+
+```go
+func (c *jobsClient) HeartbeatJob(ctx context.Context, jobID, workerID string, fencingToken int64) (HeartbeatInfo, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `jobID` | `string` | 原任务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 原worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `fencingToken` | `int64` | 原fence | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `info` | `HeartbeatInfo` | 到期/取消/安全点 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 完整控制身份及epoch，严格响应保留三字段，不伪造新到期；独立本地租约截止仍由循环约束
+2. 遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:heartbeatJob`
+
+## platform.CheckLease
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs CheckLease机制适配
+
+```go
+func (c *jobsClient) CheckLease(ctx context.Context, jobID, workerID string, fencingToken int64) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `jobID` | `string` | 原任务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 原worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `fencingToken` | `int64` | 原fence | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `valid` | `bool` | 真实valid | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 以登记query workerId/fencingToken调用原任务路径，当前epoch由可信操作头；严格响应返回真实valid
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:checkLease`
+
+## platform.CompleteJob
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs CompleteJob机制适配
+
+```go
+func (c *jobsClient) CompleteJob(ctx context.Context, jobID, workerID string, fencingToken int64, result *ObjectRef, paidResultRefs []Identifier) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `jobID` | `string` | 原任务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 原worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `fencingToken` | `int64` | 原fence | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `result` | `*ObjectRef` | 可选真实结果 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `paidResultRefs` | `[]Identifier` | 已有付费结果 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 发送完整job/worker/fence/epoch、可选真实result及非null paidResultRefs，幂等键为本次op；生产方成功schema后必须succeeded
+2. 遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:completeJob`
+
+## platform.FailJob
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：真实jobs FailJob机制适配
+
+```go
+func (c *jobsClient) FailJob(ctx context.Context, jobID, workerID string, fencingToken int64, errorCode string, paidResultRefs []Identifier) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `jobID` | `string` | 原任务 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 原worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `fencingToken` | `int64` | 原fence | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `errorCode` | `string` | 公共安全码 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `paidResultRefs` | `[]Identifier` | 已有付费结果 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 发送完整控制身份、epoch、安全错误码和已有付费引用；严格成功响应只接cancelled/orphan/retry-wait/dead-letter，不冒称再次执行或释放费用
+2. 遵守生产方HTTP RequestBody：jobId仅路径、dataEpoch仅可信上下文头，body不重复领域Input的jobId/dataEpoch；lease body仅workerId/fencingToken，终局再加实际结果/错误与paid refs
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:failJob`

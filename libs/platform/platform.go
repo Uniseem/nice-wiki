@@ -214,6 +214,7 @@ type AssertionClaims struct {
 	ExpiresAt          Timestamp  `json:"expiresAt"`
 	JTI                Identifier `json:"jti"`
 	LoginNetworkScopes []Hash     `json:"loginNetworkScopes,omitempty"`
+	SiteID             Identifier `json:"siteId,omitempty"`
 }
 
 // AssertionExpectation 验证断言时的期望值。
@@ -692,17 +693,22 @@ type EventPublisher interface {
 	PublishEvent(ctx context.Context, envelope EventEnvelope) error
 }
 
-// JobsClient jobs服务的调用接口；实现自动附服务断言。
-type JobsClient interface {
-	PublishEvent(ctx context.Context, envelope EventEnvelope) error
-	SubscribeEvents(ctx context.Context, consumerID, lastEventID string) (EventStream, error)
-	AcknowledgeEvent(ctx context.Context, consumerID, eventID Identifier) error
+// WorkerJobsClient只暴露任务租约控制，不要求无关事件端口。
+type WorkerJobsClient interface {
 	ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]ClaimedJob, error)
 	StartJob(ctx context.Context, jobID, workerID string, fencingToken int64) error
 	HeartbeatJob(ctx context.Context, jobID, workerID string, fencingToken int64) (HeartbeatInfo, error)
 	CheckLease(ctx context.Context, jobID, workerID string, fencingToken int64) (bool, error)
 	CompleteJob(ctx context.Context, jobID, workerID string, fencingToken int64, result *ObjectRef, paidResultRefs []Identifier) error
 	FailJob(ctx context.Context, jobID, workerID string, fencingToken int64, errorCode string, paidResultRefs []Identifier) error
+}
+
+// JobsClient保留既有事件与任务组合端口。
+type JobsClient interface {
+	WorkerJobsClient
+	PublishEvent(ctx context.Context, envelope EventEnvelope) error
+	SubscribeEvents(ctx context.Context, consumerID, lastEventID string) (EventStream, error)
+	AcknowledgeEvent(ctx context.Context, consumerID, eventID Identifier) error
 }
 
 // GatewayClient model-gateway服务的调用接口；实现自动附服务断言。

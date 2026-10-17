@@ -82,8 +82,14 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 			return platform.OperationContext{}, err
 		}
 		op.Actor = delegation.Actor
+		if claims.SiteID != "" && claims.SiteID != op.Actor.SiteID {
+			return platform.OperationContext{}, platform.NewError(platform.CodeForbidden, false, "服务断言站点与用户委托不一致")
+		}
 	} else {
 		op.Actor = serviceActor(claims.Issuer, op.Deadline)
+		if claims.SiteID != "" {
+			op.Actor.SiteID = claims.SiteID
+		}
 	}
 	return op, nil
 }

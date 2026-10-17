@@ -15,3 +15,5 @@ AdmissionPermit由guard签名全部字段，包含请求、主体、动作、短
 密钥只写不读，备份选择包含时由超管明确授权并标记；data git禁止秘密。代码提交按D42政策扫描内容、消息、身份，真实个人信息不能用“已经公开”当免责。
 
 备份、导出、暂存、丢弃与维护状态切换只接受 data-protection 的服务身份；手动备份与恢复由 data-protection 核验 superadmin，定时备份按超管保存的设置执行（[ADR0004](adr/0004-wiring-and-service-identity.md)）。服务私钥以文件 secret 挂载，只写不读、不进日志；公钥表由 nw-keys 生成，轮换时保留旧公钥一个过渡期。
+
+服务签名siteId绑定可信调用链站点，不接受单独HTTP站点头；带proof时必须与委托actor相同。pure service与用户权限保持独立，清proof不得残留旧请求头，合法签名站点不能代替本域对象授权。旧省略声明仅兼容system控制主体。

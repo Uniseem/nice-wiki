@@ -141,6 +141,8 @@ func SignAssertion(key platform.SigningKey, claims platform.AssertionClaims) (st
 		return "", platform.NewError(platform.CodeValidation, false, "断言过期时间不合法")
 	}
 	switch {
+	case claims.SiteID != "" && !platform.ValidIdentifier(claims.SiteID):
+		return "", platform.NewError(platform.CodeValidation, false, "断言站点作用域不合法")
 	case !validLoginScopes(claims):
 		return "", platform.NewError(platform.CodeValidation, false, "登录网络作用域来源不合法")
 	case claims.Issuer == "" || claims.Audience == "" || claims.Method == "" || claims.Path == "":
@@ -229,6 +231,9 @@ func VerifyAssertion(anchors platform.TrustAnchors, token string, expect platfor
 }
 
 func checkAssertionClaims(claims platform.AssertionClaims, expect platform.AssertionExpectation) error {
+	if claims.SiteID != "" && !platform.ValidIdentifier(claims.SiteID) {
+		return platform.NewError(platform.CodeUnauthenticated, false, "断言站点作用域不合法")
+	}
 	if !validLoginScopes(claims) {
 		return platform.NewError(platform.CodeUnauthenticated, false, "登录网络作用域来源不合法")
 	}
@@ -320,8 +325,11 @@ func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience 
 		ExpiresAt: platform.Timestamp(now.Add(AssertionTTL).Format(time.RFC3339Nano)),
 		JTI:       platform.NewIdentifier(),
 	}
-	if op, ok := platform.OperationContextFrom(ctx); ok && issuer == "portal" && audience == "identity" {
-		claims.LoginNetworkScopes = append([]platform.Hash(nil), op.LoginNetworkScopes...)
+	if op, ok := platform.OperationContextFrom(ctx); ok {
+		claims.SiteID = op.Actor.SiteID
+		if issuer == "portal" && audience == "identity" {
+			claims.LoginNetworkScopes = append([]platform.Hash(nil), op.LoginNetworkScopes...)
+		}
 	}
 	token, err := SignAssertion(key, claims)
 	if err != nil {
@@ -356,6 +364,8 @@ func applyOperationHeaders(ctx context.Context, r *http.Request) {
 	}
 	if proof := platform.PortalProofFrom(ctx); proof != "" {
 		r.Header.Set(platform.HeaderPortalProof, proof)
+	} else {
+		r.Header.Del(platform.HeaderPortalProof)
 	}
 }
 

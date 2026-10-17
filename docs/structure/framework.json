@@ -789,6 +789,11 @@
       "purpose": "portal委托证明验证实现"
     },
     {
+      "path": "libs/platform/worker/client.go",
+      "kind": "source",
+      "purpose": "真实jobs HTTP到任务六方法的公共严格生产方响应适配"
+    },
+    {
       "path": "libs/platform/worker/loop.go",
       "kind": "handwritten",
       "purpose": "任务领取循环实现"

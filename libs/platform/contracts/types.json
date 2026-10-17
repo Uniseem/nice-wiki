@@ -78,6 +78,10 @@
             "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
           },
           "description": "只允许portal→identity断言携带受信peer派生网络HMAC，当前/前一日跨窗口，不取浏览器字段"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "服务签名的站点作用域；只取可信op.Actor.SiteID，省略兼容旧system主体，不从浏览器头取"
         }
       },
       "required": [
@@ -905,6 +909,43 @@
       "type": "object",
       "x-internal": true,
       "description": "平台任务领取材料；完整jobId/operationId/rootOperationId/type/ObjectRef/fence/attempt/dataEpoch/expiresAt投影，来源为jobs:claimJob"
+    },
+    "WorkerJobsClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "任务六方法窄端口，保留完整ObjectRef/worker/fence/epoch及paidResultRefs；不要求事件方法"
+    },
+    "RawJobsClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "生成Jobs客户端的六个原始HTTP端口；公共adapter统一映射生产方响应"
+    },
+    "ResponseValidators": {
+      "type": "object",
+      "x-internal": true,
+      "description": "map[string]func(json.RawMessage)error，启动由jobs生产方六Result schema构建，不能缺省"
+    },
+    "HeartbeatInfo": {
+      "type": "object",
+      "x-internal": true,
+      "additionalProperties": false,
+      "description": "真实jobs续租响应的机制视图，不创建或延长到期",
+      "properties": {
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "cancelRequested": {
+          "type": "boolean"
+        },
+        "safePointRequested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "expiresAt",
+        "cancelRequested",
+        "safePointRequested"
+      ]
     }
   }
 }

@@ -62,4 +62,4 @@
 
 EstimateLanguagePlan先核当前语言管理权限，再以本域纯服务身份调用model-gateway:estimateTokens。按接口限制分批发送实际待估文本，不截断文本或复制token算法；清除原portal proof/用户委托并保留站点、epoch、root、费用类别及更早截止。随后调用quoteCost，未知价格保留警告，不伪造零费用。此函数仍planned，本次只修合同，不触发任何模型或额度操作。
 
-上述纯服务保留本站是未来协议要求；当前平台接收siteId固定system，尚未实现可信站点传递，EstimateLanguagePlan实施前须先完成该公共前置，不以原portal proof或未签名站点绕过。
+上述纯服务保留本站通过平台统一签名siteId传递；清portal proof后建立localization纯服务actor并保留已核本站，不能把旧无声明的system控制作用域替代本站，也不以原portal proof或未签名站点绕过。EstimateLanguagePlan本身仍planned。

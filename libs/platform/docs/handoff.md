@@ -1,3 +1,19 @@
+# 2026-10-17第三轮公共候选（待GitLab）
+
+基线d760e39194156403e2b82430d5018fa9f4425e19，根集成会话独占公共文件。用户要求再一轮、三个子代理同时编写，全部编译检查经GitLab，通过后普通双推。
+
+- 服务断言新增可选签名siteId，仅取可信op.Actor.SiteID；省略仍兼容system。无委托时接收服务主体保留签名站点；有委托且同时有签名siteId时必须与actor站点一致。站点不授予用户/对象权限，未签名头无效；清空portal proof会显式删除出站旧头。
+- 新WorkerJobsClient只含六个任务控制方法，原JobsClient仍组合事件端口；公共worker.NewJobsClient统一由生成HTTP端口和生产方六个严格Result schema适配。完整保留任务/root/inputRef/worker/fence/epoch/取消/paid refs，不在域复制机制。
+- 每次Claim读取当前runtime，使用owner纯服务system、当前epoch和30秒或更早父截止建立独立控制op；这是队列控制，领取后才由域持久批准恢复真实本站，再经签名传到对象RPC。
+- 现有生成器支持显式x-runtime-payload-schemas并输出独立PayloadValidationSpec，保留严格生产方schema闭包，避免未被HTTP引用的六任务响应被默认剪除；不扩大HTTP接口或全部内部DTO。
+- media交审发现首候选将领域Input的jobId/dataEpoch误放HTTP body，违反生产方额外字段拒绝规则；已改为jobId仅路径、epoch仅可信头，严格body只发RequestBody字段。未经业务执行发现，最终证据以修正后完整GitLab候选为准。
+- pipeline30因HTTP合同窄修更新而取消，不计通过。修正候选pipeline31的生成/格式/重复生成与14Go模块三个build/vet/gofmt分片通过，但完整check缺SigningKey/HeartbeatInfo两项类型登记；补机器类型后待新完整候选，不把编译通过当整体验证。
+- 所有当前新改条目in_progress，等待根GitLab格式/生成/三分片build/vet/gofmt和完整make check；不沿用旧轮证据。无本机或SSH Go、测试/样例/临时业务程序、SQL/HTTP行为验收、模型、worker/删除、服务或部署。
+
+下一项：冻结候选后统一GitLab检查并回传精确生成物；源码和准确SHA记录分开提交，只有实际通过才回填verified。
+
+---
+
 # 2026-10-17 单轮公共前置（候选 GitLab CI 已通过）
 
 本轮用户明确要求三个子代理同时编写一轮后推送，并追加全部编译改经自部署 GitLab、尽量三个并行任务。旧 VPS 三次 SSH 握手失败后停止直连检查，没有本机编译。私有机器管理仓库只读克隆到仓库外，接入凭据不进入本仓库、提交或交接；既有远端双推约定已从最新 main 接续。

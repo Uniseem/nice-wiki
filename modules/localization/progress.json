@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "25de8970b092b6b17915e4f277541fe149ea222257530c2c3dd89b940a7eb152",
+  "contractSha256": "88fa5b67b3c274f3a816c19226bdb31cd8ff22bb9cbd42047a0bffb9925dddbc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，本域私有持久化与启动恢复）",
   "branch": "main",

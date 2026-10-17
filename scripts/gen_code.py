@@ -571,6 +571,37 @@ def render_clients(slug, impl, producer_specs):
     """生成本域clients.gen.go内容。"""
     needed = needed_operations(impl)
     lines = [CLIENTS_HEAD]
+    payload_schemas = producer_specs[slug].get("x-runtime-payload-schemas", [])
+    if payload_schemas:
+        spec = downgrade_to_30(producer_specs[slug])
+        available = spec.get("components", {}).get("schemas", {})
+        selected = {}
+        pending = list(payload_schemas)
+        while pending:
+            name = pending.pop()
+            if name in selected:
+                continue
+            if name not in available:
+                raise SystemExit(f"{slug}: 运行载荷schema缺失 {name}")
+            schema = available[name]
+            selected[name] = schema
+            nodes = [schema]
+            while nodes:
+                node = nodes.pop()
+                if isinstance(node, dict):
+                    ref = node.get("$ref", "")
+                    if ref:
+                        if not ref.startswith("#/components/schemas/"):
+                            raise SystemExit(f"{slug}: 运行载荷包含未解析引用")
+                        pending.append(ref.removeprefix("#/components/schemas/"))
+                    nodes.extend(node.values())
+                elif isinstance(node, list):
+                    nodes.extend(node)
+        document = {"openapi": "3.0.3", "info": {"title": "运行载荷校验", "version": "1"},
+                    "paths": {}, "components": {"schemas": selected}}
+        encoded = json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        lines.append("// PayloadValidationSpec保留显式登记的生产方载荷及引用闭包，不扩展HTTP接口。")
+        lines.append("const PayloadValidationSpec = " + go_string(encoded) + "\n")
     if any(operation_index(producer_specs[p])[oid][2].get("x-sse-kind") == "json" for p, ops in needed.items() for oid in ops if p in producer_specs and oid in operation_index(producer_specs[p])):
         lines.append(JSON_CLIENT_STREAM)
     for producer, ops in needed.items():

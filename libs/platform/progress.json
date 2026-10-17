@@ -2,21 +2,21 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "6e568b670b8d2e6a48cc7adf0f4369bc38aeaef963dd94af0e8f352e95e41703",
+  "contractSha256": "553530f0df3a4d0c4f6cadee166aedbd3615a8923a757394e5afe94605b2cf0b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17单轮公共完整任务引用与单批转发",
-  "branch": "codex/integration-20261017-r1",
-  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
-  "deliveryCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
+  "assignedSession": "2026-10-17第三轮可信站点和真实任务适配",
+  "branch": "codex/integration-20261017-r3",
+  "baseCommit": "d760e39194156403e2b82430d5018fa9f4425e19",
+  "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
     {
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "918dd6369ea7a33bf9296949c8b5441a08d1e88f",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮冻结合成快照：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt和完整make check通过（856文件/1047函数/374操作/2222类型），生成和格式回传无并发冲突。PrivateNetworkScopes已由portal真实调用并在入口图可达；无新增测试、SQL行为验收、真实接口/模型、服务/镜像/部署。verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -32,11 +32,11 @@
     },
     {
       "path": "libs/platform/opctx/context.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -92,11 +92,11 @@
     },
     {
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
-      "implementationCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -172,11 +172,11 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "verified",
-      "implementationCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -199,28 +199,38 @@
         "evidence": "工具生成；当前无第三方依赖故为空；go build通过"
       },
       "blocker": null
+    },
+    {
+      "path": "libs/platform/worker/client.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
     }
   ],
   "functions": [
     {
       "id": "platform.SignAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
     {
       "id": "platform.VerifyAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -238,11 +248,11 @@
     {
       "id": "platform.BuildOperationContext",
       "path": "libs/platform/opctx/context.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -304,11 +314,11 @@
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
-      "implementationCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -359,11 +369,11 @@
     {
       "id": "platform.NewSiteConfigClient",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "verified",
-      "implementationCommit": "051c3834de1fe339dd8e3b9c1b40fc7e6721ccd8",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：make build（各Go模块 -mod=readonly go build/vet、gofmt）通过；VPS联网重新tidy与平台go.sum一致；make docs无漂移、make gen可重复、make check通过（844文件/907函数）"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -491,11 +501,11 @@
     {
       "id": "platform.workerControlContext",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
-      "implementationCommit": "dad2dceed69c8ada97fb9aa28b1a7bf83967ed0b",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "本轮新增统一owner控制剥离旧proof，待根GitLab"
       },
       "blocker": null
     },
@@ -737,11 +747,11 @@
     {
       "id": "platform.newExecutionLease",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
-      "implementationCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
+      "state": "in_progress",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     },
@@ -775,6 +785,116 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SignOutboundRequest",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.applyOperationHeaders",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.NewJobsClient",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.workerOperation",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.decodeWorkerResponse",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.ClaimJob",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.StartJob",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.HeartbeatJob",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.CheckLease",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.CompleteJob",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.FailJob",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
       },
       "blocker": null
     }

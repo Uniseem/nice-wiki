@@ -27,7 +27,7 @@ const (
 // 只领取本域登记类型；维护期间暂停；jobs:startJob后调用执行函数，
 // 每10秒续租、上报进度并读取取消；写回前核对租约，成功completeJob，
 // 失败failJob；租约过期立即停止写入，不重放已派发模型调用。
-func RunWorkerLoop(ctx context.Context, client platform.JobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) error {
+func RunWorkerLoop(ctx context.Context, client platform.WorkerJobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) error {
 	if config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
@@ -55,7 +55,7 @@ func RunWorkerLoop(ctx context.Context, client platform.JobsClient, config platf
 }
 
 type workerLoop struct {
-	client     platform.JobsClient
+	client     platform.WorkerJobsClient
 	config     platform.WorkerConfig
 	registered map[string]bool
 	executors  platform.JobExecutorRegistry
@@ -67,13 +67,24 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 		if ctx.Err() != nil {
 			return
 		}
-		if view, ok := readRuntime(ctx, l.config.Runtime); !ok || view.Maintenance {
+		view, ok := readRuntime(ctx, l.config.Runtime)
+		if !ok || view.Maintenance || view.DataEpoch == "" {
 			if !sleep(ctx, maintenancePause) {
 				return
 			}
 			continue
 		}
-		jobs, err := l.client.ClaimJob(ctx, l.config.Owner, workerID, 1)
+		// 领取属于owner队列控制；具体本站授权在领取后的域factory建立。
+		claimCtx, cancelClaim := context.WithTimeout(platform.WithPortalProof(ctx, ""), 30*time.Second)
+		deadline, _ := claimCtx.Deadline()
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id,
+			CallerService: l.config.Owner, DataEpoch: view.DataEpoch,
+			Deadline: deadline.UTC().Format(time.RFC3339Nano), CostClass: platform.CostClassBackground,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: l.config.Owner, SiteID: "system",
+				ExpiresAt: deadline.UTC().Format(time.RFC3339Nano), Grants: []string{}}}
+		jobs, err := l.client.ClaimJob(platform.WithOperationContext(claimCtx, op), l.config.Owner, workerID, 1)
+		cancelClaim()
 		if err != nil {
 			if ctx.Err() != nil {
 				return
@@ -196,7 +207,7 @@ var errJobCancelled = errors.New("job cancellation requested")
 type executionLease struct {
 	ctx      context.Context
 	op       platform.OperationContext
-	client   platform.JobsClient
+	client   platform.WorkerJobsClient
 	workerID string
 	job      platform.ClaimedJob
 	cancel   context.CancelCauseFunc
@@ -206,7 +217,7 @@ type executionLease struct {
 	timer    *time.Timer
 }
 
-func newExecutionLease(ctx context.Context, op platform.OperationContext, client platform.JobsClient, workerID string, job platform.ClaimedJob, cancel context.CancelCauseFunc) (*executionLease, error) {
+func newExecutionLease(ctx context.Context, op platform.OperationContext, client platform.WorkerJobsClient, workerID string, job platform.ClaimedJob, cancel context.CancelCauseFunc) (*executionLease, error) {
 	expires, err := platform.ParseTimestamp(job.ExpiresAt)
 	if err != nil || !expires.After(time.Now()) {
 		return nil, platform.NewError(platform.CodeLocked, false, "任务领取租约已失效")
@@ -337,8 +348,8 @@ func itoa(v int) string {
 	return strconv.Itoa(v)
 }
 
-// workerControlContext 为一次控制操作分配子操作，费用根和授权主体保持原值。
+// workerControlContext分配独立控制操作并撤去用户证明，原任务站点与费用根保持。
 func workerControlContext(ctx context.Context, op platform.OperationContext) context.Context {
 	op.OperationID = platform.NewIdentifier()
-	return platform.WithOperationContext(ctx, op)
+	return platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
 }

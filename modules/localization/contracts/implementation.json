@@ -7029,7 +7029,7 @@
             "content:readPublicTree列出已发布文档，逐篇content:readPublishedRevision后SplitTranslationUnits与ReuseTranslationMemory统计需新译单元；统计界面字符串缺项",
             "按接口限制分批把实际待估单元文本交model-gateway:estimateTokens，禁止截断或在本域复制token算法；再调用model-gateway:quoteCost分别估localization.document与localization.ui任务，缺价保留price_unknown警告，不伪造0",
             "免费估算以localization纯服务调用：清除原portal proof与用户委托，保留本站/dataEpoch/rootOperationId/费用类别及更早截止；本域先核当前localization.languages，估算不调用模型、不预留或扣减额度",
-            "实现前须先收口libs/platform纯服务可信站点传递协议；当前无portal proof时接收siteId为system，不能冒称已保留本站，不接受调用方自填未签名站点或继续携带原portal proof绕过纯服务边界",
+            "使用libs/platform统一签名siteId传递已核本站；清除原portal proof并建立localization纯服务actor，不能回退未声明的system作用域、发送未签名站点或保留原proof绕过纯服务边界",
             "保存计划（文档修订集合、单元数、quoteHash、24小时过期），只读不调用模型"
           ],
           "errors": [
