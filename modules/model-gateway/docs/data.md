@@ -263,3 +263,17 @@ M07-R06要求归一化参与空间身份，但现公共schema与旧算法只含�
 读取manual优先，其次remote/bundled，同source取不晚于目标时刻的最新秒/纳秒和版本。GetPriceBook无历史404；QuoteCost无配置用模型持久版本/updated_at构造确定性unknown，不当历史记录。全程只读报价，不占额度或写账。已知价格用大整数分别ceil(inputTokens*inputRate/1000000)、ceil(maxOutputTokens*outputRate/1000000)，再加显式fixed，超安全整数失败；缺价省略maximumCost并warning，不伪造零。
 
 /v1/token-estimates仅localization纯服务。无内置tokenizer时，累计texts/消息content/text parts的UTF8字节，ceil(bytes/2)+32*消息数后乘6/5向上，返回固定算法版本；message.content遵守64KiB字节预算，图片算法未确认返回503。不联网或保留输入，新增入口由真实本地化估算依赖调用。
+
+## 第三轮账本与费用状态读取
+
+005给invocations仅追加nullable owner_service/site_id/created_at，不回填旧归属。ledger_read_state在invocations/reservations/ledger_entries任一变化时同事务推进int64水位，缺行或耗尽失败关闭；分页索引按UTC秒/补齐九位纳秒/entryId精确排序，不按可变小数RFC3339字符串猜顺序。
+
+GetLedger只portal当前model.manage，时间窗正且最多90天，签名cursor绑定请求和当前主体/权限/站点/epoch及水位，变化409重头；验签和签名在SQL外。账单返回原固定priceSnapshot全值。旧行缺归属/时间/空价目前置503，孤立费用行、损坏/矛盾422，不补、丢弃或当成空。
+
+QueryUsage的portal管理员即时核model.manage；AI owner纯服务要求整个root持久归属均同caller/site/epoch，多owner403，无root404。held只汇总调用created_at在窗内且当前held的预留，settled按ledger.created_at窗；同一当前SQL快照，不是历史余额。组内任一未知省略完整相应总额，未知调用ID完整排序；空且全已知的组可为0，不能用部分和代表全额。big.Int聚合后核安全整数，超过256记录/未知ID或可表示范围失败不截断。
+
+本轮不实施Reserve/Create/Extend。background日预算作用域与maximumCost=0含义、QA已消费签名Permit验证须先明确，不能用请求scope或伪调用绕开；不产生accepted/held、真实收费或模型派发。
+
+账本时间合法性由SQLite内建strftime对前19位加0秒规范化往返，精确小数独立核1..9位，非法时间元数据view/部分索引保证坏行不能被窗口隐去；不手写日历，也不把读预算变成业务总量上限。依据为[SQLite日期函数](https://www.sqlite.org/lang_datefunc.html)及[官方往返说明](https://sqlite.org/forum/info/ae8081b04cef606c85a4ccd63903a104de1210ac3608808825b9c817809dcf46)，并只读核固定依赖SQLite3.53.4源码路径，未运行SQL或临时程序。窗内charge_unknown须有实际held或未知金额账单证明，否则503而非零占用。HTTP整数limit保持与入口ParseInt基数0相同语义。
+
+同root全部reservation先核held/settled/released合同三态，非法状态422而非过滤成空；合法settled/released不聚合，不套held金额字段规则，仅held参与当前预留校验和汇总。

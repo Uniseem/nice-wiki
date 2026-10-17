@@ -1528,7 +1528,7 @@
         "x-handler": "model-gateway.GetLedger",
         "x-permission": "model.manage",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 仅portal当前model.manage，时间窗最多90天，签名游标绑定账本水位/主体/过滤；返回固定priceSnapshot全值，旧行缺归属/时间不猜补。",
         "parameters": [
           {
             "name": "cursor",
@@ -1609,7 +1609,7 @@
             }
           },
           "403": {
-            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1619,7 +1619,7 @@
             }
           },
           "400": {
-            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1639,7 +1639,7 @@
             }
           },
           "409": {
-            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1670,6 +1670,46 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1851,9 +1891,9 @@
         "operationId": "queryUsage",
         "summary": "跨服务读取权威费用状态",
         "x-handler": "model-gateway.QueryUsage",
-        "x-permission": "service",
+        "x-permission": "model.manage",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。",
         "parameters": [
           {
             "name": "rootOperationId",
@@ -1907,7 +1947,7 @@
             }
           },
           "403": {
-            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1917,7 +1957,7 @@
             }
           },
           "400": {
-            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1937,7 +1977,7 @@
             }
           },
           "409": {
-            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1975,11 +2015,55 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "读取范围、归属、快照或响应预算不满足；具体见公共Problem。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "serviceAssertion": []
+          },
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ]
       }

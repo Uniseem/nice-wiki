@@ -605,3 +605,8 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler {
 	}
 	return handlers
 }
+
+// GetLedger 读取固定水位下的真实费用事实与调用原价目，不写费用状态。
+func GetLedger(ctx context.Context, op OperationContext, input GetLedgerInput) (GetLedgerResult, error) {
+	return readLedgerPage(ctx, op, input)
+}

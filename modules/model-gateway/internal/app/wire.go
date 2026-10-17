@@ -83,6 +83,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+	ledgerHandlers, err := admin.NewLedgerHandlers(key)
+	if err != nil {
+		return nil, err
+	}
+	for operationID, handler := range ledgerHandlers {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range billing.NewPriceHandlers() {
 		handlers[operationID] = handler
 	}
@@ -107,9 +114,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
 		},
-		OpenedDataEpoch: runtimeView.DataEpoch,
-		Authorize:       authorize,
+		OpenedDataEpoch:     runtimeView.DataEpoch,
+		Authorize:           authorize,
+		ServiceActorCallers: map[string][]string{"queryUsage": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
+			"getLedger":            {"portal"},
+			"queryUsage":           assignmentCallers,
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},
 			"quoteCost":            assignmentCallers[1:],

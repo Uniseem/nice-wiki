@@ -213,7 +213,7 @@ export interface paths {
         };
         /**
          * 管理端查询费用账本
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 仅portal当前model.manage，时间窗最多90天，签名游标绑定账本水位/主体/过滤；返回固定priceSnapshot全值，旧行缺归属/时间不猜补。
          */
         get: operations["getLedger"];
         put?: never;
@@ -253,7 +253,7 @@ export interface paths {
         };
         /**
          * 跨服务读取权威费用状态
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。
          */
         get: operations["queryUsage"];
         put?: never;
@@ -1021,6 +1021,30 @@ export interface components {
             idempotencyKey: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        PriceSnapshot: {
+            /** @description 快照ID */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description 模型ID */
+            modelId: components["schemas"]["Identifier"];
+            /** @description 百万输入token费率；Money.currency=USD且micros非负整数 */
+            inputPerMillionCost?: components["schemas"]["Money"];
+            /** @description 百万输出token费率；Money.currency=USD且micros非负整数 */
+            outputPerMillionCost?: components["schemas"]["Money"];
+            /** @description 每调用固定费；Money.currency=USD且micros非负整数 */
+            fixedCost?: components["schemas"]["Money"];
+            /**
+             * @description 结算币种
+             * @enum {string}
+             */
+            currency: "USD";
+            /** @description 生效时刻 */
+            effectiveAt: components["schemas"]["Timestamp"];
+            /** @description 是否可预算 */
+            pricingKnown: boolean;
+            /** @description 缺价无法完整计入费用上限的原产品提示 */
+            warning?: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         LedgerEntry: {
             /** @description 不可变账本ID */
             entryId: components["schemas"]["Identifier"];
@@ -1045,6 +1069,8 @@ export interface components {
             attemptId: components["schemas"]["Identifier"];
             /** @description 最终金额是否已知 */
             pricingKnown: boolean;
+            /** @description 调用创建时固定的真实价目全值，不按当前价重新计算历史账单 */
+            priceSnapshot: components["schemas"]["PriceSnapshot"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Reservation: {
@@ -1099,30 +1125,6 @@ export interface components {
             nextCursor?: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        PriceSnapshot: {
-            /** @description 快照ID */
-            priceSnapshotId: components["schemas"]["Identifier"];
-            /** @description 模型ID */
-            modelId: components["schemas"]["Identifier"];
-            /** @description 百万输入token费率；Money.currency=USD且micros非负整数 */
-            inputPerMillionCost?: components["schemas"]["Money"];
-            /** @description 百万输出token费率；Money.currency=USD且micros非负整数 */
-            outputPerMillionCost?: components["schemas"]["Money"];
-            /** @description 每调用固定费；Money.currency=USD且micros非负整数 */
-            fixedCost?: components["schemas"]["Money"];
-            /**
-             * @description 结算币种
-             * @enum {string}
-             */
-            currency: "USD";
-            /** @description 生效时刻 */
-            effectiveAt: components["schemas"]["Timestamp"];
-            /** @description 是否可预算 */
-            pricingKnown: boolean;
-            /** @description 缺价无法完整计入费用上限的原产品提示 */
-            warning?: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GetPriceBookResult: {
             /** @description 有效价目 */
             priceSnapshot: components["schemas"]["PriceSnapshot"];
@@ -1131,11 +1133,11 @@ export interface components {
         QueryUsageResult: {
             /** @description 本根账本 */
             entries: components["schemas"]["LedgerEntry"][];
-            /** @description 仍held总额 */
-            heldCost: components["schemas"]["Money"];
-            /** @description 已结算总额 */
-            settledCost: components["schemas"]["Money"];
-            /** @description 未知收费调用 */
+            /** @description 调用created_at位于查询窗内、当前held的完整总额；任一held金额未知则整项省略，非历史时点余额 */
+            heldCost?: components["schemas"]["Money"];
+            /** @description ledger.created_at位于查询窗内的完整已结算总额；任一账单金额未知则整项省略 */
+            settledCost?: components["schemas"]["Money"];
+            /** @description 本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断 */
             unknownInvocationIds: components["schemas"]["Identifier"][];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -2630,7 +2632,7 @@ export interface operations {
                     "application/json": components["schemas"]["GetLedgerResult"];
                 };
             };
-            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2648,7 +2650,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2657,8 +2659,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2668,6 +2697,15 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2842,7 +2880,7 @@ export interface operations {
                     "application/json": components["schemas"]["QueryUsageResult"];
                 };
             };
-            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2860,7 +2898,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2869,8 +2907,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2880,6 +2945,15 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 读取范围、归属、快照或响应预算不满足；具体见公共Problem。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
