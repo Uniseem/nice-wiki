@@ -779,8 +779,8 @@
     "/v1/assets": {
       "get": {
         "operationId": "listAssets",
-        "summary": "资源库列图片/附件/视频/画板及引用摘要",
-        "description": "调用函数 media.ListAssets；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "summary": "资源库按类别列安全元数据，引用详情独立读取",
+        "description": "仅当前本站media.manage管理员读取；默认limit=20，最多100，签名游标绑定权限与查询。列表不是人工清理批准或删除许可。一致本地水位按kind/createdAt/assetId升序分页，引用详情另调readAssetReferences。",
         "x-handler": "media.ListAssets",
         "x-permission": "media.manage",
         "security": [
@@ -795,10 +795,11 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "每页候选扫描上限，未引用列表可能少于该数"
             }
           },
           {
@@ -818,9 +819,15 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "kind",
-              "minLength": 0,
-              "maxLength": 2048
+              "enum": [
+                "image",
+                "attachment",
+                "video",
+                "drawing_scene",
+                "drawing_svg",
+                "platform_cover"
+              ],
+              "description": "省略为全部资源类别"
             }
           }
         ],
@@ -847,6 +854,36 @@
           },
           "403": {
             "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：分页、持久材料或权威来源不满足约定，失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：分页、持久材料或权威来源不满足约定，失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：分页、持久材料或权威来源不满足约定，失败关闭",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1405,7 +1442,7 @@
       "get": {
         "operationId": "listUnusedAssets",
         "summary": "后台单列当前未引用文件",
-        "description": "调用函数 media.ListUnusedAssets；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "仅当前本站media.manage管理员读取；默认limit=20，最多100，签名游标绑定权限与查询。列表不是人工清理批准或删除许可。每页按候选推进，可能空匹配但hasMore=true；本地或两源水位变化须从第一页重新读取。",
         "x-handler": "media.ListUnusedAssets",
         "x-permission": "media.manage",
         "security": [
@@ -1420,10 +1457,11 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "每页候选扫描上限，未引用列表可能少于该数"
             }
           },
           {
@@ -1443,9 +1481,15 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "kind",
-              "minLength": 0,
-              "maxLength": 2048
+              "enum": [
+                "image",
+                "attachment",
+                "video",
+                "drawing_scene",
+                "drawing_svg",
+                "platform_cover"
+              ],
+              "description": "省略为全部资源类别"
             }
           }
         ],
@@ -1472,6 +1516,46 @@
           },
           "503": {
             "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：分页、持久材料或权威来源不满足约定，失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH/LOCKED：本地或来源水位改变，或候选/源已锁定，须重新读取",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：分页、持久材料或权威来源不满足约定，失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：回源期间候选或权威来源消失，不把未知当空",
             "content": {
               "application/problem+json": {
                 "schema": {

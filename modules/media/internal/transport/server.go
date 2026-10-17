@@ -55,7 +55,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch,
-		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}},
+		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}},
 		ServiceActorCallers:   map[string][]string{"readAsset": {"content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
 		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
@@ -170,6 +170,46 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 			}
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := mediaDomain.AcquireResourceReferences(r.Context(), op, input)
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"listAssets": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			page := mediaDomain.AssetPageRequest{Limit: 20, Cursor: r.URL.Query().Get("cursor")}
+			if raw := r.URL.Query().Get("limit"); raw != "" {
+				value, _ := strconv.ParseInt(raw, 0, 64)
+				page.Limit = int(value)
+			}
+			var kind *gen.AssetKind
+			if raw := r.URL.Query().Get("kind"); raw != "" {
+				value := gen.AssetKind(raw)
+				kind = &value
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ListAssets(r.Context(), op, mediaDomain.ListAssetsInput{Page: page, Kind: kind})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"listUnusedAssets": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			page := mediaDomain.AssetPageRequest{Limit: 20, Cursor: r.URL.Query().Get("cursor")}
+			if raw := r.URL.Query().Get("limit"); raw != "" {
+				value, _ := strconv.ParseInt(raw, 0, 64)
+				page.Limit = int(value)
+			}
+			var kind *gen.AssetKind
+			if raw := r.URL.Query().Get("kind"); raw != "" {
+				value := gen.AssetKind(raw)
+				kind = &value
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.ListUnusedAssets(r.Context(), op, mediaDomain.ListUnusedAssetsInput{Page: page, Kind: kind})
 			if err != nil {
 				writeRequestProblem(w, r, err)
 				return

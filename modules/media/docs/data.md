@@ -236,3 +236,12 @@ jobs请求的inputRef是该批准规范字节的真实ObjectRef（objectId=planI
 store互斥覆盖决定恢复的完整本地保护核对、generated blob身份/SHA/长度、unlink、目录fsync及终局事务。计划外任一未删除同站点同SHA资产存在时保留共享bytes。Complete在同store互斥下发现未完成同SHA决定即LOCKED，不能在unlink期间重建共享bytes。终局deleted/revision、marks解除、真实generation的deleted outbox、计划终局及原结果同事务；原历史COMMITTED仅凭完整人工终局证明接受deleted，不要求已删文件仍存在。
 
 启动exclusive仅收敛同opened epoch已持久批准的决定，再核所有DELETING与COMMITTED；孤立、损坏或跨epoch决定停止恢复，不扫描ready产生清理授权。恢复不重查已结束任务租约，也不重跑来源扫描；原持久DELETING是恢复许可，尚未决定的waiting/blocked不能补删。
+
+
+## 资源列表快照与未引用分页（2026-10-17，本轮GitLab既有检查通过、行为未验收）
+
+0008_asset_listing.sql只追加独立asset_listing_state与kind/createdAt/assetId排序索引。assets和reference_objects的insert/update/delete在原事务推进int64水位，缺水位或耗尽则原事务失败关闭，不重置、不转浮点。它不是来源水位或清理授权，源自身content/site-config水位独立存入unused游标。无旧迁移改写或数据格式静默迁移。
+
+普通列表只返安全Asset；引用详情另读ReadAssetReferences。unused只扫描ready，默认20最多100条候选，候选有current/pending就不输出，历史风险明确保留；本页匹配可少于limit甚至为空，hasMore表示还有未扫描候选，nextCursor按最后扫描候选严格前进，不能把空匹配当末页。Source未知/不完整、水位全页或跨页变化、回源后本地水位/精确候选变化均失败关闭，要求从第一页重读，不返回部分结论。
+
+每页短本地快照结束后才回源，全部回源后新短快照复核本地；平台签名/验签也不持SQL或业务锁。签名scope绑定当前授权主体、站点/epoch、session与权限修订、limit/kind/mode，首版载荷含本地水位、unused两个完整来源水位和末项排序位置。游标只表示位置，不能代替当前权限，不写回或延长任何pin，也不是人工删除许可。

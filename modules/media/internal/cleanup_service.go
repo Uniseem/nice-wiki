@@ -1162,3 +1162,94 @@ func (s *localBlobStore) completeCleanupApproval(ctx context.Context, op Operati
 	}
 	return result, nil
 }
+
+// ListUnusedAssetsInput保留既有HTTP kind筛选；省略为全部类别。
+type ListUnusedAssetsInput = ListAssetsInput
+type ListUnusedAssetsResult = gen.ListUnusedAssetsResult
+
+// recheckAssetListingPage在全部锁外回源完成后，固定本地权威水位与精确候选再次核对。
+func (s *localBlobStore) recheckAssetListingPage(ctx context.Context, op OperationContext, page assetListingPage) error {
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return mapMediaDBError(err, "开始未引用列表最终快照失败")
+	}
+	defer tx.Rollback()
+	revision, err := readAssetListingRevision(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if revision != page.Revision {
+		return platform.NewError(platform.CodeVersionMismatch, true, "回源期间资源列表水位改变，请重新分页")
+	}
+	for _, listed := range page.Assets {
+		asset, fence, generation, err := s.readCleanupAsset(ctx, tx, op.Actor.SiteID, listed.Asset.Ref.AssetId)
+		if err != nil {
+			return err
+		}
+		if asset.Ref != listed.Asset.Ref || asset.State != gen.AssetStateReady || asset.Revision != listed.Asset.Revision || fence != listed.Fence || generation != listed.Generation {
+			return platform.NewError(platform.CodeVersionMismatch, true, "回源期间资源或对象水位变化")
+		}
+	}
+	if err := tx.Rollback(); err != nil {
+		return mapMediaDBError(err, "结束未引用列表最终快照失败")
+	}
+	return nil
+}
+
+// ListUnusedAssets按候选前进分页；空匹配页仍可有下一页，绝不把未知引用来源当空。
+func ListUnusedAssets(ctx context.Context, op OperationContext, input ListUnusedAssetsInput) (ListUnusedAssetsResult, error) {
+	s, err := assetListingStore(op)
+	if err != nil {
+		return ListUnusedAssetsResult{}, err
+	}
+	if input.Page.Limit == 0 {
+		input.Page.Limit = 20
+	}
+	position, scope, err := s.readAssetListingCursor(op, input, true)
+	if err != nil {
+		return ListUnusedAssetsResult{}, err
+	}
+	page, err := s.readAssetListingPage(ctx, op, input, position, true)
+	if err != nil {
+		return ListUnusedAssetsResult{}, err
+	}
+	result := ListUnusedAssetsResult{Assets: make([]gen.Asset, 0, len(page.Assets)), HistoryAffectedDocumentIds: []Identifier{}}
+	history := make(map[Identifier]bool)
+	for _, listed := range page.Assets {
+		generation := gen.Revision(listed.Generation)
+		scan, err := ValidateCleanupSources(ctx, op, ValidateCleanupSourcesInput{AssetId: listed.Asset.Ref.AssetId, ExpectedGeneration: &generation})
+		if err != nil {
+			return ListUnusedAssetsResult{}, err
+		}
+		sources := assetListingSources{Content: scan.Snapshot.SourceWatermarks[0].Watermark, Config: scan.Snapshot.SourceWatermarks[1].Watermark}
+		if position.Sources == nil {
+			position.Sources = &sources
+		} else if *position.Sources != sources {
+			return ListUnusedAssetsResult{}, platform.NewError(platform.CodeVersionMismatch, true, "权威引用源水位改变，请从第一页重新读取")
+		}
+		if !scan.SafeToDelete {
+			continue
+		}
+		result.Assets = append(result.Assets, listed.Asset)
+		for _, ref := range scan.Snapshot.HistoryReferences {
+			if ref.SourceService == gen.Content {
+				history[ref.SourceObjectId] = true
+			}
+		}
+		if len(history) > 10000 {
+			return ListUnusedAssetsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本页完整历史风险超出响应预算，请减少limit")
+		}
+	}
+	if err := s.recheckAssetListingPage(ctx, op, page); err != nil {
+		return ListUnusedAssetsResult{}, err
+	}
+	for id := range history {
+		result.HistoryAffectedDocumentIds = append(result.HistoryAffectedDocumentIds, id)
+	}
+	slices.Sort(result.HistoryAffectedDocumentIds)
+	result.PageInfo, err = s.assetListingPageInfo(scope, position, page)
+	if err != nil {
+		return ListUnusedAssetsResult{}, err
+	}
+	return result, nil
+}

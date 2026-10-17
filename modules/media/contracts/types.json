@@ -3667,7 +3667,7 @@
     },
     "ListAssetsInput": {
       "type": "object",
-      "description": "资源库列图片/附件/视频/画板及引用摘要的输入",
+      "description": "资源库按类别列安全元数据的输入；引用详情独立读取",
       "additionalProperties": false,
       "properties": {
         "page": {
@@ -3702,7 +3702,7 @@
     },
     "ListAssetsResult": {
       "type": "object",
-      "description": "资源库列图片/附件/视频/画板及引用摘要的结果",
+      "description": "当前本站资源安全元数据页，无路径或引用授权",
       "additionalProperties": false,
       "properties": {
         "assets": {
@@ -4062,6 +4062,25 @@
         "page": {
           "$ref": "#/$defs/PageRequest",
           "description": "PageRequest"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "image",
+                "attachment",
+                "video",
+                "drawing_scene",
+                "drawing_svg",
+                "platform_cover"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "兼容既有HTTP kind筛选，省略/null为全部类别"
         }
       },
       "required": [
@@ -4070,7 +4089,7 @@
     },
     "ListUnusedAssetsResult": {
       "type": "object",
-      "description": "后台单列当前未引用文件的结果",
+      "description": "当前无current/pending的ready候选匹配页，可能空页仍hasMore；历史风险仅提示，不是批准或删除许可",
       "additionalProperties": false,
       "properties": {
         "assets": {
@@ -4085,7 +4104,7 @@
         },
         "historyAffectedDocumentIds": {
           "type": "array",
-          "description": "提示",
+          "description": "仅本页匹配资产的真实历史文档风险，唯一排序；不因为历史引用存在而自动排除",
           "items": {
             "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
             "description": "历史风险"
@@ -5769,6 +5788,99 @@
       "description": "完整执行决定、逐资产决定及固定原终局结果内部投影",
       "additionalProperties": false,
       "properties": {}
+    },
+    "AssetPageRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
+      "description": "严格HTTP查询转换后的本域分页；缺省limit归一为20"
+    },
+    "assetListingSources": {
+      "type": "object",
+      "x-internal": true,
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "固定完整content来源水位"
+        },
+        "siteConfig": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "固定完整site-config来源水位"
+        }
+      },
+      "required": [
+        "content",
+        "siteConfig"
+      ],
+      "description": "跨页独立权威来源水位；不借本地列表水位替代"
+    },
+    "assetListingCursor": {
+      "type": "object",
+      "x-internal": true,
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "localRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "本地域int64列表水位"
+        },
+        "afterKind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "attachment",
+            "video",
+            "drawing_scene",
+            "drawing_svg",
+            "platform_cover"
+          ]
+        },
+        "afterCreatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "afterAssetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sources": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/assetListingSources"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "unused必须含两个固定来源，普通资产列表为null"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "localRevision",
+        "afterKind",
+        "afterCreatedAt",
+        "afterAssetId",
+        "sources"
+      ],
+      "description": "首版签名不透明keyset载荷，scope另外绑定actor/site/epoch/session及权限修订/limit/kind/mode；未知版本拒绝，不作授权"
+    },
+    "listedAsset": {
+      "type": "object",
+      "x-internal": true,
+      "additionalProperties": false,
+      "properties": {},
+      "description": "短只读快照中的真实Asset、原fence/generation及数据库createdAt排序材料"
+    },
+    "assetListingPage": {
+      "type": "object",
+      "x-internal": true,
+      "additionalProperties": false,
+      "properties": {},
+      "description": "一致本地水位、最多limit条候选及真实lookahead状态；RPC/签名在快照结束后"
     }
   }
 }
