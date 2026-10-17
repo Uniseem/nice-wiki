@@ -3282,6 +3282,7 @@ func ReadAssetReferences(ctx context.Context, op OperationContext, input ReadAss
 2. 无本地锁按固定content/site-config生成客户端读取assetId过滤的全部分页；派生media纯服务op并清原proof/用户委托，保留epoch/root/deadline；每源所有页面watermark必须一致、cursor前进、分页完整，总集合不得超唯一snapshot预算
 3. content保留retained=true的current_draft/current_published映射current、history映射history，blockId作referenceId；site-config只接受对应来源confirmed且expiresAt=null的current/history；每项精确asset相等，重复同材料去重、冲突失败关闭
 4. 回源后重新核本地asset/generation未变，合并真实pending pin原材料（过期不擅自释放）；去重身份包含sourceService/sourceObjectId/sourceRevisionId/sourceVersion/referenceId/kind，保留合法不同单调版本，只有同身份异材料才损坏；精确相同draft/published投影可合并；完整引用排序及两个complete水位通过唯一schema，未知/未完整失败关闭
+5. content远端pending_pin与本地原pin按完整来源身份（含sourceVersion）去重；两条均未confirmed的pending仅允许expiry投影差异，去expiry后完整规范字段尤其Asset必须一致；任一未知expiry保留nil，两个已知取真实较晚展示；不改写/续期/释放任何原pin，过期仍保护；其他材料矛盾失败关闭，current/history仍严格一致
 
 **错误**
 
