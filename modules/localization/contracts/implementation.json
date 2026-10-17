@@ -207,7 +207,7 @@
     {
       "path": "modules/localization/internal/language/tag.go",
       "kind": "handwritten",
-      "purpose": "规范语言标识所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "规范语言标识；大小写、脚本与私用归一化未写明，成功路径保持失败关闭。",
       "functions": [
         {
           "id": "localization.NormalizeLanguageTag",
@@ -250,9 +250,9 @@
           "purpose": "规范语言标识",
           "steps": [
             "1 拒绝空/长度>35",
-            "2 按BCP47解析大小写",
-            "3 禁止私用未知UI语言",
-            "4 已支持ar/he/fa/ur为rtl其余ltr",
+            "2 大小写映射、脚本子标签与私用用法的规范形式合同未写明",
+            "3 未写明前失败关闭，不得自选BCP47方言，不得返回改写后的标签或方向",
+            "4 已支持ar/he/fa/ur为rtl其余ltr；规范标签未确定前不能把方向猜测当作归一化",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -303,6 +303,12 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "大小写、脚本与私用归一化规则未在合同写明，拒绝返回自选规范标签。",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -318,7 +324,7 @@
     {
       "path": "modules/localization/internal/language/config.go",
       "kind": "handwritten",
-      "purpose": "更新语言启用配置所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "更新语言启用配置；同事务完成代次、屏障、CAS、原回执和语言变更事件。",
       "functions": [
         {
           "id": "localization.PutLanguage",
@@ -360,10 +366,11 @@
           ],
           "purpose": "更新语言启用配置",
           "steps": [
-            "1 NormalizeLanguageTag",
-            "2 profile仅声明校验不探测模型",
+            "1 拒绝空标签与长度>35；不改写大小写、脚本或私用段。第一个连字符前的原文与ar/he/fa/ur逐字相同则方向必须为rtl，其余标签必须为ltr",
+            "2 profile只核标识声明，不探测模型，不调用档位目录",
             "3 默认语言不能disabled",
-            "4 CAS保存",
+            "4 按expectedVersion做CAS保存；同事务写7天原回执与localization.language.changed，不创建翻译任务",
+            "5 写入前核op.dataEpoch等于site-config当前active epoch和本域runtime_meta水位；local_barrier非released拒绝。缺少已核本站失败关闭，不用system代替",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -414,6 +421,18 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等键绑定了不同输入，或默认语言唯一约束冲突。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威、已核本站或语言存储不可用。",
+              "retryable": true
             }
           ],
           "sideEffects": [
@@ -422,10 +441,7 @@
           "authorization": "权限 localization.languages；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "model-gateway:readProfiles",
-            "localization.NormalizeLanguageTag"
-          ],
+          "dependencies": [],
           "resources": [],
           "contract": "binding"
         },
@@ -471,8 +487,9 @@
           "steps": [
             "1 默认语言停用拒绝",
             "2 enabled保存状态",
-            "3 disabled取消该语言未完成翻译",
+            "3 disabled只把本域该语言queued/running/review任务标为cancelled；不删除人工译文，不调用模型",
             "4 保留人工译文历史",
+            "5 同事务写7天原回执与localization.language.changed；核代次水位和local_barrier，缺少已核本站失败关闭",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
             "启用且automatic=true时必须来自ApproveLanguagePlan的已批准计划；直接调用只能启用为手动翻译"
           ],
@@ -524,17 +541,27 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "路径、幂等头或语言标签不符合本函数约束。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威、已核本站或语言存储不可用。",
+              "retryable": true
             }
           ],
           "sideEffects": [
-            "配置变化和取消事件；不删除人工文本"
+            "配置变化事件；本域未完成任务改为cancelled；不删除人工文本，不调用jobs"
           ],
           "authorization": "权限 localization.languages；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "jobs:cancelJob"
-          ],
+          "dependencies": [],
           "resources": [],
           "contract": "binding"
         }
@@ -543,7 +570,7 @@
     {
       "path": "modules/localization/internal/language/read.go",
       "kind": "handwritten",
-      "purpose": "读取语言列表所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
+      "purpose": "读取当前代次语言配置；不返回模型密钥，不连接翻译正文。",
       "functions": [
         {
           "id": "localization.ListLanguages",
@@ -589,6 +616,7 @@
             "2 includeDisabled需localization.manage",
             "3 默认语言先其余tag排序",
             "4 禁止返回模型密钥",
+            "5 读取前核op.dataEpoch等于site-config当前active epoch和本域水位；维护阶段或local_barrier非released拒绝。public-site纯服务仅允许includeDisabled=false；站点缺失或为system时失败关闭，不自报未签名站点",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
             "HTTP includeDisabled query默认false；public-site已验证纯服务仅允许false只读，管理员仍需原语言管理权限，未知状态503，不把缺译当语言未启用"
           ],
@@ -628,6 +656,18 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
             }
           ],
           "sideEffects": [],
@@ -639,6 +679,18 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/localization/internal/language/guard.go",
+      "kind": "handwritten",
+      "purpose": "语言配置参考助手：已核本站、代次水位、维护阶段、local_barrier、7天原回执、语言行读取和language.changed。不单独暴露HTTP。",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/internal/language/http.go",
+      "kind": "handwritten",
+      "purpose": "把putLanguage、setLanguageEnabled、listLanguages绑定到真实处理函数；不装配其余操作。",
+      "functions": []
     },
     {
       "path": "modules/localization/internal/events/publication.go",
@@ -6197,6 +6249,12 @@
       "path": "modules/localization/migrations/001_initial.sql",
       "kind": "migration",
       "purpose": "schemaVersion1建本域表与唯一约束；nw_outbox/nw_inbox由平台EnsureSchema建立不在此重复；control区决定日志独立且不属于业务恢复。",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/migrations/002_language_config.sql",
+      "kind": "migration",
+      "purpose": "只追加语言配置原回执、代次水位和本地屏障读侧；不播种语言、费用或翻译任务。初始屏障为released，不实现AcquireBarrier。",
       "functions": []
     },
     {

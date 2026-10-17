@@ -84,9 +84,9 @@ func NormalizeLanguageTag(ctx context.Context, op OperationContext, input Normal
 **步骤**
 
 1. 拒绝空/长度>35
-2. 按BCP47解析大小写
-3. 禁止私用未知UI语言
-4. 已支持ar/he/fa/ur为rtl其余ltr
+2. 大小写映射、脚本子标签与私用用法的规范形式合同未写明
+3. 未写明前失败关闭，不得自选BCP47方言，不得返回改写后的标签或方向
+4. 已支持ar/he/fa/ur为rtl其余ltr；规范标签未确定前不能把方向猜测当作归一化
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
@@ -99,6 +99,7 @@ func NormalizeLanguageTag(ctx context.Context, op OperationContext, input Normal
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
@@ -133,11 +134,12 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 
 **步骤**
 
-1. NormalizeLanguageTag
-2. profile仅声明校验不探测模型
+1. 拒绝空标签与长度>35；不改写大小写、脚本或私用段。第一个连字符前的原文与ar/he/fa/ur逐字相同则方向必须为rtl，其余标签必须为ltr
+2. profile只核标识声明，不探测模型，不调用档位目录
 3. 默认语言不能disabled
-4. CAS保存
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+4. 按expectedVersion做CAS保存；同事务写7天原回执与localization.language.changed，不创建翻译任务
+5. 写入前核op.dataEpoch等于site-config当前active epoch和本域runtime_meta水位；local_barrier非released拒绝。缺少已核本站失败关闭，不用system代替
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -149,12 +151,14 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
 
 - 副作用：语言配置事件；不直接发翻译任务
 - 授权：权限 localization.languages；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:readProfiles`、`localization.NormalizeLanguageTag`
+- 依赖：无
 
 ## localization.SetLanguageEnabled
 
@@ -185,10 +189,11 @@ func SetLanguageEnabled(ctx context.Context, op OperationContext, input SetLangu
 
 1. 默认语言停用拒绝
 2. enabled保存状态
-3. disabled取消该语言未完成翻译
+3. disabled只把本域该语言queued/running/review任务标为cancelled；不删除人工译文，不调用模型
 4. 保留人工译文历史
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-6. 启用且automatic=true时必须来自ApproveLanguagePlan的已批准计划；直接调用只能启用为手动翻译
+5. 同事务写7天原回执与localization.language.changed；核代次水位和local_barrier，缺少已核本站失败关闭
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 启用且automatic=true时必须来自ApproveLanguagePlan的已批准计划；直接调用只能启用为手动翻译
 
 **错误**
 
@@ -200,12 +205,14 @@ func SetLanguageEnabled(ctx context.Context, op OperationContext, input SetLangu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
 
-- 副作用：配置变化和取消事件；不删除人工文本
+- 副作用：配置变化事件；本域未完成任务改为cancelled；不删除人工文本，不调用jobs
 - 授权：权限 localization.languages；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:cancelJob`
+- 依赖：无
 
 ## localization.ListLanguages
 
@@ -238,8 +245,9 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 2. includeDisabled需localization.manage
 3. 默认语言先其余tag排序
 4. 禁止返回模型密钥
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-6. HTTP includeDisabled query默认false；public-site已验证纯服务仅允许false只读，管理员仍需原语言管理权限，未知状态503，不把缺译当语言未启用
+5. 读取前核op.dataEpoch等于site-config当前active epoch和本域水位；维护阶段或local_barrier非released拒绝。public-site纯服务仅允许includeDisabled=false；站点缺失或为system时失败关闭，不自报未签名站点
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. HTTP includeDisabled query默认false；public-site已验证纯服务仅允许false只读，管理员仍需原语言管理权限，未知状态503，不把缺译当语言未启用
 
 **错误**
 
@@ -249,6 +257,8 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
 
 - 副作用：无
 - 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。

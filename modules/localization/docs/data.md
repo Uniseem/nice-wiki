@@ -4,6 +4,12 @@
 
 - languages(language_tag,version,enabled,default_language,translation_profile,automatic)
 
+- operation_receipts(site_id,actor_id,function_id,idempotency_key,data_epoch,input_hash,result_json,created_at)：语言配置 7 天原回执，不保存模型密钥
+
+- runtime_meta(singleton,data_epoch,updated_at)：本域当前代次水位，不代替 site-config
+
+- local_barrier(singleton,state,data_epoch,updated_at)：语言写入和列表读取的屏障状态。初始 released。AcquireBarrier 尚未实现，本表不是完整屏障协议
+
 - translation_jobs(job_id,document_ref,target_language,state,source_generation,glossary_generation,human_generation)
 
 - translation_units(unit_id,document_id,source_hash,target_language,target_file_ref,target_hash,origin,protected,version)
