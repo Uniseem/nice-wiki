@@ -1134,6 +1134,11 @@
       "purpose": "真实平台单批事件转发装配"
     },
     {
+      "path": "modules/content/internal/path_service.go",
+      "kind": "source",
+      "purpose": "基于可信完整树规划真实曾发布旧路径"
+    },
+    {
       "path": "modules/content/internal/publication_repository.go",
       "kind": "handwritten",
       "purpose": "同代资源来源决定读取；完整发布仓库尚未实施"
@@ -1179,6 +1184,11 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
     },
     {
+      "path": "modules/content/internal/tree_service.go",
+      "kind": "source",
+      "purpose": "一致树读取、分页与原子同级重排，发布移动保持partial"
+    },
+    {
       "path": "modules/content/internal/tree_validator.go",
       "kind": "source",
       "purpose": "检查树无环和层级约束"
@@ -1207,6 +1217,11 @@
       "path": "modules/content/migrations/0005_reference_snapshots.sql",
       "kind": "handwritten",
       "purpose": "全站资源引用单调水位与只追加触发器"
+    },
+    {
+      "path": "modules/content/migrations/0006_tree_operations.sql",
+      "kind": "migration",
+      "purpose": "只追加树操作完整scope摘要原回执"
     },
     {
       "path": "modules/content/migrations/migrations.go",
