@@ -3767,6 +3767,11 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
+    },
+    {
+      "path": ".gitlab-ci.yml",
+      "kind": "tool",
+      "purpose": "自部署GitLab生成与三分片readonly编译结构检查，不含私有接入材料"
     }
   ]
 }

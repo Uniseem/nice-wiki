@@ -1312,12 +1312,8 @@
           ],
           "purpose": "outbox转发循环的通用实现",
           "steps": [
-            "按序号以30秒行租约领取已提交pending行",
-            "逐条调用jobs:publishEvent，确认后标relayed",
-            "失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined",
-            "屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行",
-            "Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名",
-            "relayWriteContext薄委托公共NewWriteContext，不另存一份运行权威/维护截止算法"
+            "校验轮询间隔并在进程取消前持续调用RunRelayBatch；每轮后按PollMillis等待",
+            "单批领取、旧代丢弃、逐条发布与安全窗口内确认统一由RunRelayBatch实现；配置错误返回，运行依赖失败保留事件继续下一轮"
           ],
           "errors": [
             {
@@ -1347,9 +1343,7 @@
           "concurrency": "行级租约防多实例重复",
           "idempotency": "eventId固定",
           "dependencies": [
-            "jobs:publishEvent",
-            "platform.relayWriteContext",
-            "platform.NewWriteContext"
+            "platform.RunRelayBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -1560,6 +1554,104 @@
           "concurrency": "无共享可写业务状态，可并发",
           "idempotency": "纯转换或按调用上下文执行，不改变业务费用根",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.RunRelayBatch",
+          "name": "RunRelayBatch",
+          "signature": "func RunRelayBatch(ctx context.Context, store OutboxStore, client EventPublisher, config RelayConfig) (RelayBatchResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "store",
+              "type": "OutboxStore",
+              "description": "本域outbox访问",
+              "constraints": [
+                "同一数据库"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "EventPublisher",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "RelayConfig",
+              "description": "批量与轮询参数",
+              "constraints": [
+                "batchLimit≤100"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RelayBatchResult",
+              "description": "本批经本地持久确认后的relayed/pending/quarantined行数；不计未领取的全域积压",
+              "constraints": [
+                "只在error为空时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "单批转发已提交outbox事件并返回真实本批计数",
+          "steps": [
+            "校验batchLimit及必需runtime/writeWindow；每次active写前由NewWriteContext读取当前权威窗口",
+            "先按当前epoch丢弃旧代pending，再重新取得窗口领取本批30秒行租约；不持SQL事务调用jobs",
+            "逐条发布固定信封；网络返回后重取运行/窗口，只有同代且窗口有效才标relayed、隔离或安排1/2/4秒退避（上限60秒）",
+            "原代改变则只丢弃原代行；本批已持久确认/隔离/保留pending分别计数，未知本地提交或窗口错误不返回成功计数"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            },
+            {
+              "code": "LOCKED",
+              "when": "维护无有效control写窗口、窗口截止或恢复阶段禁止写入",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "必需运行权威/写窗口或循环参数未装配",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读写outbox",
+            "HTTP调用jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "行级租约防多实例重复",
+          "idempotency": "eventId固定",
+          "dependencies": [
+            "jobs:publishEvent",
+            "platform.relayWriteContext",
+            "platform.NewWriteContext"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -1787,7 +1879,10 @@
             "Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果",
             "WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作",
             "每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认",
-            "runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许"
+            "runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许",
+            "向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭",
+            "领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定",
+            "executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功"
           ],
           "errors": [
             {
@@ -1812,7 +1907,10 @@
             "jobs:checkLease",
             "jobs:completeJob",
             "jobs:failJob",
-            "platform.workerControlContext"
+            "platform.workerControlContext",
+            "platform.newExecutionLease",
+            "platform.executionLeaseContext",
+            "platform.renewExecutionLease"
           ],
           "resources": [],
           "contract": "binding"
@@ -1859,6 +1957,288 @@
           "concurrency": "每次生成独立ID",
           "idempotency": "同一次下游请求重试复用返回上下文，不跨心跳或fence复用",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.newExecutionLease",
+          "name": "newExecutionLease",
+          "signature": "func newExecutionLease(ctx context.Context, op OperationContext, client JobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "任务取消上下文",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "原业务操作",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "JobsClient",
+              "description": "可信租约客户端",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "本次worker",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "job",
+              "type": "ClaimedJob",
+              "description": "真实完整领取材料",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "cancel",
+              "type": "CancelCauseFunc",
+              "description": "取消当前执行",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "lease",
+              "type": "ExecutionLease",
+              "description": "本地有限执行权",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "purpose": "建立领取结果的本地到期边界",
+          "steps": [
+            "解析真实claim截止，已过期或坏格式拒绝",
+            "独立AfterFunc在执行权截止取消任务；不等待心跳RPC完成"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "本地执行权或权威租约已过期/维护安全点",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "任务取消或执行已停止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "管理进程内执行权与有限IO上下文"
+          ],
+          "authorization": "进程内可信worker调用",
+          "concurrency": "续租与fresh检查串行；截止受独立互斥与定时器保护",
+          "idempotency": "不生成或重放业务副作用；每次控制RPC独立子操作",
+          "dependencies": [
+            "platform.expireExecutionLease"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.expireExecutionLease",
+          "name": "expireExecutionLease",
+          "signature": "func expireExecutionLease(lease *ExecutionLease)",
+          "inputs": [
+            {
+              "name": "lease",
+              "type": "ExecutionLease",
+              "description": "当前执行权",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "outputs": [],
+          "purpose": "到期时取消执行权",
+          "steps": [
+            "持截止互斥重新核当前expires；只有当前已过期才取消，旧定时器回调不能取消已正确续期的执行"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "本地执行权或权威租约已过期/维护安全点",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "任务取消或执行已停止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "管理进程内执行权与有限IO上下文"
+          ],
+          "authorization": "进程内可信worker调用",
+          "concurrency": "续租与fresh检查串行；截止受独立互斥与定时器保护",
+          "idempotency": "不生成或重放业务副作用；每次控制RPC独立子操作",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.executionLeaseContext",
+          "name": "executionLeaseContext",
+          "signature": "func executionLeaseContext(lease *ExecutionLease, ctx context.Context) (context.Context, CancelFunc)",
+          "inputs": [
+            {
+              "name": "lease",
+              "type": "ExecutionLease",
+              "description": "当前执行权",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "下游IO取消来源",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "不超过当前租约截止的IO上下文",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "cancel",
+              "type": "CancelFunc",
+              "description": "释放IO资源",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "purpose": "把控制IO截止限制在已知执行权内",
+          "steps": [
+            "持互斥读取expires并使用context.WithDeadline；保留父上下文更早取消"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "本地执行权或权威租约已过期/维护安全点",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "任务取消或执行已停止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "管理进程内执行权与有限IO上下文"
+          ],
+          "authorization": "进程内可信worker调用",
+          "concurrency": "续租与fresh检查串行；截止受独立互斥与定时器保护",
+          "idempotency": "不生成或重放业务副作用；每次控制RPC独立子操作",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.renewExecutionLease",
+          "name": "renewExecutionLease",
+          "signature": "func renewExecutionLease(ctx context.Context, lease *ExecutionLease, verify bool) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "下游IO取消",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "lease",
+              "type": "ExecutionLease",
+              "description": "当前执行权",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            },
+            {
+              "name": "verify",
+              "type": "bool",
+              "description": "不可逆决定前额外checkLease",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "未知、取消、过期或维护均失败关闭",
+              "constraints": [
+                "仅可信进程内调用"
+              ]
+            }
+          ],
+          "purpose": "串行续租并在不可逆决定前核取消与fence",
+          "steps": [
+            "续租互斥覆盖整个请求与回执安装，RPC使用当前lease截止",
+            "即时HeartbeatJob读取cancelRequested/safePointRequested；停止或未知则取消执行权并拒绝",
+            "旧本地截止仍有效且新expiry有效时才重置独立到期定时器；不得复活已取消执行权",
+            "verify=true时继续按新截止读取CheckLease，绑定jobId/workerId/fence；RPC返回后再次核本地任务是否仍有效"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "本地执行权或权威租约已过期/维护安全点",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "任务取消或执行已停止",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "管理进程内执行权与有限IO上下文"
+          ],
+          "authorization": "进程内可信worker调用",
+          "concurrency": "续租与fresh检查串行；截止受独立互斥与定时器保护",
+          "idempotency": "不生成或重放业务副作用；每次控制RPC独立子操作",
+          "dependencies": [
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "platform.executionLeaseContext",
+            "platform.workerControlContext"
+          ],
           "resources": [],
           "contract": "reference"
         }

@@ -2,11 +2,11 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "b29f53121af2def39ea5f444a29bdce7917b725124803861e77a6ab77d7ecfb5",
+  "contractSha256": "6e568b670b8d2e6a48cc7adf0f4369bc38aeaef963dd94af0e8f352e95e41703",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "两轮并行第二轮公共主密钥引用",
-  "branch": "main",
-  "baseCommit": "53acce862467dbe40b829d1984519d78ccac5608",
+  "assignedSession": "2026-10-17单轮公共完整任务引用与单批转发",
+  "branch": "codex/integration-20261017-r1",
+  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
   "deliveryCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
   "deployment": "not_started",
   "files": [
@@ -62,11 +62,11 @@
     },
     {
       "path": "libs/platform/outbox/relay.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
       },
       "blocker": null
     },
@@ -92,11 +92,11 @@
     },
     {
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "dad2dceed69c8ada97fb9aa28b1a7bf83967ed0b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
       },
       "blocker": null
     },
@@ -172,11 +172,11 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
       },
       "blocker": null
     },
@@ -271,11 +271,11 @@
     {
       "id": "platform.RunRelay",
       "path": "libs/platform/outbox/relay.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15第四轮实际集成树：公共源9ff93ae及jobs合入后857da68分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终858文件/1105函数/379操作/2253类型，生成回传零变化。授权、固定材料/幂等、维护写窗口与安全关闭经人工交叉复核；未新增测试，未运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署，verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
       },
       "blocker": null
     },
@@ -304,11 +304,11 @@
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
+      "state": "in_progress",
       "implementationCommit": "dad2dceed69c8ada97fb9aa28b1a7bf83967ed0b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
       },
       "blocker": null
     },
@@ -722,7 +722,62 @@
         "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.RunRelayBatch",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
+      },
+      "blocker": null,
+      "path": "libs/platform/outbox/relay.go"
+    },
+    {
+      "id": "platform.newExecutionLease",
+      "path": "libs/platform/worker/loop.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.expireExecutionLease",
+      "path": "libs/platform/worker/loop.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.executionLeaseContext",
+      "path": "libs/platform/worker/loop.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.renewExecutionLease",
+      "path": "libs/platform/worker/loop.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-17源码已编写；旧VPS三次握手失败后用户指定全部改经自部署GitLab，候选待CI检查；未本机编译或测试"
+      },
+      "blocker": null
     }
   ],
-  "rule": "已实现公共机制通过VPS现阶段检查，不证明尚未实现的调用方/业务、guard或cookie链可运行；用户要求第二轮后停止，不开展下一轮。"
+  "rule": "本轮公共源码待隔离VPS编译；未本机验证，未记implemented/verified；R2行为验收与部署未开始"
 }

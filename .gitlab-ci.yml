@@ -1,0 +1,76 @@
+stages:
+  - generate
+  - build
+
+default:
+  image: golang:1.25.5-bookworm
+  tags:
+    - linux
+    - docker
+    - hostdzire
+  interruptible: true
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends python3
+    - ci_author_name="$(git show -s --format=%an HEAD)"
+    - ci_author_email="$(git show -s --format=%ae HEAD)"
+    - export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_KEY_1=user.email
+    - export GIT_CONFIG_VALUE_0="$ci_author_name" GIT_CONFIG_VALUE_1="$ci_author_email"
+
+variables:
+  GOMAXPROCS: "2"
+  GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+  GOMODCACHE: "$CI_PROJECT_DIR/.cache/go-mod"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  PNPM_HOME: "/usr/local/bin"
+
+生成与格式:
+  stage: generate
+  cache:
+    key: go1255-generate
+    paths:
+      - .cache/
+  script:
+    - apt-get install -y --no-install-recommends nodejs npm
+    - npm install --global pnpm@9.15.9
+    - go version
+    - git ls-files -z '*.go' | xargs -0 gofmt -w
+    - make docs
+    - make gen
+    - git diff --binary > generated.patch
+    - make docs
+    - make gen
+    - git diff --binary > regenerated.patch
+    - cmp generated.patch regenerated.patch
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - generated.patch
+
+编译与检查:
+  stage: build
+  needs:
+    - job: 生成与格式
+      artifacts: true
+  parallel:
+    matrix:
+      - BUILD_GROUP: foundation
+        BUILD_MODULES: libs/platform modules/identity modules/site-config modules/jobs modules/portal
+        CHECK_DOCS: "1"
+      - BUILD_GROUP: content-media
+        BUILD_MODULES: modules/content modules/media modules/traffic-guard modules/analytics
+        CHECK_DOCS: "0"
+      - BUILD_GROUP: ai
+        BUILD_MODULES: modules/model-gateway modules/knowledge modules/memory modules/localization modules/qa
+        CHECK_DOCS: "0"
+  cache:
+    key: go1255-$BUILD_GROUP
+    when: always
+    paths:
+      - .cache/
+  script:
+    - if test -s generated.patch; then git apply generated.patch; fi
+    - git diff --check
+    - make build GO_MODULES="$BUILD_MODULES"
+    - if test "$CHECK_DOCS" = 1; then make check; fi

@@ -396,7 +396,7 @@ def check_framework():
     data = load_json(path)
     declared = {item.get('path', '') for item in data.get('files', [])}
     actual = {relative(p) for top in ('docs', 'contracts', 'modules', 'scripts', 'libs', 'deploy') if (ROOT / top).is_dir() for p in (ROOT / top).rglob('*') if p.is_file() and p.suffix != '.pyc'}
-    actual.update(n for n in ('AGENTS.md', 'CLAUDE.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'Makefile', '.gitignore', '.gitattributes', '.editorconfig') if (ROOT / n).is_file())
+    actual.update(n for n in ('AGENTS.md', 'CLAUDE.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'Makefile', '.gitignore', '.gitattributes', '.editorconfig', '.gitlab-ci.yml') if (ROOT / n).is_file())
     for extra in sorted(actual - declared):
         fail('实际结构', '未登记文件 ' + extra)
     for missing in sorted(declared - actual):
@@ -489,8 +489,8 @@ def main():
     for top in ('docs', 'contracts', 'modules', 'scripts', 'libs', 'deploy'):
         if (ROOT / top).is_dir():
             files.extend((ROOT / top).rglob('*'))
-    files.extend([ROOT / n for n in ('AGENTS.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'Makefile', '.gitignore')])
-    files = [p for p in files if p.is_file() and p.suffix in ('.md', '.json', '.py') or p.is_file() and p.name in ('Makefile', '.gitignore')]
+    files.extend([ROOT / n for n in ('AGENTS.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'Makefile', '.gitignore', '.gitlab-ci.yml')])
+    files = [p for p in files if p.is_file() and p.suffix in ('.md', '.json', '.py', '.yaml', '.yml') or p.is_file() and p.name in ('Makefile', '.gitignore')]
     for path in files:
         scan_privacy(relative(path), path.read_text(encoding='utf-8'))
         if not args.privacy_only and path.suffix == '.json':

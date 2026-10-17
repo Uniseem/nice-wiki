@@ -1114,7 +1114,7 @@
     "JobExecutionInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "任务执行函数的统一输入；由本域领取循环从jobs claim结果构造",
+      "description": "任务执行函数的统一输入；由本域领取循环从jobs claim构造完整输入引用和worker/fence；进程内另附不序列化的CheckLease(context.Context) error，领域在不可逆决定前锁外调用，租约未知或取消失败关闭",
       "properties": {
         "jobId": {
           "$ref": "#/$defs/Identifier",
@@ -1127,8 +1127,8 @@
           "description": "本域jobTypes登记的类型"
         },
         "inputRef": {
-          "$ref": "#/$defs/Identifier",
-          "description": "创建任务时固定的不可变输入引用"
+          "$ref": "#/$defs/ObjectRef",
+          "description": "创建任务时固定的完整不可变引用；不得裁剪owner/version/hash/byteSize/mediaType"
         },
         "fencingToken": {
           "type": "integer",
@@ -1145,10 +1145,15 @@
         "dataEpoch": {
           "$ref": "#/$defs/Identifier",
           "description": "任务所属数据代次"
+        },
+        "workerId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "本次持有租约的worker，与jobId/fence共同绑定"
         }
       },
       "required": [
         "jobId",
+        "workerId",
         "jobType",
         "inputRef",
         "fencingToken",

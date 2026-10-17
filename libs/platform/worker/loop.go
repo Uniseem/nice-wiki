@@ -109,13 +109,20 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	ctx, cancelTask := context.WithDeadline(ctx, deadline)
 	defer cancelTask()
 	ctx = platform.WithOperationContext(ctx, op)
-	if err := l.client.StartJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken); err != nil {
-		// 租约可能已被回收；等待jobs重投。
-		return
-	}
 	jobCtx, cancelJob := context.WithCancelCause(ctx)
 	defer cancelJob(nil)
-	go l.heartbeat(jobCtx, op, workerID, job, cancelJob)
+	lease, err := newExecutionLease(jobCtx, op, l.client, workerID, job, cancelJob)
+	if err != nil {
+		return
+	}
+	defer lease.timer.Stop()
+	startCtx, cancelStart := executionLeaseContext(lease, jobCtx)
+	err = l.client.StartJob(workerControlContext(startCtx, op), job.JobID, workerID, job.FencingToken)
+	cancelStart()
+	if err != nil {
+		return
+	}
+	go l.heartbeat(jobCtx, lease)
 	executor := l.executors.Executor(job.JobType)
 	var result platform.JobExecutionResult
 	if executor == nil {
@@ -124,11 +131,15 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 		var executeErr error
 		result, executeErr = executor(jobCtx, platform.JobExecutionInput{
 			JobID:        job.JobID,
+			WorkerID:     workerID,
 			JobType:      job.JobType,
-			InputRef:     job.InputRef.ObjectID,
+			InputRef:     job.InputRef,
 			FencingToken: job.FencingToken,
 			Attempt:      job.Attempt,
 			DataEpoch:    job.DataEpoch,
+			CheckLease: func(checkCtx context.Context) error {
+				return renewExecutionLease(checkCtx, lease, true)
+			},
 		})
 		if executeErr != nil {
 			result.State = platform.JobFailed
@@ -139,35 +150,40 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 			}
 		}
 	}
-	cancelJob(nil)
-	if ctx.Err() != nil {
-		// 进程正在退出；未写回的任务由jobs按租约到期重投。
+	// 占用控制通道等待在途心跳完成；最终写回也受本地已知截止限制。
+	lease.rpcMu.Lock()
+	defer lease.rpcMu.Unlock()
+	if ctx.Err() != nil || context.Cause(jobCtx) == errLeaseLost {
 		return
 	}
-	if cause := context.Cause(jobCtx); cause == errLeaseLost {
-		// 租约已过期：立即停止写入，不重放已派发的模型调用。
+	lease.mu.Lock()
+	valid := lease.expires.After(time.Now())
+	lease.mu.Unlock()
+	if !valid {
 		return
 	}
 	// 取消信号只要求owner停止；只有owner明确返回安全取消才能确认。
-	// 成功落盘与取消竞争时保留成功结果，不覆盖已付费结果引用。
+	// 已持久成功与取消竞争仍保留成功及付费结果。
 	if result.State == platform.JobCancelled {
 		result.ErrorCode = platform.CodeCancelled
 	} else if result.ErrorCode == platform.CodeCancelled {
 		result.ErrorCode = platform.CodeInternal
 	}
-	valid, err := l.client.CheckLease(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken)
-	if err != nil || !valid {
+	finalCtx, cancelFinal := executionLeaseContext(lease, ctx)
+	defer cancelFinal()
+	valid, err = l.client.CheckLease(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken)
+	if err != nil || !valid || finalCtx.Err() != nil {
 		return
 	}
 	switch result.State {
 	case platform.JobSucceeded:
-		_ = l.client.CompleteJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken, result.ResultRef, result.PaidResultRefs)
+		_ = l.client.CompleteJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, result.ResultRef, result.PaidResultRefs)
 	default:
 		errorCode := result.ErrorCode
 		if errorCode == "" {
 			errorCode = platform.CodeInternal
 		}
-		_ = l.client.FailJob(workerControlContext(ctx, op), job.JobID, workerID, job.FencingToken, errorCode, result.PaidResultRefs)
+		_ = l.client.FailJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, errorCode, result.PaidResultRefs)
 	}
 }
 
@@ -176,8 +192,101 @@ var errLeaseLost = errors.New("job lease lost")
 
 var errJobCancelled = errors.New("job cancellation requested")
 
-// heartbeat 每10秒续租；jobs要求取消或租约失效时终止任务。
-func (l *workerLoop) heartbeat(jobCtx context.Context, op platform.OperationContext, workerID string, job platform.ClaimedJob, cancelJob context.CancelCauseFunc) {
+// executionLease以独立定时器限制本地执行权；续租RPC串行，避免旧回执覆盖新截止。
+type executionLease struct {
+	ctx      context.Context
+	op       platform.OperationContext
+	client   platform.JobsClient
+	workerID string
+	job      platform.ClaimedJob
+	cancel   context.CancelCauseFunc
+	rpcMu    sync.Mutex
+	mu       sync.Mutex
+	expires  time.Time
+	timer    *time.Timer
+}
+
+func newExecutionLease(ctx context.Context, op platform.OperationContext, client platform.JobsClient, workerID string, job platform.ClaimedJob, cancel context.CancelCauseFunc) (*executionLease, error) {
+	expires, err := platform.ParseTimestamp(job.ExpiresAt)
+	if err != nil || !expires.After(time.Now()) {
+		return nil, platform.NewError(platform.CodeLocked, false, "任务领取租约已失效")
+	}
+	lease := &executionLease{ctx: ctx, op: op, client: client, workerID: workerID, job: job, cancel: cancel, expires: expires}
+	lease.timer = time.AfterFunc(time.Until(expires), func() { expireExecutionLease(lease) })
+	return lease, nil
+}
+
+func expireExecutionLease(lease *executionLease) {
+	lease.mu.Lock()
+	defer lease.mu.Unlock()
+	if !lease.expires.After(time.Now()) {
+		lease.cancel(errLeaseLost)
+	}
+}
+
+func executionLeaseContext(lease *executionLease, ctx context.Context) (context.Context, context.CancelFunc) {
+	lease.mu.Lock()
+	expires := lease.expires
+	lease.mu.Unlock()
+	return context.WithDeadline(ctx, expires)
+}
+
+// renew在租约截止内读取权威取消并续租；不可逆决定额外核当前worker/fence。
+func renewExecutionLease(ctx context.Context, lease *executionLease, verify bool) error {
+	lease.rpcMu.Lock()
+	defer lease.rpcMu.Unlock()
+	if lease.ctx.Err() != nil {
+		return platform.NewError(platform.CodeCancelled, false, "任务执行已停止")
+	}
+	work, cancel := executionLeaseContext(lease, ctx)
+	info, err := lease.client.HeartbeatJob(workerControlContext(work, lease.op), lease.job.JobID, lease.workerID, lease.job.FencingToken)
+	cancel()
+	if err != nil {
+		lease.cancel(errLeaseLost)
+		return err
+	}
+	if info.CancelRequested {
+		lease.cancel(errJobCancelled)
+		return platform.NewError(platform.CodeCancelled, false, "任务已请求取消")
+	}
+	if info.SafePointRequested {
+		lease.cancel(errLeaseLost)
+		return platform.NewError(platform.CodeLocked, false, "任务已请求维护安全点")
+	}
+	expires, err := platform.ParseTimestamp(info.ExpiresAt)
+	lease.mu.Lock()
+	now := time.Now()
+	valid := err == nil && lease.ctx.Err() == nil && lease.expires.After(now) && expires.After(now)
+	if valid {
+		lease.expires = expires
+		lease.timer.Reset(time.Until(expires))
+	} else {
+		lease.cancel(errLeaseLost)
+	}
+	lease.mu.Unlock()
+	if !valid {
+		return platform.NewError(platform.CodeLocked, false, "任务续租回执已过期或不可用")
+	}
+	if verify {
+		work, cancel = executionLeaseContext(lease, ctx)
+		valid, err = lease.client.CheckLease(workerControlContext(work, lease.op), lease.job.JobID, lease.workerID, lease.job.FencingToken)
+		cancel()
+		if err != nil || !valid {
+			lease.cancel(errLeaseLost)
+			if err != nil {
+				return err
+			}
+			return platform.NewError(platform.CodeLocked, false, "任务执行租约已失效")
+		}
+	}
+	if lease.ctx.Err() != nil {
+		return platform.NewError(platform.CodeCancelled, false, "任务执行已停止")
+	}
+	return nil
+}
+
+// heartbeat每10秒读取取消并续租；RPC与本地执行均受已知租约截止限制。
+func (l *workerLoop) heartbeat(jobCtx context.Context, lease *executionLease) {
 	ticker := time.NewTicker(heartbeatEvery)
 	defer ticker.Stop()
 	for {
@@ -185,13 +294,7 @@ func (l *workerLoop) heartbeat(jobCtx context.Context, op platform.OperationCont
 		case <-jobCtx.Done():
 			return
 		case <-ticker.C:
-			info, err := l.client.HeartbeatJob(workerControlContext(jobCtx, op), job.JobID, workerID, job.FencingToken)
-			if err != nil {
-				cancelJob(errLeaseLost)
-				return
-			}
-			if info.CancelRequested {
-				cancelJob(errJobCancelled)
+			if renewExecutionLease(jobCtx, lease, false) != nil {
 				return
 			}
 		}

@@ -546,11 +546,21 @@ type HeartbeatInfo struct {
 // JobExecutionInput 任务执行函数的统一输入。
 type JobExecutionInput struct {
 	JobID        Identifier `json:"jobId"`
+	WorkerID     Identifier `json:"workerId"`
 	JobType      string     `json:"jobType"`
-	InputRef     Identifier `json:"inputRef"`
+	InputRef     ObjectRef  `json:"inputRef"`
 	FencingToken int64      `json:"fencingToken"`
 	Attempt      int        `json:"attempt"`
 	DataEpoch    Identifier `json:"dataEpoch"`
+	// CheckLease在不可逆决定前由执行器锁外调用；租约未知或取消均拒绝。
+	CheckLease func(context.Context) error `json:"-"`
+}
+
+// RelayBatchResult只描述本批已领取行；不表示全域已送达。
+type RelayBatchResult struct {
+	Relayed     int64 `json:"relayed"`
+	Pending     int64 `json:"pending"`
+	Quarantined int64 `json:"quarantined"`
 }
 
 // JobExecutionResult 任务执行结果；retry表示可重试失败。

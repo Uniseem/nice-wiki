@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 48 个函数：约束 19 个，参考 29 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 53 个函数：约束 19 个，参考 34 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -731,12 +731,8 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 
 **步骤**
 
-1. 按序号以30秒行租约领取已提交pending行
-2. 逐条调用jobs:publishEvent，确认后标relayed
-3. 失败按1/2/4秒退避（上限60秒）；同ID异hash标quarantined
-4. 屏障draining时继续转发直到空；恢复换入后丢弃旧dataEpoch行
-5. Runtime/WriteWindow必须显式装配；每次active outbox写和网络发布前核最新窗口，发布后再次核窗口才能确认/隔离/重试；未知权威或safe截止后不写，不以后台固定过期Deadline签名
-6. relayWriteContext薄委托公共NewWriteContext，不另存一份运行权威/维护截止算法
+1. 校验轮询间隔并在进程取消前持续调用RunRelayBatch；每轮后按PollMillis等待
+2. 单批领取、旧代丢弃、逐条发布与安全窗口内确认统一由RunRelayBatch实现；配置错误返回，运行依赖失败保留事件继续下一轮
 
 **错误**
 
@@ -748,7 +744,7 @@ func RunRelay(ctx context.Context, store OutboxStore, client EventPublisher, con
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：行级租约防多实例重复
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`、`platform.NewWriteContext`
+- 依赖：`platform.RunRelayBatch`
 
 ## platform.NewEventPublisher
 
@@ -871,6 +867,51 @@ func relayWriteContext(ctx context.Context, config RelayConfig) (context.Context
 - 幂等：纯转换或按调用上下文执行，不改变业务费用根
 - 依赖：无
 
+## platform.RunRelayBatch
+
+- 级别：参考
+- 文件：`libs/platform/outbox/relay.go`
+- 作用：单批转发已提交outbox事件并返回真实本批计数
+
+```go
+func RunRelayBatch(ctx context.Context, store OutboxStore, client EventPublisher, config RelayConfig) (RelayBatchResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
+| `store` | `OutboxStore` | 本域outbox访问 | 同一数据库 |
+| `client` | `EventPublisher` | jobs客户端 | 带服务断言 |
+| `config` | `RelayConfig` | 批量与轮询参数 | batchLimit≤100 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `RelayBatchResult` | 本批经本地持久确认后的relayed/pending/quarantined行数；不计未领取的全域积压 | 只在error为空时有效 |
+| `error` | `error` | 失败原因；调用方映射为公共Problem | 不含密钥、正文或IP |
+
+**步骤**
+
+1. 校验batchLimit及必需runtime/writeWindow；每次active写前由NewWriteContext读取当前权威窗口
+2. 先按当前epoch丢弃旧代pending，再重新取得窗口领取本批30秒行租约；不持SQL事务调用jobs
+3. 逐条发布固定信封；网络返回后重取运行/窗口，只有同代且窗口有效才标relayed、隔离或安排1/2/4秒退避（上限60秒）
+4. 原代改变则只丢弃原代行；本批已持久确认/隔离/保留pending分别计数，未知本地提交或窗口错误不返回成功计数
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用（可重试）
+- `LOCKED`：维护无有效control写窗口、窗口截止或恢复阶段禁止写入（可重试）
+- `VALIDATION`：必需运行权威/写窗口或循环参数未装配（不可重试）
+
+- 副作用：读写outbox；HTTP调用jobs
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：行级租约防多实例重复
+- 幂等：eventId固定
+- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`、`platform.NewWriteContext`
+
 ## platform.ClaimInbox
 
 - 级别：约束
@@ -990,6 +1031,9 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 7. WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作
 8. 每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认
 9. runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许
+10. 向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭
+11. 领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定
+12. executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功
 
 **错误**
 
@@ -999,7 +1043,7 @@ func RunWorkerLoop(ctx context.Context, client JobsClient, config WorkerConfig, 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`
 
 ## platform.workerControlContext
 
@@ -1037,6 +1081,166 @@ func workerControlContext(ctx context.Context, op OperationContext) context.Cont
 - 并发：每次生成独立ID
 - 幂等：同一次下游请求重试复用返回上下文，不跨心跳或fence复用
 - 依赖：无
+
+## platform.newExecutionLease
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：建立领取结果的本地到期边界
+
+```go
+func newExecutionLease(ctx context.Context, op OperationContext, client JobsClient, workerID string, job ClaimedJob, cancel CancelCauseFunc) (*ExecutionLease, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 任务取消上下文 | 仅可信进程内调用 |
+| `op` | `OperationContext` | 原业务操作 | 仅可信进程内调用 |
+| `client` | `JobsClient` | 可信租约客户端 | 仅可信进程内调用 |
+| `workerID` | `string` | 本次worker | 仅可信进程内调用 |
+| `job` | `ClaimedJob` | 真实完整领取材料 | 仅可信进程内调用 |
+| `cancel` | `CancelCauseFunc` | 取消当前执行 | 仅可信进程内调用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `lease` | `ExecutionLease` | 本地有限执行权 | 仅可信进程内调用 |
+| `error` | `error` | 失败原因 | 仅可信进程内调用 |
+
+**步骤**
+
+1. 解析真实claim截止，已过期或坏格式拒绝
+2. 独立AfterFunc在执行权截止取消任务；不等待心跳RPC完成
+
+**错误**
+
+- `LOCKED`：本地执行权或权威租约已过期/维护安全点（不可重试）
+- `CANCELLED`：任务取消或执行已停止（不可重试）
+
+- 副作用：管理进程内执行权与有限IO上下文
+- 授权：进程内可信worker调用
+- 并发：续租与fresh检查串行；截止受独立互斥与定时器保护
+- 幂等：不生成或重放业务副作用；每次控制RPC独立子操作
+- 依赖：`platform.expireExecutionLease`
+
+## platform.expireExecutionLease
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：到期时取消执行权
+
+```go
+func expireExecutionLease(lease *ExecutionLease)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `lease` | `ExecutionLease` | 当前执行权 | 仅可信进程内调用 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持截止互斥重新核当前expires；只有当前已过期才取消，旧定时器回调不能取消已正确续期的执行
+
+**错误**
+
+- `LOCKED`：本地执行权或权威租约已过期/维护安全点（不可重试）
+- `CANCELLED`：任务取消或执行已停止（不可重试）
+
+- 副作用：管理进程内执行权与有限IO上下文
+- 授权：进程内可信worker调用
+- 并发：续租与fresh检查串行；截止受独立互斥与定时器保护
+- 幂等：不生成或重放业务副作用；每次控制RPC独立子操作
+- 依赖：无
+
+## platform.executionLeaseContext
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：把控制IO截止限制在已知执行权内
+
+```go
+func executionLeaseContext(lease *ExecutionLease, ctx context.Context) (context.Context, CancelFunc)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `lease` | `ExecutionLease` | 当前执行权 | 仅可信进程内调用 |
+| `ctx` | `context.Context` | 下游IO取消来源 | 仅可信进程内调用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 不超过当前租约截止的IO上下文 | 仅可信进程内调用 |
+| `cancel` | `CancelFunc` | 释放IO资源 | 仅可信进程内调用 |
+
+**步骤**
+
+1. 持互斥读取expires并使用context.WithDeadline；保留父上下文更早取消
+
+**错误**
+
+- `LOCKED`：本地执行权或权威租约已过期/维护安全点（不可重试）
+- `CANCELLED`：任务取消或执行已停止（不可重试）
+
+- 副作用：管理进程内执行权与有限IO上下文
+- 授权：进程内可信worker调用
+- 并发：续租与fresh检查串行；截止受独立互斥与定时器保护
+- 幂等：不生成或重放业务副作用；每次控制RPC独立子操作
+- 依赖：无
+
+## platform.renewExecutionLease
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：串行续租并在不可逆决定前核取消与fence
+
+```go
+func renewExecutionLease(ctx context.Context, lease *ExecutionLease, verify bool) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 下游IO取消 | 仅可信进程内调用 |
+| `lease` | `ExecutionLease` | 当前执行权 | 仅可信进程内调用 |
+| `verify` | `bool` | 不可逆决定前额外checkLease | 仅可信进程内调用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 未知、取消、过期或维护均失败关闭 | 仅可信进程内调用 |
+
+**步骤**
+
+1. 续租互斥覆盖整个请求与回执安装，RPC使用当前lease截止
+2. 即时HeartbeatJob读取cancelRequested/safePointRequested；停止或未知则取消执行权并拒绝
+3. 旧本地截止仍有效且新expiry有效时才重置独立到期定时器；不得复活已取消执行权
+4. verify=true时继续按新截止读取CheckLease，绑定jobId/workerId/fence；RPC返回后再次核本地任务是否仍有效
+
+**错误**
+
+- `LOCKED`：本地执行权或权威租约已过期/维护安全点（不可重试）
+- `CANCELLED`：任务取消或执行已停止（不可重试）
+
+- 副作用：管理进程内执行权与有限IO上下文
+- 授权：进程内可信worker调用
+- 并发：续租与fresh检查串行；截止受独立互斥与定时器保护
+- 幂等：不生成或重放业务副作用；每次控制RPC独立子操作
+- 依赖：`jobs:heartbeatJob`、`jobs:checkLease`、`platform.executionLeaseContext`、`platform.workerControlContext`
 
 ## platform.InvokeModel
 

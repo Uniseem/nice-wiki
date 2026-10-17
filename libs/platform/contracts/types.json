@@ -885,6 +885,26 @@
       "type": "object",
       "x-internal": true,
       "description": "仅apivalidate内部EventStream到JSONEventStream薄适配"
+    },
+    "RelayBatchResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/RelayOutboxResult",
+      "description": "单批已领取事件的转发结果；Go类型RelayBatchResult"
+    },
+    "ExecutionLease": {
+      "type": "object",
+      "x-internal": true,
+      "x-go-type": "executionLease",
+      "description": "单任务执行权；独立到期定时器、串行续租与完整worker/fence绑定，不序列化"
+    },
+    "CancelCauseFunc": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Go context.CancelCauseFunc，停止当前执行权并记录原因"
+    },
+    "ClaimedJob": {
+      "type": "object",
+      "x-internal": true,
+      "description": "平台任务领取材料；完整jobId/operationId/rootOperationId/type/ObjectRef/fence/attempt/dataEpoch/expiresAt投影，来源为jobs:claimJob"
     }
   }
 }

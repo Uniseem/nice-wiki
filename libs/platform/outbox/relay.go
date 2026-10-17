@@ -26,48 +26,21 @@ const (
 // 或信封非法标quarantined；屏障draining时继续转发直到空；
 // 恢复换入后丢弃旧dataEpoch行。ctx取消即退出。
 func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) error {
-	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.PollMillis < minPollMillis || config.PollMillis > maxPollMillis || config.Runtime == nil || config.WriteWindow == nil {
-		return platform.NewError(platform.CodeValidation, false, "outbox转发参数或写窗口未装配")
+	if config.PollMillis < minPollMillis || config.PollMillis > maxPollMillis {
+		return platform.NewError(platform.CodeValidation, false, "outbox轮询间隔不合法")
 	}
 	poll := time.Duration(config.PollMillis) * time.Millisecond
-	var lastEpoch platform.Identifier
 	for {
 		if ctx.Err() != nil {
 			return nil
 		}
-		work, view, cancel, err := relayWriteContext(ctx, config)
-		if err != nil {
-			if !sleepContext(ctx, poll) {
-				return nil
-			}
-			continue
+		_, err := RunRelayBatch(ctx, store, client, config)
+		var failure *platform.Error
+		if errors.As(err, &failure) && failure.Code == platform.CodeValidation {
+			return err
 		}
-		if lastEpoch != view.DataEpoch {
-			if _, err = store.DiscardOtherEpochs(work, view.DataEpoch); err == nil {
-				lastEpoch = view.DataEpoch
-			}
-			cancel()
-			if err != nil && !sleepContext(ctx, poll) {
-				return nil
-			}
-			// 清理与领取是两次active写；下一次先重取当前运行/安全窗口。
-			continue
-		}
-		var rows []platform.OutboxRow
-		if err == nil {
-			rows, err = store.ClaimBatch(work, config.BatchLimit, rowLease)
-		}
-		cancel()
-		if err != nil || len(rows) == 0 {
-			if !sleepContext(ctx, poll) {
-				return nil
-			}
-			continue
-		}
-		if err := relayBatch(ctx, store, client, rows, config); err != nil {
-			if !sleepContext(ctx, poll) {
-				return nil
-			}
+		if !sleepContext(ctx, poll) {
+			return nil
 		}
 	}
 }
@@ -117,46 +90,74 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 	return nil
 }
 
-// relayBatch 转发一批已领取行；返回值只表达批次级中断。
-func relayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, rows []platform.OutboxRow, config platform.RelayConfig) error {
+// RunRelayBatch领取并处理一批已提交事件；每次写入都重新取得安全窗口。
+func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) (platform.RelayBatchResult, error) {
+	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil {
+		return platform.RelayBatchResult{}, platform.NewError(platform.CodeValidation, false, "outbox转发参数或写窗口未装配")
+	}
+	work, view, cancel, err := relayWriteContext(ctx, config)
+	if err != nil {
+		return platform.RelayBatchResult{}, err
+	}
+	_, err = store.DiscardOtherEpochs(work, view.DataEpoch)
+	cancel()
+	if err != nil {
+		return platform.RelayBatchResult{}, err
+	}
+	work, _, cancel, err = relayWriteContext(ctx, config)
+	if err != nil {
+		return platform.RelayBatchResult{}, err
+	}
+	rows, err := store.ClaimBatch(work, config.BatchLimit, rowLease)
+	cancel()
+	if err != nil {
+		return platform.RelayBatchResult{}, err
+	}
+	result := platform.RelayBatchResult{Pending: int64(len(rows))}
 	for _, row := range rows {
 		work, view, cancel, err := relayWriteContext(ctx, config)
 		if err != nil {
-			return err
+			return platform.RelayBatchResult{}, err
 		}
 		if row.DataEpoch != view.DataEpoch {
 			err = store.Discard(work, row.EventID, view.DataEpoch)
 			cancel()
 			if err != nil {
-				return err
+				return platform.RelayBatchResult{}, err
 			}
+			result.Pending--
 			continue
 		}
 		publishErr := client.PublishEvent(work, envelopeOf(row))
 		cancel()
-		// 网络调用返回后重新核对窗口，不能在safe截止后写确认/重试状态。
+		// 网络调用后重新核对窗口，不能在安全截止后写确认或重试状态。
 		work, view, cancel, err = relayWriteContext(ctx, config)
 		if err != nil {
-			return err
+			return platform.RelayBatchResult{}, err
 		}
 		if row.DataEpoch != view.DataEpoch {
 			err = store.Discard(work, row.EventID, view.DataEpoch)
+			result.Pending--
 		} else {
 			switch {
 			case publishErr == nil:
 				err = store.MarkRelayed(work, []platform.Identifier{row.EventID})
+				result.Relayed++
+				result.Pending--
 			case isQuarantineable(publishErr):
 				err = store.Quarantine(work, row.EventID, quarantineNote)
+				result.Quarantined++
+				result.Pending--
 			default:
 				err = store.ReleaseForRetry(work, row.EventID, row.Attempts+1, backoff(row.Attempts+1))
 			}
 		}
 		cancel()
 		if err != nil {
-			return err
+			return platform.RelayBatchResult{}, err
 		}
 	}
-	return nil
+	return result, nil
 }
 
 // envelopeOf 从outbox行还原事件信封。

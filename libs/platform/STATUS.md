@@ -1,3 +1,17 @@
+# 2026-10-17 单轮公共前置（待 GitLab CI）
+
+本轮用户明确要求三个子代理同时编写一轮后推送，并追加全部编译改经自部署 GitLab、尽量三个并行任务。旧 VPS 三次 SSH 握手失败后停止直连检查，没有本机编译。私有机器管理仓库只读克隆到仓库外，接入凭据不进入本仓库、提交或交接；既有远端双推约定已从最新 main 接续。
+
+- JobExecutionInput 保留完整 ObjectRef、WorkerID 与 fence；平台给执行器进程内 CheckLease 回调。不可逆决定前锁外串行读取 fresh heartbeat 的取消/安全点/有效期，再核 worker/fence；未知失败关闭。
+- 单任务独立到期定时器不依赖心跳 RPC 返回；start/heartbeat/check 受已知租约截止限制，旧回执不能复活已停止执行。executor 返回后先排空在途心跳，最终 check/complete/fail 同用本地已知截止，保留 owner 原业务结果与费用根。
+- RunRelayBatch 复用每次 IO 的当前运行/安全写窗口；只统计本批已领取事件，jobs 确认后才 relayed，隔离/退避/丢弃均持久完成才计数。持续 RunRelay 委托同一单批机制。
+- 新增 GitLab CI 生成/格式阶段和三个 readonly build/vet/gofmt 分片，完整 make check 在基础分片执行；优先专用 Runner，不运行新增测试、业务接口、模型、服务或部署。
+- pipeline 11 的生成、格式、重复生成和 AI 分片通过；content 分片因缺 jobs:publishEvent 直接依赖导致生成器裁剪客户端失败。基础分片 build/vet/gofmt 通过，结构检查发现 CI 临时 Git 身份建立顺序、缺 ClaimedJob 类型和实际结构登记。已修相应来源并保留失败事实，等待新候选完整 CI。
+
+对应新函数/改变函数仍为 in_progress，未把源码或单分片通过记为整轮完成；交付 SHA 与最终检查证据将在通过后回填。R2 行为验收和部署未开始。
+
+---
+
 # 持续目标第二轮公共IO错误工具（已检查）
 
 集成会话新增NormalizeIOError，统一已有或包裹的公共错误、原始ctx取消/截止，未知只用可信安全fallback，不传播原存储错误。补登记真实FromError并由jobs响应实际调用，公共Problem保留未知INTERNAL；新域不再复制取消/截止分类。无新路径/外部依赖。
