@@ -34,7 +34,7 @@
 
 ## 下一步（一项）
 
-等合同写明“独立 canonical 问题不残留这/它/未命名第二步来源”的可执行判定后，再让 `qa.EvaluateCacheEligibility` 返回 eligible=true。在此之前不要扫描问题文本，也不要把该函数记成完成。
+`modules/qa/internal/cache/eligibility.go` 已登记。GitLab CI 还没覆盖这次提交。指代残留没有可执行判定之前，不要让 `qa.EvaluateCacheEligibility` 返回 eligible=true，也不要扫描问题文本。
 
 下文是历史交接，其中的下一步不再执行。
 

@@ -27,7 +27,7 @@
 
 ## 下一步（一项）
 
-等集成会话登记 `modules/portal/internal/audit_redaction.go` 并跑 GitLab CI。通过前不要开始 `portal.EmitAccessAudit`，也不要把本函数记为 verified 或 accepted。
+`modules/portal/internal/audit_redaction.go` 已登记。GitLab CI 还没覆盖这次提交，不要把 `RedactRequest` 记为 verified 或 accepted。下一步实现合同已写明的 `portal.EmitAccessAudit`。
 
 下文是历史交接，其中的下一步不再执行。
 
