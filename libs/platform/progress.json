@@ -7,16 +7,16 @@
   "assignedSession": "2026-10-17第三轮可信站点和真实任务适配",
   "branch": "codex/integration-20261017-r3",
   "baseCommit": "d760e39194156403e2b82430d5018fa9f4425e19",
-  "deliveryCommit": null,
+  "deliveryCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
   "deployment": "not_started",
   "files": [
     {
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -32,11 +32,11 @@
     },
     {
       "path": "libs/platform/opctx/context.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -92,11 +92,11 @@
     },
     {
       "path": "libs/platform/worker/loop.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -172,11 +172,11 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -202,11 +202,11 @@
     },
     {
       "path": "libs/platform/worker/client.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     }
@@ -215,22 +215,22 @@
     {
       "id": "platform.SignAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.VerifyAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -248,11 +248,11 @@
     {
       "id": "platform.BuildOperationContext",
       "path": "libs/platform/opctx/context.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -314,11 +314,11 @@
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -369,11 +369,11 @@
     {
       "id": "platform.NewSiteConfigClient",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -501,11 +501,11 @@
     {
       "id": "platform.workerControlContext",
       "path": "libs/platform/worker/loop.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮新增统一owner控制剥离旧proof，待根GitLab"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -747,11 +747,11 @@
     {
       "id": "platform.newExecutionLease",
       "path": "libs/platform/worker/loop.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
@@ -790,111 +790,111 @@
     },
     {
       "id": "platform.SignOutboundRequest",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.applyOperationHeaders",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.NewJobsClient",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.workerOperation",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.decodeWorkerResponse",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.ClaimJob",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.StartJob",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.HeartbeatJob",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.CheckLease",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.CompleteJob",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     },
     {
       "id": "platform.FailJob",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "not_run",
-        "evidence": "本轮候选待根GitLab生成/格式与三分片完整检查，未本机执行"
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
     }

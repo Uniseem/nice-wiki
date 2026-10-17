@@ -14,4 +14,4 @@
 
 ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传递部署主密钥绝对路径；配置加载不打开密钥，使用域按具体加密操作读取。
 
-第三轮公共候选补签名站点传递和任务六方法窄适配，当前待根GitLab检查；状态与未完成边界见STATUS及handoff。
+第三轮公共候选补签名站点传递和任务六方法窄适配，已通过根GitLab pipeline32候选检查，实际集成树仍按顺序复检；状态与未完成边界见STATUS及handoff。

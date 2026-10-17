@@ -1,4 +1,4 @@
-# 2026-10-17第三轮公共候选（待GitLab）
+# 2026-10-17第三轮公共源码交付（候选GitLab通过）
 
 基线d760e39194156403e2b82430d5018fa9f4425e19，根集成会话独占公共文件。用户要求再一轮、三个子代理同时编写，全部编译检查经GitLab，通过后普通双推。
 
@@ -8,9 +8,9 @@
 - 现有生成器支持显式x-runtime-payload-schemas并输出独立PayloadValidationSpec，保留严格生产方schema闭包，避免未被HTTP引用的六任务响应被默认剪除；不扩大HTTP接口或全部内部DTO。
 - media交审发现首候选将领域Input的jobId/dataEpoch误放HTTP body，违反生产方额外字段拒绝规则；已改为jobId仅路径、epoch仅可信头，严格body只发RequestBody字段。未经业务执行发现，最终证据以修正后完整GitLab候选为准。
 - pipeline30因HTTP合同窄修更新而取消，不计通过。修正候选pipeline31的生成/格式/重复生成与14Go模块三个build/vet/gofmt分片通过，但完整check缺SigningKey/HeartbeatInfo两项类型登记；补机器类型后待新完整候选，不把编译通过当整体验证。
-- 所有当前新改条目in_progress，等待根GitLab格式/生成/三分片build/vet/gofmt和完整make check；不沿用旧轮证据。无本机或SSH Go、测试/样例/临时业务程序、SQL/HTTP行为验收、模型、worker/删除、服务或部署。
+- 公共源码18449ccc9b474c8cf89f94abac5538beac8c2eb3，本轮18项完整新改函数、5实际源码文件按该SHA verified（11项函数首次完成）。pipeline32候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9生成/格式/重复生成148及三个同时分片149/150/151全部success，覆盖14Go模块readonly build/vet/gofmt和完整make check，生成补丁0；根精确回传后源码未再改。无本机或SSH Go、测试/样例/临时业务程序、SQL/HTTP行为验收、模型、worker/删除、服务或部署。
 
-下一项：冻结候选后统一GitLab检查并回传精确生成物；源码和准确SHA记录分开提交，只有实际通过才回填verified。
+下一项：根与media顺序集成公共依赖，并在实际树重新运行全部GitLab检查，再逐域集成及本轮普通双推；不运行未齐完整服务。
 
 ---
 
