@@ -3787,6 +3787,26 @@
       "path": "modules/content/migrations/0005_reference_snapshots.sql",
       "kind": "handwritten",
       "purpose": "全站资源引用单调水位与只追加触发器"
+    },
+    {
+      "path": "modules/media/internal/cleanup_worker.go",
+      "kind": "handwritten",
+      "purpose": "人工清理批准校验、持久DELETING与原结果恢复"
+    },
+    {
+      "path": "modules/media/internal/reader_lease.go",
+      "kind": "handwritten",
+      "purpose": "与删除互斥的真实有限读者租约"
+    },
+    {
+      "path": "modules/media/internal/worker.go",
+      "kind": "handwritten",
+      "purpose": "装配平台清理执行器与有界只读安全取消证明"
+    },
+    {
+      "path": "modules/media/migrations/0007_cleanup_execution.sql",
+      "kind": "handwritten",
+      "purpose": "人工删除持久执行决定与读者租约权威"
     }
   ]
 }
