@@ -68,6 +68,10 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 	if err != nil {
 		return PublishDocumentResult{}, err
 	}
+	referenceDigest, referencesPinned, err := preparePublicationPin(work, op, runtime, input.DocumentId, input.DraftRevisionId, input.ExpectedRevision, input.ManualPathSegment, input.ManualSEO)
+	if err != nil {
+		return PublishDocumentResult{}, err
+	}
 	runtime.Reference.Store.mu.Lock()
 	defer runtime.Reference.Store.mu.Unlock()
 	tx, err := runtime.Reference.Store.db.BeginTx(work, nil)
@@ -96,7 +100,7 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 	if prepared.Metadata.PathSegment == nil {
 		return PublishDocumentResult{}, platform.NewError(platform.CodeValidation, false, "发布缺少英文路径，请人工填写")
 	}
-	bound := bindPublicationTx(withPublicationFacts(work, publicationFacts{accountName: account, schemaVersion: schema}), tx)
+	bound := bindPublicationTx(withPublicationFacts(work, publicationFacts{accountName: account, schemaVersion: schema, referenceDigest: referenceDigest, referencesPinned: referencesPinned}), tx)
 	committed, err := CommitPublication(bound, op, CommitPublicationInput{Metadata: prepared.Metadata, Draft: DraftRevision{DocumentId: input.DocumentId, RevisionId: input.DraftRevisionId, DraftVersion: input.ExpectedDraftVersion, BodyHash: body.Object.Sha256}, ExpectedRevision: input.ExpectedRevision, Operation: string(gen.Publish)})
 	if err != nil {
 		return PublishDocumentResult{}, err

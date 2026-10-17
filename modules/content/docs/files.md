@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 73 个：手写 46、UI 12、生成 5、配置 10。函数 259 个：约束 42，参考 217。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 73 个：手写 46、UI 12、生成 5、配置 10。函数 261 个：约束 42，参考 219。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -23,7 +23,7 @@
 | `modules/content/internal/revision_reader.go` | 手写 | 读取COMMITTED正文并核真相 | `content.ReadRevisionBody`（参考）、`content.revisionFileStoreFromContext`（参考）、`content.revisionFileLocation`（参考）、`content.validateCommittedMaterial`（参考）、`content.readImmutableRevision`（参考）、`content.Read`（参考）、`content.decodeStoredBody`（参考）、`content.isolateRevisionRead`（参考）、`content.WithRevisionFileStore`（参考） |
 | `modules/content/internal/publication_metadata.go` | 手写 | 人工优先准备首次slug和SEO | `content.PreparePublicationMetadata`（参考） |
 | `modules/content/internal/publication_service.go` | 手写 | 点击发布才公开精确共享草稿版本 | `content.PublishDocument`、`content.WithdrawDocument`、`content.authorizePublication`（参考）、`content.readPublicationReceipt`（参考）、`content.insertPublicationReceipt`（参考） |
-| `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.applyPublication`（参考）、`content.loadSharedDraft`（参考）、`content.casPublicationIdentity`（参考）、`content.copyPublishedReferences`（参考）、`content.listPublicationReferences`（参考）、`content.archivePublishedReferences`（参考）、`content.enqueuePublication`（参考）、`content.enqueueTreeChanged`（参考）、`content.ReadReferenceDecision` |
+| `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.applyPublication`（参考）、`content.loadSharedDraft`（参考）、`content.casPublicationIdentity`（参考）、`content.preparePublicationPin`（参考）、`content.pinPublicationReferences`（参考）、`content.copyPublishedReferences`（参考）、`content.listPublicationReferences`（参考）、`content.archivePublishedReferences`（参考）、`content.enqueuePublication`（参考）、`content.enqueueTreeChanged`（参考）、`content.ReadReferenceDecision` |
 | `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications`、`content.readPublicationSnapshot`（参考） |
 | `modules/content/internal/publication_reader.go` | 手写 | 获取仍公开的精确正文快照 | `content.ReadPublishedRevision`、`content.loadVisiblePublication`（参考） |
 | `modules/content/internal/trash_service.go` | 手写 | 删除进回收站，可选旧URL替代跳转 | `content.TrashDocument`、`content.RestoreDocument`、`content.PurgeDocuments` |

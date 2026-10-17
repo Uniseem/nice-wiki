@@ -87,6 +87,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	if endpoint := config.Dependencies["media"]; endpoint != "" {
+		treeRuntime.Media = gen.NewMediaClient(endpoint, ModuleSlug, key)
+	}
 	if err = transport.RegisterTreeRoutes(application, treeRuntime, anchors); err != nil {
 		return nil, err
 	}

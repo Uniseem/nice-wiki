@@ -4701,9 +4701,10 @@
           ],
           "purpose": "点击发布才公开精确共享草稿版本",
           "steps": [
-            "授权publish与当前写窗口在锁外完成；先读COMMITTED正文哈希，再在短事务内核对当前共享草稿",
-            "PreparePublicationMetadata后，空slug返回校验错误。CommitPublication把metadata/tree CAS、不可变快照、历史、已就绪草稿引用和outbox放进同一事务",
-            "原回执与上述写入同事务。未知Commit只回放原结果，不重复推进水位或事件。分享图非空因pin合同未齐503。提交后的渲染、索引、翻译和git镜像只排队，不回退正文"
+            "授权publish与当前写窗口在锁外完成；先读COMMITTED正文哈希，再读取就绪引用",
+            "引用集非空时，先acquire再confirm当前来源身份；跨服务调用不持有本地SQL锁。引用集为空则不造pin。pin失败则整次发布失败，不先公开",
+            "PreparePublicationMetadata后，空slug返回校验错误。确认pin之后，CommitPublication才把metadata/tree CAS、不可变快照、历史、引用和outbox放进同一事务",
+            "原回执与上述写入同事务。未知Commit只回放原结果，不重复推进水位或事件。分享图非空因metadata pin合同未齐503。提交后的渲染、索引、翻译和git镜像只排队，不回退正文"
           ],
           "errors": [
             {
@@ -4753,9 +4754,13 @@
             "content.readPublicationReceipt",
             "content.ReadRevisionBody",
             "content.PreparePublicationMetadata",
+            "content.preparePublicationPin",
+            "content.pinPublicationReferences",
             "content.CommitPublication",
             "content.bindPublicationTx",
-            "content.insertPublicationReceipt"
+            "content.insertPublicationReceipt",
+            "media:acquireResourceReferences",
+            "media:confirmResourceReferences"
           ],
           "resources": [],
           "contract": "binding"
@@ -5004,7 +5009,8 @@
           ],
           "purpose": "原子提交当前发布快照与署名历史",
           "steps": [
-            "rollback直接失败关闭，不写历史回滚。publish确认当前共享草稿哈希与已就绪current_draft引用，不调用媒体pin",
+            "rollback直接失败关闭，不写历史回滚。独立提交在本地锁之外先完成与Publish相同的资源pin；已绑定事务只接受锁外已经确认的同一引用摘要",
+            "非空引用必须匹配已确认pin后才写入发布快照。空引用不造pin。pin失败或摘要变化则整次失败，不先公开",
             "同一事务CAS元数据、树和文档，写入不可变快照、署名历史，并把上一份当前发布引用改为history",
             "同一事务登记publication.changed、resources.changed和tree.changed。未知提交只回放原回执。非空分享图失败关闭"
           ],
@@ -5035,9 +5041,13 @@
             "content.applyPublication",
             "content.authorizePublication",
             "content.readPublicationReceipt",
+            "content.preparePublicationPin",
+            "content.pinPublicationReferences",
             "content.bindPublicationTx",
             "content.insertPublicationReceipt",
-            "content.ReadRevisionBody"
+            "content.ReadRevisionBody",
+            "media:acquireResourceReferences",
+            "media:confirmResourceReferences"
           ],
           "resources": [],
           "contract": "reference"
@@ -5050,7 +5060,7 @@
           "outputs": [],
           "purpose": "在调用者事务内提交当前共享草稿的发布快照",
           "steps": [
-            "核对当前head、正文哈希、元数据CAS和英文路径。复制current_draft为current_published",
+            "核对当前head、正文哈希、元数据CAS和英文路径。非空current_draft必须匹配锁外已确认pin后才复制为current_published",
             "曾发布路径变化时写入版本化manifest。事件与快照同一事务"
           ],
           "errors": [],
@@ -5117,6 +5127,54 @@
           "contract": "reference"
         },
         {
+          "id": "content.preparePublicationPin",
+          "name": "preparePublicationPin",
+          "signature": "func preparePublicationPin(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, expectedRevision int, manualPath, manualSEO *string) (Hash, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在本地SQL锁之外准备发布引用pin",
+          "steps": [
+            "短读元数据和就绪引用后立即释放事务。分享图非空或缺少英文路径时直接失败，不调用媒体",
+            "引用集为空则不造pin。非空则交给pinPublicationReferences"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "已认证发布调用链",
+          "concurrency": "跨服务调用前不持有Store.mu或SQL事务",
+          "idempotency": "只决定本次是否已经可以进入发布事务",
+          "dependencies": [
+            "content.pinPublicationReferences",
+            "content.PreparePublicationMetadata"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.pinPublicationReferences",
+          "name": "pinPublicationReferences",
+          "signature": "func pinPublicationReferences(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, sourceVersion int, refs []gen.ResourceReference) (Hash, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "用现有媒体客户端先预留再确认发布快照的来源引用",
+          "steps": [
+            "空引用直接返回，不发送空pin。非空时按草稿提交同一请求形状调用acquire，核对资产后再confirm",
+            "任一调用失败则返回错误，调用方不得提交公开事务"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "媒体资源pin"
+          ],
+          "authorization": "已认证发布调用链，以本域服务身份调用媒体",
+          "concurrency": "不持有本地SQL锁",
+          "idempotency": "同一operationId复用媒体侧原pin；本地不把失败记成已发布",
+          "dependencies": [
+            "media:acquireResourceReferences",
+            "media:confirmResourceReferences"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "content.copyPublishedReferences",
           "name": "copyPublishedReferences",
           "signature": "func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, draftRevisionID, publishedRevisionID Identifier, referenceVersion int64) ([]gen.ResourceReference, int, error)",
@@ -5124,7 +5182,8 @@
           "outputs": [],
           "purpose": "把当前草稿的就绪引用复制为当前发布引用",
           "steps": [
-            "引用水位必须等于文档reference_version。旧的current_published改为history后再插入新行"
+            "引用水位必须等于文档reference_version。非空集合必须等于锁外已确认pin的摘要，空集合不得带pin",
+            "旧的current_published改为history后再插入新行"
           ],
           "errors": [],
           "sideEffects": [
@@ -9009,7 +9068,7 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务",
-            "本轮构造TreeRuntime并注册四树路由和四个真实发布路由。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务"
+            "本轮构造TreeRuntime并注册四树路由和四个真实发布路由；已配置media端点时挂上现有MediaClient供发布pin。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务"
           ],
           "errors": [
             {

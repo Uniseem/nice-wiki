@@ -29,10 +29,12 @@ type ReorderChildrenInput = gen.ReorderChildrenInput
 type ReorderChildrenResult = gen.ReorderChildrenResult
 
 // TreeRuntime只接受启动装配的真实存储、鉴权/游标签名器和当前写窗口。
+// Media沿用草稿提交的版本化客户端；空引用发布不调用它。
 type TreeRuntime struct {
 	Reference      ReferenceRuntime
 	WriteWindow    platform.WriteWindowConfig
 	validateResult map[string]func(json.RawMessage) error
+	Media          *gen.MediaClient
 }
 type treeRuntimeKey struct{}
 

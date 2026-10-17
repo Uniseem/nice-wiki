@@ -82,8 +82,10 @@ type CommitPublicationResult struct {
 }
 
 type publicationFacts struct {
-	accountName   string
-	schemaVersion int
+	accountName      string
+	schemaVersion    int
+	referenceDigest  Hash
+	referencesPinned bool
 }
 
 type publicationFactsKey struct{}
@@ -144,6 +146,10 @@ func commitPublicationAlone(ctx context.Context, op OperationContext, input Comm
 	if err != nil {
 		return CommitPublicationResult{}, err
 	}
+	referenceDigest, referencesPinned, err := preparePublicationPin(work, op, runtime, input.Draft.DocumentId, input.Draft.RevisionId, input.ExpectedRevision, input.Metadata.PathSegment, input.Metadata.SeoDescription)
+	if err != nil {
+		return CommitPublicationResult{}, err
+	}
 	runtime.Reference.Store.mu.Lock()
 	defer runtime.Reference.Store.mu.Unlock()
 	tx, err := runtime.Reference.Store.db.BeginTx(work, nil)
@@ -154,7 +160,7 @@ func commitPublicationAlone(ctx context.Context, op OperationContext, input Comm
 	if raw, found, err := readPublicationReceipt(work, tx, op, "commit", digest, runtime); err != nil || found {
 		return decodeCommitReceipt(raw, found, err)
 	}
-	bound := bindPublicationTx(withPublicationFacts(work, publicationFacts{accountName: account, schemaVersion: schema}), tx)
+	bound := bindPublicationTx(withPublicationFacts(work, publicationFacts{accountName: account, schemaVersion: schema, referenceDigest: referenceDigest, referencesPinned: referencesPinned}), tx)
 	published, err := applyPublication(bound, tx, op, input)
 	if err != nil {
 		return CommitPublicationResult{}, err
@@ -394,18 +400,65 @@ func insertPublicationHistory(ctx context.Context, tx *sql.Tx, op OperationConte
 	return nil
 }
 
-func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, draftRevisionID, publishedRevisionID Identifier, referenceVersion int64) ([]gen.ResourceReference, int, error) {
+// preparePublicationPin在本地SQL锁之外确认非空引用。空集合不调用媒体，也不造空pin。
+func preparePublicationPin(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, expectedRevision int, manualPath, manualSEO *string) (Hash, bool, error) {
+	metadata, refs, sourceVersion, err := readPublicationPinMaterial(ctx, runtime.Reference.Store.db, op, documentID, revisionID)
+	if err != nil {
+		return "", false, err
+	}
+	if _, err = publicationDocument([]gen.DocumentMetadata{metadata}, documentID); err != nil {
+		return "", false, err
+	}
+	if metadata.Revision != expectedRevision || int64(metadata.Revision) >= maxEditFence || int64(metadata.VisibilityRevision) >= maxEditFence {
+		return "", false, platform.NewError(platform.CodeVersionMismatch, false, "发布修订已变化或水位耗尽")
+	}
+	if metadata.ShareImage != nil {
+		return "", false, platform.NewError(platform.CodeDependencyUnavailable, true, "分享图发布依赖精确metadata资源引用与pin生产链，当前未装配")
+	}
+	prepared, err := PreparePublicationMetadata(ctx, op, PreparePublicationMetadataInput{Metadata: metadata, ManualPathSegment: manualPath, ManualSEO: manualSEO})
+	if err != nil {
+		return "", false, err
+	}
+	if prepared.Metadata.PathSegment == nil {
+		return "", false, platform.NewError(platform.CodeValidation, false, "发布缺少英文路径，请人工填写")
+	}
+	return pinPublicationReferences(ctx, op, runtime, documentID, revisionID, sourceVersion, refs)
+}
+
+func readPublicationPinMaterial(ctx context.Context, db *sql.DB, op OperationContext, documentID, revisionID Identifier) (gen.DocumentMetadata, []gen.ResourceReference, int, error) {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return gen.DocumentMetadata{}, nil, 0, contentStorageError()
+	}
+	defer tx.Rollback()
+	var raw []byte
+	err = tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(metadata_json AS BLOB))<=16777216 THEN metadata_json ELSE NULL END FROM document_metadata WHERE site_id=? AND document_id=?`, op.Actor.SiteID, documentID).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) || raw == nil {
+		return gen.DocumentMetadata{}, nil, 0, platform.NewError(platform.CodeNotFound, false, "发布文档不存在")
+	}
+	if err != nil {
+		return gen.DocumentMetadata{}, nil, 0, contentStorageError()
+	}
+	var metadata gen.DocumentMetadata
+	if decodeStorageJSON(raw, &metadata) != nil || metadata.SiteId != op.Actor.SiteID || metadata.DocumentId != documentID {
+		return gen.DocumentMetadata{}, nil, 0, platform.NewError(platform.CodeIntegrityError, false, "发布元数据与文档身份不一致")
+	}
+	refs, sourceVersion, err := loadCurrentDraftReferences(ctx, tx, op, documentID, revisionID)
+	if err != nil {
+		return gen.DocumentMetadata{}, nil, 0, err
+	}
+	return metadata, refs, sourceVersion, nil
+}
+
+func loadCurrentDraftReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, revisionID Identifier) ([]gen.ResourceReference, int, error) {
 	var raw []byte
 	var sourceVersion int
-	err := tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(references_json AS BLOB))<=16777216 THEN references_json ELSE NULL END,source_version FROM draft_resource_references WHERE site_id=? AND document_id=? AND revision_id=? AND kind='current_draft'`, op.Actor.SiteID, documentID, draftRevisionID).Scan(&raw, &sourceVersion)
+	err := tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(references_json AS BLOB))<=16777216 THEN references_json ELSE NULL END,source_version FROM draft_resource_references WHERE site_id=? AND document_id=? AND revision_id=? AND kind='current_draft'`, op.Actor.SiteID, documentID, revisionID).Scan(&raw, &sourceVersion)
 	if errors.Is(err, sql.ErrNoRows) || raw == nil {
 		return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "当前共享草稿缺少就绪资源引用")
 	}
 	if err != nil {
 		return nil, 0, contentStorageError()
-	}
-	if int64(sourceVersion) != referenceVersion {
-		return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "草稿资源引用水位与文档不一致")
 	}
 	var refs []gen.ResourceReference
 	if decodeStorageJSON(raw, &refs) != nil {
@@ -413,6 +466,95 @@ func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContex
 	}
 	if refs == nil {
 		refs = []gen.ResourceReference{}
+	}
+	return refs, sourceVersion, nil
+}
+
+// pinPublicationReferences只对非空就绪引用调用现有媒体客户端。失败则发布尚未开始。
+func pinPublicationReferences(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, sourceVersion int, refs []gen.ResourceReference) (Hash, bool, error) {
+	if len(refs) == 0 {
+		return "", false, nil
+	}
+	if runtime.Media == nil {
+		return "", false, platform.NewError(platform.CodeDependencyUnavailable, true, "发布资源pin依赖未装配")
+	}
+	for _, ref := range refs {
+		if ref.DocumentId != documentID || ref.SourceRevisionId != revisionID || ref.SourceVersion != sourceVersion || ref.Kind != gen.CurrentDraft || !ref.Retained {
+			return "", false, platform.NewError(platform.CodeIntegrityError, false, "发布引用来源身份不一致")
+		}
+	}
+	mediaRefs, digest, err := draftMediaReferences(refs)
+	if err != nil {
+		return "", false, err
+	}
+	request := struct {
+		draftPinMaterial
+		References []draftMediaReference `json:"references"`
+	}{draftPinMaterial{op.OperationID, op.Actor.SiteID, documentID, revisionID, sourceVersion, digest}, mediaRefs}
+	raw, err := runtime.Media.AcquireResourceReferences(contentServiceContext(ctx, op), request)
+	if err != nil {
+		return "", false, err
+	}
+	var response struct {
+		Pin struct {
+			PinID  Identifier            `json:"pinId"`
+			Assets []gen.AssetVersionRef `json:"assets"`
+		} `json:"pin"`
+	}
+	if json.Unmarshal(raw, &response) != nil || !platform.ValidIdentifier(response.Pin.PinID) {
+		return "", false, platform.NewError(platform.CodeIntegrityError, false, "资源pin响应不完整")
+	}
+	wanted := map[Identifier]gen.AssetVersionRef{}
+	for _, ref := range mediaRefs {
+		wanted[ref.Asset.AssetId] = ref.Asset
+	}
+	if len(wanted) != len(response.Pin.Assets) {
+		return "", false, platform.NewError(platform.CodeIntegrityError, false, "资源pin资产集合不一致")
+	}
+	for _, asset := range response.Pin.Assets {
+		if expected, found := wanted[asset.AssetId]; !found || expected != asset {
+			return "", false, platform.NewError(platform.CodeIntegrityError, false, "资源pin资产材料不一致")
+		}
+		delete(wanted, asset.AssetId)
+	}
+	confirmed, err := runtime.Media.ConfirmResourceReferences(contentServiceContext(ctx, op), struct {
+		PinID            Identifier `json:"pinId"`
+		SourceRevisionID Identifier `json:"sourceRevisionId"`
+		SourceVersion    int        `json:"sourceVersion"`
+	}{response.Pin.PinID, revisionID, sourceVersion})
+	if err != nil {
+		return "", false, err
+	}
+	var result struct {
+		Confirmed bool `json:"confirmed"`
+	}
+	if json.Unmarshal(confirmed, &result) != nil || !result.Confirmed {
+		return "", false, platform.NewError(platform.CodeDependencyUnavailable, true, "资源引用确认尚未完成")
+	}
+	return digest, true, nil
+}
+
+func copyPublishedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID, draftRevisionID, publishedRevisionID Identifier, referenceVersion int64) ([]gen.ResourceReference, int, error) {
+	refs, sourceVersion, err := loadCurrentDraftReferences(ctx, tx, op, documentID, draftRevisionID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if int64(sourceVersion) != referenceVersion {
+		return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "草稿资源引用水位与文档不一致")
+	}
+	facts, ok := publicationFactsFrom(ctx)
+	if !ok {
+		return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "发布提交缺少已核对的账户或正文版本")
+	}
+	if len(refs) == 0 {
+		if facts.referencesPinned {
+			return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "空发布引用不应带有资源pin")
+		}
+	} else {
+		_, digest, digestErr := draftMediaReferences(refs)
+		if digestErr != nil || !facts.referencesPinned || digest != facts.referenceDigest {
+			return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "发布资源引用与已确认pin不一致")
+		}
 	}
 	for i := range refs {
 		if refs[i].DocumentId != documentID || refs[i].SourceRevisionId != draftRevisionID || refs[i].SourceVersion != sourceVersion || refs[i].Kind != gen.CurrentDraft || !refs[i].Retained {
