@@ -2,7 +2,7 @@
 
 在全域维护安全点创建一致备份、校验并恢复统一代次；把各域已有历史投影成 data git 版本镜像并管理远程同步。
 
-状态：按old已确认产品行为重建微服务设计；未实现业务代码，未创建测试样例，未执行真实接口或模型，未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+状态：启动入口和部署配置已提交，尚未编译、未验收、未部署。备份、恢复和镜像业务仍未实现，未创建测试样例，未执行真实接口或模型，未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
@@ -19,7 +19,7 @@
 - [openapi](contracts/openapi.json)
 - [events](contracts/events.json)
 
-文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。文件仅登记路径，没有创建未来源码。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
+文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。启动入口、装配、HTTP 生命周期和部署配置已经按登记路径创建；其余业务文件仍未实现。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
 
 ## 进度与新会话交接
 

@@ -1,10 +1,12 @@
 # 数据保护当前进度
 
-更新：2026-10-14。阶段：设计；本域业务尚未实现、尚未验收、尚未部署。
+更新：2026-10-17。阶段：implementation。启动入口已提交，尚未编译，尚未验收，尚未部署。
 
-- 架构、数据、HTTP/事件、状态流程和逐文件/函数规格已经写入；全局检查结果以根 STATUS 为准。
-- 未来文件 57 个，函数 65 个；实现/验证/行为验收均为0。逐项事实见 [progress.json](progress.json)。
-- 当前没有认领业务实施会话、没有业务提交或脏业务代码；新会话先核对 Git 状态，不相信旧数量。
-- 下一步：按 [交接](docs/handoff.md) 认领本域启动与契约生成的工程准备，先核对库/生成器选型与已登记文件；本次文档 push 不等于授权立刻实现。
+- 源码提交 `d03bad4debb9ddb6ec830baa37794f4330396277`，基线 `a3e6af980d5288e42bc8d023410faf8923ff21e8`，分支 `codex/data-protection-20261017-r5`。未 push。
+- 已建立 `cmd/data-protection`、应用装配、HTTP 生命周期、匿名 health/ready，以及 `go.mod`、默认配置、镜像和部署 manifest。生成目录未手改。
+- 27 个已登记 OpenAPI 路由均已绑定。备份、恢复和镜像业务返回 `DEPENDENCY_UNAVAILABLE`，不返回空成功结果。
+- `main`、`BuildApplication`、`Serve`、`Shutdown`、`Health`、`Ready` 因未编译保持 `blocked`，不能记 verified。`accepted` 为 0。
+- `go.sum` 尚未由 `go mod tidy` 生成。`migrations/0001_domain.sql` 仍没有迁移执行器合同，本轮没有创建 SQL，也没有打开私有库。
+- 新文件需要集成会话登记进根 `framework.json`。逐项事实见 [progress.json](progress.json)，交接见 [docs/handoff.md](docs/handoff.md)。
 
-并行工作只改本域，公共资料交集成会话；开始与结束均同步本状态、台账与交接。
+并行工作只改本域，公共资料由集成会话维护。
