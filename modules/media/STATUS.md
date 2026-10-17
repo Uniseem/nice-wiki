@@ -1,3 +1,12 @@
+# 2026-10-17第四轮：引用事件幂等快照（已实现，未跑 CI，订阅未接通）
+
+- 分支 `codex/media-20261017-r4`，基线 `a080a6c918e31d272c7a91368f59d5ad51d5f458`（main），源码 `ff91d6aa27a8783c262b07932bbdb85bb0e4ee23`。独占 `modules/media/`。未 push。准确台账另提交。
+- 完成范围只限 `media.ApplyReferenceEvent`：输入补齐与 pin 相同的 `sourceOperationId`、`siteId`、`sourceObjectId`、`sourceRevisionId`、`sourceVersion`、`referenceDigest`，并保留 `eventId`。函数记 implemented，不记 verified。accepted 为 0。
+- 183 个函数中 161 个 implemented/verified、154 个 verified、4 个 blocked、18 个 planned。55 个文件中 37 个 implemented/verified、29 个 verified、2 个 partial（`app/wire.go`、`transport/server.go`）、1 个 blocked、15 个 planned。`reference_repository.go` 整文件改为 implemented，旧助手函数记录仍为 verified。`BuildApplication`、`NewApplication`、`main`、`Ready` 仍 blocked。`ConsumeEvents` 仍 planned。
+- 事件 payload 仍未对齐。`ResourceReferencesChangedPayload` 没有 `sourceOperationId` 和 `referenceDigest`，引用项也不是 pin 形态的 `AssetReference`，订阅不能声称已接通。
+- 未跑 go、gofmt、make build、make gen、make check，未 SSH，未跑 CI。本轮只跑 make docs 重写本域 `functions.md`。不能把本轮记成编译通过。无新增测试、迁移或删除许可。
+- 下一步：等集成会话审核合入，并让生产方 `content.resources.changed` 载荷与 `ApplyReferenceEventInput` 一致。不要自行展开 bytes。
+
 # 2026-10-17第三轮：真实worker/relay与runtime schema（GitLab检查通过，已交付冻结）
 
 - 用户再授权一轮三个代理并行、检查通过后双推；基线d760e39194156403e2b82430d5018fa9f4425e19，分支codex/media-20261017-r3，独占modules/media/。源码`b439c516fcf58d7df32d6227dc6df18ceb0871ce`，准确台账另提交；无新实际路径/迁移，不展开bytes或模糊引用事件。
