@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 107 个函数：约束 37 个，参考 70 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 108 个函数：约束 37 个，参考 71 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -404,7 +404,7 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 2. 复用beginAvailabilitySnapshot在同一事务严格核非空runtime_meta当前代次；普通非秘密输入摘要绑定callerService/dataEpoch/provider/expectedVersion。
 3. 先按site/actor/函数/key读取7天原回执：同代同hash返回首次规范结果，不核后来的指针或屏障；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR。过期只读未命中，不能提前删除。
 4. 新操作在同一事务拒绝任何state非released屏障，不按屏障epoch或deadline过滤；不改PutModel或其旧共享屏障helper。
-5. 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。推进或回退只由专用凭据端点事务负责，普通编辑不能改写凭据。
+5. 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。条件UPSERT绑定version/data_epoch/credential_version且RowsAffected恰好1，推进或回退只由专用凭据端点事务负责。enabled直接保存，停用只阻止后续路由，不改既有invocations、预留或账本。
 6. 同事务写provider配置、provider.changed平台outbox和完整原结果回执；仅成功新事务末尾替换过期回执，失败回滚；不读取secret或调用供应方。
 
 **错误**
@@ -424,60 +424,9 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 
 - 副作用：更新providers并发出provider.changed
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；配置、平台outbox和回执一起提交，不做网络IO。
+- 并发：同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；条件UPSERT及RowsAffected核对，配置、平台outbox和回执一起提交，不做网络IO。
 - 幂等：siteId+actorId+函数ID+key唯一、7天有效；普通配置hash绑定callerService/dataEpoch/provider/expectedVersion，同代同hash返回首次规范结果，异hash CONFLICT。过期仅成功新配置事务替换，不因后续屏障/指针阻断有效无副作用重放。
-- 依赖：`model-gateway.ValidateProvider`、`model-gateway.SetProviderEnabled`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProviderReceipt`
-
-## model-gateway.SetProviderEnabled
-
-- 级别：参考
-- 文件：`modules/model-gateway/internal/catalog/provider.go`
-- 作用：启停新调用入口
-
-```go
-func SetProviderEnabled(ctx context.Context, op OperationContext, input SetProviderEnabledInput) (SetProviderEnabledResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SetProviderEnabledInput` | 封闭业务输入；逐字段见types $defs/SetProviderEnabledInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SetProviderEnabledResult` | 成功结果；逐字段见types $defs/SetProviderEnabledResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 读取供应方
-2. CAS版本
-3. disabled禁止新路由
-4. 保留正在执行调用记录
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `VALIDATION` / HTTP 400：（不可重试）
-- `NOT_FOUND` / HTTP 404：（不可重试）
-- `VERSION_MISMATCH` / HTTP 409：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：写enabled与版本，不终止已接受供应方请求
-- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.ValidateProvider`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProviderReceipt`
 
 ## model-gateway.readProviderReceipt
 
@@ -527,6 +476,42 @@ func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, k
 - 并发：共用PutProvider的同代SQL事务，只读原回执，不独立提交。
 - 幂等：同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。
 - 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.NewCatalogHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/provider.go`
+- 作用：绑定既有供应方与模型配置保存及enabled启停
+
+```go
+func NewCatalogHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `CatalogHandlers` | 两项真实HTTP映射 | 错误时不使用结果；不暴露私有配置原值 |
+
+**步骤**
+
+1. 仅映射既有putProvider/putModel，从平台取得可信OperationContext并绑定已生成严格校验JSON。
+2. 核providerId/modelId路径与正文对象ID一致，非空Idempotency-Key头与正文key一致；分别调用真实PutProvider/PutModel。
+3. 返回no-store JSON及公共Problem；统一入口即时superadmin授权一次。缺其他handler仍拒绝完整服务启动，不新增启停HTTP。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：交公共完整HTTP边界；具体函数分别校验QA、owner服务或superadmin范围。
+- 并发：每请求独立事务；不构造部分可运行服务。
+- 幂等：HTTP仅绑定；写入由真实函数持久回执与CAS保证。
+- 依赖：`model-gateway.PutProvider`、`model-gateway.PutModel`
 
 ## model-gateway.PutCredential
 
@@ -1022,11 +1007,12 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 
 **步骤**
 
-1. 核查provider存在
-2. 校验能力与维度
-3. 供应方模型版本/预处理变化创建新modelId
-4. CAS保存
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 公共入口即时校验superadmin，内部信任严格生成校验过的输入与可信op；model.version必须expectedVersion+1且不超过安全整数上限。
+2. beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。
+3. 新写拒绝任意state非released屏障，不按epoch或deadline过滤。capabilities含embedding的创建/编辑/启停统一DEPENDENCY_UNAVAILABLE：M07-R06归一化空间身份与公共schema尚未收口，本轮不猜默认，不计算或发布未确认space。非embedding由ValidateModel校验；provider必须真实存在且同代，不要求启用/凭据/价格/在线，不探测。
+4. 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。
+5. 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。
+6. 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。
 
 **错误**
 
@@ -1039,12 +1025,16 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
-- 副作用：写models及model.changed
+- 副作用：同事务写models、model.changed平台outbox与7天完整回执；enabled停用不改在途调用或费用状态。
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.ValidateModel`
+- 并发：同一严格当前代次事务先回执后全屏障/真实provider与model身份/CAS；条件UPSERT及RowsAffected核对，配置/事件/回执原子提交，无跨域IO。
+- 幂等：siteId/actorId/函数/key唯一，7天原结果；hash绑定callerService/dataEpoch/model/expectedVersion，有效同hash先返回，异hash CONFLICT。旧格式hash不默认为新摘要；过期仅随成功新事务替换。
+- 依赖：`model-gateway.ValidateModel`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readModelReceipt`、`model-gateway.availabilityReadError`
 
 ## model-gateway.ValidateModel
 
@@ -1094,6 +1084,55 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+
+## model-gateway.readModelReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/model.go`
+- 作用：只读7天模型配置原结果并核同代普通输入摘要
+
+```go
+func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Model) (PutModelResult, bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 原入口取消 | 已授权PutModel当前同代事务 |
+| `op` | `OperationContext` | 可信范围 | 已授权PutModel当前同代事务 |
+| `tx` | `SQLTransaction` | 当前事务 | 已授权PutModel当前同代事务 |
+| `key` | `string` | 幂等键 | 已授权PutModel当前同代事务 |
+| `inputHash` | `Hash` | 含caller和epoch摘要 | 已授权PutModel当前同代事务 |
+| `expected` | `Model` | 输入模型完整原结果 | 已授权PutModel当前同代事务 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PutModelResult` | 原结果 | 失败结果不可使用；不输出私有原值 |
+| `found` | `bool` | 是否命中有效原回执 | 失败结果不可使用；不输出私有原值 |
+| `err` | `error` | 脱敏公共错误 | 失败结果不可使用；不输出私有原值 |
+
+**步骤**
+
+1. 同scope/函数/key只读hash/created_at/result_json；坏时间失败，过期未命中不写。
+2. 有效hash不匹配CONFLICT；完整规范结果编码必须与持久原结果精确一致，否则INTEGRITY_ERROR。
+3. 命中先返原结果，不做后续写屏障/当前指针/CAS校验；仅上层成功新事务替换过期键。
+
+**错误**
+
+- `CONFLICT`：幂等输入不一致（不可重试）
+- `INTEGRITY_ERROR`：持久模型能力或回执损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域查询未知（可重试）
+- `CANCELLED`：IO取消（不可重试）
+- `DEADLINE_EXCEEDED`：IO到截止（不可重试）
+
+- 副作用：无
+- 授权：permission：superadmin；rule：仅PutModel已核superadmin的同代事务链路。
+- 并发：共用PutModel的同代SQL事务，只读原回执，不独立提交。
+- 幂等：同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。
+- 依赖：`model-gateway.availabilityReadError`
 
 ## model-gateway.PutProfile
 
@@ -4912,7 +4951,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
 2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。
+4. 本轮任务配置映射：恢复前置通过后OpenDatabase→InstallStore→defer Close；不调用需主密钥LoadRuntime或覆写未知runtime_meta代次；从既有IdentityClient装配平台NewIdentityAuthorizer，作为ServiceBoundaryConfig.Authorize及NewTaskAvailabilityHandlers参数；任务写调用固定portal，读取按根生成目录owner白名单加portal，免费可用性固定qa；完整其他handler缺失仍拒绝启动 档位写映射由NewProfileHandlers合并，putProfile仅portal调用且复用同一公共即时superadmin授权；不扩完整启动能力。 InstallStore接收config.MasterKeyRef可选可信引用；不在启动读取主密钥。合并NewCredentialHandlers的putCredential/rotateCredential，调用方固定portal。 合并NewCatalogHandlers既有putProvider/putModel，均仅portal且复用统一即时superadmin授权；enabled沿原配置字段，不增独立HTTP。
 5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
@@ -4927,7 +4966,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve

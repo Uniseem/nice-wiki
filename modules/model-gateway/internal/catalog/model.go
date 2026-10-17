@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -115,135 +116,133 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 // PutModel 在单个SQLite事务内保存模型身份和model.changed outbox。
 // 真实模型目录刷新、连接探测、调用及费用预留不在本切片内。
 func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (PutModelResult, error) {
-	operationCtx, cancel, err := operationContext(ctx, op, 5*time.Second)
-	if err != nil {
-		return PutModelResult{}, err
-	}
-	defer cancel()
 	if err := requireSuperadmin(op); err != nil {
 		return PutModelResult{}, err
 	}
-	validation, err := ValidateModel(operationCtx, op, ValidateModelInput{Model: input.Model})
-	if err != nil {
-		return PutModelResult{}, err
-	}
-	if input.ExpectedVersion < 0 || input.IdempotencyKey == "" || !validBoundedString(input.IdempotencyKey, 65536) {
-		return PutModelResult{}, platform.NewError(platform.CodeValidation, false, "模型保存幂等参数不合法")
-	}
-	if input.Model.Version != input.ExpectedVersion+1 {
+	if input.ExpectedVersion >= 9007199254740991 || input.Model.Version != input.ExpectedVersion+1 {
 		return PutModelResult{}, platform.NewError(platform.CodeVersionMismatch, false, "模型版本必须为预期版本加一")
 	}
 	store := gatewayruntime.CurrentStore()
 	if store == nil {
 		return PutModelResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据库尚未装配")
 	}
-	if err := store.CheckDataEpoch(operationCtx, op.DataEpoch); err != nil {
-		return PutModelResult{}, err
-	}
-	tx, err := store.BeginTx(operationCtx)
+	snapshot, err := beginAvailabilitySnapshot(ctx, op, store)
 	if err != nil {
 		return PutModelResult{}, err
 	}
-	rollback := func(cause error) (PutModelResult, error) {
-		_ = tx.Rollback()
-		return PutModelResult{}, cause
-	}
-	if err := rejectDrainingBarrier(operationCtx, tx, op.DataEpoch); err != nil {
-		return rollback(err)
-	}
+	tx := snapshot.tx
+	defer tx.Rollback()
 	inputHash, err := hashJSON(struct {
-		Model           Model `json:"model"`
-		ExpectedVersion int   `json:"expectedVersion"`
-	}{input.Model, input.ExpectedVersion})
+		CallerService   string              `json:"callerService"`
+		DataEpoch       platform.Identifier `json:"dataEpoch"`
+		Model           Model               `json:"model"`
+		ExpectedVersion int                 `json:"expectedVersion"`
+	}{op.CallerService, op.DataEpoch, input.Model, input.ExpectedVersion})
 	if err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, false, "模型输入摘要计算失败"))
+		return PutModelResult{}, platform.NewError(platform.CodeInternal, false, "模型输入摘要计算失败")
 	}
-	if result, found, err := readModelReceipt(operationCtx, tx, op, input.IdempotencyKey, inputHash); err != nil {
-		return rollback(err)
+	if result, found, err := readModelReceipt(ctx, op, tx, input.IdempotencyKey, inputHash, input.Model); err != nil {
+		return PutModelResult{}, err
 	} else if found {
-		if err := tx.Commit(); err != nil {
-			return PutModelResult{}, platform.NewError(platform.CodeInternal, true, "提交模型幂等读取失败")
-		}
 		return result, nil
 	}
-	var providerExists int
-	if err := tx.QueryRowContext(operationCtx, `SELECT COUNT(*) FROM providers WHERE provider_id = ?`, string(input.Model.ProviderId)).Scan(&providerExists); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, true, "读取模型供应方失败"))
+	var blocked bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM barriers WHERE state <> 'released')`).Scan(&blocked); err != nil {
+		return PutModelResult{}, availabilityReadError(err)
 	}
-	if providerExists != 1 {
-		return rollback(platform.NewError(platform.CodeNotFound, false, "模型供应方不存在"))
+	if blocked {
+		return PutModelResult{}, platform.NewError(platform.CodeLocked, false, "模型配置屏障尚未释放")
 	}
-	var currentVersion int
-	err = tx.QueryRowContext(operationCtx, `SELECT version FROM models WHERE model_id = ?`, string(input.Model.ModelId)).Scan(&currentVersion)
+	if hasGrant(input.Model.Capabilities, "embedding") {
+		return PutModelResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "嵌入空间归一化身份尚未确认，暂不能保存嵌入模型配置")
+	}
+	validation, err := ValidateModel(ctx, op, ValidateModelInput{Model: input.Model})
+	if err != nil {
+		return PutModelResult{}, err
+	}
+	var providerEpoch string
+	if err := tx.QueryRowContext(ctx, `SELECT data_epoch FROM providers WHERE provider_id = ?`, input.Model.ProviderId).Scan(&providerEpoch); errors.Is(err, sql.ErrNoRows) {
+		return PutModelResult{}, platform.NewError(platform.CodeNotFound, false, "模型供应方不存在")
+	} else if err != nil {
+		return PutModelResult{}, availabilityReadError(err)
+	}
+	if providerEpoch != op.DataEpoch {
+		return PutModelResult{}, platform.NewError(platform.CodeVersionMismatch, false, "模型供应方代次已变化")
+	}
+	var currentVersion, dimension int
+	var currentEpoch, providerID, modelVersion, preprocessorVersion string
+	err = tx.QueryRowContext(ctx, `SELECT version, data_epoch, provider_id, provider_model_version, dimension, preprocessor_version
+		FROM models WHERE model_id = ?`, input.Model.ModelId).Scan(&currentVersion, &currentEpoch, &providerID, &modelVersion, &dimension, &preprocessorVersion)
 	switch {
 	case errors.Is(err, sql.ErrNoRows) && input.ExpectedVersion != 0:
-		return rollback(platform.NewError(platform.CodeNotFound, false, "模型不存在"))
-	case err == nil && currentVersion != input.ExpectedVersion:
-		return rollback(platform.NewError(platform.CodeVersionMismatch, false, "模型版本已变化"))
+		return PutModelResult{}, platform.NewError(platform.CodeNotFound, false, "模型不存在")
+	case err == nil && (currentEpoch != op.DataEpoch || currentVersion != input.ExpectedVersion):
+		return PutModelResult{}, platform.NewError(platform.CodeVersionMismatch, false, "模型版本或代次已变化")
 	case err != nil && !errors.Is(err, sql.ErrNoRows):
-		return rollback(platform.NewError(platform.CodeInternal, true, "读取模型版本失败"))
+		return PutModelResult{}, availabilityReadError(err)
 	}
-
+	if err == nil && (providerID != input.Model.ProviderId || modelVersion != input.Model.ProviderModelVersion ||
+		dimension != input.Model.Dimension || preprocessorVersion != input.Model.PreprocessorVersion) {
+		return PutModelResult{}, platform.NewError(platform.CodeConflict, false, "模型身份变化必须使用新的模型ID")
+	}
 	model := input.Model
 	capabilities, _ := json.Marshal(model.Capabilities)
-	if _, err := tx.ExecContext(operationCtx, `
+	saved, err := tx.ExecContext(ctx, `
 		INSERT INTO models (
 			model_id, version, provider_id, provider_model_version, capabilities_json,
 			dimension, preprocessor_version, max_input_tokens, max_output_tokens,
 			catalog_origin, manual_override, enabled, data_epoch, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(model_id) DO UPDATE SET
-			version = excluded.version, provider_id = excluded.provider_id,
-			provider_model_version = excluded.provider_model_version,
-			capabilities_json = excluded.capabilities_json, dimension = excluded.dimension,
-			preprocessor_version = excluded.preprocessor_version, max_input_tokens = excluded.max_input_tokens,
-			max_output_tokens = excluded.max_output_tokens, catalog_origin = excluded.catalog_origin,
-			manual_override = excluded.manual_override, enabled = excluded.enabled,
-			data_epoch = excluded.data_epoch, updated_at = excluded.updated_at`,
-		string(model.ModelId), model.Version, string(model.ProviderId), model.ProviderModelVersion,
-		capabilities, model.Dimension, model.PreprocessorVersion, model.MaxInputTokens,
-		model.MaxOutputTokens, string(model.CatalogOrigin), boolInt(model.ManualOverride),
-		boolInt(model.Enabled), string(op.DataEpoch), string(platform.Now())); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, true, "保存模型配置失败"))
+			version = excluded.version, capabilities_json = excluded.capabilities_json,
+			max_input_tokens = excluded.max_input_tokens, max_output_tokens = excluded.max_output_tokens,
+			catalog_origin = excluded.catalog_origin, manual_override = excluded.manual_override,
+			enabled = excluded.enabled, updated_at = excluded.updated_at
+		WHERE models.version = ? AND models.data_epoch = ?`,
+		model.ModelId, model.Version, model.ProviderId, model.ProviderModelVersion, capabilities,
+		model.Dimension, model.PreprocessorVersion, model.MaxInputTokens, model.MaxOutputTokens,
+		model.CatalogOrigin, model.ManualOverride, model.Enabled, op.DataEpoch, platform.Now(), input.ExpectedVersion, op.DataEpoch)
+	if err != nil {
+		return PutModelResult{}, availabilityReadError(err)
 	}
-	payload := struct {
+	if count, err := saved.RowsAffected(); err != nil {
+		return PutModelResult{}, availabilityReadError(err)
+	} else if count != 1 {
+		return PutModelResult{}, platform.NewError(platform.CodeVersionMismatch, false, "模型保存条件已变化")
+	}
+	payload, err := json.Marshal(struct {
 		ModelID   string          `json:"modelId"`
 		Version   int             `json:"version"`
 		Space     *EmbeddingSpace `json:"space,omitempty"`
 		DataEpoch string          `json:"dataEpoch"`
-	}{string(model.ModelId), model.Version, validation.EmbeddingSpace, string(op.DataEpoch)}
-	payloadJSON, err := json.Marshal(payload)
+	}{model.ModelId, model.Version, validation.EmbeddingSpace, op.DataEpoch})
 	if err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, false, "模型事件编码失败"))
+		return PutModelResult{}, platform.NewError(platform.CodeInternal, false, "模型事件编码失败")
 	}
-	now := string(platform.Now())
+	now := platform.Now()
 	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{
-		EventID:      platform.NewIdentifier(),
-		EventType:    modelEventType,
-		EventVersion: modelEventVersion,
-		Producer:     "model-gateway",
-		SubjectID:    platform.Identifier(model.ModelId),
-		Revision:     platform.Revision(model.Version),
-		OccurredAt:   platform.Timestamp(now),
-		DataEpoch:    op.DataEpoch,
-		Payload:      payloadJSON,
+		EventID: platform.NewIdentifier(), EventType: modelEventType, EventVersion: modelEventVersion,
+		Producer: "model-gateway", SubjectID: model.ModelId, Revision: platform.Revision(model.Version),
+		OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload,
 	}); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, true, "保存模型事件失败"))
+		return PutModelResult{}, availabilityReadError(err)
 	}
 	result := PutModelResult{Model: model}
 	resultJSON, err := json.Marshal(result)
 	if err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, false, "模型回执编码失败"))
+		return PutModelResult{}, platform.NewError(platform.CodeInternal, false, "模型回执编码失败")
 	}
-	if _, err := tx.ExecContext(operationCtx, `
-		INSERT INTO operation_receipts
-			(site_id, actor_id, function_id, idempotency_key, input_hash, result_json, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, string(op.Actor.SiteID), string(op.Actor.SubjectID), modelFunctionID,
-		input.IdempotencyKey, inputHash, resultJSON, now); err != nil {
-		return rollback(platform.NewError(platform.CodeInternal, true, "保存模型幂等回执失败"))
+	if _, err := tx.ExecContext(ctx, `DELETE FROM operation_receipts WHERE site_id=? AND actor_id=? AND function_id=? AND idempotency_key=?`,
+		op.Actor.SiteID, op.Actor.SubjectID, modelFunctionID, input.IdempotencyKey); err != nil {
+		return PutModelResult{}, availabilityReadError(err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO operation_receipts
+		(site_id, actor_id, function_id, idempotency_key, input_hash, result_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		op.Actor.SiteID, op.Actor.SubjectID, modelFunctionID, input.IdempotencyKey, inputHash, resultJSON, now); err != nil {
+		return PutModelResult{}, availabilityReadError(err)
 	}
 	if err := tx.Commit(); err != nil {
-		return PutModelResult{}, platform.NewError(platform.CodeInternal, true, "提交模型配置失败")
+		return PutModelResult{}, availabilityReadError(err)
 	}
 	return result, nil
 }
@@ -280,25 +279,32 @@ func embeddingSpaceID(model Model) (platform.Hash, error) {
 	return hashJSON(canonical)
 }
 
-func readModelReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, key string, inputHash platform.Hash) (PutModelResult, bool, error) {
-	var storedHash string
+func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Model) (PutModelResult, bool, error) {
+	var storedHash, createdAt string
 	var resultJSON []byte
-	err := tx.QueryRowContext(ctx, `
-		SELECT input_hash, result_json FROM operation_receipts
-		WHERE site_id = ? AND actor_id = ? AND function_id = ? AND idempotency_key = ?`,
-		string(op.Actor.SiteID), string(op.Actor.SubjectID), modelFunctionID, key).Scan(&storedHash, &resultJSON)
+	err := tx.QueryRowContext(ctx, `SELECT input_hash, result_json, created_at FROM operation_receipts
+		WHERE site_id=? AND actor_id=? AND function_id=? AND idempotency_key=?`,
+		op.Actor.SiteID, op.Actor.SubjectID, modelFunctionID, key).Scan(&storedHash, &resultJSON, &createdAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PutModelResult{}, false, nil
 	}
 	if err != nil {
-		return PutModelResult{}, false, platform.NewError(platform.CodeInternal, true, "读取模型幂等回执失败")
+		return PutModelResult{}, false, availabilityReadError(err)
 	}
-	if storedHash != string(inputHash) {
-		return PutModelResult{}, false, platform.NewError(platform.CodeConflict, false, "幂等键已绑定不同模型配置")
+	created, err := platform.ParseTimestamp(createdAt)
+	now := time.Now().UTC()
+	if err != nil || created.After(now) {
+		return PutModelResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型回执时间损坏")
 	}
-	var result PutModelResult
-	if err := json.Unmarshal(resultJSON, &result); err != nil {
-		return PutModelResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型幂等回执损坏")
+	if now.Sub(created) > 7*24*time.Hour {
+		return PutModelResult{}, false, nil
 	}
-	return result, true, nil
+	if storedHash != inputHash {
+		return PutModelResult{}, false, platform.NewError(platform.CodeConflict, false, "幂等键已绑定不同模型输入或代次")
+	}
+	expectedJSON, _ := json.Marshal(PutModelResult{Model: expected})
+	if !bytes.Equal(resultJSON, expectedJSON) {
+		return PutModelResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型原结果与摘要不一致")
+	}
+	return PutModelResult{Model: expected}, true, nil
 }

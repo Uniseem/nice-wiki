@@ -81,6 +81,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+	for operationID, handler := range catalog.NewCatalogHandlers() {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range admin.NewAdminHandlers(authorize) {
 		handlers[operationID] = handler
 	}
@@ -102,6 +105,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readTaskAvailability": {"qa"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},
+			"putProvider":          {"portal"},
+			"putModel":             {"portal"},
 			"putCredential":        {"portal"},
 			"rotateCredential":     {"portal"},
 			"readTaskAssignments":  assignmentCallers,
