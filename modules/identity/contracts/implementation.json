@@ -3679,7 +3679,7 @@
     {
       "path": "modules/identity/internal/server_recovery.go",
       "kind": "handwritten",
-      "purpose": "服务器运维查明文账号索引",
+      "purpose": "服务器运维查明文账号索引，并消费固定超管重置文件",
       "functions": [
         {
           "id": "identity.ReadServerAccountIndex",
@@ -3924,6 +3924,7 @@
           "concurrency": "单watcher，不并发消费同文件",
           "idempotency": "同fileHash同candidate",
           "dependencies": [
+            "identity.readSuperadminResetFile",
             "identity.ApplySuperadminReset"
           ],
           "resources": [],
@@ -3977,6 +3978,7 @@
               "type": "Error",
               "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
               "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
                 "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
                 "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许"
               ]
@@ -3990,6 +3992,11 @@
           ],
           "errors": [
             {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
               "code": "INTEGRITY_ERROR",
               "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
               "retryable": false
@@ -4001,14 +4008,85 @@
             }
           ],
           "sideEffects": [
-            "凭据写入和提交后固定reset文件删除"
+            "凭据与mustChangePassword写入、全部会话撤销及server_reset事件，提交回执后删除固定reset文件"
           ],
           "authorization": "本机OS控制身份；不需要已失效后台token",
           "concurrency": "超管credential行锁+fileHashreceipt",
           "idempotency": "fileHash作为operationId；删除失败重复仅补清理",
           "dependencies": [
+            "identity.readSuperadminResetFile",
+            "identity.readUniqueSuperadmin",
             "identity.HashPassword",
-            "identity.RevokeAllSessions"
+            "identity.RevokeAllSessions",
+            "identity.privateIdentityDigest",
+            "identity.saveIdentityReceipt",
+            "identity.consumeSuperadminResetFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readSuperadminResetFile",
+          "name": "readSuperadminResetFile",
+          "signature": "func readSuperadminResetFile(dataRoot string) (*ServerResetCandidate, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读固定control/reset-superadmin.txt，不读部署凭据",
+          "steps": [
+            "只打开identity私有control/reset-superadmin.txt，拒绝符号链接、目录、硬链接和组/其他权限位",
+            "有界读取UTF-8，按Password规则校验且不trim，以文件字节SHA-256作为fileHash和candidateId",
+            "文件不存在返回缺失；口令只留在返回的内存候选中"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "读取固定重置请求文件"
+          ],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "由超管重置互斥覆盖，不并发消费同文件",
+          "idempotency": "同文件字节得到同fileHash候选",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.readUniqueSuperadmin",
+          "name": "readUniqueSuperadmin",
+          "signature": "func readUniqueSuperadmin(ctx context.Context, query sessionQueryer) (superadminResetAccount, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取当前唯一且仍为active的超管权威行",
+          "steps": [
+            "只从accounts权威表读取is_superadmin行，必须恰好一行且状态为active"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "遵循本域账号互斥与外层事务",
+          "idempotency": "纯派生或只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.consumeSuperadminResetFile",
+          "name": "consumeSuperadminResetFile",
+          "signature": "func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "回执提交后只删除哈希仍匹配的固定重置文件",
+          "steps": [
+            "重新核对固定文件哈希，只unlink该普通文件",
+            "文件已不存在视为已消费；哈希变化或类型异常时不删除"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "删除固定reset文件"
+          ],
+          "authorization": "本域受信私有用例或恢复",
+          "concurrency": "由超管重置互斥覆盖，不并发消费同文件",
+          "idempotency": "同哈希重复删除只补清理",
+          "dependencies": [
+            "identity.readSuperadminResetFile"
           ],
           "resources": [],
           "contract": "reference"

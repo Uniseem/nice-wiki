@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 103 个函数：约束 29 个，参考 74 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 106 个函数：约束 29 个，参考 77 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2648,7 +2648,7 @@ func ObserveSuperadminResetFile(ctx context.Context, op OperationContext, input 
 - 授权：本机OS控制身份
 - 并发：单watcher，不并发消费同文件
 - 幂等：同fileHash同candidate
-- 依赖：`identity.ApplySuperadminReset`
+- 依赖：`identity.readSuperadminResetFile`、`identity.ApplySuperadminReset`
 
 ## identity.ApplySuperadminReset
 
@@ -2673,7 +2673,7 @@ func ApplySuperadminReset(ctx context.Context, op OperationContext, input ApplyS
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ApplySuperadminResetResult` | 用服务器文件恢复唯一超管口令的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
 
 **步骤**
 
@@ -2683,14 +2683,114 @@ func ApplySuperadminReset(ctx context.Context, op OperationContext, input ApplyS
 
 **错误**
 
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 
-- 副作用：凭据写入和提交后固定reset文件删除
+- 副作用：凭据与mustChangePassword写入、全部会话撤销及server_reset事件，提交回执后删除固定reset文件
 - 授权：本机OS控制身份；不需要已失效后台token
 - 并发：超管credential行锁+fileHashreceipt
 - 幂等：fileHash作为operationId；删除失败重复仅补清理
-- 依赖：`identity.HashPassword`、`identity.RevokeAllSessions`
+- 依赖：`identity.readSuperadminResetFile`、`identity.readUniqueSuperadmin`、`identity.HashPassword`、`identity.RevokeAllSessions`、`identity.privateIdentityDigest`、`identity.saveIdentityReceipt`、`identity.consumeSuperadminResetFile`
+
+## identity.readSuperadminResetFile
+
+- 级别：参考
+- 文件：`modules/identity/internal/server_recovery.go`
+- 作用：只读固定control/reset-superadmin.txt，不读部署凭据
+
+```go
+func readSuperadminResetFile(dataRoot string) (*ServerResetCandidate, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只打开identity私有control/reset-superadmin.txt，拒绝符号链接、目录、硬链接和组/其他权限位
+2. 有界读取UTF-8，按Password规则校验且不trim，以文件字节SHA-256作为fileHash和candidateId
+3. 文件不存在返回缺失；口令只留在返回的内存候选中
+
+**错误**
+
+- 无
+
+- 副作用：读取固定重置请求文件
+- 授权：本域受信私有用例或恢复
+- 并发：由超管重置互斥覆盖，不并发消费同文件
+- 幂等：同文件字节得到同fileHash候选
+- 依赖：无
+
+## identity.readUniqueSuperadmin
+
+- 级别：参考
+- 文件：`modules/identity/internal/server_recovery.go`
+- 作用：读取当前唯一且仍为active的超管权威行
+
+```go
+func readUniqueSuperadmin(ctx context.Context, query sessionQueryer) (superadminResetAccount, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只从accounts权威表读取is_superadmin行，必须恰好一行且状态为active
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域受信私有用例或恢复
+- 并发：遵循本域账号互斥与外层事务
+- 幂等：纯派生或只读
+- 依赖：无
+
+## identity.consumeSuperadminResetFile
+
+- 级别：参考
+- 文件：`modules/identity/internal/server_recovery.go`
+- 作用：回执提交后只删除哈希仍匹配的固定重置文件
+
+```go
+func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 重新核对固定文件哈希，只unlink该普通文件
+2. 文件已不存在视为已消费；哈希变化或类型异常时不删除
+
+**错误**
+
+- 无
+
+- 副作用：删除固定reset文件
+- 授权：本域受信私有用例或恢复
+- 并发：由超管重置互斥覆盖，不并发消费同文件
+- 幂等：同哈希重复删除只补清理
+- 依赖：`identity.readSuperadminResetFile`
 
 ## identity.readAccountAuthorityQuery
 

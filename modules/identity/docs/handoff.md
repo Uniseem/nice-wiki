@@ -1,3 +1,30 @@
+# 超管重置文件交接（2026-10-17）
+
+- 分支：`codex/identity-20261017-r4`
+- 基线：`a080a6c918e31d272c7a91368f59d5ad51d5f458`（main）
+- 源码 SHA：`709eeae3e37c8aa7e1da1ab04a61759f9011686a`
+- 完成范围：`identity.ObserveSuperadminResetFile`、`identity.ApplySuperadminReset`，以及参考助手 `readSuperadminResetFile`、`readUniqueSuperadmin`、`consumeSuperadminResetFile`。文件为 `modules/identity/internal/server_recovery.go`。
+- 未跑 CI：未跑 GitLab CI，也未跑 go、gofmt、make build、make gen、make check。函数只记 implemented，不记 verified。accepted=0。
+
+行为收口：
+
+- 固定路径是进程数据根下 identity 私有 `control/reset-superadmin.txt`。有界 UTF-8 读取，不裁剪换行，按 Password（至少 8 个码位、至多 256）校验。fileHash 与 candidateId 都是文件精确字节的 SHA-256；observedAt 取文件修改时间的 UTC RFC3339Nano，同内容同时间得到同一候选。
+- 合同没有写死八进制权限。实现沿用本文件既有控制文件规则：普通文件、拒绝符号链接和组/其他权限位，并调用平台 ValidatePrivatePath。没有另选具体八进制模式。
+- 授权是本机 identity 服务身份（CallerService 为 identity 且 Actor.Kind 为 service），不接受后台 token。Apply 因此补上 FORBIDDEN；原合同错误列表漏了这条授权失败。
+- 唯一超管来自 accounts 中 `is_superadmin=1` 且恰好一行、状态 active。凭据用既有 HashPassword，事务内 CAS credential_revision 并置 must_change_password=1，不改 account.revision，避免重写账号索引。
+- 凭据提升后在同一事务调用既有 RevokeAllSessions，原因 server_reset，会话族一并撤销并登记身份事件。不另写一套撤销。
+- 原决定恢复与幂等用既有 operation_receipts：键为超管站点、超管账号与 fileHash。结果 JSON 只有 completed，不含口令。摘要是 fileHash 的既有私有 HMAC，不含 observedAt 和口令。已提交且结果哈希匹配时只补删文件。回执损坏则 INTEGRITY_ERROR，不重置、不删除。
+- 未新增 journal 种类。未登记的开放决定会让 RecoverJournal 在启动时失败关闭；本轮禁止展开完整启动，所以不用 AppendDecision 表示这次恢复。
+- 提交回执后只删除该固定文件。删除失败则本次返回错误，下次同哈希回执只补删。文件内容若已变化则不删除，保留新的重置请求。无效文件返回 VALIDATION，不删除。文件不存在且无回执时，Observe 返回空候选，不调用重置。
+- 没有实现屏障、快照、RelayOutbox 或完整启动。BuildApplication 与 main 继续失败关闭，每 5 秒观察未接入。
+- 未新增迁移。未手改生成代码；functions.md 与 files.md 仅由 make docs 重写。未新增测试、fixture、mock、样例或临时程序。
+
+## 下一步（一项）
+
+等集成会话审核合入并跑 GitLab CI。不要自行展开屏障或完整启动。
+
+---
+
 # 持续实施第一轮：授权安全显示名（2026-10-16，VPS检查通过）
 
 用户重新授权每轮三子代理编写、审核并push至R1代码完成。集成会话为content编辑锁补齐公共前置：AuthorizationDecision追加当前已校验主体的accountName，readSessionSnapshot同一账户JOIN读取不可变账号名，不新增任意账户读取能力、不改变grants。来源685db4f，独占本次identity修改；本域原后续服务器重置工作包仍未实施。

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 36 个：手写 21、生成 4、配置 6、迁移 5。函数 103 个：约束 29，参考 74。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 36 个：手写 21、生成 4、配置 6、迁移 5。函数 106 个：约束 29，参考 77。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -16,7 +16,7 @@
 | `modules/identity/internal/csrf_service.go` | 手写 | portal内部核对CSRF | `identity.VerifySessionCSRF` |
 | `modules/identity/internal/authorization_service.go` | 手写 | 按最新账号功能权限授权 | `identity.CheckAuthorization`、`identity.readSessionSnapshot`（参考）、`identity.validateSessionSnapshot`（参考）、`identity.sessionAuthContext`（参考）、`identity.verifySessionAccess`（参考） |
 | `modules/identity/internal/preference_service.go` | 手写 | 在当前本人授权快照读写后台偏好与完整安全回执 | `identity.ReadPreferences`、`identity.UpdatePreferences`、`identity.readPreferenceRecord`（参考）、`identity.validatePreferenceSelection`（参考） |
-| `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考）、`identity.readAccountAuthorityQuery`（参考）、`identity.encodeAccountIndex`（参考） |
+| `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引，并消费固定超管重置文件 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考）、`identity.readSuperadminResetFile`（参考）、`identity.readUniqueSuperadmin`（参考）、`identity.consumeSuperadminResetFile`（参考）、`identity.readAccountAuthorityQuery`（参考）、`identity.encodeAccountIndex`（参考） |
 | `modules/identity/internal/operation_repository.go` | 手写 | 装配受信私有存储上下文与既有仓库调用前置 | `identity.WithIdentityStore`（参考）、`identity.identityStoreFromContext`（参考）、`identity.checkIdentityRepositoryContext`（参考） |
 | `modules/identity/internal/outbox_repository.go` | 手写 | 与身份提交原子登记事件 | `identity.PublishIdentityEvent`（参考）、`identity.RelayOutbox` |
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考） |

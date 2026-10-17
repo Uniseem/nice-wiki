@@ -1,11 +1,13 @@
-// Package identity 提供服务器本机恢复所需的账号索引读写边界。
+// Package identity 提供服务器本机恢复所需的账号索引与超管口令重置边界。
 //
 // 账号索引只保留可供人工查找的账号元数据，不复制 credential、session
-// 或任何口令相关字段。文件位于 control 区，control 区不随业务数据恢复替换。
+// 或任何口令相关字段。重置口令只在内存中读取，回执提交后删除固定文件。
+// 两类文件都位于 control 区，control 区不随业务数据恢复替换。
 package identity
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -19,15 +21,22 @@ import (
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 )
 
 const (
-	accountIndexFileName = "account-index.json"
-	maxAccountIndexBytes = 16 << 20
-	maxIndexedAccounts   = 10000
+	accountIndexFileName    = "account-index.json"
+	superadminResetFileName = "reset-superadmin.txt"
+	maxAccountIndexBytes    = 16 << 20
+	maxIndexedAccounts      = 10000
+	maxSuperadminResetBytes = passwordMaxRunes * utf8.UTFMax
 )
 
-var accountIndexWriteMu sync.Mutex
+var (
+	accountIndexWriteMu sync.Mutex
+	superadminResetMu   sync.Mutex
+)
 
 type serverAccountIndexContextKey struct{}
 
@@ -509,4 +518,442 @@ func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, err
 		return AccountIndex{}, nil, platform.NewError(platform.CodeRateLimited, false, "账号索引达到容量上限")
 	}
 	return index, raw, nil
+}
+
+// ObserveSuperadminResetFileInput 是检测服务器超管重置文件的输入。
+type ObserveSuperadminResetFileInput struct{}
+
+// ServerResetCandidate 是固定重置文件的内存候选，不写入回执或日志。
+type ServerResetCandidate struct {
+	CandidateID platform.Identifier `json:"candidateId"`
+	Password    Password            `json:"password"`
+	FileHash    platform.Hash       `json:"fileHash"`
+	ObservedAt  platform.Timestamp  `json:"observedAt"`
+}
+
+// ObserveSuperadminResetFileResult 是检测服务器超管重置文件的结果。
+// 文件不存在时 candidate 为 null。
+type ObserveSuperadminResetFileResult struct {
+	Candidate *ServerResetCandidate `json:"candidate"`
+}
+
+// ApplySuperadminResetInput 是用服务器文件恢复唯一超管口令的输入。
+type ApplySuperadminResetInput struct {
+	Candidate ServerResetCandidate `json:"candidate"`
+}
+
+// ApplySuperadminResetResult 是用服务器文件恢复唯一超管口令的结果。
+type ApplySuperadminResetResult struct {
+	Completed bool `json:"completed"`
+}
+
+type superadminResetAccount struct {
+	AccountID platform.Identifier
+	SiteID    platform.Identifier
+	Status    AccountStatus
+}
+
+type superadminResetDigestInput struct {
+	FileHash platform.Hash `json:"fileHash"`
+}
+
+// ObserveSuperadminResetFile 读取固定重置文件。存在合法候选时交给
+// ApplySuperadminReset；本函数不启动后台循环。
+func ObserveSuperadminResetFile(ctx context.Context, op OperationContext, input ObserveSuperadminResetFileInput) (ObserveSuperadminResetFileResult, error) {
+	superadminResetMu.Lock()
+	defer superadminResetMu.Unlock()
+	if err := checkSuperadminResetContext(ctx, op); err != nil {
+		return ObserveSuperadminResetFileResult{}, err
+	}
+	store, err := superadminResetStore(ctx)
+	if err != nil {
+		return ObserveSuperadminResetFileResult{}, err
+	}
+	candidate, missing, err := readSuperadminResetFile(store.dataRoot)
+	if err != nil || missing {
+		return ObserveSuperadminResetFileResult{}, err
+	}
+	op.OperationID = candidate.CandidateID
+	if _, err := applySuperadminResetLocked(ctx, op, ApplySuperadminResetInput{Candidate: *candidate}); err != nil {
+		return ObserveSuperadminResetFileResult{}, err
+	}
+	return ObserveSuperadminResetFileResult{Candidate: candidate}, nil
+}
+
+// ApplySuperadminReset 用固定文件恢复当前唯一超管口令，并撤销其全部会话。
+// operationId 必须是该文件的 fileHash；不接受后台令牌作为授权。
+func ApplySuperadminReset(ctx context.Context, op OperationContext, input ApplySuperadminResetInput) (ApplySuperadminResetResult, error) {
+	superadminResetMu.Lock()
+	defer superadminResetMu.Unlock()
+	return applySuperadminResetLocked(ctx, op, input)
+}
+
+func applySuperadminResetLocked(ctx context.Context, op OperationContext, input ApplySuperadminResetInput) (ApplySuperadminResetResult, error) {
+	if err := checkSuperadminResetContext(ctx, op); err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	if !validSuperadminResetCandidate(input.Candidate) || op.OperationID != input.Candidate.CandidateID {
+		return ApplySuperadminResetResult{}, platform.NewError(platform.CodeIntegrityError, false, "重置候选与文件哈希不一致")
+	}
+	store, err := superadminResetStore(ctx)
+	if err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	current, missing, err := readSuperadminResetFile(store.dataRoot)
+	if err != nil {
+		if isCode(err, platform.CodeValidation) {
+			return ApplySuperadminResetResult{}, platform.NewError(platform.CodeIntegrityError, false, "重置文件与候选不一致")
+		}
+		return ApplySuperadminResetResult{}, err
+	}
+	if !missing && !resetFileMatches(current, input.Candidate) {
+		return ApplySuperadminResetResult{}, platform.NewError(platform.CodeIntegrityError, false, "重置文件与候选不一致")
+	}
+	account, found, err := lookupSuperadminReset(ctx, store, op, input.Candidate.FileHash)
+	if err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	if found {
+		return finishSuperadminResetFile(store.dataRoot, input.Candidate.FileHash, missing)
+	}
+	if missing {
+		return ApplySuperadminResetResult{}, platform.NewError(platform.CodeIntegrityError, false, "重置文件缺失且没有原回执")
+	}
+	if err := ctx.Err(); err != nil {
+		return ApplySuperadminResetResult{}, identityContextError(err)
+	}
+	resetOp := superadminResetOperation(op, account, input.Candidate.FileHash)
+	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	digest, keyID, err := privateIdentityDigest(ctx, resetOp, "applySuperadminReset", superadminResetDigestInput{FileHash: input.Candidate.FileHash})
+	if err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	hashed, err := HashPassword(ctx, resetOp, HashPasswordInput{Password: input.Candidate.Password})
+	if err != nil {
+		if isCode(err, platform.CodeValidation) {
+			return ApplySuperadminResetResult{}, platform.NewError(platform.CodeIntegrityError, false, "重置口令与口令规则不一致")
+		}
+		return ApplySuperadminResetResult{}, err
+	}
+	alreadyDone, err := commitSuperadminReset(ctx, store, resetOp, account, hashed.EncodedHash, digest, keyID)
+	if err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	if alreadyDone {
+		return finishSuperadminResetFile(store.dataRoot, input.Candidate.FileHash, false)
+	}
+	if err := consumeSuperadminResetFile(store.dataRoot, input.Candidate.FileHash); err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	return ApplySuperadminResetResult{Completed: true}, nil
+}
+
+func finishSuperadminResetFile(dataRoot string, fileHash platform.Hash, missing bool) (ApplySuperadminResetResult, error) {
+	if missing {
+		return ApplySuperadminResetResult{Completed: true}, nil
+	}
+	if err := consumeSuperadminResetFile(dataRoot, fileHash); err != nil {
+		return ApplySuperadminResetResult{}, err
+	}
+	return ApplySuperadminResetResult{Completed: true}, nil
+}
+
+func checkSuperadminResetContext(ctx context.Context, op OperationContext) error {
+	if err := checkIdentityRepositoryContext(ctx, op); err != nil {
+		return err
+	}
+	if op.CallerService != "identity" || op.Actor.Kind != "service" {
+		return platform.NewError(platform.CodeForbidden, false, "超管重置只允许本机身份进程")
+	}
+	return nil
+}
+
+func superadminResetStore(ctx context.Context) (*Store, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok || store.db == nil || store.dataRoot == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "超管重置存储尚未装配")
+	}
+	return store, nil
+}
+
+func validSuperadminResetCandidate(candidate ServerResetCandidate) bool {
+	if !platform.ValidHash(candidate.FileHash) || candidate.CandidateID != candidate.FileHash || !validPassword(candidate.Password) {
+		return false
+	}
+	_, err := platform.ParseTimestamp(candidate.ObservedAt)
+	return err == nil
+}
+
+func resetFileMatches(file *ServerResetCandidate, given ServerResetCandidate) bool {
+	if file == nil || file.FileHash != given.FileHash || file.CandidateID != given.CandidateID {
+		return false
+	}
+	left := []byte(file.Password)
+	right := []byte(given.Password)
+	if len(left) != len(right) {
+		clear(left)
+		clear(right)
+		return false
+	}
+	matched := subtle.ConstantTimeCompare(left, right) == 1
+	clear(left)
+	clear(right)
+	return matched
+}
+
+func superadminResetOperation(op OperationContext, account superadminResetAccount, fileHash platform.Hash) OperationContext {
+	op.CallerService = "identity"
+	op.OperationID = fileHash
+	op.Actor.Kind = "service"
+	op.Actor.SiteID = account.SiteID
+	op.Actor.SubjectID = account.AccountID
+	op.Actor.SessionID = ""
+	op.Actor.Grants = nil
+	return op
+}
+
+func lookupSuperadminReset(ctx context.Context, store *Store, op OperationContext, fileHash platform.Hash) (superadminResetAccount, bool, error) {
+	readTx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return superadminResetAccount{}, false, identityDBError()
+	}
+	defer readTx.Rollback()
+	account, err := readUniqueSuperadmin(ctx, readTx)
+	if err != nil {
+		return superadminResetAccount{}, false, err
+	}
+	resetOp := superadminResetOperation(op, account, fileHash)
+	found, err := readSuperadminResetReceipt(ctx, readTx, resetOp)
+	if err != nil {
+		return superadminResetAccount{}, false, err
+	}
+	return account, found, nil
+}
+
+// readSuperadminResetFile 只读取 identity 私有 control/reset-superadmin.txt。
+// 权限异常沿用同一 control 区规则：拒绝符号链接、目录、硬链接和组/其他权限位。
+// 合同未写死八进制模式，因此不另选具体文件权限。内容按 Password 校验且不 trim。
+func readSuperadminResetFile(dataRoot string) (*ServerResetCandidate, bool, error) {
+	path, err := superadminResetPath(dataRoot)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := lifecycle.ValidatePrivatePath(path, "regular-file", true); err != nil {
+		var platformErr *platform.Error
+		if errors.As(err, &platformErr) && platformErr.Message == "私有权威路径不可读取" {
+			return nil, false, platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件不可检查")
+		}
+		return nil, false, platform.NewError(platform.CodeValidation, false, "重置文件类型或路径不合法")
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, true, nil
+		}
+		return nil, false, platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件不可检查")
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+		return nil, false, platform.NewError(platform.CodeValidation, false, "重置文件类型或权限不合法")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, false, platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件不可读取")
+	}
+	defer file.Close()
+	raw, err := io.ReadAll(io.LimitReader(file, maxSuperadminResetBytes+1))
+	if err != nil {
+		return nil, false, platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件读取失败")
+	}
+	defer clear(raw)
+	if len(raw) > maxSuperadminResetBytes || !utf8.Valid(raw) || !validPassword(string(raw)) {
+		return nil, false, platform.NewError(platform.CodeValidation, false, "重置文件不是合法口令")
+	}
+	fileHash := platform.HashBytes(raw)
+	observedAt := info.ModTime().UTC().Format(time.RFC3339Nano)
+	return &ServerResetCandidate{
+		CandidateID: fileHash,
+		Password:    string(raw),
+		FileHash:    fileHash,
+		ObservedAt:  observedAt,
+	}, false, nil
+}
+
+func superadminResetPath(dataRoot string) (string, error) {
+	dir, err := resetControlDir(dataRoot)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, superadminResetFileName), nil
+}
+
+func resetControlDir(dataRoot string) (string, error) {
+	dir, err := checkPrivateControlDir(dataRoot)
+	if err == nil {
+		return dir, nil
+	}
+	if isCode(err, platform.CodeDependencyUnavailable) {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件控制目录不可用")
+	}
+	return "", platform.NewError(platform.CodeValidation, false, "重置文件控制目录不安全")
+}
+
+// readUniqueSuperadmin 以账户权威表为准，不读取账号索引。
+func readUniqueSuperadmin(ctx context.Context, query sessionQueryer) (superadminResetAccount, error) {
+	rows, err := query.QueryContext(ctx, `
+		SELECT account_id, site_id, status
+		FROM accounts WHERE is_superadmin = 1`)
+	if err != nil {
+		return superadminResetAccount{}, identityDBError()
+	}
+	defer rows.Close()
+	var found superadminResetAccount
+	count := 0
+	for rows.Next() {
+		count++
+		if count > 1 {
+			return superadminResetAccount{}, platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威不唯一")
+		}
+		if err := rows.Scan(&found.AccountID, &found.SiteID, &found.Status); err != nil {
+			return superadminResetAccount{}, platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威记录损坏")
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return superadminResetAccount{}, identityDBError()
+	}
+	if count == 0 {
+		return superadminResetAccount{}, platform.NewError(platform.CodeIntegrityError, false, "缺少唯一超管权威")
+	}
+	if found.Status != AccountStatusActive || !platform.ValidIdentifier(found.AccountID) || !platform.ValidIdentifier(found.SiteID) {
+		return superadminResetAccount{}, platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威不合法")
+	}
+	return found, nil
+}
+
+func readSuperadminResetReceipt(ctx context.Context, query sessionQueryer, op OperationContext) (bool, error) {
+	var resultHash, state string
+	var raw sql.NullString
+	err := query.QueryRowContext(ctx, `
+		SELECT result_hash, state, result_json
+		FROM operation_receipts
+		WHERE site_id = ? AND actor_id = ? AND operation_id = ?`,
+		op.Actor.SiteID, op.Actor.SubjectID, op.OperationID).Scan(&resultHash, &state, &raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, identityDBError()
+	}
+	if state != "committed" || !raw.Valid || platform.HashBytes([]byte(raw.String)) != resultHash {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "超管重置回执不一致")
+	}
+	var result ApplySuperadminResetResult
+	if json.Unmarshal([]byte(raw.String), &result) != nil || !result.Completed {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "超管重置回执不一致")
+	}
+	return true, nil
+}
+
+func commitSuperadminReset(ctx context.Context, store *Store, op OperationContext, account superadminResetAccount, encodedHash, digest, keyID string) (bool, error) {
+	store.accountMu.Lock()
+	defer store.accountMu.Unlock()
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, identityDBError()
+	}
+	defer tx.Rollback()
+	current, err := readUniqueSuperadmin(ctx, tx)
+	if err != nil {
+		return false, err
+	}
+	if current.AccountID != account.AccountID || current.SiteID != account.SiteID {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威已变化")
+	}
+	found, err := readSuperadminResetReceipt(ctx, tx, op)
+	if err != nil {
+		return false, err
+	}
+	if found {
+		return true, nil
+	}
+	var revision platform.Revision
+	err = tx.QueryRowContext(ctx, `SELECT credential_revision FROM credentials WHERE account_id = ?`, account.AccountID).Scan(&revision)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "超管凭据权威缺失")
+	}
+	if err != nil {
+		return false, identityDBError()
+	}
+	changed, err := tx.ExecContext(ctx, `
+		UPDATE credentials
+		SET password_hash = ?, credential_revision = credential_revision + 1
+		WHERE account_id = ? AND credential_revision = ?`, encodedHash, account.AccountID, revision)
+	if err != nil {
+		return false, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "超管凭据版本已变化")
+	}
+	// 索引不含强改标记。不提升账户 revision，避免一次口令恢复改写账号索引。
+	changed, err = tx.ExecContext(ctx, `
+		UPDATE accounts
+		SET must_change_password = 1, updated_at = ?
+		WHERE account_id = ? AND site_id = ? AND is_superadmin = 1 AND status = ?`,
+		platform.Now(), account.AccountID, account.SiteID, AccountStatusActive)
+	if err != nil {
+		return false, identityDBError()
+	}
+	if n, err := changed.RowsAffected(); err != nil || n != 1 {
+		return false, platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威无法更新")
+	}
+	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, tx), op, RevokeAllSessionsInput{AccountID: account.AccountID, Reason: "server_reset"}); err != nil {
+		return false, err
+	}
+	if err := saveIdentityReceipt(ctx, op, tx, digest, keyID, ApplySuperadminResetResult{Completed: true}); err != nil {
+		return false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return false, identityDBError()
+	}
+	return false, nil
+}
+
+// consumeSuperadminResetFile 在回执提交后只删除哈希仍匹配的固定文件。
+// 文件已消失视为消费完成；哈希或类型变化时保留文件，避免删掉新的重置请求。
+func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error {
+	candidate, missing, err := readSuperadminResetFile(dataRoot)
+	if missing {
+		return nil
+	}
+	if err != nil {
+		if isCode(err, platform.CodeValidation) {
+			return platform.NewError(platform.CodeIntegrityError, false, "重置文件不能按原哈希删除")
+		}
+		return err
+	}
+	if candidate.FileHash != fileHash {
+		return platform.NewError(platform.CodeIntegrityError, false, "重置文件哈希已变化")
+	}
+	path, err := superadminResetPath(dataRoot)
+	if err != nil {
+		return err
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件不可检查")
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+		return platform.NewError(platform.CodeIntegrityError, false, "重置文件类型或权限不合法")
+	}
+	if err := os.Remove(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件删除失败")
+	}
+	return nil
 }
