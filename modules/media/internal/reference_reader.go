@@ -64,20 +64,40 @@ func ReadAssetReferences(ctx context.Context, op OperationContext, input ReadAss
 		SourceService string       `json:"sourceService"`
 		Watermark     gen.Revision `json:"watermark"`
 	}{true, "site-config", configWatermark})
-	seen := make(map[string]string)
+	// 远端pending只证明源操作未决；本地pin补充展示期限，二者均持续保护。
+	merged := make(map[string]gen.AssetReference)
 	for _, ref := range append(append(content, config...), pending...) {
-		raw, err := platform.CanonicalJSON(ref)
-		if err != nil {
-			return ReadAssetReferencesResult{}, err
-		}
 		key := string(ref.SourceService) + "\x00" + ref.SourceObjectId + "\x00" + ref.SourceRevisionId + "\x00" + strconv.Itoa(ref.SourceVersion) + "\x00" + ref.ReferenceId + "\x00" + string(ref.Kind)
-		if previous, found := seen[key]; found {
-			if previous != string(raw) {
+		if previous, found := merged[key]; found {
+			before, current := previous, ref
+			pendingPair := ref.Kind == gen.PendingPin && !ref.Confirmed && !previous.Confirmed
+			if pendingPair {
+				before.ExpiresAt, current.ExpiresAt = nil, nil
+			}
+			a, err := platform.CanonicalJSON(before)
+			if err != nil {
+				return ReadAssetReferencesResult{}, err
+			}
+			b, err := platform.CanonicalJSON(current)
+			if err != nil {
+				return ReadAssetReferencesResult{}, err
+			}
+			if string(a) != string(b) {
 				return ReadAssetReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "同一引用身份存在冲突材料")
+			}
+			if pendingPair {
+				if previous.ExpiresAt == nil || ref.ExpiresAt == nil {
+					ref.ExpiresAt = nil
+				} else if previous.ExpiresAt.After(*ref.ExpiresAt) {
+					ref.ExpiresAt = previous.ExpiresAt
+				}
+				merged[key] = ref
 			}
 			continue
 		}
-		seen[key] = string(raw)
+		merged[key] = ref
+	}
+	for _, ref := range merged {
 		if ref.Kind == gen.History {
 			snapshot.HistoryReferences = append(snapshot.HistoryReferences, ref)
 		} else {
@@ -165,12 +185,22 @@ func (s *localBlobStore) readSourceReferences(ctx context.Context, op OperationC
 				if json.Unmarshal(rawRef, &item) != nil || item.SourceService != source || item.Asset != asset {
 					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "文档引用源或不可变资产不匹配")
 				}
+				if item.Kind == "pending_pin" && !item.Retained {
+					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "待提交引用必须保留保护")
+				}
 				if !item.Retained {
 					continue
 				}
 				ref = gen.AssetReference{SourceService: gen.AssetReferenceSourceService(source), SourceObjectId: item.DocumentId, SourceRevisionId: item.SourceRevisionId, SourceVersion: item.SourceVersion, ReferenceId: item.BlockId, Asset: item.Asset, Kind: gen.Current, Confirmed: true}
-				if item.Kind == "history" {
+				switch item.Kind {
+				case "current_draft", "current_published":
+				case "history":
 					ref.Kind = gen.History
+				case "pending_pin":
+					ref.Kind = gen.PendingPin
+					ref.Confirmed = false
+				default:
+					return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "文档引用源kind未登记")
 				}
 			} else if json.Unmarshal(rawRef, &ref) != nil || string(ref.SourceService) != source || ref.Asset != asset || !ref.Confirmed || ref.ExpiresAt != nil || (ref.Kind != gen.Current && ref.Kind != gen.History) {
 				return nil, 0, platform.NewError(platform.CodeIntegrityError, false, "配置引用来源、终局或资产不匹配")

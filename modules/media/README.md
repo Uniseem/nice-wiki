@@ -2,9 +2,9 @@
 
 保持 D24/D26 与资源库产品：内容寻址上传/Range、浏览器WebP/视频封面、四平台公开信息快照、本地封面、Excalidraw三文件，文件不自动删除。
 
-持续目标第二轮已完成人工确认与jobs延迟任务原回执桥接、同域真实批准ObjectRef只读函数；批准/精确标记/delete_pending同事务，取消竞态不复活计划，未知任务同键恢复。修正多余self-HTTP设计后，最终候选已通过根统一VPS生成、14模块readonly build/vet/gofmt与完整结构检查。第一轮真实两源引用快照、提案/取消与Acquire/Confirm整计划同事务取消已通过既有检查。最终删除、worker和完整服务仍未完成，业务验收未执行。
+本轮已实现人工删除Execute、同进程worker注册、完整DELETING恢复与有限reader权威；原批准ObjectRef、任务回执、固定24小时窗口、最终完整两源及marks/readers0共同约束删除。共享bytes与Complete互斥，终局结果与deleted outbox同事务，真实取消仅凭独立只读证明。最终候选通过自部署GitLab CI生成/格式、三分片14模块readonly build/vet/gofmt及完整结构检查；业务验收未执行。
 
-当前为R1实施：私有SQLite、blob恢复与上传基础分组已交付；顺序分块/原回执恢复、Begin固定首次结果及ready资源安全元数据读取通过统一VPS生成、14模块build/vet/gofmt和完整结构检查。完整应用因其余handler/控制恢复未齐保持blocked；本轮Complete与直接MIME/SVG/scene校验已过统一VPS既有检查，完整入口仍未齐；ready引用pin切片本轮已过统一VPS既有检查，第二轮Confirm ready切片与完整Release已过修正后统一VPS既有检查，本轮真实计划取消前置已过统一既有检查，人工确认与执行删除仍未完成；业务验收、联调和部署未完成。
+完整服务仍因真实JobsClient适配、bytes、其余HTTP/事件及控制恢复未齐保持blocked；worker与outbox整体职责继续partial。未运行服务或删除业务文件，未新增测试、真实接口、模型调用或部署。逐项状态及准确源码提交见STATUS/progress/handoff。
 
 ## 设计索引
 

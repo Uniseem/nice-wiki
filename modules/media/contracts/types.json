@@ -916,8 +916,9 @@
           ]
         },
         "referenceGeneration": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "ref水位"
+          "type": "integer",
+          "minimum": 0,
+          "description": "真实逐对象int64水位，不借公共Revision上限收紧"
         },
         "occurredAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -4266,12 +4267,18 @@
         "expectedGeneration": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "计划ref水位"
+        },
+        "job": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/JobExecutionInput",
+          "description": "可信完整ObjectRef/job/fence及Go CheckLease guard，仅内部不得HTTP构造"
         }
       },
       "required": [
         "planId",
-        "expectedGeneration"
-      ]
+        "expectedGeneration",
+        "job"
+      ],
+      "x-internal": true
     },
     "ExecuteManualCleanupResult": {
       "type": "object",
@@ -4604,11 +4611,12 @@
       "required": [
         "asset",
         "deadline"
-      ]
+      ],
+      "x-internal": true
     },
     "AcquireReaderLeaseResult": {
       "type": "object",
-      "description": "防正在下载资源被最终删除的结果",
+      "description": "有限readerId/expiresAt及仅Go Release回调，非HTTP DTO；流受该期限约束，无心跳续期",
       "additionalProperties": false,
       "properties": {
         "readerId": {
@@ -4623,7 +4631,8 @@
       "required": [
         "readerId",
         "expiresAt"
-      ]
+      ],
+      "x-internal": true
     },
     "BuildDeliveryManifestInput": {
       "type": "object",
@@ -4962,13 +4971,19 @@
         "occurredAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "事件时间"
+        },
+        "referenceGeneration": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "ready为0，deleted为原人工批准精确generation"
         }
       },
       "required": [
         "tx",
         "asset",
         "eventId",
-        "occurredAt"
+        "occurredAt",
+        "referenceGeneration"
       ]
     },
     "PublishAssetEventResult": {
@@ -5643,6 +5658,115 @@
       "type": "object",
       "x-internal": true,
       "description": "本域精确不可变asset/fence/完整ReferenceSnapshot扫描材料",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "cleanupExecution": {
+      "type": "object",
+      "x-internal": true,
+      "description": "schemaVersion=1原规范执行：approval hash/job/op/root/site/epoch/waiting修订/decidedAt≥notBefore",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "首版不可变人工执行材料"
+        },
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原人工计划"
+        },
+        "approvalHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原CleanupApproval规范字节SHA"
+        },
+        "jobId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域持久原AcceptedJob任务"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原人工批准操作"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原人工批准根操作"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原批准及本域opened代次"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原批准站点"
+        },
+        "waitingRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "原waiting固定成功结果修订"
+        },
+        "decidedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "服务固定UTC决定时刻，不早于原notBefore"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "planId",
+        "approvalHash",
+        "jobId",
+        "operationId",
+        "rootOperationId",
+        "dataEpoch",
+        "siteId",
+        "waitingRevision",
+        "decidedAt"
+      ]
+    },
+    "cleanupDeletion": {
+      "type": "object",
+      "x-internal": true,
+      "description": "schemaVersion=1逐资产原决定：原Asset、精确marks及共享bytes删除归属",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "首版不可变逐资产人工决定"
+        },
+        "planId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "原人工计划"
+        },
+        "approvalHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "原批准规范字节SHA"
+        },
+        "asset": {
+          "$ref": "#/$defs/Asset",
+          "description": "原精确delete_pending安全元数据，终局仅state/revision改变"
+        },
+        "mark": {
+          "$ref": "#/$defs/CleanupApprovalMark",
+          "description": "原批准该asset精确fence/generation"
+        },
+        "deleteBytes": {
+          "type": "boolean",
+          "description": "仅无计划外未删除同SHA资产且为该SHA唯一bytes拥有者时为true"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "planId",
+        "approvalHash",
+        "asset",
+        "mark",
+        "deleteBytes"
+      ]
+    },
+    "cleanupExecutionRecord": {
+      "type": "object",
+      "x-internal": true,
+      "description": "完整执行决定、逐资产决定及固定原终局结果内部投影",
       "additionalProperties": false,
       "properties": {}
     }

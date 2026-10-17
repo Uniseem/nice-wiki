@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "e77c4d8241d697ce4918ae8b54b83479f902bbe70dcbaecdfc2071e7f514092a",
+  "contractSha256": "4d4286a18034cf63dca96c4ce428ace06d0744bf1a17a3af99a891f045abed81",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续目标第二轮：media人工批准与jobs任务桥接已交付冻结",
-  "branch": "codex/media-goal-r2",
-  "baseCommit": "471c036082e082763d90e1080b3489d4e4531380",
-  "deliveryCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+  "assignedSession": "2026-10-17一轮：media人工删除与pending窄修已交付冻结，最终依据GitLab pipeline16",
+  "branch": "codex/media-20261017-r1",
+  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
+  "deliveryCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
   "deployment": "not_started",
   "files": [
     {
@@ -83,10 +83,10 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -143,10 +143,10 @@
     {
       "path": "modules/media/internal/reference_reader.go",
       "state": "verified",
-      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "implementationCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pending窄修pipeline16候选8d142bc2dea0877f3b2439f8697e78b64d5865da全部通过：生成/格式与重复gen一致，三个同时分片覆盖14Go模块-mod=readonly build/vet/gofmt及完整makecheck（878文件/1435函数/379HTTP/2328类型）；精确reference_reader.go与functions.md已由根回传。本次新源码2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa，保留此前p13交付历史，不沿用p13证明窄修后树。仅静态及既有检查，无新增测试/fixture/mock/样例/临时业务程序，无实际接口/SQL行为验收/worker或业务删除/模型/部署，无本机或旧VPS编译。"
       },
       "blocker": null
     },
@@ -172,11 +172,11 @@
     },
     {
       "path": "modules/media/internal/cleanup_worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -202,11 +202,11 @@
     },
     {
       "path": "modules/media/internal/reader_lease.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -283,22 +283,22 @@
     {
       "path": "modules/media/internal/blob_recovery.go",
       "state": "verified",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/media/internal/outbox_repository.go",
       "state": "in_progress",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
-      "blocker": "本轮PublishAssetEvent已verified；同文件RelayOutbox仍planned，未完成整文件职责"
+      "blocker": "本轮PublishAssetEvent真实generation完整范围已验证；同文件RelayOutbox仍planned，整体partial"
     },
     {
       "path": "modules/media/internal/barrier_service.go",
@@ -338,7 +338,7 @@
         "state": "passed",
         "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 仅本轮真实jobs客户端装配范围通过。"
       },
-      "blocker": "真实jobs客户端已装配；完整handler/控制恢复/RelayOutbox/订阅/worker未齐，完整应用仍失败关闭，不称服务可运行。"
+      "blocker": "真实CreateJob客户端已装配，RunWorker核心函数已验证；真实platform.JobsClient租约适配与启动接线、RelayOutbox/订阅、其余handler和控制恢复仍未齐，完整应用失败关闭"
     },
     {
       "path": "modules/media/internal/transport/server.go",
@@ -422,13 +422,13 @@
     },
     {
       "path": "modules/media/internal/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
-      "blocker": null
+      "blocker": "RunWorker及原批准装配/安全取消完整函数已验证；真实platform.JobsClient适配及完整启动接线未齐，整体partial，不声称服务可运行"
     },
     {
       "path": "modules/media/internal/gen/openapi.gen.go",
@@ -537,6 +537,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/migrations/0007_cleanup_execution.sql",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     }
@@ -755,10 +765,10 @@
       "id": "media.ReadAssetReferences",
       "path": "modules/media/internal/reference_reader.go",
       "state": "verified",
-      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "implementationCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pending窄修pipeline16候选8d142bc2dea0877f3b2439f8697e78b64d5865da全部通过：生成/格式与重复gen一致，三个同时分片覆盖14Go模块-mod=readonly build/vet/gofmt及完整makecheck（878文件/1435函数/379HTTP/2328类型）；精确reference_reader.go与functions.md已由根回传。本次新源码2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa，保留此前p13交付历史，不沿用p13证明窄修后树。仅静态及既有检查，无新增测试/fixture/mock/样例/临时业务程序，无实际接口/SQL行为验收/worker或业务删除/模型/部署，无本机或旧VPS编译。"
       },
       "blocker": null
     },
@@ -820,11 +830,11 @@
     {
       "id": "media.ExecuteManualCleanup",
       "path": "modules/media/internal/cleanup_worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -864,11 +874,11 @@
     {
       "id": "media.AcquireReaderLease",
       "path": "modules/media/internal/reader_lease.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -952,11 +962,11 @@
     {
       "id": "media.RecoverBlobJournal",
       "path": "modules/media/internal/blob_recovery.go",
-      "state": "implemented",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 media+model-gateway最终完整合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有模块readonly build/vet/gofmt及完整make check通过（861文件/1182函数/379操作/2269类型），回传无冲突。明确含hardlink公共边界、二次runtime epoch、quota纯服务上下文、Begin Commit未知保留/原回执闭环和参考函数name修正；经统一静态复核。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -964,10 +974,10 @@
       "id": "media.PublishAssetEvent",
       "path": "modules/media/internal/outbox_repository.go",
       "state": "verified",
-      "implementationCommit": "9c2521a3142db0bc2ebcf1dc2914d3aea6984b46",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16最终media实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1216函数/379操作/2271类型）。明确包含propertyNames公共3.0兼容、EventEnvelope.Revision显式转换、同站点kind/主键复用、blocked持续配额、确定stage恢复路径和hashFile参考可达登记。首轮编译类型错误已修后重跑，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段既有检查。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -1057,7 +1067,7 @@
         "state": "passed",
         "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 仅本轮真实jobs客户端装配范围通过。"
       },
-      "blocker": "真实jobs客户端已装配；完整handler/控制恢复/RelayOutbox/订阅/worker未齐，完整应用仍失败关闭，不称服务可运行。"
+      "blocker": "真实CreateJob客户端已装配，RunWorker核心函数已验证；真实platform.JobsClient租约适配与启动接线、RelayOutbox/订阅、其余handler和控制恢复仍未齐，完整应用失败关闭"
     },
     {
       "id": "media.Serve",
@@ -1101,7 +1111,7 @@
         "state": "passed",
         "evidence": "2026-10-16 media+model-gateway最终完整合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有模块readonly build/vet/gofmt及完整make check通过（861文件/1182函数/379操作/2269类型），回传无冲突。明确含hardlink公共边界、二次runtime epoch、quota纯服务上下文、Begin Commit未知保留/原回执闭环和参考函数name修正；经统一静态复核。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": "本轮真实部分handler及本地恢复已实现；CompleteUpload/其他handler、控制恢复回执及后台未齐，严格平台工厂拒绝完整启动，控制就绪不伪造"
+      "blocker": "上传/引用/人工确认局部HTTP及本地明确删除恢复已实现；其余handler、控制恢复回执及后台接线未齐，严格工厂仍拒绝完整启动，不伪造控制就绪"
     },
     {
       "id": "media.ConsumeEvents",
@@ -1117,11 +1127,11 @@
     {
       "id": "media.RunWorker",
       "path": "modules/media/internal/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -1409,7 +1419,7 @@
         "state": "passed",
         "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
       },
-      "blocker": "本轮真实来源快照、计划提案/取消与Acquire/Confirm局部HTTP已实现；人工清理确认/任务、引用事件/其余handler、控制恢复及后台未齐，严格工厂仍拒绝完整启动，不伪造ready。"
+      "blocker": "上传/引用/人工计划提案确认取消HTTP与人工删除核心已实现；引用事件、其余handler、控制恢复和真实worker客户端/后台接线未齐，完整应用仍失败关闭"
     },
     {
       "id": "media.serviceHandlers",
@@ -1668,10 +1678,10 @@
       "id": "media.CommitVerifiedBlob",
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "aab3c6edd25d0c56f677dc02ce843f7fafce5706",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第一轮media最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（862文件/1226函数/379操作/2272类型）。精确格式/生成快照已完整回传；源码aab3c6edd25d0c56f677dc02ce843f7fafce5706。静态复核来源完整材料/规范digest、原pin与24h期限、逐对象fence/generation int64耗尽、源→asset稳定锁及事务边界。未新增或运行业务测试、SQL/HTTP验收、真实接口、模型、服务或部署；verified仅为现阶段既有检查。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -1965,10 +1975,10 @@
       "id": "media.readSourceReferences",
       "path": "modules/media/internal/reference_reader.go",
       "state": "verified",
-      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。"
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     },
@@ -2244,6 +2254,166 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.appendJournal",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.blobPath",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.syncDirectory",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.checkCleanupJobBinding",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupExecutionMaterial",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readCleanupExecution",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupWaitingEqual",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.blockCleanupExecution",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.decideCleanupExecution",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.finishCleanupExecutionLocked",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.removeDecidedBlob",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.recoverCleanupExecutionsLocked",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.confirmDeletedAssetLocked",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.releaseReaderLease",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupWorkerOperation",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.cleanupWorkerFailure",
+      "state": "verified",
+      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
     }

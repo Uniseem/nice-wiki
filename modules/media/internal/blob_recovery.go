@@ -68,6 +68,9 @@ type journalAggregate struct {
 func (s *localBlobStore) RecoverBlobJournal(ctx context.Context) (RecoverBlobJournalResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.recoverCleanupExecutionsLocked(ctx); err != nil {
+		return RecoverBlobJournalResult{}, err
+	}
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT event, site_id, upload_id, sha256, asset_id FROM blob_journal ORDER BY seq`)
 	if err != nil {
@@ -75,6 +78,7 @@ func (s *localBlobStore) RecoverBlobJournal(ctx context.Context) (RecoverBlobJou
 	}
 	aggregates := make(map[string]journalAggregate)
 	order := make([]string, 0)
+	deletions := []blobJournalEvent{}
 	for rows.Next() {
 		var event blobJournalEvent
 		var assetID sql.NullString
@@ -104,8 +108,7 @@ func (s *localBlobStore) RecoverBlobJournal(ctx context.Context) (RecoverBlobJou
 			aggregate.committed = true
 			aggregate.committedEvent = event
 		case blobJournalDeleting:
-			// DELETING 只记录人工清理已经进入的删除决定；恢复阶段不
-			// 擅自继续删除，后续清理worker会按其自己的合同处理。
+			deletions = append(deletions, event)
 		}
 		aggregates[key] = aggregate
 	}
@@ -115,6 +118,15 @@ func (s *localBlobStore) RecoverBlobJournal(ctx context.Context) (RecoverBlobJou
 	}
 	_ = rows.Close()
 
+	for _, event := range deletions {
+		var count int
+		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_cleanup_deletions d JOIN manual_cleanup_executions e ON e.plan_id=d.plan_id JOIN assets a ON a.asset_id=d.asset_id WHERE d.plan_id=? AND d.asset_id=? AND a.site_id=? AND a.sha256=? AND e.result_json IS NOT NULL`, event.UploadID, event.AssetID, event.SiteID, event.SHA256).Scan(&count); err != nil {
+			return RecoverBlobJournalResult{}, mapMediaDBError(err, "核对已恢复DELETING决定失败")
+		}
+		if count != 1 {
+			return RecoverBlobJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "DELETING缺精确人工批准终局决定")
+		}
+	}
 	var result RecoverBlobJournalResult
 	for _, key := range order {
 		if err := ctx.Err(); err != nil {
@@ -150,7 +162,7 @@ func validJournalEvent(event blobJournalEvent) bool {
 }
 
 // confirmCommittedLocked 核对 COMMITTED 记录对应的资源元数据与不可变文件。
-// COMMITTED 与资源元数据同事务提交，二者不一致即为完整性错误。
+// COMMITTED 与资源元数据同事务提交；后续deleted必须有原人工终局决定。
 func (s *localBlobStore) confirmCommittedLocked(ctx context.Context, event blobJournalEvent) error {
 	var raw string
 	err := s.db.QueryRowContext(ctx, `SELECT asset_json FROM assets WHERE asset_id = ?`, string(event.AssetID)).Scan(&raw)
@@ -162,8 +174,14 @@ func (s *localBlobStore) confirmCommittedLocked(ctx context.Context, event blobJ
 	}
 	var asset gen.Asset
 	if err := json.Unmarshal([]byte(raw), &asset); err != nil ||
-		asset.SiteId != event.SiteID || asset.Ref.Sha256 != event.SHA256 || asset.State != gen.AssetStateReady {
+		asset.SiteId != event.SiteID || asset.Ref.Sha256 != event.SHA256 || asset.Ref.AssetId != event.AssetID {
 		return platform.NewError(platform.CodeIntegrityError, false, "COMMITTED资源元数据缺失或不一致")
+	}
+	if string(asset.State) == "deleted" {
+		return s.confirmDeletedAssetLocked(ctx, asset)
+	}
+	if asset.State != gen.AssetStateReady && string(asset.State) != "delete_pending" {
+		return platform.NewError(platform.CodeIntegrityError, false, "COMMITTED资源生命周期不合法")
 	}
 	actualHash, _, err := hashFile(s.blobPath(event.SiteID, event.SHA256))
 	if err != nil || actualHash != event.SHA256 {
@@ -177,8 +195,8 @@ func (s *localBlobStore) confirmCommittedLocked(ctx context.Context, event blobJ
 func (s *localBlobStore) isolatePreparedLocked(ctx context.Context, event blobJournalEvent) (bool, error) {
 	var count int
 	if err := s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM assets WHERE site_id = ? AND sha256 = ? AND state = ?`,
-		string(event.SiteID), string(event.SHA256), string(gen.AssetStateReady)).Scan(&count); err != nil {
+		SELECT COUNT(*) FROM assets WHERE site_id = ? AND sha256 = ? AND state IN (?, ?)`,
+		string(event.SiteID), string(event.SHA256), string(gen.AssetStateReady), "delete_pending").Scan(&count); err != nil {
 		return false, mapMediaDBError(err, "读取资源元数据失败")
 	}
 	if count > 0 {
