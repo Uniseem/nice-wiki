@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "4d4286a18034cf63dca96c4ce428ace06d0744bf1a17a3af99a891f045abed81",
+  "contractSha256": "61ef91dc1d9e893995a8a42fbb96739de88b4553cefd10c998a182c6ba38852a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17一轮：media人工删除与pending窄修已交付冻结，最终依据GitLab pipeline16",
-  "branch": "codex/media-20261017-r1",
-  "baseCommit": "e0f307f8c99f7d0a60443d9d81590bdfa6c572db",
-  "deliveryCommit": "2dbc137cb5809e6b9e42addbac2143a7f6ca7eaa",
+  "assignedSession": "2026-10-17第二轮：media列表/未引用稳定分页已交付冻结，依据GitLab pipeline23",
+  "branch": "codex/media-20261017-r2",
+  "baseCommit": "8a49af65f048a6b160f963570f02d6b88db100de",
+  "deliveryCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
   "deployment": "not_started",
   "files": [
     {
@@ -83,22 +83,22 @@
     {
       "path": "modules/media/internal/blob_repository.go",
       "state": "verified",
-      "implementationCommit": "3d64fbcb71bd955d431c6496ee1d27ea5014ec43",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
       "blocker": null
     },
     {
       "path": "modules/media/internal/asset_service.go",
-      "state": "in_progress",
-      "implementationCommit": "5b29add7966203fa6bad4d40c7f83f2c0facbb92",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16 media+model-gateway最终完整合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有模块readonly build/vet/gofmt及完整make check通过（861文件/1182函数/379操作/2269类型），回传无冲突。明确含hardlink公共边界、二次runtime epoch、quota纯服务上下文、Begin Commit未知保留/原回执闭环和参考函数name修正；经统一静态复核。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
-      "blocker": "本轮ReadAsset verified；同文件登记ListAssets仍planned，不把部分文件当整包完成"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/image_variants.go",
@@ -152,13 +152,13 @@
     },
     {
       "path": "modules/media/internal/cleanup_service.go",
-      "state": "in_progress",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 完整文件仅已实现范围通过。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
-      "blocker": "本轮人工确认/批准对象及任务桥接完整范围已验证，ListUnusedAssets仍planned，整文件partial。"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/cleanup_sources.go",
@@ -332,23 +332,23 @@
     },
     {
       "path": "modules/media/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "state": "in_progress",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 仅本轮真实jobs客户端装配范围通过。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
-      "blocker": "真实CreateJob客户端已装配，RunWorker核心函数已验证；真实platform.JobsClient租约适配与启动接线、RelayOutbox/订阅、其余handler和控制恢复仍未齐，完整应用失败关闭"
+      "blocker": "本轮可信列表key装配通过检查；BuildApplication因全量handler、控制恢复/activation及真实任务适配/后台接线未齐继续partial，不称完整服务可运行"
     },
     {
       "path": "modules/media/internal/transport/server.go",
       "state": "in_progress",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 完整文件仅已实现范围通过。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
-      "blocker": "Confirm真实HTTP已绑定，多余批准对象self-HTTP已删除；其他handler/控制恢复/后台未齐，整文件partial。"
+      "blocker": "本轮ListAssets/ListUnusedAssets真实GET及严格查询转换已验证；bytes、其余handler/控制恢复/完整后台未齐，整体partial"
     },
     {
       "path": "modules/media/go.mod",
@@ -549,6 +549,16 @@
         "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/media/migrations/0008_asset_listing.sql",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -687,11 +697,11 @@
     {
       "id": "media.ListAssets",
       "path": "modules/media/internal/asset_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
       "blocker": null
     },
@@ -775,11 +785,11 @@
     {
       "id": "media.ListUnusedAssets",
       "path": "modules/media/internal/cleanup_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
       "blocker": null
     },
@@ -1062,12 +1072,12 @@
       "id": "media.BuildApplication",
       "path": "modules/media/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。 仅本轮真实jobs客户端装配范围通过。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。本函数仅本轮可信key或部分handler装配，整体仍blocked。"
       },
-      "blocker": "真实CreateJob客户端已装配，RunWorker核心函数已验证；真实platform.JobsClient租约适配与启动接线、RelayOutbox/订阅、其余handler和控制恢复仍未齐，完整应用失败关闭"
+      "blocker": "本轮真实列表key/两个GET局部装配已检查；bytes/引用事件/其余handler、控制恢复activation、真实JobsClient租约适配及完整后台生命周期仍未齐，严格失败关闭，不提升完整服务"
     },
     {
       "id": "media.Serve",
@@ -1111,7 +1121,7 @@
         "state": "passed",
         "evidence": "2026-10-16 media+model-gateway最终完整合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有模块readonly build/vet/gofmt及完整make check通过（861文件/1182函数/379操作/2269类型），回传无冲突。明确含hardlink公共边界、二次runtime epoch、quota纯服务上下文、Begin Commit未知保留/原回执闭环和参考函数name修正；经统一静态复核。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
       },
-      "blocker": "上传/引用/人工确认局部HTTP及本地明确删除恢复已实现；其余handler、控制恢复回执及后台接线未齐，严格工厂仍拒绝完整启动，不伪造控制就绪"
+      "blocker": "上传/引用/人工计划/列表局部HTTP及明确删除恢复已实现；其余handler、控制恢复回执及真实后台接线未齐，严格工厂仍拒绝完整启动，不伪造控制就绪"
     },
     {
       "id": "media.ConsumeEvents",
@@ -1414,21 +1424,21 @@
       "id": "media.NewApplication",
       "path": "modules/media/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "89138f68209598b736eb9e93ad0d9717ac22fdbd",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16第二轮media修正后最终实际候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、6源码gofmt、14现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（867文件/1268函数/379操作/2278类型）。完整49文件精确格式/生成快照已回传；源码89138f68209598b736eb9e93ad0d9717ac22fdbd。首次VPS生成成功但gen.ReferenceSourceDecision被oapi-codegen裁剪导致编译失败，已改唯一公共schema严格验证后的本域8字段投影，并完整重跑通过，不沿用失败结论。无新增或运行业务测试、SQL/HTTP验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。本函数仅本轮可信key或部分handler装配，整体仍blocked。"
       },
-      "blocker": "上传/引用/人工计划提案确认取消HTTP与人工删除核心已实现；引用事件、其余handler、控制恢复和真实worker客户端/后台接线未齐，完整应用仍失败关闭"
+      "blocker": "本轮真实列表key/两个GET局部装配已检查；bytes/引用事件/其余handler、控制恢复activation、真实JobsClient租约适配及完整后台生命周期仍未齐，严格失败关闭，不提升完整服务"
     },
     {
       "id": "media.serviceHandlers",
       "path": "modules/media/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "dc9e9f8540892a4747b8e3accbb15158a770e561",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-16持续目标第二轮media最终冻结候选：根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、4个改动Go gofmt、14模块-mod=readonly build/vet/gofmt与完整make check通过（874文件/1355函数/379HTTP/2308类型）；精确gen openapi及4份生成文档回传，其他域跟踪漂移0。首次docs/gen及14模块build/vet/gofmt通过，但make check唯一失败为多余service对象接口没有真实HTTP调用方；根按同进程worker真实架构裁定收缩为同域reference读取，删HTTP/DTO/装配后最终完整重跑通过，不沿用失败树结论。未新增或运行业务测试/SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅为阶段既有门槛。"
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
       "blocker": null
     },
@@ -2414,6 +2424,76 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17自部署GitLab CI最终pipeline13候选d2e2d55ed9f8c0797037d55551f10840f0bd43f7：golang:1.25.5-bookworm，生成/格式与重复docs/gen一致，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt，完整make check通过（878文件/1435函数/379HTTP/2328类型）；包含执行器首次批准读取取消的最后窄修。精确格式/生成文件已由根回传并交叉复审。本域无本机编译/旧VPS编译，未新增测试/fixture/mock/样例/临时验证程序，未运行SQL/HTTP行为验收、真实接口/模型、worker/服务、业务删除、应用镜像或部署；verified仅为R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.InstallAssetListingKey",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.assetListingStore",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readAssetListingCursor",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readAssetListingRevision",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.readAssetListingPage",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.assetListingPageInfo",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.recheckAssetListingPage",
+      "state": "verified",
+      "implementationCommit": "a44a13a1ab65fc19c86e032d757e570195909e22",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
       },
       "blocker": null
     }
