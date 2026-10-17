@@ -1,6 +1,8 @@
 # 重建计划
 
-当前单轮（2026-10-17）：用户授权三个子代理同时编写一轮并推送，追加全部编译经自部署GitLab且尽量三个并行任务。content来源查询/单批转发、media人工删除决定/恢复/任务边界、model-gateway渠道与非embedding配置启停已按独立worktree交付并顺序合入本地main；公共任务租约机制及CI已同步。当前761/1435函数完成（53.0%，净增36项），业务accepted为零。候选与三个实际树GitLab生成/三分片14模块readonly build/vet/gofmt/完整check通过；最终根汇总pipeline18完整通过且生成零漂移，已普通推送并核对GitHub/GitLab main共同代码交付为ec2a8a8c5417bb96cca1cfe491cf57f9b026dda5、old未变；结果记录同次授权随后同步。本轮已结束，不自动下一轮，R1整体、R2验收和部署均未完成。详见push-log/2026-10-17-0001.md。
+当前追加单轮（2026-10-17）：用户再次要求一轮后推送，三个子代理独立并行完成content树读取/完整重排、media目录/未引用列表、model-gateway人工价目/只读报价/免费文本预算，已顺序合入隔离集成分支。798/1463函数完成（54.5%，净增37项），业务accepted仍零。GitLab候选23及实际树24/25/26的生成、三分片14Go模块readonly build/vet/gofmt、完整check通过；最终合入树生成零漂移。localization估算仍planned且须先收口可信纯服务站点协议，Move发布manifest/bytes/真实任务适配/完整服务和费用链仍未完成。最终根汇总检查与普通双推按本次授权接续执行；本轮完成后停止。详见[本轮记录](push-log/2026-10-17-0002.md)。
+
+上一轮（2026-10-17）：用户授权三个子代理同时编写一轮并推送，追加全部编译经自部署GitLab且尽量三个并行任务。content来源查询/单批转发、media人工删除决定/恢复/任务边界、model-gateway渠道与非embedding配置启停已按独立worktree交付并顺序合入本地main；公共任务租约机制及CI已同步。当前761/1435函数完成（53.0%，净增36项），业务accepted为零。候选与三个实际树GitLab生成/三分片14模块readonly build/vet/gofmt/完整check通过；最终根汇总pipeline18完整通过且生成零漂移，已普通推送并核对GitHub/GitLab main共同代码交付为ec2a8a8c5417bb96cca1cfe491cf57f9b026dda5、old未变；结果记录同次授权随后同步。本轮已结束，不自动下一轮，R1整体、R2验收和部署均未完成。详见push-log/2026-10-17-0001.md。
 
 以下持续目标与停止指令仅为历史记录，本次执行范围以上述单轮授权为准。
 

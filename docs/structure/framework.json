@@ -604,6 +604,11 @@
       "purpose": "三个子代理单轮交付、自部署GitLab检查与双远程推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-17-0002.md",
+      "kind": "documentation",
+      "purpose": "追加三模块单轮的授权、交付检查与普通双远程推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
