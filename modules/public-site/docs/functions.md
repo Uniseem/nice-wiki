@@ -328,7 +328,7 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `result` | `ResolvePublishedLinkResult` | 当前请求安全公开链接判断；false无标题/metadata/draft/旧路径 | true才href/publication/resolvedLanguage非null且available；false三项全null；resolvedLanguage=request.language，不授予后续读取授权 |
-| `error` | `error` | 失败仅公共Problem，不返回半结果 | 依赖未知/权威变化503，不能从旧缓存制造visible=false |
+| `error` | `error` | 失败仅公共Problem，不返回半结果 | 依赖未知返回503；权威水位变化返回公共错误表的STALE_RESULT/409，不能从旧缓存制造visible=false |
 
 **步骤**
 
@@ -339,7 +339,7 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 5. 公开目标的language未启用或已停用才false/language_unavailable；已启用语言译文暂缺继续按M06-R006显示旧译/原文，URL保留请求language，resolvedLanguage=request.language，不调用模型或创建翻译
 6. blockId非null时携精确publishedRevisionId调用content:readPublishedRevision，只读当前公开正文并按LoadPublishedBundle既有hash/schema及稳定块ID规则核验；锚点不存在候选为false/anchor_missing，不偷偷退到文档顶部，不因缺译判锚点不存在
 7. 复用本域BuildCanonical规范机制，将可信publicBaseURL的basePath、请求language和content权威canonicalPath恰好拼接一次，清除全部query；从原始规范URL取得同源相对路径，附已存在稳定blockId的URL编码片段，不在JSON接口写HTML属性转义串或外部origin
-8. 返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化或未知直接STALE_RESULT/503，不自动重算或重试
+8. 返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化直接STALE_RESULT/409，权威未知保持DEPENDENCY_UNAVAILABLE/503，不自动重算或重试
 9. 成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁
 
 **错误**
@@ -349,15 +349,15 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 - `FORBIDDEN` / HTTP 403：不是site-config纯服务主体或夹带用户委托（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：请求dataEpoch非当前权威代次（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：content/配置/启用语言权威未知或不可达，不能从旧缓存推定不可见（可重试）
-- `STALE_RESULT` / HTTP 503：公开引用/规范路径/visibility/config/language水位变化，不交付不一致URL（可重试）
+- `STALE_RESULT` / HTTP 409：公开引用/规范路径/visibility/config/language水位变化，不交付不一致URL（可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：调用链截止到达（可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：仅callerService=site-config且actor.kind=service，无用户委托；只读公开数据，不借服务身份访问draft或撤回历史
-- 并发：总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；变化直接503，不重试
+- 并发：总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；水位变化直接STALE_RESULT/409，不重试
 - 幂等：只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权
 - 依赖：`site-config:readSiteConfig`、`content:readPublicTree`、`content:readPublishedRevision`、`content:resolvePublicPath`、`content:validatePublications`、`localization:listLanguages`、`public-site.BuildCanonical`
-- 其他依赖说明：content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径；冻结i18n/site/editor设计及M06-R006：翻译缺失不改变显式语言URL；本轮仅合同，无Go业务或新实际文件；本域无go.mod，函数保持planned
+- 其他依赖说明：content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径；冻结i18n/site/editor设计及M06-R006：翻译缺失不改变显式语言URL；已绑定真实ResolvePublishedLink；正文hash按content CanonicalizeBody的键排序、mark类型升序、platform.CanonicalJSON与SHA-256，并受本域2MiB限制。水位变化的HTTP状态以公共错误表409为准。源码未编译
 
 ## public-site.ResolvePublicMedia
 
@@ -524,7 +524,8 @@ func BuildCanonical(ctx context.Context, op OperationContext, in BuildCanonicalI
 - 授权：permission：service；rule：渲染内部调用
 - 并发：纯函数
 - 幂等：相同输入同结果
-- 依赖：`site-config:readConfigObject`
+- 依赖：无
+- 其他依赖说明：调用方传入已读取的publicBaseURL；输入没有配置对象ID，本函数不调用readConfigObject
 
 ## public-site.BuildHreflang
 

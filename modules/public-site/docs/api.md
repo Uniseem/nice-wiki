@@ -31,7 +31,7 @@
 | GET `/readyz` | `ready` | `public-site.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `public-site.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `public-site.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| POST `/v1/public-links:resolve` | `resolvePublishedLink` | `public-site.ResolvePublishedLink` | `service` | `ResolvePublishedLinkInput` → 200 `ResolvePublishedLinkResult` | 按文档及块ID解析当前安全公开链接 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`STALE_RESULT`、`DEADLINE_EXCEEDED` |
+| POST `/v1/public-links:resolve` | `resolvePublishedLink` | `public-site.ResolvePublishedLink` | `service` | `ResolvePublishedLinkInput` → 200 `ResolvePublishedLinkResult` | 按文档及块ID解析当前安全公开链接 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`VERSION_MISMATCH`、`STALE_RESULT`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
 <!-- openapi:end -->
 
 | GET `/robots.txt` | `handleRobots` | `public-site.HandleRobots` | `anonymous` | 站点级索引策略，不输出私有地址 |

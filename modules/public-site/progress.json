@@ -1,13 +1,13 @@
 {
   "version": 1,
   "module": "public-site",
-  "phase": "design",
-  "contractSha256": "ddd64d09efdf6b2326f6ada75431c107729eb205c9d2c43ae10b58a6c463f949",
+  "phase": "implementation",
+  "contractSha256": "8290cb801bd06127a8811c324f825e9b86d843ddb0f65373a1e56386624090a8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "第四轮支援：首页公开链接解析纯合同",
-  "branch": "codex/public-site-link-contract-r1",
-  "baseCommit": "b56430efe56b724d6efdbe8bf3ae39f15fc6803c",
-  "deliveryCommit": "ce438b4fe38d1c93a4da2a797391d1b99f39833c",
+  "assignedSession": "public-site启动与公开链接真实装配（已编写，未编译）",
+  "branch": "codex/public-site-20261017-r5",
+  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
+  "deliveryCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
   "deployment": "not_started",
   "files": [
     {
@@ -72,13 +72,13 @@
     },
     {
       "path": "modules/public-site/internal/links.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 仍为设计/生成物，不代表手写业务已实现。"
+        "evidence": "ResolvePublishedLink 已按合同步骤编写；RewriteInternalLinks 仍未实现。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": null
+      "blocker": "同文件的 RewriteInternalLinks 仍未实现，整文件不能记 implemented。"
     },
     {
       "path": "modules/public-site/internal/media_client.go",
@@ -112,11 +112,11 @@
     },
     {
       "path": "modules/public-site/internal/seo.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "BuildCanonical 只拼接调用方传入的 publicBaseURL 与规范路径，未调用 readConfigObject。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
@@ -522,53 +522,53 @@
     },
     {
       "path": "modules/public-site/cmd/public-site/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "入口只把本域装配交给 platform.RunService。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/public-site/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已校验配置、权威端点和真实公开链接绑定；缺任一登记操作、journal 或 activation 回执时返回错误，不返回可运行应用。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": null
+      "blocker": "schema 迁移、journal 恢复、activation 回执字段、其余 OpenAPI 处理函数和后台循环尚未装配。"
     },
     {
       "path": "modules/public-site/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现 Serve、Shutdown、Health、Ready；缺路由时不安装部分 HTTP 路由。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "path": "modules/public-site/go.mod",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已写入 Go 1.25.0 与版本化依赖。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": null
+      "blocker": "有依赖但缺少 go mod tidy 生成的 go.sum，且未编译。"
     },
     {
       "path": "modules/public-site/go.sum",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "须由 go mod tidy 生成；本会话不手写、不跑 go。"
     },
     {
       "path": "modules/public-site/Dockerfile",
@@ -835,11 +835,11 @@
     {
       "id": "public-site.BuildCanonical",
       "path": "modules/public-site/internal/seo.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
+        "evidence": "BuildCanonical 只拼接调用方传入的 publicBaseURL 与规范路径，未调用 readConfigObject。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
@@ -1330,66 +1330,66 @@
     {
       "id": "public-site.main",
       "path": "modules/public-site/cmd/public-site/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "入口只把本域装配交给 platform.RunService。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "id": "public-site.BuildApplication",
       "path": "modules/public-site/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
+        "evidence": "已校验配置、权威端点和真实公开链接绑定；缺任一登记操作、journal 或 activation 回执时返回错误，不返回可运行应用。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": null
+      "blocker": "schema 迁移、journal 恢复、activation 回执字段、其余 OpenAPI 处理函数和后台循环尚未装配。"
     },
     {
       "id": "public-site.Serve",
       "path": "modules/public-site/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现单监听、重复启动 CONFLICT 和取消后关闭。五秒运行状态轮询由 platform.RunService 负责。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "id": "public-site.Shutdown",
       "path": "modules/public-site/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已实现 ready 到 draining 的一次关闭；超时返回 DEADLINE_EXCEEDED。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "id": "public-site.Health",
       "path": "modules/public-site/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "只读本进程生命周期，不查询远程依赖。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
     {
       "id": "public-site.Ready",
       "path": "modules/public-site/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "journal、恢复控制或业务路由未就绪时返回 503。当前装配不会把这些标志置真。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
       "blocker": null
     },
@@ -1429,13 +1429,13 @@
     {
       "id": "public-site.ResolvePublishedLink",
       "path": "modules/public-site/internal/links.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "1a126fd06bdbebe7c02e0306ea3b99e635a19b3a",
       "verification": {
         "state": "not_run",
-        "evidence": "2026-10-15 第四轮协议冻结快照在隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8通过make docs/gen和完整make check（858文件/1105函数/379操作/2253类型），回传生成物0冲突。根14个现有Go模块readonly build/vet/gofmt同时通过；public-site尚无go.mod或业务源码，本域仅协议/生成物检查，不构成自身Go业务编译、实现或行为验收。pure-null在Go降级副本保留nullable+enum:[null]+x-go-type:any，未放宽3.1/TS源约束。未新增或运行业务测试、真实接口/模型、服务、镜像或部署。 本函数只有已检查的设计合同，业务未实现。"
+        "evidence": "已绑定真实解析。依赖未知为 503，水位变化为公共错误表 STALE_RESULT/409，不用 visible=false 掩盖。已编写，未跑 go build、go vet、gofmt，无 go.sum，GitLab CI 未跑，不能记 verified。"
       },
-      "blocker": "本域尚无go.mod与业务实现，不把生成/结构检查当Go编译或行为实现"
+      "blocker": null
     }
   ],
   "rule": "本轮只补首页公开链接解析producer契约，业务函数/文件及生成产物仍planned；无Go实现/编译、行为验收或部署，不把根14既有模块通过当本域可运行。"

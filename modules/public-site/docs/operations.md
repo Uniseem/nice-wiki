@@ -16,4 +16,4 @@ public-site 重启：扫描 cache 索引文件哈希与遗留 tmp，损坏命中
 
 本阶段没有真实服务/模型/Git远程操作，没有运行业务验收。
 
-resolvePublishedLink只允许已认证site-config纯服务主体；拒其他服务、访客及用户委托。任何content/配置/语言权威未知返回503，current ref或规范路径水位改变为STALE_RESULT/503，不返回visible=false掩盖依赖故障。响应no-store，不开放草稿/撤回历史，不触发翻译、模型、任务或付费；本轮只有契约，未实现/运行真实接口。
+resolvePublishedLink只允许已认证site-config纯服务主体；拒其他服务、访客及用户委托。任何content/配置/语言权威未知返回503，current ref或规范路径水位改变为STALE_RESULT/409，不返回visible=false掩盖依赖故障。响应no-store，不开放草稿/撤回历史，不触发翻译、模型、任务或付费。函数已编写，尚未编译，也未运行真实接口。
