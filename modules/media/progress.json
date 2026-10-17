@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "889b1b9e3177df2bca043d68a007aaa3870c488aaa91fc3cac04e4870aefa8b0",
+  "contractSha256": "5ed6490bb39a3a9cfca4cfe0ef66f133f86e63edf9fd0dff928e69d7c72a2af4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17第三轮：media真实worker/relay及18运行schema已交付冻结，待根实际公共+media集成复检与双推",
-  "branch": "codex/media-20261017-r3",
-  "baseCommit": "d760e39194156403e2b82430d5018fa9f4425e19",
-  "deliveryCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
+  "assignedSession": "2026-10-17第四轮：ApplyReferenceEvent已实现未检查，生产方事件载荷未对齐，待集成审核合入",
+  "branch": "codex/media-20261017-r4",
+  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
+  "deliveryCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
   "deployment": "not_started",
   "files": [
     {
@@ -132,13 +132,13 @@
     },
     {
       "path": "modules/media/internal/reference_repository.go",
-      "state": "in_progress",
-      "implementationCommit": "9647d143173e336dee465e7c5163a4b1d95d96b3",
+      "state": "implemented",
+      "implementationCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16持续目标第一轮最终media候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（872文件/1327函数/379操作/2297类型），11路径精确格式/生成回传；其他模块零生成漂移。已复核计划公共Revision上限、blocked逐标记、DELETING拒绝、完整计划扩锁/SQL复核、SourceVersion去重与LOCKED409。首次同名ReferenceSnapshot别名导致4处DTO未定义编译失败、第二次编译通过但2旧助手漏登记导致check失败，均修正后最终同树完整重跑通过，不沿用失败结论。未新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署，无本机Go/完整check；verified仅表示阶段既有门槛。 整文件仅已实现范围通过。"
+        "state": "not_run",
+        "evidence": "此前Acquire/Confirm范围在9647d143173e336dee465e7c5163a4b1d95d96b3通过阶段检查，该证据不覆盖本次ApplyReferenceEvent。本次源码ff91d6aa27a8783c262b07932bbdb85bb0e4ee23已实现事件快照；未跑CI、编译、gofmt与make check，整文件不记verified。"
       },
-      "blocker": "本轮Acquire/Confirm真实人工计划同事务取消已验证；ApplyReferenceEvent仍planned，整文件partial。"
+      "blocker": null
     },
     {
       "path": "modules/media/internal/reference_reader.go",
@@ -763,11 +763,11 @@
     {
       "id": "media.ApplyReferenceEvent",
       "path": "modules/media/internal/reference_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "implemented",
+      "implementationCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-17第四轮源码ff91d6aa27a8783c262b07932bbdb85bb0e4ee23已按补齐后的输入实现幂等快照。未跑go、gofmt、make build、make gen、make check，未SSH。make docs只重写本域functions.md。content.resources.changed仍缺sourceOperationId与referenceDigest，订阅未接通。"
       },
       "blocker": null
     },
@@ -2548,5 +2548,5 @@
       "blocker": null
     }
   ],
-  "rule": "持续目标第一轮源码9647d143173e336dee465e7c5163a4b1d95d96b3最终通过统一VPS docs/gen、14模块readonly build/vet/gofmt和完整check。4主用例与14参考助手（含2旧助手补登记）、Acquire/Confirm完整合同verified；cleanup_service/reference_repository/transport整体partial，人工清理确认/任务/最终删除planned，完整应用blocked，无业务验收/部署。两次失败均修后完整重跑，11路径精确回传。子代理已交付冻结，根统一集成push；等待下一轮派发，不缩减持续目标。"
+  "rule": "2026-10-17第四轮源码ff91d6aa27a8783c262b07932bbdb85bb0e4ee23实现media.ApplyReferenceEvent，状态implemented，verification not_run，accepted为0。未跑CI。content.resources.changed载荷仍未含sourceOperationId与referenceDigest，订阅未接通。Build/main/Ready继续blocked，ConsumeEvents继续planned。下一步只等集成会话审核合入并对齐生产方事件载荷。"
 }
