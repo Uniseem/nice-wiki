@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "c33c3dad7520566ee2e30244fb10da0e655d181c053f5240dcc45ec5c68aad32",
+  "contractSha256": "bf4774c97a2fa3c7b0ab09e92873649a72842a1acea591ef85d45ceb9b397c97",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-17第二轮真实价目与免费报价",
-  "branch": "codex/model-20261017-r2",
-  "baseCommit": "8a49af65f048a6b160f963570f02d6b88db100de",
-  "deliveryCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+  "assignedSession": "2026-10-17第三轮账本与费用状态只读",
+  "branch": "codex/model-20261017-r3",
+  "baseCommit": "d760e39194156403e2b82430d5018fa9f4425e19",
+  "deliveryCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
   "deployment": "not_started",
   "files": [
     {
@@ -223,12 +223,12 @@
     {
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "in_progress",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
-      "blocker": "GetPriceBook与NewAdminHandlers已通过本阶段检查；GetLedger仍planned，ReadModels归一化/ReadAdminCatalog最近探测缺口未齐，整文件partial。"
+      "blocker": "GetLedger及此前已交付读取完整函数已通过本阶段检查；ReadModels归一化和ReadAdminCatalog最近探测缺口仍未齐，整文件partial。"
     },
     {
       "path": "modules/model-gateway/internal/security/redact.go",
@@ -242,11 +242,11 @@
     },
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     },
@@ -393,12 +393,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
-      "blocker": "本轮三个真实免费读取/估算映射已装配；其余handler、权威epoch初始化、恢复activation与后台未齐，完整应用blocked，整文件partial。"
+      "blocker": "本轮getLedger/queryUsage与owner纯服务范围已装配；完整handler、epoch初始化、恢复activation与后台未齐，完整应用blocked，整文件partial。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -523,10 +523,10 @@
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
       "state": "verified",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     },
@@ -553,10 +553,10 @@
     {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "state": "verified",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     },
@@ -587,6 +587,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/migrations/005_ledger_reads.sql",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     }
@@ -958,11 +968,11 @@
     {
       "id": "model-gateway.GetLedger",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     },
@@ -1046,11 +1056,11 @@
     {
       "id": "model-gateway.QueryUsage",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     },
@@ -1245,12 +1255,12 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
-      "blocker": "本轮quoteCost/getPriceBook/estimateTokens真实映射已装配，其他handler、权威epoch初始化、恢复回执和后台循环未齐，完整应用继续拒绝启动。"
+      "blocker": "本轮getLedger/queryUsage真实读取映射已装配；其余handler、权威epoch初始化、恢复activation、后台与模型执行链未齐，完整应用继续拒绝启动。"
     },
     {
       "id": "model-gateway.Serve",
@@ -1843,6 +1853,105 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.ledgerRuntime",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.validateLedgerCoverage",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readLedgerRevision",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readLedgerMetadata",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readLedgerEntries",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readLedgerPage",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.readRootMetadata",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.sumLedgerMoney",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "model-gateway.NewLedgerHandlers",
+      "path": "modules/model-gateway/internal/admin/usage.go",
+      "state": "verified",
+      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "verification": {
+        "state": "passed",
+        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
       },
       "blocker": null
     }

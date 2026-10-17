@@ -1,3 +1,18 @@
+# 第三轮账本与费用状态只读已交付
+
+更新：2026-10-17。分支codex/model-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，独占本域。源码提交39b1e33d2f2a0e61298504704f2dd1802fb9d44f。GetLedger/QueryUsage及9项完整助手共11项首次完成函数verified，usage.go、005迁移及两份生成物verified；admin/read.go及完整应用仍partial/blocked，accepted为零。
+
+- 本轮按根裁定只做真实只读与HTTP，ReserveCost/CreateInvocation/ExtendReservation仍planned，未造accepted/held或不可达执行链。background日预算阈值/作用域、maximumCost=0语义与QA已消费签名Permit验证是未来写链前置，本轮不猜。
+- 005仅追加nullable owner_service/site_id/created_at，不回填旧归属；真实ledger_read_state和三表变更触发器、分页索引，无费用或价格种子。孤立费用子行422，旧行缺必要归属/时间/空价目前置503，不过滤成空、不跨站展示。
+- GetLedger仅portal当前model.manage，正时间窗最多90天；签名cursor绑定caller/actor/site/epoch/session/权限修订、查询窗/limit/costClass及真实int64水位，变更409从头。精确UTC秒/补齐九位纳秒/entryId keyset，验签与签名IO均在SQL外，返回原账单及必需priceSnapshot全值，不按当前价重算。limit按与kin-openapi一致的ParseInt基数0转换已验证值。
+- QueryUsage对portal当前model.manage；根AI owner纯服务逐全部root核同caller/site/epoch，多owner403，无持久root404。held按调用created_at窗内当前held，settled按账单created_at窗，是同一当前SQL快照而非历史余额。big.Int汇总后核安全整数，任一组金额未知则完整对应总额省略，未知ID完整排序；超响应/整数预算失败不截断、不冒报部分和。charge_unknown须真实held或未知账单证据，缺失503；全部reservation先核三态，非法422，合法非held不套held金额规则。
+- UTC非法时间view/部分索引在窗口筛选前覆盖坏行；日期与整秒使用SQLite内建+0 seconds规范化往返，小数只核1..9位ASCII且不进入日期函数，避免舍入跨秒。未复制标准库历法、未执行SQL或临时程序；只读核官方文档及固定SQLite3.53.4依赖源码。
+- 流水线30已取消不计通过；31三个Go分片均通过，但foundation完整check缺本域SigningKey与公共HeartbeatInfo类型，整体失败。只补本域可信platform.SigningKey内部登记，公共类型由根修，未暴露HTTP密钥字段。流水线32完整通过，失败与修正如实保留。
+- 2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。
+- 根与代理静态交审已核权限、scope、分页、UTC范围、未知总额与必要证明；本域另只读复审content元数据原回执/CAS/outbox、发布/分享图503及Move根级保留名防绕过，未编辑他域。全部Go生成/编译/check均GitLab，未本机或SSH执行。未新增测试/fixture/mock/样例/临时业务程序，不运行真实接口/模型、worker或部署。暂存/说明/作者/提交者及GPT-6署名静态隐私扫描通过，保留原GitHub代用身份。本域不push，交付后冻结。
+
+下一项：根顺序合入本域源码与记录，复核实际集成树后按本轮授权普通双推；本域冻结，不提前实施费用写链或新模型规则。
+
 # 第二轮真实人工价目与免费报价已交付
 
 更新：2026-10-17。分支codex/model-20261017-r2，基线8a49af65f048a6b160f963570f02d6b88db100de，独占本域。源码提交bea6446d28ed38841aa5b2cb4782209324c2135a，用户本轮授权三个代理并行后由根普通推送。10项首次完成函数及改过的NewAdminHandlers verified（本轮11项完整函数记录）；quote.go、004迁移和两份生成物verified。PutModel/model.go、tokens/budget.go和admin/read.go继续partial，完整应用blocked，accepted为零。
