@@ -799,7 +799,7 @@ export interface components {
             versionHash: components["schemas"]["Hash"];
             /** @description 任务映射修订号 */
             mappingRevision: components["schemas"]["Revision"];
-            /** @description 完整对象字节数，读取结束复核 */
+            /** @description 完整渲染注入text的UTF8字节数，包含条目说明与分隔，不含JSON元数据；空记忆为0 */
             byteSize: number;
         };
         MemoryContext: components["schemas"]["common.schema_MemoryContext"];
