@@ -1,3 +1,21 @@
+# 目录来源与真实结果身份
+
+源码48b210e，7新增实际helper（如下），无新增原业务ready。Refresh远端链已写，但真实bundled快照借用许可待用户答复，整项partial。schema010、catalog/refresh.go需根索引。Model.catalogRef显式两列，手工覆盖优先、无ref旧行保留；固定源30s/10MiB真实公开下载、规范事实/每条hash、模型CAS/价目/事件/原回执同事务，无自动新渠道/凭据。已读API字段说明，未借入快照/SDK或真实下载。
+
+- `model-gateway.ApplyCatalogSnapshot`
+- `model-gateway.DownloadModelCatalog`
+- `model-gateway.ModelSnapshotHash`
+- `model-gateway.NewCatalogRefreshHandlers`
+- `model-gateway.NormalizeModelCatalog`
+- `model-gateway.ReadInitializationState`
+- `model-gateway.SaveCatalogPrice`
+
+MG ModelSnapshotHash对实际固定gen.Model规范JSON，包含配置版本；ReadModels权威给hash，完整有效结果与evidence同事务记resultAttemptId，费用仍可unknown；对账不改winner，旧缺证据不补。根bb9c2ee公共ModelAttempt.ModelSnapshotHash及Invocation.ResultAttemptID必需后统一gen。初始化严格读site-config:readInitializationStatus真实响应，根固定后台名单已补；完整Ready/保护仍待公共装配。
+
+另金额表示128字符/指数128有界后big.Rat，避免极端指数资源消耗；实际embedding返回版本不符为STALE_RESULT终止，不当格式重试重付。11旧修改函数重新待CI。无本机Go/pnpm/编译/格式/生成/测试，未真实接口/模型/服务/部署/push。
+
+剩余设计依赖：probe限额用户待回；bundled许可用户待回；公共snapshot/barrier待ROOT；专有restore projection获ROOT认可，旧费用/原请求/执行hash不可重基，当前target只读/人工费用投影，不新派发旧调用。
+
 # 启动独立链
 
 源码6ea4576：Serve/Shutdown/Health源码ready待CI，3新实际助手Application.ConfigureBusiness/BackgroundTasks/Drain，NewRuntimeClient修改重查。Build/Ready仍partial，缺公共保护/初始化权威实际装配，服务不可运行。复用c5a0dcd LoadServiceIdentity并移除2复制身份助手。Serve取消只Drain，平台等待全部后台后才Shutdown关库；Ready不编造initialized/safePoint/Revision。

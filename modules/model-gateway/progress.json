@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "60a4fcda7c3dc895337ca569f18443306f670db5ae409616a86128db925a2892",
+  "contractSha256": "d2e7d9ef33b6dae1b31acf1c370740020537e90749ba3bb3738d3f9bd8505bb4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+  "deliveryCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
   "deployment": "not_started",
   "files": [
     {
@@ -43,22 +43,22 @@
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
       "state": "verified",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "verified",
-      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/routing/route.go",
@@ -103,12 +103,12 @@
     {
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
       "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/provider/adapter.go",
@@ -213,12 +213,12 @@
     {
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "blocked",
-      "implementationCommit": "3af2369c116baf122a00c0e55e7f56274fd85687",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "空间/只读投影源码已提交，待GitLab生成及编译"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "本批改动待GitLab；admin/read仍有最新probe生产投影未完成"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/security/redact.go",
@@ -253,12 +253,12 @@
     {
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
       "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
@@ -282,13 +282,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/admin/probe.go",
@@ -383,12 +383,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "切片待CI，完整应用partial。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -593,7 +593,7 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "verified",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
         "evidence": "源码ready，待根GitLab。"
@@ -673,22 +673,22 @@
     {
       "path": "modules/model-gateway/internal/invocation/execute.go",
       "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/finish.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/approval.go",
@@ -703,12 +703,12 @@
     {
       "path": "modules/model-gateway/internal/provider/response.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/provider/images.go",
@@ -764,6 +764,16 @@
       "path": "modules/model-gateway/ui/src/vue.d.ts",
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/010_model_catalog.sql",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
         "evidence": "源码ready，待根GitLab。"
@@ -1007,23 +1017,23 @@
       "id": "model-gateway.PutModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
       "state": "verified",
-      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ValidateModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
       "state": "verified",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.readModelReceipt",
@@ -1138,13 +1148,13 @@
     {
       "id": "model-gateway.readRouteCandidate",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "verified",
-      "implementationCommit": "24e4026d452333061cad9ef6abde3050e2944101",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结候选make docs/gen、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（869文件/1303函数/379操作/2290类型）；profile.go与docs/files/functions精确格式/生成结果已回传，其余无漂移。根已读新增实现并完成交叉审核，仅现阶段源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ResolveRoute",
@@ -1304,12 +1314,12 @@
       "id": "model-gateway.DispatchInvocation",
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
       "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ExecuteInvocation",
@@ -1590,12 +1600,12 @@
       "id": "model-gateway.ReadModels",
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "verified",
-      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ReadProfiles",
@@ -1665,13 +1675,13 @@
     },
     {
       "id": "model-gateway.readCatalogModels",
-      "state": "verified",
-      "implementationCommit": "14c5d80cb05d28f345c0db84916deb75dd92ec3e",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 根集成会话隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：冻结合成树make docs/gen、read.go与wire.go的gofmt、14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（873文件/1343函数/379操作/2300类型）；7路径精确格式/生成回传，他域零漂移。根和content代理交叉审读无新增阻断；公共依赖7a4f55b（记录ec1732e）。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null,
+      "blocker": "源码ready，待根GitLab。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -2073,13 +2083,13 @@
     {
       "id": "model-gateway.RefreshModelCatalog",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "远端完整链已写；真实bundled快照新项目许可待用户回答，不整项ready。"
     },
     {
       "id": "model-gateway.CreateConnectionProbe",
@@ -2337,12 +2347,12 @@
     {
       "id": "model-gateway.ReadAttemptRecord",
       "state": "verified",
-      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null,
+      "blocker": "源码ready，待根GitLab。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2602,12 +2612,12 @@
       "id": "model-gateway.ConsumeProviderFrame",
       "path": "modules/model-gateway/internal/provider/response.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ErrorCode",
@@ -2657,12 +2667,12 @@
       "id": "model-gateway.FinishInvocation",
       "path": "modules/model-gateway/internal/invocation/finish.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.InvocationResultState",
@@ -2734,23 +2744,23 @@
       "id": "model-gateway.PrepareInvocationAttempt",
       "path": "modules/model-gateway/internal/invocation/execute.go",
       "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ProviderReportedCost",
       "path": "modules/model-gateway/internal/provider/response.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
         "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ReadAttemptEvidence",
@@ -3323,6 +3333,83 @@
         "evidence": "源码ready，待GitLab。"
       },
       "blocker": "源码ready，待GitLab。"
+    },
+    {
+      "id": "model-gateway.ApplyCatalogSnapshot",
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.DownloadModelCatalog",
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.ModelSnapshotHash",
+      "path": "modules/model-gateway/internal/runtime/invocation.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.NewCatalogRefreshHandlers",
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.NormalizeModelCatalog",
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.ReadInitializationState",
+      "path": "modules/model-gateway/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.SaveCatalogPrice",
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "state": "blocked",
+      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
     }
   ],
   "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"
