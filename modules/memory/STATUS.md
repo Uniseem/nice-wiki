@@ -1,20 +1,13 @@
 # 长期记忆当前进度
 
-更新：2026-10-15。阶段：R1 实现中；本域私有持久化与启动恢复已实现，业务 handler、行为验收和部署仍未完成。
+更新：2026-10-18。R1 集中实现；源码 `bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8` 已提交，39 个既有业务/已修改函数及 52 个新增参考级辅助均记 blocked（待统一 GitLab CI），未提前记 implemented/verified。
 
-- 2026-10-15 集成复核修复：`LoadRuntime` 失败或中断不再留下永久 open 的 journal：失败路径补记 aborted，恢复时按条目 ID 聚合，仅 `runtime.load` 这类无副作用的启动校验在中断后补记 aborted，其余未决决定仍按完整性错误拒绝。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
-- 本次基线为 `5bd7347fc2ada5f79e48038e5cc1a68a61cdf845`，分支为 `codex/memory-persistence`。
-- 已提交 `cb316303da36827d34461aa3ac560bae46241ef1`：实现 `memory.LoadRuntime`、active/control SQLite 打开与初始迁移、`runtime_state` 代数/dataEpoch、control journal 追加与恢复检查、正文对象引用/大小/UTF-8/文件摘要校验、任务映射白名单与条目引用校验、任务预算校验、批准命令状态恢复校验；新增 `modernc.org/sqlite v1.59.0` 依赖。未 push。
-- `migrations/001_initial.sql` 建立条目索引、不可变修订、current 指针、任务映射/预算、上下文快照、助手/提议/命令、收发箱、对话、运行代数及迁移记录；正文仍以 `objects/<entryId>/<version>.md` 为权威文件，未臆造 frontmatter 语法。
-- `BuildApplication` 仍按合同返回 `DEPENDENCY_UNAVAILABLE`：尚未接入本域存储、OpenAPI x-handler、激活回执、outbox/订阅、任务执行器和后台循环；本切片未伪造服务 ready。
-- `memory.ValidateEntry`、条目写读、映射写读、上下文选择/渲染、助手提议/批准和恢复控制函数仍为 planned；`memory.LoadRuntime` 已标记 implemented 但未编译验证。
-- `go.sum` 尚未生成：本机没有 Go 工具链，不能伪造生成文件，待 VPS 执行 `go mod tidy`/下载后登记。
+- 已写人工记忆条目创建/修改/归档/恢复/列表/历史；active/objects 权威 Markdown、原子落盘、SQL 激活 manifest、CAS、七天原回执与平台 outbox 同事务。
+- 已写任务映射软删/完整排序、预算读写、同一快照上下文选择/完整预算/渲染/hash/清单读取、全部受影响任务语言投影。没有静默丢条目。
+- 已写管理员助手对话追加/读取/删除、候选验证/读取/批准/拒绝、记忆应用及术语批准命令本地持久。助手收费执行和候选提交已绑定受信 JobExecutionInput、固定输入/hash/root/epoch及锁外 CheckLease；平台模型适配只恢复原操作，不自行重算收费结果。
+- 完整服务仍 blocked：屏障/快照控制、事件订阅/结果、术语命令持续投递、全部 worker 及概述执行装配未齐。统一 HTTP 工厂缺任一操作即拒绝启动，不返回可运行的部分服务。
+- 许可/结构取舍均由集成会话确认：schemaVersion=1 JSON frontmatter；对象归 active；renderer 精确编码；预算/回退追溯兼容字段；助手条目默认；术语 sourceLanguage 强制。新增参考辅助已按实际登记，不靠省略分母显示进度。
 
-检查记录：
+本轮仅做源码、合同、文档和 Git 读取/修改；`git diff --check` 通过。未运行本机或 SSH 的 Go/gofmt/build/vet/gen/docs/check/测试，未调用真实接口、模型、服务或部署，未新增测试/fixture/mock/样例/临时验证程序，未 push。生成物和格式由集成会话统一 GitLab CI 回传。
 
-- `python scripts/check_docs.py --privacy-only`：通过。
-- `migrations/001_initial.sql` SQLite 内存脚本解析：通过；memory JSON 解析、`git diff --check`：通过。
-- 本机未找到 Go、gofmt、make、Docker；未运行 `make check`、`make gen`、Go 编译/vet、镜像或业务测试。未调用真实接口/模型，未新增测试/样例。
-- 全仓结构登记仍由集成会话统一维护；本次未修改根文件、公共契约或生成目录。
-
-下一项：在 VPS 编译复核该切片后，接入 `ValidateEntry` 与条目读写的 Markdown 原子提交/CAS；frontmatter 具体语法必须先由契约明确，不能在实现中猜测。
+精确 ready IDs、文件与旧证据见 [progress.json](progress.json)，后续一项任务见 [handoff](docs/handoff.md)。

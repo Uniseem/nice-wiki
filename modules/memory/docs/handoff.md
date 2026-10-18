@@ -1,38 +1,19 @@
 # 长期记忆会话交接
 
-## 集成复核修复（2026-10-15，main）
+## 本轮交付（2026-10-18）
 
-云端两轮切片合入后首次在具备 Go 工具链的环境复核，统一修复如下：
+独占 `modules/memory/`，分支 `codex/memory-20261018-bulk`；从 acc9bbc 开始。公共模型适配 8c593f3 在本工作树 cherry-pick 为 a56407e，集成时跳过这条已归根所有的公共提交。业务源码提交为 `bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8`，其后另提交本记录。准确完整 ready 函数 ID 见 progress.json.readyAwaitingCI：39 个既有业务/已修改函数、52 个参考级辅助。全部 blocked 待统一 GitLab CI，不是已编译/验收。
 
-- `LoadRuntime` 失败或中断不再留下永久 open 的 journal：失败路径补记 aborted，恢复时按条目 ID 聚合，仅 `runtime.load` 这类无副作用的启动校验在中断后补记 aborted，其余未决决定仍按完整性错误拒绝。
-- 删除自建 inbox/outbox 表，改由平台 `outbox/inbox.EnsureSchema` 建 nw_outbox/nw_inbox（ADR0005）；迁移改为 go:embed，新增 control 库迁移 `migrations/control/0001_control.sql`。
-- 修正非常量格式串（go vet）；运行状态适配解开 `state` 外层；补齐 go.sum。
+人工条目链、映射与预算链、上下文完整预算/renderer/manifest 追溯、助手对话与候选管理、人工批准入口/记忆应用/术语本地命令、助手固定任务输入与执行提交、持久取消及原任务重投均已有源码。存储字段/handler 类型在 contracts 来源中同步；OpenAPI 需统一生成 readProfiles 客户端、MemoryProposal.sourceLanguage 及 PayloadValidationSpec 后才能编译。新增迁移是 002_business.sql，001 未改。
 
-- 后续统一（同日）：`NewRuntimeClient` 改为调用平台 `lifecycle.NewSiteConfigClient`，删除本域 runtimeAuthority 适配；BuildApplication 依赖登记平台请求校验中间件，HTTP 绑定时在 transport 装配。
-- 验证：本地 darwin/arm64 go1.27.1 与隔离VPS go1.25.5：`GOFLAGS=-mod=readonly go build ./...`、`go vet ./...` 通过，`gofmt -l` 为空；VPS联网删除go.sum重新`go mod tidy`（sum.golang.org校验）与提交内容一致；根 `make docs` 无漂移、`make gen` 可重复、`make check` 通过。未新增测试、样例或真实接口，未运行业务进程、联调或部署。
-- 台账：progress.json 中原先登记、但仓库里不存在的提交 SHA（变基前旧 SHA）已逐行改为 main 上修改该文件的实际提交；本次新增的迁移包、迁移文件与函数已回填修复提交 `978e0cee659dc342650193c628710ff75115add5` 并按上述检查证据转为 `verified`。
-- 遗留：迁移文件 `001_initial.sql` 在未部署前删除了 inbox/outbox 表定义；一旦发布即只追加。
+对象迁至 active/objects 随恢复换目录；非空旧根 objects 拒启动，不自动丢弃/迁移。JSON frontmatter/schemaVersion=1、精确 renderer、预算revision/语言fallback/bodyHash进入manifest的规则见 data/workflows。入口用平台严格请求校验及即时身份权限；内层信任入口，不逐函数重复schema/身份。收费助手只选择当前任务 accurate 对应 admin-probe 的真实 profileId；纯服务配置读取清 portal proof、保留 site/root/epoch。
 
-## 本次事实
+## 尚未完成的真实依赖
 
-2026-10-15 在独立 worktree 分支 `codex/memory-persistence` 从基线 `5bd7347fc2ada5f79e48038e5cc1a68a61cdf845` 继续本域工作。提交 `cb316303da36827d34461aa3ac560bae46241ef1` 已实现私有持久化与启动恢复；未 push。
+BuildApplication 仍由完整HTTP工厂拒绝：Acquire/ReleaseBarrier、Export/Stage/DiscardSnapshot 未实现；事件订阅及术语终态处理、命令dispatcher、RunWorker与UpdateProjectOverview/CountPublication未齐。不能把上述39项源码就绪等同完整助手或服务已可运行。助手创建先本地固定 queued/待投递请求，恢复函数只重投同去重键；worker需在下一切片接平台循环，未伪造执行成功。
 
-本次只修改 `modules/memory/`。未修改四份 contracts、根文件或生成目录；合同摘要仍为 `a72c9a81f8fab283299badd264a5030dfb452aaf2539203bab667381664492b9`。未新增测试/样例、真实接口或模型调用。
-
-## 实现与阻塞
-
-- `memory.LoadRuntime`：校验可信服务操作上下文与 30 秒本地截止，打开 `active/memory.db`、`control/control.db` 和正文对象根目录，执行 schema 版本 1 迁移，并在 control journal 存在未完成决定时 fail-closed。
-- 启动校验：检查每个索引正文对象的路径、ObjectRef owner/version/SHA-256/byteSize、文件常规类型和 UTF-8；校验映射 taskId 为当前根 AI task catalog、映射引用 current 条目、预算范围、批准 command 状态；读取/初始化 `runtime_state` 的 `memoryGeneration` 与 dataEpoch。frontmatter 具体语法未在契约中定义，本次未猜测解析。
-- 迁移：`migrations/001_initial.sql` 建立条目/修订/current、映射、预算、上下文快照、助手/提议/命令、inbox/outbox、对话和运行代数表；runtime 内联同版本 SQL 以便安装后不依赖源码目录。
-- `memory.BuildApplication` 仍 blocked：业务存储绑定、全部 OpenAPI x-handler、激活回执、outbox/订阅、任务执行器和后台循环尚未接入；本切片不伪造进程业务 ready。
-- `go.sum` 仍未生成：本机没有 Go 工具链，待 VPS 执行 `go mod tidy`/下载后登记。
-
-## 检查与环境
-
-- 通过：`python scripts/check_docs.py --privacy-only`、memory JSON 解析、SQLite 内存执行 `migrations/001_initial.sql`、`git diff --check`。
-- 本机缺少 Go/gofmt/make/Docker；未运行 `make check`、`make gen`、Go 编译/vet/gofmt、Docker build，也未读取 `vps.txt`。业务行为、HTTP 集成和部署仍未验收。
-- 全仓结构登记留给集成会话；新增实际文件尚未登记根 `docs/structure/framework.json`。
+无用户当次行为验收授权；不列补测试计划。保留既有未改 verified 证据；本轮修改项仅 blocked（待统一GitLab CI）。未执行本地/SSH工具链，不得回退；需在 GitLab 统一生成、gofmt、14模块 readonly build/vet和完整 make check，生成补丁由根回传。Git/隐私审阅与 git diff --check 是本轮仅有的本地检查范围。
 
 ## 下一步（一项）
 
-先在 VPS 编译复核 `cb316303da36827d34461aa3ac560bae46241ef1`，再实现 `ValidateEntry` 及条目读写：明确 frontmatter 格式后，按正文文件权威、temp/fsync/rename、manifest/current 指针、版本 CAS 和事务/outbox 合同接入；之后再接 handler、映射写读与上下文解析。继续只修改 `modules/memory/`，不 push。
+先读本域 implementation.json jobTypes/backgroundTasks、workflows 与平台 worker/client 契约，在 runtime/worker.go 和 app/wire.go 接好受信任务工厂与 RunAssistant、UpdateProjectOverview 执行器；所有任务须固定本域输入对象、root/site/epoch/原操作，并由平台检查租约/取消。worker 不得猜ID，不得重新创建收费尝试。完成后立即交付小切片供根统一 GitLab CI，再补其余事件/恢复控制。

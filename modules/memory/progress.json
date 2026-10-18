@@ -2,233 +2,233 @@
   "version": 1,
   "module": "memory",
   "phase": "implementation",
-  "contractSha256": "144f64672fdde96c99cb7b75bc813a5eaa07b4c7042d076f87b3b38348354b82",
+  "contractSha256": "8988fe00a259fe0132212256e4e8e655daa8c2b44f416f4ef7d48222433a2ecd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-13（Codex，私有持久化与启动恢复）",
-  "branch": "codex/memory-persistence",
-  "baseCommit": "5bd7347fc2ada5f79e48038e5cc1a68a61cdf845",
-  "deliveryCommit": "64a0837c92de4903ae65e99e37dc3e6d7ec724ab",
+  "assignedSession": "R1-13（Codex，集中并行实现）",
+  "branch": "codex/memory-20261018-bulk",
+  "baseCommit": "acc9bbc",
+  "deliveryCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/memory/internal/runtime/bootstrap.go",
-      "state": "implemented",
-      "implementationCommit": "64a0837c92de4903ae65e99e37dc3e6d7ec724ab",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/entry/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/entry/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/entry/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/entry/history.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/mapping/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/mapping/order.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/mapping/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/context/budget.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/context/select.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/context/render.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/context/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/context/manifest.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/prompt.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/execute.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/proposal/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/commit.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/proposal/approve.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/proposal/apply-entry.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/proposal/glossary-command.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/proposal/glossary-dispatch.go",
@@ -252,33 +252,33 @@
     },
     {
       "path": "modules/memory/internal/assistant/cancel.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/runtime/recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/runtime/prune.go",
@@ -322,13 +322,13 @@
     },
     {
       "path": "modules/memory/internal/context/preflight.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/assistant/overview.go",
@@ -342,13 +342,13 @@
     },
     {
       "path": "modules/memory/internal/assistant/conversation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/runtime/worker.go",
@@ -422,13 +422,13 @@
     },
     {
       "path": "modules/memory/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "803bdb97de0ea00264152ea072ac170a44f86466",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/go.mod",
@@ -552,13 +552,13 @@
     },
     {
       "path": "modules/memory/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     },
     {
       "path": "modules/memory/internal/events/publication-count.go",
@@ -609,349 +609,389 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
+    },
+    {
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
+    },
+    {
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
+    },
+    {
+      "path": "modules/memory/migrations/002_business.sql",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已提交，待统一GitLab CI生成/格式/readonly build/vet与完整make check；未做行为验收"
     }
   ],
   "functions": [
     {
       "id": "memory.LoadRuntime",
       "path": "modules/memory/internal/runtime/bootstrap.go",
-      "state": "implemented",
-      "implementationCommit": "64a0837c92de4903ae65e99e37dc3e6d7ec724ab",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ValidateEntry",
       "path": "modules/memory/internal/entry/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.CreateEntry",
       "path": "modules/memory/internal/entry/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.UpdateEntry",
       "path": "modules/memory/internal/entry/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ArchiveEntry",
       "path": "modules/memory/internal/entry/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RestoreEntry",
       "path": "modules/memory/internal/entry/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReadEntry",
       "path": "modules/memory/internal/entry/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ListEntries",
       "path": "modules/memory/internal/entry/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ListEntryRevisions",
       "path": "modules/memory/internal/entry/history.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.PutMapping",
       "path": "modules/memory/internal/mapping/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RemoveMapping",
       "path": "modules/memory/internal/mapping/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReorderMappings",
       "path": "modules/memory/internal/mapping/order.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ListMappings",
       "path": "modules/memory/internal/mapping/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.PutTaskBudget",
       "path": "modules/memory/internal/context/budget.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReadTaskBudget",
       "path": "modules/memory/internal/context/budget.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ListTaskBudgets",
       "path": "modules/memory/internal/context/budget.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.SelectContextEntries",
       "path": "modules/memory/internal/context/select.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ApplyContextBudget",
       "path": "modules/memory/internal/context/select.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RenderContext",
       "path": "modules/memory/internal/context/render.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ResolveContext",
       "path": "modules/memory/internal/context/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReadContextManifest",
       "path": "modules/memory/internal/context/manifest.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.CreateAssistantRun",
       "path": "modules/memory/internal/assistant/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.BuildAssistantPrompt",
       "path": "modules/memory/internal/assistant/prompt.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RunAssistant",
       "path": "modules/memory/internal/assistant/execute.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ValidateProposal",
       "path": "modules/memory/internal/proposal/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.CommitAssistantProposals",
       "path": "modules/memory/internal/assistant/commit.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReadAssistantRun",
       "path": "modules/memory/internal/assistant/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ApproveProposal",
       "path": "modules/memory/internal/proposal/approve.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RejectProposal",
       "path": "modules/memory/internal/proposal/approve.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ApplyEntryProposal",
       "path": "modules/memory/internal/proposal/apply-entry.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.EnqueueGlossaryCommand",
       "path": "modules/memory/internal/proposal/glossary-command.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.DispatchGlossaryCommand",
@@ -978,35 +1018,35 @@
     {
       "id": "memory.CancelAssistantRun",
       "path": "modules/memory/internal/assistant/cancel.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RecoverAssistantLeases",
       "path": "modules/memory/internal/runtime/recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.PublishOutbox",
       "path": "modules/memory/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.PruneContextSnapshots",
@@ -1099,13 +1139,13 @@
     {
       "id": "memory.ValidateProjectedBudgets",
       "path": "modules/memory/internal/context/preflight.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.UpdateProjectOverview",
@@ -1121,35 +1161,35 @@
     {
       "id": "memory.AppendAssistantMessage",
       "path": "modules/memory/internal/assistant/conversation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.ReadAssistantConversation",
       "path": "modules/memory/internal/assistant/conversation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.DeleteAssistantConversation",
       "path": "modules/memory/internal/assistant/conversation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.RunWorker",
@@ -1204,7 +1244,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "业务存储、全部OpenAPI x-handler、恢复激活回执、outbox/订阅、任务执行器和后台循环未实现；当前明确返回DEPENDENCY_UNAVAILABLE"
+      "blocker": "真实存储、入口校验和已完成handler已装配；缺屏障/快照控制handler、事件订阅、批准命令持续投递及全部worker执行装配，统一工厂仍拒绝整个服务启动"
     },
     {
       "id": "memory.Serve",
@@ -1275,13 +1315,13 @@
     {
       "id": "memory.InvokeModel",
       "path": "modules/memory/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     },
     {
       "id": "memory.CountPublication",
@@ -1293,7 +1333,677 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "memory.OpenStore",
+      "path": "modules/memory/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.validateEntries",
+      "path": "modules/memory/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ContainsPrivateMaterial",
+      "path": "modules/memory/internal/entry/validate.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.PersistVersion",
+      "path": "modules/memory/internal/entry/write.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.sameFilter",
+      "path": "modules/memory/internal/entry/read.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.advance",
+      "path": "modules/memory/internal/mapping/write.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadMappings",
+      "path": "modules/memory/internal/context/select.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.RenderText",
+      "path": "modules/memory/internal/context/render.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.allowedCaller",
+      "path": "modules/memory/internal/context/service.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.CheckJobBinding",
+      "path": "modules/memory/internal/assistant/execute.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadProposal",
+      "path": "modules/memory/internal/proposal/approve.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.SaveProposal",
+      "path": "modules/memory/internal/proposal/approve.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.CancelRunTransaction",
+      "path": "modules/memory/internal/assistant/cancel.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.joinTaskIDs",
+      "path": "modules/memory/internal/context/preflight.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.EmitContextChanged",
+      "path": "modules/memory/internal/context/preflight.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.readConversation",
+      "path": "modules/memory/internal/assistant/conversation.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.NewApplication",
+      "path": "modules/memory/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ConfigureGateway",
+      "path": "modules/memory/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ConfigureWrites",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadSnapshot",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.Write",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.RequireManager",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.DBError",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ValidateTask",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadEntryObject",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.decodeEntry",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.SaveEntryObject",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.InsertEntryVersion",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.Emit",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadAllEntries",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.NormalizeLineEndings",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.SaveContextManifest",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ConfigurePublisher",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.RelayBatch",
+      "path": "modules/memory/internal/runtime/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ConfigureAssistantClients",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.SelectAssistantProfile",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.SaveAssistantInput",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReadAssistantInput",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.DispatchAssistantInputs",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.AssistantInput",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ReplayReceipt",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ValidateForeign",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.ConfigureValidators",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.CurrentAssistantState",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.DispatchAssistantCancellations",
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.operationHandlers",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.jsonOperation",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.respond",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.matchPath",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.optionalString",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.optionalInt",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
+    },
+    {
+      "id": "memory.queryLimit",
+      "path": "modules/memory/internal/transport/business.go",
+      "state": "blocked",
+      "implementationCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未完成业务验收"
     }
   ],
-  "rule": "R1-13启动与契约生成准备：启动入口、生命周期、默认配置、独立module、Makefile、镜像与manifest已建立；main/BuildApplication仍因后续业务绑定blocked，未实现业务文件/函数不得提前标记完成。"
+  "rule": "本轮39个既有业务/已修改函数与52个新增参考级辅助已提交源码，全部blocked待统一GitLab CI，不能计implemented/verified。完整服务仍真实blocked，accepted=0；既有未改验证证据保留。",
+  "readyAwaitingCI": {
+    "sourceCommit": "bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8",
+    "existingBusinessFunctions": [
+      "memory.CancelAssistantRun",
+      "memory.CommitAssistantProposals",
+      "memory.AppendAssistantMessage",
+      "memory.ReadAssistantConversation",
+      "memory.DeleteAssistantConversation",
+      "memory.CreateAssistantRun",
+      "memory.RunAssistant",
+      "memory.BuildAssistantPrompt",
+      "memory.ReadAssistantRun",
+      "memory.ReadTaskBudget",
+      "memory.ListTaskBudgets",
+      "memory.PutTaskBudget",
+      "memory.ReadContextManifest",
+      "memory.ValidateProjectedBudgets",
+      "memory.ApplyContextBudget",
+      "memory.RenderContext",
+      "memory.SelectContextEntries",
+      "memory.ResolveContext",
+      "memory.ListEntryRevisions",
+      "memory.ReadEntry",
+      "memory.ListEntries",
+      "memory.ValidateEntry",
+      "memory.CreateEntry",
+      "memory.UpdateEntry",
+      "memory.ArchiveEntry",
+      "memory.RestoreEntry",
+      "memory.PublishOutbox",
+      "memory.ReorderMappings",
+      "memory.ListMappings",
+      "memory.PutMapping",
+      "memory.RemoveMapping",
+      "memory.ApplyEntryProposal",
+      "memory.RejectProposal",
+      "memory.ApproveProposal",
+      "memory.EnqueueGlossaryCommand",
+      "memory.ValidateProposal",
+      "memory.LoadRuntime",
+      "memory.InvokeModel",
+      "memory.RecoverAssistantLeases"
+    ],
+    "newReferenceHelpers": [
+      "memory.CancelRunTransaction",
+      "memory.readConversation",
+      "memory.CheckJobBinding",
+      "memory.joinTaskIDs",
+      "memory.EmitContextChanged",
+      "memory.RenderText",
+      "memory.ReadMappings",
+      "memory.allowedCaller",
+      "memory.sameFilter",
+      "memory.ContainsPrivateMaterial",
+      "memory.PersistVersion",
+      "memory.advance",
+      "memory.ReadProposal",
+      "memory.SaveProposal",
+      "memory.OpenStore",
+      "memory.validateEntries",
+      "memory.ConfigureWrites",
+      "memory.ReadSnapshot",
+      "memory.Write",
+      "memory.RequireManager",
+      "memory.DBError",
+      "memory.ValidateTask",
+      "memory.ReadEntryObject",
+      "memory.decodeEntry",
+      "memory.SaveEntryObject",
+      "memory.InsertEntryVersion",
+      "memory.Emit",
+      "memory.ReadAllEntries",
+      "memory.NormalizeLineEndings",
+      "memory.SaveContextManifest",
+      "memory.ConfigurePublisher",
+      "memory.RelayBatch",
+      "memory.ConfigureGateway",
+      "memory.ConfigureAssistantClients",
+      "memory.SelectAssistantProfile",
+      "memory.SaveAssistantInput",
+      "memory.ReadAssistantInput",
+      "memory.DispatchAssistantInputs",
+      "memory.AssistantInput",
+      "memory.ReplayReceipt",
+      "memory.ValidateForeign",
+      "memory.ConfigureValidators",
+      "memory.CurrentAssistantState",
+      "memory.DispatchAssistantCancellations",
+      "memory.operationHandlers",
+      "memory.jsonOperation",
+      "memory.respond",
+      "memory.matchPath",
+      "memory.optionalString",
+      "memory.optionalInt",
+      "memory.queryLimit",
+      "memory.NewApplication"
+    ]
+  }
 }
