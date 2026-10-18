@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "be74a18a61048ef30f4c5deb8c0c8c6e836c5b56639fb7fe5e65a339be4cbb31",
+  "contractSha256": "4e6469f20c81a3faa5f27c186257d432881e3537c393eac405d9ba26f75e9e49",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/finish-20261018-protection",
@@ -2033,6 +2033,17 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "data-protection.server.ReadSnapshotArchive",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "仅新增协议失败关闭，真实归档装配未完成，不计完整函数"
     }
   ],
   "rule": "readyAwaitingCI中已实现的业务与参考函数通过pipeline95；NewApplication完整业务装配与六个服务入口仍未齐，不计完成。",

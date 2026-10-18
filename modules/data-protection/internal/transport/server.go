@@ -541,3 +541,8 @@ func writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	_ = problem.WriteProblem(w, problem.FromError(err, requestID))
 }
+
+// ReadSnapshotArchive 等待真实归档装配，当前明确失败关闭。
+func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams) {
+	writeUnavailable(w, r)
+}

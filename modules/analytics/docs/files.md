@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 52 个：约束 31，参考 21。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 53 个：手写 33、UI 4、生成 5、配置 10、迁移 1。函数 53 个：约束 31，参考 22。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -41,7 +41,7 @@
 | `modules/analytics/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/analytics/cmd/analytics/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `analytics.main` |
 | `modules/analytics/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `analytics.BuildApplication` |
-| `modules/analytics/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `analytics.Serve`、`analytics.Shutdown`、`analytics.Health`、`analytics.Ready` |
+| `modules/analytics/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `analytics.Serve`、`analytics.Shutdown`、`analytics.Health`、`analytics.Ready`、`analytics.server.ReadSnapshotArchive`（参考） |
 | `modules/analytics/go.mod` | 配置 | 独立module nice-wiki/modules/analytics；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/analytics/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/analytics/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
