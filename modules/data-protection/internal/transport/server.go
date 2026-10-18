@@ -313,8 +313,8 @@ func (s *server) StreamPortableBackup(w http.ResponseWriter, r *http.Request, _ 
 	writeUnavailable(w, r)
 }
 
-func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request, _ string, _ gen.AuthorizeBackupDownloadParams) {
-	writeUnavailable(w, r)
+func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request, id string, _ gen.AuthorizeBackupDownloadParams) {
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};result,err:=protection.AuthorizeBackupDownload(r.Context(),op,protection.AuthorizeBackupDownloadInput{BackupId:id,Actor:op.Actor});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) ImportPortableBackup(w http.ResponseWriter, r *http.Request, _ gen.ImportPortableBackupParams) {
