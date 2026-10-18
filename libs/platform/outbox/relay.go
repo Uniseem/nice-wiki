@@ -68,9 +68,7 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 	if !ok {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "事件转发缺少可信操作上下文")
 	}
-	if op.RootOperationID == "" || op.RootOperationID == op.OperationID {
-		op.RootOperationID = event.EventID
-	}
+	if op.RootOperationID!=event.EventID{return platform.NewError(platform.CodeIntegrityError,false,"事件转发必须使用已绑定的event控制根")}
 	op.OperationID = event.EventID
 	op.DataEpoch = event.DataEpoch
 	ctx = platform.WithOperationContext(ctx, op)
@@ -92,7 +90,7 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 
 // RunRelayBatch领取并处理一批已提交事件；每次写入都重新取得安全窗口。
 func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) (platform.RelayBatchResult, error) {
-	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil || config.AdmitBatch==nil {
+	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil || config.AdmitBatch==nil || config.BindEventScope==nil {
 		return platform.RelayBatchResult{}, platform.NewError(platform.CodeValidation, false, "outbox转发参数或写窗口未装配")
 	}
 	scoped,releaseScope,scopeErr:=config.AdmitBatch(ctx);if scopeErr!=nil{return platform.RelayBatchResult{},scopeErr};defer releaseScope();ctx=scoped
@@ -115,26 +113,27 @@ func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platf
 		return platform.RelayBatchResult{}, err
 	}
 	result := platform.RelayBatchResult{Pending: int64(len(rows))}
-	for _, row := range rows {
+ for _,row:=range rows{if err:=func()error{eventContext,releaseEvent,eventErr:=config.BindEventScope(ctx,row);if eventErr!=nil{return eventErr};defer releaseEvent();ctx:=eventContext
+
 		work, view, cancel, err := relayWriteContext(ctx, config)
 		if err != nil {
-			return platform.RelayBatchResult{}, err
+			return err
 		}
 		if row.DataEpoch != view.DataEpoch {
 			err = store.Discard(work, row.EventID, view.DataEpoch)
 			cancel()
 			if err != nil {
-				return platform.RelayBatchResult{}, err
+				return err
 			}
 			result.Pending--
-			continue
+			return nil
 		}
 		publishErr := client.PublishEvent(work, envelopeOf(row))
 		cancel()
 		// 网络调用后重新核对窗口，不能在安全截止后写确认或重试状态。
 		work, view, cancel, err = relayWriteContext(ctx, config)
 		if err != nil {
-			return platform.RelayBatchResult{}, err
+			return err
 		}
 		if row.DataEpoch != view.DataEpoch {
 			err = store.Discard(work, row.EventID, view.DataEpoch)
@@ -155,9 +154,10 @@ func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platf
 		}
 		cancel()
 		if err != nil {
-			return platform.RelayBatchResult{}, err
+			return err
 		}
-	}
+ return nil
+ }();err!=nil{return platform.RelayBatchResult{},err}}
 	return result, nil
 }
 

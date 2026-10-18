@@ -1,0 +1,41 @@
+# 全域屏障与签名清理
+
+此协议只提供公共机制。14域真实业务回调、jobs水位SQL和data-protection协调器未接齐时，不构成整站safe/Ready证明。旧epoch活动资格必须撤销并隔离保留审计、原费用/输入/输出/来源事实，不能删除后声称未发生，也不能通用改epoch重投递。
+
+## HTTP与任务scope
+
+ServiceBoundaryConfig.AdmitBusiness覆盖完整已鉴权、已严格schema验证的非控制HTTP与SSE。ControllerOperations只免业务计数，不免身份、权限、epoch。CleanupOperations也不能跳过AllowedCallers/ServiceActorCallers。TaskGroup.SetAdmission必须装真实独立Manager准入；Start不继承HTTP将release的同一租约。CancelActive/WaitIdle用于备份后可恢复的旧任务停止，Drain是进程永久关闭。
+
+WorkerConfig.AdmitBusiness装AdmitJobClaim，BindExecutionScope装BindJobExecutionScope。随机claim root未绑定前不能发业务cleanup；标准worker核job owner、实际worker/fence、factory原op/root/epoch后只绑定一次。根分支的OnCancellationObserved真实取消钩子必须保留。
+
+RelayConfig.AdmitBatch和BindEventScope分别覆盖完整批次及原事件publish到最终mark/retry/quarantine。标准BindOutboxEventScope从真实Store原行绑定eventID控制根；它不是paid root。ConsumerConfig.AdmitBatch/AdmitDelivery覆盖订阅批次和独立delivery，后者到handler本地提交及真实ack结束才release。AllowDrain只允许当前draining的旧事件控制；旧epoch事件hold不伪ack。
+
+## prepare、drain、seal
+
+公共API：PrepareBarrier(ctx,SnapshotBarrierInput)、DrainBarrier(ctx,barrierId)、ObserveBarrier(ctx,barrierId)、SealBarrier(ctx,SnapshotSealProof)、ResumeDrain(ctx,barrierId,expectedSealHash)。旧EnterBarrier只转PrepareBarrier。HTTP BarrierRequest.step省略只能prepare；step允许prepare/drain/seal/resume-drain，由ROOT协调HTTP装配，不能省略当safe。
+
+Prepare持久draining，拒新HTTP/paid/periodic/job claim，取消旧进程租约，BeginDrain仅停止与取消，不等待跨域收尾。所有14域prepare后，Drain才可并行收尾原费用、取消、回执、事件和最后outbox，不运行冻结收费queued job清零。
+
+SnapshotWorkState为{outboxRevision,workRevision,pendingOutbox,pendingWork}。两个revision都为真实SQL单调正数，未知失败。pendingOutbox包括未来重试、leased、quarantined所有未发布活动；旧代已明确撤资格的discarded仍保留原行但不算活动。pendingWork为本域真实待收尾执行/持久变更，不把稳定保留未知费用或冻结收费队列自动当成可继续执行。ObserveBarrier返回{owner,activityRevision,work,revisionWatermark,business,cleanup,fileOps,drainCallbacks}，观察前后activity必须一致且已经Drain。
+
+SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,nonJobsSeals?,nonJobsProofHash?}。observations必须按owner排序，恰好14个唯一owner全部覆盖。broker observation为{revision,pendingDeliveries,activeLeases}，revision必须实际发布/ack/lease统一水位，前后完全相同且pending/lease为0；它不包含冻结queued job。所有owner进程计数、活动outbox/work均为0。proofHash=SHA256(CanonicalJSON完整proof)。
+
+所有非jobs先用同一无nonJobs字段proof封口。Manager mutex拒新cleanup，SealWork真实SQL事务CAS两个持久水位并禁止后续本域业务写，VerifyGlobalSeal必须核真实协调阶段，不能信请求自报。状态safe和sealProofHash持久后才返回。jobs最后用原完全相同观察/broker水位以及13个{owner,sealProofHash}真实回执，nonJobsProofHash为去掉nonJobs字段后原proof hash；VerifyGlobalSeal还须核13域实际封口和最终broker仍同水位。该闭包阻止错时采样0后新增发布源，不是各域各自drain就safe。
+
+任何变化都保留维护；显式ResumeDrain绑定原sealHash，只重开旧清理，不开新业务/paid，并需重新Drain/全域取证。重启safe先转failed，不能复用旧进程0计数；必须显式resume后重证。ReleaseBarrier只能在真实全局running且opened epoch匹配、计数0时重开旧持久gate并解除本域屏障。
+
+标准outbox.Store.Observe从SQL统一revision与全部活动行读事实；Seal原子CAS revision、活动0并持久hash，触发器禁止此后INSERT/UPDATE/DELETE。Resume只认同一原hash，重复释放幂等。本域额外业务表/周期任务也须真实SealWork/ObserveWork封口，单靠outbox不证明整个域安全。
+
+## cleanupScope
+
+断言内可选cleanupScope={version:1,barrierId,dataEpoch,deadline,sourceService,targetService,action,resourceId,rootOperationId,siteId,costClass?,queryHash}。queryHash=SHA256实际URL.RawQuery，空串也hash；method/path/bodyHash仍由同一服务断言签名。scope期限严格为min(30秒,ctx期限,原barrier期限,原cleanup期限)，没有时钟偏差延长。
+
+只有活跃原私有执行租约或SnapshotCleanup.Context可发行。后者必须AuthorizeCleanupOrigin从原持久对象核原批准任务，不能用协调器随机root代替。ExistingWorkContext只从尚未release的真实旧执行分叉独立短清理租约，脱离原HTTP取消并清除过期用户proof，不复活原用户身份，不重签/消费模型permit。固定CleanupRoutes按真实method/path/body资源绑定，Control仅明确纯读控制操作；BrokerControl仅持久event/consumer控制根，与paid任务清理根严格分开。
+
+接收方先验证服务签名、原root/site/epoch/class/queryHash，固定CleanupOperations再提取实际path/body资源，与签名全等，并AuthorizeCleanup从本域权威原对象核归属。仅draining和同barrier可AdmitCleanup计独立租约，safe拒新清理。createInvocation/dispatch/createJob/claim/任意业务写不能登记为cleanup。controller标记也不能给写端口免除真实私有lease。
+
+## 完整捕获
+
+CaptureSnapshotFiles(ctx,activeRoot,workspace,databases map[string]*sql.DB,exclude SnapshotCaptureExclude)只能从Manager真实safe Capture回调调用。activeRoot固定同DataRoot/active，workspace为空隔离树。固定exclude为明确相对路径无glob；拒全树symlink/hardlink/非regular和未登记SQLite。登记数据库以PRAGMA database_list核主文件精确归属，再VACUUM main INTO独立副本；仅跳对应live DB/-wal/-shm，未知回滚journal失败。完整容量真实预检、普通文件流copy+hash/fsync、数据库副本hash/fsync、全部目录fsync后返回真实inventory。本域仍须生成真实objects/publications/assets/invocations/references与secret redaction，不以此工具伪造业务库存。
+
+Manifest V2必须显式assets/invocations数组（真实空也保留[]），AssetVersionRef五字段assetId/version/sha256/mediaType/byteSize，SnapshotInvocationRef原invocationId/rootOperationId/dataEpoch。V1只在没有这些库存与typed引用的明确分支保持原canonical字段集合，不能加null导致原hash漂移；V1旧引用不能当V2空闭包。

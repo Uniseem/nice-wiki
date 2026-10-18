@@ -18,13 +18,13 @@ ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传�
 
 ## 公共快照与恢复
 
-`lifecycle.NewSnapshotManager(SnapshotConfig)`只装配机制。各域提供真实Runtime、BeginDrain、Drain、Watermark、Capture、MigrateStage、ValidateStaged、StageBudget和严格ValidateManifest；缺一失败，不用未知空数组、水位0或回调空成功代替完整业务证明。`Capture(ctx,cut,workspace,input)`将一致SQL副本及全部权威文件写到`workspace/files`，返回完整`DomainSnapshotManifest`，源对象、发布及引用必须穷尽。平台不读业务表、不复制live SQLite、不改块ID或已付费blob。
+`lifecycle.NewSnapshotManager(SnapshotConfig)`只装配机制。各域提供真实Runtime、BeginDrain、Drain、Watermark、Capture、MigrateStage、ValidateStaged、StageBudget和严格ValidateManifest；缺一失败，不用未知空数组、水位0或回调空成功代替完整业务证明。`Capture(ctx,cut,workspace,input)`将一致SQL副本及全部权威文件写到`workspace/files`，返回完整`DomainSnapshotManifest`，源对象、发布及引用必须穷尽；V2新增真实资源版本与模型调用权威库存，V1不静默转换为空库存。平台不读业务表、不复制live SQLite、不改块ID或已付费blob。
 
-所有实际业务、任务、订阅、后台及最终持久收尾都需同实例`AdmitBusiness`取得并持有私有lease，直到实际IO全部结束才release。`EnterBarrier`先关闭准入并持久draining，再BeginDrain停领取/取消旧执行、等待business退出、Drain结清原费用/回执/最终outbox、关闭新cleanup签发并等待既有cleanup退出，核真实水位和当前运行决定后才记本进程safe。`SnapshotCleanup.Context`只在当前可信drain回调有效期签既有执行的收尾lease，保留原actor/root/费用，不创建模型请求。每次写仍复用`NewWriteContext`和`WriteWindow`。
+所有实际业务、任务、订阅、后台及最终持久收尾都需同实例`AdmitBusiness`取得并持有私有lease，直到实际IO全部结束才release。`EnterBarrier`仅prepare：关闭准入并持久draining，BeginDrain停止新领取/取消旧执行。所有域prepare后再drain，完整全域证明和逐域CAS封口后才safe。`SnapshotCleanup.Context`只在当前可信drain回调有效期签既有执行的收尾lease，保留原actor/root/费用，不创建模型请求。每次写仍复用`NewWriteContext`和`WriteWindow`。
 
 该机制不自证全域安全。jobs必须持续接受其它域最后outbox直到全域生产者均已封口，之后才能完成自身排空；恢复旧pending事件的epoch不能通用重写或丢弃。协调器尚未给出完整证明时，各域完整服务与备份恢复保持partial。
 
-`BuildSnapshotArchive`、`ExtractSnapshotArchive`仅支持普通USTAR V1：首`manifest.json`为canonical JSON且不超过16MiB，之后只有声明的`files/<path>`普通文件，含清单总文件数不超过100000，完整tar不超过20GiB。拒链接、路径跳转、PAX/GNU、重复/未声明项，逐文件hash/长度和全归档hash/精确物理长度/EOF都核对。容量来自真实Statfs和域迁移峰值计划，未知不当作0通过。
+`BuildSnapshotArchive`、`ExtractSnapshotArchive`仅支持普通USTAR，manifest V1/V2按明确schema分支：首`manifest.json`为canonical JSON且不超过16MiB，之后只有声明的`files/<path>`普通文件，含清单总文件数不超过100000，完整tar不超过20GiB。拒链接、路径跳转、PAX/GNU、重复/未声明项，逐文件hash/长度和全归档hash/精确物理长度/EOF都核对。容量来自真实Statfs和域迁移峰值计划，未知不当作0通过。
 
 `SnapshotManager.Export`按原输入journal固定snapshotId，在真实Capture和完整归档fsync后写archive-prepared，rename和双方目录持久后写complete。`OpenArchive(ctx,snapshotId,expectedObjectRef)`只返回与真实complete回执全值相符且全文件hash核对通过的流，调用方负责关闭，接收方仍核完整引用。尚无DP“全部加密持久”的版本化回收回执，所以本机制不清历史export归档。
 
@@ -57,3 +57,7 @@ owner恢复查询使用`modelclient.ObserveInvocation(ctx,client,op,knownInvocat
 `ConsumerConfig.AdmitBatch`与`AdmitDelivery`分别覆盖订阅批次和入队前至handler提交、ack完成的投递；单条投递不依赖订阅流结束的ctx。异epoch本身不构成可ack的废弃证明，未知保持pending。`RelayConfig.AdmitBatch`覆盖claim/publish/最终本地确认；`RecoveryLoopConfig.AdmitBatch`覆盖恢复批次。缺hook失败关闭，不以无scope运行。
 
 `TaskGroup.SetAdmission(manager.AdmitBusiness)`只可启动期一次，未装配Start拒绝。每次新Start重新admit独立任务lease，HTTP返回不会释放它。备份用CancelActive和WaitIdle收尾，保留集合以便维护后继续服务；永久Drain只用于退出。所有瞬时计数只能作为真实全域闭包证明的一部分，不能单独宣称safe。
+
+## 全域屏障与旧执行清理
+
+最新协议见[屏障与清理范围](docs/barriers.md)。`EnterBarrier`现只兼容prepare，不再自行drain或safe。Prepare全部owner后才能并行drain；真实全域稳定水位与逐域CAS封口证明齐全，非jobs先seal、jobs最后seal，才允许完整快照IO。没有域实际回调或全域协调证明保持blocked。

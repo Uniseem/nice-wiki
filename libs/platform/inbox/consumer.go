@@ -56,14 +56,15 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 			return result, nil
 		}
 		view, ok := readRuntime(ctx, config.Runtime)
-		if !ok || pauseFor(view) {
+		if !ok || c.pauseFor(ctx,view) {
 			if !sleep(ctx, holdPause) {
 				return result, nil
 			}
 			continue
 		}
-		batch,releaseBatch,scopeErr:=config.AdmitBatch(ctx);if scopeErr!=nil{if !sleep(ctx,holdPause){return result,nil};continue}
- call, cancel := c.operation(batch, view.DataEpoch, "")
+		call,cancel:=c.operation(ctx,view.DataEpoch,config.ConsumerID)
+ batch,releaseBatch,scopeErr:=config.AdmitBatch(call);if scopeErr!=nil{cancel();if !sleep(ctx,holdPause){return result,nil};continue}
+ call=batch
 		stream, openErr := client.SubscribeEvents(call, config.ConsumerID, lastID)
 		if openErr != nil {
 			cancel()
@@ -167,7 +168,7 @@ func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, str
 }
 func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || pauseFor(view) {
+	if !ok || c.pauseFor(ctx,view) {
 		c.failed.Add(1)
 		return
 	}
@@ -185,7 +186,7 @@ func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnve
 }
 func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || pauseFor(view) || event.DataEpoch != view.DataEpoch {
+	if !ok || c.pauseFor(ctx,view) || event.DataEpoch != view.DataEpoch {
 		c.failed.Add(1)
 		return
 	}
@@ -213,7 +214,7 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 		return outcomeFailed
 	}
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || pauseFor(view) {
+	if !ok || c.pauseFor(ctx,view) {
 		return outcomeHold
 	}
 	if event.DataEpoch!=view.DataEpoch{return outcomeHold}
@@ -223,9 +224,7 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 	return outcomeProcess
 }
 func eventKey(name string, version int) string { return name + "@" + strconv.Itoa(version) }
-func pauseFor(view platform.RuntimeView) bool {
-	return view.Maintenance || view.Phase != platform.PhaseRunning
-}
+func(c *consumerLoop)pauseFor(ctx context.Context,view platform.RuntimeView)bool{if !view.Maintenance&&view.Phase==platform.PhaseRunning{return false};if c.config.AllowDrain==nil{return true};allowed,err:=c.config.AllowDrain(ctx,view);return err!=nil||!allowed}
 func readRuntime(ctx context.Context, provider func(context.Context) (platform.RuntimeView, error)) (platform.RuntimeView, bool) {
 	if provider == nil {
 		return platform.RuntimeView{}, false

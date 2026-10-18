@@ -109,7 +109,8 @@
           "idempotency": "每次生成新jti",
           "dependencies": [
             "platform.validLoginScopes",
-            "platform.validBudgetScopes"
+            "platform.validBudgetScopes",
+            "platform.ValidateCleanupScope"
           ],
           "resources": [],
           "contract": "binding"
@@ -448,7 +449,9 @@
           "idempotency": "每次传输签发新jti，业务op与root不由此重建",
           "dependencies": [
             "platform.SignAssertion",
-            "platform.applyOperationHeaders"
+            "platform.applyOperationHeaders",
+            "platform.CleanupIssuerFrom",
+            "platform.ValidateCleanupScope"
           ],
           "resources": [],
           "contract": "reference"
@@ -1792,6 +1795,51 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.EnsureSchema",
+          "name": "EnsureSchema",
+          "signature": "func EnsureSchema(ctx context.Context, db *sql.DB) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2189,7 +2237,8 @@
           "dependencies": [
             "jobs:publishEvent",
             "platform.relayWriteContext",
-            "platform.NewWriteContext"
+            "platform.NewWriteContext",
+            "platform.SnapshotManager.BindOutboxEventScope"
           ],
           "resources": [],
           "contract": "reference"
@@ -2538,9 +2587,11 @@
             "platform.consumerLoop.start",
             "platform.consumerLoop.stop",
             "platform.inbox.isConfigRejected",
-            "platform.inbox.pauseFor",
+            "platform.consumerLoop.pauseFor",
             "platform.inbox.readRuntime",
-            "platform.inbox.sleep"
+            "platform.inbox.sleep",
+            "platform.SnapshotManager.AllowEventDrain",
+            "platform.SnapshotManager.AdmitEventBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -2548,7 +2599,7 @@
         {
           "id": "platform.consumerLoop.start",
           "name": "consumerLoop.start",
-          "signature": "func(c *consumerLoop) start(ctx context.Context)",
+          "signature": "func (c *consumerLoop) start(ctx context.Context)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.start",
@@ -2578,7 +2629,7 @@
         {
           "id": "platform.consumerLoop.stop",
           "name": "consumerLoop.stop",
-          "signature": "func(c *consumerLoop) stop()",
+          "signature": "func (c *consumerLoop) stop()",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.stop",
@@ -2606,7 +2657,7 @@
         {
           "id": "platform.consumerLoop.worker",
           "name": "consumerLoop.worker",
-          "signature": "func(c *consumerLoop) worker(ctx context.Context,index int)",
+          "signature": "func (c *consumerLoop) worker(ctx context.Context, index int)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.worker",
@@ -2636,7 +2687,7 @@
         {
           "id": "platform.consumerLoop.queueFor",
           "name": "consumerLoop.queueFor",
-          "signature": "func(c *consumerLoop) queueFor(subject string)chan EventEnvelope",
+          "signature": "func (c *consumerLoop) queueFor(subject string) chan consumerDelivery",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.queueFor",
@@ -2664,7 +2715,7 @@
         {
           "id": "platform.consumerLoop.operation",
           "name": "consumerLoop.operation",
-          "signature": "func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.Context,context.CancelFunc)",
+          "signature": "func (c *consumerLoop) operation(ctx context.Context, epoch, root string) (context.Context, context.CancelFunc)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.operation",
@@ -2692,7 +2743,7 @@
         {
           "id": "platform.consumerLoop.dispatch",
           "name": "consumerLoop.dispatch",
-          "signature": "func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *string)bool",
+          "signature": "func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, stream platform.EventStream, lastID *string) bool",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.dispatch",
@@ -2724,7 +2775,7 @@
         {
           "id": "platform.consumerLoop.acknowledge",
           "name": "consumerLoop.acknowledge",
-          "signature": "func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skipped bool)",
+          "signature": "func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.acknowledge",
@@ -2747,7 +2798,7 @@
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
           "dependencies": [
             "platform.inbox.readRuntime",
-            "platform.inbox.pauseFor",
+            "platform.consumerLoop.pauseFor",
             "platform.consumerLoop.operation"
           ],
           "resources": [],
@@ -2756,7 +2807,7 @@
         {
           "id": "platform.consumerLoop.process",
           "name": "consumerLoop.process",
-          "signature": "func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)",
+          "signature": "func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.process",
@@ -2779,7 +2830,7 @@
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
           "dependencies": [
             "platform.inbox.readRuntime",
-            "platform.inbox.pauseFor",
+            "platform.consumerLoop.pauseFor",
             "platform.consumerLoop.operation",
             "platform.consumerLoop.acknowledge"
           ],
@@ -2789,7 +2840,7 @@
         {
           "id": "platform.consumerLoop.classify",
           "name": "consumerLoop.classify",
-          "signature": "func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome",
+          "signature": "func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelope) outcome",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：consumerLoop.classify",
@@ -2812,7 +2863,7 @@
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
           "dependencies": [
             "platform.inbox.readRuntime",
-            "platform.inbox.pauseFor",
+            "platform.consumerLoop.pauseFor",
             "platform.inbox.eventKey",
             "platform.validateEnvelope"
           ],
@@ -2822,7 +2873,7 @@
         {
           "id": "platform.inbox.eventKey",
           "name": "inbox.eventKey",
-          "signature": "func eventKey(name string,version int)string",
+          "signature": "func eventKey(name string, version int) string",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.eventKey",
@@ -2848,9 +2899,9 @@
           "contract": "reference"
         },
         {
-          "id": "platform.inbox.pauseFor",
-          "name": "inbox.pauseFor",
-          "signature": "func pauseFor(view RuntimeView)bool",
+          "id": "platform.consumerLoop.pauseFor",
+          "name": "consumerLoop.pauseFor",
+          "signature": "func(c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.pauseFor",
@@ -2871,14 +2922,16 @@
           },
           "concurrency": "仅运行时自己的分片与原子计数",
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
-          "dependencies": [],
+          "dependencies": [
+            "platform.SnapshotManager.AllowEventDrain"
+          ],
           "resources": [],
           "contract": "reference"
         },
         {
           "id": "platform.inbox.readRuntime",
           "name": "inbox.readRuntime",
-          "signature": "func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,error))(RuntimeView,bool)",
+          "signature": "func readRuntime(ctx context.Context, provider func(context.Context) (platform.RuntimeView, error)) (platform.RuntimeView, bool)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.readRuntime",
@@ -2906,7 +2959,7 @@
         {
           "id": "platform.inbox.sleep",
           "name": "inbox.sleep",
-          "signature": "func sleep(ctx context.Context,d time.Duration)bool",
+          "signature": "func sleep(ctx context.Context, d time.Duration) bool",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.sleep",
@@ -2934,7 +2987,7 @@
         {
           "id": "platform.inbox.isConfigRejected",
           "name": "inbox.isConfigRejected",
-          "signature": "func isConfigRejected(err error)bool",
+          "signature": "func isConfigRejected(err error) bool",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.isConfigRejected",
@@ -2955,273 +3008,6 @@
           },
           "concurrency": "仅运行时自己的分片与原子计数",
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.start",
-          "name": "consumerLoop.start",
-          "signature": "func (c *consumerLoop) start(ctx context.Context)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [
-            "platform.consumerLoop.worker"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.stop",
-          "name": "consumerLoop.stop",
-          "signature": "func (c *consumerLoop) stop()",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.worker",
-          "name": "consumerLoop.worker",
-          "signature": "func (c *consumerLoop) worker(ctx context.Context, index int)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [
-            "platform.consumerLoop.process"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.queueFor",
-          "name": "consumerLoop.queueFor",
-          "signature": "func (c *consumerLoop) queueFor(subject string) chan consumerDelivery",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.dispatch",
-          "name": "consumerLoop.dispatch",
-          "signature": "func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, stream platform.EventStream, lastID *string) bool",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [
-            "platform.consumerLoop.acknowledge",
-            "platform.consumerLoop.classify",
-            "platform.consumerLoop.queueFor"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.acknowledge",
-          "name": "consumerLoop.acknowledge",
-          "signature": "func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.process",
-          "name": "consumerLoop.process",
-          "signature": "func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
-          "dependencies": [
-            "platform.consumerLoop.acknowledge"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "platform.consumerLoop.classify",
-          "name": "consumerLoop.classify",
-          "signature": "func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelope) outcome",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
-          "steps": [
-            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。",
-            "单纯异epoch不是可ack的废弃证明，未知不记skipped或确认以伪造队列为0。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配参数缺失",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "本域回调永久完整性错误",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本进程goroutine与取消信号，不读写业务表或费用账"
-          ],
-          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
-          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
-          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -5843,7 +5629,9 @@
           "dependencies": [
             "platform.NewRequestValidator",
             "platform.BuildOperationContext",
-            "platform.WriteProblem"
+            "platform.WriteProblem",
+            "platform.CleanupResourceID",
+            "platform.SnapshotManager.AdmitCleanup"
           ],
           "resources": [],
           "contract": "reference"
@@ -10774,7 +10562,53 @@
       "path": "libs/platform/lifecycle/snapshot_types.go",
       "kind": "handwritten",
       "purpose": "公共快照types",
-      "functions": []
+      "functions": [
+        {
+          "id": "platform.DomainSnapshotManifest.MarshalJSON",
+          "name": "DomainSnapshotManifest.MarshalJSON",
+          "signature": "func(m DomainSnapshotManifest) MarshalJSON() ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     },
     {
       "path": "libs/platform/lifecycle/snapshot_io.go",
@@ -12486,8 +12320,7 @@
           "outputs": [],
           "purpose": "必需真实完整回调，不导入业务域或自造数据清单。",
           "steps": [
-            "必需真实完整回调，不导入业务域或自造数据清单。",
-            "从私有control读严格原屏障回执，核全值原输入摘要；重启旧safe先持久降为draining再真实证明。"
+            "强制真实回调齐全，读原持久barrier绑定；重启safe先failed，须原hash显式resume后重证。"
           ],
           "errors": [
             {
@@ -12566,7 +12399,16 @@
             "platform.ValidatePrivatePath",
             "platform.integrity",
             "platform.readSnapshotJSON",
-            "platform.snapshotIOError"
+            "platform.snapshotIOError",
+            "platform.SnapshotManager.PrepareBarrier",
+            "platform.SnapshotManager.DrainBarrier",
+            "platform.SnapshotManager.ObserveBarrier",
+            "platform.SnapshotManager.SealBarrier",
+            "platform.SnapshotManager.ResumeDrain",
+            "platform.SnapshotManager.AdmitEventBatch",
+            "platform.SnapshotManager.AllowEventDrain",
+            "platform.SnapshotManager.BindOutboxEventScope",
+            "platform.SnapshotManager.ExistingWorkContext"
           ],
           "resources": [],
           "contract": "reference"
@@ -12911,7 +12753,9 @@
           "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
           "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
           "dependencies": [
-            "platform.SnapshotManager.signalLocked"
+            "platform.SnapshotManager.signalLocked",
+            "platform.WithCleanupIssuer",
+            "platform.snapshotAdmission.IssueCleanup"
           ],
           "resources": [],
           "contract": "reference"
@@ -13006,7 +12850,7 @@
         {
           "id": "platform.SnapshotCleanup.Context",
           "name": "SnapshotCleanup.Context",
-          "signature": "func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func(c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。",
@@ -13086,7 +12930,9 @@
           "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
           "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
           "dependencies": [
-            "platform.SnapshotManager.signalLocked"
+            "platform.SnapshotManager.signalLocked",
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.newCleanupLocked"
           ],
           "resources": [],
           "contract": "reference"
@@ -13180,103 +13026,14 @@
           "contract": "reference"
         },
         {
-          "id": "platform.SnapshotManager.waitCounts",
-          "name": "SnapshotManager.waitCounts",
-          "signature": "func (m *SnapshotManager) waitCounts(ctx context.Context, all bool) error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "实现公共快照内部单一机制",
-          "steps": [
-            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "when": "装配或输入不合法",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "when": "原输入、屏障或既有回执绑定不一致",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "真实清单、目录、摘要或journal证据矛盾",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "when": "清单或USTAR版本/路径不支持",
-              "retryable": false
-            },
-            {
-              "code": "BUDGET_EXCEEDED",
-              "when": "容量、文件数、清单或完整归档超预算",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "when": "真实安全截点或当前运行决定不匹配",
-              "retryable": true
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "when": "主机开启数据与运行或恢复代次不符",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "必需回调或权威不可用",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "when": "指定的本域屏障不存在",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "when": "调用IO已取消",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "when": "原屏障或ctx截止已到",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "when": "私有IO失败，不暴露路径/材料",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
-          },
-          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
-          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
-          "dependencies": [
-            "platform.snapshotIOError"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "platform.SnapshotManager.EnterBarrier",
           "name": "SnapshotManager.EnterBarrier",
-          "signature": "func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
+          "signature": "func(m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
-          "purpose": "先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。",
+          "purpose": "旧入口只转prepare，不单域直接宣称safe。",
           "steps": [
-            "先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。",
-            "BeginDrain停领取/取消已有作业，等business全退出；Drain完成原费用、取消回执和最终outbox，关新cleanup签发并等存量清理结束。",
-            "读真实Watermark后复核当前权威和所有计数，才持久本进程safe。不以此自证全域/jobs最终安全。"
+            "旧入口只转prepare，不单域直接宣称safe。"
           ],
           "errors": [
             {
@@ -13354,9 +13111,9 @@
             "platform.SnapshotManager.persistBarrier",
             "platform.SnapshotManager.runDrainCallback",
             "platform.SnapshotManager.signalLocked",
-            "platform.SnapshotManager.waitCounts",
             "platform.integrity",
-            "platform.lockSnapshotControl"
+            "platform.lockSnapshotControl",
+            "platform.SnapshotManager.PrepareBarrier"
           ],
           "resources": [],
           "contract": "reference"
@@ -13447,7 +13204,8 @@
             "platform.SnapshotManager.persistBarrier",
             "platform.SnapshotManager.signalLocked",
             "platform.integrity",
-            "platform.lockSnapshotControl"
+            "platform.lockSnapshotControl",
+            "platform.Store.Resume"
           ],
           "resources": [],
           "contract": "reference"
@@ -13455,7 +13213,7 @@
         {
           "id": "platform.SnapshotManager.AdmitJobClaim",
           "name": "SnapshotManager.AdmitJobClaim",
-          "signature": "func (m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func(m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "新领取仅running且本屏障released可准入。",
@@ -13490,7 +13248,7 @@
         {
           "id": "platform.SnapshotManager.BindJobExecutionScope",
           "name": "SnapshotManager.BindJobExecutionScope",
-          "signature": "func (m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op OperationContext, job ClaimedJob) (context.Context, error)",
+          "signature": "func(m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op platform.OperationContext, job platform.ClaimedJob) (context.Context, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。",
@@ -13517,6 +13275,343 @@
           "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
           "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
           "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.PrepareBarrier",
+          "name": "SnapshotManager.PrepareBarrier",
+          "signature": "func(m *SnapshotManager) PrepareBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核当前运行权威原barrier/epoch/mode/deadline，原输入hash幂等，持久draining拒新业务。",
+          "steps": [
+            "核当前运行权威原barrier/epoch/mode/deadline，原输入hash幂等，持久draining拒新业务。",
+            "只取消旧进程任务并BeginDrain停止新周期/claim，不等待跨域收尾；所有14域先完成此步。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.runDrainCallback"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.DrainBarrier",
+          "name": "SnapshotManager.DrainBarrier",
+          "signature": "func(m *SnapshotManager) DrainBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在真实draining保留旧cleanup/inbox/outbox有限收尾，执行真实Drain，不触发冻结收费job。",
+          "steps": [
+            "在真实draining保留旧cleanup/inbox/outbox有限收尾，执行真实Drain，不触发冻结收费job。",
+            "drain完成仅记Drained，不是safe。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.runDrainCallback"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.requireDraining",
+          "name": "SnapshotManager.requireDraining",
+          "signature": "func(m *SnapshotManager) requireDraining(ctx context.Context, barrierID string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.ObserveBarrier",
+          "name": "SnapshotManager.ObserveBarrier",
+          "signature": "func(m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) (SnapshotBarrierObservation, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读真实全部活动outbox/持久工作水位与Watermark，前后进程activityRevision必须相同。",
+          "steps": [
+            "读真实全部活动outbox/持久工作水位与Watermark，前后进程activityRevision必须相同。",
+            "包含未来retry/leased/quarantine，未知不当0；返回完整在途计数。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.requireDraining",
+            "platform.Store.Observe"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.SealBarrier",
+          "name": "SnapshotManager.SealBarrier",
+          "signature": "func(m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。",
+          "steps": [
+            "核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。",
+            "真实VerifyGlobalSeal权威回调证明全域阶段；13非jobs先CAS封口，jobs必须最后核全部原proof回执与最终broker同水位。",
+            "mutex关闭新cleanup并SealWork事务CAS全部持久写水位，持久safe与proofHash后方可导出。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.validateSnapshotSealProof",
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.persistBarrier",
+            "platform.Store.Seal"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.ResumeDrain",
+          "name": "SnapshotManager.ResumeDrain",
+          "signature": "func(m *SnapshotManager) ResumeDrain(ctx context.Context, barrierID, expectedSealHash string) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "精确原sealHash/barrier/epoch与维护决定绑定，ResumeWork只重开旧清理，不开新业务/付费。",
+          "steps": [
+            "精确原sealHash/barrier/epoch与维护决定绑定，ResumeWork只重开旧清理，不开新业务/付费。",
+            "safe/重启failed只能显式重开；仍需重新drain与全域稳定证明。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.persistBarrier",
+            "platform.Store.Resume"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validateSnapshotSealProof",
+          "name": "validateSnapshotSealProof",
+          "signature": "func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotBarrierObservation, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -13712,7 +13807,9 @@
             "platform.syncSnapshotDirectories",
             "platform.verifySnapshotExportRecord",
             "platform.verifySnapshotFile",
-            "platform.writeSnapshotJSON"
+            "platform.writeSnapshotJSON",
+            "platform.CaptureSnapshotFiles",
+            "platform.DomainSnapshotManifest.MarshalJSON"
           ],
           "resources": [],
           "contract": "reference"
@@ -14544,6 +14641,921 @@
             "platform.CanonicalJSON",
             "platform.integrity"
           ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/scope.go",
+      "kind": "handwritten",
+      "purpose": "公共真实在途屏障、固定签名清理或一致完整捕获机制",
+      "functions": [
+        {
+          "id": "platform.WithCleanupIssuer",
+          "name": "WithCleanupIssuer",
+          "signature": "func WithCleanupIssuer(ctx context.Context, issuer CleanupScopeIssuer) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CleanupIssuerFrom",
+          "name": "CleanupIssuerFrom",
+          "signature": "func CleanupIssuerFrom(ctx context.Context) CleanupScopeIssuer",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.WithoutCleanupIssuer",
+          "name": "WithoutCleanupIssuer",
+          "signature": "func WithoutCleanupIssuer(ctx context.Context) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.WithCleanupIssuer",
+            "platform.noCleanupIssuer.IssueCleanup"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.noCleanupIssuer.IssueCleanup",
+          "name": "noCleanupIssuer.IssueCleanup",
+          "signature": "func(*noCleanupIssuer) IssueCleanup(context.Context, CleanupRequest) (*CleanupScope, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.MatchCleanupRoute",
+          "name": "MatchCleanupRoute",
+          "signature": "func MatchCleanupRoute(route CleanupRoute, request CleanupRequest) (string, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.CleanupResourceID"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CleanupResourceID",
+          "name": "CleanupResourceID",
+          "signature": "func CleanupResourceID(rule CleanupResource, params map[string]string, body []byte) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ValidateCleanupScope",
+          "name": "ValidateCleanupScope",
+          "signature": "func ValidateCleanupScope(scope *CleanupScope, issuer, audience string, now time.Time) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "kind": "handwritten",
+      "purpose": "公共真实在途屏障、固定签名清理或一致完整捕获机制",
+      "functions": [
+        {
+          "id": "platform.snapshotAdmission.IssueCleanup",
+          "name": "snapshotAdmission.IssueCleanup",
+          "signature": "func(lease *snapshotAdmission) IssueCleanup(ctx context.Context, request platform.CleanupRequest) (*platform.CleanupScope, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实活跃私有原执行才可发行固定旧资源action，随机claim不能签。",
+          "steps": [
+            "真实活跃私有原执行才可发行固定旧资源action，随机claim不能签。",
+            "原root/site/epoch/costClass不得改变；event/consumer控制根仅BrokerControl，绝不挪作paid root。",
+            "30秒/ctx/barrier/原cleanup deadline取最短，queryHash真实RawQuery，纯控制只读无cleanup写授权。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.MatchCleanupRoute"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.ExistingWorkContext",
+          "name": "SnapshotManager.ExistingWorkContext",
+          "signature": "func(m *SnapshotManager) ExistingWorkContext(ctx context.Context) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.currentBarrierID",
+            "platform.SnapshotManager.newCleanupLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.currentBarrierID",
+          "name": "SnapshotManager.currentBarrierID",
+          "signature": "func(m *SnapshotManager) currentBarrierID() string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.newCleanupLocked",
+          "name": "SnapshotManager.newCleanupLocked",
+          "signature": "func(m *SnapshotManager) newCleanupLocked(ctx context.Context, op platform.OperationContext) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.WithCleanupIssuer"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.AdmitCleanup",
+          "name": "SnapshotManager.AdmitCleanup",
+          "signature": "func(m *SnapshotManager) AdmitCleanup(ctx context.Context, op platform.OperationContext, scope platform.CleanupScope) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.newCleanupLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.AdmitEventBatch",
+          "name": "SnapshotManager.AdmitEventBatch",
+          "signature": "func(m *SnapshotManager) AdmitEventBatch(ctx context.Context) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.requireDraining",
+            "platform.SnapshotManager.newCleanupLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.AllowEventDrain",
+          "name": "SnapshotManager.AllowEventDrain",
+          "signature": "func(m *SnapshotManager) AllowEventDrain(ctx context.Context, view platform.RuntimeView) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.BindOutboxEventScope",
+          "name": "SnapshotManager.BindOutboxEventScope",
+          "signature": "func(m *SnapshotManager) BindOutboxEventScope(ctx context.Context, row platform.OutboxRow) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "steps": [
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotManager.newCleanupLocked",
+            "platform.WithCleanupIssuer"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_capture.go",
+      "kind": "handwritten",
+      "purpose": "公共真实在途屏障、固定签名清理或一致完整捕获机制",
+      "functions": [
+        {
+          "id": "platform.CaptureSnapshotFiles",
+          "name": "CaptureSnapshotFiles",
+          "signature": "func CaptureSnapshotFiles(ctx context.Context, activeRoot, workspace string, databases map[string]*sql.DB, exclude SnapshotCaptureExclude) ([]DomainSnapshotFile, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只在Manager真实safe Capture许可内读同activeRoot，workspace空且在active外；全树拒symlink/hardlink/非regular。",
+          "steps": [
+            "只在Manager真实safe Capture许可内读同activeRoot，workspace空且在active外；全树拒symlink/hardlink/非regular。",
+            "登记SQLite连接以PRAGMA主文件精确匹配，VACUUM main INTO独立副本，不复制live DB/wal/shm，未知SQLite失败关闭。",
+            "固定exclude不接受请求输入，真实完整容量预检；普通文件流copy+hash/fsync，数据库副本真实hash/fsync，完整目录fsync后返回inventory。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.CheckSnapshotDiskBudget",
+            "platform.snapshotDirectory",
+            "platform.syncSnapshotDirectories"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/outbox/observation.go",
+      "kind": "handwritten",
+      "purpose": "公共真实在途屏障、固定签名清理或一致完整捕获机制",
+      "functions": [
+        {
+          "id": "platform.Store.Observe",
+          "name": "Store.Observe",
+          "signature": "func(s *Store) Observe(ctx context.Context) (Observation, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实SQL统一revision读全部未来retry/leased/quarantined活动，未知状态失败，不只due或空队列。",
+          "steps": [
+            "真实SQL统一revision读全部未来retry/leased/quarantined活动，未知状态失败，不只due或空队列。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.Store.Seal",
+          "name": "Store.Seal",
+          "signature": "func(s *Store) Seal(ctx context.Context, revision int64, proofHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同SQLite事务CAS真实revision+全部活动0并持久proofHash，触发器禁止此后outbox INSERT/UPDATE/DELETE。",
+          "steps": [
+            "同SQLite事务CAS真实revision+全部活动0并持久proofHash，触发器禁止此后outbox INSERT/UPDATE/DELETE。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.Store.Resume",
+          "name": "Store.Resume",
+          "signature": "func(s *Store) Resume(ctx context.Context, proofHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只原proofHash幂等重新开旧清理；保留历史lastSealHash，不伪造其它封口。",
+          "steps": [
+            "只原proofHash幂等重新开旧清理；保留历史lastSealHash，不伪造其它封口。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }

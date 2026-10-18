@@ -163,6 +163,7 @@ type AuthContext struct {
 
 // OperationContext 服务间可信操作元数据。
 type OperationContext struct {
+ CleanupScope *CleanupScope `json:"-"`
 	RequestID           Identifier  `json:"requestId"`
 	OperationID         Identifier  `json:"operationId"`
 	RootOperationID     Identifier  `json:"rootOperationId"`
@@ -222,6 +223,7 @@ type SessionSecrets struct {
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
 type AssertionClaims struct {
+ CleanupScope *CleanupScope `json:"cleanupScope,omitempty"`
 	Issuer              string     `json:"iss"`
 	Audience            string     `json:"aud"`
 	Method              string     `json:"method"`
@@ -325,6 +327,7 @@ type JobExecutionScopeBinder func(context.Context,OperationContext,ClaimedJob)(c
 
 // RelayConfig outbox转发循环参数；batchLimit≤100。
 type RelayConfig struct {
+ BindEventScope func(context.Context,OutboxRow)(context.Context,func(),error)
  AdmitBatch WorkAdmission `json:"-"`
 	BatchLimit int `json:"batchLimit"`
 	PollMillis int `json:"pollMillis"`
@@ -350,6 +353,7 @@ type RecoveryLoopConfig struct {
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
 type ConsumerConfig struct {
+ AllowDrain func(context.Context,RuntimeView)(bool,error)
  AdmitBatch WorkAdmission `json:"-"`
  AdmitDelivery WorkAdmission `json:"-"`
 	// SiteID由本域受信装配提供；空值仅用于system控制命名空间。
@@ -387,6 +391,9 @@ type WorkerConfig struct {
 
 // ServiceBoundaryConfig 只由服务启动时从合同装配，不接受请求自报策略。
 type ServiceBoundaryConfig struct {
+ CleanupOperations map[string]CleanupOperationPolicy
+ AuthorizeCleanup func(context.Context,OperationContext,CleanupScope,string)error
+ AdmitCleanup func(context.Context,OperationContext,CleanupScope)(context.Context,func(),error)
  AdmitBusiness WorkAdmission
  ControllerOperations map[string]bool
 	Self                  string
@@ -412,6 +419,9 @@ type AssetRef struct {
 	MediaType string     `json:"mediaType"`
 	ByteSize  int64      `json:"byteSize"`
 }
+
+// AssetVersionRef绑定media真实不可变版本；不从AssetRef猜version。
+type AssetVersionRef struct{AssetID Identifier `json:"assetId"`;Version int64 `json:"version"`;SHA256 Hash `json:"sha256"`;MediaType string `json:"mediaType"`;ByteSize int64 `json:"byteSize"`}
 
 // ObjectRef 所属服务提供的不可变受控对象。
 type ObjectRef struct {
@@ -472,8 +482,12 @@ type GatewayMessage struct {
 	Parts   []GatewayPart `json:"parts,omitempty"`
 }
 
+type ExpectedPriceSnapshot struct{ModelID Identifier `json:"modelId"`;PriceSnapshotID Identifier `json:"priceSnapshotId"`}
+
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
+ ExpectedRouteVersion Hash `json:"expectedRouteVersion,omitempty"`
+ ExpectedPriceSnapshots []ExpectedPriceSnapshot `json:"expectedPriceSnapshots,omitempty"`
  LanguageSuggestionApprovalID string `json:"languageSuggestionApprovalId,omitempty"`
 	Query                  string           `json:"query,omitempty"`
 	TaskID                 string           `json:"taskId"`

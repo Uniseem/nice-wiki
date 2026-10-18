@@ -44,6 +44,7 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, schemaIndexSQL); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "创建outbox索引失败")
 	}
+ if _,err:=db.ExecContext(ctx,observationSchemaSQL);err!=nil{return platform.NewError(platform.CodeInternal,true,"创建outbox真实活动水位失败")}
 	return nil
 }
 
@@ -203,13 +204,13 @@ func (s *Store) Quarantine(ctx context.Context, eventID platform.Identifier, rea
 }
 
 const discardSQL = `UPDATE nw_outbox SET state = 'discarded', lease_until = ''
-WHERE state = 'pending' AND data_epoch <> ?`
+WHERE state IN ('pending','quarantined') AND data_epoch <> ?`
 
-// DiscardOtherEpochs 丢弃不属于当前代的pending行；恢复换入后调用。
+// DiscardOtherEpochs 撤销旧代pending/quarantine活动资格并保留完整行审计；恢复换入后调用。
 func (s *Store) DiscardOtherEpochs(ctx context.Context, epoch platform.Identifier) (int64, error) {
 	result, err := s.db.ExecContext(ctx, discardSQL, epoch)
 	if err != nil {
-		return 0, platform.NewError(platform.CodeInternal, true, "丢弃旧代outbox失败")
+		return 0, platform.NewError(platform.CodeInternal, true, "隔离旧代outbox失败")
 	}
 	count, err := result.RowsAffected()
 	if err != nil {
