@@ -14,6 +14,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/apivalidate"
 	portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
 )
@@ -31,6 +32,8 @@ const (
 )
 
 type Application struct {
+	siteID platform.Identifier
+	validateBeaconBody func(json.RawMessage) error
 	config             platform.ServiceConfig
 	anchors            platform.TrustAnchors
 	signingKey         platform.SigningKey
@@ -49,8 +52,11 @@ type Application struct {
 	httpServer         *http.Server
 }
 
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error) {
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier, siteID platform.Identifier) (*Application, error) {
+	validateBeacon, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "BeaconPublicRequest")
+	if err != nil { return nil, err }
 	application := &Application{
+		siteID: siteID, validateBeaconBody: validateBeacon,
 		config: config, anchors: anchors, signingKey: signingKey, delegationKey: delegationKey, runtime: runtime,
 		identity: identity, authResolver: authResolver, registry: registry, openedEpoch: openedEpoch, gate: portal.NewGate(),
 	}
@@ -141,7 +147,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		origins = []string{configured.Scheme + "://" + configured.Host}
 	}
 	runtime := &portal.ProxyRuntime{
-		Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
+		SiteID: a.siteID, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,

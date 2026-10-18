@@ -497,6 +497,7 @@ type IdentityVerifier interface {
 }
 type proxyRuntimeKey struct{}
 type ProxyRuntime struct {
+	ValidateBeaconBody func(json.RawMessage) error
 	// SiteID与预算key仅由可信启动装配；预算pepper不随HTTP签名key自动轮换。
 	SiteID            platform.Identifier
 	NetworkScopeKeys  []platform.SigningKey

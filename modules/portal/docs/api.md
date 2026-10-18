@@ -28,3 +28,5 @@
 浏览器refreshSession仅接受application/json空对象，HttpOnly nw_refresh在入口内存中转为内部RefreshSessionInput。服务断言绑定改写后的实际正文hash，匿名刷新不要求有效access或用户proof，仍要求固定部署Origin。登录/首次注册同时签入公共派生的网络scope；浏览器自造身份、XFF或scope头不转发给identity。
 
 认证200结果只输出安全session及该操作允许的account/nextRoute；访问/刷新秘密仅进入Cookie。认证非200只保留已登记code/status/retryable/requestId与固定安全说明，不转发内部原始detail/未知字段，不改旧cookie。未知字段、截断、超限、错误媒体类型或缺少关键cookie材料在任何响应写出前失败关闭。当前设备DELETE revokeSession成功的清cookie规则见OpenAPI的`x-browser-session-revocation`。
+
+匿名统计只公开/v1/beacons：2048字节严格公开schema；入口从真实连接受信代理后缀与HTTP User-Agent注入内存来源、当前epoch，重算完整bodyHash后以portal纯服务身份投固定/v1/internal/beacons。内部入口不加入浏览器代理路由，原IP不日志或持久；内部正文4096字节上限，UA≤1024字节。

@@ -7,11 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+	"nice-wiki/libs/platform/apivalidate"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/serviceauth"
-	portal "nice-wiki/modules/portal/internal"
+		portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
 	"nice-wiki/modules/portal/internal/transport"
 )
@@ -32,15 +33,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
-	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
-	if err != nil {
-		return nil, err
-	}
-	key, err := loadSigningKey(config.SigningKeyRef)
-	if err != nil {
-		return nil, err
-	}
-	delegationKey, err := loadSigningKey(config.DelegationKeyRef)
+	anchors, key, err := lifecycle.LoadServiceIdentity(config)
+ if err != nil { return nil, err }
+	delegationKey, err := lifecycle.LoadPortalDelegation(config, anchors)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +68,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		csrfVerifier = portal.CSRFVerifier{Client: client}
 		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
-	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch)
+	siteID, err := readSiteIdentity(ctx, config, key, view.DataEpoch)
+ if err != nil { return nil, err }
+ return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch, siteID)
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存
@@ -86,7 +83,7 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 	if base == "" {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "缺少site-config依赖地址")
 	}
-	key, err := loadSigningKey(config.SigningKeyRef)
+	_, key, err := lifecycle.LoadServiceIdentity(config)
 	if err != nil {
 		return nil, err
 	}
@@ -180,29 +177,19 @@ func ensureDataLayout(dataRoot string) error {
 	return nil
 }
 
-func loadTrustAnchors(ref string) (platform.TrustAnchors, error) {
-	raw, err := os.ReadFile(ref)
-	if err != nil {
-		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不可读")
-	}
-	var anchors platform.TrustAnchors
-	if err := json.Unmarshal(raw, &anchors); err != nil || len(anchors.Services) == 0 {
-		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不合法")
-	}
-	return anchors, nil
-}
-
-func loadSigningKey(ref string) (platform.SigningKey, error) {
-	raw, err := os.ReadFile(ref)
-	if err != nil {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不可读")
-	}
-	var key platform.SigningKey
-	if err := json.Unmarshal(raw, &key); err != nil || key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不合法")
-	}
-	if _, err := serviceauth.LoadSigningKey(key); err != nil {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名私钥不可用")
-	}
-	return key, nil
+func readSiteIdentity(ctx context.Context, config platform.ServiceConfig, key platform.SigningKey, epoch platform.Identifier) (platform.Identifier, error) {
+ validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "PortalSiteConfigResponse")
+ if err != nil { return "", err }
+ deadline := time.Now().UTC().Add(30*time.Second)
+ work, cancel := context.WithDeadline(platform.WithPortalProof(ctx, ""), deadline)
+ defer cancel()
+ id := platform.NewIdentifier()
+ op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: epoch, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
+ client := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)
+ raw, err := client.ReadSiteConfig(platform.WithOperationContext(work, op))
+ if err != nil { return "", err }
+ if err := validate(raw); err != nil { return "", err }
+ var result struct { Config struct { SiteID platform.Identifier `json:"siteId"` } `json:"config"` }
+ if err := json.Unmarshal(raw, &result); err != nil { return "", platform.NewError(platform.CodeIntegrityError, false, "站点身份响应不可读") }
+ return result.Config.SiteID, nil
 }

@@ -1,3 +1,7 @@
+# 可信匿名统计转发源码待GitLab
+
+Root补portal公开正文→analytics内部签名正文，只用真实连接来源/UA及运行epoch；真实siteId从生产方readSiteConfig严格读取。新助手及实际修改待统一GitLab，完整Portal处理器/壳装配仍未齐。无本机编译、测试或真实调用。
+
 # 集成核对（2026-10-17，pipeline 53）
 
 `83a435f322da98035cbe71319aee2ea8914a4534` 已由 GitLab pipeline 53 编译并双推。`EmitAccessAudit` 仍 blocked。下文写作时的“未跑 CI”只描述当时的工作树。

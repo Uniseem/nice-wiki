@@ -1091,7 +1091,8 @@
             "登录/首次注册只用platform.PrivateNetworkScopes从真实socket及受信CIDR代理链派生当前+前一UTC日网络HMAC，更新受信op后由服务断言签入LoginNetworkScopes；不记录地址或接受浏览器scope",
             "认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie",
             "当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie",
-            "匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper"
+            "匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper",
+            "仅analytics:ingestBeacon匿名公开路由：以启动装配的严格公开schema校验实际正文，2048字节上限；用唯一可信代理解析与真实HTTP User-Agent覆写来源，写当前epoch并重算签名正文hash。转固定/v1/internal/beacons，仅本机portal纯服务身份，禁止转浏览器身份或原IP日志。"
           ],
           "errors": [
             {
@@ -1149,7 +1150,9 @@
             "portal.authenticationOperation",
             "portal.prepareAuthenticationRequest",
             "platform.PrivateBudgetNetworkScopes",
-            "platform.ResolveVisitorAddress"
+            "platform.ResolveVisitorAddress",
+            "portal.prepareTrustedBeacon",
+            "analytics:ingestTrustedBeacon"
           ],
           "resources": [],
           "contract": "binding"
@@ -1321,6 +1324,62 @@
           "dependencies": [
             "portal.decodeAuthenticationJSON",
             "portal.authenticationProblem"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "portal.prepareTrustedBeacon",
+          "name": "prepareTrustedBeacon",
+          "signature": "func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error)",
+          "inputs": [
+            {
+              "name": "runtime",
+              "type": "ProxyRuntime",
+              "description": "真实请求内存上下文",
+              "constraints": [
+                "可信启动装配"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本次真实入口上下文",
+              "constraints": [
+                "epoch由权威读取"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "body",
+              "type": "[]byte",
+              "description": "仅内部HTTP传输的canonical正文",
+              "constraints": [
+                "不日志、不持久"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "未知身份或正文不合法拒绝",
+              "constraints": []
+            }
+          ],
+          "purpose": "以严格公开正文和可信连接构造签名内部beacon，不记录原IP",
+          "steps": [
+            "实际公开正文≤2048字节并以生产方严格公开schema校验；客户端peer/epoch等未知字段拒绝。",
+            "公共ResolveVisitorAddress只从真实socket与部署信任链取得规范地址；User-Agent只用真实HTTP头且≤1024字节有效UTF8，绝不使用客户端JSON自报值。",
+            "注入本次dataEpoch，canonical JSON≤4096；仅返回内存正文，由ProxyRequest重算bodyHash并签入portal纯服务调用。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "platform.ResolveVisitorAddress",
+            "platform.CanonicalJSON"
           ],
           "resources": [],
           "contract": "reference"
@@ -3795,7 +3854,8 @@
             "装配IdentityAuthResolver与CSRFVerifier；可信Origin只来自platform.ServiceConfig.publicBaseURL，不从请求Host反推",
             "分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭",
             "完整本域handler覆盖未齐时NewApplication明确DEPENDENCY_UNAVAILABLE，禁止用默认503占位handler或固定Ready成功冒充完整服务；TrustedProxyCIDRs只从受信ServiceConfig注入",
-            "入口公开基址必须经platform.NormalizePublicURL校验；https为默认，显式AllowLocalHTTP只开放loopback本地HTTP；cookie仍为Secure"
+            "入口公开基址必须经platform.NormalizePublicURL校验；https为默认，显式AllowLocalHTTP只开放loopback本地HTTP；cookie仍为Secure",
+            "用严格生产方readSiteConfig返回值取得真实siteId，绑定真实运行epoch；不可用不以system或随机ID代替。"
           ],
           "errors": [
             {
@@ -3834,7 +3894,9 @@
             "platform.NewRequestValidator",
             "portal.NewApplication",
             "platform.NormalizePublicURL",
-            "platform.LoadPortalDelegation"
+            "platform.LoadPortalDelegation",
+            "portal.readSiteIdentity",
+            "platform.LoadServiceIdentity"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3842,6 +3904,67 @@
             "site-config.readRuntimeState（本域site-config读取自身权威）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "portal.readSiteIdentity",
+          "name": "readSiteIdentity",
+          "signature": "func readSiteIdentity(ctx context.Context, config platform.ServiceConfig, key platform.SigningKey, epoch platform.Identifier) (platform.Identifier, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "启动IO取消",
+              "constraints": []
+            },
+            {
+              "name": "config",
+              "type": "ServiceConfig",
+              "description": "可信部署依赖",
+              "constraints": []
+            },
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "已加载服务签名",
+              "constraints": []
+            },
+            {
+              "name": "epoch",
+              "type": "Identifier",
+              "description": "真实runtime epoch",
+              "constraints": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "siteID",
+              "type": "Identifier",
+              "description": "真实站点ID",
+              "constraints": []
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "依赖或完整性错误",
+              "constraints": []
+            }
+          ],
+          "purpose": "启动从生产方只读权威取得真实站点身份",
+          "steps": [
+            "构造当前epoch、30秒截止的portal纯服务只读上下文，撤用户证明且费用类别为空。",
+            "调用site-config:readSiteConfig，以生产方PortalSiteConfigResponse严格schema验证并读取config.siteId；未知不猜站点ID。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威",
+          "concurrency": "每请求局部值，完成验证与构造前不写浏览器头或正文",
+          "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
+          "dependencies": [
+            "site-config:readSiteConfig",
+            "platform.NewPayloadValidator"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4103,14 +4226,15 @@
         {
           "id": "portal.NewApplication",
           "name": "NewApplication",
-          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error)",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier, siteID platform.Identifier) (*Application, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "完整本域HTTP覆盖未齐时拒绝构造应用",
           "steps": [
             "注入受信配置/服务与专用委托密钥/epoch/权威客户端；TrustedProxyCIDRs不从浏览器取",
             "registerLocalRoutes按静态required清单核真实非nil处理器，缺任何本域handler返回DEPENDENCY_UNAVAILABLE；不注册默认503占位",
-            "只有本域完整覆盖后才挂静态代理catchall并返回Application"
+            "只有本域完整覆盖后才挂静态代理catchall并返回Application",
+            "仅由启动传入真实siteID，编译登记BeaconPublicRequest严格校验器并传入请求内存上下文；失败拒绝装配。"
           ],
           "errors": [],
           "sideEffects": [],
@@ -4119,7 +4243,8 @@
           "idempotency": "不重放上游写；只适配本次权威结果，失败不改变已有cookie",
           "dependencies": [
             "portal.registerLocalRoutes",
-            "portal.proxyHandler"
+            "portal.proxyHandler",
+            "platform.NewPayloadValidator"
           ],
           "resources": [],
           "contract": "reference"

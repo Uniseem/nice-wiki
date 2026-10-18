@@ -39,3 +39,5 @@
 `RedactRequest` 是纯函数，不调用 analytics 或其他外部服务。成功结果只含静态路由的 method、routeId，以及请求的 requestId 与体字节数。cookie 与 authorization 不进入结果。query 敏感键和路径变量敏感标识尚未写明；这些字段以及其他请求头出现时失败关闭。
 
 `EmitAccessAudit` 的输入已经是上述脱敏字段加上 `RequestOutcome`。`analytics:appendAudit` 的请求体与这些字段没有已写明的一一映射，函数返回 `DEPENDENCY_UNAVAILABLE`，不构造请求体，也不把 cookie、authorization、正文或原始地址写入结果。结果类型只有 `accepted`，没有 `degraded` 字段。
+
+匿名统计只公开/v1/beacons：2048字节严格公开schema；入口从真实连接受信代理后缀与HTTP User-Agent注入内存来源、当前epoch，重算完整bodyHash后以portal纯服务身份投固定/v1/internal/beacons。内部入口不加入浏览器代理路由，原IP不日志或持久；内部正文4096字节上限，UA≤1024字节。

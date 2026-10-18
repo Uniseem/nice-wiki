@@ -3744,6 +3744,22 @@
         "account",
         "session"
       ]
+    },
+    "BeaconPublicRequest": {
+      "$ref": "../../analytics/contracts/types.json#/$defs/IngestBeaconRequestBody",
+      "description": "浏览器匿名统计严格公开正文，不含peer或epoch"
+    },
+    "PortalSiteConfigResponse": {
+      "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult",
+      "description": "生产方站点身份只读结果"
+    },
+    "ProxyRuntime": {
+      "x-internal": true,
+      "description": "入口内存上下文，含由启动装配的站点和严格匿名统计正文校验器，不能序列化"
+    },
+    "SigningKey": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SigningKey",
+      "description": "公共服务签名材料描述，只来自可信部署"
     }
   }
 }

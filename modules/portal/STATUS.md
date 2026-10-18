@@ -1,3 +1,7 @@
+# 可信匿名统计转发源码待GitLab
+
+Root补portal公开正文→analytics内部签名正文，只用真实连接来源/UA及运行epoch；真实siteId从生产方readSiteConfig严格读取。新助手及实际修改待统一GitLab，完整Portal处理器/壳装配仍未齐。无本机编译、测试或真实调用。
+
 # 2026-10-17 访问审计投递
 
 阶段：实施。源码提交 `d2d2d8d393f1c5118671293ab29ebdd26c71316b`。部署 `not_started`。accepted 为 0。`python3 scripts/check_docs.py` 通过，只证明设计结构。本函数未编译，verification.state 为 not_run，未做业务验收。

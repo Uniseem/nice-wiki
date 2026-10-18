@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "058b1289d91cd2b8dd4e46b1b4cdf7a2775134134351aaa64c1bbaa4a90b84a9",
+  "contractSha256": "b8ce2d83b8fc0cf20925eb15ed28cab89950de3784af4ecbd9b78bcceb4156b6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "portal EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked",
   "branch": "codex/portal-20261017-r6",
@@ -533,7 +533,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "公共委托加载/可信来源新装配代码已写，待后续Portal集成GitLab；完整服务未齐"
+      "blocker": "可信匿名统计入口装配待GitLab；完整Portal仍未齐"
     },
     {
       "id": "portal.LoadBootstrap",
@@ -1066,13 +1066,13 @@
     {
       "id": "portal.NewApplication",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "可信匿名统计入口装配待GitLab；完整Portal仍未齐"
     },
     {
       "id": "portal.registerLocalRoutes",
@@ -1095,6 +1095,28 @@
         "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
+    },
+    {
+      "id": "portal.prepareTrustedBeacon",
+      "path": "modules/portal/internal/proxy_stream.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "可信匿名统计入口与实际站点身份装配待GitLab"
+    },
+    {
+      "id": "portal.readSiteIdentity",
+      "path": "modules/portal/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "可信匿名统计入口与实际站点身份装配待GitLab"
     }
   ],
   "rule": "EmitAccessAudit 源码为 d2d2d8d393f1c5118671293ab29ebdd26c71316b，状态 blocked，verification.state 为 not_run，不记 implemented、verified 或 accepted。appendAudit 请求体与 RedactedAuditRequest、RequestOutcome 没有已写明的一一映射。accepted 为 0。未执行业务验收或部署。合同未改。",

@@ -592,5 +592,9 @@
     "rule": "仅当已权威校验AuthContext.sessionId等于静态路由参数sessionId且上游200 revoked=true才删除nw_sid/nw_refresh；撤销其他设备及任何失败均不清当前cookie",
     "cookieDeletion": "保持host-only Path=/ Secure HttpOnly SameSite=Strict，MaxAge=-1且Expires过去",
     "responseBodyLimitBytes": 65536
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "BeaconPublicRequest",
+    "PortalSiteConfigResponse"
+  ]
 }
