@@ -75,6 +75,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
+	identityClient:=gen.NewIdentityClient(config.Dependencies["identity"],ModuleSlug,key)
+	guardRuntime:=trafficguard.GuardRuntime{Store:store,Identity:identityClient,SigningKey:key,Anchors:anchors}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -85,12 +87,22 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		AllowedCallers: map[string][]string{
 			"beginLoginAttempt":  {"identity"},
 			"finishLoginAttempt": {"identity"},
+			"getPolicy": {"portal","traffic-guard"},
+			"updatePolicy": {"portal"},
+			"createBan": {"portal"},
+			"revokeBan": {"portal"},
+			"listBans": {"portal"},
+			"listRiskEvents": {"portal"},
+			"reportModelRisk": {"qa"},
+			"queueSessionAdmission": {"qa"},
 		},
-	}, trafficguard.NewLoginHandlers(store))
+		ServiceActorCallers:map[string][]string{"getPolicy":{"traffic-guard"}},
+		Authorize:apivalidate.NewIdentityAuthorizer(identityClient),
+	}, trafficguard.NewGuardHandlers(guardRuntime))
 	if err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、授权客户端与后台循环尚未实现")
+	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、预算key、运行写窗口与后台循环尚未装配")
 }
 
 // NewRuntimeClient 为 RunService 构造 site-config 运行权威客户端；它只

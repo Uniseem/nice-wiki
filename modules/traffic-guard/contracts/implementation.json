@@ -167,9 +167,9 @@
           ],
           "purpose": "校验风控参数",
           "steps": [
-            "拒绝钱账字段/未知动作",
-            "限制 burst≤rate、concurrency 1..128",
-            "挑战难度 16..22 与 ban TTL 范围"
+            "输入由严格GuardPolicy schema拒绝未知字段，无余额或费用字段",
+            "校验主体/站点整数速率、burst≤主体rate与主体/站点并发1..128",
+            "GuardPolicy未提供挑战难度或ban TTL字段，不在此函数捏造额外配置"
           ],
           "errors": [
             {
@@ -238,17 +238,40 @@
           ],
           "purpose": "读取生效策略",
           "steps": [
-            "校验 epoch",
-            "读取当前 revision",
-            "返回无 secret 策略"
+            "siteId和dataEpoch须等于可信op.Actor.SiteID/op.DataEpoch；GET入口只从可信上下文构造，不新增客户端站点参数",
+            "guard.manage管理员即时查权，或traffic-guard本域纯服务可读；其他服务拒绝",
+            "同代次一致快照读取，缺行NOT_FOUND；不临时构造未保存默认策略"
           ],
           "errors": [
             {
+              "code": "FORBIDDEN",
+              "condition": "可信站点不匹配或当前权限不足",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "当前站点没有已保存策略",
+              "httpStatus": 404,
+              "retryable": false
+            },
+            {
               "code": "VERSION_MISMATCH",
-              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "condition": "策略修订或active代次变化",
               "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "同操作绑定其他输入",
+              "httpStatus": 409,
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "存储或即时授权依赖未知",
+              "httpStatus": 503,
+              "retryable": true
             }
           ],
           "sideEffects": [],
@@ -259,7 +282,9 @@
           "concurrency": "SQLite 快照读",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "site-config:readRuntimeState"
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardPolicy"
           ],
           "resources": [],
           "contract": "binding"
@@ -304,25 +329,42 @@
           ],
           "purpose": "更新策略 CAS",
           "steps": [
-            "身份查权",
-            "校验策略",
-            "事务比较 revision/写策略/outbox",
-            "冲突不覆盖"
+            "即时核guard.manage管理员，siteId与epoch必须匹配可信op",
+            "校验规范策略后建立当前公共写窗口，进入本域短事务",
+            "先按site/epoch/caller/operationId核完整规范输入摘要，同输入返回原revision，不同输入CONFLICT",
+            "缺行仅expectedRevision=0可首次创建revision1；已有行严格revision CAS，溢出拒绝",
+            "策略、原回执与policy-changed.v1 outbox在同一事务提交；事件失败不提交策略"
           ],
           "errors": [
             {
               "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "condition": "可信站点不匹配或当前权限不足",
               "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "当前站点没有已保存策略",
+              "httpStatus": 404,
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "策略修订或active代次变化",
+              "httpStatus": 409,
+              "retryable": false
             },
             {
               "code": "CONFLICT",
-              "condition": "POLICY_CONFLICT：在步骤中的对应校验或依赖失败",
+              "condition": "同操作绑定其他输入",
               "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "存储或即时授权依赖未知",
+              "httpStatus": 503,
+              "retryable": true
             }
           ],
           "sideEffects": [
@@ -335,8 +377,12 @@
           "concurrency": "事务 CAS；旧 permit renew 用最新策略重检",
           "idempotency": "operationId 去重且相同 key 不同 body 409",
           "dependencies": [
-            "identity:checkAuthorization",
-            "traffic-guard.ValidatePolicy"
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.ValidatePolicy",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.enqueueGuardEvent"
           ],
           "resources": [],
           "contract": "binding"
@@ -856,9 +902,8 @@
           ],
           "purpose": "选择可信风控动作",
           "steps": [
-            "匹配路由表x-admission动作白名单：qa.conversation、qa.ask、localization.suggest、identity.login",
-            "拒绝客户端覆盖",
-            "公共读取仅受边缘基本速率"
+            "只接受固定service.operationId：qa.createConversation→qa.conversation、qa.startTurn→qa.ask、localization.suggestLanguage→localization.suggest",
+            "调用主体来自可信入口，未知routeId拒绝；旧identity.login由独立Begin/Finish登录保护负责，不套用AI许可"
           ],
           "errors": [
             {
@@ -936,9 +981,10 @@
           ],
           "purpose": "读取有限匿名信号",
           "steps": [
-            "按主体/action 查询 10 分钟 counters",
-            "验证 challenge expiry",
-            "读取 active ban"
+            "同一已保存主体快照读取当前网络及前期别名的active ban，按服务时间即时判过期，不等sweeper",
+            "通过证明未过10分钟、级别匹配且可疑模式少于5问才challengePassed；可疑状态保留10分钟",
+            "读取近10分钟拒绝、最近最多8项问题hash重复、真实量化相似度与实测间隔次数；缺失观测保持未知",
+            "过期abuse ban不让旧model_verdict永久拒绝，公开内容不受AI ban影响"
           ],
           "errors": [
             {
@@ -956,7 +1002,9 @@
           },
           "concurrency": "统一事务读取一致 policy revision",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction"
+          ],
           "resources": [
             "私有 SQLite"
           ],
@@ -1009,12 +1057,9 @@
           ],
           "purpose": "确定挑战规则",
           "steps": [
-            "program信号=问题hash重复/qa已有embedding相似度0..10000/最近时间间隔规律",
-            "前置模型同一次输出normal/suspicious/abuse，不单独新增模型",
-            "activeBan或abuse拒绝",
-            "suspicious要求可见Turnstile",
-            "normal仍需首次无感验证",
-            "前置模型已判无关直接拒答"
+            "输出严格allow/deny/challenge；activeBan或abuse为deny",
+            "suspicious未通过匹配级别挑战时challenge难度22，通过且本域5问计数仍有效才allow",
+            "normal未通过时challenge难度18，通过则allow；缺失数值观测未知，不额外加分或新增阈值模型"
           ],
           "errors": [
             {
@@ -1085,9 +1130,8 @@
           ],
           "purpose": "整数补充令牌",
           "steps": [
-            "elapsed clamp 0..60000",
-            "补充 floor(elapsedMs*rate/60) 千分令牌",
-            "容量封顶"
+            "elapsedMs夹在0..60000，容量与速率取已校验策略边界1..100000",
+            "补充floor(elapsedMs*ratePerMinute/60)千分令牌，结果不超过capacity*1000；时钟倒退补0"
           ],
           "errors": [
             {
@@ -1156,9 +1200,10 @@
           ],
           "purpose": "原子扣频率令牌",
           "steps": [
-            "读取主体+站点 buckets",
-            "整数 refill",
-            "两层都足够才扣，否则均不扣并计算最大等待"
+            "在同一事务读取主体和站点当前桶/已保存策略，cost固定1个纯频率令牌",
+            "补充整数千分令牌；时钟倒退补0且不倒退持久水位",
+            "两层都足够才同时扣并记录同操作原回执，否则两层均不扣并返回最大等待",
+            "复用准入外层事务，后续并发预留失败时整体回滚；不涉及金额或费用"
           ],
           "errors": [
             {
@@ -1186,8 +1231,11 @@
           "concurrency": "SQLite 单事务；不能分别扣一层失败另一层",
           "idempotency": "requestId 去重不重复扣",
           "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardPolicy",
             "traffic-guard.RefillBucket",
-            "traffic-guard.GetPolicy"
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt"
           ],
           "resources": [],
           "contract": "reference"
@@ -2545,9 +2593,7 @@
           ],
           "purpose": "回收过期并发",
           "steps": [
-            "每5秒扫描最多500 active expire",
-            "CAS expired",
-            "只更新状态不重发外部调用"
+            "按当前服务时间最多500个active已到期lease CAS expired，不退桶、不外调"
           ],
           "errors": [
             {
@@ -2567,7 +2613,9 @@
           },
           "concurrency": "批次事务；分布多实例通过 SQLite 单写协调",
           "idempotency": "重复 sweep 无新增效果",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction"
+          ],
           "resources": [
             "私有 SQLite"
           ],
@@ -2613,9 +2661,7 @@
           ],
           "purpose": "回收临时禁令",
           "steps": [
-            "扫描≤500到期active",
-            "CAS expired",
-            "写ban-changed outbox"
+            "同批事务扫描最多500个到期active ban，CAS expired并写ban-changed outbox；幂等重扫无新增效果"
           ],
           "errors": [
             {
@@ -2635,7 +2681,10 @@
           },
           "concurrency": "小事务，无同时策略修订",
           "idempotency": "相同时间重扫幂等",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.enqueueGuardEvent"
+          ],
           "resources": [
             "私有 SQLite"
           ],
@@ -3083,11 +3132,10 @@
           ],
           "purpose": "管理员建立临时禁令",
           "steps": [
-            "check guard.manage",
-            "匿名networkKey指IPv4单址/IPv6 /64",
-            "default600s ban只限制AI",
-            "同事务ban+撤租约+outbox",
-            "返回原因/恢复时间，公开页面继续可读"
+            "即时核guard.manage，仅ai scope及manual/abuse原因；subjectRef为已知网络HMAC，不收原IP",
+            "ttl=0取已确认默认600秒，范围1..2592000；同operationId/输入摘要返回原回执",
+            "同事务写active ban、撤销匹配网络别名的本域active租约、写ban-changed outbox与原回执",
+            "只封AI，公开页面继续可读"
           ],
           "errors": [
             {
@@ -3115,7 +3163,11 @@
           "concurrency": "主体范围事务原子封禁与撤租约",
           "idempotency": "operationId 去重",
           "dependencies": [
-            "identity:checkAuthorization"
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.createNetworkBan"
           ],
           "resources": [],
           "contract": "binding"
@@ -3160,9 +3212,9 @@
           ],
           "purpose": "撤销禁令",
           "steps": [
-            "校验权限与revision",
-            "CAS active→revoked",
-            "写审计outbox"
+            "即时核guard.manage并读取同站点/epoch原回执",
+            "严格expectedRevision CAS active→revoked；非active或冲突拒绝，重复同operationId返回原状态",
+            "ban状态、修订、回执与ban-changed outbox同事务"
           ],
           "errors": [
             {
@@ -3190,7 +3242,11 @@
           "concurrency": "revision CAS",
           "idempotency": "相同 operationId复用结果",
           "dependencies": [
-            "identity:checkAuthorization"
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.enqueueGuardEvent"
           ],
           "resources": [],
           "contract": "binding"
@@ -3235,9 +3291,9 @@
           ],
           "purpose": "分页禁令",
           "steps": [
-            "limit默认20最大100",
-            "签名游标绑定epoch/filter",
-            "只返回subjectRef和理由枚举"
+            "即时核guard.manage，limit默认20最大100",
+            "使用平台签名游标绑定site/epoch/权限主体和banId keyset；稳定banId排序",
+            "不返回原IP；同时输出兼容banIds与匿名subjectRef/原因/恢复时间/状态items"
           ],
           "errors": [
             {
@@ -3263,10 +3319,60 @@
           "concurrency": "稳定banId排序，不含IP",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.beginGuardTransaction",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.createNetworkBan",
+          "name": "createNetworkBan",
+          "signature": "func createNetworkBan(t *guardTransaction, network string, ttl int64, reason string) (CreateBanResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同事务创建AI ban、撤匹配网络别名租约并登记安全outbox",
+          "steps": [
+            "同事务创建AI ban、撤匹配网络别名租约并登记安全outbox"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.enqueueGuardEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3569,9 +3675,9 @@
           ],
           "purpose": "清理匿名风控状态",
           "steps": [
-            "清过期challenge+10min signals",
-            "bucket空闲24h删除",
-            "expired permits7d/ban30d删除"
+            "最多清理500个主体记录，租约网络子关联随主体清除",
+            "清过期challenge、10分钟问题信号/匿名风险引用、空闲24小时桶、终局7天permit与30天ban",
+            "active bans/leases禁止删除，不删除授权或预算key，不记录原IP/正文/token"
           ],
           "errors": [
             {
@@ -3591,7 +3697,9 @@
           },
           "concurrency": "500项批事务；active bans/leases禁止删除",
           "idempotency": "重复清理幂等",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction"
+          ],
           "resources": [
             "私有 SQLite"
           ],
@@ -4343,12 +4451,11 @@
           ],
           "purpose": "接收qa已有检测信号",
           "steps": [
-            "qa服务鉴权",
-            "只允许问题hash/量化相似度/时间间隔/已有前置模型normal/suspicious/abuse",
-            "不接正文",
-            "abuse建networkKey600秒AIban",
-            "suspicious要求可见验证",
-            "normal保留最多最近8时间戳和hash10min"
+            "仅QA，sessionKey/networkKey匹配本域已验证主体，只接受hash与已有modelVerdict，不接正文/IP",
+            "用可信op.RootOperationID与规范输入摘要幂等；相似度与间隔可选，缺失保存NULL而不是0，不参与实测分组",
+            "abuse同事务创建600秒网络AI ban、撤对应别名租约及outbox；suspicious保留10分钟每5问重验要求",
+            "normal及已有信号只保留最多8项/10分钟；封闭allow/deny/challenge决定由最新ban/通过状态共同给出",
+            "ban存在时返回真实最长恢复时间；信号、决策回执和风险引用同事务提交"
           ],
           "errors": [
             {
@@ -4376,8 +4483,12 @@
           "concurrency": "same questionOperationId去重，不能凭客户端自报风险",
           "idempotency": "questionOperationId/hash幂等",
           "dependencies": [
-            "traffic-guard.ComputeRisk",
-            "traffic-guard.CreateBan"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.createNetworkBan",
+            "traffic-guard.LoadSignals",
+            "traffic-guard.ComputeRisk"
           ],
           "resources": [],
           "contract": "binding"
@@ -4429,10 +4540,10 @@
           ],
           "purpose": "每会话1并发其余排队",
           "steps": [
-            "qa持有请求队列内容",
-            "guard只返回activeConcurrency=1和队列许可引用",
-            "release后qa按FIFO重新admission",
-            "排队时不预扣频率/费用"
+            "只允许QA；sessionKey必须已经验证，guard只存request引用，不存正文、不扣桶/费用",
+            "mode可选enqueue默认；同session FIFO最多10等待，同request不重复插入",
+            "cancel仅删同站点/同代次/同session/同request的等待引用，绝不释放active lease",
+            "空闲且为队头才queued=false；真正并发占位仍由准入事务完成，释放后QA按FIFO重新admission"
           ],
           "errors": [
             {
@@ -4460,7 +4571,7 @@
           "concurrency": "每session最多10等待，超出429；无问题正文",
           "idempotency": "requestId幂等",
           "dependencies": [
-            "traffic-guard.ReleasePermit"
+            "traffic-guard.beginGuardTransaction"
           ],
           "resources": [
             "qa排队权威"
@@ -4797,7 +4908,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application"
+            "私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application",
+            "管理/匿名信号真实HTTP映射通过NewGuardHandlers交公共ServiceHandler；授权由统一边界即时核一次，内部marker避免重复identity调用。运行写窗口/预算key/完整其余handler及后台尚缺时仍禁止启动。"
           ],
           "errors": [
             {
@@ -4845,7 +4957,8 @@
             "traffic-guard.RecoverJournal",
             "traffic-guard.Close",
             "traffic-guard.NewLoginHandlers",
-            "platform.NewServiceHandler"
+            "platform.NewServiceHandler",
+            "traffic-guard.NewGuardHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -5306,9 +5419,9 @@
           ],
           "purpose": "查看最近可疑事件",
           "steps": [
-            "guard.manage",
-            "分页读取准入拒绝、挑战失败与封禁记录",
-            "只返回不可逆网络标识，不返回原始IP"
+            "guard.manage即时查权；since省略查询全部尚保留匿名记录",
+            "按occurredAt/eventId倒序keyset分页，平台签名游标绑定站点/epoch/主体/since",
+            "只返回事件引用/动作/封闭决策/不可逆网络key/时间，无原IP"
           ],
           "errors": [
             {
@@ -5324,7 +5437,12 @@
           },
           "concurrency": "只读快照或CAS",
           "idempotency": "读取幂等；写入按operationId",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.authorizeGuardManagement",
+            "traffic-guard.beginGuardTransaction",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -5335,6 +5453,495 @@
       "kind": "migration",
       "purpose": "只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变",
       "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "kind": "handwritten",
+      "purpose": "本域可信装配与组合短事务、原安全回执和outbox边界",
+      "functions": [
+        {
+          "id": "traffic-guard.WithGuardRuntime",
+          "name": "WithGuardRuntime",
+          "signature": "func WithGuardRuntime(ctx context.Context, runtime GuardRuntime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "可信装配注入私有库、即时权限、独立预算key与当前写窗口",
+          "steps": [
+            "可信装配注入私有库、即时权限、独立预算key与当前写窗口"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.WithPolicyStore"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.beginGuardTransaction",
+          "name": "beginGuardTransaction",
+          "signature": "func beginGuardTransaction(ctx context.Context, op OperationContext, write bool) (*guardTransaction, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "锁前取得当前安全写窗口；嵌套组合准入复用同一本地短事务",
+          "steps": [
+            "锁前取得当前安全写窗口；嵌套组合准入复用同一本地短事务"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "platform.NewWriteContext"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.guardTransaction.close",
+          "name": "guardTransaction.close",
+          "signature": "func (t *guardTransaction) close()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只有事务拥有者回滚并释放库生命周期锁与取消句柄",
+          "steps": [
+            "只有事务拥有者回滚并释放库生命周期锁与取消句柄"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.guardTransaction.commit",
+          "name": "guardTransaction.commit",
+          "signature": "func (t *guardTransaction) commit() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只有最外层提交，嵌套桶/并发不单独提交",
+          "steps": [
+            "只有最外层提交，嵌套桶/并发不单独提交"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.authorizeGuardManagement",
+          "name": "authorizeGuardManagement",
+          "signature": "func authorizeGuardManagement(ctx context.Context, op OperationContext, action string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "管理员权限每次向identity即时核验，不信任菜单或事件投影",
+          "steps": [
+            "管理员权限每次向identity即时核验，不信任菜单或事件投影"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "identity:checkAuthorization",
+            "platform.NewIdentityAuthorizer"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.readGuardReceipt",
+          "name": "readGuardReceipt",
+          "signature": "func readGuardReceipt(t *guardTransaction, kind string, input any, result any) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同事务核规范输入摘要并读取不含token的原安全回执",
+          "steps": [
+            "同事务核规范输入摘要并读取不含token的原安全回执"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.saveGuardReceipt",
+          "name": "saveGuardReceipt",
+          "signature": "func saveGuardReceipt(t *guardTransaction, kind string, input any, result any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "保存安全回执，与业务和outbox同事务；签名token不得传入持久回执",
+          "steps": [
+            "保存安全回执，与业务和outbox同事务；签名token不得传入持久回执"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.enqueueGuardEvent",
+          "name": "enqueueGuardEvent",
+          "signature": "func enqueueGuardEvent(t *guardTransaction, eventType, subject string, revision int64, payload any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "使用公共outbox同事务登记安全事件引用",
+          "steps": [
+            "使用公共outbox同事务登记安全事件引用"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.readGuardPolicy",
+          "name": "readGuardPolicy",
+          "signature": "func readGuardPolicy(t *guardTransaction) (GuardPolicy, int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取已保存同代次策略，缺行NOT_FOUND，不猜默认",
+          "steps": [
+            "读取已保存同代次策略，缺行NOT_FOUND，不猜默认"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0003_guard_runtime.sql",
+      "kind": "handwritten",
+      "purpose": "只追加匿名作用域、桶、租约、挑战、禁令与安全回执；不持久token/原IP/正文",
+      "functions": []
+    },
+    {
+      "path": "modules/traffic-guard/internal/http_management.go",
+      "kind": "handwritten",
+      "purpose": "只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权",
+      "functions": [
+        {
+          "id": "traffic-guard.NewGuardHandlers",
+          "name": "NewGuardHandlers",
+          "signature": "func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权",
+          "steps": [
+            "只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "数据根非绝对",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "active代次尚未建立",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "目录/资源建立失败",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "业务库不可用",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "建立私有目录，打开SQLite与control journal，复用platform outbox schema"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅可信本域装配或已认证绑定链路内部调用"
+          },
+          "concurrency": "本域短事务；不执行口令核验",
+          "idempotency": "以原绑定函数幂等约束为准",
+          "dependencies": [
+            "traffic-guard.NewLoginHandlers",
+            "traffic-guard.GetPolicy",
+            "traffic-guard.UpdatePolicy",
+            "traffic-guard.CreateBan",
+            "traffic-guard.RevokeBan",
+            "traffic-guard.ListBans",
+            "traffic-guard.ListRiskEvents",
+            "traffic-guard.ReportQuestionSignals",
+            "traffic-guard.QueueSessionAdmission"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [],

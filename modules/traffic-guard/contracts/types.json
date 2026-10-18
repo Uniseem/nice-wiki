@@ -482,7 +482,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 128,
-          "default": 2,
+          "default": 1,
           "description": "主体并发"
         },
         "qaSiteConcurrency": {
@@ -1080,22 +1080,10 @@
           "description": "routeId；UTF-8；不得为 null",
           "maxLength": 128,
           "minLength": 1
-        },
-        "callerService": {
-          "type": "string",
-          "description": "callerService；UTF-8；不得为 null",
-          "maxLength": 8192
-        },
-        "actorKind": {
-          "type": "string",
-          "description": "actorKind；UTF-8；不得为 null",
-          "maxLength": 8192
         }
       },
       "required": [
-        "routeId",
-        "callerService",
-        "actorKind"
+        "routeId"
       ]
     },
     "ClassifyActionResult": {
@@ -1162,12 +1150,35 @@
         "activeBan": {
           "type": "boolean",
           "description": "activeBan 的明确真假结果，不可 null"
+        },
+        "exactRepeatCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regularIntervalCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "similarityScore": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "modelVerdict": {
+          "enum": [
+            "normal",
+            "suspicious",
+            "abuse"
+          ]
         }
       },
       "required": [
         "denials10m",
         "challengePassed",
-        "activeBan"
+        "activeBan",
+        "exactRepeatCount",
+        "regularIntervalCount",
+        "modelVerdict"
       ]
     },
     "ComputeRiskInput": {
@@ -1198,8 +1209,8 @@
         "similarityScore": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "similarityScore 非负 int64；不用浮点数"
+          "maximum": 10000,
+          "description": "可选真实观测；缺失未知，不新增数值阈值或信任加分。"
         },
         "regularIntervalCount": {
           "type": "integer",
@@ -1210,7 +1221,12 @@
         "modelVerdict": {
           "type": "string",
           "description": "modelVerdict；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8192,
+          "enum": [
+            "normal",
+            "suspicious",
+            "abuse"
+          ]
         }
       },
       "required": [
@@ -1218,7 +1234,6 @@
         "challengePassed",
         "activeBan",
         "exactRepeatCount",
-        "similarityScore",
         "regularIntervalCount",
         "modelVerdict"
       ]
@@ -1230,9 +1245,14 @@
       "properties": {
         "decision": {
           "type": "string",
-          "description": "decision；UTF-8；不得为 null",
+          "description": "封闭决策：allow才可继续，deny停止，challenge回既有人机验证；未知值失败关闭。",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "allow",
+            "deny",
+            "challenge"
+          ]
         },
         "difficulty": {
           "type": "integer",
@@ -1260,19 +1280,19 @@
         "capacity": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
+          "maximum": 100000,
           "description": "capacity 非负 int64；不用浮点数"
         },
         "elapsedMs": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 60000,
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807,
           "description": "elapsedMs 非负 int64；不用浮点数"
         },
         "ratePerMinute": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
+          "maximum": 100000,
           "description": "ratePerMinute 非负 int64；不用浮点数"
         }
       },
@@ -1318,9 +1338,10 @@
         },
         "cost": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "cost 非负 int64；不用浮点数"
+          "minimum": 1,
+          "maximum": 100000,
+          "description": "纯频率令牌个数，不是费用或金额。",
+          "const": 1
         },
         "nowMs": {
           "type": "integer",
@@ -2037,27 +2058,32 @@
       "description": "管理员建立临时禁令输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "subjectRef": {
-          "type": "string",
-          "description": "subjectRef；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "已经存在的不可逆网络引用，不接受原始IP。"
         },
         "scope": {
           "type": "string",
           "description": "scope；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8192,
+          "enum": [
+            "ai"
+          ]
         },
         "ttlSeconds": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
+          "maximum": 2592000,
           "description": "ttlSeconds 非负 int64；不用浮点数"
         },
         "reasonCode": {
           "type": "string",
           "description": "reasonCode；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "manual",
+            "abuse"
+          ]
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -2153,7 +2179,7 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
+          "maximum": 100,
           "description": "limit 非负 int64；不用浮点数",
           "default": 20
         },
@@ -2187,11 +2213,20 @@
           "type": "string",
           "description": "nextCursor；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/BanRecord"
+          },
+          "description": "保留旧banIds字段，同时输出实际匿名原因、期限与状态。"
         }
       },
       "required": [
         "banIds",
-        "nextCursor"
+        "nextCursor",
+        "items"
       ]
     },
     "ExpireBansInput": {
@@ -2495,36 +2530,38 @@
       "description": "接收qa已有检测信号输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "sessionKey": {
-          "type": "string",
-          "description": "sessionKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "networkKey": {
-          "type": "string",
-          "description": "networkKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "questionHash": {
-          "type": "string",
-          "description": "questionHash；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "similarityScore": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "similarityScore 非负 int64；不用浮点数"
+          "maximum": 10000,
+          "description": "可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。"
         },
         "intervalMs": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "intervalMs 非负 int64；不用浮点数"
+          "description": "可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。"
         },
         "modelVerdict": {
           "type": "string",
           "description": "modelVerdict；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8192,
+          "enum": [
+            "normal",
+            "suspicious",
+            "abuse"
+          ]
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -2535,8 +2572,6 @@
         "sessionKey",
         "networkKey",
         "questionHash",
-        "similarityScore",
-        "intervalMs",
         "modelVerdict",
         "dataEpoch"
       ]
@@ -2548,9 +2583,14 @@
       "properties": {
         "decision": {
           "type": "string",
-          "description": "decision；UTF-8；不得为 null",
+          "description": "封闭决策：allow才可继续，deny停止，challenge回既有人机验证；未知值失败关闭。",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "allow",
+            "deny",
+            "challenge"
+          ]
         },
         "banExpiresAt": {
           "type": "string",
@@ -2569,9 +2609,8 @@
       "description": "每会话1并发其余排队输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "sessionKey": {
-          "type": "string",
-          "description": "sessionKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "requestId": {
           "type": "string",
@@ -2582,6 +2621,15 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "enqueue",
+            "cancel"
+          ],
+          "default": "enqueue",
+          "description": "缺省enqueue；cancel只删除同请求排队引用，不释放active租约。"
         }
       },
       "required": [
@@ -2936,27 +2984,32 @@
       "description": "指定匿名主体引用及动作 scope，禁止提交原始 IP；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
       "properties": {
         "subjectRef": {
-          "type": "string",
-          "description": "subjectRef；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "已经存在的不可逆网络引用，不接受原始IP。"
         },
         "scope": {
           "type": "string",
           "description": "scope；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8192,
+          "enum": [
+            "ai"
+          ]
         },
         "ttlSeconds": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
+          "maximum": 2592000,
           "description": "ttlSeconds 非负 int64；不用浮点数"
         },
         "reasonCode": {
           "type": "string",
           "description": "reasonCode；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "manual",
+            "abuse"
+          ]
         }
       },
       "required": [
@@ -3018,44 +3071,44 @@
       "description": "复评已有前置模型风险/匿名重复信号，abuse600秒AI禁令；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
       "properties": {
         "sessionKey": {
-          "type": "string",
-          "description": "sessionKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "networkKey": {
-          "type": "string",
-          "description": "networkKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "questionHash": {
-          "type": "string",
-          "description": "questionHash；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "similarityScore": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
-          "description": "similarityScore 非负 int64；不用浮点数"
+          "maximum": 10000,
+          "description": "可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。"
         },
         "intervalMs": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "intervalMs 非负 int64；不用浮点数"
+          "description": "可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。"
         },
         "modelVerdict": {
           "type": "string",
           "description": "modelVerdict；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8192,
+          "enum": [
+            "normal",
+            "suspicious",
+            "abuse"
+          ]
         }
       },
       "required": [
         "sessionKey",
         "networkKey",
         "questionHash",
-        "similarityScore",
-        "intervalMs",
         "modelVerdict"
       ]
     },
@@ -3065,15 +3118,23 @@
       "description": "同会话仅1处理，其余由qa持正文FIFO排队；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
       "properties": {
         "sessionKey": {
-          "type": "string",
-          "description": "sessionKey；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "仅已验证不可逆HMAC/问题hash，不接原文或原IP。"
         },
         "requestId": {
           "type": "string",
           "description": "requestId；UTF-8；不得为 null",
           "maxLength": 128,
           "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "enqueue",
+            "cancel"
+          ],
+          "default": "enqueue",
+          "description": "缺省enqueue；cancel只删除同请求排队引用，不释放active租约。"
         }
       },
       "required": [
@@ -3418,7 +3479,7 @@
     "ListRiskEventsInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "可疑事件筛选",
+      "description": "since省略表示全部尚保留匿名记录；返回按时间/事件ID稳定倒序。",
       "properties": {
         "page": {
           "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
@@ -3430,8 +3491,7 @@
         }
       },
       "required": [
-        "page",
-        "since"
+        "page"
       ]
     },
     "ListRiskEventsResult": {
@@ -3630,6 +3690,85 @@
       "x-internal": true,
       "x-go-type": "any",
       "description": "已经完成的登录预留或终局结果，仅HTTP输出绑定使用"
+    },
+    "GuardRuntime": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "GuardRuntime",
+      "description": "仅本域可信运行装配和短事务句柄，不作为HTTP数据。"
+    },
+    "guardTransaction": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "guardTransaction",
+      "description": "仅本域可信运行装配和短事务句柄，不作为HTTP数据。"
+    },
+    "BanRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "banId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "subjectRef": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "scope": {
+          "enum": [
+            "ai"
+          ]
+        },
+        "reasonCode": {
+          "enum": [
+            "manual",
+            "abuse"
+          ]
+        },
+        "startsAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "expired",
+            "revoked"
+          ]
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "banId",
+        "subjectRef",
+        "scope",
+        "reasonCode",
+        "startsAt",
+        "expiresAt",
+        "state",
+        "revision"
+      ]
+    },
+    "GuardPageRequest": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "GuardPageRequest",
+      "description": "本域分页读取的内部Go绑定类型，公开字段以原HTTP结果schema为准。"
+    },
+    "GuardPageInfo": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "GuardPageInfo",
+      "description": "本域分页读取的内部Go绑定类型，公开字段以原HTTP结果schema为准。"
+    },
+    "RiskEvent": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "RiskEvent",
+      "description": "本域分页读取的内部Go绑定类型，公开字段以原HTTP结果schema为准。"
     }
   }
 }
