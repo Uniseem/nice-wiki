@@ -4849,9 +4849,24 @@
       "purpose": "风控本轮实际持久化与管理接口源码"
     },
     {
+      "path": "modules/traffic-guard/internal/captcha.go",
+      "kind": "handwritten",
+      "purpose": "适配外部验证；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/traffic-guard/internal/challenge.go",
+      "kind": "handwritten",
+      "purpose": "签发挑战；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/traffic-guard/internal/classification.go",
       "kind": "handwritten",
       "purpose": "风控本轮实际持久化与管理接口源码"
+    },
+    {
+      "path": "modules/traffic-guard/internal/events.go",
+      "kind": "handwritten",
+      "purpose": "处理权限撤销通知；同文件职责限本域以下登记函数"
     },
     {
       "path": "modules/traffic-guard/internal/gen/clients.gen.go",
@@ -4889,6 +4904,11 @@
       "purpose": "QA在线确认准入租约；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/traffic-guard/internal/outbox.go",
+      "kind": "handwritten",
+      "purpose": "可靠派发风控引用事件；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/traffic-guard/internal/permit_sign.go",
       "kind": "handwritten",
       "purpose": "签名准入凭证；同文件职责限本域以下登记函数"
@@ -4907,6 +4927,11 @@
       "path": "modules/traffic-guard/internal/policy_store.go",
       "kind": "handwritten",
       "purpose": "风控策略私有存储、迁移与恢复"
+    },
+    {
+      "path": "modules/traffic-guard/internal/pow.go",
+      "kind": "handwritten",
+      "purpose": "验证工作量证明；同文件职责限本域以下登记函数"
     },
     {
       "path": "modules/traffic-guard/internal/queries.go",

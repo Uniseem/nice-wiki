@@ -72,7 +72,7 @@ OpenAPI顶级x-runtime-payload-schemas显式列出后台或客户端需要的生
 
 ## 问答许可分配与消费（2026-10-18）
 
-guard createAdmission只分配持久元数据，token为空串。qa消费时核同owner、原根、站点、代次、有效租约和ban，持久提交消费事实后才签发nw-admission-v1。只有该非空签名可进入MG的qa费用分支；MG本地验签，requestId固定等于原问题RootOperationID，保留原匿名subject，二跳服务不能替换主体或费用scope。续租不换根、不重扣桶、不复活到期许可。localization.suggest仅免费限流，永不签模型token。
+guard createAdmission只分配持久元数据，token为空串。qa付费提问消费时核同owner、原根、站点、代次、有效租约和ban，持久提交消费事实后才签发nw-admission-v1。只有该非空签名可进入MG的qa费用分支；MG本地验签，requestId固定等于原问题RootOperationID，保留原匿名subject，二跳服务不能替换主体或费用scope。续租不换根、不重扣桶、不复活到期许可。localization.suggest仅免费限流，永不签模型token。
 
 需人机验证时返回CHALLENGE_REQUIRED/429且retryable=false，由调用方沿既有issueChallenge领取挑战，不在Problem中藏ID。纯频率为RATE_LIMITED，ban按原FORBIDDEN。挑战通过的十分钟session证明使用独立用途，不能充当模型许可。
 
