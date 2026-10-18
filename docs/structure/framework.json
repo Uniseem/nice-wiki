@@ -879,6 +879,16 @@
       "purpose": "任务领取循环实现"
     },
     {
+      "path": "licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE",
+      "kind": "documentation",
+      "purpose": "用户批准项目固定版本原始许可文本"
+    },
+    {
+      "path": "licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE",
+      "kind": "documentation",
+      "purpose": "用户批准项目固定版本原始许可文本"
+    },
+    {
       "path": "modules/analytics/AGENTS.md",
       "kind": "documentation",
       "purpose": "analytics分级规格/实现约束/文档索引"

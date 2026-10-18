@@ -1,3 +1,7 @@
+# 管理员语言建议付费批准源码待GitLab
+
+用户2026-10-18明确选择管理员开启后允许。源码8a56a5e新增默认关闭的同站/同代CAS策略与不可变审批历史，MG纯服务只读当前approvalId，每次attempt按真实许可；旧版本/恢复换代不继承。5函数及005迁移仍blocked待GitLab，未执行模型、迁移或本机编译。全量SuggestLanguage及服务启动尚未齐，未冒充完整。
+
 # 2026-10-18 第二批集成检查通过并已双推源码
 
 自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。
