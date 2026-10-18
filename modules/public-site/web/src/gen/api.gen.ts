@@ -467,7 +467,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */

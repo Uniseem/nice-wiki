@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"nice-wiki/libs/platform"
- qaruntime "nice-wiki/modules/qa/internal/runtime"
+	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
 
 // OperationContext 是平台可信执行上下文的本域别名。

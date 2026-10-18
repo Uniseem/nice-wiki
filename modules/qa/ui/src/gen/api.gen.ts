@@ -494,6 +494,11 @@ export interface components {
         QaTurn: components["schemas"]["Turn"];
         QaCitations: components["schemas"]["Citation"][];
         PublicResolvePublishedLinkResult: components["schemas"]["ResolvePublishedLinkResult"];
+        QaPlannerDecision: components["schemas"]["PlannerDecision"];
+        GuardReportQuestionSignalsResult: components["schemas"]["ReportQuestionSignalsResult"];
+        QaDebugTurn: components["schemas"]["DebugTurn"];
+        QaCompaction: components["schemas"]["Compaction"];
+        QaQuestionPlan: components["schemas"]["QuestionPlan"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -530,7 +535,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -557,17 +562,17 @@ export interface components {
             /** @description 逐字段输入错误，不能回显秘密原值 */
             issues?: components["schemas"]["FieldIssue"][];
         };
-        /** @description guard短期签名准入；签名覆盖全部字段、动作、请求/主体、作用域、代次、到期与audience。MG本地验签，再从可信作用域构建额度，不接受客户端任选费用scope。 */
+        /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
         AdmissionPermit: {
             /** @description 准入记录稳定ID */
             admissionId: components["schemas"]["Identifier"];
-            /** @description 本次请求唯一追踪ID */
+            /** @description 原QA问题的稳定RootOperationID；不是当前RPC的追踪RequestID */
             requestId: components["schemas"]["Identifier"];
             /** @description 经验证的主体ID */
             subjectId: components["schemas"]["Identifier"];
             /** @description 许可动作，必须与消费场景一致 */
             action: string;
-            /** @description 短期签名凭证，禁止记录 */
+            /** @description mint分配阶段为空串，不构成模型凭证；仅QA按原根持久消费后签发非空凭证，禁止记录 */
             token: string;
             /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
             expiresAt: components["schemas"]["Timestamp"];
@@ -1254,6 +1259,11 @@ export interface components {
             citations: components["schemas"]["BlockRef"][];
             /** @description 回答类型 */
             answerKind: string;
+            /** @description 与原引用逐项对应，权威未知整次失败；已知撤回或hash变化标false */
+            citationStatuses?: {
+                block: components["schemas"]["BlockRef"];
+                valid: boolean;
+            }[];
         };
         /** @description 首页是否具备QA配置；不代表调用额度或服务健康 */
         ReadPublicCapabilityResult: {
@@ -2100,6 +2110,102 @@ export interface components {
              * @enum {string}
              */
             reason: "unavailable" | "anchor_missing" | "language_unavailable";
+        };
+        /** @description 仅来自qa.preflight当前模型文本的严格决定，不接受HTTP用户自报 */
+        PlannerDecision: {
+            /** @description 完整基准语言问题 */
+            canonicalQuestion: string;
+            /** @description 意思完整且无需缺失指代 */
+            complete: boolean;
+            /** @description 完整非个人化且非敏感动态问题 */
+            cacheEligible: boolean;
+            /**
+             * @description 仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受
+             * @default false
+             */
+            resolvedReferences: boolean;
+            /** @description 最多4个完整子问题 */
+            subqueries: string[];
+            /**
+             * @description 类型
+             * @enum {string}
+             */
+            classification: "smalltalk" | "out_of_scope" | "simple" | "complex" | "needs_clarification";
+            /**
+             * @description 并入前置模型风险
+             * @enum {string}
+             */
+            risk: "normal" | "suspicious" | "abusive";
+            currentPageDependent: boolean;
+            privateContextDependent: boolean;
+        };
+        /** @description 接收qa已有检测信号成功结果；失败不返回半成功结果 */
+        ReportQuestionSignalsResult: {
+            /**
+             * @description 封闭决策：allow才可继续，deny停止，challenge回既有人机验证；未知值失败关闭。
+             * @enum {string}
+             */
+            decision: "allow" | "deny" | "challenge";
+            /** @description banExpiresAt；UTF-8；不得为 null */
+            banExpiresAt: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Compaction: {
+            /** @description 压缩 */
+            compactionId: components["schemas"]["Identifier"];
+            /** @description 会话 */
+            conversationId: components["schemas"]["Identifier"];
+            /** @description 输入历史代数 */
+            sourceGeneration: number;
+            /** @description queued/running允许未产出空文本；提交必须非空且摘要一致 */
+            summary: string;
+            /** @description 摘要hash */
+            summaryHash: components["schemas"]["Hash"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "queued" | "running" | "committed" | "superseded" | "failed";
+            /** @description 前次摘要 */
+            previousSummaryHash?: components["schemas"]["Hash"];
+            /** @description 增量起始 */
+            newMessageStartOrdinal: number;
+            /** @description 增量排他结束 */
+            newMessageEndOrdinal: number;
+            /** @description 保留最近历史起点 */
+            retainedFromOrdinal: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        QuestionPlan: {
+            /** @description 原问题 */
+            originalQuestion: string;
+            /** @description 完整基准语言问题 */
+            canonicalQuestion: string;
+            /** @description 回答语言 */
+            visitorLanguage: string;
+            /** @description 意思完整且无需缺失指代 */
+            complete: boolean;
+            /** @description 完整非个人化且非敏感动态问题 */
+            cacheEligible: boolean;
+            /** @description 最多4个完整子问题 */
+            subqueries: string[];
+            /**
+             * @description 类型
+             * @enum {string}
+             */
+            classification: "smalltalk" | "out_of_scope" | "simple" | "complex" | "needs_clarification";
+            /**
+             * @description 并入前置模型风险
+             * @enum {string}
+             */
+            risk: "normal" | "suspicious" | "abusive";
+            /** @description 当前页历史及记忆摘要 */
+            contextFingerprint: components["schemas"]["Hash"];
+            /**
+             * @description 仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受
+             * @default false
+             */
+            resolvedReferences: boolean;
         };
     };
     responses: never;

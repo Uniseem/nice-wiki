@@ -2,10 +2,10 @@ package search
 
 import (
 	"context"
- qaruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"database/sql"
 	"encoding/json"
 	indexer "nice-wiki/modules/knowledge/internal/index"
+	qaruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"sort"
 
 	"nice-wiki/libs/platform"
@@ -92,9 +92,11 @@ func activeSnapshot(ctx context.Context, op OperationContext) (Snapshot, error) 
 
 // Retrieve 固定一次 active 快照，先权威过滤再重排，选材后再次核对可见性。
 func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (RetrieveResult, error) {
- var bindErr error
- ctx, bindErr = qaruntime.BindAdmissionPermit(ctx, op, input.AdmissionPermit)
- if bindErr != nil { return RetrieveResult{}, bindErr }
+	var bindErr error
+	ctx, bindErr = qaruntime.BindAdmissionPermit(ctx, op, input.AdmissionPermit)
+	if bindErr != nil {
+		return RetrieveResult{}, bindErr
+	}
 	runtime, err := searchRuntime(ctx)
 	if err != nil {
 		return RetrieveResult{}, err

@@ -33,12 +33,12 @@ type (
 
 // MemoryContext 与公共schema一致，字节数只计算完整注入文本。
 type MemoryContext struct {
- TaskID string `json:"taskId"`
- Language string `json:"language"`
- Text string `json:"text"`
- VersionHash Hash `json:"versionHash"`
- MappingRevision Revision `json:"mappingRevision"`
- ByteSize int64 `json:"byteSize"`
+	TaskID          string   `json:"taskId"`
+	Language        string   `json:"language"`
+	Text            string   `json:"text"`
+	VersionHash     Hash     `json:"versionHash"`
+	MappingRevision Revision `json:"mappingRevision"`
+	ByteSize        int64    `json:"byteSize"`
 }
 
 // CostClass 可信费用归属类别；公开请求不能指定。
@@ -55,7 +55,7 @@ const (
 	CodeForbidden             = "FORBIDDEN"
 	CodeNotFound              = "NOT_FOUND"
 	CodeGone                  = "GONE"
- CodeChallengeRequired = "CHALLENGE_REQUIRED"
+	CodeChallengeRequired     = "CHALLENGE_REQUIRED"
 	CodeConflict              = "CONFLICT"
 	CodeVersionMismatch       = "VERSION_MISMATCH"
 	CodeLocked                = "LOCKED"
@@ -79,7 +79,7 @@ var ProblemHTTPStatus = map[string]int{
 	CodeForbidden:             403,
 	CodeNotFound:              404,
 	CodeGone:                  410,
- CodeChallengeRequired: 429,
+	CodeChallengeRequired:     429,
 	CodeConflict:              409,
 	CodeVersionMismatch:       409,
 	CodeLocked:                409,
@@ -161,17 +161,17 @@ type AuthContext struct {
 
 // OperationContext 服务间可信操作元数据。
 type OperationContext struct {
-	RequestID          Identifier  `json:"requestId"`
-	OperationID        Identifier  `json:"operationId"`
-	RootOperationID    Identifier  `json:"rootOperationId"`
-	CallerService      string      `json:"callerService"`
-	Actor              AuthContext `json:"actor"`
-	Deadline           Timestamp   `json:"deadline"`
-	DataEpoch          Identifier  `json:"dataEpoch"`
-	CostClass          string      `json:"costClass,omitempty"`
-	CancellationID     Identifier  `json:"cancellationId,omitempty"`
-	LoginNetworkScopes []Hash      `json:"-"`
- NetworkBudgetScopes []Hash `json:"-"`
+	RequestID           Identifier  `json:"requestId"`
+	OperationID         Identifier  `json:"operationId"`
+	RootOperationID     Identifier  `json:"rootOperationId"`
+	CallerService       string      `json:"callerService"`
+	Actor               AuthContext `json:"actor"`
+	Deadline            Timestamp   `json:"deadline"`
+	DataEpoch           Identifier  `json:"dataEpoch"`
+	CostClass           string      `json:"costClass,omitempty"`
+	CancellationID      Identifier  `json:"cancellationId,omitempty"`
+	LoginNetworkScopes  []Hash      `json:"-"`
+	NetworkBudgetScopes []Hash      `json:"-"`
 }
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
@@ -220,17 +220,17 @@ type SessionSecrets struct {
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
 type AssertionClaims struct {
-	Issuer             string     `json:"iss"`
-	Audience           string     `json:"aud"`
-	Method             string     `json:"method"`
-	Path               string     `json:"path"`
-	BodyHash           Hash       `json:"bodyHash"`
-	IssuedAt           Timestamp  `json:"issuedAt"`
-	ExpiresAt          Timestamp  `json:"expiresAt"`
-	JTI                Identifier `json:"jti"`
-	LoginNetworkScopes []Hash     `json:"loginNetworkScopes,omitempty"`
- NetworkBudgetScopes []Hash `json:"networkBudgetScopes,omitempty"`
-	SiteID             Identifier `json:"siteId,omitempty"`
+	Issuer              string     `json:"iss"`
+	Audience            string     `json:"aud"`
+	Method              string     `json:"method"`
+	Path                string     `json:"path"`
+	BodyHash            Hash       `json:"bodyHash"`
+	IssuedAt            Timestamp  `json:"issuedAt"`
+	ExpiresAt           Timestamp  `json:"expiresAt"`
+	JTI                 Identifier `json:"jti"`
+	LoginNetworkScopes  []Hash     `json:"loginNetworkScopes,omitempty"`
+	NetworkBudgetScopes []Hash     `json:"networkBudgetScopes,omitempty"`
+	SiteID              Identifier `json:"siteId,omitempty"`
 }
 
 // AssertionExpectation 验证断言时的期望值。
@@ -412,12 +412,12 @@ type AdmissionPermit struct {
 
 // GuardSessionClaims是风控挑战通过证明，不授予模型调用或账户权限。
 type GuardSessionClaims struct {
- SubjectID Identifier `json:"subjectId"`
- SiteID Identifier `json:"siteId"`
- SessionID Identifier `json:"sessionId"`
- DataEpoch Identifier `json:"dataEpoch"`
- ExpiresAt Timestamp `json:"expiresAt"`
- Audience string `json:"audience"`
+	SubjectID Identifier `json:"subjectId"`
+	SiteID    Identifier `json:"siteId"`
+	SessionID Identifier `json:"sessionId"`
+	DataEpoch Identifier `json:"dataEpoch"`
+	ExpiresAt Timestamp  `json:"expiresAt"`
+	Audience  string     `json:"audience"`
 }
 
 // 网关能力枚举。

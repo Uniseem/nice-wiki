@@ -56,7 +56,7 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 		return platform.OperationContext{}, err
 	}
 	op.LoginNetworkScopes = append([]platform.Hash(nil), claims.LoginNetworkScopes...)
- op.NetworkBudgetScopes=append([]platform.Hash(nil),claims.NetworkBudgetScopes...)
+	op.NetworkBudgetScopes = append([]platform.Hash(nil), claims.NetworkBudgetScopes...)
 	if root := r.Header.Get(platform.HeaderRootOperationID); platform.ValidIdentifier(root) {
 		op.RootOperationID = root
 	} else {

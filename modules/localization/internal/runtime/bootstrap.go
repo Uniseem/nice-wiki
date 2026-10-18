@@ -18,8 +18,8 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/modules/localization/internal/gen"
 	localizationmigrations "nice-wiki/modules/localization/migrations"
- "nice-wiki/modules/localization/internal/gen"
 )
 
 const (
@@ -53,12 +53,12 @@ type LoadRuntimeResult struct {
 // Store 是active区业务库与control区决定日志的句柄。
 // control区不随业务恢复换目录替换。
 type Store struct {
-	gateway platform.GatewayClient
- publisher platform.EventPublisher
- content *gen.ContentClient
- sourceValidators map[string]func(json.RawMessage)error
- cursorKey platform.SigningKey
- root                 string
+	gateway              platform.GatewayClient
+	publisher            platform.EventPublisher
+	content              *gen.ContentClient
+	sourceValidators     map[string]func(json.RawMessage) error
+	cursorKey            platform.SigningKey
+	root                 string
 	db                   *sql.DB
 	journal              *os.File
 	mu                   sync.Mutex
@@ -68,7 +68,7 @@ type Store struct {
 	appliedMigrations    int64
 	glossaryGeneration   int64
 	leaseRecoveryPending int64
- objectGenerations map[string]int
+	objectGenerations    map[string]int
 }
 
 type journalEntry struct {
@@ -414,14 +414,21 @@ func (s *Store) recoverJournal() error {
 	if err != nil {
 		return err
 	}
-	s.objectGenerations=map[string]int{}
- for _, entry := range entries {
-  if entry.Kind=="object.generation"{
-   var reserved struct{Key string `json:"key"`;Generation int `json:"generation"`}
-   if entry.State!="done"||json.Unmarshal(entry.Payload,&reserved)!=nil||reserved.Key==""||reserved.Generation<1{return platform.NewError(platform.CodeIntegrityError,false,"译文对象代数日志损坏")}
-   if reserved.Generation>s.objectGenerations[reserved.Key]{s.objectGenerations[reserved.Key]=reserved.Generation}
-  }
-  if entry.State == "open" {
+	s.objectGenerations = map[string]int{}
+	for _, entry := range entries {
+		if entry.Kind == "object.generation" {
+			var reserved struct {
+				Key        string `json:"key"`
+				Generation int    `json:"generation"`
+			}
+			if entry.State != "done" || json.Unmarshal(entry.Payload, &reserved) != nil || reserved.Key == "" || reserved.Generation < 1 {
+				return platform.NewError(platform.CodeIntegrityError, false, "译文对象代数日志损坏")
+			}
+			if reserved.Generation > s.objectGenerations[reserved.Key] {
+				s.objectGenerations[reserved.Key] = reserved.Generation
+			}
+		}
+		if entry.State == "open" {
 			return platform.NewError(platform.CodeIntegrityError, false, "本域决定日志存在未完成条目")
 		}
 	}
@@ -523,14 +530,36 @@ func checkContext(ctx context.Context) error {
 }
 
 // Root 仅供本域权威对象存储定位active目录，不能跨服务传递或序列化。
-func(s *Store)Root()string{return s.root}
+func (s *Store) Root() string { return s.root }
 
 // ReserveObjectGeneration 在control日志只追加预留代数，不激活任何正文；失败事务的文件永远不会被复用覆盖。
-func(s *Store)ReserveObjectGeneration(key string,minimum int)(int,error){
- s.mu.Lock();defer s.mu.Unlock()
- if s.objectGenerations==nil{s.objectGenerations=map[string]int{}}
- generation:=minimum;if generation<=s.objectGenerations[key]{generation=s.objectGenerations[key]+1};if generation>9007199254740991{return 0,platform.NewError(platform.CodeIntegrityError,false,"译文对象代数超过安全整数上限")}
- payload,err:=platform.CanonicalJSON(map[string]any{"key":key,"generation":generation});if err!=nil{return 0,platform.NewError(platform.CodeInternal,false,"译文代数预留编码失败")}
- raw,err:=json.Marshal(journalEntry{ID:platform.NewIdentifier(),Kind:"object.generation",State:"done",Payload:payload,At:platform.Now()});if err!=nil{return 0,platform.NewError(platform.CodeInternal,false,"译文代数日志编码失败")}
- if _,err=s.journal.Write(append(raw,'\n'));err!=nil{return 0,platform.NewError(platform.CodeInternal,false,"译文代数日志写入失败")};if err=s.journal.Sync();err!=nil{return 0,platform.NewError(platform.CodeInternal,false,"译文代数日志同步失败")};s.objectGenerations[key]=generation;return generation,nil
+func (s *Store) ReserveObjectGeneration(key string, minimum int) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.objectGenerations == nil {
+		s.objectGenerations = map[string]int{}
+	}
+	generation := minimum
+	if generation <= s.objectGenerations[key] {
+		generation = s.objectGenerations[key] + 1
+	}
+	if generation > 9007199254740991 {
+		return 0, platform.NewError(platform.CodeIntegrityError, false, "译文对象代数超过安全整数上限")
+	}
+	payload, err := platform.CanonicalJSON(map[string]any{"key": key, "generation": generation})
+	if err != nil {
+		return 0, platform.NewError(platform.CodeInternal, false, "译文代数预留编码失败")
+	}
+	raw, err := json.Marshal(journalEntry{ID: platform.NewIdentifier(), Kind: "object.generation", State: "done", Payload: payload, At: platform.Now()})
+	if err != nil {
+		return 0, platform.NewError(platform.CodeInternal, false, "译文代数日志编码失败")
+	}
+	if _, err = s.journal.Write(append(raw, '\n')); err != nil {
+		return 0, platform.NewError(platform.CodeInternal, false, "译文代数日志写入失败")
+	}
+	if err = s.journal.Sync(); err != nil {
+		return 0, platform.NewError(platform.CodeInternal, false, "译文代数日志同步失败")
+	}
+	s.objectGenerations[key] = generation
+	return generation, nil
 }

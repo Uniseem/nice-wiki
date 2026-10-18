@@ -14,15 +14,15 @@
 | POST `/v1/admissions/{admissionId}:release` | `releaseAdmission` | `traffic-guard.ReleasePermit` | `service` | `ReleasePermitRequestBody` → 200 `ReleasePermitResult` | 释放并发占位 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | POST `/v1/challenges` | `issueChallenge` | `traffic-guard.IssueChallenge` | `anonymous` | `IssueChallengeRequestBody` → 200 `IssueChallengeResult` | 签发挑战 | `RATE_LIMITED`、`VALIDATION` |
 | POST `/v1/challenges/{challengeId}:verify` | `verifyChallenge` | `traffic-guard.VerifyChallenge` | `anonymous` | `VerifyChallengeRequestBody` → 200 `VerifyChallengeResult` | 核验并消费挑战 | `STALE_RESULT`、`VALIDATION` |
-| GET `/v1/policies` | `getPolicy` | `traffic-guard.GetPolicy` | `guard.manage` | `—` → 200 `GetPolicyResult` | 读取生效策略 | `VERSION_MISMATCH` |
-| PUT `/v1/policies` | `updatePolicy` | `traffic-guard.UpdatePolicy` | `guard.manage` | `UpdatePolicyRequestBody` → 200 `UpdatePolicyResult` | 更新策略 CAS | `FORBIDDEN`、`CONFLICT` |
-| GET `/v1/bans` | `listBans` | `traffic-guard.ListBans` | `guard.manage` | `—` → 200 `ListBansResult` | 分页禁令 | `VALIDATION`、`FORBIDDEN` |
-| POST `/v1/bans` | `createBan` | `traffic-guard.CreateBan` | `guard.manage` | `CreateBanRequestBody` → 200 `CreateBanResult` | 管理员建立临时禁令 | `FORBIDDEN`、`VALIDATION` |
-| DELETE `/v1/bans/{banId}` | `revokeBan` | `traffic-guard.RevokeBan` | `guard.manage` | `RevokeBanRequestBody` → 200 `RevokeBanResult` | 撤销禁令 | `FORBIDDEN`、`CONFLICT` |
+| GET `/v1/policies` | `getPolicy` | `traffic-guard.GetPolicy` | `guard.manage` | `—` → 200 `GetPolicyResult` | 读取生效策略 | `VERSION_MISMATCH`、`HTTP 400`、`HTTP 403`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
+| PUT `/v1/policies` | `updatePolicy` | `traffic-guard.UpdatePolicy` | `guard.manage` | `UpdatePolicyRequestBody` → 200 `UpdatePolicyResult` | 更新策略 CAS | `FORBIDDEN`、`CONFLICT`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
+| GET `/v1/bans` | `listBans` | `traffic-guard.ListBans` | `guard.manage` | `—` → 200 `ListBansResult` | 分页禁令 | `VALIDATION`、`FORBIDDEN`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 503` |
+| POST `/v1/bans` | `createBan` | `traffic-guard.CreateBan` | `guard.manage` | `CreateBanRequestBody` → 200 `CreateBanResult` | 管理员建立临时禁令 | `FORBIDDEN`、`VALIDATION`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 503` |
+| DELETE `/v1/bans/{banId}` | `revokeBan` | `traffic-guard.RevokeBan` | `guard.manage` | `RevokeBanRequestBody` → 200 `RevokeBanResult` | 撤销禁令 | `FORBIDDEN`、`CONFLICT`、`HTTP 400`、`HTTP 404`、`HTTP 429`、`HTTP 503` |
 | POST `/v1/admissions/{admissionId}:consume` | `consumeAdmission` | `traffic-guard.ConsumeAdmission` | `service` | `ConsumeAdmissionRequestBody` → 200 `ConsumeAdmissionResult` | QA绑定准入使用权 | `FORBIDDEN`、`STALE_RESULT` |
 | POST `/v1/admissions/{admissionId}:verify` | `verifyAdmission` | `traffic-guard.VerifyAdmissionHTTP` | `service` | `VerifyAdmissionHTTPRequestBody` → 200 `VerifyAdmissionHTTPResult` | QA在线确认准入租约 | `FORBIDDEN`、`STALE_RESULT` |
-| POST `/v1/question-risk` | `reportModelRisk` | `traffic-guard.ReportQuestionSignals` | `service` | `ReportQuestionSignalsRequestBody` → 200 `ReportQuestionSignalsResult` | 接收qa已有检测信号 | `VALIDATION`、`FORBIDDEN` |
-| POST `/v1/session-queue` | `queueSessionAdmission` | `traffic-guard.QueueSessionAdmission` | `service` | `QueueSessionAdmissionRequestBody` → 200 `QueueSessionAdmissionResult` | 每会话1并发其余排队 | `RATE_LIMITED`、`VERSION_MISMATCH` |
+| POST `/v1/question-risk` | `reportModelRisk` | `traffic-guard.ReportQuestionSignals` | `service` | `ReportQuestionSignalsRequestBody` → 200 `ReportQuestionSignalsResult` | 接收qa已有检测信号 | `VALIDATION`、`FORBIDDEN`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 503` |
+| POST `/v1/session-queue` | `queueSessionAdmission` | `traffic-guard.QueueSessionAdmission` | `service` | `QueueSessionAdmissionRequestBody` → 200 `QueueSessionAdmissionResult` | 每会话1并发其余排队 | `RATE_LIMITED`、`VERSION_MISMATCH`、`HTTP 400`、`HTTP 403`、`HTTP 404`、`HTTP 503` |
 | POST `/v1/barriers` | `acquireBarrier` | `traffic-guard.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 停止准入并等安全点 | `DEADLINE_EXCEEDED`、`FORBIDDEN` |
 | POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `traffic-guard.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 解除风控维护 | `LOCKED` |
 | POST `/v1/snapshots:export` | `exportSnapshot` | `traffic-guard.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出风控一致快照 | `LOCKED`、`INTERNAL` |
@@ -30,7 +30,7 @@
 | GET `/readyz` | `ready` | `traffic-guard.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `traffic-guard.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `traffic-guard.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| GET `/v1/risk-events` | `listRiskEvents` | `traffic-guard.ListRiskEvents` | `guard.manage` | `—` → 200 `ListRiskEventsResult` | 查看可疑事件 | `FORBIDDEN` |
+| GET `/v1/risk-events` | `listRiskEvents` | `traffic-guard.ListRiskEvents` | `guard.manage` | `—` → 200 `ListRiskEventsResult` | 查看可疑事件 | `FORBIDDEN`、`HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 503` |
 | POST `/v1/login-attempts` | `beginLoginAttempt` | `traffic-guard.BeginLoginAttempt` | `service` | `BeginLoginAttemptInput` → 200 `BeginLoginAttemptResult` | 登录失败保护受信准入 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/login-attempts/{attemptId}:finish` | `finishLoginAttempt` | `traffic-guard.FinishLoginAttempt` | `service` | `FinishLoginAttemptInput` → 200 `FinishLoginAttemptResult` | 登录失败保护受信核验结果 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->

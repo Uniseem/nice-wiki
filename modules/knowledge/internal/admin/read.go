@@ -89,7 +89,7 @@ func ListBuilds(ctx context.Context, op OperationContext, input ListBuildsInput)
 	if !ok {
 		return ListBuildsResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "管理游标签名器未装配")
 	}
- binding,_:=platform.CanonicalJSON([]any{op.Actor.SubjectID,op.Actor.SiteID,op.Actor.SessionID,op.Actor.SessionRevision,op.Actor.PermissionRevision,op.DataEpoch,input.DocumentID,input.Limit})
+	binding, _ := platform.CanonicalJSON([]any{op.Actor.SubjectID, op.Actor.SiteID, op.Actor.SessionID, op.Actor.SessionRevision, op.Actor.PermissionRevision, op.DataEpoch, input.DocumentID, input.Limit})
 
 	scope := "knowledge.builds.v1:" + platform.HashBytes(binding)
 	position := ""

@@ -2,9 +2,9 @@ package search
 
 import (
 	"context"
- qaruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"database/sql"
 	"encoding/json"
+	qaruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"sync"
 
 	"nice-wiki/libs/platform"
@@ -44,9 +44,11 @@ func acquireQueryFlight(ctx context.Context, key string) (func(), error) {
 // CreateQueryEmbedding 以可信根、规范查询、完整空间和代次复用一次持久调用。
 // 未终态调用重启后仍使用原 operationId，不自动创建新的付费 attempt。
 func CreateQueryEmbedding(ctx context.Context, op OperationContext, input CreateQueryEmbeddingInput) (CreateQueryEmbeddingResult, error) {
- var bindErr error
- ctx, bindErr = qaruntime.BindAdmissionPermit(ctx, op, input.AdmissionPermit)
- if bindErr != nil { return CreateQueryEmbeddingResult{}, bindErr }
+	var bindErr error
+	ctx, bindErr = qaruntime.BindAdmissionPermit(ctx, op, input.AdmissionPermit)
+	if bindErr != nil {
+		return CreateQueryEmbeddingResult{}, bindErr
+	}
 	runtime, err := searchRuntime(ctx)
 	if err != nil {
 		return CreateQueryEmbeddingResult{}, err

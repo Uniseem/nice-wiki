@@ -35,10 +35,10 @@ func NormalizeQuery(ctx context.Context, op OperationContext, input NormalizeQue
 }
 
 type EmbedQueryInput struct {
- AdmissionPermit *gen.AdmissionPermit `json:"admissionPermit,omitempty"`
-	Normalized string             `json:"normalized"`
-	Space      gen.EmbeddingSpace `json:"space"`
-	ProfileID  string             `json:"profileId"`
+	AdmissionPermit *gen.AdmissionPermit `json:"admissionPermit,omitempty"`
+	Normalized      string               `json:"normalized"`
+	Space           gen.EmbeddingSpace   `json:"space"`
+	ProfileID       string               `json:"profileId"`
 }
 type EmbedQueryResult struct {
 	Vector []float64          `json:"vector"`

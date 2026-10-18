@@ -427,7 +427,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -643,6 +643,37 @@ export interface components {
             /** @description 代际 */
             dataEpoch: components["schemas"]["Identifier"];
         };
+        /**
+         * Format: date-time
+         * @description RFC3339 UTC 时间
+         */
+        Timestamp: string;
+        /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
+        AdmissionPermit: {
+            /** @description 准入记录稳定ID */
+            admissionId: components["schemas"]["Identifier"];
+            /** @description 原QA问题的稳定RootOperationID；不是当前RPC的追踪RequestID */
+            requestId: components["schemas"]["Identifier"];
+            /** @description 经验证的主体ID */
+            subjectId: components["schemas"]["Identifier"];
+            /** @description 许可动作，必须与消费场景一致 */
+            action: string;
+            /** @description mint分配阶段为空串，不构成模型凭证；仅QA按原根持久消费后签发非空凭证，禁止记录 */
+            token: string;
+            /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
+            expiresAt: components["schemas"]["Timestamp"];
+            /** @description guard签名的伪名会话费用作用域；所有本轮子调用必须继承，客户端不能自选 */
+            sessionBudgetScope: components["schemas"]["Identifier"];
+            /** @description guard签名的伪名网络费用作用域；IPv6按/64，原始IP不进入许可或账本 */
+            networkBudgetScope: components["schemas"]["Identifier"];
+            /** @description 当前数据代次；恢复换代后旧许可失效 */
+            dataEpoch: components["schemas"]["Identifier"];
+            /**
+             * @description 费用许可仅由统一模型网关使用
+             * @constant
+             */
+            audience: "model-gateway";
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         RetrieveInput: {
             /** @description 完整基准语言查询 */
@@ -657,6 +688,8 @@ export interface components {
             maximumTokens: number;
             /** @description 显式词项 */
             lexicalOnly: boolean;
+            /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
+            admissionPermit?: components["schemas"]["AdmissionPermit"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         RedactDiagnosticsResult: {
@@ -698,11 +731,6 @@ export interface components {
             revisionWatermark: components["schemas"]["Revision"];
         };
         BarrierStatus: components["schemas"]["common.schema_BarrierStatus"];
-        /**
-         * Format: date-time
-         * @description RFC3339 UTC 时间
-         */
-        Timestamp: string;
         /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging */
         "common.schema_BarrierRequest": {
             /** @description 可恢复操作ID */
@@ -825,6 +853,8 @@ export interface components {
             round: number;
             /** @description 0..5 */
             toolCallsUsed: number;
+            /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
+            admissionPermit?: components["schemas"]["AdmissionPermit"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateQueryEmbeddingResult: {
@@ -839,6 +869,8 @@ export interface components {
             space: components["schemas"]["EmbeddingSpace"];
             /** @description rootOperation/queryHash/space一致键 */
             idempotencyKey: string;
+            /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
+            admissionPermit?: components["schemas"]["AdmissionPermit"];
         };
         /** @description 服务版本、存活/就绪与能力状态，输出脱敏说明 */
         HealthStatus: {

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 65 个：手写 46、UI 3、生成 5、配置 10、迁移 1。函数 95 个：约束 32，参考 63。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 65 个：手写 46、UI 3、生成 5、配置 10、迁移 1。函数 96 个：约束 32，参考 64。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -64,7 +64,7 @@
 | `modules/knowledge/ui/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
 | `modules/knowledge/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/knowledge/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `knowledge.mountModuleUI` |
-| `modules/knowledge/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `knowledge.InvokeModel`（参考）、`knowledge.NewModelRuntime`（参考）、`knowledge.WithModelRuntime`（参考）、`knowledge.CompletedOutput`（参考） |
+| `modules/knowledge/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `knowledge.InvokeModel`（参考）、`knowledge.NewModelRuntime`（参考）、`knowledge.WithModelRuntime`（参考）、`knowledge.CompletedOutput`（参考）、`knowledge.BindAdmissionPermit`（参考） |
 | `modules/knowledge/internal/build/execute.go` | 手写 | 执行一次文档索引构建 | `knowledge.ExecuteBuild` |
 | `modules/knowledge/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/knowledge/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |

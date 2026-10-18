@@ -1956,6 +1956,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 6. 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态
 7. capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义
+8. costClass=qa仅接受非空token的已消费QA许可：platform.VerifyAdmissionPermit验traffic-guard签名，permit.requestId等于可信op.RootOperationID，当前epoch一致且action只许qa.ask或qa.followup；subject保留原匿名主体，不改成二跳服务ID；localization.suggest永不授权付费
 
 **错误**
 
@@ -1972,7 +1973,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`
+- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`、`platform.VerifyAdmissionPermit`
 
 ## model-gateway.ReserveCost
 

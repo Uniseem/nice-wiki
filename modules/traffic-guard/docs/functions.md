@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 69 个函数：约束 32 个，参考 37 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 80 个函数：约束 32 个，参考 48 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,9 +33,9 @@ func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyI
 
 **步骤**
 
-1. 拒绝钱账字段/未知动作
-2. 限制 burst≤rate、concurrency 1..128
-3. 挑战难度 16..22 与 ban TTL 范围
+1. 输入由严格GuardPolicy schema拒绝未知字段，无余额或费用字段
+2. 校验主体/站点整数速率、burst≤主体rate与主体/站点并发1..128
+3. GuardPolicy未提供挑战难度或ban TTL字段，不在此函数捏造额外配置
 
 **错误**
 
@@ -74,19 +74,23 @@ func GetPolicy(ctx context.Context, op OperationContext, in GetPolicyInput) (Get
 
 **步骤**
 
-1. 校验 epoch
-2. 读取当前 revision
-3. 返回无 secret 策略
+1. siteId和dataEpoch须等于可信op.Actor.SiteID/op.DataEpoch；GET入口只从可信上下文构造，不新增客户端站点参数
+2. guard.manage管理员即时查权，或traffic-guard本域纯服务可读；其他服务拒绝
+3. 同代次一致快照读取，缺行NOT_FOUND；不临时构造未保存默认策略
 
 **错误**
 
-- `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：可信站点不匹配或当前权限不足（不可重试）
+- `NOT_FOUND` / HTTP 404：当前站点没有已保存策略（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：策略修订或active代次变化（不可重试）
+- `CONFLICT` / HTTP 409：同操作绑定其他输入（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：存储或即时授权依赖未知（可重试）
 
 - 副作用：无
 - 授权：permission：guard.manage；rule：guard.manage 或 service
 - 并发：SQLite 快照读
 - 幂等：GET 幂等
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardPolicy`
 
 ## traffic-guard.UpdatePolicy
 
@@ -115,21 +119,25 @@ func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput
 
 **步骤**
 
-1. 身份查权
-2. 校验策略
-3. 事务比较 revision/写策略/outbox
-4. 冲突不覆盖
+1. 即时核guard.manage管理员，siteId与epoch必须匹配可信op
+2. 校验规范策略后建立当前公共写窗口，进入本域短事务
+3. 先按site/epoch/caller/operationId核完整规范输入摘要，同输入返回原revision，不同输入CONFLICT
+4. 缺行仅expectedRevision=0可首次创建revision1；已有行严格revision CAS，溢出拒绝
+5. 策略、原回执与policy-changed.v1 outbox在同一事务提交；事件失败不提交策略
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：POLICY_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：可信站点不匹配或当前权限不足（不可重试）
+- `NOT_FOUND` / HTTP 404：当前站点没有已保存策略（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：策略修订或active代次变化（不可重试）
+- `CONFLICT` / HTTP 409：同操作绑定其他输入（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：存储或即时授权依赖未知（可重试）
 
 - 副作用：写策略/outbox
 - 授权：permission：guard.manage；rule：guard.manage
 - 并发：事务 CAS；旧 permit renew 用最新策略重检
 - 幂等：operationId 去重且相同 key 不同 body 409
-- 依赖：`identity:checkAuthorization`、`traffic-guard.ValidatePolicy`
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.ValidatePolicy`、`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardReceipt`、`traffic-guard.saveGuardReceipt`、`traffic-guard.enqueueGuardEvent`
 
 ## traffic-guard.OpenPolicyStore
 
@@ -444,7 +452,7 @@ func DeriveSubject(ctx context.Context, op OperationContext, in DeriveSubjectInp
 - 授权：permission：service；rule：service ingress
 - 并发：pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban
 - 幂等：同 keyEpoch 同输入同主体
-- 依赖：无
+- 依赖：`platform.VerifyGuardSession`
 - 其他依赖说明：identity visitor token verifier
 
 ## traffic-guard.ClassifyAction
@@ -474,9 +482,8 @@ func ClassifyAction(ctx context.Context, op OperationContext, in ClassifyActionI
 
 **步骤**
 
-1. 匹配路由表x-admission动作白名单：qa.conversation、qa.ask、localization.suggest、identity.login
-2. 拒绝客户端覆盖
-3. 公共读取仅受边缘基本速率
+1. 只接受固定service.operationId：qa.createConversation→qa.conversation、qa.startTurn→qa.ask、localization.suggestLanguage→localization.suggest
+2. 调用主体来自可信入口，未知routeId拒绝；旧identity.login由独立Begin/Finish登录保护负责，不套用AI许可
 
 **错误**
 
@@ -517,9 +524,10 @@ func LoadSignals(ctx context.Context, op OperationContext, in LoadSignalsInput) 
 
 **步骤**
 
-1. 按主体/action 查询 10 分钟 counters
-2. 验证 challenge expiry
-3. 读取 active ban
+1. 同一已保存主体快照读取当前网络及前期别名的active ban，按服务时间即时判过期，不等sweeper
+2. 通过证明未过10分钟、级别匹配且可疑模式少于5问才challengePassed；可疑状态保留10分钟
+3. 读取近10分钟拒绝、最近最多8项问题hash重复、真实量化相似度与实测间隔次数；缺失观测保持未知
+4. 过期abuse ban不让旧model_verdict永久拒绝，公开内容不受AI ban影响
 
 **错误**
 
@@ -529,7 +537,7 @@ func LoadSignals(ctx context.Context, op OperationContext, in LoadSignalsInput) 
 - 授权：permission：service；rule：service
 - 并发：统一事务读取一致 policy revision
 - 幂等：只读
-- 依赖：无
+- 依赖：`traffic-guard.beginGuardTransaction`
 - 其他依赖说明：私有 SQLite
 
 ## traffic-guard.ComputeRisk
@@ -559,12 +567,9 @@ func ComputeRisk(ctx context.Context, op OperationContext, in ComputeRiskInput) 
 
 **步骤**
 
-1. program信号=问题hash重复/qa已有embedding相似度0..10000/最近时间间隔规律
-2. 前置模型同一次输出normal/suspicious/abuse，不单独新增模型
-3. activeBan或abuse拒绝
-4. suspicious要求可见Turnstile
-5. normal仍需首次无感验证
-6. 前置模型已判无关直接拒答
+1. 输出严格allow/deny/challenge；activeBan或abuse为deny
+2. suspicious未通过匹配级别挑战时challenge难度22，通过且本域5问计数仍有效才allow
+3. normal未通过时challenge难度18，通过则allow；缺失数值观测未知，不额外加分或新增阈值模型
 
 **错误**
 
@@ -604,9 +609,8 @@ func RefillBucket(ctx context.Context, op OperationContext, in RefillBucketInput
 
 **步骤**
 
-1. elapsed clamp 0..60000
-2. 补充 floor(elapsedMs*rate/60) 千分令牌
-3. 容量封顶
+1. elapsedMs夹在0..60000，容量与速率取已校验策略边界1..100000
+2. 补充floor(elapsedMs*ratePerMinute/60)千分令牌，结果不超过capacity*1000；时钟倒退补0
 
 **错误**
 
@@ -645,9 +649,10 @@ func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsI
 
 **步骤**
 
-1. 读取主体+站点 buckets
-2. 整数 refill
-3. 两层都足够才扣，否则均不扣并计算最大等待
+1. 在同一事务读取主体和站点当前桶/已保存策略，cost固定1个纯频率令牌
+2. 补充整数千分令牌；时钟倒退补0且不倒退持久水位
+3. 两层都足够才同时扣并记录同操作原回执，否则两层均不扣并返回最大等待
+4. 复用准入外层事务，后续并发预留失败时整体回滚；不涉及金额或费用
 
 **错误**
 
@@ -658,7 +663,7 @@ func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsI
 - 授权：permission：service；rule：service
 - 并发：SQLite 单事务；不能分别扣一层失败另一层
 - 幂等：requestId 去重不重复扣
-- 依赖：`traffic-guard.RefillBucket`、`traffic-guard.GetPolicy`
+- 依赖：`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardPolicy`、`traffic-guard.RefillBucket`、`traffic-guard.readGuardReceipt`、`traffic-guard.saveGuardReceipt`
 
 ## traffic-guard.AcquireConcurrency
 
@@ -828,7 +833,7 @@ func SignPermit(ctx context.Context, op OperationContext, in SignPermitInput) (S
 - 授权：permission：service；rule：service 内部
 - 并发：只读密钥容器与 admission 快照
 - 幂等：同 admission 可重复生成等价 token
-- 依赖：无
+- 依赖：`platform.SignAdmissionPermit`
 - 其他依赖说明：外部签名密钥
 
 ## traffic-guard.ValidatePermit
@@ -872,7 +877,7 @@ func ValidatePermit(ctx context.Context, op OperationContext, in ValidatePermitI
 - 授权：permission：service；rule：service 身份绑定
 - 并发：服务在线查询不能只信过期的本地签名状态
 - 幂等：只读重复验证
-- 依赖：`traffic-guard.GetPolicy`、`traffic-guard.CheckBan`
+- 依赖：`traffic-guard.GetPolicy`、`traffic-guard.CheckBan`、`platform.VerifyAdmissionPermit`
 
 ## traffic-guard.EvaluateAdmission
 
@@ -1437,9 +1442,7 @@ func ExpireLeases(ctx context.Context, op OperationContext, in ExpireLeasesInput
 
 **步骤**
 
-1. 每5秒扫描最多500 active expire
-2. CAS expired
-3. 只更新状态不重发外部调用
+1. 按当前服务时间最多500个active已到期lease CAS expired，不退桶、不外调
 
 **错误**
 
@@ -1449,7 +1452,7 @@ func ExpireLeases(ctx context.Context, op OperationContext, in ExpireLeasesInput
 - 授权：permission：service；rule：service worker
 - 并发：批次事务；分布多实例通过 SQLite 单写协调
 - 幂等：重复 sweep 无新增效果
-- 依赖：无
+- 依赖：`traffic-guard.beginGuardTransaction`
 - 其他依赖说明：私有 SQLite
 
 ## traffic-guard.ExpireBans
@@ -1479,9 +1482,7 @@ func ExpireBans(ctx context.Context, op OperationContext, in ExpireBansInput) (E
 
 **步骤**
 
-1. 扫描≤500到期active
-2. CAS expired
-3. 写ban-changed outbox
+1. 同批事务扫描最多500个到期active ban，CAS expired并写ban-changed outbox；幂等重扫无新增效果
 
 **错误**
 
@@ -1491,7 +1492,7 @@ func ExpireBans(ctx context.Context, op OperationContext, in ExpireBansInput) (E
 - 授权：permission：service；rule：service
 - 并发：小事务，无同时策略修订
 - 幂等：相同时间重扫幂等
-- 依赖：无
+- 依赖：`traffic-guard.beginGuardTransaction`、`traffic-guard.enqueueGuardEvent`
 - 其他依赖说明：私有 SQLite
 
 ## traffic-guard.IssueChallenge
@@ -1579,7 +1580,7 @@ func VerifyChallenge(ctx context.Context, op OperationContext, in VerifyChalleng
 - 授权：permission：anonymous；rule：anonymous 主体必须绑定
 - 并发：每 challenge最多5失败尝试；CAS阻止并发重放
 - 幂等：重复成功不再次授予，返回 CONFLICT
-- 依赖：`traffic-guard.VerifyPoW`、`traffic-guard.VerifyExternalChallenge`
+- 依赖：`traffic-guard.VerifyPoW`、`traffic-guard.VerifyExternalChallenge`、`platform.SignGuardSession`
 
 ## traffic-guard.VerifyPoW
 
@@ -1735,11 +1736,10 @@ func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (Cre
 
 **步骤**
 
-1. check guard.manage
-2. 匿名networkKey指IPv4单址/IPv6 /64
-3. default600s ban只限制AI
-4. 同事务ban+撤租约+outbox
-5. 返回原因/恢复时间，公开页面继续可读
+1. 即时核guard.manage，仅ai scope及manual/abuse原因；subjectRef为已知网络HMAC，不收原IP
+2. ttl=0取已确认默认600秒，范围1..2592000；同operationId/输入摘要返回原回执
+3. 同事务写active ban、撤销匹配网络别名的本域active租约、写ban-changed outbox与原回执
+4. 只封AI，公开页面继续可读
 
 **错误**
 
@@ -1750,7 +1750,7 @@ func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (Cre
 - 授权：permission：guard.manage；rule：guard.manage
 - 并发：主体范围事务原子封禁与撤租约
 - 幂等：operationId 去重
-- 依赖：`identity:checkAuthorization`
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardReceipt`、`traffic-guard.saveGuardReceipt`、`traffic-guard.createNetworkBan`
 
 ## traffic-guard.RevokeBan
 
@@ -1779,9 +1779,9 @@ func RevokeBan(ctx context.Context, op OperationContext, in RevokeBanInput) (Rev
 
 **步骤**
 
-1. 校验权限与revision
-2. CAS active→revoked
-3. 写审计outbox
+1. 即时核guard.manage并读取同站点/epoch原回执
+2. 严格expectedRevision CAS active→revoked；非active或冲突拒绝，重复同operationId返回原状态
+3. ban状态、修订、回执与ban-changed outbox同事务
 
 **错误**
 
@@ -1792,7 +1792,7 @@ func RevokeBan(ctx context.Context, op OperationContext, in RevokeBanInput) (Rev
 - 授权：permission：guard.manage；rule：guard.manage
 - 并发：revision CAS
 - 幂等：相同 operationId复用结果
-- 依赖：`identity:checkAuthorization`
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardReceipt`、`traffic-guard.saveGuardReceipt`、`traffic-guard.enqueueGuardEvent`
 
 ## traffic-guard.ListBans
 
@@ -1821,9 +1821,9 @@ func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListB
 
 **步骤**
 
-1. limit默认20最大100
-2. 签名游标绑定epoch/filter
-3. 只返回subjectRef和理由枚举
+1. 即时核guard.manage，limit默认20最大100
+2. 使用平台签名游标绑定site/epoch/权限主体和banId keyset；稳定banId排序
+3. 不返回原IP；同时输出兼容banIds与匿名subjectRef/原因/恢复时间/状态items
 
 **错误**
 
@@ -1834,7 +1834,42 @@ func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListB
 - 授权：permission：guard.manage；rule：guard.manage
 - 并发：稳定banId排序，不含IP
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.beginGuardTransaction`、`platform.SignCursor`、`platform.VerifyCursor`
+
+## traffic-guard.createNetworkBan
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/ban_store.go`
+- 作用：同事务创建AI ban、撤匹配网络别名租约并登记安全outbox
+
+```go
+func createNetworkBan(t *guardTransaction, network string, ttl int64, reason string) (CreateBanResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务创建AI ban、撤匹配网络别名租约并登记安全outbox
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.enqueueGuardEvent`
 
 ## traffic-guard.ConsumeIdentityEvent
 
@@ -1991,9 +2026,9 @@ func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAno
 
 **步骤**
 
-1. 清过期challenge+10min signals
-2. bucket空闲24h删除
-3. expired permits7d/ban30d删除
+1. 最多清理500个主体记录，租约网络子关联随主体清除
+2. 清过期challenge、10分钟问题信号/匿名风险引用、空闲24小时桶、终局7天permit与30天ban
+3. active bans/leases禁止删除，不删除授权或预算key，不记录原IP/正文/token
 
 **错误**
 
@@ -2003,7 +2038,7 @@ func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAno
 - 授权：permission：service；rule：service
 - 并发：500项批事务；active bans/leases禁止删除
 - 幂等：重复清理幂等
-- 依赖：无
+- 依赖：`traffic-guard.beginGuardTransaction`
 - 其他依赖说明：私有 SQLite
 
 ## traffic-guard.EnterBarrier
@@ -2383,12 +2418,11 @@ func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQu
 
 **步骤**
 
-1. qa服务鉴权
-2. 只允许问题hash/量化相似度/时间间隔/已有前置模型normal/suspicious/abuse
-3. 不接正文
-4. abuse建networkKey600秒AIban
-5. suspicious要求可见验证
-6. normal保留最多最近8时间戳和hash10min
+1. 仅QA，sessionKey/networkKey匹配本域已验证主体，只接受hash与已有modelVerdict，不接正文/IP
+2. 用可信op.RootOperationID与规范输入摘要幂等；相似度与间隔可选，缺失保存NULL而不是0，不参与实测分组
+3. abuse同事务创建600秒网络AI ban、撤对应别名租约及outbox；suspicious保留10分钟每5问重验要求
+4. normal及已有信号只保留最多8项/10分钟；封闭allow/deny/challenge决定由最新ban/通过状态共同给出
+5. ban存在时返回真实最长恢复时间；信号、决策回执和风险引用同事务提交
 
 **错误**
 
@@ -2399,7 +2433,7 @@ func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQu
 - 授权：permission：service；rule：service qa
 - 并发：same questionOperationId去重，不能凭客户端自报风险
 - 幂等：questionOperationId/hash幂等
-- 依赖：`traffic-guard.ComputeRisk`、`traffic-guard.CreateBan`
+- 依赖：`traffic-guard.beginGuardTransaction`、`traffic-guard.readGuardReceipt`、`traffic-guard.saveGuardReceipt`、`traffic-guard.createNetworkBan`、`traffic-guard.LoadSignals`、`traffic-guard.ComputeRisk`
 
 ## traffic-guard.QueueSessionAdmission
 
@@ -2428,10 +2462,10 @@ func QueueSessionAdmission(ctx context.Context, op OperationContext, in QueueSes
 
 **步骤**
 
-1. qa持有请求队列内容
-2. guard只返回activeConcurrency=1和队列许可引用
-3. release后qa按FIFO重新admission
-4. 排队时不预扣频率/费用
+1. 只允许QA；sessionKey必须已经验证，guard只存request引用，不存正文、不扣桶/费用
+2. mode可选enqueue默认；同session FIFO最多10等待，同request不重复插入
+3. cancel仅删同站点/同代次/同session/同request的等待引用，绝不释放active lease
+4. 空闲且为队头才queued=false；真正并发占位仍由准入事务完成，释放后QA按FIFO重新admission
 
 **错误**
 
@@ -2442,7 +2476,7 @@ func QueueSessionAdmission(ctx context.Context, op OperationContext, in QueueSes
 - 授权：permission：service；rule：service qa
 - 并发：每session最多10等待，超出429；无问题正文
 - 幂等：requestId幂等
-- 依赖：`traffic-guard.ReleasePermit`
+- 依赖：`traffic-guard.beginGuardTransaction`
 - 其他依赖说明：qa排队权威
 
 ## traffic-guard.ConsumeAdmission
@@ -2635,6 +2669,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application
+8. 管理/匿名信号真实HTTP映射通过NewGuardHandlers交公共ServiceHandler；授权由统一边界即时核一次，内部marker避免重复identity调用。运行写窗口/预算key/完整其余handler及后台尚缺时仍禁止启动。
 
 **错误**
 
@@ -2646,7 +2681,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`、`traffic-guard.NewGuardHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve
@@ -2879,9 +2914,9 @@ func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEven
 
 **步骤**
 
-1. guard.manage
-2. 分页读取准入拒绝、挑战失败与封禁记录
-3. 只返回不可逆网络标识，不返回原始IP
+1. guard.manage即时查权；since省略查询全部尚保留匿名记录
+2. 按occurredAt/eventId倒序keyset分页，平台签名游标绑定站点/epoch/主体/since
+3. 只返回事件引用/动作/封闭决策/不可逆网络key/时间，无原IP
 
 **错误**
 
@@ -2891,4 +2926,354 @@ func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEven
 - 授权：permission：guard.manage；rule：后台管理员按登记权限
 - 并发：只读快照或CAS
 - 幂等：读取幂等；写入按operationId
+- 依赖：`traffic-guard.authorizeGuardManagement`、`traffic-guard.beginGuardTransaction`、`platform.SignCursor`、`platform.VerifyCursor`
+
+## traffic-guard.WithGuardRuntime
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：可信装配注入私有库、即时权限、独立预算key与当前写窗口
+
+```go
+func WithGuardRuntime(ctx context.Context, runtime GuardRuntime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 可信装配注入私有库、即时权限、独立预算key与当前写窗口
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.WithPolicyStore`
+
+## traffic-guard.beginGuardTransaction
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：锁前取得当前安全写窗口；嵌套组合准入复用同一本地短事务
+
+```go
+func beginGuardTransaction(ctx context.Context, op OperationContext, write bool) (*guardTransaction, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 锁前取得当前安全写窗口；嵌套组合准入复用同一本地短事务
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`platform.NewWriteContext`
+
+## traffic-guard.guardTransaction.close
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：只有事务拥有者回滚并释放库生命周期锁与取消句柄
+
+```go
+func (t *guardTransaction) close()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只有事务拥有者回滚并释放库生命周期锁与取消句柄
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
 - 依赖：无
+
+## traffic-guard.guardTransaction.commit
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：只有最外层提交，嵌套桶/并发不单独提交
+
+```go
+func (t *guardTransaction) commit() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只有最外层提交，嵌套桶/并发不单独提交
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.authorizeGuardManagement
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：管理员权限每次向identity即时核验，不信任菜单或事件投影
+
+```go
+func authorizeGuardManagement(ctx context.Context, op OperationContext, action string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 管理员权限每次向identity即时核验，不信任菜单或事件投影
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`
+
+## traffic-guard.readGuardReceipt
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：同事务核规范输入摘要并读取不含token的原安全回执
+
+```go
+func readGuardReceipt(t *guardTransaction, kind string, input any, result any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务核规范输入摘要并读取不含token的原安全回执
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.saveGuardReceipt
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：保存安全回执，与业务和outbox同事务；签名token不得传入持久回执
+
+```go
+func saveGuardReceipt(t *guardTransaction, kind string, input any, result any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存安全回执，与业务和outbox同事务；签名token不得传入持久回执
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.enqueueGuardEvent
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：使用公共outbox同事务登记安全事件引用
+
+```go
+func enqueueGuardEvent(t *guardTransaction, eventType, subject string, revision int64, payload any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用公共outbox同事务登记安全事件引用
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`platform.EnqueueEvent`
+
+## traffic-guard.readGuardPolicy
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：读取已保存同代次策略，缺行NOT_FOUND，不猜默认
+
+```go
+func readGuardPolicy(t *guardTransaction) (GuardPolicy, int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取已保存同代次策略，缺行NOT_FOUND，不猜默认
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：无
+
+## traffic-guard.NewGuardHandlers
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/http_management.go`
+- 作用：只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权
+
+```go
+func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权
+
+**错误**
+
+- `VALIDATION`：数据根非绝对（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：active代次尚未建立（可重试）
+- `INTERNAL`：目录/资源建立失败（不可重试）
+- `INTEGRITY_ERROR`：业务库不可用（不可重试）
+
+- 副作用：建立私有目录，打开SQLite与control journal，复用platform outbox schema
+- 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
+- 并发：本域短事务；不执行口令核验
+- 幂等：以原绑定函数幂等约束为准
+- 依赖：`traffic-guard.NewLoginHandlers`、`traffic-guard.GetPolicy`、`traffic-guard.UpdatePolicy`、`traffic-guard.CreateBan`、`traffic-guard.RevokeBan`、`traffic-guard.ListBans`、`traffic-guard.ListRiskEvents`、`traffic-guard.ReportQuestionSignals`、`traffic-guard.QueueSessionAdmission`

@@ -2,11 +2,11 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 109 个：约束 39，参考 70。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 114 个：约束 39，参考 75。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/qa/internal/runtime/bootstrap.go` | 手写 | 启动问答服务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LoadRuntime`（参考）、`qa.NewRuntime`（参考）、`qa.WithRuntime`（参考）、`qa.FromContext`（参考）、`qa.DecodeResponse`（参考）、`qa.StorageError`（参考）、`qa.RequireAdmin`（参考）、`qa.Transaction.Close`（参考）、`qa.Transaction.Commit`（参考）、`qa.BeginRead`（参考）、`qa.BeginWrite`（参考）、`qa.beginTransaction`（参考）、`qa.ReplayReceipt`（参考）、`qa.SaveReceipt`（参考）、`qa.ReadPolicy`（参考）、`qa.ReadConversation`（参考）、`qa.ReadTurn`（参考）、`qa.IsTerminal`（参考）、`qa.CheckTurnLease`（参考）、`qa.SaveTurn`（参考）、`qa.ServiceReadContext`（参考）、`qa.ReadPublishedDocument`（参考）、`qa.ValidateCitations`（参考）、`qa.PublicationFingerprint`（参考） |
+| `modules/qa/internal/runtime/bootstrap.go` | 手写 | 启动问答服务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LoadRuntime`（参考）、`qa.NewRuntime`（参考）、`qa.WithRuntime`（参考）、`qa.FromContext`（参考）、`qa.DecodeResponse`（参考）、`qa.StorageError`（参考）、`qa.RequireAdmin`（参考）、`qa.Transaction.Close`（参考）、`qa.Transaction.Commit`（参考）、`qa.BeginRead`（参考）、`qa.BeginWrite`（参考）、`qa.beginTransaction`（参考）、`qa.ReplayReceipt`（参考）、`qa.SaveReceipt`（参考）、`qa.ReadPolicy`（参考）、`qa.ReadConversation`（参考）、`qa.ReadTurn`（参考）、`qa.IsTerminal`（参考）、`qa.CheckTurnLease`（参考）、`qa.SaveTurn`（参考）、`qa.ServiceReadContext`（参考）、`qa.ReadPublishedDocument`（参考）、`qa.ValidateCitations`（参考）、`qa.PublicationFingerprint`（参考）、`qa.ResolveTaskMemory`（参考）、`qa.CursorActor`（参考） |
 | `modules/qa/internal/config/policy.go` | 手写 | 管理公开问答策略所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PutQaPolicy` |
 | `modules/qa/internal/conversation/create.go` | 手写 | 创建伪名访客会话所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CreateConversation` |
 | `modules/qa/internal/conversation/read.go` | 手写 | 读取自有访客历史所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.GetConversation` |
@@ -55,7 +55,7 @@
 | `modules/qa/migrations/001_initial.sql` | 迁移 | 未来schemaVersion1建本域表、唯一约束与inbox/outbox索引；control.db独立迁移且不属于业务恢复。 | 无 |
 | `modules/qa/cmd/qa/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `qa.main` |
 | `modules/qa/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `qa.BuildApplication` |
-| `modules/qa/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `qa.Serve`、`qa.Shutdown`、`qa.Health`、`qa.Ready`、`qa.NewOperationHandlers`（参考）、`qa.jsonOperation`（参考）、`qa.operationContext`（参考）、`qa.writeResult`（参考）、`qa.serveAnswerStream`（参考） |
+| `modules/qa/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `qa.Serve`、`qa.Shutdown`、`qa.Health`、`qa.Ready`、`qa.NewOperationHandlers`（参考）、`qa.jsonOperation`（参考）、`qa.operationContext`（参考）、`qa.writeResult`（参考）、`qa.serveAnswerStream`（参考）、`qa.answerEventStream.Next`（参考）、`qa.answerEventStream.Close`（参考） |
 | `modules/qa/go.mod` | 配置 | 独立module nice-wiki/modules/qa；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/qa/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/qa/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/qa；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -68,7 +68,7 @@
 | `modules/qa/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
 | `modules/qa/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `qa.mountModuleUI` |
 | `modules/qa/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `qa.ConsumeEvents` |
-| `modules/qa/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `qa.InvokeModel`（参考） |
+| `modules/qa/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `qa.InvokeModel`（参考）、`qa.ModelText`（参考） |
 | `modules/qa/internal/turn/execute.go` | 手写 | 按固定顺序执行一轮问答 | `qa.ExecuteTurn` |
 | `modules/qa/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/qa/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |

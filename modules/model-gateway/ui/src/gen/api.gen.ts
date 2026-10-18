@@ -672,7 +672,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -951,17 +951,17 @@ export interface components {
             /** @description 可选视觉输入片段 */
             parts?: components["schemas"]["GatewayPart"][];
         };
-        /** @description guard短期签名准入；签名覆盖全部字段、动作、请求/主体、作用域、代次、到期与audience。MG本地验签，再从可信作用域构建额度，不接受客户端任选费用scope。 */
+        /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
         AdmissionPermit: {
             /** @description 准入记录稳定ID */
             admissionId: components["schemas"]["Identifier"];
-            /** @description 本次请求唯一追踪ID */
+            /** @description 原QA问题的稳定RootOperationID；不是当前RPC的追踪RequestID */
             requestId: components["schemas"]["Identifier"];
             /** @description 经验证的主体ID */
             subjectId: components["schemas"]["Identifier"];
             /** @description 许可动作，必须与消费场景一致 */
             action: string;
-            /** @description 短期签名凭证，禁止记录 */
+            /** @description mint分配阶段为空串，不构成模型凭证；仅QA按原根持久消费后签发非空凭证，禁止记录 */
             token: string;
             /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
             expiresAt: components["schemas"]["Timestamp"];

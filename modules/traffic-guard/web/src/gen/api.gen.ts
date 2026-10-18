@@ -457,17 +457,17 @@ export interface components {
          * @description RFC3339 UTC 时间
          */
         Timestamp: string;
-        /** @description guard短期签名准入；签名覆盖全部字段、动作、请求/主体、作用域、代次、到期与audience。MG本地验签，再从可信作用域构建额度，不接受客户端任选费用scope。 */
+        /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
         AdmissionPermit: {
             /** @description 准入记录稳定ID */
             admissionId: components["schemas"]["Identifier"];
-            /** @description 本次请求唯一追踪ID */
+            /** @description 原QA问题的稳定RootOperationID；不是当前RPC的追踪RequestID */
             requestId: components["schemas"]["Identifier"];
             /** @description 经验证的主体ID */
             subjectId: components["schemas"]["Identifier"];
             /** @description 许可动作，必须与消费场景一致 */
             action: string;
-            /** @description 短期签名凭证，禁止记录 */
+            /** @description mint分配阶段为空串，不构成模型凭证；仅QA按原根持久消费后签发非空凭证，禁止记录 */
             token: string;
             /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
             expiresAt: components["schemas"]["Timestamp"];
@@ -492,7 +492,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -591,7 +591,7 @@ export interface components {
             qaPerSitePerMinute: number;
             /**
              * @description 主体并发
-             * @default 2
+             * @default 1
              */
             qaSubjectConcurrency: number;
             /**
@@ -640,16 +640,37 @@ export interface components {
             /** @description revision 非负 int64；不用浮点数 */
             revision: components["schemas"]["Revision"];
         };
+        /** @description SHA-256 小写十六进制 */
+        Hash: string;
         /** @description 指定匿名主体引用及动作 scope，禁止提交原始 IP；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateBanRequestBody: {
-            /** @description subjectRef；UTF-8；不得为 null */
-            subjectRef: string;
-            /** @description scope；UTF-8；不得为 null */
-            scope: string;
+            /** @description 已经存在的不可逆网络引用，不接受原始IP。 */
+            subjectRef: components["schemas"]["Hash"];
+            /**
+             * @description scope；UTF-8；不得为 null
+             * @enum {string}
+             */
+            scope: "ai";
             /** @description ttlSeconds 非负 int64；不用浮点数 */
             ttlSeconds: number;
-            /** @description reasonCode；UTF-8；不得为 null */
-            reasonCode: string;
+            /**
+             * @description reasonCode；UTF-8；不得为 null
+             * @enum {string}
+             */
+            reasonCode: "manual" | "abuse";
+        };
+        BanRecord: {
+            banId: components["schemas"]["Identifier"];
+            subjectRef: components["schemas"]["Hash"];
+            /** @enum {unknown} */
+            scope: "ai";
+            /** @enum {unknown} */
+            reasonCode: "manual" | "abuse";
+            startsAt: components["schemas"]["Timestamp"];
+            expiresAt: components["schemas"]["Timestamp"];
+            /** @enum {unknown} */
+            state: "active" | "expired" | "revoked";
+            revision: components["schemas"]["Revision"];
         };
         /** @description 分页禁令成功结果；失败不返回半成功结果 */
         ListBansResult: {
@@ -657,6 +678,8 @@ export interface components {
             banIds: string[];
             /** @description nextCursor；UTF-8；不得为 null */
             nextCursor: string;
+            /** @description 保留旧banIds字段，同时输出实际匿名原因、期限与状态。 */
+            items: components["schemas"]["BanRecord"][];
         };
         /** @description 撤销禁令成功结果；失败不返回半成功结果 */
         RevokeBanResult: {
@@ -696,25 +719,31 @@ export interface components {
         };
         /** @description 接收qa已有检测信号成功结果；失败不返回半成功结果 */
         ReportQuestionSignalsResult: {
-            /** @description decision；UTF-8；不得为 null */
-            decision: string;
+            /**
+             * @description 封闭决策：allow才可继续，deny停止，challenge回既有人机验证；未知值失败关闭。
+             * @enum {string}
+             */
+            decision: "allow" | "deny" | "challenge";
             /** @description banExpiresAt；UTF-8；不得为 null */
             banExpiresAt: string;
         };
         /** @description 复评已有前置模型风险/匿名重复信号，abuse600秒AI禁令；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         ReportQuestionSignalsRequestBody: {
-            /** @description sessionKey；UTF-8；不得为 null */
-            sessionKey: string;
-            /** @description networkKey；UTF-8；不得为 null */
-            networkKey: string;
-            /** @description questionHash；UTF-8；不得为 null */
-            questionHash: string;
-            /** @description similarityScore 非负 int64；不用浮点数 */
-            similarityScore: number;
-            /** @description intervalMs 非负 int64；不用浮点数 */
-            intervalMs: number;
-            /** @description modelVerdict；UTF-8；不得为 null */
-            modelVerdict: string;
+            /** @description 仅已验证不可逆HMAC/问题hash，不接原文或原IP。 */
+            sessionKey: components["schemas"]["Hash"];
+            /** @description 仅已验证不可逆HMAC/问题hash，不接原文或原IP。 */
+            networkKey: components["schemas"]["Hash"];
+            /** @description 仅已验证不可逆HMAC/问题hash，不接原文或原IP。 */
+            questionHash: components["schemas"]["Hash"];
+            /** @description 可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。 */
+            similarityScore?: number;
+            /** @description 可选实测值；缺失为未知，显式null拒绝，不按0观测或给予信任加分。 */
+            intervalMs?: number;
+            /**
+             * @description modelVerdict；UTF-8；不得为 null
+             * @enum {string}
+             */
+            modelVerdict: "normal" | "suspicious" | "abuse";
         };
         /** @description 每会话1并发其余排队成功结果；失败不返回半成功结果 */
         QueueSessionAdmissionResult: {
@@ -725,10 +754,16 @@ export interface components {
         };
         /** @description 同会话仅1处理，其余由qa持正文FIFO排队；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         QueueSessionAdmissionRequestBody: {
-            /** @description sessionKey；UTF-8；不得为 null */
-            sessionKey: string;
+            /** @description 仅已验证不可逆HMAC/问题hash，不接原文或原IP。 */
+            sessionKey: components["schemas"]["Hash"];
             /** @description requestId；UTF-8；不得为 null */
             requestId: string;
+            /**
+             * @description 缺省enqueue；cancel只删除同请求排队引用，不释放active租约。
+             * @default enqueue
+             * @enum {string}
+             */
+            mode: "enqueue" | "cancel";
         };
         /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
         BarrierStatus: {
@@ -767,8 +802,6 @@ export interface components {
         };
         /** @description 仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         ReleaseBarrierRequestBody: Record<string, never>;
-        /** @description SHA-256 小写十六进制 */
-        Hash: string;
         /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
         ObjectRef: {
             /** @description 模块 slug */
@@ -1243,8 +1276,53 @@ export interface operations {
                     "application/json": components["schemas"]["GetPolicyResult"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；VERSION_MISMATCH */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1281,6 +1359,15 @@ export interface operations {
                     "application/json": components["schemas"]["UpdatePolicyResult"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；FORBIDDEN */
             403: {
                 headers: {
@@ -1290,8 +1377,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；CONFLICT */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1336,6 +1450,42 @@ export interface operations {
             };
             /** @description 公共错误；FORBIDDEN */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1390,6 +1540,42 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     revokeBan: {
@@ -1422,6 +1608,15 @@ export interface operations {
                     "application/json": components["schemas"]["RevokeBanResult"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；FORBIDDEN */
             403: {
                 headers: {
@@ -1431,8 +1626,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；CONFLICT */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1587,6 +1809,42 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     queueSessionAdmission: {
@@ -1616,6 +1874,33 @@ export interface operations {
                     "application/json": components["schemas"]["QueueSessionAdmissionResult"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 公共错误；VERSION_MISMATCH */
             409: {
                 headers: {
@@ -1627,6 +1912,15 @@ export interface operations {
             };
             /** @description 公共错误；RATE_LIMITED */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1966,8 +2260,53 @@ export interface operations {
                     "application/json": components["schemas"]["ListRiskEventsResult"];
                 };
             };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 按已登记权限、作用域、CAS或依赖失败关闭 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

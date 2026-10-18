@@ -16,8 +16,8 @@ import (
 	"net/http"
 	"net/netip"
 	"os"
+	"strconv"
 	"strings"
- "strconv"
 	"sync"
 	"time"
 
@@ -44,8 +44,10 @@ var keyCache sync.Map // privateKeyRef -> cacheEntry
 // PrivateNetworkScopes 只从真实连接及部署信任链派生当前和前一UTC日网络HMAC。
 // 原始地址仅在本次调用内使用，错误不含地址；未受信连接的转发头完全忽略。
 func PrivateNetworkScopes(key platform.SigningKey, remoteAddr, forwardedFor string, trustedProxyCIDRs []string, now time.Time) ([]platform.Hash, error) {
- peer,err:=privateNetworkPeer(remoteAddr,forwardedFor,trustedProxyCIDRs)
- if err!=nil{return nil,err}
+	peer, err := privateNetworkPeer(remoteAddr, forwardedFor, trustedProxyCIDRs)
+	if err != nil {
+		return nil, err
+	}
 	day := now.UTC()
 	scopes := make([]platform.Hash, 0, 2)
 	for _, date := range []time.Time{day, day.AddDate(0, 0, -1)} {
@@ -293,7 +295,9 @@ func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience 
 	}
 	if op, ok := platform.OperationContextFrom(ctx); ok {
 		claims.SiteID = op.Actor.SiteID
- if issuer=="portal" && audience=="traffic-guard" {claims.NetworkBudgetScopes=append([]platform.Hash(nil),op.NetworkBudgetScopes...)}
+		if issuer == "portal" && audience == "traffic-guard" {
+			claims.NetworkBudgetScopes = append([]platform.Hash(nil), op.NetworkBudgetScopes...)
+		}
 		if issuer == "portal" && audience == "identity" {
 			claims.LoginNetworkScopes = append([]platform.Hash(nil), op.LoginNetworkScopes...)
 		}
@@ -360,7 +364,7 @@ func (t *signingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 // privateNetworkPeer 是唯一的可信代理链解析，原地址只在内存使用。
-func privateNetworkPeer(remoteAddr,forwardedFor string,trustedProxyCIDRs []string)(netip.Addr,error){
+func privateNetworkPeer(remoteAddr, forwardedFor string, trustedProxyCIDRs []string) (netip.Addr, error) {
 	invalid := func() (netip.Addr, error) {
 		return netip.Addr{}, platform.NewError(platform.CodeValidation, false, "网络来源或代理链不合法")
 	}
@@ -398,23 +402,50 @@ func privateNetworkPeer(remoteAddr,forwardedFor string,trustedProxyCIDRs []strin
 			peer = addr.Unmap()
 		}
 	}
- return peer,nil
+	return peer, nil
 }
 
 // PrivateBudgetNetworkScopes 固定30日当前/前期别名，IPv6使用/64，登录日范围不受影响。
-func PrivateBudgetNetworkScopes(key platform.SigningKey,remoteAddr,forwardedFor string,trustedProxyCIDRs []string,siteID platform.Identifier,now time.Time)([]platform.Hash,error){
- peer,err:=privateNetworkPeer(remoteAddr,forwardedFor,trustedProxyCIDRs);if err!=nil{return nil,err}
- if !platform.ValidIdentifier(siteID){return nil,platform.NewError(platform.CodeValidation,false,"预算站点标识不合法")}
- if peer.Is6(){prefix,err:=peer.Prefix(64);if err!=nil{return nil,platform.NewError(platform.CodeValidation,false,"预算网络前缀不合法")};peer=prefix.Masked().Addr()}
- period:=now.UTC().Unix()/(30*24*60*60);site:=platform.HashBytes([]byte(siteID))
- scopes:=make([]platform.Hash,0,2)
- for _,index:=range []int64{period,period-1}{scope:="guard/network/30d/v1/"+site+"/"+strconv.FormatInt(index,10);digest,err:=PrivateOperationDigest(key,scope,[]byte(peer.String()));if err!=nil{return nil,err};scopes=append(scopes,digest)}
- return scopes,nil
+func PrivateBudgetNetworkScopes(key platform.SigningKey, remoteAddr, forwardedFor string, trustedProxyCIDRs []string, siteID platform.Identifier, now time.Time) ([]platform.Hash, error) {
+	peer, err := privateNetworkPeer(remoteAddr, forwardedFor, trustedProxyCIDRs)
+	if err != nil {
+		return nil, err
+	}
+	if !platform.ValidIdentifier(siteID) {
+		return nil, platform.NewError(platform.CodeValidation, false, "预算站点标识不合法")
+	}
+	if peer.Is6() {
+		prefix, err := peer.Prefix(64)
+		if err != nil {
+			return nil, platform.NewError(platform.CodeValidation, false, "预算网络前缀不合法")
+		}
+		peer = prefix.Masked().Addr()
+	}
+	period := now.UTC().Unix() / (30 * 24 * 60 * 60)
+	site := platform.HashBytes([]byte(siteID))
+	scopes := make([]platform.Hash, 0, 2)
+	for _, index := range []int64{period, period - 1} {
+		scope := "guard/network/30d/v1/" + site + "/" + strconv.FormatInt(index, 10)
+		digest, err := PrivateOperationDigest(key, scope, []byte(peer.String()))
+		if err != nil {
+			return nil, err
+		}
+		scopes = append(scopes, digest)
+	}
+	return scopes, nil
 }
 
-func validBudgetScopes(claims platform.AssertionClaims)bool{
- if len(claims.NetworkBudgetScopes)==0{return true}
- if claims.Issuer!="portal"||claims.Audience!="traffic-guard"||len(claims.NetworkBudgetScopes)>4{return false}
- for _,scope:=range claims.NetworkBudgetScopes{if !platform.ValidHash(scope){return false}}
- return true
+func validBudgetScopes(claims platform.AssertionClaims) bool {
+	if len(claims.NetworkBudgetScopes) == 0 {
+		return true
+	}
+	if claims.Issuer != "portal" || claims.Audience != "traffic-guard" || len(claims.NetworkBudgetScopes) > 4 {
+		return false
+	}
+	for _, scope := range claims.NetworkBudgetScopes {
+		if !platform.ValidHash(scope) {
+			return false
+		}
+	}
+	return true
 }

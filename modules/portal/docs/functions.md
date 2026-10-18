@@ -585,6 +585,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 9. 登录/首次注册只用platform.PrivateNetworkScopes从真实socket及受信CIDR代理链派生当前+前一UTC日网络HMAC，更新受信op后由服务断言签入LoginNetworkScopes；不记录地址或接受浏览器scope
 10. 认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie
 11. 当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie
+12. 匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper
 
 **错误**
 
@@ -598,7 +599,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 - 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
 - 并发：每请求独立；上游取消随客户端断开传播
 - 幂等：幂等由上游operationId保证；入口不重放写请求
-- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`
 
 ## portal.authenticationOperation
 

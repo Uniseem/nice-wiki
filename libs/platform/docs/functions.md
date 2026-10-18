@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 72 个函数：约束 19 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 84 个函数：约束 19 个，参考 65 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -45,7 +45,7 @@ func SignAssertion(key SigningKey, claims AssertionClaims) (string, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：纯函数，可并发
 - 幂等：每次生成新jti
-- 依赖：`platform.validLoginScopes`
+- 依赖：`platform.validLoginScopes`、`platform.validBudgetScopes`
 
 ## platform.VerifyAssertion
 
@@ -89,7 +89,7 @@ func VerifyAssertion(anchors TrustAnchors, token string, expect AssertionExpecta
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：重放缓存加锁
 - 幂等：jti唯一
-- 依赖：`platform.validLoginScopes`
+- 依赖：`platform.validLoginScopes`、`platform.validBudgetScopes`
 
 ## platform.validLoginScopes
 
@@ -174,7 +174,7 @@ func PrivateNetworkScopes(key SigningKey, remoteAddr, forwardedFor string, trust
 - 授权：仅受信portal入口调用；原IP不跨服务
 - 并发：无可写业务状态，可并发
 - 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
-- 依赖：`platform.PrivateOperationDigest`
+- 依赖：`platform.PrivateOperationDigest`、`platform.privateNetworkPeer`
 
 ## platform.SignOutboundRequest
 
@@ -253,6 +253,172 @@ func applyOperationHeaders(ctx context.Context, r *http.Request)
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：同可信上下文产生相同操作头；空proof删除残留
 - 依赖：无
+
+## platform.privateNetworkPeer
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：唯一可信代理链解析，非受信连接忽略转发头，原地址仅内存
+
+```go
+func privateNetworkPeer(remoteAddr,forwardedFor string,trustedProxyCIDRs []string)(netip.Addr,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `remoteAddr` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `forwardedFor` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `trustedProxyCIDRs` | `[]string` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `NetAddr` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 唯一可信代理链解析，非受信连接忽略转发头，原地址仅内存
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.PrivateBudgetNetworkScopes
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：站点隔离30日当前/前期HMAC，IPv6固定64位；预算key轮换保留旧key过渡；登录日范围不变
+
+```go
+func PrivateBudgetNetworkScopes(key SigningKey,remoteAddr,forwardedFor string,trustedProxyCIDRs []string,siteID Identifier,now time.Time)([]Hash,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信装配输入 | 不接受客户端自报授权 |
+| `remoteAddr` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `forwardedFor` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `trustedProxyCIDRs` | `[]string` | 可信装配输入 | 不接受客户端自报授权 |
+| `siteID` | `Identifier` | 可信装配输入 | 不接受客户端自报授权 |
+| `now` | `time.Time` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `[]Hash` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 站点隔离30日当前/前期HMAC，IPv6固定64位；预算key轮换保留旧key过渡；登录日范围不变
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.privateNetworkPeer`、`platform.PrivateOperationDigest`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.validBudgetScopes
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：仅允许portal给traffic-guard签至多四个有效Hash
+
+```go
+func validBudgetScopes(claims AssertionClaims)bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `AssertionClaims` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `bool` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 仅允许portal给traffic-guard签至多四个有效Hash
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.LoadSigningKey
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：唯一Ed25519私钥文件加载与元数据缓存
+
+```go
+func LoadSigningKey(key SigningKey) (ed25519.PrivateKey, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 外部Ed25519私钥引用 | 只读私钥文件，不记录原文 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `PrivateSigningKey` | 仅内存私钥 | 不可序列化或记录 |
+| `error` | `error` | 安全错误 | 不泄漏路径 |
+
+**步骤**
+
+1. 读取外部PKCS8 PEM引用并验证Ed25519；缓存按文件元数据失效，不进入业务快照
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
 
 ## platform.VerifyDelegation
 
@@ -2933,3 +3099,329 @@ func (s *validatedModelStream) LastID() string
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
 - 依赖：无
+
+## platform.SignAdmissionPermit
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：签完整费用许可，固定用途与audience，清token后规范JSON，期限不超过五分钟
+
+```go
+func SignAdmissionPermit(key SigningKey,permit AdmissionPermit)(AdmissionPermit,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信装配输入 | 不接受客户端自报授权 |
+| `permit` | `AdmissionPermit` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `AdmissionPermit` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 签完整费用许可，固定用途与audience，清token后规范JSON，期限不超过五分钟
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.validateAdmissionClaims`、`platform.signGuardClaims`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.VerifyAdmissionPermit
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：只信traffic-guard公钥与固定用途；代次/归属/持久消费由调用域负责
+
+```go
+func VerifyAdmissionPermit(anchors TrustAnchors,token string)(AdmissionPermit,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 可信装配输入 | 不接受客户端自报授权 |
+| `token` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `AdmissionPermit` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 只信traffic-guard公钥与固定用途；代次/归属/持久消费由调用域负责
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.validateAdmissionClaims`、`platform.verifyGuardClaims`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.validateAdmissionClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：核许可ID、作用域、固定audience和五分钟期限
+
+```go
+func validateAdmissionClaims(permit AdmissionPermit)error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `permit` | `AdmissionPermit` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 核许可ID、作用域、固定audience和五分钟期限
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.SignGuardSession
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：固定portal与独立session用途，最多十分钟挑战通过证明
+
+```go
+func SignGuardSession(key SigningKey,claims GuardSessionClaims)(string,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信装配输入 | 不接受客户端自报授权 |
+| `claims` | `GuardSessionClaims` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `string` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 固定portal与独立session用途，最多十分钟挑战通过证明
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.validateGuardSession`、`platform.signGuardClaims`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.VerifyGuardSession
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：严格验签挑战证明与期限，不授予账号或模型权限
+
+```go
+func VerifyGuardSession(anchors TrustAnchors,token string)(GuardSessionClaims,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 可信装配输入 | 不接受客户端自报授权 |
+| `token` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `GuardSessionClaims` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 严格验签挑战证明与期限，不授予账号或模型权限
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.validateGuardSession`、`platform.verifyGuardClaims`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.validateGuardSession
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：核portal用途、主体/站点/会话/代次与十分钟期限
+
+```go
+func validateGuardSession(claims GuardSessionClaims)error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `GuardSessionClaims` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 核portal用途、主体/站点/会话/代次与十分钟期限
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.signGuardClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：加载平台私钥，规范JSON，以带kid/alg/typ的EdDSA JWS签名
+
+```go
+func signGuardClaims(key SigningKey,purpose string,claims any)(string,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 可信装配输入 | 不接受客户端自报授权 |
+| `purpose` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `claims` | `any` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result0` | `string` | 成功结果或安全错误 | 失败不返回半结果 |
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 加载平台私钥，规范JSON，以带kid/alg/typ的EdDSA JWS签名
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：`platform.LoadSigningKey`、`platform.CanonicalJSON`
+- 其他依赖说明：受控Ed25519密钥引用
+
+## platform.verifyGuardClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/admission.go`
+- 作用：8192字节上限；固定用途/算法/traffic-guard key，先验签再严格解码
+
+```go
+func verifyGuardClaims(anchors TrustAnchors,token,purpose string,result any)error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 可信装配输入 | 不接受客户端自报授权 |
+| `token` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `purpose` | `string` | 可信装配输入 | 不接受客户端自报授权 |
+| `result` | `any` | 可信装配输入 | 不接受客户端自报授权 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 成功结果或安全错误 | 失败不返回半结果 |
+
+**步骤**
+
+1. 8192字节上限；固定用途/算法/traffic-guard key，先验签再严格解码
+
+**错误**
+
+- `VALIDATION`：凭证或配置不符合上述规则（不可重试）
+- `UNAUTHENTICATED`：凭证或配置不符合上述规则（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：凭证或配置不符合上述规则（不可重试）
+
+- 副作用：只读取外部私钥引用并在内存计算；不记录凭证或原始地址
+- 授权：permission：service；rule：可信进程内机制；准入/当前代次/消费由调用方负责
+- 并发：无共享可变查询状态；密钥缓存由LoadSigningKey统一管理
+- 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
+- 依赖：无
+- 其他依赖说明：受控Ed25519密钥引用

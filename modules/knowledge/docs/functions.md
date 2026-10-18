@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 95 个函数：约束 32 个，参考 63 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 96 个函数：约束 32 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2065,10 +2065,11 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 
 **步骤**
 
-1. NormalizeQuery规范query与基准语言
-2. 请求携带的queryEmbedding校验queryHash/space/vectorHash/epoch后复用，否则EmbedQuery
-3. SearchLexical与SearchVector各80→FuseCandidates取40→ValidateCandidates权威过滤→可选RerankCandidates
-4. SelectContext按预算选材；当前页范围可优先，最终仍经content可见性校验
+1. 问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。
+2. NormalizeQuery规范query与基准语言
+3. 请求携带的queryEmbedding校验queryHash/space/vectorHash/epoch后复用，否则EmbedQuery
+4. SearchLexical与SearchVector各80→FuseCandidates取40→ValidateCandidates权威过滤→可选RerankCandidates
+5. SelectContext按预算选材；当前页范围可优先，最终仍经content可见性校验
 
 **错误**
 
@@ -2085,7 +2086,7 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`memory:resolveContext`、`knowledge.NormalizeQuery`、`knowledge.EmbedQuery`、`knowledge.SearchLexical`、`knowledge.SearchVector`、`knowledge.FuseCandidates`、`knowledge.ValidateCandidates`、`knowledge.RerankCandidates`、`knowledge.SelectContext`、`knowledge.searchRuntime`、`knowledge.activeSnapshot`
+- 依赖：`content:validatePublications`、`memory:resolveContext`、`knowledge.NormalizeQuery`、`knowledge.EmbedQuery`、`knowledge.SearchLexical`、`knowledge.SearchVector`、`knowledge.FuseCandidates`、`knowledge.ValidateCandidates`、`knowledge.RerankCandidates`、`knowledge.SelectContext`、`knowledge.searchRuntime`、`knowledge.activeSnapshot`、`knowledge.BindAdmissionPermit`
 
 ## knowledge.NewSearchRuntime
 
@@ -3347,11 +3348,12 @@ func InspectEvidence(ctx context.Context, op OperationContext, input InspectEvid
 
 **步骤**
 
-1. 根task qa.inspect owner=knowledge fast档max800output token并注入project overview
-2. 只选择本次检索合法IDs，展开小节仍content当前校验
-3. 3轮/5工具调用计数来自可信根任务状态CAS不由浏览器覆盖
-4. 到上限用已有材料返回finished，费用继承qa costClass。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。
+2. 根task qa.inspect owner=knowledge fast档max800output token并注入project overview
+3. 只选择本次检索合法IDs，展开小节仍content当前校验
+4. 3轮/5工具调用计数来自可信根任务状态CAS不由浏览器覆盖
+5. 到上限用已有材料返回finished，费用继承qa costClass。
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -3396,11 +3398,12 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 
 **步骤**
 
-1. rootOperationId/queryHash/space/dataEpoch singleflight且唯一
-2. 根knowledge.embed embedding档0文本output
-3. MG保留独立attempt费用证据
-4. 返回完整空间/vectorHash供QA cache与本域search复用
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。
+2. rootOperationId/queryHash/space/dataEpoch singleflight且唯一
+3. 根knowledge.embed embedding档0文本output
+4. MG保留独立attempt费用证据
+5. 返回完整空间/vectorHash供QA cache与本域search复用
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -3417,7 +3420,7 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.InvokeModel`、`knowledge.searchRuntime`、`knowledge.NormalizeQuery`、`knowledge.acquireQueryFlight`、`knowledge.RuntimeFromContext`、`knowledge.CompletedOutput`、`knowledge.validVector`、`platform.NewWriteContext`
+- 依赖：`knowledge.InvokeModel`、`knowledge.searchRuntime`、`knowledge.NormalizeQuery`、`knowledge.acquireQueryFlight`、`knowledge.RuntimeFromContext`、`knowledge.CompletedOutput`、`knowledge.validVector`、`platform.NewWriteContext`、`knowledge.BindAdmissionPermit`
 
 ## knowledge.acquireQueryFlight
 
@@ -4167,6 +4170,45 @@ func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.Mo
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+
+## knowledge.BindAdmissionPermit
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 作用：绑定本次已消费准入至独立模型上下文
+
+```go
+func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.AdmissionPermit) (context.Context, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅复制本次模型运行上下文，不修改共享runtime；问答分支核对非空已消费token、原访客/root/epoch和动作；网关负责签名与有效期权威验证。
+
+**错误**
+
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`knowledge.WithModelRuntime`
 
 ## knowledge.ExecuteBuild
 
