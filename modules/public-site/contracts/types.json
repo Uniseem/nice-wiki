@@ -840,8 +840,15 @@
           "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
         },
         "expectedRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "expectedRevision 非负 int64；不用浮点数"
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null表示首次读取当前ref；非null须精确匹配，不能回退旧正文。"
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -864,61 +871,41 @@
           "type": "boolean",
           "description": "published 的明确真假结果，不可 null"
         },
-        "publicationRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "publicationRevision 非负 int64；不用浮点数"
-        },
         "canonicalPath": {
           "type": "string",
           "description": "canonicalPath；UTF-8；不得为 null",
           "maxLength": 8192
         },
-        "authorityToken": {
-          "type": "string",
-          "description": "authorityToken；UTF-8；不得为 null",
-          "maxLength": 8192
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         }
       },
       "required": [
         "published",
-        "publicationRevision",
+        "publication",
         "canonicalPath",
-        "authorityToken"
+        "visibilityRevision"
       ]
     },
     "LoadPublishedBundleInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "取得同一发布修订完整包输入；未标可选字段均必填，空集合用[]，不传null",
+      "description": "携完整精确发布引用；不创建或解析第二份公开授权token。",
       "properties": {
-        "documentId": {
-          "type": "string",
-          "description": "documentId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
         },
         "locale": {
           "type": "string",
-          "description": "locale；UTF-8；不得为 null",
-          "maxLength": 35,
-          "minLength": 1,
-          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
-        },
-        "publicationRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "publicationRevision 非负 int64；不用浮点数"
-        },
-        "authorityToken": {
-          "type": "string",
-          "description": "authorityToken；UTF-8；不得为 null",
           "maxLength": 8192
         }
       },
       "required": [
-        "documentId",
-        "locale",
-        "publicationRevision",
-        "authorityToken"
+        "publication",
+        "locale"
       ]
     },
     "LoadPublishedBundleResult": {
@@ -936,16 +923,12 @@
           "maxLength": 8192
         },
         "updatedAt": {
-          "type": "string",
-          "description": "updatedAt；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         },
         "mediaRefs": {
           "type": "array",
           "items": {
-            "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
@@ -963,6 +946,14 @@
         "publication": {
           "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
           "description": "公共 PublishedRevisionRef 合同，遵守其字段和空值规则"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "maxLength": 8192
         }
       },
       "required": [
@@ -971,7 +962,9 @@
         "updatedAt",
         "mediaRefs",
         "untranslatedBlockIds",
-        "publication"
+        "publication",
+        "description",
+        "sourceLanguage"
       ]
     },
     "ParseMarkdownInput": {
@@ -1200,26 +1193,17 @@
         "mediaRefs": {
           "type": "array",
           "items": {
-            "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
           },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
+          "maxItems": 10000
         },
-        "publicationRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "publicationRevision 非负 int64；不用浮点数"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "publication": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
         }
       },
       "required": [
         "mediaRefs",
-        "publicationRevision",
-        "dataEpoch"
+        "publication"
       ]
     },
     "ResolvePublicMediaResult": {
@@ -2424,24 +2408,17 @@
         },
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "revision 非负 int64；不用浮点数"
+          "description": "弃用兼容字段；不参与授权、取正文或草稿修订选择。",
+          "deprecated": true
         },
-        "actorId": {
-          "type": "string",
-          "description": "actorId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "dataEpoch": {
+        "draftRevisionId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+          "description": "content拥有的精确共享草稿ID，不从旧revision数值映射。"
         }
       },
       "required": [
         "documentId",
-        "revision",
-        "actorId",
-        "dataEpoch"
+        "draftRevisionId"
       ]
     },
     "IssuePreviewTokenResult": {
@@ -2457,11 +2434,16 @@
         "expiresAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "RFC3339 UTC 时间；不含 null"
+        },
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "content拥有者grant ID；消费方每次预览与token一起传递。"
         }
       },
       "required": [
         "token",
-        "expiresAt"
+        "expiresAt",
+        "previewId"
       ]
     },
     "ValidatePreviewTokenInput": {
@@ -2474,43 +2456,31 @@
           "description": "token；UTF-8；不得为 null",
           "maxLength": 8192
         },
-        "actorId": {
-          "type": "string",
-          "description": "actorId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
         "token",
-        "actorId",
-        "dataEpoch"
+        "previewId"
       ]
     },
     "ValidatePreviewTokenResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "原子消费预览 token成功结果；失败不返回半成功结果",
       "properties": {
-        "documentId": {
-          "type": "string",
-          "description": "documentId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+        "body": {
+          "$ref": "../../content/contracts/types.json#/$defs/DocumentBody"
         },
-        "revision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "revision 非负 int64；不用浮点数"
+        "metadata": {
+          "$ref": "#/$defs/PreviewMetadata"
         }
       },
       "required": [
-        "documentId",
-        "revision"
-      ]
+        "body",
+        "metadata"
+      ],
+      "description": "只在本人已授权的本次内部预览调用链传递，不公开或持久化token真相。"
     },
     "RenderPreviewInput": {
       "type": "object",
@@ -2522,22 +2492,19 @@
           "description": "previewToken；UTF-8；不得为 null",
           "maxLength": 8192
         },
-        "actorId": {
-          "type": "string",
-          "description": "actorId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "snapshot": {
+          "$ref": "#/$defs/ValidatePreviewTokenResult"
         }
       },
       "required": [
         "previewToken",
-        "actorId",
-        "dataEpoch"
-      ]
+        "previewId",
+        "snapshot"
+      ],
+      "x-internal": true
     },
     "RenderPreviewResult": {
       "type": "object",
@@ -2564,21 +2531,13 @@
           "description": "token；UTF-8；不得为 null",
           "maxLength": 8192
         },
-        "actorId": {
-          "type": "string",
-          "description": "actorId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
         "token",
-        "actorId",
-        "dataEpoch"
+        "previewId"
       ]
     },
     "HandlePreviewResult": {
@@ -2717,15 +2676,36 @@
           "maxLength": 128,
           "minLength": 1
         },
-        "revision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "revision 非负 int64；不用浮点数"
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "csrfToken": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "仅当前页内存的会话CSRF，由portal编辑器传入，不写DOM或存储。"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "signal": {
+          "type": "null",
+          "x-typescript-type": "AbortSignal",
+          "description": "浏览器内部取消信号，不作为HTTP字段。"
         }
       },
       "required": [
         "documentId",
-        "revision"
-      ]
+        "draftRevisionId",
+        "apiBaseURL",
+        "csrfToken",
+        "operationId",
+        "signal"
+      ],
+      "x-internal": true
     },
     "LoadPreviewResult": {
       "type": "object",
@@ -2741,11 +2721,19 @@
           "type": "string",
           "description": "html；UTF-8；不得为 null",
           "maxLength": 2097152
+        },
+        "previewId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
         "token",
-        "html"
+        "html",
+        "previewId",
+        "expiresAt"
       ]
     },
     "LoadPublicCapabilitiesInput": {
@@ -2796,11 +2784,22 @@
           "maxLength": 35,
           "minLength": 1,
           "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "apiBaseURL": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "signal": {
+          "type": "null",
+          "x-typescript-type": "AbortSignal",
+          "description": "浏览器内部可选取消信号。"
         }
       },
       "required": [
-        "locale"
-      ]
+        "locale",
+        "apiBaseURL"
+      ],
+      "x-internal": true
     },
     "RequestPublicNavigationResult": {
       "type": "object",
@@ -2815,10 +2814,21 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "etag": {
+          "type": "string",
+          "maxLength": 8192
         }
       },
       "required": [
-        "tree"
+        "tree",
+        "status",
+        "etag"
       ]
     },
     "HandleRootRedirectInput": {
@@ -3491,12 +3501,17 @@
         },
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "revision 非负 int64；不用浮点数"
+          "description": "弃用兼容字段；不参与授权、取正文或草稿修订选择。",
+          "deprecated": true
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "content拥有的精确共享草稿ID，不从旧revision数值映射。"
         }
       },
       "required": [
         "documentId",
-        "revision"
+        "draftRevisionId"
       ]
     },
     "ReleaseBarrierRequestBody": {
@@ -3954,6 +3969,33 @@
     },
     "AssetVersionRef": {
       "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
+    },
+    "PreviewMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "documentId",
+        "draftRevisionId",
+        "title",
+        "sourceLanguage"
+      ],
+      "description": "content已授权metadata的本次渲染所需只读投影。"
     }
   }
 }

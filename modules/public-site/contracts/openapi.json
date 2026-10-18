@@ -378,6 +378,15 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "query",
+            "name": "previewId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "content签发的grant ID，与token及当前登录本人一起验证。"
           }
         ],
         "security": [

@@ -36,6 +36,9 @@ type LinkDirectory struct {
 	SiteConfig   *gen.SiteConfigClient
 	Content      *gen.ContentClient
 	Localization *gen.LocalizationClient
+	Media *gen.MediaClient
+	Identity *gen.IdentityClient
+	Analytics *gen.AnalyticsClient
 }
 
 type linkDirectoryKey struct{}
