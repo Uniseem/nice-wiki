@@ -780,6 +780,55 @@
       ]
     },
     {
+      "path": "modules/localization/internal/language/plan_enable.go",
+      "kind": "handwritten",
+      "purpose": "语言计划最终启用事务。",
+      "functions": [
+        {
+          "id": "localization.EnableLanguageForPlan",
+          "name": "EnableLanguageForPlan",
+          "signature": "func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在语言计划最终CAS事务内启用已有语言的自动翻译并发布language.changed。",
+          "steps": [
+            "原站/代次/版本/profile必须仍匹配；只把enabled与automatic置true，版本加一并与outbox同事务提交"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "语言不存在或没有翻译档位"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "计划已启用自动翻译"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "语言版本或代次在批准期间变化"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "私有事务写入失败"
+            }
+          ],
+          "sideEffects": [
+            "更新语言配置并写language.changed outbox"
+          ],
+          "authorization": "仅由ApproveLanguagePlan在同一已核管理员事务内调用。",
+          "concurrency": "语言原version CAS；失败整次回滚。",
+          "idempotency": "由语言计划pending→approved CAS保证只生效一次。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
       "path": "modules/localization/internal/language/read.go",
       "kind": "handwritten",
       "purpose": "读取当前代次语言配置；不返回模型密钥，不连接翻译正文。",
@@ -7648,9 +7697,9 @@
       ]
     },
     {
-      "path": "modules/localization/internal/language/plan.go",
+      "path": "modules/localization/internal/translation/language_plan.go",
       "kind": "handwritten",
-      "purpose": "启用语言前估算全量翻译费用",
+      "purpose": "增量规划与启用前免费估价、明确批准和持久任务意图",
       "functions": [
         {
           "id": "localization.EstimateLanguagePlan",
@@ -7704,12 +7753,13 @@
           ],
           "purpose": "启用语言前估算全量翻译费用",
           "steps": [
-            "localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false",
+            "localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false且必须有可用翻译档位",
             "content:readPublicTree列出已发布文档，逐篇content:readPublishedRevision后SplitTranslationUnits与ReuseTranslationMemory统计需新译单元；统计界面字符串缺项",
+            "model-gateway:resolveTaskRoute只读localization.document与localization.ui的真实当前档位、主候选与routeVersion；两者必须属于语言配置的同一档位且可形成一个保守价目快照",
             "按接口限制分批把实际待估单元文本交model-gateway:estimateTokens，禁止截断或在本域复制token算法；再调用model-gateway:quoteCost分别估localization.document与localization.ui任务，缺价保留price_unknown警告，不伪造0",
             "免费估算以localization纯服务调用：清除原portal proof与用户委托，保留本站/dataEpoch/rootOperationId/费用类别及更早截止；本域先核当前localization.languages，估算不调用模型、不预留或扣减额度",
             "使用libs/platform统一签名siteId传递已核本站；清除原portal proof并建立localization纯服务actor，不能回退未声明的system作用域、发送未签名站点或保留原proof绕过纯服务边界",
-            "保存计划（文档修订集合、单元数、quoteHash、24小时过期），只读不调用模型"
+            "保存计划（公开树revision、每篇发布revision、术语/界面代数、任务routeVersion、模型快照、价目快照、quoteHash、24小时过期），只读不调用模型；固定过期时刻不因估算重放延长"
           ],
           "errors": [
             {
@@ -7738,6 +7788,7 @@
             "content:readPublishedRevision",
             "localization.SplitTranslationUnits",
             "localization.ReuseTranslationMemory",
+            "model-gateway:resolveTaskRoute",
             "model-gateway:quoteCost",
             "model-gateway:estimateTokens"
           ],
@@ -7796,9 +7847,12 @@
           ],
           "purpose": "批准估价后启用语言并创建全量翻译任务",
           "steps": [
-            "localization.languages权限；计划未过期且quoteHash一致",
-            "SetLanguageEnabled启用该语言（automatic=true），记录批准人与估价",
-            "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务",
+            "localization.languages权限；计划未过期且quoteHash一致；公开树revision、文档发布revision、语言配置、术语/界面代数与两类routeVersion必须仍等于估价快照",
+            "免费调用model-gateway:quoteCost重核原输入token、输出上限与价目；routeVersion不含价目，因此quote/priceSnapshot变化必须使计划失效，不重新估价或替用户接受新价格",
+            "首次批准开始持久冻结完整OperationContext、原rootOperationId、批准主体、dataEpoch与deadline；进程失败后只沿该scope与未延长截止重放，不能换root/主体或延长付费许可",
+            "先持久保存逐文档与UI任务意图（固定object ref、完整任务输入hash、绑定planId的dedupeKey和原approved plan/price快照）；进程失败后复用同一完整输入和幂等键",
+            "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务；任一任务未获持久接受时计划保持pending且不返回成功",
+            "全部jobs接受后在同一本域事务CAS pending→approved，启用该语言automatic=true并记录批准人与估价；不生成新quote、不延长原expiresAt",
             "翻译完成前公开页面按旧译或原文回退并提示"
           ],
           "errors": [
@@ -7810,6 +7864,21 @@
             {
               "code": "CONFLICT",
               "when": "计划已被批准",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "调用方不是语言管理员或费用类别不是background",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "公开树、模型路由或jobs不可用；持久意图与已接受回执可安全重试",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原批准OperationContext截止已过；不得用新请求deadline延长",
               "retryable": false
             }
           ],
@@ -7824,7 +7893,9 @@
           "concurrency": "计划CAS pending→approved",
           "idempotency": "同planId重复批准返回原结果",
           "dependencies": [
-            "localization.SetLanguageEnabled",
+            "localization.EnableLanguageForPlan",
+            "model-gateway:resolveTaskRoute",
+            "model-gateway:quoteCost",
             "jobs:createJob"
           ],
           "resources": [],
@@ -11447,6 +11518,12 @@
       "path": "modules/localization/migrations/005_suggestion_policy.sql",
       "kind": "handwritten",
       "purpose": "只追加付费建议当前指针与不可变审批历史，不种默认允许",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/migrations/006_language_plan.sql",
+      "kind": "handwritten",
+      "purpose": "只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图",
       "functions": []
     },
     {

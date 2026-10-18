@@ -16,6 +16,18 @@ type PublishedSnapshot struct {
 	VisibilityRevision int
 }
 
+// PublicTreeDocument 是 content 公开树中通过生产方 schema 校验的文档引用。
+type PublicTreeDocument struct {
+	DocumentID string
+	Reference  gen.PublishedRevisionRef
+}
+
+// PublicTreeSnapshot 固定一次公开树 revision 与完整文档引用集合。
+type PublicTreeSnapshot struct {
+	TreeRevision int64
+	Documents    []PublicTreeDocument
+}
+
 // ConfigureSourceClient 仅装配生成端口与严格生产方载荷schema，不访问源正文。
 func ConfigureSourceClient(client *gen.ContentClient, validators map[string]func(json.RawMessage) error, key platform.SigningKey) error {
 	store, _ := LanguageGateway()
@@ -48,6 +60,42 @@ func FetchPublishedSnapshot(ctx context.Context, op OperationContext, document g
 }
 func FetchCurrentPublishedSnapshot(ctx context.Context, op OperationContext, documentID string) (PublishedSnapshot, error) {
 	return readPublishedSnapshot(ctx, op, documentID, nil)
+}
+
+// ReadPublicTree 读取 content 已登记的公开树并校验完整生产方响应。
+func ReadPublicTree(ctx context.Context, op OperationContext) (PublicTreeSnapshot, error) {
+	store, _ := LanguageGateway()
+	if store == nil || store.content == nil || store.sourceValidators["ContentReadPublicTreeResult"] == nil {
+		return PublicTreeSnapshot{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本地化公开树客户端未装配")
+	}
+	raw, err := store.content.ReadPublicTree(SourceOperation(ctx, op))
+	if err != nil {
+		return PublicTreeSnapshot{}, err
+	}
+	if err = ValidateSourcePayload("ContentReadPublicTreeResult", raw); err != nil {
+		return PublicTreeSnapshot{}, err
+	}
+	var response struct {
+		Nodes []struct {
+			DocumentID string                   `json:"documentId"`
+			Reference  gen.PublishedRevisionRef `json:"reference"`
+		} `json:"nodes"`
+		TreeRevision int64 `json:"treeRevision"`
+	}
+	if json.Unmarshal(raw, &response) != nil || response.TreeRevision < 0 || len(response.Nodes) > 10000 {
+		return PublicTreeSnapshot{}, platform.NewError(platform.CodeIntegrityError, false, "公开树响应不可读取")
+	}
+	result := PublicTreeSnapshot{TreeRevision: response.TreeRevision, Documents: make([]PublicTreeDocument, 0, len(response.Nodes))}
+	seen := map[string]bool{}
+	for _, node := range response.Nodes {
+		if node.DocumentID == "" || node.Reference.DocumentId != node.DocumentID ||
+			node.Reference.DataEpoch != op.DataEpoch || seen[node.DocumentID] {
+			return PublicTreeSnapshot{}, platform.NewError(platform.CodeIntegrityError, false, "公开树文档引用重复、跨代次或身份不一致")
+		}
+		seen[node.DocumentID] = true
+		result.Documents = append(result.Documents, PublicTreeDocument{DocumentID: node.DocumentID, Reference: node.Reference})
+	}
+	return result, nil
 }
 func readPublishedSnapshot(ctx context.Context, op OperationContext, documentID string, expected *gen.PublishedRevisionRef) (PublishedSnapshot, error) {
 	store, _ := LanguageGateway()

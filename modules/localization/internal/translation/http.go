@@ -10,6 +10,18 @@ import (
 func NewTranslationHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
 		"readTranslation": language.JSONHandler(ReadTranslation),
+		"estimateLanguagePlan": language.JSONHandler(EstimateLanguagePlan, func(i *EstimateLanguagePlanInput, r *http.Request) error {
+			if i.Language != r.PathValue("tag") {
+				return platform.NewError(platform.CodeValidation, false, "语言估价路径与正文语言不一致")
+			}
+			return nil
+		}),
+		"approveLanguagePlan": language.JSONHandler(ApproveLanguagePlan, func(i *ApproveLanguagePlanInput, r *http.Request) error {
+			if i.Language != r.PathValue("tag") {
+				return platform.NewError(platform.CodeValidation, false, "语言批准路径与正文语言不一致")
+			}
+			return nil
+		}),
 		"listTranslationProgress": language.JSONHandler(ListTranslationProgress, func(i *ListTranslationProgressInput, r *http.Request) error {
 			if r.URL.Query().Has("language") {
 				tag := r.URL.Query().Get("language")

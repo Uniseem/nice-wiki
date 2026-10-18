@@ -3161,6 +3161,26 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：公开树、模型路由、价目或jobs不可用；持久意图保留，可安全重试",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "DEADLINE_EXCEEDED：原批准OperationContext截止已过；不得用新请求延长",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -3972,6 +3992,21 @@
       },
       "LookupInvocationResult": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/LookupInvocationResult"
+      },
+      "GatewayResolveTaskRouteResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ResolveRouteResult"
+      },
+      "GatewayQuoteCostResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult"
+      },
+      "GatewayEstimateTokensResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/EstimateTokensResult"
+      },
+      "ContentReadPublicTreeResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublicTreeResult"
+      },
+      "JobsCreateJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
       }
     }
   },
@@ -3983,6 +4018,11 @@
     "ContentReadPublishedRevisionResult",
     "ContentValidatePublicationsResult",
     "GetInvocationResult",
-    "LookupInvocationResult"
+    "LookupInvocationResult",
+    "GatewayResolveTaskRouteResult",
+    "GatewayQuoteCostResult",
+    "GatewayEstimateTokensResult",
+    "ContentReadPublicTreeResult",
+    "JobsCreateJobResult"
   ]
 }

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 132 个函数：约束 48 个，参考 84 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 133 个函数：约束 48 个，参考 85 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -360,6 +360,41 @@ func rejectLanguageAlias(ctx context.Context,tx *sql.Tx,tag string)error
 - 并发：固定调用方事务/快照；失败回滚。
 - 幂等：沿用所属用例原回执或不可变输入，不创建独立付费操作。
 - 依赖：`localization.NormalizeLanguageTag`
+
+## localization.EnableLanguageForPlan
+
+- 级别：参考
+- 文件：`modules/localization/internal/language/plan_enable.go`
+- 作用：在语言计划最终CAS事务内启用已有语言的自动翻译并发布language.changed。
+
+```go
+func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原站/代次/版本/profile必须仍匹配；只把enabled与automatic置true，版本加一并与outbox同事务提交
+
+**错误**
+
+- `VALIDATION`：语言不存在或没有翻译档位（不可重试）
+- `CONFLICT`：计划已启用自动翻译（不可重试）
+- `VERSION_MISMATCH`：语言版本或代次在批准期间变化（不可重试）
+- `INTERNAL`：私有事务写入失败（不可重试）
+
+- 副作用：更新语言配置并写language.changed outbox
+- 授权：仅由ApproveLanguagePlan在同一已核管理员事务内调用。
+- 并发：语言原version CAS；失败整次回滚。
+- 幂等：由语言计划pending→approved CAS保证只生效一次。
+- 依赖：无
 
 ## localization.ListLanguages
 
@@ -3677,7 +3712,7 @@ func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error
 ## localization.EstimateLanguagePlan
 
 - 级别：约束
-- 文件：`modules/localization/internal/language/plan.go`
+- 文件：`modules/localization/internal/translation/language_plan.go`
 - 作用：启用语言前估算全量翻译费用
 
 ```go
@@ -3701,12 +3736,13 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 
 **步骤**
 
-1. localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false
+1. localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false且必须有可用翻译档位
 2. content:readPublicTree列出已发布文档，逐篇content:readPublishedRevision后SplitTranslationUnits与ReuseTranslationMemory统计需新译单元；统计界面字符串缺项
-3. 按接口限制分批把实际待估单元文本交model-gateway:estimateTokens，禁止截断或在本域复制token算法；再调用model-gateway:quoteCost分别估localization.document与localization.ui任务，缺价保留price_unknown警告，不伪造0
-4. 免费估算以localization纯服务调用：清除原portal proof与用户委托，保留本站/dataEpoch/rootOperationId/费用类别及更早截止；本域先核当前localization.languages，估算不调用模型、不预留或扣减额度
-5. 使用libs/platform统一签名siteId传递已核本站；清除原portal proof并建立localization纯服务actor，不能回退未声明的system作用域、发送未签名站点或保留原proof绕过纯服务边界
-6. 保存计划（文档修订集合、单元数、quoteHash、24小时过期），只读不调用模型
+3. model-gateway:resolveTaskRoute只读localization.document与localization.ui的真实当前档位、主候选与routeVersion；两者必须属于语言配置的同一档位且可形成一个保守价目快照
+4. 按接口限制分批把实际待估单元文本交model-gateway:estimateTokens，禁止截断或在本域复制token算法；再调用model-gateway:quoteCost分别估localization.document与localization.ui任务，缺价保留price_unknown警告，不伪造0
+5. 免费估算以localization纯服务调用：清除原portal proof与用户委托，保留本站/dataEpoch/rootOperationId/费用类别及更早截止；本域先核当前localization.languages，估算不调用模型、不预留或扣减额度
+6. 使用libs/platform统一签名siteId传递已核本站；清除原portal proof并建立localization纯服务actor，不能回退未声明的system作用域、发送未签名站点或保留原proof绕过纯服务边界
+7. 保存计划（公开树revision、每篇发布revision、术语/界面代数、任务routeVersion、模型快照、价目快照、quoteHash、24小时过期），只读不调用模型；固定过期时刻不因估算重放延长
 
 **错误**
 
@@ -3717,12 +3753,12 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 - 授权：permission：localization.languages；rule：语言管理员
 - 并发：同语言同时一个有效计划，新估价替换旧计划
 - 幂等：同语言与源集合重复估价返回同一计划
-- 依赖：`localization.NormalizeLanguageTag`、`content:readPublicTree`、`content:readPublishedRevision`、`localization.SplitTranslationUnits`、`localization.ReuseTranslationMemory`、`model-gateway:quoteCost`、`model-gateway:estimateTokens`
+- 依赖：`localization.NormalizeLanguageTag`、`content:readPublicTree`、`content:readPublishedRevision`、`localization.SplitTranslationUnits`、`localization.ReuseTranslationMemory`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`model-gateway:estimateTokens`
 
 ## localization.ApproveLanguagePlan
 
 - 级别：约束
-- 文件：`modules/localization/internal/language/plan.go`
+- 文件：`modules/localization/internal/translation/language_plan.go`
 - 作用：批准估价后启用语言并创建全量翻译任务
 
 ```go
@@ -3746,21 +3782,27 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 
 **步骤**
 
-1. localization.languages权限；计划未过期且quoteHash一致
-2. SetLanguageEnabled启用该语言（automatic=true），记录批准人与估价
-3. 为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务
-4. 翻译完成前公开页面按旧译或原文回退并提示
+1. localization.languages权限；计划未过期且quoteHash一致；公开树revision、文档发布revision、语言配置、术语/界面代数与两类routeVersion必须仍等于估价快照
+2. 免费调用model-gateway:quoteCost重核原输入token、输出上限与价目；routeVersion不含价目，因此quote/priceSnapshot变化必须使计划失效，不重新估价或替用户接受新价格
+3. 首次批准开始持久冻结完整OperationContext、原rootOperationId、批准主体、dataEpoch与deadline；进程失败后只沿该scope与未延长截止重放，不能换root/主体或延长付费许可
+4. 先持久保存逐文档与UI任务意图（固定object ref、完整任务输入hash、绑定planId的dedupeKey和原approved plan/price快照）；进程失败后复用同一完整输入和幂等键
+5. 为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务；任一任务未获持久接受时计划保持pending且不返回成功
+6. 全部jobs接受后在同一本域事务CAS pending→approved，启用该语言automatic=true并记录批准人与估价；不生成新quote、不延长原expiresAt
+7. 翻译完成前公开页面按旧译或原文回退并提示
 
 **错误**
 
 - `VALIDATION`：计划过期或hash不符（不可重试）
 - `CONFLICT`：计划已被批准（不可重试）
+- `FORBIDDEN`：调用方不是语言管理员或费用类别不是background（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：公开树、模型路由或jobs不可用；持久意图与已接受回执可安全重试（可重试）
+- `DEADLINE_EXCEEDED`：原批准OperationContext截止已过；不得用新请求deadline延长（不可重试）
 
 - 副作用：启用语言；创建翻译任务
 - 授权：permission：localization.languages；rule：语言管理员显式批准费用
 - 并发：计划CAS pending→approved
 - 幂等：同planId重复批准返回原结果
-- 依赖：`localization.SetLanguageEnabled`、`jobs:createJob`
+- 依赖：`localization.EnableLanguageForPlan`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`jobs:createJob`
 
 ## localization.ReadData
 

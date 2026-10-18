@@ -21,6 +21,22 @@ func ReadData(ctx context.Context, op OperationContext, read func(*sql.Tx) error
 	return read(tx)
 }
 
+// WriteData 在本域代次和已释放屏障下执行无独立回执的内部事务。
+func WriteData(ctx context.Context, op OperationContext, write func(*sql.Tx) error) error {
+	tx, err := openLanguage(ctx, op)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = rejectHeldBarrier(ctx, tx); err != nil {
+		return err
+	}
+	if err = write(tx); err != nil {
+		return err
+	}
+	return finishTx(tx)
+}
+
 // Mutate 复用既有语言写入的七天回执和事务；业务CAS、审计事件由用例写在同一事务。
 func Mutate[I, R any](ctx context.Context, op OperationContext, functionID, key string, input I, result *R, write func(*sql.Tx) error) error {
 	tx, err := openLanguage(ctx, op)

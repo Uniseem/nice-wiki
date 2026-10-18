@@ -60,9 +60,15 @@
 
 ## 免费语言估价的统一token来源
 
-EstimateLanguagePlan先核当前语言管理权限，再以本域纯服务身份调用model-gateway:estimateTokens。按接口限制分批发送实际待估文本，不截断文本或复制token算法；清除原portal proof/用户委托并保留站点、epoch、root、费用类别及更早截止。随后调用quoteCost，未知价格保留警告，不伪造零费用。此函数仍planned，本次只修合同，不触发任何模型或额度操作。
+EstimateLanguagePlan先核当前语言管理权限，再以本域纯服务身份读取document/UI两类真实任务路由并调用model-gateway:estimateTokens。按4096 Unicode字符上限分批发送完整实际待估文本，不截断文本或复制token算法；清除原portal proof/用户委托并保留站点、epoch、root、费用类别及更早截止。随后对两类任务分别调用quoteCost，只有主模型和PriceSnapshot完全一致时才合并为一个保守金额；未知价格保留`price_unknown`警告，不伪造零费用。估价只写本域计划，不调用模型、不预留或扣减额度。
 
-上述纯服务保留本站通过平台统一签名siteId传递；清portal proof后建立localization纯服务actor并保留已核本站，不能把旧无声明的system控制作用域替代本站，也不以原portal proof或未签名站点绕过。EstimateLanguagePlan本身仍planned。
+上述纯服务保留本站通过平台统一签名siteId传递；清portal proof后建立localization纯服务actor并保留已核本站，不能把旧无声明的system控制作用域替代本站，也不以原portal proof或未签名站点绕过。
+
+### 批准与失败恢复
+
+ApproveLanguagePlan在批准时重新读取公开树、语言配置、术语/界面代数和两类routeVersion，并免费调用quoteCost核对原token输入、输出上限与价目。网关routeVersion不含价目，因此任何PriceSnapshot或报价变化都使计划失效。计划原24小时expiresAt不延长，任务输入固定携带该时刻及ExpectedPriceSnapshots。
+
+首次批准开始在同一事务保存逐文档/UI任务意图和完整OperationContext，包括原rootOperationId、主体、dataEpoch与deadline；后续重试只能使用该持久scope和更早原截止，不能换成新请求的root、主体或deadline。jobs dedupeKey绑定planId和完整任务输入hash，因此新计划不会与旧计划的相同文档碰撞，原计划重放又始终复用同一ObjectRef与input。任一jobs未持久接受时不返回成功，计划保持pending；全部接受后才CAS approved并启用automatic=true。执行/付费worker尚未实现，保持blocked。
 
 ## R1 首组规则收口（2026-10-18）
 

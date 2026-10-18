@@ -2,13 +2,14 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 93 个：手写 73、UI 3、生成 5、配置 10、迁移 2。函数 132 个：约束 48，参考 84。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 95 个：手写 75、UI 3、生成 5、配置 10、迁移 2。函数 133 个：约束 48，参考 85。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/localization/internal/runtime/bootstrap.go` | 手写 | 启动本地化服务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.LoadRuntime`（参考）、`localization.recoverJournal`（参考）、`localization.Root`（参考）、`localization.ReserveObjectGeneration`（参考） |
 | `modules/localization/internal/language/tag.go` | 手写 | 规范语言标识；大小写、脚本与私用归一化未写明，成功路径保持失败关闭。 | `localization.NormalizeLanguageTag`（参考） |
 | `modules/localization/internal/language/config.go` | 手写 | 更新语言启用配置；同事务完成代次、屏障、CAS、原回执和语言变更事件。 | `localization.PutLanguage`、`localization.SetLanguageEnabled`、`localization.rejectLanguageAlias`（参考） |
+| `modules/localization/internal/language/plan_enable.go` | 手写 | 语言计划最终启用事务。 | `localization.EnableLanguageForPlan`（参考） |
 | `modules/localization/internal/language/read.go` | 手写 | 读取当前代次语言配置；不返回模型密钥，不连接翻译正文。 | `localization.ListLanguages` |
 | `modules/localization/internal/language/guard.go` | 手写 | 语言配置参考助手：已核本站、代次水位、维护阶段、local_barrier、7天原回执、语言行读取和language.changed。不单独暴露HTTP。 | `localization.acceptStoredTag`（参考） |
 | `modules/localization/internal/language/http.go` | 手写 | 把putLanguage、setLanguageEnabled、listLanguages绑定到真实处理函数；不装配其余操作。 | 无 |
@@ -73,7 +74,7 @@
 | `modules/localization/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `localization.mountModuleUI` |
 | `modules/localization/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `localization.ConsumeEvents` |
 | `modules/localization/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `localization.InvokeModel`（参考）、`localization.ConfigureExecutionAdapters`（参考）、`localization.PublishBatch`（参考） |
-| `modules/localization/internal/language/plan.go` | 手写 | 启用语言前估算全量翻译费用 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan` |
+| `modules/localization/internal/translation/language_plan.go` | 手写 | 增量规划与启用前免费估价、明确批准和持久任务意图 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan` |
 | `modules/localization/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/localization/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/localization/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
@@ -98,4 +99,5 @@
 | `modules/localization/internal/translation/projection.go` | 手写 | 按真实稳定节点和字段段形状保留人工/保护译值，不按全局位置猜映射。 | `localization.StableSlotKey`（参考）、`localization.CollectSlotFields`（参考）、`localization.BuildProtectedProjection`（参考）、`localization.ProjectProtectedUnit`（参考）、`localization.ProtectedAnchorShape`（参考） |
 | `modules/localization/internal/language/suggestion_policy.go` | 手写 | 管理员明确开启的付费建议批准与网关只读核验 | `localization.ReadLanguageSuggestionPolicy`、`localization.PutLanguageSuggestionPolicy`、`localization.ReadLanguageSuggestionApproval`、`localization.readSuggestionPolicy`（参考）、`localization.NewSuggestionPolicyHandlers`（参考） |
 | `modules/localization/migrations/005_suggestion_policy.sql` | 手写 | 只追加付费建议当前指针与不可变审批历史，不种默认允许 | 无 |
+| `modules/localization/migrations/006_language_plan.sql` | 手写 | 只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图 | 无 |
 | `modules/localization/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `localization.ReadSnapshotArchive` |
