@@ -80,7 +80,7 @@ func NewWriteContext(ctx context.Context, config platform.WriteWindowConfig) (co
 
 // RunRecoveryLoop 串行执行本域恢复批次；未知权威暂停，永久错误交还进程装配。
 func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) error {
-	if config.PollMillis < 100 || config.PollMillis > 60000 || config.Runtime == nil || config.WriteWindow == nil || config.Recover == nil {
+	if config.PollMillis < 100 || config.PollMillis > 60000 || config.Runtime == nil || config.WriteWindow == nil || config.Recover == nil || config.AdmitBatch==nil {
 		return platform.NewError(platform.CodeValidation, false, "恢复循环参数未装配")
 	}
 	window := platform.WriteWindowConfig{Runtime: config.Runtime, WriteWindow: config.WriteWindow}
@@ -88,11 +88,17 @@ func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) er
 		if ctx.Err() != nil {
 			return nil
 		}
-		work, _, cancel, err := NewWriteContext(ctx, window)
+		scoped,release,admitErr:=config.AdmitBatch(ctx)
+ var err error
+ if admitErr!=nil{err=admitErr}else{
+ work, _, cancel, windowErr := NewWriteContext(scoped, window)
+ err=windowErr
 		if err == nil {
 			err = config.Recover(work)
 			cancel()
 		}
+ release()
+ }
 		if ctx.Err() != nil {
 			return nil
 		}

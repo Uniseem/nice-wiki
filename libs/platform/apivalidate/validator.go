@@ -64,9 +64,11 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "服务入口路由不可读")
 	}
-	for _, item := range spec.Paths.Map() {
+	knownOperations:=map[string]bool{}
+ for _, item := range spec.Paths.Map() {
 		for _, operation := range item.Operations() {
 			id := operation.OperationID
+ knownOperations[id]=true
 			if id == "" || handlers[id] == nil {
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "存在未绑定的接口处理函数")
 			}
@@ -76,12 +78,14 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			if len(config.AllowedCallers[id]) == 0 {
 				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少固定调用服务策略")
 			}
-			permission, _ := operation.Extensions["x-permission"].(string)
+			if !config.ControllerOperations[id]&&config.AdmitBusiness==nil{return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"非控制HTTP独立业务scope未装配")}
+ permission, _ := operation.Extensions["x-permission"].(string)
 			if permission != "anonymous" && permission != "service" && config.Authorize == nil {
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "用户权威授权回调未装配")
 			}
 		}
 	}
+	for id:=range config.ControllerOperations{if !knownOperations[id]{return nil,platform.NewError(platform.CodeIntegrityError,false,"控制操作分类不属于真实OpenAPI操作")}}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		route, params, err := router.FindRoute(r)
 		if err != nil {
@@ -165,7 +169,11 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 				return
 			}
 		}
-		validate(handler).ServeHTTP(w, r.WithContext(ctx))
+		validatedScope:=http.HandlerFunc(func(w http.ResponseWriter,request *http.Request){
+ if config.ControllerOperations[id]{handler.ServeHTTP(w,request);return}
+ scoped,release,scopeErr:=config.AdmitBusiness(request.Context());if scopeErr!=nil{_=problem.WriteProblem(w,problem.FromError(scopeErr,op.RequestID));return};defer release();handler.ServeHTTP(w,request.WithContext(scoped))
+ })
+ validate(validatedScope).ServeHTTP(w, r.WithContext(ctx))
 	}), nil
 }
 

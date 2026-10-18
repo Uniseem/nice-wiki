@@ -92,10 +92,11 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 
 // RunRelayBatch领取并处理一批已提交事件；每次写入都重新取得安全窗口。
 func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) (platform.RelayBatchResult, error) {
-	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil {
+	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil || config.AdmitBatch==nil {
 		return platform.RelayBatchResult{}, platform.NewError(platform.CodeValidation, false, "outbox转发参数或写窗口未装配")
 	}
-	work, view, cancel, err := relayWriteContext(ctx, config)
+	scoped,releaseScope,scopeErr:=config.AdmitBatch(ctx);if scopeErr!=nil{return platform.RelayBatchResult{},scopeErr};defer releaseScope();ctx=scoped
+ work, view, cancel, err := relayWriteContext(ctx, config)
 	if err != nil {
 		return platform.RelayBatchResult{}, err
 	}

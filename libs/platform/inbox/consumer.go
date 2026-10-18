@@ -29,7 +29,7 @@ func RunConsumer(ctx context.Context, client platform.EventConsumerClient, confi
 
 // RunConsumerWithResult退出时等待分片结束，再返回实际累计计数。
 func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerClient, config platform.ConsumerConfig, handlers platform.EventHandlerRegistry) (result platform.ConsumerRunResult, err error) {
-	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
+	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || config.AdmitBatch==nil || config.AdmitDelivery==nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
 		return result, platform.NewError(platform.CodeValidation, false, "订阅配置或真实运行依赖不完整")
 	}
 	subscribed := map[string]bool{}
@@ -44,7 +44,7 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 		}
 		subscribed[event] = true
 	}
-	c := &consumerLoop{client: client, config: config, subscribed: subscribed, handlers: handlers, queues: make([]chan platform.EventEnvelope, config.MaxInFlight), dones: make([]chan struct{}, config.MaxInFlight)}
+	c := &consumerLoop{client: client, config: config, subscribed: subscribed, handlers: handlers, queues: make([]chan consumerDelivery, config.MaxInFlight), dones: make([]chan struct{}, config.MaxInFlight)}
 	c.start(ctx)
 	defer func() {
 		c.stop()
@@ -62,10 +62,12 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 			}
 			continue
 		}
-		call, cancel := c.operation(ctx, view.DataEpoch, "")
+		batch,releaseBatch,scopeErr:=config.AdmitBatch(ctx);if scopeErr!=nil{if !sleep(ctx,holdPause){return result,nil};continue}
+ call, cancel := c.operation(batch, view.DataEpoch, "")
 		stream, openErr := client.SubscribeEvents(call, config.ConsumerID, lastID)
 		if openErr != nil {
 			cancel()
+ releaseBatch()
 			if ctx.Err() != nil {
 				return result, nil
 			}
@@ -77,9 +79,10 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 			}
 			continue
 		}
-		held := c.dispatch(call, stream, &lastID)
+		held := c.dispatch(ctx, call, stream, &lastID)
 		_ = stream.Close()
 		cancel()
+ releaseBatch()
 		if ctx.Err() != nil {
 			return result, nil
 		}
@@ -89,12 +92,14 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 	}
 }
 
+type consumerDelivery struct{event platform.EventEnvelope;ctx context.Context;done func()}
+
 type consumerLoop struct {
 	client       platform.EventConsumerClient
 	config       platform.ConsumerConfig
 	subscribed   map[string]bool
 	handlers     platform.EventHandlerRegistry
-	queues       []chan platform.EventEnvelope
+	queues       []chan consumerDelivery
 	dones        []chan struct{}
 	acknowledged atomic.Int64
 	skipped      atomic.Int64
@@ -103,7 +108,7 @@ type consumerLoop struct {
 
 func (c *consumerLoop) start(ctx context.Context) {
 	for i := range c.queues {
-		c.queues[i] = make(chan platform.EventEnvelope, 1)
+		c.queues[i] = make(chan consumerDelivery, 1)
 		c.dones[i] = make(chan struct{})
 		go c.worker(ctx, i)
 	}
@@ -116,11 +121,12 @@ func (c *consumerLoop) stop() {
 }
 func (c *consumerLoop) worker(ctx context.Context, index int) {
 	defer close(c.dones[index])
-	for event := range c.queues[index] {
-		c.process(ctx, event)
+	for delivery := range c.queues[index] {
+ c.process(delivery.ctx,delivery.event)
+ delivery.done()
 	}
 }
-func (c *consumerLoop) queueFor(subject string) chan platform.EventEnvelope {
+func (c *consumerLoop) queueFor(subject string) chan consumerDelivery {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(subject))
 	return c.queues[h.Sum32()%uint32(len(c.queues))]
@@ -142,28 +148,21 @@ func (c *consumerLoop) operation(ctx context.Context, epoch, root string) (conte
 	op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: root, CallerService: c.config.ConsumerID, DataEpoch: epoch, Deadline: until, CostClass: platform.CostClassBackground, Actor: platform.AuthContext{Kind: "service", SubjectID: c.config.ConsumerID, SiteID: site, ExpiresAt: until, Grants: []string{}}}
 	return platform.WithOperationContext(work, op), cancel
 }
-func (c *consumerLoop) dispatch(ctx context.Context, stream platform.EventStream, lastID *string) bool {
+func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, stream platform.EventStream, lastID *string) bool {
 	for {
 		event, err := stream.Next(ctx)
 		if err != nil {
 			return false
 		}
 		*lastID = stream.LastID()
-		decision := c.classify(ctx, event)
-		switch decision {
-		case outcomeHold:
-			return true
-		case outcomeFailed:
-			c.failed.Add(1)
-		case outcomeSkipped:
-			c.acknowledge(ctx, event, true)
-		case outcomeProcess:
-			select {
-			case c.queueFor(event.SubjectID) <- event:
-			case <-ctx.Done():
-				return false
-			}
-		}
+		decision:=c.classify(ctx,event)
+ if decision==outcomeHold{return true};if decision==outcomeFailed{c.failed.Add(1);continue}
+ work,cancelDelivery:=c.operation(parent,event.DataEpoch,event.EventID)
+ scoped,release,scopeErr:=c.config.AdmitDelivery(work)
+ if scopeErr!=nil{cancelDelivery();return true}
+ delivery:=consumerDelivery{event:event,ctx:scoped,done:func(){cancelDelivery();release()}}
+ if decision==outcomeSkipped{c.acknowledge(scoped,event,true);delivery.done();continue}
+ select{case c.queueFor(event.SubjectID)<-delivery:case<-ctx.Done():delivery.done();return false}
 	}
 }
 func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool) {
@@ -217,12 +216,7 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 	if !ok || pauseFor(view) {
 		return outcomeHold
 	}
-	if event.DataEpoch != view.DataEpoch {
-		if event.DataEpoch == view.TargetDataEpoch {
-			return outcomeHold
-		}
-		return outcomeSkipped
-	}
+	if event.DataEpoch!=view.DataEpoch{return outcomeHold}
 	if c.config.ValidatePayload(event.EventType, event.EventVersion, event.Payload) != nil {
 		return outcomeFailed
 	}

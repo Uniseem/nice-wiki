@@ -47,3 +47,13 @@ ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传�
 owner恢复查询使用`modelclient.ObserveInvocation(ctx,client,op,knownInvocationId)`或`LookupModelInvocation(ctx,client,op,originalInvokeRequest)`，只读原ID或完整原body/key。二者即使原付费截止仍有效也没有Create、Cancel或模型分支，不调用可创建的InvokeModel，不回调SSE；即使原截止已过也可按原scope获得fresh5秒读取。业务owner必须锁外执行网络观察，再以原持久输入/hash/阶段证明决定本地恢复，不从工具返回推导新的收费许可。
 
 原键查找的普通NOT_FOUND可能为旧部署或路由缺失，绝不作为原调用未接受证明。只有lookup在真实marker和完整原键/body/root/site/epoch核对后产生的`INVOCATION_NOT_ACCEPTED`精确码才允许Invoke在原付费截止有效时Create原键。只读工具保留该精确码，已知ID的Get404仍Integrity。
+
+## 实际在途scope接线
+
+可信装配的`WorkAdmission`返回独立ctx与release。`ServiceBoundaryConfig.AdmitBusiness`包围非`ControllerOperations`的完整handler和响应流；控制分类只免业务计数，仍经过原服务身份、schema、当前权限和epoch。普通HTTP不会通过维护allowlist得到无计数写入口。
+
+`WorkerConfig.AdmitBusiness`装`SnapshotManager.AdmitJobClaim`，公共循环在claim之前持有scope，factory后核真实任务的operation/root/epoch/owner，再调用`BindExecutionScope=manager.BindJobExecutionScope`一次绑定真实原op/site及JobID/worker/fence。随机claim root和system身份不能签业务cleanup。scope覆盖执行、在途心跳退出及最终complete/fail，领取RPC的30秒截止不截短任务原业务截止。
+
+`ConsumerConfig.AdmitBatch`与`AdmitDelivery`分别覆盖订阅批次和入队前至handler提交、ack完成的投递；单条投递不依赖订阅流结束的ctx。异epoch本身不构成可ack的废弃证明，未知保持pending。`RelayConfig.AdmitBatch`覆盖claim/publish/最终本地确认；`RecoveryLoopConfig.AdmitBatch`覆盖恢复批次。缺hook失败关闭，不以无scope运行。
+
+`TaskGroup.SetAdmission(manager.AdmitBusiness)`只可启动期一次，未装配Start拒绝。每次新Start重新admit独立任务lease，HTTP返回不会释放它。备份用CancelActive和WaitIdle收尾，保留集合以便维护后继续服务；永久Drain只用于退出。所有瞬时计数只能作为真实全域闭包证明的一部分，不能单独宣称safe。

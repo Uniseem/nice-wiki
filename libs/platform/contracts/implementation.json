@@ -2156,7 +2156,8 @@
             "校验batchLimit及必需runtime/writeWindow；每次active写前由NewWriteContext读取当前权威窗口",
             "先按当前epoch丢弃旧代pending，再重新取得窗口领取本批30秒行租约；不持SQL事务调用jobs",
             "逐条发布固定信封；网络返回后重取运行/窗口，只有同代且窗口有效才标relayed、隔离或安排1/2/4秒退避（上限60秒）",
-            "原代改变则只丢弃原代行；本批已持久确认/隔离/保留pending分别计数，未知本地提交或窗口错误不返回成功计数"
+            "原代改变则只丢弃原代行；本批已持久确认/隔离/保留pending分别计数，未知本地提交或窗口错误不返回成功计数",
+            "必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。"
           ],
           "errors": [
             {
@@ -2508,7 +2509,10 @@
             "每次订阅、handler与确认建立当前epoch的有界纯服务上下文，不复用启动时失效proof/deadline",
             "同subject串行，分片间并发；权威未知/维护屏障暂停；新代不确认，旧代确认计skipped",
             "信封/schema错误、handler失败或缺失、确认失败均不确认且计failed；handler明确ErrEventSkipped只确认计skipped",
-            "正常提交且确认成功计acknowledged；ctx退出排空分片后返回累计计数"
+            "正常提交且确认成功计acknowledged；ctx退出排空分片后返回累计计数",
+            "必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。",
+            "每条事件入队前AdmitDelivery独立scope，不继承订阅流结束的ctx，完成handler提交及ack返回后才释放。",
+            "订阅批次与单条投递各有独立scope；结束订阅不取消已入队投递的独立上下文。"
           ],
           "errors": [
             {
@@ -2527,16 +2531,16 @@
           "concurrency": "每进程一个订阅",
           "idempotency": "依赖处理函数inbox去重",
           "dependencies": [
-            "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
+            "jobs:subscribeEvents",
+            "platform.consumerLoop.dispatch",
+            "platform.consumerLoop.operation",
             "platform.consumerLoop.start",
             "platform.consumerLoop.stop",
-            "platform.consumerLoop.operation",
-            "platform.consumerLoop.dispatch",
-            "platform.inbox.readRuntime",
+            "platform.inbox.isConfigRejected",
             "platform.inbox.pauseFor",
-            "platform.inbox.sleep",
-            "platform.inbox.isConfigRejected"
+            "platform.inbox.readRuntime",
+            "platform.inbox.sleep"
           ],
           "resources": [],
           "contract": "binding"
@@ -2951,6 +2955,273 @@
           },
           "concurrency": "仅运行时自己的分片与原子计数",
           "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.start",
+          "name": "consumerLoop.start",
+          "signature": "func (c *consumerLoop) start(ctx context.Context)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.consumerLoop.worker"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.stop",
+          "name": "consumerLoop.stop",
+          "signature": "func (c *consumerLoop) stop()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.worker",
+          "name": "consumerLoop.worker",
+          "signature": "func (c *consumerLoop) worker(ctx context.Context, index int)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.consumerLoop.process"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.queueFor",
+          "name": "consumerLoop.queueFor",
+          "signature": "func (c *consumerLoop) queueFor(subject string) chan consumerDelivery",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.dispatch",
+          "name": "consumerLoop.dispatch",
+          "signature": "func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, stream platform.EventStream, lastID *string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.consumerLoop.acknowledge",
+            "platform.consumerLoop.classify",
+            "platform.consumerLoop.queueFor"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.acknowledge",
+          "name": "consumerLoop.acknowledge",
+          "signature": "func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.process",
+          "name": "consumerLoop.process",
+          "signature": "func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.consumerLoop.acknowledge"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.classify",
+          "name": "consumerLoop.classify",
+          "signature": "func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelope) outcome",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。",
+            "单纯异epoch不是可ack的废弃证明，未知不记skipped或确认以伪造队列为0。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -3426,7 +3697,10 @@
             "配置验证及共享owner worker流程保持原权限、epoch、fence和租约；永久配置拒绝返回真实错误并停止同组worker。",
             "Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。",
             "正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。",
-            "必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。"
+            "必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。",
+            "必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。",
+            "每一并发槽位领取前获取基于进程ctx的scope，claim RPC短截止不截短任务本身，贯穿执行、在途心跳退出与最终complete/fail。",
+            "WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。"
           ],
           "errors": [
             {
@@ -3445,26 +3719,98 @@
           "concurrency": "并发≤maxConcurrency",
           "idempotency": "jobs按jobId与fence去重",
           "dependencies": [
-            "jobs:claimJob",
-            "jobs:startJob",
-            "jobs:heartbeatJob",
             "jobs:checkLease",
+            "jobs:claimJob",
             "jobs:completeJob",
             "jobs:failJob",
-            "platform.workerControlContext",
-            "platform.newExecutionLease",
-            "platform.executionLeaseContext",
-            "platform.renewExecutionLease",
-            "platform.ClaimJob",
-            "platform.StartJob",
-            "platform.HeartbeatJob",
+            "jobs:heartbeatJob",
+            "jobs:startJob",
             "platform.CheckLease",
+            "platform.ClaimJob",
+            "platform.ClaimJobTypes",
             "platform.CompleteJob",
             "platform.FailJob",
-            "platform.ClaimJobTypes"
+            "platform.HeartbeatJob",
+            "platform.SnapshotManager.AdmitJobClaim",
+            "platform.StartJob",
+            "platform.executionLeaseContext",
+            "platform.newExecutionLease",
+            "platform.renewExecutionLease",
+            "platform.workerControlContext",
+            "platform.workerLoop.run"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.workerLoop.run",
+          "name": "workerLoop.run",
+          "signature": "func (l *workerLoop) run(ctx context.Context, index int)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。",
+            "WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.workerLoop.execute"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.workerLoop.execute",
+          "name": "workerLoop.execute",
+          "signature": "func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.ClaimedJob)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公共循环真实scope的领取/入队/执行/最终确认接线",
+          "steps": [
+            "只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。",
+            "WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.SnapshotManager.BindJobExecutionScope"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5152,7 +5498,8 @@
             "启动校验周期与回调；立即执行一批，之后每周期一批且不重叠",
             "NewWriteContext核当前epoch/阶段/维护窗口；单批最多30秒，业务每次RPC前后仍核自己的权威",
             "仅显式retryable平台错误及批次deadline在下周期继续；未知或永久错误上报退出，持久决定不丢",
-            "取消立即停止新批次，原ctx取消传下游IO；不建立新的模型/付费尝试"
+            "取消立即停止新批次，原ctx取消传下游IO；不建立新的模型/付费尝试",
+            "每个本域恢复批次必需AdmitBatch真实独立scope并持有到完整Recover与最终持久IO返回，不绕过屏障新准入。"
           ],
           "errors": [
             {
@@ -5450,7 +5797,10 @@
             "普通业务受维护门禁；管理操作只由固定MaintenanceOperations放行，函数内部仍履行自身屏障",
             "合法Idempotency-Key作为operationId；原root保留；注入原PortalProof供下游原样传递",
             "一次严格schema验证后交本域适配；用户权限由Authorize当前权威回调确认",
-            "仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过"
+            "仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过",
+            "必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。",
+            "ControllerOperations仅供可信启动固定登记纯控制操作，只免业务scope，身份/schema/权限/epoch不绕过。",
+            "非控制HTTP在全部边界授权/schema校验后用AdmitBusiness获独立lease，直到handler/响应流完全返回才释放。"
           ],
           "errors": [
             {
@@ -9891,7 +10241,8 @@
           "outputs": [],
           "purpose": "按唯一key启动已持久接受的有界任务",
           "steps": [
-            "只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。"
+            "只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。",
+            "必须已SetAdmission，在原业务截止下重新申请独立任务lease，不继承将被HTTP释放的同一lease；每个失败/重复/并发限制路径释放新lease，真实执行完原结算/终态后才释放。"
           ],
           "errors": [
             {
@@ -10024,6 +10375,102 @@
           "purpose": "内部一次关闭接收并取消、排空",
           "steps": [
             "只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.TaskGroup.SetAdmission",
+          "name": "TaskGroup.SetAdmission",
+          "signature": "func (g *TaskGroup) SetAdmission(admit WorkAdmission) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅启动期装配一次真实新业务准入，无hook任务Start失败关闭。",
+          "steps": [
+            "仅启动期装配一次真实新业务准入，无hook任务Start失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.TaskGroup.CancelActive",
+          "name": "TaskGroup.CancelActive",
+          "signature": "func (g *TaskGroup) CancelActive() int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只取消当前任务，不永久关闭集合，配合已关新准入的Manager用于屏障BeginDrain。",
+          "steps": [
+            "只取消当前任务，不永久关闭集合，配合已关新准入的Manager用于屏障BeginDrain。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.TaskGroup.WaitIdle",
+          "name": "TaskGroup.WaitIdle",
+          "signature": "func (g *TaskGroup) WaitIdle(ctx context.Context) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "等真实存量任务退出，不把该瞬时结果作全域safe。",
+          "steps": [
+            "等真实存量任务退出，不把该瞬时结果作全域safe。"
           ],
           "errors": [
             {
@@ -12478,7 +12925,8 @@
           "purpose": "只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。",
           "steps": [
             "只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。",
-            "维护下只在当前BackupBarrier/RestoreStaging精确barrier/epoch和draining原截止内给收尾窗口；safe已封闭。"
+            "维护下只在当前BackupBarrier/RestoreStaging精确barrier/epoch和draining原截止内给收尾窗口；safe已封闭。",
+            "未绑定的job_claim不可作业务写窗口。"
           ],
           "errors": [
             {
@@ -13001,6 +13449,75 @@
             "platform.integrity",
             "platform.lockSnapshotControl"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.AdmitJobClaim",
+          "name": "SnapshotManager.AdmitJobClaim",
+          "signature": "func (m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "新领取仅running且本屏障released可准入。",
+          "steps": [
+            "新领取仅running且本屏障released可准入。",
+            "私有lease标记job_claim且未绑定，清除随机claim root之原操作绑定；未绑定不可写入业务或签cleanup。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [
+            "platform.SnapshotManager.AdmitBusiness"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.BindJobExecutionScope",
+          "name": "SnapshotManager.BindJobExecutionScope",
+          "signature": "func (m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op OperationContext, job ClaimedJob) (context.Context, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。",
+          "steps": [
+            "仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。",
+            "仅本Manager活跃未绑定job_claim私有scope可绑定一次，保留真实JobID/循环workerID/原fence和真实原op/actor/root/site/costClass/epoch。",
+            "只建立既有执行身份绑定，不给新Start/paid授权，原租约与当前屏障照旧核对。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "本进程goroutine与取消信号，不读写业务表或费用账"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "不产生并发本域业务批次；IO只用传入ctx",
+          "idempotency": "纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }

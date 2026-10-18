@@ -361,7 +361,7 @@
     "RelayConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "转发循环参数",
+      "description": "转发循环参数 AdmitBatch必需，完整claim/publish/确认批次scope。",
       "properties": {
         "batchLimit": {
           "type": "integer",
@@ -394,7 +394,7 @@
     "ConsumerConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "订阅循环参数",
+      "description": "订阅循环参数 AdmitDelivery必需，入队前到handler+ack终结独立scope。 AdmitBatch与AdmitDelivery两个独立scope都必需。",
       "properties": {
         "consumerId": {
           "type": "string",
@@ -443,7 +443,7 @@
     "WorkerConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "领取循环参数",
+      "description": "领取循环参数 AdmitBusiness必需，每一领取及执行全周期独立scope。 AdmitBusiness装AdmitJobClaim，BindExecutionScope装BindJobExecutionScope，未绑定claim不得付费cleanup。",
       "properties": {
         "jobTypes": {
           "type": "array",
@@ -794,7 +794,7 @@
     "ServiceBoundaryConfig": {
       "type": "object",
       "x-internal": true,
-      "description": "Go内部入口策略：Self/Anchors/Runtime/OpenedDataEpoch/AllowedCallers/MaintenanceOperations/MaxBodyBytes/OperationBodyLimits/Authorize(context.Context,OperationContext,permission,action)error，启动只读；无HTTP序列化；ServiceActorCallers为按operation精确的纯service主体子白名单，不能用来绕过用户委托授权"
+      "description": "Go内部入口策略：Self/Anchors/Runtime/OpenedDataEpoch/AllowedCallers/MaintenanceOperations/MaxBodyBytes/OperationBodyLimits/Authorize(context.Context,OperationContext,permission,action)error，启动只读；无HTTP序列化；ServiceActorCallers为按operation精确的纯service主体子白名单，不能用来绕过用户委托授权 AdmitBusiness与ControllerOperations必须可信启动固定，控制分类不绕过原身份/schema/权限/epoch。"
     },
     "HTTPHandlers": {
       "type": "object",
@@ -848,7 +848,7 @@
     "RecoveryLoopConfig": {
       "type": "object",
       "x-internal": true,
-      "description": "一个有界本域持久恢复批次的串行周期装配，不执行业务付费重算",
+      "description": "一个有界本域持久恢复批次的串行周期装配，不执行业务付费重算 AdmitBatch必需，包住完整已批准的本域恢复批次，不以周期任务绕过屏障。",
       "properties": {
         "pollMillis": {
           "type": "integer",
@@ -1591,6 +1591,24 @@
       "additionalProperties": false,
       "properties": {},
       "description": "进程内可选纯只读端口，不序列化，不扩旧端口所需方法。"
+    },
+    "WorkAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "Go进程内func(context.Context)(context.Context,func(),error)，成功为独立真实计数scope，释放必须等实际全部IO/确认结束；不序列化。"
+    },
+    "JobExecutionScopeBinder": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "Go进程内func(context.Context,OperationContext,ClaimedJob)(context.Context,error)；仅公共worker核真实任务与factory后单次私有绑定，不序列化。"
+    },
+    "consumerDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "进程内投递与独立ctx/完成释放回调，不序列化。"
     }
   }
 }
