@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "e1f97b864c0eeb0d5d7eeb27597e88c2b840b4bd206cfcdddbd2b82845cc07cf",
+  "contractSha256": "88a062a8cc72f830d815bde8decd72a10d1e259b2d795f2e685f9b05c6de1787",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "3af2369c116baf122a00c0e55e7f56274fd85687",
+  "deliveryCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "verified",
-      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
       },
-      "blocker": null
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
@@ -192,13 +192,13 @@
     },
     {
       "path": "modules/model-gateway/internal/concurrency/lease.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
       },
-      "blocker": null
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     },
     {
       "path": "modules/model-gateway/internal/events/outbox.go",
@@ -322,33 +322,33 @@
     },
     {
       "path": "modules/model-gateway/internal/provider/anthropic.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
       },
-      "blocker": null
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     },
     {
       "path": "modules/model-gateway/internal/provider/gemini.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
       },
-      "blocker": null
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     },
     {
       "path": "modules/model-gateway/internal/provider/rerank.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
       },
-      "blocker": null
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     },
     {
       "path": "modules/model-gateway/deploy/service.config.json",
@@ -629,6 +629,26 @@
         "evidence": "本批源码已提交，等待根GitLab统一生成与编译"
       },
       "blocker": "代码就绪，待GitLab"
+    },
+    {
+      "path": "modules/model-gateway/internal/security/headers.go",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
+      },
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
+    },
+    {
+      "path": "modules/model-gateway/migrations/007_provider_dispatch.sql",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
+      },
+      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
     }
   ],
   "functions": [
@@ -734,24 +754,24 @@
     {
       "id": "model-gateway.PutProvider",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "verified",
-      "implementationCommit": "0d0b76649bc8ccad043e4e3f4fcd545e28201258",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 集成会话自部署GitLab CI流水线12，冻结候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式/重复gen通过，三个同时分片覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。本域6份精确格式/生成路径由流水线11产物回传，流水线12无本域新增漂移，源码/合同此后未变。仅源码/生成/编译/结构证据，未SQL/HTTP行为验收、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.readProviderReceipt",
       "path": "modules/model-gateway/internal/catalog/provider.go",
-      "state": "verified",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.NewCatalogHandlers",
@@ -1383,24 +1403,24 @@
     {
       "id": "model-gateway.AcquireProviderSlot",
       "path": "modules/model-gateway/internal/concurrency/lease.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.ReleaseProviderSlot",
       "path": "modules/model-gateway/internal/concurrency/lease.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.EnqueueOutbox",
@@ -1977,35 +1997,57 @@
     {
       "id": "model-gateway.MapAnthropicRequest",
       "path": "modules/model-gateway/internal/provider/anthropic.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
+    },
+    {
+      "id": "model-gateway.ImageKey",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/provider/anthropic.go"
+    },
+    {
+      "id": "model-gateway.ProviderContent",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/provider/anthropic.go"
     },
     {
       "id": "model-gateway.MapGeminiRequest",
       "path": "modules/model-gateway/internal/provider/gemini.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.ParseRerankResponse",
       "path": "modules/model-gateway/internal/provider/rerank.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收"
     },
     {
       "id": "model-gateway.All",
@@ -2292,6 +2334,61 @@
       },
       "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
       "path": "modules/model-gateway/internal/invocation/http.go"
+    },
+    {
+      "id": "model-gateway.SecretHeaderName",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/security/headers.go"
+    },
+    {
+      "id": "model-gateway.PrepareHeaderSecrets",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/security/headers.go"
+    },
+    {
+      "id": "model-gateway.SaveHeaderSecrets",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/security/headers.go"
+    },
+    {
+      "id": "model-gateway.OpenAttemptCredential",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/security/headers.go"
+    },
+    {
+      "id": "model-gateway.OpenAttemptHeaders",
+      "state": "blocked",
+      "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
+      "verification": {
+        "state": "not_run",
+        "evidence": "供应方映射/并发及加密额外头实际源码已提交，等待GitLab统一生成、格式、readonly build/vet/make check"
+      },
+      "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
+      "path": "modules/model-gateway/internal/security/headers.go"
     }
   ],
   "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"

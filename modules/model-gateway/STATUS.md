@@ -1,3 +1,7 @@
+# 供应方与加密额外头第3批
+
+源码0fc3227，5个原有协议映射/并发业务与7个必要助手就绪，PutProvider及原回执修改重新待CI；全部blocked。secretHeaders缺失保留/[]清空、主密钥HMAC与AES-GCM安全生产已写；固定route/原凭据引用表已追加但回收尚未启用。媒体二进制客户端、完整供应方网络、Create/Execute/Cancel/恢复/启动仍继续，不提前把辅助映射算完整付费入口。
+
 # 五字段嵌入空间窄批
 
 更新2026-10-18，源码3af2369。PutModel、ValidateModel、ReadModels、ValidateEmbeddingSpace与唯一ModelEmbeddingSpace助手源码ready，统一blocked待GitLab。保留原spaceId算法，默认none，不默示L2；readModels只读ModelWithSpace新增权威embeddingSpace，未扩大模型写入DTO。知识可直接消费版本化响应；完整费用生产派发仍继续。
