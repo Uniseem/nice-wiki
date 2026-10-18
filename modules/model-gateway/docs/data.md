@@ -317,3 +317,10 @@ accepted固定主/备用模型、原渠道与credential版本、额外头不透�
 人工charged证明中原收费ID未知时须当前超管明确给真实providerRequestId，已知ID必须一致；缺usage还须显式真实inputTokens/outputTokens。证明同原attempt/root/provider/epoch审计，not_charged不造账单/ID。对账只修费用，不改成功结果；全部费用resolved才释放原历史密文引用。
 
 localization.suggest只允许background及languageSuggestionApprovalId；以MG纯服务读取localization readLanguageSuggestionApproval持久管理员批准，每次新attempt预留和实际派发前核enabled=true及approvalId/siteId/dataEpoch全等，停用/换版失败关闭。其他任务带此字段拒绝，公开空token无权付费。expectedEmbeddingSpace仅embedding，接受时核主模型、主/备用各自预留与派发均核原五字段精确相等；不归一化向量、不改变space算法。
+
+
+## 退休秘密与管理界面
+
+schema009只追加credential_retirements原版本/epoch/销毁时刻审计和header墓碑时刻。完整应用显式开启tracking前、任何legacy缺execution证据均不销毁。非active主凭据无未释放route/attempt引用才原子审计后删材料，版本不可复用；header还要无active映射，清密文保留FK墓碑。outer succeeded但held/unknown不释放引用。
+
+UI只使用公共非序列化ModuleAPIClient，不读取HttpOnly凭据或持久化secret。secretHeaders缺失保留、明确空列表清空；tokenizer选择显式精确版本。美元字符串以BigInt转整数微额，未知不显示0；CAS冲突保留输入不自动覆盖。pnpm lock仅CI真实生成，不手写。

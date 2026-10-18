@@ -2481,56 +2481,6 @@
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
-    "EnqueueOutboxInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "eventType": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "声明事件名"
-        },
-        "aggregateId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "聚合ID"
-        },
-        "aggregateVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
-          "description": "版本"
-        },
-        "payloadHash": {
-          "type": "string",
-          "minLength": 64,
-          "maxLength": 64,
-          "description": "封闭payload摘要",
-          "pattern": "^[0-9a-f]{64}$"
-        }
-      },
-      "required": [
-        "eventType",
-        "aggregateId",
-        "aggregateVersion",
-        "payloadHash"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
-    },
-    "EnqueueOutboxResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "eventId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "事件ID"
-        }
-      },
-      "required": [
-        "eventId"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
-    },
     "PublishOutboxInput": {
       "type": "object",
       "additionalProperties": false,
@@ -2938,70 +2888,13 @@
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
     "LoadAdminOverviewResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Provider"
-          },
-          "maxItems": 256,
-          "description": "后台概览条目"
-        },
-        "nextCursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "下一页"
-        }
-      },
-      "required": [
-        "items"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "$ref": "#/$defs/ReadAdminCatalogResult"
     },
     "SubmitPrimaryEditInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "provider": {
-          "$ref": "#/$defs/Provider",
-          "description": "完整配置"
-        },
-        "expectedVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
-          "description": "预期版本"
-        },
-        "idempotencyKey": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "幂等键"
-        }
-      },
-      "required": [
-        "provider",
-        "expectedVersion",
-        "idempotencyKey"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "$ref": "#/$defs/PutProviderInput"
     },
     "SubmitPrimaryEditResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "provider": {
-          "$ref": "#/$defs/Provider",
-          "description": "保存配置"
-        }
-      },
-      "required": [
-        "provider"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "$ref": "#/$defs/PutProviderResult"
     },
     "PutTaskAssignmentInput": {
       "type": "object",
@@ -4213,7 +4106,7 @@
         "capabilities",
         "buildRevision"
       ],
-      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有"
+      "description": "UI启动元数据；账号/问答会话仍由identity/qa拥有 apiClient只在浏览器内由portal注入，非此JSON字段。"
     },
     "HealthInput": {
       "type": "object",
@@ -5029,6 +4922,11 @@
         "outputStarted"
       ],
       "description": "供应方脱敏证据；可选计数缺失保持未知，不按估算token/伪收费ID补零。"
+    },
+    "ModuleAPIClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "浏览器非序列化公共运行端口，精确TS接口来自libs/platform/web/module-api.ts，不入JSON。"
     }
   }
 }

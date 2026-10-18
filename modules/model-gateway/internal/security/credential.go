@@ -59,7 +59,7 @@ func PutCredential(ctx context.Context, op OperationContext, input PutCredential
 	return PutCredentialResult{CredentialVersion: result.Version, Fingerprint: result.Fingerprint}, nil
 }
 
-// RotateCredential切换新请求使用的版本；引用释放后的销毁仍待生命周期实现。
+// RotateCredential切换新版本；只有全部真实原引用释放后才销毁旧密文并保留审计。
 func RotateCredential(ctx context.Context, op OperationContext, input RotateCredentialInput) (RotateCredentialResult, error) {
 	result, err := writeCredential(ctx, op, credentialCommand{input.ProviderId, input.NewSecret, input.ExpectedVersion, input.IdempotencyKey, true})
 	if err != nil {
@@ -172,7 +172,7 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 		}
 	}
 	var reused bool
-	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM credentials WHERE provider_id=? AND credential_version=?)`, input.ProviderID, result.Version).Scan(&reused); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM credentials WHERE provider_id=? AND credential_version=?) OR EXISTS(SELECT 1 FROM credential_retirements WHERE provider_id=? AND credential_version=?)`, input.ProviderID, result.Version, input.ProviderID, result.Version).Scan(&reused); err != nil {
 		return credentialWriteResult{}, credentialStorageError(err)
 	}
 	if reused {
@@ -235,6 +235,7 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 	if _, err := tx.ExecContext(ctx, `INSERT INTO operation_receipts(site_id,actor_id,function_id,idempotency_key,input_hash,result_json,created_at) VALUES(?,?,?,?,?,?,?)`, op.Actor.SiteID, op.Actor.SubjectID, functionID, input.IdempotencyKey, digest, resultJSON, now); err != nil {
 		return credentialWriteResult{}, credentialStorageError(err)
 	}
+	if err := gatewayruntime.DestroyRetiredSecrets(ctx, op, tx); err != nil { return credentialWriteResult{}, err }
 	if err := tx.Commit(); err != nil {
 		return credentialWriteResult{}, credentialStorageError(err)
 	}
