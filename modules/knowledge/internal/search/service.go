@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+ qaruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"database/sql"
 	"encoding/json"
 	indexer "nice-wiki/modules/knowledge/internal/index"
@@ -91,6 +92,9 @@ func activeSnapshot(ctx context.Context, op OperationContext) (Snapshot, error) 
 
 // Retrieve 固定一次 active 快照，先权威过滤再重排，选材后再次核对可见性。
 func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (RetrieveResult, error) {
+ var bindErr error
+ ctx, bindErr = qaruntime.BindAdmissionPermit(ctx, op, input.AdmissionPermit)
+ if bindErr != nil { return RetrieveResult{}, bindErr }
 	runtime, err := searchRuntime(ctx)
 	if err != nil {
 		return RetrieveResult{}, err
@@ -127,7 +131,7 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 				return RetrieveResult{}, platform.NewError(platform.CodeIntegrityError, false, "复用查询向量摘要不一致")
 			}
 		} else {
-			result, err := EmbedQuery(ctx, op, EmbedQueryInput{Normalized: query.Normalized, Space: input.Space, ProfileID: runtime.EmbeddingProfileID})
+			result, err := EmbedQuery(ctx, op, EmbedQueryInput{Normalized: query.Normalized, Space: input.Space, ProfileID: runtime.EmbeddingProfileID, AdmissionPermit: input.AdmissionPermit})
 			if err != nil {
 				return RetrieveResult{}, err
 			}

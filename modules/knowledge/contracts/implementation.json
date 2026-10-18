@@ -4446,6 +4446,7 @@
           ],
           "purpose": "统一混合检索",
           "steps": [
+            "问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。",
             "1 NormalizeQuery规范query与基准语言",
             "2 请求携带的queryEmbedding校验queryHash/space/vectorHash/epoch后复用，否则EmbedQuery",
             "3 SearchLexical与SearchVector各80→FuseCandidates取40→ValidateCandidates权威过滤→可选RerankCandidates",
@@ -4519,7 +4520,8 @@
             "knowledge.RerankCandidates",
             "knowledge.SelectContext",
             "knowledge.searchRuntime",
-            "knowledge.activeSnapshot"
+            "knowledge.activeSnapshot",
+            "knowledge.BindAdmissionPermit"
           ],
           "resources": [],
           "contract": "binding"
@@ -7121,6 +7123,7 @@
           ],
           "purpose": "快速检索员有限核查",
           "steps": [
+            "问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。",
             "1 根task qa.inspect owner=knowledge fast档max800output token并注入project overview",
             "2 只选择本次检索合法IDs，展开小节仍content当前校验",
             "3 3轮/5工具调用计数来自可信根任务状态CAS不由浏览器覆盖",
@@ -7232,6 +7235,7 @@
           ],
           "purpose": "统一生成并复用查询嵌入",
           "steps": [
+            "问答分支从本次输入绑定已消费准入许可至请求独立模型上下文；原rootOperationId、dataEpoch、访客subject必须一致，禁止启动时共享访客许可。最终签名由model-gateway验证。",
             "1 rootOperationId/queryHash/space/dataEpoch singleflight且唯一",
             "2 根knowledge.embed embedding档0文本output",
             "3 MG保留独立attempt费用证据",
@@ -7302,7 +7306,8 @@
             "knowledge.RuntimeFromContext",
             "knowledge.CompletedOutput",
             "knowledge.validVector",
-            "platform.NewWriteContext"
+            "platform.NewWriteContext",
+            "knowledge.BindAdmissionPermit"
           ],
           "resources": [],
           "contract": "binding"
@@ -8758,6 +8763,76 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.BindAdmissionPermit",
+          "name": "BindAdmissionPermit",
+          "signature": "func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.AdmissionPermit) (context.Context, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "绑定本次已消费准入至独立模型上下文",
+          "steps": [
+            "仅复制本次模型运行上下文，不修改共享runtime；问答分支核对非空已消费token、原访客/root/epoch和动作；网关负责签名与有效期权威验证。"
+          ],
+          "errors": [
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "knowledge.WithModelRuntime"
+          ],
           "resources": [],
           "contract": "reference"
         }

@@ -76,3 +76,18 @@ func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.Mo
 	}
 	return output, nil
 }
+
+// BindAdmissionPermit 复制请求独立的运行上下文；网关仍负责权威验签。
+func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.AdmissionPermit) (context.Context, error) {
+ if op.CostClass != platform.CostClassQA { return ctx, nil }
+ runtime, ok := ctx.Value(modelRuntimeKey{}).(ModelRuntime)
+ if !ok { return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型执行链未装配") }
+ runtime.AdmissionPermit = nil
+ if op.CostClass == platform.CostClassQA {
+  if permit == nil || permit.Token == "" || permit.RequestId != op.RootOperationID || permit.DataEpoch != op.DataEpoch || (op.Actor.Kind == "visitor" && permit.SubjectId != op.Actor.SubjectID) || (op.Actor.Kind == "service" && op.CallerService != "qa") || (permit.Action != "qa.ask" && permit.Action != "qa.followup") || string(permit.Audience) != "model-gateway" {
+   return nil, platform.NewError(platform.CodeForbidden, false, "知识模型调用缺少本轮已消费准入许可")
+  }
+  runtime.AdmissionPermit = &platform.AdmissionPermit{AdmissionID:permit.AdmissionId, RequestID:permit.RequestId, SubjectID:permit.SubjectId, Action:permit.Action, Token:permit.Token, ExpiresAt:platform.Timestamp(permit.ExpiresAt.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")), SessionBudgetScope:permit.SessionBudgetScope, NetworkBudgetScope:permit.NetworkBudgetScope, DataEpoch:permit.DataEpoch, Audience:string(permit.Audience)}
+ }
+ return WithModelRuntime(ctx, runtime), nil
+}

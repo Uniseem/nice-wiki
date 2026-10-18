@@ -35,6 +35,7 @@ func NormalizeQuery(ctx context.Context, op OperationContext, input NormalizeQue
 }
 
 type EmbedQueryInput struct {
+ AdmissionPermit *gen.AdmissionPermit `json:"admissionPermit,omitempty"`
 	Normalized string             `json:"normalized"`
 	Space      gen.EmbeddingSpace `json:"space"`
 	ProfileID  string             `json:"profileId"`
@@ -53,7 +54,7 @@ func EmbedQuery(ctx context.Context, op OperationContext, input EmbedQueryInput)
 	if runtime.EmbeddingProfileID != input.ProfileID {
 		return EmbedQueryResult{}, platform.NewError(platform.CodeIntegrityError, false, "查询嵌入档位不匹配")
 	}
-	embedded, err := CreateQueryEmbedding(ctx, op, CreateQueryEmbeddingInput{Query: input.Normalized, Space: input.Space, IdempotencyKey: "query." + platform.HashBytes([]byte(op.RootOperationID+":"+input.Space.SpaceId+":"+input.Normalized))})
+	embedded, err := CreateQueryEmbedding(ctx, op, CreateQueryEmbeddingInput{Query: input.Normalized, Space: input.Space, AdmissionPermit: input.AdmissionPermit, IdempotencyKey: "query." + platform.HashBytes([]byte(op.RootOperationID+":"+input.Space.SpaceId+":"+input.Normalized))})
 	if err != nil {
 		return EmbedQueryResult{}, err
 	}

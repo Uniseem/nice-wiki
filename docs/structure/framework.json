@@ -2539,6 +2539,11 @@
       "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
+    },
+    {
       "path": "modules/localization/internal/translation/edit.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
@@ -2559,9 +2564,34 @@
       "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
+      "path": "modules/localization/internal/translation/progress.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
+    },
+    {
       "path": "modules/localization/internal/translation/prompt.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/read.go",
+      "kind": "handwritten",
+      "purpose": "公开读取当前译文所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/localization/internal/translation/restore.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
+    },
+    {
+      "path": "modules/localization/internal/translation/source.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
+    },
+    {
+      "path": "modules/localization/internal/translation/split.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
     },
     {
       "path": "modules/localization/internal/translation/store.go",
@@ -2577,6 +2607,11 @@
       "path": "modules/localization/internal/translation/tm.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/units.go",
+      "kind": "handwritten",
+      "purpose": "确定性切分翻译单元所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/localization/internal/translation/validate.go",
@@ -4174,9 +4209,34 @@
       "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
+      "path": "modules/qa/internal/admin/records.go",
+      "kind": "handwritten",
+      "purpose": "浏览与筛选问答记录"
+    },
+    {
       "path": "modules/qa/internal/admission/permit.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/answer/citation.go",
+      "kind": "handwritten",
+      "purpose": "逐条保护引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/answer/prompt.go",
+      "kind": "handwritten",
+      "purpose": "构造有界回答提示所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/answer/retrieve.go",
+      "kind": "handwritten",
+      "purpose": "取有源可见证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/cache/automatic.go",
+      "kind": "handwritten",
+      "purpose": "按old语义自动保存合格答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/cache/curation.go",
@@ -4199,9 +4259,19 @@
       "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
+      "path": "modules/qa/internal/cache/query-embedding.go",
+      "kind": "handwritten",
+      "purpose": "同查询只生成一次嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/qa/internal/cache/validate.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/context/preflight.go",
+      "kind": "handwritten",
+      "purpose": "补全问题、分类、风险与缓存资格所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/conversation/create.go",
@@ -4212,6 +4282,16 @@
       "path": "modules/qa/internal/conversation/read.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/debug/read.go",
+      "kind": "handwritten",
+      "purpose": "读取管理诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/events/outbox.go",
+      "kind": "handwritten",
+      "purpose": "发布问答脱敏事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/feedback/feedback.go",
@@ -4232,6 +4312,11 @@
       "path": "modules/qa/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/qa/internal/history/commit.go",
+      "kind": "handwritten",
+      "purpose": "保护新历史不被旧摘要覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/normalize/question.go",
@@ -4262,6 +4347,11 @@
       "path": "modules/qa/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/turn/context.go",
+      "kind": "handwritten",
+      "purpose": "固定回答上下文版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/migrations/001_initial.sql",

@@ -1547,6 +1547,10 @@
         "profileId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "嵌入档位"
+        },
+        "admissionPermit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"
         }
       },
       "required": [
@@ -1912,6 +1916,10 @@
         "lexicalOnly": {
           "type": "boolean",
           "description": "显式词项"
+        },
+        "admissionPermit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"
         }
       },
       "required": [
@@ -2486,6 +2494,10 @@
           "minimum": 0,
           "maximum": 5,
           "description": "0..5"
+        },
+        "admissionPermit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"
         }
       },
       "required": [
@@ -2561,6 +2573,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "rootOperation/queryHash/space一致键"
+        },
+        "admissionPermit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"
         }
       },
       "required": [
