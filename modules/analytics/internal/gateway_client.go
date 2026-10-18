@@ -138,17 +138,13 @@ func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, throu
 	if len(page.Changes)+len(page.Observations) > 100 {
 		return platform.NewError(platform.CodeIntegrityError, false, "费用统计两类事实合计超过100")
 	}
-	validMoney := func(value *Money) bool {
-		return value != nil && value.Currency == "USD" && value.Micros >= 0 && value.Micros <= 9007199254740991
-	}
 	last := through
 	for _, change := range page.Changes {
 		if change.ChangeRevision <= last ||
-			change.SiteID != siteID ||
-			change.AmountKnown != (change.Amount != nil) ||
-			(change.AmountKnown && !validMoney(change.Amount)) ||
-			(change.LedgerStatus == "price_unknown" && change.AmountKnown) ||
-			(change.State != "superseded" && change.State != "voided" && change.State != "deleted" && change.State != change.LedgerStatus) {
+			change.SiteID != siteID {
+			return platform.NewError(platform.CodeIntegrityError, false, "费用账项原来源、独立版本或金额状态矛盾")
+		}
+		if err := ValidateUsageEvent(change); err != nil {
 			return platform.NewError(platform.CodeIntegrityError, false, "费用账项原来源、独立版本或金额状态矛盾")
 		}
 		revisions = append(revisions, change.ChangeRevision)
@@ -190,7 +186,7 @@ func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, throu
 				observation.EntityID != fact.ReservationID ||
 				fact.AmountKnown != (fact.MaximumCost != nil) ||
 				fact.AmountKnown != (fact.HeldCost != nil) ||
-				(fact.AmountKnown && (!validMoney(fact.MaximumCost) || !validMoney(fact.HeldCost) || fact.HeldCost.Micros > fact.MaximumCost.Micros)) ||
+				(fact.AmountKnown && (fact.MaximumCost.Currency != "USD" || fact.HeldCost.Currency != "USD" || fact.MaximumCost.Micros < 0 || fact.HeldCost.Micros < 0 || fact.HeldCost.Micros > fact.MaximumCost.Micros)) ||
 				(observation.Deleted && fact.State == "held") {
 				return platform.NewError(platform.CodeIntegrityError, false, "费用原预留观察关联、删除或金额状态矛盾")
 			}

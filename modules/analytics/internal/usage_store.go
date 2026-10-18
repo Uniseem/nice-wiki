@@ -8,6 +8,23 @@ import (
 	"time"
 )
 
+// ValidateUsageEvent核V2账项金额与状态语义；生产字段和枚举由生成schema校验。
+func ValidateUsageEvent(change UsageLedgerChange) error {
+	if change.AmountKnown != (change.Amount != nil) {
+		return platform.NewError(platform.CodeIntegrityError, false, "费用账项金额已知标志与字段不一致")
+	}
+	if change.AmountKnown && (change.Amount.Currency != "USD" || change.Amount.Micros < 0 || change.Amount.Micros > 9007199254740991) {
+		return platform.NewError(platform.CodeIntegrityError, false, "费用账项真实金额不合法")
+	}
+	if change.LedgerStatus == "price_unknown" && change.AmountKnown {
+		return platform.NewError(platform.CodeIntegrityError, false, "未知价格账项不能带已知金额")
+	}
+	if change.State != "superseded" && change.State != "voided" && change.State != "deleted" && change.State != change.LedgerStatus {
+		return platform.NewError(platform.CodeIntegrityError, false, "费用账项状态与账本状态矛盾")
+	}
+	return nil
+}
+
 // ProjectUsage只接读取边界已核验的完整V2事实，不从事件引用推测金额或修订。
 // 事件入口应使用ProjectUsageTx，与平台inbox认领在同一安全写事务提交。
 func ProjectUsage(ctx context.Context, op OperationContext, in UsageProjectionInput) (ProjectUsageResult, error) {
@@ -54,11 +71,11 @@ func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in Usa
 	var newest int64
 	var recorded bool
 	for _, change := range in.Changes {
+		if err = ValidateUsageEvent(change); err != nil {
+			return ProjectUsageResult{}, err
+		}
 		if change.SiteID != site || change.SourceDataEpoch == "" {
 			return ProjectUsageResult{}, platform.NewError(platform.CodeVersionMismatch, false, "账项原站点或来源代次缺失/不匹配")
-		}
-		if change.AmountKnown != (change.Amount != nil) {
-			return ProjectUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "账项已知金额标记与原金额不一致")
 		}
 		raw, e := platform.CanonicalJSON(change)
 		if e != nil {

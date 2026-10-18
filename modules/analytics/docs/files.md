@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 72 个：手写 50、UI 5、生成 5、配置 10、迁移 2。函数 147 个：约束 33，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 71 个：手写 49、UI 5、生成 5、配置 10、迁移 2。函数 147 个：约束 33，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -17,8 +17,7 @@
 | `modules/analytics/internal/audit_validation.go` | 手写 | 校验审计allowlist；同文件职责限本域以下登记函数 | `analytics.ValidateAudit`（参考） |
 | `modules/analytics/internal/audit_chain.go` | 手写 | 计算审计完整性链；同文件职责限本域以下登记函数 | `analytics.ComputeAuditHash`（参考） |
 | `modules/analytics/internal/audit_store.go` | 手写 | 追加安全审计；同文件职责限本域以下登记函数 | `analytics.AppendAudit`、`analytics.appendTrustedAudit`（参考）、`analytics.insertAuditRecord`（参考） |
-| `modules/analytics/internal/usage_validation.go` | 手写 | 校验gateway钱账引用；同文件职责限本域以下登记函数 | `analytics.ValidateUsageEvent`（参考） |
-| `modules/analytics/internal/usage_store.go` | 手写 | 更新派生费用行；同文件职责限本域以下登记函数 | `analytics.ProjectUsage`（参考）、`analytics.ProjectUsageTx`（参考）、`analytics.recordUsageFact`（参考）、`analytics.projectUsageLedger`（参考）、`analytics.projectUsageObservation`（参考） |
+| `modules/analytics/internal/usage_store.go` | 手写 | 更新派生费用行；同文件职责限本域以下登记函数 | `analytics.ValidateUsageEvent`（参考）、`analytics.ProjectUsage`（参考）、`analytics.ProjectUsageTx`（参考）、`analytics.recordUsageFact`（参考）、`analytics.projectUsageLedger`（参考）、`analytics.projectUsageObservation`（参考） |
 | `modules/analytics/internal/usage_aggregation.go` | 手写 | 费用派生聚合；同文件职责限本域以下登记函数 | `analytics.AggregateUsage` |
 | `modules/analytics/internal/gateway_client.go` | 手写 | 取得权威账本投影输入；同文件职责限本域以下登记函数 | `analytics.FetchUsagePage`（参考）、`analytics.WithUsageGateway`（参考）、`analytics.readUsageGatewayPage`（参考）、`analytics.validateUsageGatewayPage`（参考） |
 | `modules/analytics/internal/reconciliation.go` | 手写 | 对账修复派生统计；同文件职责限本域以下登记函数 | `analytics.ReconcileUsage` |

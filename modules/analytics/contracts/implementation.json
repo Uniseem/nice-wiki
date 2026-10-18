@@ -1556,91 +1556,55 @@
       ]
     },
     {
-      "path": "modules/analytics/internal/usage_validation.go",
+      "path": "modules/analytics/internal/usage_store.go",
       "kind": "handwritten",
-      "purpose": "校验gateway钱账引用；同文件职责限本域以下登记函数",
+      "purpose": "更新派生费用行；同文件职责限本域以下登记函数",
       "functions": [
         {
           "id": "analytics.ValidateUsageEvent",
           "name": "ValidateUsageEvent",
-          "signature": "func ValidateUsageEvent(ctx context.Context, op OperationContext, in ValidateUsageEventInput) (ValidateUsageEventResult, error)",
+          "signature": "func ValidateUsageEvent(change UsageLedgerChange) error",
           "inputs": [
             {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "ValidateUsageEventInput",
-              "description": "校验gateway钱账引用；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+              "name": "change",
+              "type": "UsageLedgerChange",
+              "description": "已通过生成schema的V2权威账项",
+              "constraints": "只核金额known与状态语义，不重复字段/enum schema校验"
             }
           ],
           "outputs": [
             {
-              "name": "result",
-              "type": "ValidateUsageEventResult",
-              "description": "校验gateway钱账引用成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
               "name": "error",
               "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+              "description": "金额或状态关系矛盾",
+              "constraints": "成功nil；失败INTEGRITY_ERROR"
             }
           ],
-          "purpose": "校验gateway钱账引用",
+          "purpose": "校验V2账项金额与状态语义",
           "steps": [
-            "只允许model-gateway签名生产者",
-            "class qa/background/admin-probe",
-            "currency USD整数micros≥0",
-            "entryrevision单增"
+            "amountKnown与amount严格同现；已知金额必须USD非负安全整数。",
+            "price_unknown不得带已知金额；settled/reconciled/price_unknown状态须与ledgerStatus一致，superseded/voided/deleted保留原状态。"
           ],
           "errors": [
             {
-              "code": "VALIDATION",
-              "condition": "INVALID_USAGE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
+              "code": "INTEGRITY_ERROR",
+              "condition": "金额known/值或state与ledgerStatus关系矛盾",
+              "httpStatus": 422,
               "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "rollback": "调用方不持久半事实"
             }
           ],
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "service model-gateway"
+            "rule": "仅本域已核验V2页/投影链"
           },
           "concurrency": "纯校验；不接受任意服务报告扣款",
-          "idempotency": "同event同结果",
-          "dependencies": [
-            "model-gateway:queryUsage"
-          ],
+          "idempotency": "同change同结果",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/analytics/internal/usage_store.go",
-      "kind": "handwritten",
-      "purpose": "更新派生费用行；同文件职责限本域以下登记函数",
-      "functions": [
+        },
         {
           "id": "analytics.ProjectUsage",
           "name": "ProjectUsage",
@@ -1722,46 +1686,8 @@
           "id": "analytics.ProjectUsageTx",
           "name": "ProjectUsageTx",
           "signature": "func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in UsageProjectionInput) (ProjectUsageResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "已绑定本域可信写窗口的context",
-              "constraints": "由beginWrite建立"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信事件操作",
-              "constraints": "站点与代次必须与runtime一致"
-            },
-            {
-              "name": "tx",
-              "type": "*sql.Tx",
-              "description": "调用方持有的安全写事务",
-              "constraints": "本函数不提交或回滚"
-            },
-            {
-              "name": "in",
-              "type": "UsageProjectionInput",
-              "description": "已核验完整V2事实",
-              "constraints": "changes/observations不得为null"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ProjectUsageResult",
-              "description": "是否写入新事实",
-              "constraints": "失败返回零值"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "事务内失败",
-              "constraints": "调用方不得提交"
-            }
-          ],
+          "inputs": [],
+          "outputs": [],
           "purpose": "供事件入口把inbox首写与费用投影纳入同一事务",
           "steps": [
             "核schema/site/epoch后逐事实幂等持久；任一冲突返回错误，不提交。"
@@ -1787,7 +1713,8 @@
           "dependencies": [
             "analytics.recordUsageFact",
             "analytics.projectUsageLedger",
-            "analytics.projectUsageObservation"
+            "analytics.projectUsageObservation",
+            "analytics.ValidateUsageEvent"
           ],
           "resources": [],
           "contract": "reference"
@@ -1836,7 +1763,7 @@
           ],
           "errors": [
             {
-              "code": "INVALID_USAGE",
+              "code": "VALIDATION",
               "condition": "金额known与原字段不一致",
               "httpStatus": 400,
               "retryable": false,
@@ -1868,7 +1795,7 @@
           ],
           "errors": [
             {
-              "code": "INVALID_USAGE",
+              "code": "VALIDATION",
               "condition": "预留金额known与字段不一致",
               "httpStatus": 400,
               "retryable": false,
@@ -2165,34 +2092,8 @@
           "id": "analytics.readUsageGatewayPage",
           "name": "readUsageGatewayPage",
           "signature": "func readUsageGatewayPage(raw json.RawMessage, validate func(json.RawMessage) error) (UsageGatewayPage, error)",
-          "inputs": [
-            {
-              "name": "raw",
-              "type": "json.RawMessage",
-              "description": "完整原始HTTP页",
-              "constraints": "单页最多2MiB"
-            },
-            {
-              "name": "validate",
-              "type": "func(json.RawMessage) error",
-              "description": "由apivalidate.NewPayloadValidator按AnalyticsUsageStatisticsPageResult构建",
-              "constraints": "只调用一次，验证生产方V2 required/非null/条件字段"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "page",
-              "type": "UsageGatewayPage",
-              "description": "无损V2原页",
-              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "成功nil；失败返回公共安全错误且不带半页",
-              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
-            }
-          ],
+          "inputs": [],
+          "outputs": [],
           "purpose": "核生产方V2 schema、完整原JSON摘要与无损模型",
           "steps": [
             "限制原响应2MiB，并以wire装配的生产方V2 schema校验原始JSON一次。",
@@ -2407,7 +2308,9 @@
           },
           "concurrency": "无共享可变状态；纯本地操作",
           "idempotency": "相同输入产生相同结果",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.ValidateUsageEvent"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -8187,9 +8090,7 @@
           },
           "concurrency": "无共享可变状态。",
           "idempotency": "相同已核验输入产生相同结果。",
-          "dependencies": [
-            "platform.EventEnvelope"
-          ],
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         },

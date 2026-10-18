@@ -905,45 +905,39 @@ func insertAuditRecord(work context.Context, op OperationContext, tx *sql.Tx, re
 ## analytics.ValidateUsageEvent
 
 - 级别：参考
-- 文件：`modules/analytics/internal/usage_validation.go`
-- 作用：校验gateway钱账引用
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：校验V2账项金额与状态语义
 
 ```go
-func ValidateUsageEvent(ctx context.Context, op OperationContext, in ValidateUsageEventInput) (ValidateUsageEventResult, error)
+func ValidateUsageEvent(change UsageLedgerChange) error
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ValidateUsageEventInput` | 校验gateway钱账引用；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `change` | `UsageLedgerChange` | 已通过生成schema的V2权威账项 | 只核金额known与状态语义，不重复字段/enum schema校验 |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `ValidateUsageEventResult` | 校验gateway钱账引用成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+| `error` | `error` | 金额或状态关系矛盾 | 成功nil；失败INTEGRITY_ERROR |
 
 **步骤**
 
-1. 只允许model-gateway签名生产者
-2. class qa/background/admin-probe
-3. currency USD整数micros≥0
-4. entryrevision单增
+1. amountKnown与amount严格同现；已知金额必须USD非负安全整数。
+2. price_unknown不得带已知金额；settled/reconciled/price_unknown状态须与ledgerStatus一致，superseded/voided/deleted保留原状态。
 
 **错误**
 
-- `VALIDATION` / HTTP 400：INVALID_USAGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR` / HTTP 422：金额known/值或state与ledgerStatus关系矛盾（不可重试）；调用方不持久半事实
 
 - 副作用：无
-- 授权：permission：service；rule：service model-gateway
+- 授权：permission：service；rule：仅本域已核验V2页/投影链
 - 并发：纯校验；不接受任意服务报告扣款
-- 幂等：同event同结果
-- 依赖：`model-gateway:queryUsage`
+- 幂等：同change同结果
+- 依赖：无
 
 ## analytics.ProjectUsage
 
@@ -1000,19 +994,11 @@ func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in Usa
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 已绑定本域可信写窗口的context | 由beginWrite建立 |
-| `op` | `OperationContext` | 可信事件操作 | 站点与代次必须与runtime一致 |
-| `tx` | `*sql.Tx` | 调用方持有的安全写事务 | 本函数不提交或回滚 |
-| `in` | `UsageProjectionInput` | 已核验完整V2事实 | changes/observations不得为null |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ProjectUsageResult` | 是否写入新事实 | 失败返回零值 |
-| `error` | `error` | 事务内失败 | 调用方不得提交 |
+无
 
 **步骤**
 
@@ -1026,7 +1012,7 @@ func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in Usa
 - 授权：permission：service；rule：仅本域可信事件处理链
 - 并发：不创建事务，由调用方串行短事务控制
 - 幂等：changeRevision与原始事实hash幂等
-- 依赖：`analytics.recordUsageFact`、`analytics.projectUsageLedger`、`analytics.projectUsageObservation`
+- 依赖：`analytics.recordUsageFact`、`analytics.projectUsageLedger`、`analytics.projectUsageObservation`、`analytics.ValidateUsageEvent`
 
 ## analytics.recordUsageFact
 
@@ -1084,7 +1070,7 @@ func projectUsageLedger(ctx context.Context, tx *sql.Tx, epoch string, change Us
 
 **错误**
 
-- `INVALID_USAGE` / HTTP 400：金额known与原字段不一致（不可重试）；由调用方回滚事务
+- `VALIDATION` / HTTP 400：金额known与原字段不一致（不可重试）；由调用方回滚事务
 
 - 副作用：upsert usage_projection_v2
 - 授权：permission：service；rule：仅本域事务内
@@ -1116,7 +1102,7 @@ func projectUsageObservation(ctx context.Context, tx *sql.Tx, epoch string, obse
 
 **错误**
 
-- `INVALID_USAGE` / HTTP 400：预留金额known与字段不一致（不可重试）；由调用方回滚事务
+- `VALIDATION` / HTTP 400：预留金额known与字段不一致（不可重试）；由调用方回滚事务
 
 - 副作用：upsert usage_observations_v2
 - 授权：permission：service；rule：仅本域事务内
@@ -1270,17 +1256,11 @@ func readUsageGatewayPage(raw json.RawMessage, validate func(json.RawMessage) er
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `raw` | `json.RawMessage` | 完整原始HTTP页 | 单页最多2MiB |
-| `validate` | `func(json.RawMessage) error` | 由apivalidate.NewPayloadValidator按AnalyticsUsageStatisticsPageResult构建 | 只调用一次，验证生产方V2 required/非null/条件字段 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `page` | `UsageGatewayPage` | 无损V2原页 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
-| `error` | `error` | 成功nil；失败返回公共安全错误且不带半页 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+无
 
 **步骤**
 
@@ -1354,7 +1334,7 @@ func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, throu
 - 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
 - 并发：无共享可变状态；纯本地操作
 - 幂等：相同输入产生相同结果
-- 依赖：无
+- 依赖：`analytics.ValidateUsageEvent`
 
 ## analytics.ReconcileUsage
 
@@ -5369,7 +5349,7 @@ func parseUsageEventReference(event platform.EventEnvelope, epoch string) (usage
 - 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
 - 并发：无共享可变状态。
 - 幂等：相同已核验输入产生相同结果。
-- 依赖：`platform.EventEnvelope`
+- 依赖：无
 
 ## analytics.validateUsageEventReference
 

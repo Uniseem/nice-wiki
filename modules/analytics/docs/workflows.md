@@ -6,6 +6,8 @@ old D31：浏览器加载sendBeacon一次→UA过滤已知爬虫→可信peer/IP
 
 费用：gateway账项settled事件→按ledgerEntryId/revision投影→整数micros聚合→每日固定watermark只读对账；汇总缺漏不影响实时gateway额度判定。
 
+费用V2消费候选：model-gateway事件只提供引用；analytics按固定watermark收齐V2 `changes+observations`，每页经 `AnalyticsUsageStatisticsPageResult` 生成的严格schema与 pageHash 核验，只有末页游标为空且throughRevision到达watermark才形成完整快照。settled须匹配同entry权威账项，reconciled not_charged须匹配同attempt观察；随后以inbox首写和V2事实投影同一事务提交，提交后才确认事件。金额unknown、held和charge_unknown保留原未知状态，不从事件金额或revision补猜。源码候选为blocked，待GitLab恢复统一gen/build。
+
 恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
 状态迁移：
@@ -104,6 +106,8 @@ V2审计事实：固定producer/action，HTTP历史三字段同现且纯服务�
 小时/日报任务V3：aggregate_jobs仅不可变业务输入/原提交意图与真实执行镜像，不是领取队列。canonical AggregateJobBody schemaVersion1绑定kind/period/timezone/sourceWatermark/siteId/dataEpoch，真实字节/长度hash构造本域ObjectRef；固定原operation/root/dedupeKey，未知create只原key续接，禁止修改旧输入。每分钟有界扫描闭合周期（小时5分钟、日10分钟）与迟到真实水位，jobs唯一调度。worker用平台真实续租/取消钩子，事务前锁外CheckLease，提交前核本域同job/worker/fence/epoch/attempt/expiry镜像；恢复不得复活旧镜像执行权。总UV与各source/country维度分开distinct。超过原明细保留且缺原聚合不可重建0；历史水位不受新全局访问影响。费用任务仍缺完整协议，RunWorker整体与快照/Ready继续blocked。
 
 问答来源投影V4：qa_turn_projection仅真实轮次/来源修订/分类/hash/时间，inbox同事务。重复和低修订不增；更高修订撤旧再新计，同修订异完整事实冲突。旧非空汇总无来源修订拒绝静默迁移。failed事件生产schema无language，内部locale空表示未提供，不造语言。内容缺口只完整可信日历日，同快照返page/qa水位、QA分子分母/最近提交时间，0样本显示无样本；访次累加非跨日独立访客，问题正文仍qa权限入口。费用事件缺完整安全统计页仍不确认，审计producer事件尚未装配；整体订阅/Ready仍blocked。
+
+当前V2小闭环仅覆盖页拉取、事务持久和两个费用事件的本地handler接线；AggregateUsage、ReconcileUsage、usage query、完整consumer/worker循环、真实scope与ready仍未完成。
 
 私有CSV与保留期V5：统计pages/usage和审计audits使用固定不同权限创建/下载路由；边界即时授权，同原actor/site/epoch、24h与完整hash。固定安全列≤100000行/32MiB，公式首字符=+@-、tab/CR/LF加单引号，CSV转义。preparing原操作/hash/期限→part完整文件及目录fsync→prepared真实ref/原结果→rename目录fsync→ready；prepared只续原字节不重查。启动续journal/未知旧记录对象拒绝；到期保留幂等墓碑不重授24h。原明细30天有界续清，未完整派生page-view另记真实漏数而不改变period水位；原salt新日及每分钟擦旧。审计只删逐条核链的最老连续过期前缀，默认180最少30，原锚/删除/retention审计同事务，晚到原时间旧事实可能更久保留以维持链，绝不删中间或重写原hash。费用页面仅已有投影/真实对账时间，不冒全站实时余额。
 
