@@ -253,7 +253,7 @@ export interface paths {
         };
         /**
          * 跨服务读取权威费用状态
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。 safeToRetry仅证明完整原root全部调用和attempt尚未派发，不以成功状态或零金额代表免费；结果已成功但费用未知仍列unknownInvocationIds。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。 safeToRetry仅证明完整原root全部调用和attempt尚未派发，不以成功状态或零金额代表免费；结果已成功但费用未知仍列unknownInvocationIds。 analytics纯服务只读同实际site/current epoch安全用量，无正文/输出/秘密，其他owner仍只读自己的root。
          */
         get: operations["queryUsage"];
         put?: never;
@@ -636,6 +636,26 @@ export interface paths {
          * @description 仅knowledge纯服务；读取已启用同代模型不可变预处理声明，返回真实BPE偏移与完整空间；无供应方调用、调用记录或费用。未知编码不猜测。
          */
         post: operations["tokenizeText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/inferences/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按原完整请求只读查找已接受调用
+         * @description 仅AI owner纯服务。用原key/owner/site/root/epoch与原规范完整请求比较，异输入CONFLICT；新读取deadline不重置原付费截止，不消费/重验过期准入来付费。只有完整tracking证明且确无原记录才404；marker缺失或旧记录证据不足503，坏回执/孤立记录Integrity。不创调用/费用/事件。
+         */
+        post: operations["lookupInference"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5027,6 +5047,107 @@ export interface operations {
             };
             /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    lookupInference: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
+                "Idempotency-Key"?: string;
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvocationInput"];
+            };
+        };
+        responses: {
+            /** @description 原调用当前快照与真实完整output */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetInvocationResult"];
+                };
+            };
+            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

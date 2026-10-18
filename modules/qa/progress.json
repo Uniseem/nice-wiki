@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "b1f73b2302a4266e1b089ce1ca73d8668c4845726713975149d8c8f50016794b",
+  "contractSha256": "50205a6a072361624ed115ddc65b4f2708f4eb8ec037bec93ad4d0547ef85cfc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",
@@ -1947,13 +1947,13 @@
     {
       "id": "qa.InvokeModel",
       "path": "modules/qa/internal/runtime/model_client.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "原幂等请求只读lookup与当前完整结果观察待公共modelclient适配"
     },
     {
       "id": "qa.ModelText",

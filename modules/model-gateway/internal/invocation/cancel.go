@@ -2,7 +2,6 @@ package invocation
 
 import (
 	"context"
-	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )

@@ -11413,7 +11413,8 @@
             "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
             "循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传",
             "ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费",
-            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）"
+            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）",
+            "原受理状态未知或费用未知时只按原完整请求与原幂等键lookupInference观察当前快照，不因原付费deadline已过期新建模型调用；公共观察适配未齐时保持blocked。"
           ],
           "errors": [
             {
@@ -11512,7 +11513,8 @@
             "model-gateway:resumeInference",
             "model-gateway:cancelInference",
             "platform.InvokeModel",
-            "qa.FromContext"
+            "qa.FromContext",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"
