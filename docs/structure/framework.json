@@ -4269,6 +4269,11 @@
       "purpose": "同查询只生成一次嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
+      "path": "modules/qa/internal/cache/semantic.go",
+      "kind": "handwritten",
+      "purpose": "保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/qa/internal/cache/validate.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
@@ -4282,6 +4287,11 @@
       "path": "modules/qa/internal/conversation/create.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/conversation/delete.go",
+      "kind": "handwritten",
+      "purpose": "删除自有对话数据所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/conversation/read.go",
@@ -4339,6 +4349,11 @@
       "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
+      "path": "modules/qa/internal/runtime/prune.go",
+      "kind": "handwritten",
+      "purpose": "清理到期记录所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/qa/internal/stream/read.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
@@ -4352,6 +4367,16 @@
       "path": "modules/qa/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/turn/cancel.go",
+      "kind": "handwritten",
+      "purpose": "取消问答及所有子调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/turn/complete.go",
+      "kind": "handwritten",
+      "purpose": "原子结束可见答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/qa/internal/turn/context.go",
