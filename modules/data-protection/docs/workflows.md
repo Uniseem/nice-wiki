@@ -68,3 +68,5 @@ manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据�
 轻量manifest先按14域同一backup/barrier/epoch固定元数据并核源manifest指纹，再以真实对象/发布完整ref验证引用闭包；unknown/缺域拒绝，悬挂引用报告valid=false，所有封存/恢复入口必须拒绝。2MiB全局索引超限明确预算错误，不删引用凑合。安全ReadBackup只投影该版本1清单，不返回私有cipher header或wrappedDEK。
 
 普通手动备份核backup.manage，secret另需superadmin，原批准事实固定保存在control。后台核当前epoch/jobs fence，不复用过期portal proof。只读恢复进度token不升级写权限；故障取消/回滚等待公共独立窄控制许可及append-only动作记录，不能自报actor。
+
+远程配置实施：可信AllowedGitHosts精确匹配ASCII主机，仅HTTPS443/SSH22及refs/heads完整安全分支；HTTP credentialRef仅选部署GitCredentialRefs的ID，空表示无凭据，不读请求路径。配置按expectedRevision CAS，原操作摘要/结果同事务幂等；修改配置不触发网络或同步。

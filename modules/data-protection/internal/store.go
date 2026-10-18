@@ -22,7 +22,7 @@ import (
 )
 
 type OperationContext=platform.OperationContext
-type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;PayloadValidators map[string]func(json.RawMessage)error;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
+type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;AllowedGitHosts []string;GitCredentialRefs map[string]string;PayloadValidators map[string]func(json.RawMessage)error;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
 var installedStore atomic.Pointer[Store]
 
 // OpenCatalog 打开active业务库、control权威目录和独立vault；控制事实不随业务目录替换。

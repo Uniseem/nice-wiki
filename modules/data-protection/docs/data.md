@@ -41,3 +41,5 @@ BackupManifestV1采用轻量设计：14份真实DomainSnapshotManifest的hash/�
 backup_runs持久approved_by/approval_permission_revision/approval_kind/site_id/root_operation_id/input_hash/include_secrets/source_epoch。HTTP普通备份核backup.manage，secret另核superadmin；worker只在固定批准范围和当前epoch/jobs fence执行，不保存复用过期portal proof。
 
 自身快照只导出安全设置与历史目录/完成审计投影，不打包历史vault实物或恢复controller授权。历史密文是明确external-vault审计metadata，追溯backupId/cipher SHA/bytes/keyId，不伪装活跃业务ObjectRef。恢复时真实核本机vault；跨实例缺旧包应failed+安全issue，不捏造ready。本次业务及付费结果由真正拥有域的完整快照保存。
+
+远程配置实施：可信AllowedGitHosts精确匹配ASCII主机，仅HTTPS443/SSH22及refs/heads完整安全分支；HTTP credentialRef仅选部署GitCredentialRefs的ID，空表示无凭据，不读请求路径。配置按expectedRevision CAS，原操作摘要/结果同事务幂等；修改配置不触发网络或同步。

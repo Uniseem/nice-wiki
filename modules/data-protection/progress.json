@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "79e921fe3d9435e7c8e2090a6489212dc27df95b79327501f82cc0f10a27ac5b",
+  "contractSha256": "340a4f059590d12afe4ead9d3f38a6679ff951a5b64ae79179d0512a1f9a4e81",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
@@ -202,23 +202,23 @@
     },
     {
       "path": "modules/data-protection/internal/git_config.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "远程配置闭环待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/git_validation.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "远程配置闭环待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/git_remote.go",
@@ -1083,24 +1083,24 @@
     {
       "id": "data-protection.ConfigureRemote",
       "path": "modules/data-protection/internal/git_config.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "远程校验及CAS链代码就绪，待统一GitLab CI"
     },
     {
       "id": "data-protection.ValidateRemote",
       "path": "modules/data-protection/internal/git_validation.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "远程校验及CAS链代码就绪，待统一GitLab CI"
     },
     {
       "id": "data-protection.SyncMirror",
@@ -1794,9 +1794,20 @@
         "evidence": null
       },
       "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+    },
+    {
+      "id": "data-protection.server.ConfigureRemote",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "远程配置HTTP转换待统一GitLab CI"
     }
   ],
-  "rule": "累计10既有业务与36实际参考支持代码就绪待统一GitLab CI；完整备份恢复镜像启动UI继续实施。",
+  "rule": "累计12既有业务与37实际参考支持代码就绪待统一GitLab CI；完整备份恢复镜像启动UI继续实施。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",

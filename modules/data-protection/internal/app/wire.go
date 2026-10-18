@@ -68,6 +68,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
  if err=protection.ConfigureKeyring(catalog,config.MasterKeyRef);err!=nil{_ = catalog.Close();return nil,err}
  catalog.PayloadValidators=map[string]func(json.RawMessage)error{}
  for _,name:=range []string{"BackupManifestV1","DomainSnapshotManifest"}{validator,validationErr:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if validationErr!=nil{_ = catalog.Close();return nil,validationErr};catalog.PayloadValidators[name]=validator}
+ catalog.AllowedGitHosts=append([]string(nil),config.AllowedGitHosts...)
+ catalog.GitCredentialRefs=map[string]string{};for id,path:=range config.GitCredentialRefs{catalog.GitCredentialRefs[id]=path}
  clients.Catalog=catalog;protection.InstallCatalog(catalog)
  startup:=platform.OperationContext{CallerService:ModuleSlug,DataEpoch:view.DataEpoch,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug}}
  recovered,recoveryErr:=protection.RecoverProtectionJournal(ctx,startup,protection.RecoverProtectionJournalInput{StartupDataEpoch:view.DataEpoch});if recoveryErr!=nil{_ = catalog.Close();return nil,recoveryErr};clients.JournalRecovered=true;clients.JournalControlReady=recovered.ControlReady;clients.RequiresMaintenance=recovered.RequiresMaintenance

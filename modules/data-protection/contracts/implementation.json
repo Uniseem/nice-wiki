@@ -4182,11 +4182,10 @@
           ],
           "purpose": "设置远程同步目标",
           "steps": [
-            "checkbackup.manage",
-            "仅https/ssh白名单无URL凭证",
-            "branch refs/heads/<安全名>",
-            "credentialRef外部",
-            "CAS配置"
+            "HTTP边界即时backup.manage且内部管理员种类，调用ValidateRemote；credentialRef空表示无凭据，非空仅选可信部署GitCredentialRefs的ID，禁止请求任意路径。",
+            "同私有事务按expectedRevision做CAS，未配置revision=0，修订溢出预算错误。",
+            "按主体/operationId保存原输入摘要与真实结果；重复同输入返回原revision，异输入CONFLICT。",
+            "只保存安全URL/branch、凭据ID和真实批准人；不读凭据、不访问网络、不触发Git同步。"
           ],
           "errors": [
             {
@@ -4209,6 +4208,16 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "本域真实回执或修订预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "本域真实回执或修订预算不满足。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -4219,9 +4228,12 @@
             "rule": "backup.manage"
           },
           "concurrency": "revisionCAS；首次remote未设置时sync409",
-          "idempotency": "operationId/inputHash幂等",
+          "idempotency": "同主体/operationId原摘要与回执；CAS写与回执同事务。",
           "dependencies": [
-            "identity:checkAuthorization"
+            "data-protection.requireAdministrator",
+            "data-protection.Catalog",
+            "data-protection.ValidateRemote",
+            "data-protection.storageError"
           ],
           "resources": [],
           "contract": "binding"
@@ -4273,10 +4285,9 @@
           ],
           "purpose": "校验远程传输参数",
           "steps": [
-            "拒file/ext/git协议、本地路径、shell参数注入",
-            "host管理员allowlist",
-            "禁止URLuser/password/query",
-            "branch拒..及特殊字符"
+            "仅接受https/ssh标准端口、无userinfo/query/fragment/转义/控制字符的ASCII绝对仓库URL；拒本地/file/ext/git及选项式路径。",
+            "主机精确匹配可信部署AllowedGitHosts，默认空拒绝；不从请求/dependencies建立白名单，不执行DNS或网络。",
+            "完整分支refs/heads/<安全段>，ASCII字母数字点下划线连字符；拒空段、前导点/连字符、..及.lock后缀。"
           ],
           "errors": [
             {
@@ -4285,6 +4296,11 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "远程主机未在可信部署白名单。",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -4294,7 +4310,9 @@
           },
           "concurrency": "纯函数；执行Git参数数组而非shell拼接",
           "idempotency": "同remote同结果",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.Catalog"
+          ],
           "resources": [
             "站点出口配置"
           ],
@@ -6454,6 +6472,27 @@
           "idempotency": "纯目录投影可重读，无配置时不构造虚假策略。",
           "dependencies": [
             "data-protection.ReadProtectionSettings"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.ConfigureRemote",
+          "name": "server.ConfigureRemote",
+          "signature": "func (s *server) ConfigureRemote(w http.ResponseWriter, r *http.Request, params gen.ConfigureRemoteParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "受信远程配置HTTP转换",
+          "steps": [
+            "生成入口已严格校验请求；可信op注入actor，调用真实CAS业务并输出安全JSON。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台边界即时backup.manage，只允许portal用户委托。",
+          "concurrency": "本域只读短快照，不发模型或远程Git。",
+          "idempotency": "纯目录投影可重读，无配置时不构造虚假策略。",
+          "dependencies": [
+            "data-protection.ConfigureRemote"
           ],
           "resources": [],
           "contract": "reference"

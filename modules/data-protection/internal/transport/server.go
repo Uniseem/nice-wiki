@@ -330,7 +330,7 @@ func (s *server) ReleaseBarrier(w http.ResponseWriter, r *http.Request, _ string
 }
 
 func (s *server) ConfigureRemote(w http.ResponseWriter, r *http.Request, _ gen.ConfigureRemoteParams) {
-	writeUnavailable(w, r)
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};var body gen.ConfigureRemoteRequestBody;if err:=json.NewDecoder(r.Body).Decode(&body);err!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"远程配置正文不可读"));return};result,err:=protection.ConfigureRemote(r.Context(),op,protection.ConfigureRemoteInput{URL:body.Url,Branch:body.Branch,CredentialRef:body.CredentialRef,ExpectedRevision:body.ExpectedRevision,Actor:op.Actor});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) ScheduleLocalBackup(w http.ResponseWriter, r *http.Request, _ gen.ScheduleLocalBackupParams) {
