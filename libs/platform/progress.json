@@ -2,12 +2,12 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "5b464671a8f94a6344c67e785295ce2eab35b08431c9f0f3ed35ff8db46adfc0",
+  "contractSha256": "60e437954da976bb5b74f9f29910ab2f70bbda1bbc58a685bcc6aa45ddb07caa",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "公共快照/恢复与原模型调用只读观察",
   "branch": "codex/finish-20261018-snapshot",
   "baseCommit": "599cc7b8b9eaf879866b1eb603b1430ea7c333c1",
-  "deliveryCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
+  "deliveryCommit": "dcba0de",
   "deployment": "not_started",
   "files": [
     {
@@ -103,12 +103,12 @@
     {
       "path": "libs/platform/modelclient/invoke.go",
       "state": "blocked",
-      "implementationCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
+      "implementationCommit": "dcba0de",
       "verification": {
         "state": "not_run",
-        "evidence": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
+        "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
       },
-      "blocker": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
+      "blocker": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
     },
     {
       "path": "libs/platform/lifecycle/config.go",
@@ -173,12 +173,12 @@
     {
       "path": "libs/platform/platform.go",
       "state": "blocked",
-      "implementationCommit": "2278a566f38ba25783f205b936b0dae4d8649b08",
+      "implementationCommit": "dcba0de",
       "verification": {
         "state": "not_run",
-        "evidence": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+        "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
       },
-      "blocker": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+      "blocker": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
     },
     {
       "path": "libs/platform/go.mod",
@@ -466,12 +466,12 @@
       "id": "platform.InvokeModel",
       "path": "libs/platform/modelclient/invoke.go",
       "state": "blocked",
-      "implementationCommit": "2278a566f38ba25783f205b936b0dae4d8649b08",
+      "implementationCommit": "dcba0de",
       "verification": {
         "state": "not_run",
-        "evidence": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+        "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
       },
-      "blocker": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+      "blocker": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
     },
     {
       "id": "platform.LoadServiceConfig",

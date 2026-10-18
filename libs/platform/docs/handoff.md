@@ -1,3 +1,7 @@
+# 原调用未接受专用否证明
+
+源码dcba0de：公共CodeInvocationNotAccepted和404映射，Invoke仅认INVOCATION_NOT_ACCEPTED才可在原paid deadline有效时Create同原键。普通NOT_FOUND可能是旧部署/路由缺失，绝不作为未接受证明；只读Lookup保留专用码，已知ID Get404仍Integrity。待Root common/errors与MG producer统一GitLab，本机未检查/未真实调用，未push。下一项独立落地HTTP/worker/inbox/relay/TaskGroup scope hooks；两阶段全域闭包先向Root提精确协议片段，不把错时采样0当safe。
+
 # owner恢复纯只读观察入口
 
 源码db54fae，新增实际参考platform.ObserveInvocation、platform.LookupModelInvocation，均blocked待GitLab及owner真实装配。签名与返回沿前节公共API，二者只观察原已知InvocationID或完整原body/key；原截止有效也没有Create/Cancel/收费分支，过期也仅fresh5秒read。owner须锁外网络读取，并从原持久事实装配原root/site/epoch/costClass，不使用可能Create的InvokeModel作为恢复查询。Root登记知识等owner实际caller依赖。
