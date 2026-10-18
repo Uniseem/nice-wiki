@@ -557,7 +557,8 @@
             "DEPENDENCY_UNAVAILABLE",
             "STALE_RESULT",
             "INTEGRITY_ERROR",
-            "INTERNAL"
+            "INTERNAL",
+            "INVOCATION_NOT_ACCEPTED"
           ],
           "description": "操作成功或公共错误码，无输入正文"
         },
@@ -1313,7 +1314,8 @@
             "DEPENDENCY_UNAVAILABLE",
             "STALE_RESULT",
             "INTEGRITY_ERROR",
-            "INTERNAL"
+            "INTERNAL",
+            "INVOCATION_NOT_ACCEPTED"
           ],
           "description": "只接受公共错误码，不传原始错误或正文"
         },
@@ -1430,7 +1432,8 @@
             "DEPENDENCY_UNAVAILABLE",
             "STALE_RESULT",
             "INTEGRITY_ERROR",
-            "INTERNAL"
+            "INTERNAL",
+            "INVOCATION_NOT_ACCEPTED"
           ],
           "description": "只接受公共错误码，不传原始错误或正文"
         },
@@ -2766,7 +2769,8 @@
             "DEPENDENCY_UNAVAILABLE",
             "STALE_RESULT",
             "INTEGRITY_ERROR",
-            "INTERNAL"
+            "INTERNAL",
+            "INVOCATION_NOT_ACCEPTED"
           ],
           "description": "只接受公共错误码，不传原始错误或正文"
         },

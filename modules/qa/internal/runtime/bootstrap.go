@@ -49,7 +49,7 @@ type runtimeKey struct{}
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err
@@ -57,7 +57,7 @@ func NewRuntime(runtime Runtime) (Runtime, error) {
 		runtime.Validators[name] = validator
 	}
 	if runtime.Models != nil {
-		gateway, err := modelclient.NewGatewayClient(runtime.Models, modelclient.GatewayResponseValidators{"CreateInvocationResult": runtime.Validators["CreateInvocationResult"], "CancelInvocationResult": runtime.Validators["CancelInvocationResult"], "StreamEvent": runtime.Validators["StreamEvent"]})
+		gateway, err := modelclient.NewGatewayClient(runtime.Models, modelclient.GatewayResponseValidators{"CreateInvocationResult": runtime.Validators["CreateInvocationResult"], "CancelInvocationResult": runtime.Validators["CancelInvocationResult"], "StreamEvent": runtime.Validators["StreamEvent"], "GetInvocationResult": runtime.Validators["GetInvocationResult"], "LookupInvocationResult": runtime.Validators["LookupInvocationResult"]})
 		if err != nil {
 			return Runtime{}, err
 		}

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "58a4f62e532478a481d7406ce4f0993fb74e92a020e45a7534296c53012119ce",
+  "contractSha256": "22da128376fcc4898916a59d34549d051e02fdae827bc4ba09d3b8cd0f86cdc7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",
@@ -736,13 +736,13 @@
     {
       "id": "qa.NewRuntime",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "原键只读观察与完整文本消费者接线待本批GitLab；完整启动仍待快照与后台装配。"
     },
     {
       "id": "qa.WithRuntime",
@@ -1963,17 +1963,17 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "原幂等请求只读lookup与当前完整结果观察待公共modelclient适配"
+      "blocker": "原键只读观察与完整文本消费者接线待本批GitLab；完整启动仍待快照与后台装配。"
     },
     {
       "id": "qa.ModelText",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "原键只读观察与完整文本消费者接线待本批GitLab；完整启动仍待快照与后台装配。",
       "path": "modules/qa/internal/runtime/model_client.go"
     },
     {

@@ -3966,6 +3966,12 @@
       },
       "ContentValidatePublicationsResult": {
         "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
+      },
+      "GetInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult"
+      },
+      "LookupInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/LookupInvocationResult"
       }
     }
   },
@@ -3975,6 +3981,8 @@
     "StreamEvent",
     "ContentDocumentBody",
     "ContentReadPublishedRevisionResult",
-    "ContentValidatePublicationsResult"
+    "ContentValidatePublicationsResult",
+    "GetInvocationResult",
+    "LookupInvocationResult"
   ]
 }

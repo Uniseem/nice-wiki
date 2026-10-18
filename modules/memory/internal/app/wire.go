@@ -105,7 +105,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return fail(err)
 	}
 	validators := map[string]func(json.RawMessage) error{}
-	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "ReadTaskAssignmentsResult", "ReadProfilesResult", "JobsCreateJobResult", "JobsRequestCancelResult", "AssistantModelOutput"} {
+	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "ReadTaskAssignmentsResult", "ReadProfilesResult", "JobsCreateJobResult", "JobsRequestCancelResult", "AssistantModelOutput"} {
 		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if validationErr != nil {
 			return fail(validationErr)
@@ -116,7 +116,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return fail(err)
 	}
 	rawGateway := gen.NewModelGatewayClient(config.Dependencies["model-gateway"], ModuleSlug, key)
-	gateway, gatewayErr := modelclient.NewGatewayClient(rawGateway, modelclient.GatewayResponseValidators{"CreateInvocationResult": validators["CreateInvocationResult"], "CancelInvocationResult": validators["CancelInvocationResult"], "StreamEvent": validators["StreamEvent"]})
+	gateway, gatewayErr := modelclient.NewGatewayClient(rawGateway, modelclient.GatewayResponseValidators{"CreateInvocationResult": validators["CreateInvocationResult"], "CancelInvocationResult": validators["CancelInvocationResult"], "StreamEvent": validators["StreamEvent"], "GetInvocationResult": validators["GetInvocationResult"], "LookupInvocationResult": validators["LookupInvocationResult"]})
 	if gatewayErr != nil {
 		return fail(gatewayErr)
 	}

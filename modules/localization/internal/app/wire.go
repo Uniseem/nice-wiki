@@ -93,7 +93,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 	}()
 	validators := modelclient.GatewayResponseValidators{}
-	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent"} {
+	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult"} {
 		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if validationErr != nil {
 			return nil, validationErr

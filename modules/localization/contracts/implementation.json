@@ -6974,7 +6974,9 @@
             "localization.NewSuggestionPolicyHandlers",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7513,7 +7515,9 @@
             "model-gateway:resumeInference",
             "model-gateway:cancelInference",
             "platform.InvokeModel",
-            "localization.PublishBatch"
+            "localization.PublishBatch",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"

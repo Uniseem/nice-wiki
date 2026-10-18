@@ -59,12 +59,10 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 	if err != nil {
 		return RunAssistantResult{}, err
 	}
-	text := ""
-	for _, event := range outcome.Events {
-		if event.Event == platform.StreamDelta {
-			text += event.Delta
-		}
-	}
+ if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil || outcome.CurrentSnapshot.Output.Text == nil {
+  return RunAssistantResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "助手完整输出尚未持久化，保留原调用待查询")
+ }
+ text := *outcome.CurrentSnapshot.Output.Text
 	if err = memoryruntime.ValidateForeign("AssistantModelOutput", []byte(text)); err != nil {
 		return RunAssistantResult{}, err
 	}

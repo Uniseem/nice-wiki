@@ -3169,6 +3169,10 @@
             "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
           },
           "description": "按序号排列的全部流事件"
+        },
+        "currentSnapshot": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult",
+          "description": "可选；当前真实完整结果，与历史Events和费用终态分别保留；error非nil时仍可含已接受事实。"
         }
       },
       "required": [

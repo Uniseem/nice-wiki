@@ -27,7 +27,7 @@ type modelRuntimeKey struct{}
 // NewModelRuntime 仅从生产方 schema 构造严格公共网关适配。
 func NewModelRuntime(raw *gen.ModelGatewayClient) (ModelRuntime, error) {
 	validators := modelclient.GatewayResponseValidators{}
-	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent"} {
+	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return ModelRuntime{}, err
@@ -54,27 +54,19 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 		input.Request.AdmissionPermit = runtime.AdmissionPermit
 	}
 	key := "knowledge." + platform.HashBytes([]byte(op.OperationID+":"+input.Request.IDempotencyKey))
+	input.Request.IDempotencyKey = key
 	return modelclient.InvokeModel(platform.WithOperationContext(ctx, op), runtime.Gateway, op, platform.InvokeModelRequest{Request: input.Request, IDempotencyKey: key, Stream: input.Stream, OnEvent: runtime.OnEvent})
 }
 
-// CompletedOutput 只读取终态结构化结果，收费未知、失败和缺输出均不重算。
+// CompletedOutput 只读当前持久化完整结果，不把旧流输出或费用状态当来源。
 func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.ModelOutput, error) {
-	if outcome.State != "completed" {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型结果未成功完成，保留原调用待查")
-	}
-	var output *platform.ModelOutput
-	for _, event := range outcome.Events {
-		if event.Output != nil {
-			if output != nil || event.Event != platform.StreamCompleted || event.Output.Capability != capability {
-				return nil, platform.NewError(platform.CodeIntegrityError, false, "模型结构结果不唯一或能力不匹配")
-			}
-			output = event.Output
-		}
-	}
-	if output == nil {
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "模型缺少结构化完成结果")
-	}
-	return output, nil
+ if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil {
+  return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型完整结果尚未持久化，保留原调用待查")
+ }
+ if outcome.CurrentSnapshot.Output.Capability != capability {
+  return nil, platform.NewError(platform.CodeIntegrityError, false, "模型完整结果能力不匹配")
+ }
+ return outcome.CurrentSnapshot.Output, nil
 }
 
 // BindAdmissionPermit 复制请求独立的运行上下文；网关仍负责权威验签。

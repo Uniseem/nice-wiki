@@ -4,7 +4,6 @@ import (
 	"context"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/modelclient"
-	"strings"
 )
 
 type InvokeModelInput struct {
@@ -29,22 +28,14 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 		input.Request.AdmissionPermit = runtime.AdmissionPermit
 	}
 	key := "qa." + platform.HashBytes([]byte(op.OperationID+":"+input.Request.IDempotencyKey))
+	input.Request.IDempotencyKey = key
 	return modelclient.InvokeModel(platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op), runtime.Gateway, op, platform.InvokeModelRequest{Request: input.Request, IDempotencyKey: key, Stream: input.Stream, OnEvent: runtime.OnModelEvent})
 }
 
-// ModelText 读取成功持久调用的文本增量，不把费用未知或失败当作空答案。
+// ModelText 只读取网关已持久化的完整winning文本；费用状态另行保留。
 func ModelText(outcome InvokeModelResult) (string, error) {
-	if outcome.State != "completed" {
-		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "模型未成功完成，保留原调用待查询")
-	}
-	var text strings.Builder
-	for _, event := range outcome.Events {
-		if event.Event == platform.StreamDelta {
-			if text.Len()+len(event.Delta) > 65536 {
-				return "", platform.NewError(platform.CodeIntegrityError, false, "模型文本输出超过上限")
-			}
-			text.WriteString(event.Delta)
-		}
-	}
-	return text.String(), nil
+ if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil || outcome.CurrentSnapshot.Output.Text == nil {
+  return "", platform.NewError(platform.CodeDependencyUnavailable, false, "模型完整文本尚未持久化，保留原调用待查询")
+ }
+ return *outcome.CurrentSnapshot.Output.Text, nil
 }

@@ -2985,7 +2985,8 @@
             "2 根memory.assistant accurate档max1500output token，可信admin-probe根",
             "3 严格解析new/update/delete/noop候选和readonly规则",
             "4 不写active，只保存pending差异候选。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "仅消费CurrentSnapshot.Output.Text非nil的真实完整winning结果，显式空字符串可用；不由历史delta拼接或把费用未知当作没有结果，原费用/paid refs继续保留。"
           ],
           "errors": [
             {
@@ -6424,7 +6425,9 @@
             "memory.ConfigureValidators",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7007,10 +7010,9 @@
           ],
           "purpose": "经模型网关执行一次调用并读取到终态",
           "steps": [
-            "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
-            "循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传",
-            "ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费",
-            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）"
+            "本域只装配可信op与原准入/批准，公共InvokeModel按原完整请求和同一幂等键先lookup并观察当前快照；仅生产方专用INVOCATION_NOT_ACCEPTED负证明且原批准截止仍有效时首次create。",
+            "Request.IDempotencyKey与外层原键完全相同；普通NOT_FOUND不视为未接受；Get/Lookup只读scope不延长付费deadline。",
+            "完整结果完成与费用状态分别保留；取消、续读、真实接受后错误和已有引用均由公共适配器保留，不换新键或新owner重付。"
           ],
           "errors": [
             {
@@ -7048,7 +7050,9 @@
             "model-gateway:createInference",
             "model-gateway:resumeInference",
             "model-gateway:cancelInference",
-            "platform.InvokeModel"
+            "platform.InvokeModel",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"

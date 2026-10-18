@@ -556,7 +556,8 @@
             "DEPENDENCY_UNAVAILABLE",
             "STALE_RESULT",
             "INTEGRITY_ERROR",
-            "INTERNAL"
+            "INTERNAL",
+            "INVOCATION_NOT_ACCEPTED"
           ],
           "description": "操作成功或公共错误码，无输入正文"
         },

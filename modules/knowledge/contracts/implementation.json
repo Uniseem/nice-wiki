@@ -7797,7 +7797,9 @@
             "platform.LoadServiceIdentity",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8564,7 +8566,9 @@
             "model-gateway:createInference",
             "model-gateway:resumeInference",
             "model-gateway:cancelInference",
-            "platform.InvokeModel"
+            "platform.InvokeModel",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"
@@ -8636,7 +8640,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "platform.NewGatewayClient",
-            "platform.NewPayloadValidator"
+            "platform.NewPayloadValidator",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"
@@ -8718,8 +8724,7 @@
           "outputs": [],
           "purpose": "CompletedOutput的本域内部实现助手",
           "steps": [
-            "按精确Go签名处理已校验输入和可信依赖",
-            "具体分支、固定参数与共同规则见本域data及实现注释"
+            "仅消费CurrentSnapshot.Output真实完整结果，能力必须与固定步骤相同；缺结果不拼接旧流，不重算，不将结果完成推为费用结算。"
           ],
           "errors": [
             {

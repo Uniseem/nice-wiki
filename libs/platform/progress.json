@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "60e437954da976bb5b74f9f29910ab2f70bbda1bbc58a685bcc6aa45ddb07caa",
+  "contractSha256": "d136bb6c6c4eb6e0199734d2e46a18edaaadbb94f41e0cf7beaefc0c1fefc3c1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "公共快照/恢复与原模型调用只读观察",
   "branch": "codex/finish-20261018-snapshot",

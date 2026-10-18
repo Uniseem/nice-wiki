@@ -3551,6 +3551,12 @@
       },
       "AssistantModelOutput": {
         "$ref": "./types.json#/$defs/AssistantModelOutput"
+      },
+      "GetInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult"
+      },
+      "LookupInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/LookupInvocationResult"
       }
     }
   },
@@ -3562,6 +3568,8 @@
     "ReadProfilesResult",
     "JobsCreateJobResult",
     "JobsRequestCancelResult",
-    "AssistantModelOutput"
+    "AssistantModelOutput",
+    "GetInvocationResult",
+    "LookupInvocationResult"
   ]
 }

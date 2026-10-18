@@ -189,7 +189,8 @@
         "STALE_RESULT",
         "INTEGRITY_ERROR",
         "INTERNAL",
-        "CHALLENGE_REQUIRED"
+        "CHALLENGE_REQUIRED",
+        "INVOCATION_NOT_ACCEPTED"
       ],
       "description": "ErrorCode的公共协议类型；字段及范围按本schema"
     },

@@ -274,7 +274,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "platform.NewGatewayClient",
-            "platform.NewPayloadValidator"
+            "platform.NewPayloadValidator",
+            "model-gateway:readInference",
+            "model-gateway:lookupInference"
           ],
           "resources": [],
           "contract": "reference"
@@ -11419,11 +11421,9 @@
           ],
           "purpose": "经模型网关执行一次调用并读取到终态",
           "steps": [
-            "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
-            "循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传",
-            "ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费",
-            "completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）",
-            "原受理状态未知或费用未知时只按原完整请求与原幂等键lookupInference观察当前快照，不因原付费deadline已过期新建模型调用；公共观察适配未齐时保持blocked。"
+            "本域只装配可信op与原准入/批准，公共InvokeModel按原完整请求和同一幂等键先lookup并观察当前快照；仅生产方专用INVOCATION_NOT_ACCEPTED负证明且原批准截止仍有效时首次create。",
+            "Request.IDempotencyKey与外层原键完全相同；普通NOT_FOUND不视为未接受；Get/Lookup只读scope不延长付费deadline。",
+            "完整结果完成与费用状态分别保留；取消、续读、真实接受后错误和已有引用均由公共适配器保留，不换新键或新owner重付。"
           ],
           "errors": [
             {
@@ -11523,7 +11523,8 @@
             "model-gateway:cancelInference",
             "platform.InvokeModel",
             "qa.FromContext",
-            "model-gateway:lookupInference"
+            "model-gateway:lookupInference",
+            "model-gateway:readInference"
           ],
           "resources": [],
           "contract": "reference"
@@ -11534,10 +11535,11 @@
           "signature": "func ModelText(outcome InvokeModelResult)(string,error)",
           "inputs": [],
           "outputs": [],
-          "purpose": "读取持久成功模型文本增量并限制输出大小，失败和费用未知不当作空答案",
+          "purpose": "读取已持久化的完整winning文本，不把缺失结果当空答案，不把结果完成等同费用已结算",
           "steps": [
             "按精确Go签名处理可信输入和已装配依赖",
-            "详细边界和固定算法见data/workflows及源码注释"
+            "详细边界和固定算法见data/workflows及源码注释",
+            "仅消费CurrentSnapshot.Output.Text非nil的真实完整winning结果，显式空字符串可用；不由历史delta拼接或把费用未知当作没有结果，原费用/paid refs继续保留。"
           ],
           "errors": [
             {

@@ -3714,6 +3714,11 @@
       "purpose": "真实管理配置快照读取与费用策略持久化/原回执/当前授权"
     },
     {
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "kind": "implementation",
+      "purpose": "模型网关真实已入账变更的固定水位只读统计页"
+    },
+    {
       "path": "modules/model-gateway/internal/admin/usage.go",
       "kind": "source",
       "purpose": "真实账本分页与完整root归属的held/settled/unknown只读汇总"
@@ -3997,6 +4002,11 @@
       "path": "modules/model-gateway/migrations/011_invocation_lookup.sql",
       "kind": "source",
       "purpose": "原模型调用只读键查询及不可变来源追踪"
+    },
+    {
+      "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
+      "kind": "implementation",
+      "purpose": "模型网关真实已入账变更的固定水位只读统计页"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",
