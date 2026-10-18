@@ -1,3 +1,16 @@
+# 2026-10-18 问答第三批交接
+
+- 源码 `6813f10`；只改QA。新增6个原业务ready：`qa.LookupSemanticCache`、`qa.InvalidateCache`、`qa.CompleteTurn`、`qa.CancelTurn`、`qa.DeleteConversation`、`qa.PruneExpiredRecords`。
+- 新增必要助手：`qa.cosineSimilarity`、`qa.replayCompletedTurn`、`qa.releaseTurnPermit`、`qa.cancelTurnDependencies`、`qa.RedactConversation`。累计35个原业务+53助手=88/119源码ready，全部blocked待根GitLab，不是implemented/verified。
+- 语义候选严格完整space/scope/active版本、有限非零向量hash，cosine>=0.8取最高3项，默认独立qa.cache-match记忆与MG结构equivalent判断；threshold保护数字/实体/否定anchors；ValidateCachedAnswer权威核对后才交付。失效使用原EventEnvelope/schema与平台inbox同事务，不构造假信封；memory事件只影响qa.answer普通旧hash。
+- CompleteTurn新增内部answerKind与真实tokenCount，completion_hash排除lease但固定答案/引用/类型/token数；消息、终态和outbox同事务，释放guard失败时保留原答案供幂等重放补释放。CancelTurn先提交取消回执/事件，再按原root取消job及MG、queue mode=cancel清排队、释放slot；回放继续副作用，不重复终态。
+- DeleteConversation先取消并核无活动再清正文，PruneExpiredRecords按权威持久到期无活动清理。redacted轮次在解析前GONE，管理列表排除；保留无正文root/状态和MG账单引用，不删cache审核。实际Delete HTTP从既定idempotencyKey header绑定，无请求体。
+- 根需生成新增运行schema并纳入guard mode=cancel。ReleaseAdmission/CancelJob的既有RequestBody均为严格空对象，代码使用{}；不把旧内部Input的caller/epoch或path ID塞回HTTP body。implementation.phase继续design。
+- 本地只Git/隐私审阅与diff检查；无Go/gofmt/build/vet/gen/check/测试/接口/模型/服务/push。译缓存仍设计blocked：localization权威结果没有translationVersionHash，不伪造规则hash，未扩其他域协议。
+- 后续继续现有生产/执行职责，不把完整ExecuteTurn/RunWorker/BuildApplication记就绪；根及时GitLab检查及双推。
+
+---
+
 # 2026-10-18 问答第二批交接
 
 - 独占范围仅 `modules/qa/`，分支 `codex/qa-20261018-bulk`。第二批源码 `358fe68`；首批源码 `fea4204`、台账 `489bf1a`。共享公共 cherry-pick `28614ed` / `e7d621d` 已由根持有，不应重复合入。
