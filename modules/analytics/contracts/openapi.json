@@ -1865,6 +1865,9 @@
       },
       "AnalyticsReconciledPayload": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/EventInvocationReconciledPayload"
+      },
+      "AnalyticsUsageStatisticsPageResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadUsageStatisticsPageResult"
       }
     }
   },
@@ -1882,6 +1885,7 @@
     "AnalyticsQaCompletedPayload",
     "AnalyticsQaFailedPayload",
     "AnalyticsSettledPayload",
-    "AnalyticsReconciledPayload"
+    "AnalyticsReconciledPayload",
+    "AnalyticsUsageStatisticsPageResult"
   ]
 }

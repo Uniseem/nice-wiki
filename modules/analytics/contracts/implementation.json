@@ -2019,7 +2019,7 @@
           "steps": [
             "从可信WithUsageGateway读取生成端口；未装配失败关闭。固定SiteID/DataEpoch须与可信op和输入一致，op必须为analytics纯服务；不创建或续用用户证明。",
             "从原afterRevision起点，以limit=100调用model-gateway:readUsageStatisticsPage；首请求watermark=0时采用首响应上界，之后每页固定该watermark与原afterRevision，仅续原nextCursor。总调用60s、单页2.5s，context继续传给HTTP。 累计每页原始HTTP JSON字节数，完整范围最多32MiB，单页最多2MiB；超限返回BUDGET_EXCEEDED并丢弃全部页，不截断或返回部分范围。",
-            "readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再按model-gateway V2机器类型显式核验required字段、非null数组、金额省略语义；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。",
+            "readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再以生成的自部署OpenAPI x-runtime-payload-schemas回调一次校验生产方V2 schema；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。",
             "validateUsageGatewayPage核schemaVersion=2、两数组非null且合计不超100、feeCoverage=posted-and-inflight及completeFeeCoverage=true；跨页watermark固定、throughRevision单调不越界，两类事实按changeRevision共享时间线，不重复、不倒退、不漏分页进度。",
             "原账项独立ledgerRevision、原owner/site/sourceDataEpoch/root/op/class/provider/model/金额状态/原时间/captureKind和全部观察事实无损保留。unknown不补0，原sourceDataEpoch不改当前代次；网关已认证恢复投影的历史来源代次允许保留。",
             "保留每页原hash/游标和完整changes/observations；仅nextCursor为空且throughRevision等于watermark才返回完整范围。游标重复、schema/hash/epoch/上界/网络错误均返回零值，无投影写入和部分激活；afterRevision非零只表示增量范围完整，不能冒完整全站基线。"
@@ -2110,10 +2110,12 @@
             "analytics.WithUsageGateway",
             "analytics.readUsageGatewayPage",
             "analytics.validateUsageGatewayPage",
-            "platform.CanonicalJSON"
+            "platform.CanonicalJSON",
+            "platform.NewPayloadValidator"
           ],
           "resources": [
-            "UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）"
+            "UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）",
+            "UsageGateway.ValidatePage（AnalyticsUsageStatisticsPageResult生产方V2 schema）"
           ],
           "contract": "reference"
         },
@@ -2162,13 +2164,19 @@
         {
           "id": "analytics.readUsageGatewayPage",
           "name": "readUsageGatewayPage",
-          "signature": "func readUsageGatewayPage(raw json.RawMessage) (UsageGatewayPage, error)",
+          "signature": "func readUsageGatewayPage(raw json.RawMessage, validate func(json.RawMessage) error) (UsageGatewayPage, error)",
           "inputs": [
             {
               "name": "raw",
               "type": "json.RawMessage",
               "description": "完整原始HTTP页",
-              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+              "constraints": "单页最多2MiB"
+            },
+            {
+              "name": "validate",
+              "type": "func(json.RawMessage) error",
+              "description": "由apivalidate.NewPayloadValidator按AnalyticsUsageStatisticsPageResult构建",
+              "constraints": "只调用一次，验证生产方V2 required/非null/条件字段"
             }
           ],
           "outputs": [
@@ -2185,10 +2193,10 @@
               "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
             }
           ],
-          "purpose": "核完整原JSON摘要、显式V2结构与无损模型",
+          "purpose": "核生产方V2 schema、完整原JSON摘要与无损模型",
           "steps": [
-            "限制原响应2MiB；required字段必须存在且不得为null，changes/observations必须为非null数组；对原JSON只删除pageHash字段后调用平台CanonicalJSON和SHA256，核原摘要。",
-            "显式核验账项与三类观察的required字段、金额known/省略、预留maximum/held同现，严格解码拒未知字段/额外JSON，再核本地模型canonical不损失任何原字段和null/空集合语义。"
+            "限制原响应2MiB，并以wire装配的生产方V2 schema校验原始JSON一次。",
+            "对原JSON只删除pageHash字段后调用platform.CanonicalJSON与SHA256核原摘要；严格解码拒未知字段/额外JSON，再核本地模型canonical不损失原字段和空数组语义。"
           ],
           "errors": [
             {
@@ -2270,7 +2278,8 @@
           "concurrency": "无共享可变状态；纯本地操作",
           "idempotency": "相同输入产生相同结果",
           "dependencies": [
-            "platform.CanonicalJSON"
+            "platform.CanonicalJSON",
+            "platform.NewPayloadValidator"
           ],
           "resources": [],
           "contract": "reference"
@@ -2398,116 +2407,6 @@
           },
           "concurrency": "无共享可变状态；纯本地操作",
           "idempotency": "相同输入产生相同结果",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "analytics.validateUsageGatewayRawShape",
-          "name": "validateUsageGatewayRawShape",
-          "signature": "func validateUsageGatewayRawShape(fields map[string]json.RawMessage) error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "核V2页required字段与非null数组",
-          "steps": [
-            "固定全部顶层/账项/观察required字段；amount与reservation已知金额仅在known时同现。"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
-          },
-          "concurrency": "无共享可变状态。",
-          "idempotency": "相同已核验输入产生相同结果。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "analytics.requireUsageJSONFields",
-          "name": "requireUsageJSONFields",
-          "signature": "func requireUsageJSONFields(fields map[string]json.RawMessage, names ...string) error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "要求JSON对象字段存在且非null",
-          "steps": [
-            "逐字段检查存在性和显式null。"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
-          },
-          "concurrency": "无共享可变状态。",
-          "idempotency": "相同已核验输入产生相同结果。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "analytics.isJSONNull",
-          "name": "isJSONNull",
-          "signature": "func isJSONNull(raw json.RawMessage) bool",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "判断required/optional机器JSON值是否显式null",
-          "steps": [
-            "去除ASCII空白后与null比较。"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
-          },
-          "concurrency": "无共享可变状态。",
-          "idempotency": "相同已核验输入产生相同结果。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "analytics.validInvocationState",
-          "name": "validInvocationState",
-          "signature": "func validInvocationState(value string) bool",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "核费用观察调用状态枚举",
-          "steps": [
-            "只接受model-gateway V2登记状态。"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
-          },
-          "concurrency": "无共享可变状态。",
-          "idempotency": "相同已核验输入产生相同结果。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "analytics.validAttemptState",
-          "name": "validAttemptState",
-          "signature": "func validAttemptState(value string) bool",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "核费用观察独立尝试状态枚举",
-          "steps": [
-            "只接受model-gateway V2登记状态。"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
-          },
-          "concurrency": "无共享可变状态。",
-          "idempotency": "相同已核验输入产生相同结果。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -5056,7 +4955,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环",
-            "复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。"
+            "复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。",
+            "model-gateway地址存在时，以apivalidate.NewPayloadValidator(gen.PayloadValidationSpec, AnalyticsUsageStatisticsPageResult)装配UsageGateway.ValidatePage；生成物未包含该登记时失败关闭。"
           ],
           "errors": [
             {
@@ -5121,7 +5021,8 @@
             "jobs:startJob",
             "jobs:heartbeatJob",
             "jobs:completeJob",
-            "jobs:failJob"
+            "jobs:failJob",
+            "platform.NewPayloadValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",

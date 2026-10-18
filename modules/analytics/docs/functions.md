@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 152 个函数：约束 33 个，参考 119 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 147 个函数：约束 33 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1196,7 +1196,7 @@ func FetchUsagePage(ctx context.Context, op OperationContext, in UsageGatewayFet
 
 1. 从可信WithUsageGateway读取生成端口；未装配失败关闭。固定SiteID/DataEpoch须与可信op和输入一致，op必须为analytics纯服务；不创建或续用用户证明。
 2. 从原afterRevision起点，以limit=100调用model-gateway:readUsageStatisticsPage；首请求watermark=0时采用首响应上界，之后每页固定该watermark与原afterRevision，仅续原nextCursor。总调用60s、单页2.5s，context继续传给HTTP。 累计每页原始HTTP JSON字节数，完整范围最多32MiB，单页最多2MiB；超限返回BUDGET_EXCEEDED并丢弃全部页，不截断或返回部分范围。
-3. readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再按model-gateway V2机器类型显式核验required字段、非null数组、金额省略语义；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。
+3. readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再以生成的自部署OpenAPI x-runtime-payload-schemas回调一次校验生产方V2 schema；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。
 4. validateUsageGatewayPage核schemaVersion=2、两数组非null且合计不超100、feeCoverage=posted-and-inflight及completeFeeCoverage=true；跨页watermark固定、throughRevision单调不越界，两类事实按changeRevision共享时间线，不重复、不倒退、不漏分页进度。
 5. 原账项独立ledgerRevision、原owner/site/sourceDataEpoch/root/op/class/provider/model/金额状态/原时间/captureKind和全部观察事实无损保留。unknown不补0，原sourceDataEpoch不改当前代次；网关已认证恢复投影的历史来源代次允许保留。
 6. 保留每页原hash/游标和完整changes/observations；仅nextCursor为空且throughRevision等于watermark才返回完整范围。游标重复、schema/hash/epoch/上界/网络错误均返回零值，无投影写入和部分激活；afterRevision非零只表示增量范围完整，不能冒完整全站基线。
@@ -1218,8 +1218,8 @@ func FetchUsagePage(ctx context.Context, op OperationContext, in UsageGatewayFet
 - 授权：permission：service；rule：本域可信注入真实site/epoch与analytics纯服务操作；服务断言由生成客户端/平台负责，原来源epoch由生产方认证
 - 并发：每页2.5s，总调用60s；顺序读取固定上界；与调用方ctx共享取消，不重试或重建模型请求；单页2MiB，全部返回原始HTTP JSON累计32MiB，超限不截断
 - 幂等：固定afterRevision/watermark只读；每次从原起点完整收齐，不保存或激活半页
-- 依赖：`model-gateway:readUsageStatisticsPage`、`analytics.WithUsageGateway`、`analytics.readUsageGatewayPage`、`analytics.validateUsageGatewayPage`、`platform.CanonicalJSON`
-- 其他依赖说明：UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）
+- 依赖：`model-gateway:readUsageStatisticsPage`、`analytics.WithUsageGateway`、`analytics.readUsageGatewayPage`、`analytics.validateUsageGatewayPage`、`platform.CanonicalJSON`、`platform.NewPayloadValidator`
+- 其他依赖说明：UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）；UsageGateway.ValidatePage（AnalyticsUsageStatisticsPageResult生产方V2 schema）
 
 ## analytics.WithUsageGateway
 
@@ -1262,17 +1262,18 @@ func WithUsageGateway(ctx context.Context, gateway *UsageGateway) context.Contex
 
 - 级别：参考
 - 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：核完整原JSON摘要、显式V2结构与无损模型
+- 作用：核生产方V2 schema、完整原JSON摘要与无损模型
 
 ```go
-func readUsageGatewayPage(raw json.RawMessage) (UsageGatewayPage, error)
+func readUsageGatewayPage(raw json.RawMessage, validate func(json.RawMessage) error) (UsageGatewayPage, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `raw` | `json.RawMessage` | 完整原始HTTP页 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+| `raw` | `json.RawMessage` | 完整原始HTTP页 | 单页最多2MiB |
+| `validate` | `func(json.RawMessage) error` | 由apivalidate.NewPayloadValidator按AnalyticsUsageStatisticsPageResult构建 | 只调用一次，验证生产方V2 required/非null/条件字段 |
 
 **输出**
 
@@ -1283,8 +1284,8 @@ func readUsageGatewayPage(raw json.RawMessage) (UsageGatewayPage, error)
 
 **步骤**
 
-1. 限制原响应2MiB；required字段必须存在且不得为null，changes/observations必须为非null数组；对原JSON只删除pageHash字段后调用平台CanonicalJSON和SHA256，核原摘要。
-2. 显式核验账项与三类观察的required字段、金额known/省略、预留maximum/held同现，严格解码拒未知字段/额外JSON，再核本地模型canonical不损失任何原字段和null/空集合语义。
+1. 限制原响应2MiB，并以wire装配的生产方V2 schema校验原始JSON一次。
+2. 对原JSON只删除pageHash字段后调用platform.CanonicalJSON与SHA256核原摘要；严格解码拒未知字段/额外JSON，再核本地模型canonical不损失原字段和空数组语义。
 
 **错误**
 
@@ -1303,7 +1304,7 @@ func readUsageGatewayPage(raw json.RawMessage) (UsageGatewayPage, error)
 - 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
 - 并发：无共享可变状态；纯本地操作
 - 幂等：相同输入产生相同结果
-- 依赖：`platform.CanonicalJSON`
+- 依赖：`platform.CanonicalJSON`、`platform.NewPayloadValidator`
 
 ## analytics.validateUsageGatewayPage
 
@@ -1353,166 +1354,6 @@ func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, throu
 - 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
 - 并发：无共享可变状态；纯本地操作
 - 幂等：相同输入产生相同结果
-- 依赖：无
-
-## analytics.validateUsageGatewayRawShape
-
-- 级别：参考
-- 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：核V2页required字段与非null数组
-
-```go
-func validateUsageGatewayRawShape(fields map[string]json.RawMessage) error
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 固定全部顶层/账项/观察required字段；amount与reservation已知金额仅在known时同现。
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
-- 并发：无共享可变状态。
-- 幂等：相同已核验输入产生相同结果。
-- 依赖：无
-
-## analytics.requireUsageJSONFields
-
-- 级别：参考
-- 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：要求JSON对象字段存在且非null
-
-```go
-func requireUsageJSONFields(fields map[string]json.RawMessage, names ...string) error
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 逐字段检查存在性和显式null。
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
-- 并发：无共享可变状态。
-- 幂等：相同已核验输入产生相同结果。
-- 依赖：无
-
-## analytics.isJSONNull
-
-- 级别：参考
-- 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：判断required/optional机器JSON值是否显式null
-
-```go
-func isJSONNull(raw json.RawMessage) bool
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 去除ASCII空白后与null比较。
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
-- 并发：无共享可变状态。
-- 幂等：相同已核验输入产生相同结果。
-- 依赖：无
-
-## analytics.validInvocationState
-
-- 级别：参考
-- 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：核费用观察调用状态枚举
-
-```go
-func validInvocationState(value string) bool
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 只接受model-gateway V2登记状态。
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
-- 并发：无共享可变状态。
-- 幂等：相同已核验输入产生相同结果。
-- 依赖：无
-
-## analytics.validAttemptState
-
-- 级别：参考
-- 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：核费用观察独立尝试状态枚举
-
-```go
-func validAttemptState(value string) bool
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 只接受model-gateway V2登记状态。
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
-- 并发：无共享可变状态。
-- 幂等：相同已核验输入产生相同结果。
 - 依赖：无
 
 ## analytics.ReconcileUsage
@@ -3134,6 +2975,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环
 7. 复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。
+8. model-gateway地址存在时，以apivalidate.NewPayloadValidator(gen.PayloadValidationSpec, AnalyticsUsageStatisticsPageResult)装配UsageGateway.ValidatePage；生成物未包含该登记时失败关闭。
 
 **错误**
 
@@ -3145,7 +2987,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`、`jobs:checkLease`、`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`、`jobs:checkLease`、`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`platform.NewPayloadValidator`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## analytics.NewRuntimeClient

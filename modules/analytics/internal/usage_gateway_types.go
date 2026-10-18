@@ -11,11 +11,12 @@ type UsageStatisticsPageReader interface {
 	ReadUsageStatisticsPage(context.Context, ...url.Values) (json.RawMessage, error)
 }
 
-// UsageGateway只由启动装配；读取边界使用本域显式V2结构与pageHash核验完整响应。
+// UsageGateway只由启动装配；ValidatePage由生成的生产方V2 schema构建。
 type UsageGateway struct {
-	Reader    UsageStatisticsPageReader
-	SiteID    string
-	DataEpoch string
+	Reader       UsageStatisticsPageReader
+	ValidatePage func(json.RawMessage) error
+	SiteID       string
+	DataEpoch    string
 }
 
 // UsageGatewayFetchInput总是从AfterRevision开始收齐固定上界，不接受半途游标作为完整结果。

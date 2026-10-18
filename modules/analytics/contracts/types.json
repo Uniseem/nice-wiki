@@ -4159,7 +4159,7 @@
     "UsageGateway": {
       "type": "object",
       "x-internal": true,
-      "description": "可信启动注入Reader UsageStatisticsPageReader与真实SiteID/DataEpoch；读取边界按model-gateway V2机器类型显式核验required字段、非null数组、金额省略和pageHash。仅依赖容器，不序列化为HTTP输入。",
+      "description": "可信启动注入Reader UsageStatisticsPageReader、ValidatePage func(json.RawMessage) error与真实SiteID/DataEpoch。ValidatePage由apivalidate.NewPayloadValidator按本域OpenAPI x-runtime-payload-schemas登记的AnalyticsUsageStatisticsPageResult构建；读取边界一次校验生产方V2 schema，仅依赖容器，不序列化为HTTP输入。",
       "additionalProperties": false,
       "properties": {},
       "required": []
