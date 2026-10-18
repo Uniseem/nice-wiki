@@ -7,28 +7,28 @@
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+  "deliveryCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/data-protection/internal/backup_validation.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份基础预检与任务意图闭环待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/backup.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份基础预检与任务意图闭环待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/maintenance.go",
@@ -413,22 +413,22 @@
     {
       "path": "modules/data-protection/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "远程配置闭环改动待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "远程配置闭环改动待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/go.mod",
@@ -593,12 +593,12 @@
     {
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
-      "blocker": "远程配置闭环改动待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/migrations/0002_control.sql",
@@ -613,12 +613,12 @@
     {
       "path": "modules/data-protection/migrations/embed.go",
       "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "V2真实布局就绪，待统一GitLab CI"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/docs/crypto-format.md",
@@ -663,12 +663,12 @@
     {
       "path": "modules/data-protection/migrations/0005_backup_intent.sql",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "control V3迁移待统一GitLab CI；未实际执行"
+      "blocker": "本批实际改动待统一GitLab CI"
     }
   ],
   "functions": [
@@ -676,23 +676,23 @@
       "id": "data-protection.ValidateBackupRequest",
       "path": "modules/data-protection/internal/backup_validation.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份基础预检/持久意图/jobs真实提交链就绪，待统一GitLab CI"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.CreateBackup",
       "path": "modules/data-protection/internal/backup.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份基础预检/持久意图/jobs真实提交链就绪，待统一GitLab CI"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.CollectSnapshots",
@@ -1413,12 +1413,12 @@
       "id": "data-protection.NewApplication",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
-      "blocker": "新增真实设置HTTP装配，待统一GitLab CI；完整服务未齐"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.server.ListBackups",
@@ -1457,12 +1457,12 @@
       "id": "data-protection.OpenCatalog",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.openDatabase",
@@ -1963,34 +1963,34 @@
       "id": "data-protection.enqueueBackupState",
       "path": "modules/data-protection/internal/backup.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.submitBackupJob",
       "path": "modules/data-protection/internal/backup.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     },
     {
       "id": "data-protection.server.CreateBackup",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
+      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
     }
   ],
   "rule": "累计18既有业务/界面与53实际参考支持代码就绪待统一GitLab CI；备份执行屏障/归档封存与恢复/镜像服务链及完整启动继续实施。",
@@ -2002,7 +2002,8 @@
       "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
       "5b60328a703a35a6a4dff73965c24c2123364acc",
       "4fc21593670b7171e56d40b874324441c72bdb75",
-      "351f17e936549171d39759a3b28c3912dc6da085"
+      "351f17e936549171d39759a3b28c3912dc6da085",
+      "525e43bdd8a80f323db9bf204f2ea09917cf1f57"
     ],
     "existingBusinessFunctions": [
       "data-protection.ListBackups",
@@ -2020,7 +2021,9 @@
       "data-protection.RequestBackup",
       "data-protection.ApproveFullRestore",
       "data-protection.RequestMirrorSync",
-      "data-protection.mountModuleUI"
+      "data-protection.mountModuleUI",
+      "data-protection.ValidateBackupRequest",
+      "data-protection.CreateBackup"
     ],
     "newReferenceHelpers": [
       "data-protection.NewApplication",
@@ -2072,7 +2075,10 @@
       "data-protection.loadMirrorSettings",
       "data-protection.saveRemote",
       "data-protection.buildMirror",
-      "data-protection.submitSync"
+      "data-protection.submitSync",
+      "data-protection.enqueueBackupState",
+      "data-protection.submitBackupJob",
+      "data-protection.server.CreateBackup"
     ],
     "batches": [
       {
@@ -2199,6 +2205,23 @@
           "data-protection.ReadMirrorStatus"
         ],
         "notes": "需root770b93c固定token/stream端口与portal统一装配；兼容progressToken/ExpiresAt与mirrorId，lock只GitLab生成。大型下载File System Access流式写，非支持浏览器明确不可用，不Blob整包。"
+      },
+      {
+        "sourceCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+        "existingBusinessFunctions": [
+          "data-protection.ValidateBackupRequest",
+          "data-protection.CreateBackup"
+        ],
+        "newReferenceHelpers": [
+          "data-protection.enqueueBackupState",
+          "data-protection.submitBackupJob",
+          "data-protection.server.CreateBackup"
+        ],
+        "changedFunctions": [
+          "data-protection.OpenCatalog",
+          "data-protection.NewApplication"
+        ],
+        "notes": "control V3不可变备份输入及真实jobs回执；requested无伪manifestHash，容量前置明确capacityVerified=false。未实际执行迁移/接口/备份，不本地编译。"
       }
     ]
   }
