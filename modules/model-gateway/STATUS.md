@@ -1,3 +1,11 @@
+# 原生PDF小批
+
+源码f9bf34b+合同c3ccdc2一起候选，依赖根dd1e399公共File；3新实际helper：ReadInputBudgetModel、MediaPartAsset、ValidateInputModel，统一model-gateway前缀，均blocked待GitLab。11既有修改函数重新待CI，无新增原业务计数。
+
+file/text/image严格互斥，调用仍vision；仅原生PDF application/pdf，3协议映射，原授权媒体version/hash/MIME/size及PDF头核对，模型明确file+vision+MaxInput，每主/备预留/派发前核。EstimateTokens非文本真实窗口保守上界，不冒称实际token；未知费用仍held。
+
+仅读公开官方API文档，无新SDK/迁移/测试/真实模型，本机未Go/pnpm/生成/格式/编译，无push。继续共享身份加载替换、catalog/probe/保护与完整启动。
+
 # 管理界面与转发第5批
 
 源码91bfe36。4原业务ready：PublishOutbox、LoadAdminOverview、SubmitPrimaryEdit、mountModuleUI，+26实际helper，全部blocked待GitLab。移除重复EnqueueOutbox参考ID不计完成；Rotate完整tracking初始化待后续完整Build，暂partial。
